@@ -1,0 +1,696 @@
+openapi: 3.0.3
+info:
+  title: Multi-Tenant SaaS Framework API
+  description: |
+    多租户 SaaS 框架 API 文档
+    
+    ## 认证方式
+    - Bearer Token: `Authorization: Bearer {token}`
+    - X-Tenant-ID Header: `X-Tenant-ID: {tenant_id}`
+    
+    ## 租户识别
+    系统通过以下优先级识别租户：
+    1. URL 参数 `?tenant_id=` 或 `?tid=`
+    2. Header `X-Tenant-ID`
+    3. 自定义域名（X-Original-Host → 数据库查询）
+    4. Cookie `tenant_id`
+    5. Session `tenant_id`
+    6. 认证用户的 `current_tenant_id`
+    7. 默认租户
+    
+    ## 域名类型
+    - `admin`: 系统后台（仅 super_admin）
+    - `console`: 租户后台（仅 tenant_admin）
+    - `app`: 用户前台（tenant_admin + end_user）
+    - `api`: API 接口
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://ai.lyt.com
+    description: 平台租户
+  - url: http://ai.tenant1.local
+    description: 企业租户
+  - url: http://admin.lyt.com
+    description: 系统后台
+
+tags:
+  - name: Auth
+    description: 认证相关
+  - name: Tenant
+    description: 租户管理
+  - name: User
+    description: 用户管理
+  - name: TenantSetting
+    description: 租户配置
+  - name: Credit
+    description: 积分管理
+  - name: Member
+    description: 成员管理
+  - name: OAuth
+    description: 第三方登录
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    
+  parameters:
+    TenantId:
+      name: X-Tenant-ID
+      in: header
+      required: true
+      schema:
+        type: string
+        example: "8094539620840357"
+      description: 租户 ID
+    
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+      description: 页码
+    
+    PerPage:
+      name: per_page
+      in: query
+      schema:
+        type: integer
+        default: 15
+      description: 每页数量
+  
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "错误信息"
+        error:
+          type: string
+          example: "ErrorType"
+    
+    Tenant:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+          example: "8094539620840357"
+        name:
+          type: string
+          example: "示例企业"
+        slug:
+          type: string
+          example: "example"
+        custom_domain:
+          type: string
+          example: "ai.example.com"
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+          example: "active"
+        subscription_plan:
+          type: string
+          example: "pro"
+        total_credits:
+          type: integer
+          example: 10000
+        used_credits:
+          type: integer
+          example: 1000
+        available_credits:
+          type: integer
+          example: 9000
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    User:
+      type: object
+      properties:
+        user_id:
+          type: string
+          example: "9876543210987654"
+        name:
+          type: string
+          example: "张三"
+        email:
+          type: string
+          example: "zhangsan@example.com"
+        phone:
+          type: string
+          example: "13800138000"
+        role:
+          type: string
+          enum: [super_admin, platform_user]
+          example: "platform_user"
+        avatar:
+          type: string
+          example: "https://example.com/avatar.jpg"
+        is_active:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+    
+    TenantUser:
+      type: object
+      properties:
+        tenant_user_id:
+          type: string
+        tenant_id:
+          type: string
+        user_id:
+          type: string
+        role:
+          type: string
+          enum: [tenant_admin, end_user]
+        is_active:
+          type: boolean
+        joined_at:
+          type: string
+          format: date-time
+
+paths:
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: 用户登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  example: "admin@example.com"
+                password:
+                  type: string
+                  example: "password"
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                      token:
+                        type: string
+                        example: "1|abc123..."
+        '401':
+          description: 认证失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: 用户登出
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 登出成功
+  
+  /api/v1/auth/me:
+    get:
+      tags: [Auth]
+      summary: 获取当前用户信息
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/User'
+  
+  /api/v1/tenants:
+    get:
+      tags: [Tenant]
+      summary: 获取租户列表
+      description: 仅 super_admin 可访问
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: 搜索关键词
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, suspended]
+          description: 状态筛选
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tenant'
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                      last_page:
+                        type: integer
+                      per_page:
+                        type: integer
+                      total:
+                        type: integer
+    
+    post:
+      tags: [Tenant]
+      summary: 创建租户
+      description: 仅 super_admin 可访问
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, slug]
+              properties:
+                name:
+                  type: string
+                  example: "新企业"
+                slug:
+                  type: string
+                  example: "new-company"
+                custom_domain:
+                  type: string
+                  example: "ai.newcompany.com"
+                status:
+                  type: string
+                  enum: [active, inactive]
+                  default: active
+                subscription_plan:
+                  type: string
+                  default: free
+                total_credits:
+                  type: integer
+                  default: 0
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Tenant'
+  
+  /api/v1/tenants/{tenant_id}:
+    get:
+      tags: [Tenant]
+      summary: 获取租户详情
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Tenant'
+    
+    put:
+      tags: [Tenant]
+      summary: 更新租户
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                status:
+                  type: string
+                  enum: [active, inactive, suspended]
+                subscription_plan:
+                  type: string
+                total_credits:
+                  type: integer
+      responses:
+        '200':
+          description: 更新成功
+    
+    delete:
+      tags: [Tenant]
+      summary: 删除租户
+      description: 仅 super_admin 可访问
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 删除成功
+  
+  /api/v1/tenants/{tenant_id}/members:
+    get:
+      tags: [Member]
+      summary: 获取租户成员列表
+      security:
+        - bearerAuth: []
+        - TenantId: []
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [tenant_admin, end_user]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TenantUser'
+    
+    post:
+      tags: [Member]
+      summary: 添加租户成员
+      security:
+        - bearerAuth: []
+        - TenantId: []
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+                role:
+                  type: string
+                  enum: [tenant_admin, end_user]
+                  default: end_user
+      responses:
+        '201':
+          description: 添加成功
+  
+  /api/v1/tenants/{tenant_id}/settings:
+    get:
+      tags: [TenantSetting]
+      summary: 获取租户配置
+      security:
+        - bearerAuth: []
+        - TenantId: []
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: group
+          in: query
+          schema:
+            type: string
+            enum: [info, oauth, auth, mail, registration]
+          description: 配置组
+      responses:
+        '200':
+          description: 成功
+    
+    put:
+      tags: [TenantSetting]
+      summary: 更新租户配置
+      security:
+        - bearerAuth: []
+        - TenantId: []
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 更新成功
+  
+  /api/v1/credits/balance:
+    get:
+      tags: [Credit]
+      summary: 获取积分余额
+      security:
+        - bearerAuth: []
+        - TenantId: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      balance:
+                        type: integer
+                        example: 9000
+                      total_earned:
+                        type: integer
+                        example: 10000
+                      total_spent:
+                        type: integer
+                        example: 1000
+  
+  /api/v1/credits/transactions:
+    get:
+      tags: [Credit]
+      summary: 获取积分交易记录
+      security:
+        - bearerAuth: []
+        - TenantId: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [recharge, consume, refund, gift]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        credit_transaction_id:
+                          type: string
+                        type:
+                          type: string
+                        amount:
+                          type: integer
+                        balance_after:
+                          type: integer
+                        description:
+                          type: string
+                        created_at:
+                          type: string
+                          format: date-time
+  
+  /api/v1/oauth/providers:
+    get:
+      tags: [OAuth]
+      summary: 获取可用的 OAuth 提供商
+      security:
+        - bearerAuth: []
+        - TenantId: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        provider:
+                          type: string
+                        name:
+                          type: string
+                        enabled:
+                          type: boolean
+  
+  /api/v1/oauth/{provider}/redirect:
+    get:
+      tags: [OAuth]
+      summary: 获取 OAuth 重定向 URL
+      security:
+        - bearerAuth: []
+        - TenantId: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [wechat, dingtalk, feishu]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      url:
+                        type: string
+  
+  /api/v1/oauth/{provider}/callback:
+    post:
+      tags: [OAuth]
+      summary: 处理 OAuth 回调
+      security:
+        - bearerAuth: []
+        - TenantId: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [wechat, dingtalk, feishu]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+      responses:
+        '200':
+          description: 成功

@@ -16,3 +16,19 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# Laravel 缓存文件
+/bootstrap/cache/*.php
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/logs/*
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE
+*.swp
+*.swo
+*~

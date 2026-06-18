@@ -5,7 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:element-plus": "VITE_UI_FRAMEWORK=element-plus vite",
+    "dev:ant-design": "VITE_UI_FRAMEWORK=ant-design vite",
+    "dev:naive-ui": "VITE_UI_FRAMEWORK=naive-ui vite",
     "build": "vite build",
+    "build:element-plus": "VITE_UI_FRAMEWORK=element-plus vite build",
+    "build:ant-design": "VITE_UI_FRAMEWORK=ant-design vite build",
+    "build:naive-ui": "VITE_UI_FRAMEWORK=naive-ui vite build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -13,8 +19,17 @@
     "vue-router": "^4.2.0",
     "pinia": "^2.1.0",
     "axios": "^1.6.0",
+    "@multi-tenant-saas/ui-core": "workspace:*"
+  },
+  "peerDependencies": {
     "element-plus": "^2.5.0",
-    "@element-plus/icons-vue": "^2.3.0"
+    "ant-design-vue": "^4.1.0",
+    "naive-ui": "^2.38.0"
+  },
+  "peerDependenciesMeta": {
+    "element-plus": { "optional": true },
+    "ant-design-vue": { "optional": true },
+    "naive-ui": { "optional": true }
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",

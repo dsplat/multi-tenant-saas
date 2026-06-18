@@ -1,0 +1,26 @@
+{
+  "name": "@multi-tenant-saas/ui-core",
+  "version": "1.0.0",
+  "description": "Multi-Tenant SaaS UI 核心库 - 主题切换和 UI 框架适配",
+  "type": "module",
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./adapters/*": "./adapters/*",
+    "./themes/*": "./themes/*"
+  },
+  "dependencies": {
+    "vue": "^3.4.0"
+  },
+  "peerDependencies": {
+    "element-plus": "^2.5.0",
+    "ant-design-vue": "^4.1.0",
+    "naive-ui": "^2.38.0"
+  },
+  "peerDependenciesMeta": {
+    "element-plus": { "optional": true },
+    "ant-design-vue": { "optional": true },
+    "naive-ui": { "optional": true }
+  }
+}

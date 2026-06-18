@@ -39,6 +39,9 @@
           </el-breadcrumb>
         </div>
         <div class="header-right">
+          <ThemeSwitcher />
+          <ColorPicker />
+          <el-button :icon="Setting" circle @click="showThemeSettings = true" />
           <el-dropdown>
             <span class="el-dropdown-link">
               {{ userStore.user?.name || '管理员' }}
@@ -58,15 +61,22 @@
       </el-main>
     </el-container>
   </el-container>
+  
+  <ThemeSettings v-model:visible="showThemeSettings" />
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Setting } from '@element-plus/icons-vue'
 import { useUserStore } from './stores/user'
+import { ThemeSwitcher, ColorPicker, ThemeSettings } from '@multi-tenant-saas/ui-core'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+
+const showThemeSettings = ref(false)
 
 const handleLogout = async () => {
   await userStore.logout()
@@ -80,7 +90,8 @@ const handleLogout = async () => {
 }
 
 .aside {
-  background-color: #304156;
+  background-color: var(--bg-color);
+  border-right: 1px solid var(--border-color);
 }
 
 .logo {
@@ -88,7 +99,7 @@ const handleLogout = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--text-color-primary);
 }
 
 .logo h2 {
@@ -101,8 +112,8 @@ const handleLogout = async () => {
 }
 
 .header {
-  background-color: #fff;
-  border-bottom: 1px solid #e6e6e6;
+  background-color: var(--bg-color);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -116,16 +127,18 @@ const handleLogout = async () => {
 .header-right {
   display: flex;
   align-items: center;
+  gap: 12px;
 }
 
 .el-dropdown-link {
   cursor: pointer;
   display: flex;
   align-items: center;
+  color: var(--text-color-primary);
 }
 
 .main {
-  background-color: #f5f5f5;
+  background-color: var(--bg-color-page);
   padding: 20px;
 }
 </style>

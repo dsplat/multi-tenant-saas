@@ -7,6 +7,7 @@
     "require": {
         "php": "^8.2",
         "laravel/framework": "^12.0",
+        "laravel/sanctum": "^4.3",
         "orchestra/testbench": "^10.0"
     },
     "require-dev": {

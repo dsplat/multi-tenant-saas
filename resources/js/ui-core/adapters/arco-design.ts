@@ -1,39 +1,39 @@
 /**
- * Ant Design Vue 适配器
+ * Arco Design Vue 适配器
  */
 
 import type { UIFrameworkAdapter, UIFrameworkMetadata } from '../registry'
 
-export const antDesignMetadata: UIFrameworkMetadata = {
-  name: 'ant-design',
-  label: 'Ant Design Vue',
-  description: '蚂蚁金服开源的企业级 UI 组件库，设计规范、国际化完善',
-  version: '^4.1.0',
-  website: 'https://antdv.com',
-  icon: 'ant-design:ant-design',
+export const arcoDesignMetadata: UIFrameworkMetadata = {
+  name: 'arco-design',
+  label: 'Arco Design',
+  description: '字节跳动开源的企业级 UI 组件库，设计现代、组件丰富',
+  version: '^2.5.0',
+  website: 'https://arco.design',
+  icon: 'arco-design:arco-design',
   features: [
-    '60+ 高质量组件',
-    '企业级设计规范',
+    '70+ 高质量组件',
+    '现代设计风格',
     '完整的 TypeScript 支持',
     '暗色主题支持',
-    '国际化 60+ 语言',
+    '按需导入',
   ],
-  installCommand: 'npm install ant-design-vue @ant-design/icons-vue',
+  installCommand: 'npm install @arco-design/web-vue',
 }
 
-export const antDesignAdapter: UIFrameworkAdapter = {
-  name: 'ant-design',
-  metadata: antDesignMetadata,
+export const arcoDesignAdapter: UIFrameworkAdapter = {
+  name: 'arco-design',
+  metadata: arcoDesignMetadata,
   
   async install(app) {
-    const { default: Antd } = await import('ant-design-vue')
-    const icons = await import('@ant-design/icons-vue')
+    const ArcoVue = await import('@arco-design/web-vue')
+    const icons = await import('@arco-design/web-vue/es/icon')
     
-    app.use(Antd)
+    app.use(ArcoVue.default)
     
     // 注册图标
     Object.entries(icons).forEach(([key, component]) => {
-      if (key !== 'default' && !key.startsWith('Icon')) {
+      if (key.startsWith('Icon')) {
         app.component(key, component)
       }
     })
@@ -43,14 +43,14 @@ export const antDesignAdapter: UIFrameworkAdapter = {
     return {
       // 基础
       Button: 'a-button',
-      Link: 'a-typography-link',
+      Link: 'a-link',
       Text: 'a-typography-text',
       
       // 表单
       Input: 'a-input',
       InputNumber: 'a-input-number',
       Select: 'a-select',
-      Option: 'a-select-option',
+      Option: 'a-option',
       Radio: 'a-radio',
       RadioGroup: 'a-radio-group',
       RadioButton: 'a-radio-button',
@@ -83,12 +83,12 @@ export const antDesignAdapter: UIFrameworkAdapter = {
       MenuItem: 'a-menu-item',
       SubMenu: 'a-sub-menu',
       Tabs: 'a-tabs',
-      TabPane: 'a-tabs-tab-pane',
+      TabPane: 'a-tab-pane',
       Breadcrumb: 'a-breadcrumb',
       BreadcrumbItem: 'a-breadcrumb-item',
       Dropdown: 'a-dropdown',
       Steps: 'a-steps',
-      Step: 'a-steps-step',
+      Step: 'a-step',
       
       // 反馈
       Modal: 'a-modal',
@@ -96,8 +96,8 @@ export const antDesignAdapter: UIFrameworkAdapter = {
       Tooltip: 'a-tooltip',
       Popover: 'a-popover',
       Popconfirm: 'a-popconfirm',
-      Message: 'message',
-      Notification: 'notification',
+      Message: 'Message',
+      Notification: 'Notification',
       
       // 布局
       Layout: 'a-layout',
@@ -110,7 +110,7 @@ export const antDesignAdapter: UIFrameworkAdapter = {
       Divider: 'a-divider',
       Card: 'a-card',
       Collapse: 'a-collapse',
-      CollapsePanel: 'a-collapse-panel',
+      CollapseItem: 'a-collapse-item',
       Space: 'a-space',
     }
   },
@@ -118,12 +118,14 @@ export const antDesignAdapter: UIFrameworkAdapter = {
   getThemeVariables(mode) {
     if (mode === 'dark') {
       return {
-        '--ant-primary-color': '#177ddc',
-        '--ant-body-background': '#141414',
-        '--ant-component-background': '#1d1d1d',
-        '--ant-text-color': 'rgba(255, 255, 255, 0.85)',
-        '--ant-text-color-secondary': 'rgba(255, 255, 255, 0.45)',
-        '--ant-border-color': '#434343',
+        '--color-bg-1': '#17171a',
+        '--color-bg-2': '#232324',
+        '--color-bg-3': '#2a2a2b',
+        '--color-bg-4': '#313132',
+        '--color-text-1': 'rgba(255, 255, 255, 0.9)',
+        '--color-text-2': 'rgba(255, 255, 255, 0.7)',
+        '--color-text-3': 'rgba(255, 255, 255, 0.5)',
+        '--color-border': 'rgba(255, 255, 255, 0.15)',
       }
     }
     return {}

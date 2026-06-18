@@ -188,3 +188,47 @@
 #45 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/public/index.php(17): Illuminate\\Foundation\\Application->handleRequest(Object(Illuminate\\Http\\Request))
 #46 {main}
 "} 
+[2026-06-18 04:43:52] local.ERROR: There are no commands defined in the "tenancy" namespace. {"exception":"[object] (Symfony\\Component\\Console\\Exception\\NamespaceNotFoundException(code: 0): There are no commands defined in the \"tenancy\" namespace. at /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Application.php:694)
+[stacktrace]
+#0 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Application.php(743): Symfony\\Component\\Console\\Application->findNamespace('tenancy')
+#1 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Application.php(298): Symfony\\Component\\Console\\Application->find('tenancy:check-i...')
+#2 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Application.php(195): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#3 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#4 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#5 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/artisan(9): Illuminate\\Foundation\\Application->handleCommand(Object(Symfony\\Component\\Console\\Input\\ArgvInput))
+#6 {main}
+"} 
+[2026-06-18 04:44:01] local.ERROR: There are no commands defined in the "tenancy" namespace. {"exception":"[object] (Symfony\\Component\\Console\\Exception\\NamespaceNotFoundException(code: 0): There are no commands defined in the \"tenancy\" namespace. at /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Application.php:694)
+[stacktrace]
+#0 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Application.php(743): Symfony\\Component\\Console\\Application->findNamespace('tenancy')
+#1 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Application.php(298): Symfony\\Component\\Console\\Application->find('tenancy:check-i...')
+#2 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Application.php(195): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#3 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#4 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#5 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/artisan(9): Illuminate\\Foundation\\Application->handleCommand(Object(Symfony\\Component\\Console\\Input\\ArgvInput))
+#6 {main}
+"} 
+[2026-06-18 04:44:55] local.ERROR: There are no commands defined in the "tenancy" namespace. {"exception":"[object] (Symfony\\Component\\Console\\Exception\\NamespaceNotFoundException(code: 0): There are no commands defined in the \"tenancy\" namespace. at /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Application.php:694)
+[stacktrace]
+#0 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Application.php(743): Symfony\\Component\\Console\\Application->findNamespace('tenancy')
+#1 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Application.php(298): Symfony\\Component\\Console\\Application->find('tenancy:check-i...')
+#2 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Application.php(195): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#3 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#4 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#5 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/artisan(9): Illuminate\\Foundation\\Application->handleCommand(Object(Symfony\\Component\\Console\\Input\\ArgvInput))
+#6 {main}
+"} 
+[2026-06-18 04:45:12] local.ERROR: An option named "verbose" already exists. {"exception":"[object] (Symfony\\Component\\Console\\Exception\\LogicException(code: 0): An option named \"verbose\" already exists. at /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Input/InputDefinition.php:220)
+[stacktrace]
+#0 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Input/InputDefinition.php(210): Symfony\\Component\\Console\\Input\\InputDefinition->addOption(Object(Symfony\\Component\\Console\\Input\\InputOption))
+#1 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Command/Command.php(405): Symfony\\Component\\Console\\Input\\InputDefinition->addOptions(Array)
+#2 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Command/Command.php(291): Symfony\\Component\\Console\\Command\\Command->mergeApplicationDefinition()
+#3 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/laravel/framework/src/Illuminate/Console/Command.php(180): Symfony\\Component\\Console\\Command\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#4 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Application.php(1117): Illuminate\\Console\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#5 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Application.php(356): Symfony\\Component\\Console\\Application->doRunCommand(Object(MultiTenantSaas\\Console\\Commands\\CheckTenantIsolation), Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#6 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/symfony/console/Application.php(195): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#7 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#8 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#9 /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/artisan(9): Illuminate\\Foundation\\Application->handleCommand(Object(Symfony\\Component\\Console\\Input\\ArgvInput))
+#10 {main}
+"} 

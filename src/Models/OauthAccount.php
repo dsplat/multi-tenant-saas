@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Models;
 
+use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OauthAccount extends Model
 {
-    use HasFactory, HasGlobalId;
+    use BelongsToTenant, HasFactory, HasGlobalId;
 
     protected $primaryKey = 'oauth_account_id';
 

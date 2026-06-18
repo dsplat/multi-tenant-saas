@@ -3,6 +3,7 @@
 namespace MultiTenantSaas;
 
 use Illuminate\Support\ServiceProvider;
+use MultiTenantSaas\Console\Commands\CheckTenantIsolation;
 use MultiTenantSaas\Services\IdGenerator;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Context\TenantConfigStore;
@@ -21,10 +22,10 @@ class TenancyServiceProvider extends ServiceProvider
             __DIR__ . '/../database/migrations' => database_path('migrations'),
         ], 'tenancy-migrations');
 
-        // 注册中间件别名
+        // 注册 Artisan 命令
         if ($this->app->runningInConsole()) {
             $this->commands([
-                // 可以在这里注册 Artisan 命令
+                CheckTenantIsolation::class,
             ]);
         }
     }

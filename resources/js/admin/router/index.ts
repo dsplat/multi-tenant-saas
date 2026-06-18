@@ -51,6 +51,11 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, _from, next) => {
+  // 开发模式跳过登录验证
+  if (import.meta.env.DEV) {
+    next()
+    return
+  }
   if (to.meta.requiresAuth !== false) {
     const userStore = useUserStore()
     if (!userStore.token) {

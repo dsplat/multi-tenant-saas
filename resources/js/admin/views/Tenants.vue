@@ -1,227 +1,116 @@
 <template>
-  <div class="tenants">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>租户管理</span>
-          <el-button type="primary" @click="handleCreate">
-            <el-icon><Plus /></el-icon>
-            创建租户
-          </el-button>
-        </div>
-      </template>
-      
-      <!-- 搜索和筛选 -->
-      <el-form :inline="true" :model="filters" class="filter-form">
-        <el-form-item label="搜索">
-          <el-input
-            v-model="filters.search"
-            placeholder="租户名称/标识"
-            clearable
-            @clear="fetchTenants"
-            @keyup.enter="fetchTenants"
-          />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="filters.status" clearable placeholder="全部" @change="fetchTenants">
-            <el-option label="活跃" value="active" />
-            <el-option label="未激活" value="inactive" />
-            <el-option label="已暂停" value="suspended" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="fetchTenants">查询</el-button>
-        </el-form-item>
-      </el-form>
-      
-      <!-- 租户列表 -->
-      <el-table :data="tenants" style="width: 100%" v-loading="loading">
-        <el-table-column prop="tenant_id" label="ID" width="180" />
-        <el-table-column prop="name" label="租户名称" />
-        <el-table-column prop="slug" label="标识" />
-        <el-table-column prop="custom_domain" label="自定义域名" />
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">
-              {{ getStatusLabel(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="subscription_plan" label="套餐" width="100" />
-        <el-table-column prop="created_at" label="创建时间" width="180" />
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="primary" @click="handleView(row)">查看</el-button>
-            <el-popconfirm
-              title="确定删除这个租户吗？"
-              @confirm="handleDelete(row)"
-            >
-              <template #reference>
-                <el-button link type="danger">删除</el-button>
-              </template>
-            </el-popconfirm>
-          </template>
-        </el-table-column>
-      </el-table>
-      
-      <!-- 分页 -->
-      <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.perPage"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="pagination.total"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="fetchTenants"
-        @current-change="fetchTenants"
-        style="margin-top: 20px; justify-content: flex-end;"
-      />
-    </el-card>
-    
-    <!-- 创建/编辑对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="isEdit ? '编辑租户' : '创建租户'"
-      width="600px"
-    >
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-width="100px"
-      >
-        <el-form-item label="租户名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入租户名称" />
-        </el-form-item>
-        <el-form-item label="标识" prop="slug">
-          <el-input v-model="form.slug" placeholder="请输入标识" :disabled="isEdit" />
-        </el-form-item>
-        <el-form-item label="自定义域名" prop="custom_domain">
-          <el-input v-model="form.custom_domain" placeholder="请输入自定义域名" />
-        </el-form-item>
-        <el-form-item label="状态" prop="status">
-          <el-select v-model="form.status" placeholder="请选择状态">
-            <el-option label="活跃" value="active" />
-            <el-option label="未激活" value="inactive" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="套餐" prop="subscription_plan">
-          <el-select v-model="form.subscription_plan" placeholder="请选择套餐">
-            <el-option label="免费版" value="free" />
-            <el-option label="专业版" value="pro" />
-            <el-option label="企业版" value="enterprise" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="总积分" prop="total_credits">
-          <el-input-number v-model="form.total_credits" :min="0" />
-        </el-form-item>
-      </el-form>
-      
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit" :loading="submitting">
-          确定
-        </el-button>
-      </template>
-    </el-dialog>
+  <div class="tenants-page">
+    <div class="page-header">
+      <h2>租户管理</h2>
+      <button class="primary-btn" @click="handleCreate">+ 创建租户</button>
+    </div>
+
+    <div class="panel">
+      <div class="filter-bar">
+        <input v-model="filters.search" placeholder="搜索租户名称..." @keyup.enter="fetchTenants" />
+        <select v-model="filters.status" @change="fetchTenants">
+          <option value="">全部状态</option>
+          <option value="active">活跃</option>
+          <option value="inactive">未激活</option>
+          <option value="suspended">已暂停</option>
+        </select>
+        <button @click="fetchTenants">查询</button>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>名称</th>
+            <th>标识</th>
+            <th>自定义域名</th>
+            <th>状态</th>
+            <th>套餐</th>
+            <th>创建时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="t in tenants" :key="t.tenant_id">
+            <td>{{ t.tenant_id }}</td>
+            <td>{{ t.name }}</td>
+            <td>{{ t.slug }}</td>
+            <td>{{ t.custom_domain || '-' }}</td>
+            <td>
+              <span :class="['badge', statusClass(t.status)]">{{ statusLabel(t.status) }}</span>
+            </td>
+            <td>{{ t.subscription_plan }}</td>
+            <td>{{ t.created_at }}</td>
+            <td>
+              <button class="link-btn" @click="handleEdit(t)">编辑</button>
+              <button class="link-btn danger" @click="handleDelete(t)">删除</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 简单对话框 -->
+    <div class="modal-backdrop" v-if="dialogVisible" @click="dialogVisible = false">
+      <div class="modal-content" @click.stop>
+        <h3>{{ isEdit ? '编辑租户' : '创建租户' }}</h3>
+        <form @submit.prevent="handleSubmit">
+          <div class="form-group">
+            <label>名称</label>
+            <input v-model="form.name" required />
+          </div>
+          <div class="form-group">
+            <label>标识</label>
+            <input v-model="form.slug" required :disabled="isEdit" />
+          </div>
+          <div class="form-group">
+            <label>自定义域名</label>
+            <input v-model="form.custom_domain" />
+          </div>
+          <div class="form-group">
+            <label>状态</label>
+            <select v-model="form.status">
+              <option value="active">活跃</option>
+              <option value="inactive">未激活</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="button" @click="dialogVisible = false">取消</button>
+            <button type="submit" class="primary-btn">确定</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import axios from 'axios'
-import type { FormInstance, FormRules } from 'element-plus'
-
-const router = useRouter()
 
 const loading = ref(false)
-const submitting = ref(false)
 const dialogVisible = ref(false)
 const isEdit = ref(false)
-const formRef = ref<FormInstance>()
+const tenants = ref<any[]>([])
 
-const tenants = ref([])
-const pagination = reactive({
-  page: 1,
-  perPage: 15,
-  total: 0,
-})
+const filters = reactive({ search: '', status: '' })
+const form = reactive({ tenant_id: '', name: '', slug: '', custom_domain: '', status: 'active', subscription_plan: 'free', total_credits: 0 })
 
-const filters = reactive({
-  search: '',
-  status: '',
-})
-
-const form = reactive({
-  tenant_id: '',
-  name: '',
-  slug: '',
-  custom_domain: '',
-  status: 'active',
-  subscription_plan: 'free',
-  total_credits: 0,
-})
-
-const rules: FormRules = {
-  name: [
-    { required: true, message: '请输入租户名称', trigger: 'blur' },
-  ],
-  slug: [
-    { required: true, message: '请输入标识', trigger: 'blur' },
-    { pattern: /^[a-z0-9-]+$/, message: '标识只能包含小写字母、数字和横线', trigger: 'blur' },
-  ],
-}
-
-const getStatusType = (status: string) => {
-  const map: Record<string, string> = {
-    active: 'success',
-    inactive: 'info',
-    suspended: 'danger',
-  }
-  return map[status] || 'info'
-}
-
-const getStatusLabel = (status: string) => {
-  const map: Record<string, string> = {
-    active: '活跃',
-    inactive: '未激活',
-    suspended: '已暂停',
-  }
-  return map[status] || status
-}
+const statusClass = (s: string) => ({ active: 'badge-success', inactive: 'badge-info', suspended: 'badge-danger' }[s] || 'badge-info')
+const statusLabel = (s: string) => ({ active: '活跃', inactive: '未激活', suspended: '已暂停' }[s] || s)
 
 const fetchTenants = async () => {
   loading.value = true
   try {
-    const response = await axios.get('/api/v1/tenants', {
-      params: {
-        page: pagination.page,
-        per_page: pagination.perPage,
-        search: filters.search,
-        status: filters.status,
-      },
-    })
-    tenants.value = response.data.data
-    pagination.total = response.data.meta.total
-  } catch (error) {
-    console.error('获取租户列表失败:', error)
-    ElMessage.error('获取租户列表失败')
-  } finally {
-    loading.value = false
-  }
+    const res = await axios.get('/api/v1/tenants', { params: { ...filters, per_page: 20 } })
+    tenants.value = res.data.data || []
+  } catch { tenants.value = [] }
+  finally { loading.value = false }
 }
 
 const handleCreate = () => {
   isEdit.value = false
-  form.tenant_id = ''
-  form.name = ''
-  form.slug = ''
-  form.custom_domain = ''
-  form.status = 'active'
-  form.subscription_plan = 'free'
-  form.total_credits = 0
+  Object.assign(form, { tenant_id: '', name: '', slug: '', custom_domain: '', status: 'active', subscription_plan: 'free', total_credits: 0 })
   dialogVisible.value = true
 }
 
@@ -231,58 +120,90 @@ const handleEdit = (row: any) => {
   dialogVisible.value = true
 }
 
-const handleView = (row: any) => {
-  router.push(`/tenants/${row.tenant_id}`)
-}
-
 const handleDelete = async (row: any) => {
-  try {
-    await axios.delete(`/api/v1/tenants/${row.tenant_id}`)
-    ElMessage.success('删除成功')
-    fetchTenants()
-  } catch (error) {
-    console.error('删除租户失败:', error)
-    ElMessage.error('删除租户失败')
-  }
+  if (!confirm(`确定删除 ${row.name}？`)) return
+  await axios.delete(`/api/v1/tenants/${row.tenant_id}`)
+  fetchTenants()
 }
 
 const handleSubmit = async () => {
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
-  
-  submitting.value = true
-  
-  try {
-    if (isEdit.value) {
-      await axios.put(`/api/v1/tenants/${form.tenant_id}`, form)
-      ElMessage.success('更新成功')
-    } else {
-      await axios.post('/api/v1/tenants', form)
-      ElMessage.success('创建成功')
-    }
-    dialogVisible.value = false
-    fetchTenants()
-  } catch (error) {
-    console.error('操作失败:', error)
-    ElMessage.error('操作失败')
-  } finally {
-    submitting.value = false
-  }
+  if (isEdit.value) await axios.put(`/api/v1/tenants/${form.tenant_id}`, form)
+  else await axios.post('/api/v1/tenants', form)
+  dialogVisible.value = false
+  fetchTenants()
 }
 
-onMounted(() => {
-  fetchTenants()
-})
+onMounted(fetchTenants)
 </script>
 
 <style scoped>
-.card-header {
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.filter-form {
   margin-bottom: 20px;
 }
+
+.page-header h2 { margin: 0; font-size: 18px; }
+
+.primary-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: var(--primary-color, #409eff);
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.panel {
+  background: var(--bg-color, #fff);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.filter-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.filter-bar input, .filter-bar select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--bg-color, #fff);
+  color: var(--text-color-primary, #333);
+}
+
+.filter-bar button {
+  padding: 8px 16px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  background: var(--bg-color, #fff);
+  cursor: pointer;
+}
+
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th, .data-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border-color, #eee); font-size: 13px; }
+.data-table th { color: var(--text-color-secondary, #999); font-weight: 500; }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+.badge-success { background: #e8f5e9; color: #2e7d32; }
+.badge-info { background: #eee; color: #666; }
+.badge-danger { background: #fce4ec; color: #c62828; }
+
+.link-btn { background: none; border: none; color: var(--primary-color, #409eff); cursor: pointer; font-size: 13px; margin-right: 8px; }
+.link-btn.danger { color: #f56c6c; }
+
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 3000; }
+.modal-content { background: var(--bg-color, #fff); border-radius: 8px; padding: 24px; width: 480px; max-height: 80vh; overflow-y: auto; }
+.modal-content h3 { margin: 0 0 20px; }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; margin-bottom: 4px; font-size: 13px; color: var(--text-color-secondary, #666); }
+.form-group input, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; font-size: 13px; box-sizing: border-box; background: var(--bg-color, #fff); color: var(--text-color-primary, #333); }
+.form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }
+.form-actions button { padding: 8px 16px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; cursor: pointer; }
 </style>

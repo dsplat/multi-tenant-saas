@@ -2,6 +2,8 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 
+const framework = process.env.VITE_UI_FRAMEWORK || 'element-plus'
+
 export default defineConfig({
   plugins: [vue()],
   root: resolve(__dirname),
@@ -16,7 +18,18 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, '.'),
+      '@multi-tenant-saas/ui-core': resolve(__dirname, '../ui-core'),
     },
+  },
+  optimizeDeps: {
+    exclude: [
+      'element-plus',
+      'ant-design-vue',
+      'naive-ui',
+      '@arco-design/web-vue',
+      '@varlet/ui',
+      'tdesign-vue-next',
+    ],
   },
   server: {
     proxy: {

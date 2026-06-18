@@ -1,49 +1,22 @@
 <template>
-  <div class="login-container">
-    <el-card class="login-card">
-      <template #header>
-        <div class="card-header">
-          <h2>系统后台登录</h2>
+  <div class="login-page">
+    <div class="login-card">
+      <h2>系统后台登录</h2>
+      <form @submit.prevent="handleLogin">
+        <div class="form-group">
+          <label>邮箱</label>
+          <input v-model="form.email" type="email" placeholder="请输入邮箱" required />
         </div>
-      </template>
-      
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-width="80px"
-        @submit.prevent="handleLogin"
-      >
-        <el-form-item label="邮箱" prop="email">
-          <el-input
-            v-model="form.email"
-            placeholder="请输入邮箱"
-            prefix-icon="Message"
-          />
-        </el-form-item>
-        
-        <el-form-item label="密码" prop="password">
-          <el-input
-            v-model="form.password"
-            type="password"
-            placeholder="请输入密码"
-            prefix-icon="Lock"
-            show-password
-          />
-        </el-form-item>
-        
-        <el-form-item>
-          <el-button
-            type="primary"
-            :loading="loading"
-            @click="handleLogin"
-            style="width: 100%"
-          >
-            登录
-          </el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+        <div class="form-group">
+          <label>密码</label>
+          <input v-model="form.password" type="password" placeholder="请输入密码" required />
+        </div>
+        <button type="submit" class="login-btn" :disabled="loading">
+          {{ loading ? '登录中...' : '登录' }}
+        </button>
+        <p v-if="error" class="error-msg">{{ error }}</p>
+      </form>
+    </div>
   </div>
 </template>
 
@@ -51,48 +24,28 @@
 import { ref, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
-import { ElMessage } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
-const formRef = ref<FormInstance>()
 const loading = ref(false)
+const error = ref('')
 
 const form = reactive({
   email: '',
   password: '',
 })
 
-const rules: FormRules = {
-  email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' },
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' },
-  ],
-}
-
 const handleLogin = async () => {
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
-  
   loading.value = true
-  
+  error.value = ''
   try {
     await userStore.login(form.email, form.password)
-    
-    ElMessage.success('登录成功')
-    
-    // 跳转到之前页面或首页
-    const redirect = (route.query.redirect as string) || '/admin'
+    const redirect = (route.query.redirect as string) || '/admin/'
     router.push(redirect)
-  } catch (error: any) {
-    ElMessage.error(error.response?.data?.message || '登录失败')
+  } catch (e: any) {
+    error.value = e.response?.data?.message || '登录失败'
   } finally {
     loading.value = false
   }
@@ -100,24 +53,76 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-.login-container {
+.login-page {
   height: 100vh;
   display: flex;
-  justify-content: center;
   align-items: center;
-  background-color: #f5f5f5;
+  justify-content: center;
+  background: var(--bg-color-page, #f5f7fa);
 }
 
 .login-card {
-  width: 400px;
+  width: 380px;
+  padding: 32px;
+  background: var(--bg-color, #fff);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
-.card-header {
+.login-card h2 {
   text-align: center;
+  margin: 0 0 24px;
+  color: var(--text-color-primary, #333);
 }
 
-.card-header h2 {
-  margin: 0;
-  font-size: 20px;
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: var(--text-color-secondary, #666);
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--bg-color, #fff);
+  color: var(--text-color-primary, #333);
+  box-sizing: border-box;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color, #409eff);
+}
+
+.login-btn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: var(--primary-color, #409eff);
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-msg {
+  color: #f56c6c;
+  font-size: 13px;
+  text-align: center;
+  margin-top: 12px;
 }
 </style>

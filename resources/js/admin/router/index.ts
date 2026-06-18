@@ -12,7 +12,6 @@ const router = createRouter({
     },
     {
       path: '/',
-      name: 'Layout',
       component: () => import('../App.vue'),
       redirect: '/dashboard',
       children: [
@@ -51,25 +50,14 @@ const router = createRouter({
   ],
 })
 
-// 路由守卫
-router.beforeEach(async (to, from, next) => {
-  const userStore = useUserStore()
-  
-  // 检查是否需要认证
+router.beforeEach(async (to, _from, next) => {
   if (to.meta.requiresAuth !== false) {
-    // 检查是否已登录
+    const userStore = useUserStore()
     if (!userStore.token) {
       next({ name: 'Login', query: { redirect: to.fullPath } })
       return
     }
-    
-    // 检查是否是超级管理员
-    if (userStore.user?.role !== 'super_admin') {
-      next({ name: 'Login' })
-      return
-    }
   }
-  
   next()
 })
 

@@ -1,7 +1,7 @@
 {
   "name": "@multi-tenant-saas/admin",
   "version": "1.0.0",
-  "description": "Multi-Tenant SaaS 系统后台管理界面",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -23,27 +23,8 @@
     "vue-router": "^4.2.0",
     "pinia": "^2.1.0",
     "axios": "^1.6.0",
-    "@multi-tenant-saas/ui-core": "workspace:*"
-  },
-  "peerDependencies": {
-    "element-plus": "^2.5.0",
-    "ant-design-vue": "^4.1.0",
-    "naive-ui": "^2.38.0",
-    "@arco-design/web-vue": "^2.5.0",
-    "tdesign-vue-next": "^1.9.0",
-    "@varlet/ui": "^3.0.0",
     "bootstrap": "^5.3.0",
     "@popperjs/core": "^2.11.0"
-  },
-  "peerDependenciesMeta": {
-    "element-plus": { "optional": true },
-    "ant-design-vue": { "optional": true },
-    "naive-ui": { "optional": true },
-    "@arco-design/web-vue": { "optional": true },
-    "tdesign-vue-next": { "optional": true },
-    "@varlet/ui": { "optional": true },
-    "bootstrap": { "optional": true },
-    "@popperjs/core": { "optional": true }
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",

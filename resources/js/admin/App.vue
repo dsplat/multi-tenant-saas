@@ -1,81 +1,60 @@
 <template>
-  <el-container class="layout-container">
-    <el-aside width="200px" class="aside">
+  <div class="layout">
+    <aside class="sidebar">
       <div class="logo">
         <h2>系统后台</h2>
       </div>
-      <el-menu
-        :default-active="route.path"
-        router
-        class="el-menu-vertical"
-      >
-        <el-menu-item index="/admin">
-          <el-icon><HomeFilled /></el-icon>
+      <nav class="nav-menu">
+        <a href="/admin/" :class="['nav-item', { active: route.path === '/admin/' || route.path === '/admin/dashboard' }]">
           <span>仪表盘</span>
-        </el-menu-item>
-        <el-menu-item index="/admin/tenants">
-          <el-icon><OfficeBuilding /></el-icon>
+        </a>
+        <a href="/admin/tenants" :class="['nav-item', { active: route.path.startsWith('/admin/tenants') }]">
           <span>租户管理</span>
-        </el-menu-item>
-        <el-menu-item index="/admin/users">
-          <el-icon><User /></el-icon>
+        </a>
+        <a href="/admin/users" :class="['nav-item', { active: route.path.startsWith('/admin/users') }]">
           <span>用户管理</span>
-        </el-menu-item>
-        <el-menu-item index="/admin/settings">
-          <el-icon><Setting /></el-icon>
+        </a>
+        <a href="/admin/settings" :class="['nav-item', { active: route.path.startsWith('/admin/settings') }]">
           <span>系统设置</span>
-        </el-menu-item>
-      </el-menu>
-    </el-aside>
-    
-    <el-container>
-      <el-header class="header">
-        <div class="header-left">
-          <el-breadcrumb separator="/">
-            <el-breadcrumb-item :to="{ path: '/admin' }">首页</el-breadcrumb-item>
-            <el-breadcrumb-item v-if="route.meta.title">
-              {{ route.meta.title }}
-            </el-breadcrumb-item>
-          </el-breadcrumb>
+        </a>
+      </nav>
+    </aside>
+
+    <main class="main-area">
+      <header class="top-bar">
+        <div class="breadcrumb">
+          <span>首页</span>
+          <span v-if="route.meta.title"> / {{ route.meta.title }}</span>
         </div>
-        <div class="header-right">
+        <div class="actions">
           <ThemeSwitcher />
           <ColorPicker />
-          <el-button :icon="Setting" circle @click="showThemeSettings = true" />
-          <el-dropdown>
-            <span class="el-dropdown-link">
-              {{ userStore.user?.name || '管理员' }}
-              <el-icon class="el-icon--right"><arrow-down /></el-icon>
-            </span>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+          <button class="settings-btn" @click="showThemeSettings = true">&#9881;</button>
+          <span class="user-name">{{ userStore.user?.name || '管理员' }}</span>
+          <button class="logout-btn" @click="handleLogout">退出</button>
         </div>
-      </el-header>
-      
-      <el-main class="main">
+      </header>
+
+      <section class="content">
         <router-view />
-      </el-main>
-    </el-container>
-  </el-container>
-  
+      </section>
+    </main>
+  </div>
+
   <ThemeSettings v-model:visible="showThemeSettings" />
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Setting } from '@element-plus/icons-vue'
 import { useUserStore } from './stores/user'
-import { ThemeSwitcher, ColorPicker, ThemeSettings } from '@multi-tenant-saas/ui-core'
+import ThemeSwitcher from '@multi-tenant-saas/ui-core/components/ThemeSwitcher.vue'
+import ColorPicker from '@multi-tenant-saas/ui-core/components/ColorPicker.vue'
+import ThemeSettings from '@multi-tenant-saas/ui-core/components/ThemeSettings.vue'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
-
 const showThemeSettings = ref(false)
 
 const handleLogout = async () => {
@@ -85,13 +64,17 @@ const handleLogout = async () => {
 </script>
 
 <style scoped>
-.layout-container {
+.layout {
+  display: flex;
   height: 100vh;
 }
 
-.aside {
-  background-color: var(--bg-color);
-  border-right: 1px solid var(--border-color);
+.sidebar {
+  width: 220px;
+  background: var(--bg-color-container, #1d1e1f);
+  color: var(--text-color-primary, #e5eaf3);
+  display: flex;
+  flex-direction: column;
 }
 
 .logo {
@@ -99,46 +82,99 @@ const handleLogout = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-color-primary);
+  border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.1));
 }
 
 .logo h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
 }
 
-.el-menu-vertical {
-  border-right: none;
+.nav-menu {
+  flex: 1;
+  padding: 8px 0;
 }
 
-.header {
-  background-color: var(--bg-color);
-  border-bottom: 1px solid var(--border-color);
+.nav-item {
+  display: block;
+  padding: 12px 20px;
+  color: var(--text-color-secondary, rgba(255,255,255,0.7));
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.nav-item:hover {
+  background: var(--fill-color-light, rgba(255,255,255,0.05));
+  color: var(--text-color-primary, #fff);
+}
+
+.nav-item.active {
+  color: var(--primary-color, #409eff);
+  background: color-mix(in srgb, var(--primary-color, #409eff) 12%, transparent);
+  border-right: 3px solid var(--primary-color, #409eff);
+}
+
+.main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-color-page, #f5f7fa);
+}
+
+.top-bar {
+  height: 56px;
+  background: var(--bg-color, #fff);
+  border-bottom: 1px solid var(--border-color, #eee);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0 20px;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
+.breadcrumb {
+  color: var(--text-color-secondary, #999);
+  font-size: 14px;
 }
 
-.header-right {
+.actions {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.el-dropdown-link {
+.settings-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color, #ddd);
+  background: var(--bg-color, #fff);
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  color: var(--text-color-primary);
+  font-size: 16px;
 }
 
-.main {
-  background-color: var(--bg-color-page);
+.user-name {
+  font-size: 14px;
+  color: var(--text-color-primary, #333);
+}
+
+.logout-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 4px;
+  background: var(--bg-color, #fff);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-color-secondary, #666);
+}
+
+.logout-btn:hover {
+  color: #f56c6c;
+  border-color: #f56c6c;
+}
+
+.content {
+  flex: 1;
   padding: 20px;
+  overflow-y: auto;
 }
 </style>

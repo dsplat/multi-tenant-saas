@@ -1,39 +1,55 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import { initUICore, uiRegistry, themeManager } from '@multi-tenant-saas/ui-core'
-import type { UIFrameworkName } from '@multi-tenant-saas/ui-core'
+import { initUICore, uiRegistry } from '@multi-tenant-saas/ui-core'
+import { createBootstrapAdapter } from '@multi-tenant-saas/ui-core/adapters/index'
 import App from './App.vue'
 import router from './router'
 
-// 导入主题样式
-import '@multi-tenant-saas/ui-core/themes/variables.css'
+const fw = localStorage.getItem('multi-tenant-saas-ui-framework')
+  || (import.meta.env.VITE_UI_FRAMEWORK as string)
+  || 'element-plus'
 
-async function bootstrap() {
-  // 初始化 UI 核心库（注册适配器、初始化主题）
-  await initUICore()
-  
-  // 获取保存的 UI 框架或默认使用 element-plus
-  const savedFramework = localStorage.getItem('multi-tenant-saas-ui-framework') as UIFrameworkName
-  const defaultFramework: UIFrameworkName = 'element-plus'
-  const framework = savedFramework || import.meta.env.VITE_UI_FRAMEWORK || defaultFramework
-  
-  // 设置活跃框架
-  if (uiRegistry.has(framework)) {
-    uiRegistry.setActive(framework)
-  } else {
-    console.warn(`Framework "${framework}" not found, using default`)
-    uiRegistry.setActive(defaultFramework)
+// 动态加载依赖，避免 Vite 静态扫描
+async function dynamicImport(specifier: string) {
+  return new Function('s', 'return import(s)')(specifier) as Promise<any>
+}
+
+async function loadFramework(name: string) {
+  if (name === 'element-plus') {
+    const mod = await dynamicImport('element-plus')
+    uiRegistry.register({
+      name: 'element-plus',
+      metadata: { name: 'element-plus', label: 'Element Plus', description: '', version: '', website: '', icon: '', features: [], installCommand: 'npm install element-plus' },
+      async install(app) { app.use(mod.default) },
+      getComponentMap() { return {} },
+      getThemeVariables() { return {} },
+    })
+    uiRegistry.setActive('element-plus')
+    return
   }
-  
+
+  if (name === 'bootstrap' || name === 'vali-admin') {
+    await import('bootstrap/dist/css/bootstrap.min.css')
+    await import('bootstrap/dist/js/bootstrap.bundle.min.js')
+    uiRegistry.register(createBootstrapAdapter(name as any))
+    uiRegistry.setActive(name as any)
+    return
+  }
+
+  console.warn(`Unknown framework: ${name}`)
+}
+
+async function main() {
+  await initUICore()
+  await loadFramework(fw)
+
   const app = createApp(App)
-  
-  // 安装活跃框架
-  await uiRegistry.installActive(app)
-  
+  const active = uiRegistry.getActive()
+  if (active) await active.install(app)
+
   app.use(createPinia())
   app.use(router)
-  
   app.mount('#app')
 }
 
-bootstrap().catch(console.error)
+main().catch(console.error)

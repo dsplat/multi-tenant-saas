@@ -1,149 +1,252 @@
 <template>
-  <el-drawer
-    v-model="visible"
-    title="主题设置"
-    size="300px"
-  >
-    <div class="theme-settings">
-      <div class="setting-item">
-        <span class="label">主题模式</span>
-        <el-radio-group v-model="themeMode" @change="handleModeChange">
-          <el-radio-button value="light">浅色</el-radio-button>
-          <el-radio-button value="dark">深色</el-radio-button>
-          <el-radio-button value="auto">自动</el-radio-button>
-        </el-radio-group>
+  <div class="theme-settings-panel" v-if="visible">
+    <div class="panel-backdrop" @click="visible = false"></div>
+    <div class="panel-content">
+      <div class="panel-header">
+        <h3>主题设置</h3>
+        <button class="close-btn" @click="visible = false">&times;</button>
       </div>
-      
-      <el-divider />
-      
-      <div class="setting-item">
-        <span class="label">主色调</span>
-        <div class="color-options">
-          <div
-            v-for="color in presetColors"
-            :key="color"
-            class="color-item"
-            :class="{ active: primaryColor === color }"
-            :style="{ backgroundColor: color }"
-            @click="setPrimaryColor(color)"
+
+      <div class="panel-body">
+        <div class="setting-section">
+          <h4>主题模式</h4>
+          <div class="mode-buttons">
+            <button
+              :class="['mode-btn', { active: config.mode === 'light' }]"
+              @click="setMode('light')"
+            >
+              浅色
+            </button>
+            <button
+              :class="['mode-btn', { active: config.mode === 'dark' }]"
+              @click="setMode('dark')"
+            >
+              深色
+            </button>
+            <button
+              :class="['mode-btn', { active: config.mode === 'auto' }]"
+              @click="setMode('auto')"
+            >
+              自动
+            </button>
+          </div>
+        </div>
+
+        <div class="setting-section">
+          <h4>主色调</h4>
+          <div class="preset-colors">
+            <div
+              v-for="preset in presets"
+              :key="preset.name"
+              class="color-swatch"
+              :class="{ active: config.primaryColor === preset.config.primaryColor }"
+              :style="{ backgroundColor: preset.config.primaryColor }"
+              :title="preset.label"
+              @click="setPrimaryColor(preset.config.primaryColor!)"
+            />
+          </div>
+        </div>
+
+        <div class="setting-section">
+          <h4>圆角大小</h4>
+          <input
+            type="range"
+            :min="0"
+            :max="12"
+            :step="2"
+            :value="config.borderRadius"
+            @input="setBorderRadius(Number($event.target.value))"
+            class="radius-slider"
           />
+          <span class="radius-value">{{ config.borderRadius }}px</span>
+        </div>
+
+        <div class="setting-section">
+          <h4>UI 框架</h4>
+          <select v-model="selectedFramework" @change="handleFrameworkChange" class="framework-select">
+            <option
+              v-for="fw in frameworks"
+              :key="fw.name"
+              :value="fw.name"
+            >
+              {{ fw.label }}
+            </option>
+          </select>
         </div>
       </div>
-      
-      <el-divider />
-      
-      <div class="setting-item">
-        <span class="label">圆角大小</span>
-        <el-slider
-          v-model="borderRadius"
-          :min="0"
-          :max="12"
-          :step="2"
-          @change="handleRadiusChange"
-        />
-      </div>
-      
-      <el-divider />
-      
-      <div class="setting-item">
-        <span class="label">UI 框架</span>
-        <el-select v-model="selectedFramework" @change="handleFrameworkChange">
-          <el-option
-            v-for="framework in availableFrameworks"
-            :key="framework"
-            :label="frameworkLabels[framework]"
-            :value="framework"
-          />
-        </el-select>
+
+      <div class="panel-footer">
+        <button class="reset-btn" @click="reset">重置默认</button>
       </div>
     </div>
-  </el-drawer>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useTheme, getAvailableFrameworks } from '@multi-tenant-saas/ui-core'
-import type { UIFramework } from '@multi-tenant-saas/ui-core'
+import { ref } from 'vue'
+import { useTheme } from '../theme-manager'
+import { uiRegistry } from '../registry'
 
 const visible = defineModel<boolean>('visible', { default: false })
 
-const { theme, setThemeMode, setPrimaryColor, setBorderRadius } = useTheme()
+const {
+  config,
+  presets,
+  setMode,
+  setPrimaryColor,
+  setBorderRadius,
+  reset,
+} = useTheme()
 
-const themeMode = ref(theme.value.mode)
-const borderRadius = ref(theme.value.borderRadius)
-const selectedFramework = ref<UIF>(import.meta.env.VITE_UI_FRAMEWORK || 'element-plus')
+const frameworks = uiRegistry.getAllMetadata()
+const selectedFramework = ref(uiRegistry.getActiveName() || 'element-plus')
 
-const availableFrameworks = getAvailableFrameworks()
-
-const frameworkLabels: Record<UIFramework, string> = {
-  'element-plus': 'Element Plus',
-  'ant-design': 'Ant Design Vue',
-  'naive-ui': 'Naive UI',
-}
-
-const presetColors = [
-  '#409eff',
-  '#67c23a',
-  '#e6a23c',
-  '#f56c6c',
-  '#909399',
-  '#00d1b2',
-  '#b388ff',
-  '#ff6b6b',
-]
-
-const primaryColor = computed(() => theme.value.primaryColor)
-
-const handleModeChange = (mode: string) => {
-  setThemeMode(mode as any)
-}
-
-const handleRadiusChange = (radius: number) => {
-  setBorderRadius(radius)
-}
-
-const handleFrameworkChange = (framework: UIFramework) => {
-  // 保存到本地存储
-  localStorage.setItem('multi-tenant-saas-ui-framework', framework)
-  // 提示用户需要刷新
+const handleFrameworkChange = () => {
+  localStorage.setItem('multi-tenant-saas-ui-framework', selectedFramework.value)
   window.location.reload()
 }
 </script>
 
 <style scoped>
-.theme-settings {
-  padding: 0 16px;
+.panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 2000;
 }
 
-.setting-item {
-  margin-bottom: 16px;
+.panel-content {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100vh;
+  background: var(--bg-color, #fff);
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.15);
+  z-index: 2001;
+  display: flex;
+  flex-direction: column;
 }
 
-.setting-item .label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color, #eee);
 }
 
-.color-options {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+.panel-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-color-secondary, #999);
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.setting-section {
+  margin-bottom: 24px;
+}
+
+.setting-section h4 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--text-color-secondary, #999);
+}
+
+.mode-buttons {
+  display: flex;
   gap: 8px;
 }
 
-.color-item {
-  width: 32px;
-  height: 32px;
-  border-radius: 4px;
+.mode-btn {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  background: var(--bg-color, #fff);
   cursor: pointer;
-  transition: transform 0.2s;
+  font-size: 13px;
+  color: var(--text-color-primary, #333);
 }
 
-.color-item:hover {
-  transform: scale(1.1);
+.mode-btn.active {
+  border-color: var(--primary-color, #409eff);
+  color: var(--primary-color, #409eff);
+  background: color-mix(in srgb, var(--primary-color, #409eff) 10%, transparent);
 }
 
-.color-item.active {
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--primary-color);
+.preset-colors {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.15s;
+  border: 2px solid transparent;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.color-swatch.active {
+  border-color: var(--text-color-primary, #333);
+  box-shadow: 0 0 0 2px var(--bg-color, #fff);
+}
+
+.radius-slider {
+  width: 100%;
+  margin: 8px 0;
+}
+
+.radius-value {
+  font-size: 12px;
+  color: var(--text-color-secondary, #999);
+}
+
+.framework-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  background: var(--bg-color, #fff);
+  color: var(--text-color-primary, #333);
+  font-size: 13px;
+}
+
+.panel-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color, #eee);
+}
+
+.reset-btn {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  background: var(--bg-color, #fff);
+  cursor: pointer;
+  color: var(--text-color-secondary, #999);
+}
+
+.reset-btn:hover {
+  color: var(--text-color-primary, #333);
 }
 </style>

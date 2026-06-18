@@ -1,36 +1,51 @@
 /**
- * UI 框架适配器
+ * UI 框架适配器注册
+ * 
+ * 这个文件不导入任何第三方框架依赖
+ * 框架注册在 main.ts 中按需完成
  */
 
-export { elementPlusAdapter, elementPlusMetadata } from './element-plus'
-export { antDesignAdapter, antDesignMetadata } from './ant-design'
-export { naiveUIAdapter, naiveUIMetadata } from './naive-ui'
-export { arcoDesignAdapter, arcoDesignMetadata } from './arco-design'
-export { tdesignAdapter, tdesignMetadata } from './tdesign'
-export { varletAdapter, varletMetadata } from './varlet'
-export { bootstrapAdapter, bootstrapMetadata } from './bootstrap'
-export { valiAdminAdapter, valiAdminMetadata } from './vali-admin'
-
-import { elementPlusAdapter } from './element-plus'
-import { antDesignAdapter } from './ant-design'
-import { naiveUIAdapter } from './naive-ui'
-import { arcoDesignAdapter } from './arco-design'
-import { tdesignAdapter } from './tdesign'
-import { varletAdapter } from './varlet'
-import { bootstrapAdapter } from './bootstrap'
-import { valiAdminAdapter } from './vali-admin'
 import { uiRegistry } from '../registry'
+import type { UIFrameworkAdapter } from '../registry'
 
 /**
- * 注册所有内置适配器
+ * 创建 Element Plus 适配器（调用方负责导入 element-plus）
  */
-export function registerBuiltinAdapters() {
-  uiRegistry.register(elementPlusAdapter)
-  uiRegistry.register(antDesignAdapter)
-  uiRegistry.register(naiveUIAdapter)
-  uiRegistry.register(arcoDesignAdapter)
-  uiRegistry.register(tdesignAdapter)
-  uiRegistry.register(varletAdapter)
-  uiRegistry.register(bootstrapAdapter)
-  uiRegistry.register(valiAdminAdapter)
+export function createElementPlusAdapter(ElementPlus: any): UIFrameworkAdapter {
+  return {
+    name: 'element-plus',
+    metadata: {
+      name: 'element-plus', label: 'Element Plus',
+      description: '饿了么开源的 Vue 3 组件库',
+      version: '^2.5.0', website: 'https://element-plus.org', icon: '',
+      features: ['70+ 组件', 'TypeScript', '暗色主题', '国际化'],
+      installCommand: 'npm install element-plus',
+    },
+    async install(app) { app.use(ElementPlus) },
+    getComponentMap() { return { Button: 'el-button', Input: 'el-input', Select: 'el-select', Table: 'el-table', Card: 'el-card' } },
+    getThemeVariables() { return {} },
+  }
+}
+
+/**
+ * 创建 Bootstrap 适配器（调用方负责导入 bootstrap）
+ */
+export function createBootstrapAdapter(name: 'bootstrap' | 'vali-admin' = 'bootstrap'): UIFrameworkAdapter {
+  return {
+    name: name as any,
+    metadata: {
+      name: name as any,
+      label: name === 'bootstrap' ? 'Bootstrap' : 'Vali Admin',
+      description: name === 'bootstrap' ? '全球最流行的前端框架' : '基于 Bootstrap 5 的管理后台模板',
+      version: '5.3.0', website: 'https://getbootstrap.com', icon: '',
+      features: ['响应式', '栅格系统'],
+      installCommand: 'npm install bootstrap',
+    },
+    async install() {},
+    getComponentMap() { return {} },
+    getThemeVariables(mode) {
+      if (mode === 'dark') return { '--bs-body-bg': '#212529', '--bs-body-color': '#dee2e6' }
+      return {}
+    },
+  }
 }

@@ -55,7 +55,19 @@ class TenantSettingController extends Controller
             return response()->json(['success' => false, 'message' => '未知配置组'], 400);
         }
 
-        foreach ($request->all() as $key => $value) {
+        // 白名单：每个配置组只允许特定 key
+        $allowedKeys = [
+            'info' => ['name', 'description', 'logo', 'contact_name', 'contact_email', 'contact_phone'],
+            'oauth' => ['wechat_enabled', 'wechat_corp_id', 'wechat_agent_id', 'wechat_secret',
+                        'dingtalk_enabled', 'dingtalk_app_key', 'dingtalk_app_secret',
+                        'feishu_enabled', 'feishu_app_id', 'feishu_app_secret'],
+            'auth' => ['allow_phone_login', 'allow_password_login', 'email_domains'],
+            'mail' => ['driver', 'host', 'port', 'username', 'password', 'encryption', 'from_address', 'from_name'],
+            'registration' => ['allow_register', 'welcome_credits'],
+        ];
+
+        $keys = $allowedKeys[$group] ?? [];
+        foreach ($request->only($keys) as $key => $value) {
             TenantSetting::set($tenantId, $group, $key, $value);
         }
 

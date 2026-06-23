@@ -12,8 +12,8 @@ use MultiTenantSaas\Models\Tenant;
  *
  * Octane/Swoole 安全：
  * - 不使用静态属性，完全依赖 Request attributes
+ * - 不使用 config() 写入（Octane 下会跨请求持久化）
  * - Request 对象每次请求都是新实例，天然隔离
- * - config() 写入在 Octane 下也有请求级隔离
  */
 class TenantContext
 {

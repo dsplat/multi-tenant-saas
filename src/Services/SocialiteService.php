@@ -43,7 +43,18 @@ class SocialiteService
         }
 
         // 动态设置配置
+        // TODO: Octane 安全 - config() 写入在请求间持久化
+        // 正确做法：使用 Socialite::driver()->setConfig() 传递租户配置
+        // 临时方案：请求结束时还原
         config(["services.{$provider}" => $config]);
+    }
+
+    /**
+     * 还原 OAuth 配置（请求结束时调用）
+     */
+    public static function resetDriverConfig(string $provider): void
+    {
+        config(["services.{$provider}" => null]);
     }
 
     /**

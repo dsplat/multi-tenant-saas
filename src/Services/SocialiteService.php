@@ -64,9 +64,13 @@ class SocialiteService
     {
         self::configureDriver($provider, $tenantId);
 
-        return Socialite::driver($provider)
-            ->redirect()
-            ->getTargetUrl();
+        try {
+            return Socialite::driver($provider)
+                ->redirect()
+                ->getTargetUrl();
+        } finally {
+            self::resetDriverConfig($provider);
+        }
     }
 
     /**
@@ -76,7 +80,11 @@ class SocialiteService
     {
         self::configureDriver($provider, $tenantId);
 
-        $socialUser = Socialite::driver($provider)->user();
+        try {
+            $socialUser = Socialite::driver($provider)->user();
+        } finally {
+            self::resetDriverConfig($provider);
+        }
 
         // 查找或创建用户
         $user = self::findOrCreateUser($socialUser, $provider, $tenantId);

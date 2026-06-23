@@ -19,7 +19,8 @@ class TenantOAuthController extends Controller
     {
         $this->ensureTenantAccess($request, $tenantId);
 
-        SocialiteService::updateOAuthConfig($tenantId, $provider, $request->all());
+        $allowed = ['enabled', 'client_id', 'client_secret', 'redirect'];
+        SocialiteService::updateOAuthConfig($tenantId, $provider, $request->only($allowed));
         return response()->json(['success' => true, 'message' => 'OAuth 配置已更新']);
     }
 

@@ -29,7 +29,17 @@ class AdminSettingsController extends Controller
             return response()->json(['success' => false, 'message' => '未知配置组'], 400);
         }
 
+        // 验证输入：key 必须是字母数字下划线，value 不能是数组（防止注入）
+        $validated = $request->validate([
+            '*.key' => 'sometimes|string|regex:/^[a-zA-Z0-9_]+$/',
+        ]);
+
         foreach ($request->all() as $key => $value) {
+            // 跳过非标量值
+            if (is_array($value) || is_object($value)) {
+                continue;
+            }
+            
             SystemSetting::updateOrCreate(
                 ['group' => $group, 'key' => $key],
                 ['value' => $value]

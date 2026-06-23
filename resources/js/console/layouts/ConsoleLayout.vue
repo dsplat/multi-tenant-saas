@@ -18,6 +18,9 @@
         <a href="/console/oauth" :class="['nav-item', { active: isActive('/oauth') }]">
           <span>第三方登录</span>
         </a>
+        <a href="/console/payment" :class="['nav-item', { active: isActive('/payment') }]">
+          <span>支付配置</span>
+        </a>
         <a href="/console/sms" :class="['nav-item', { active: isActive('/sms') }]">
           <span>短信配置</span>
         </a>

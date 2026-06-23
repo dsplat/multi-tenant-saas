@@ -6,24 +6,53 @@ use Laravel\Socialite\Facades\Socialite;
 use MultiTenantSaas\Models\OauthAccount;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Models\TenantUser;
+use MultiTenantSaas\Models\TenantSetting;
 
 /**
- * 第三方登录服务
+ * 第三方登录服务（租户级配置）
  *
- * 集成 laravel/socialite，支持微信/钉钉/飞书等
- *
- * 配置：config/services.php
- * - wechat: 微信开放平台
- * - dingtalk: 钉钉
- * - feishu: 飞书
+ * 每个租户独立配置 OAuth 应用
+ * 配置存储在 tenant_settings 表，group = 'oauth'
  */
 class SocialiteService
 {
+    /**
+     * 获取租户 OAuth 配置
+     */
+    protected static function getOAuthConfig(int $tenantId, string $provider): array
+    {
+        return [
+            'client_id' => TenantSetting::get($tenantId, 'oauth', "{$provider}_client_id", ''),
+            'client_secret' => TenantSetting::get($tenantId, 'oauth', "{$provider}_client_secret", ''),
+            'redirect' => TenantSetting::get($tenantId, 'oauth', "{$provider}_redirect", "/auth/{$provider}/callback"),
+        ];
+    }
+
+    /**
+     * 动态配置 Socialite 驱动（租户级）
+     */
+    protected static function configureDriver(string $provider, int $tenantId): void
+    {
+        $config = self::getOAuthConfig($tenantId, $provider);
+
+        // 过滤空值
+        $config = array_filter($config, fn($v) => $v !== '' && $v !== null);
+
+        if (empty($config['client_id']) || empty($config['client_secret'])) {
+            throw new \RuntimeException("租户 {$tenantId} 未配置 {$provider} OAuth");
+        }
+
+        // 动态设置配置
+        config(["services.{$provider}" => $config]);
+    }
+
     /**
      * 获取 OAuth 重定向 URL
      */
     public static function getRedirectUrl(string $provider, int $tenantId): string
     {
+        self::configureDriver($provider, $tenantId);
+
         return Socialite::driver($provider)
             ->redirect()
             ->getTargetUrl();
@@ -34,6 +63,8 @@ class SocialiteService
      */
     public static function handleCallback(string $provider, int $tenantId): array
     {
+        self::configureDriver($provider, $tenantId);
+
         $socialUser = Socialite::driver($provider)->user();
 
         // 查找或创建用户
@@ -43,7 +74,12 @@ class SocialiteService
         self::recordOAuthAccount($user, $socialUser, $provider, $tenantId);
 
         return [
-            'user' => $user,
+            'user' => [
+                'user_id' => $user->user_id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+            ],
             'token' => $user->createToken("{$provider}-login")->plainTextToken,
         ];
     }
@@ -108,6 +144,51 @@ class SocialiteService
                 'token_expires_at' => $socialUser->expiresIn ? now()->addSeconds($socialUser->expiresIn) : null,
             ]
         );
+    }
+
+    /**
+     * 检查租户是否已配置 OAuth
+     */
+    public static function isConfigured(int $tenantId, string $provider): bool
+    {
+        $config = self::getOAuthConfig($tenantId, $provider);
+        return !empty($config['client_id']) && !empty($config['client_secret']);
+    }
+
+    /**
+     * 获取租户 OAuth 配置（用于后台展示）
+     */
+    public static function getOAuthConfigForDisplay(int $tenantId): array
+    {
+        $providers = ['wechat', 'dingtalk', 'feishu', 'github', 'google'];
+        $result = [];
+
+        foreach ($providers as $provider) {
+            $config = self::getOAuthConfig($tenantId, $provider);
+            $result[$provider] = [
+                'configured' => !empty($config['client_id']) && !empty($config['client_secret']),
+                'client_id' => $config['client_id'],
+                'redirect' => $config['redirect'],
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * 更新租户 OAuth 配置
+     */
+    public static function updateOAuthConfig(int $tenantId, string $provider, array $config): void
+    {
+        $sensitiveKeys = ['client_secret'];
+
+        foreach ($config as $key => $value) {
+            if (in_array($key, $sensitiveKeys) && $value === '********') {
+                continue; // 跳过遮罩占位符
+            }
+            $isEncrypted = in_array($key, $sensitiveKeys);
+            TenantSetting::set($tenantId, 'oauth', "{$provider}_{$key}", $value, $isEncrypted);
+        }
     }
 
     /**

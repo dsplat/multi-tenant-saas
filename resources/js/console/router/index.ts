@@ -62,6 +62,12 @@ const router = createRouter({
           component: () => import('../views/ApiTokens.vue'),
           meta: { title: 'API Token', requiresAuth: true },
         },
+        {
+          path: 'payment',
+          name: 'PaymentSettings',
+          component: () => import('../views/PaymentSettings.vue'),
+          meta: { title: '支付配置', requiresAuth: true },
+        },
       ],
     },
   ],

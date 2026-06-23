@@ -434,6 +434,29 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         return response()->json(['success' => true, 'data' => $result]);
     });
 
+    // ----- 租户支付配置 -----
+    Route::get('/tenants/{tenantId}/payment/config', function (int $tenantId) {
+        return response()->json(['success' => true, 'data' => PayService::getPaymentConfig($tenantId)]);
+    });
+
+    Route::put('/tenants/{tenantId}/payment/{driver}', function (Request $request, int $tenantId, string $driver) {
+        if (!in_array($driver, ['wechat', 'alipay'])) {
+            return response()->json(['success' => false, 'message' => '不支持的支付方式'], 400);
+        }
+        PayService::updatePaymentConfig($tenantId, $driver, $request->all());
+        return response()->json(['success' => true, 'message' => '支付配置已更新']);
+    });
+
+    // ----- 租户 OAuth 配置 -----
+    Route::get('/tenants/{tenantId}/oauth/config', function (int $tenantId) {
+        return response()->json(['success' => true, 'data' => SocialiteService::getOAuthConfigForDisplay($tenantId)]);
+    });
+
+    Route::put('/tenants/{tenantId}/oauth/{provider}', function (Request $request, int $tenantId, string $provider) {
+        SocialiteService::updateOAuthConfig($tenantId, $provider, $request->all());
+        return response()->json(['success' => true, 'message' => 'OAuth 配置已更新']);
+    });
+
     // ----- 支付回调（无需认证） -----
     Route::post('/pay/wechat/notify', function (Request $request) {
         $result = PayService::handleCallback('wechat', $request);

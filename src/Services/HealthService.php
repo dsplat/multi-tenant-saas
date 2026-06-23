@@ -29,6 +29,10 @@ class HealthService
      */
     public static function registerChecks(): void
     {
+        if (!class_exists(\Spatie\Health\Facades\Health::class)) {
+            return;
+        }
+
         Health::checks([
             CacheCheck::new(),
             DatabaseCheck::new(),

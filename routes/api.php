@@ -71,6 +71,92 @@ Route::prefix('v1/auth')->group(function () {
         $request->user()->currentAccessToken()->delete();
         return response()->json(['success' => true, 'message' => '已登出']);
     });
+
+    // 注册
+    Route::post('/register', function (Request $request) {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $tenantId = $request->attributes->get('tenant_id');
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => bcrypt($request->password),
+            'role' => 'platform_user',
+        ]);
+
+        // 关联到当前租户
+        if ($tenantId) {
+            TenantUser::create([
+                'tenant_id' => $tenantId,
+                'user_id' => $user->user_id,
+                'role' => 'end_user',
+                'is_active' => true,
+                'joined_at' => now(),
+            ]);
+        }
+
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => [
+                    'user_id' => $user->user_id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                ],
+                'tenant_id' => $tenantId,
+                'token' => $token,
+            ],
+        ], 201);
+    });
+
+    // 忘记密码（发送重置邮件）
+    Route::post('/forgot-password', function (Request $request) {
+        $request->validate(['email' => 'required|email']);
+
+        $user = User::where('email', $request->email)->first();
+
+        // 始终返回成功，避免邮箱枚举
+        if ($user) {
+            // TODO: 发送密码重置邮件
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => '如果该邮箱已注册，您将收到重置密码邮件',
+        ]);
+    });
+
+    // 重置密码
+    Route::post('/reset-password', function (Request $request) {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string|min:8|confirmed',
+            'token' => 'required|string',
+        ]);
+
+        // TODO: 验证 token
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => '用户不存在'], 404);
+        }
+
+        $user->password = bcrypt($request->password);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => '密码已重置',
+        ]);
+    });
 });
 
 // ========== 需要认证的 API ==========

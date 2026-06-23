@@ -350,7 +350,18 @@ $allOrders = Order::forAllTenants()->get();
 - **缓存**: Redis (推荐) / Database
 - **Web服务器**: Nginx + PHP-FPM
 
----
+## 集成库
+
+| 库 | 用途 | 配置 |
+|---|---|---|
+| `laravel/sanctum` | API 认证 + Token | 内置 |
+| `laravel/socialite` | 第三方登录（微信/钉钉/飞书） | `config/socialite.php` |
+| `yansongda/pay` | 支付（微信/支付宝） | `config/pay.php` |
+| `spatie/laravel-health` | 健康检查 | `config/health.php` |
+| `maatwebsite/excel` | Excel 导入导出 | 内置 |
+| `barryvdh/laravel-dompdf` | PDF 生成 | 内置 |
+| `laravel/horizon` | 队列监控 (dev) | `/horizon` |
+| `sentry/sentry-laravel` | 错误追踪 (dev) | `.env` |
 
 ## 更新框架
 

@@ -5,6 +5,7 @@ namespace MultiTenantSaas;
 use Illuminate\Support\ServiceProvider;
 use MultiTenantSaas\Console\Commands\CheckTenantIsolation;
 use MultiTenantSaas\Services\IdGenerator;
+use MultiTenantSaas\Services\HealthService;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Context\TenantConfigStore;
 
@@ -21,6 +22,9 @@ class TenancyServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../database/migrations' => database_path('migrations'),
         ], 'tenancy-migrations');
+
+        // 注册健康检查
+        HealthService::registerChecks();
 
         // 注册 Artisan 命令
         if ($this->app->runningInConsole()) {

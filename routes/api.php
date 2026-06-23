@@ -11,6 +11,8 @@ use MultiTenantSaas\Models\AuditLog;
 use MultiTenantSaas\Models\SystemSetting;
 use MultiTenantSaas\Modules\Domain\Services\DomainService;
 use MultiTenantSaas\Modules\SSL\Services\TenantSslService;
+use MultiTenantSaas\Services\PayService;
+use MultiTenantSaas\Services\SocialiteService;
 
 // ========== 认证 API ==========
 Route::prefix('v1/auth')->group(function () {
@@ -417,5 +419,31 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         }
 
         return response()->json(['success' => true, 'message' => '系统设置已更新']);
+    });
+
+    // ----- 第三方登录 -----
+    Route::get('/auth/{provider}/redirect', function (Request $request, string $provider) {
+        $tenantId = $request->attributes->get('tenant_id');
+        $url = SocialiteService::getRedirectUrl($provider, $tenantId);
+        return response()->json(['success' => true, 'data' => ['url' => $url]]);
+    });
+
+    Route::get('/auth/{provider}/callback', function (Request $request, string $provider) {
+        $tenantId = $request->attributes->get('tenant_id');
+        $result = SocialiteService::handleCallback($provider, $tenantId);
+        return response()->json(['success' => true, 'data' => $result]);
+    });
+
+    // ----- 支付回调（无需认证） -----
+    Route::post('/pay/wechat/notify', function (Request $request) {
+        $result = PayService::handleCallback('wechat', $request);
+        // 处理支付成功逻辑：更新订单状态、充值积分等
+        return response('success');
+    });
+
+    Route::post('/pay/alipay/notify', function (Request $request) {
+        $result = PayService::handleCallback('alipay', $request);
+        // 处理支付成功逻辑
+        return response('success');
     });
 });

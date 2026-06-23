@@ -8,11 +8,19 @@
         "php": "^8.2",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.3",
+        "laravel/socialite": "^5.0",
+        "yansongda/pay": "^3.7",
+        "spatie/laravel-health": "^1.0",
+        "maatwebsite/excel": "^3.1",
+        "barryvdh/laravel-dompdf": "^2.0",
         "orchestra/testbench": "^10.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "laravel/horizon": "^5.0",
         "laravel/pint": "^1.0",
+        "sentry/sentry-laravel": "^4.0",
+        "darkaonline/l5-swagger": "^8.0",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.0",
         "phpunit/phpunit": "^10.5|^11.0"

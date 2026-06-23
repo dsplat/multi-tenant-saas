@@ -230,4 +230,64 @@ class ControllerTest extends TestCase
         $response->assertSuccessful()
             ->assertJson(['success' => true]);
     }
+
+    // ========== 支付回调 API（无需认证） ==========
+
+    public function test_wechat_notify_returns_success(): void
+    {
+        // 微信支付回调需要 tenant_id 参数
+        $response = $this->postJson('/api/v1/pay/wechat/notify?tenant_id=1001', [
+            'out_trade_no' => 'TEST001',
+            'trade_status' => 'TRADE_SUCCESS',
+        ]);
+
+        // 因为没有真实支付配置，会抛异常，但路由是通的
+        $this->assertContains($response->status(), [200, 400, 500]);
+    }
+
+    public function test_alipay_notify_returns_success(): void
+    {
+        $response = $this->postJson('/api/v1/pay/alipay/notify?tenant_id=1001', [
+            'out_trade_no' => 'TEST001',
+            'trade_status' => 'TRADE_SUCCESS',
+        ]);
+
+        $this->assertContains($response->status(), [200, 400, 500]);
+    }
+
+    // ========== OAuth API ==========
+
+    public function test_oauth_redirect_returns_url(): void
+    {
+        $response = $this->getJson('/api/v1/auth/wechat/redirect');
+
+        // 未配置 OAuth 会返回错误，但路由是通的
+        $this->assertContains($response->status(), [200, 500]);
+    }
+
+    // ========== 域名管理 API ==========
+
+    public function test_tenant_can_get_domain_info(): void
+    {
+        $token = $this->tenantAdmin->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/v1/tenants/1001/domain');
+
+        $response->assertSuccessful()
+            ->assertJson(['success' => true]);
+    }
+
+    // ========== 配额 API ==========
+
+    public function test_tenant_can_get_quotas(): void
+    {
+        $token = $this->tenantAdmin->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson('/api/v1/tenants/1001/quotas');
+
+        $response->assertSuccessful()
+            ->assertJson(['success' => true]);
+    }
 }

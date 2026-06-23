@@ -48,8 +48,10 @@ class DataIsolationTest extends TestCase
         // 带作用域：只返回 1001
         $this->assertCount(1, Customer::all());
 
-        // withoutTenantScope：返回所有
+        // withoutTenantScope：仅 admin 域名可用
+        TenantContext::setDomainType('admin');
         $this->assertCount(2, Customer::withoutTenantScope()->get());
+        TenantContext::setDomainType(null);
     }
 
     public function test_with_tenant_returns_specific_tenant_data(): void
@@ -60,10 +62,12 @@ class DataIsolationTest extends TestCase
 
         TenantContext::setId('1001');
 
-        // withTenant 指定租户
+        // withTenant：仅 admin 域名可用
+        TenantContext::setDomainType('admin');
         $customers = Customer::withTenant('1002')->get();
         $this->assertCount(1, $customers);
         $this->assertEquals('Bob', $customers->first()->name);
+        TenantContext::setDomainType(null);
     }
 
     public function test_for_all_tenants_returns_all(): void
@@ -73,8 +77,11 @@ class DataIsolationTest extends TestCase
 
         TenantContext::setId('1001');
 
+        // forAllTenants：仅 admin 域名可用
+        TenantContext::setDomainType('admin');
         $customers = Customer::forAllTenants()->get();
         $this->assertCount(2, $customers);
+        TenantContext::setDomainType(null);
     }
 
     public function test_no_tenant_context_returns_unscoped(): void

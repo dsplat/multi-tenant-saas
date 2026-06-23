@@ -11,6 +11,12 @@ use Symfony\Component\HttpFoundation\Response;
  * 权限控制中间件
  *
  * 根据域名类型和用户角色进行权限控制
+ *
+ * 安全原则：
+ * - super_admin 仅可访问系统后台 (admin)
+ * - 租户私有数据对 super_admin 不可访问
+ * - 租户后台仅 tenant_admin 可访问
+ * - 用户前台 tenant_admin + end_user 可访问
  */
 class CheckPermission
 {
@@ -40,7 +46,7 @@ class CheckPermission
     }
 
     /**
-     * 检查管理后台访问权限
+     * 检查管理后台访问权限（仅 super_admin）
      */
     protected function checkAdminAccess(Request $request, $user, Closure $next, ?string $role): Response
     {
@@ -52,7 +58,7 @@ class CheckPermission
     }
 
     /**
-     * 检查租户后台访问权限（仅 tenant_admin 可访问）
+     * 检查租户后台访问权限（仅 tenant_admin，super_admin 不可访问）
      */
     protected function checkConsoleAccess(Request $request, $user, Closure $next, ?string $role): Response
     {
@@ -62,10 +68,9 @@ class CheckPermission
             return $this->forbidden($request, '缺少租户信息');
         }
 
-        // super_admin 可以访问所有租户后台
+        // super_admin 不能访问租户后台（租户数据隔离）
         if ($user->role === self::ROLE_SUPER_ADMIN) {
-            TenantContext::setTenantRole(self::ROLE_SUPER_ADMIN);
-            return $next($request);
+            return $this->forbidden($request, '系统管理员不能访问租户后台');
         }
 
         // 检查用户是否属于该租户
@@ -80,7 +85,7 @@ class CheckPermission
 
         $tenantRole = $tenantUser->pivot->role;
 
-        // console 仅允许 tenant_admin，end_user 不能访问
+        // console 仅允许 tenant_admin
         if ($tenantRole !== self::ROLE_TENANT_ADMIN) {
             return $this->forbidden($request, '仅租户管理员可以访问管理后台');
         }
@@ -91,7 +96,7 @@ class CheckPermission
     }
 
     /**
-     * 检查租户访问权限（api/app 用，tenant_admin 和 end_user 都可访问）
+     * 检查租户访问权限（super_admin 不可访问租户私有数据）
      */
     protected function checkTenantAccess(Request $request, $user, Closure $next, ?string $role): Response
     {
@@ -101,10 +106,9 @@ class CheckPermission
             return $this->forbidden($request, '缺少租户信息');
         }
 
-        // super_admin 可以访问所有租户
+        // super_admin 不能访问租户私有数据
         if ($user->role === self::ROLE_SUPER_ADMIN) {
-            TenantContext::setTenantRole(self::ROLE_SUPER_ADMIN);
-            return $next($request);
+            return $this->forbidden($request, '系统管理员不能访问租户数据');
         }
 
         // 检查用户是否属于该租户

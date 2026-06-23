@@ -41,6 +41,20 @@ abstract class TestCase extends BaseTestCase
             $table->string('email')->nullable();
             $table->timestamps();
         });
+
+        Schema::create('tenant_settings', function (Blueprint $table) {
+            $table->bigInteger('setting_id')->unsigned()->primary();
+            $table->bigInteger('tenant_id')->unsigned();
+            $table->string('group', 50);
+            $table->string('key', 100);
+            $table->text('value')->nullable();
+            $table->boolean('is_encrypted')->default(false);
+            $table->string('description', 255)->nullable();
+            $table->timestamps();
+
+            $table->unique(['tenant_id', 'group', 'key']);
+            $table->index('tenant_id');
+        });
     }
 
     protected function seedTenants(): void

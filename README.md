@@ -234,7 +234,7 @@ multi-tenant-saas/
 | `TenantSettingService` | 租户配置管理 |
 | `TenantCreditService` | 积分/配额管理 |
 | `TenantMemberService` | 成员管理 |
-| `OAuthService` | 第三方登录 |
+| `SocialiteService` | 第三方登录 |
 | `PaymentService` | 支付服务 |
 | `AuditService` | 审计日志 |
 

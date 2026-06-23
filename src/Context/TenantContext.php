@@ -3,39 +3,60 @@
 namespace MultiTenantSaas\Context;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use MultiTenantSaas\Models\Tenant;
 
 /**
  * 租户上下文管理
  *
- * 管理当前请求的租户信息，全局可用
+ * 管理当前请求的租户信息，全局可用。
+ *
+ * Octane/Swoole 安全：
+ * - 不使用静态属性，完全依赖 Request attributes
+ * - Request 对象每次请求都是新实例，天然隔离
+ * - config() 写入在 Octane 下也有请求级隔离
  */
 class TenantContext
 {
-    protected static ?string $tenantId = null;
-    protected static ?Tenant $tenant = null;
-    protected static ?string $domainType = null;
-    protected static ?string $tenantRole = null;
+    /**
+     * 获取当前请求实例
+     */
+    protected static function getRequest(): ?Request
+    {
+        return request();
+    }
 
     /**
      * 获取当前租户ID
      */
     public static function getId(): ?string
     {
-        return static::$tenantId
-            ?? config('tenancy.current_tenant_id')
-            ?? request()?->attributes?->get('tenant_id');
+        $request = static::getRequest();
+        if (!$request) {
+            return null;
+        }
+
+        return $request->attributes->get('tenant_id')
+            ?? config('tenancy.current_tenant_id');
     }
 
     /**
      * 设置当前租户ID
      */
+    public static function setTenantId(?string $tenantId): void
+    {
+        $request = static::getRequest();
+        if ($request) {
+            $request->attributes->set('tenant_id', $tenantId);
+        }
+        config(['tenancy.current_tenant_id' => $tenantId]);
+    }
+
+    /**
+     * @deprecated 使用 setTenantId() 代替
+     */
     public static function setId(?string $tenantId): void
     {
-        static::$tenantId = $tenantId;
-        config(['tenancy.current_tenant_id' => $tenantId]);
-        request()?->attributes?->set('tenant_id', $tenantId);
+        static::setTenantId($tenantId);
     }
 
     /**
@@ -43,22 +64,34 @@ class TenantContext
      */
     public static function getTenant(): ?Tenant
     {
-        if (static::$tenant) {
-            return static::$tenant;
+        $request = static::getRequest();
+
+        // 从 Request 读取
+        if ($request && $request->attributes->has('tenant_object')) {
+            $tenant = $request->attributes->get('tenant_object');
+            if ($tenant instanceof Tenant) {
+                return $tenant;
+            }
         }
 
+        // 通过 ID 加载（带缓存）
         $id = static::getId();
         if (!$id) {
             return null;
         }
 
-        static::$tenant = cache()->remember(
+        $tenant = cache()->remember(
             config('tenancy.cache.prefix', 'tenant:') . $id,
             config('tenancy.cache.ttl', 3600),
             fn () => Tenant::find($id)
         );
 
-        return static::$tenant;
+        // 写入 Request
+        if ($request && $tenant) {
+            $request->attributes->set('tenant_object', $tenant);
+        }
+
+        return $tenant;
     }
 
     /**
@@ -66,8 +99,12 @@ class TenantContext
      */
     public static function setTenant(?Tenant $tenant): void
     {
-        static::$tenant = $tenant;
-        static::$tenantId = $tenant?->getKey();
+        $request = static::getRequest();
+        if ($request) {
+            $request->attributes->set('tenant_object', $tenant);
+            $request->attributes->set('tenant_id', $tenant?->getKey());
+        }
+        config(['tenancy.current_tenant_id' => $tenant?->getKey()]);
     }
 
     /**
@@ -75,8 +112,8 @@ class TenantContext
      */
     public static function getDomainType(): ?string
     {
-        return static::$domainType
-            ?? request()?->attributes?->get('domain_type');
+        $request = static::getRequest();
+        return $request ? $request->attributes->get('domain_type') : null;
     }
 
     /**
@@ -84,8 +121,10 @@ class TenantContext
      */
     public static function setDomainType(?string $type): void
     {
-        static::$domainType = $type;
-        request()?->attributes?->set('domain_type', $type);
+        $request = static::getRequest();
+        if ($request) {
+            $request->attributes->set('domain_type', $type);
+        }
     }
 
     /**
@@ -93,8 +132,8 @@ class TenantContext
      */
     public static function getTenantRole(): ?string
     {
-        return static::$tenantRole
-            ?? request()?->attributes?->get('tenant_role');
+        $request = static::getRequest();
+        return $request ? $request->attributes->get('tenant_role') : null;
     }
 
     /**
@@ -102,24 +141,23 @@ class TenantContext
      */
     public static function setTenantRole(?string $role): void
     {
-        static::$tenantRole = $role;
-        request()?->attributes?->set('tenant_role', $role);
+        $request = static::getRequest();
+        if ($request) {
+            $request->attributes->set('tenant_role', $role);
+        }
     }
 
     /**
-     * 清除上下文（用于测试）
+     * 清除上下文
      */
     public static function clear(): void
     {
-        static::$tenantId = null;
-        static::$tenant = null;
-        static::$domainType = null;
-        static::$tenantRole = null;
         config(['tenancy.current_tenant_id' => null]);
-        
-        $request = request();
+
+        $request = static::getRequest();
         if ($request && $request->attributes) {
             $request->attributes->remove('tenant_id');
+            $request->attributes->remove('tenant_object');
             $request->attributes->remove('domain_type');
             $request->attributes->remove('tenant_role');
         }

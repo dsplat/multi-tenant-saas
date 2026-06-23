@@ -57,7 +57,17 @@ class TenantSettingController extends Controller
             return response()->json(['success' => false, 'message' => '未知配置组'], 400);
         }
 
-        foreach ($request->all() as $key => $value) {
+        // 白名单过滤：每个配置组只允许特定的 key
+        $allowedKeys = [
+            'info' => ['name', 'description', 'logo', 'contact_name', 'contact_email', 'contact_phone'],
+            'oauth' => ['wechat_app_id', 'wechat_app_secret', 'github_client_id', 'github_client_secret'],
+            'auth' => ['allow_register', 'allow_oauth', 'require_email_verify'],
+            'mail' => ['driver', 'host', 'port', 'username', 'password', 'encryption', 'from_address', 'from_name'],
+            'registration' => ['allow_register', 'require_approval', 'default_role'],
+        ];
+
+        $keys = $allowedKeys[$group] ?? [];
+        foreach ($request->only($keys) as $key => $value) {
             TenantSetting::set($tenantId, $group, $key, $value);
         }
 

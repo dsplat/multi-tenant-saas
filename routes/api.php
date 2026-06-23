@@ -23,9 +23,11 @@ Route::prefix('v1/auth')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:3,1');
 });
 
-// ========== 支付回调（无需认证） ==========
+// ========== 支付回调（无需认证，带 tenant_id 验签） ==========
 Route::post('/v1/pay/wechat/notify', [TenantPaymentController::class, 'wechatNotify']);
 Route::post('/v1/pay/alipay/notify', [TenantPaymentController::class, 'alipayNotify']);
+Route::get('/v1/pay/wechat/notify', [TenantPaymentController::class, 'wechatNotify']);
+Route::get('/v1/pay/alipay/notify', [TenantPaymentController::class, 'alipayNotify']);
 
 // ========== 第三方登录回调（无需认证） ==========
 Route::get('/v1/auth/{provider}/redirect', [TenantOAuthController::class, 'redirect']);

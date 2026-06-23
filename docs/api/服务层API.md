@@ -320,33 +320,57 @@ $isActive = $memberService->isActive(1234567890123456, 9876543210987654);
 
 ---
 
-## OAuthService
+## SocialiteService
 
-第三方登录服务。
+第三方登录服务（基于 laravel/socialite）。
+
+> **注意**：原 `OAuthService` 已废弃，统一使用 `SocialiteService`。
 
 ### 方法
 
-#### getProviders(int $tenantId)
-
-获取可用的 OAuth 提供商。
-
-```php
-$oauthService = app(OAuthService::class);
-
-$providers = $oauthService->getProviders(1234567890123456);
-// 返回: array
-```
-
-#### redirect(int $tenantId, string $provider)
+#### getRedirectUrl(string $provider, int $tenantId): string
 
 获取 OAuth 重定向 URL。
 
 ```php
-$url = $oauthService->redirect(1234567890123456, 'wechat');
-// 返回: string
+$url = SocialiteService::getRedirectUrl('wechat', 1234567890123456);
 ```
 
-#### callback(int $tenantId, string $provider, array $credentials)
+#### handleCallback(string $provider, int $tenantId): array
+
+处理 OAuth 回调，返回用户信息和 token。
+
+```php
+$result = SocialiteService::handleCallback('wechat', 1234567890123456);
+// 返回: ['user' => [...], 'token' => '...']
+```
+
+#### isConfigured(int $tenantId, string $provider): bool
+
+检查租户是否已配置指定 OAuth。
+
+```php
+$isConfigured = SocialiteService::isConfigured(1234567890123456, 'wechat');
+```
+
+#### getOAuthConfigForDisplay(int $tenantId): array
+
+获取租户 OAuth 配置（用于后台展示，敏感信息脱敏）。
+
+```php
+$config = SocialiteService::getOAuthConfigForDisplay(1234567890123456);
+```
+
+#### updateOAuthConfig(int $tenantId, string $provider, array $config): void
+
+更新租户 OAuth 配置。
+
+```php
+SocialiteService::updateOAuthConfig(1234567890123456, 'wechat', [
+    'client_id' => 'wx1234567890',
+    'client_secret' => '********', // 遮罩占位符会被跳过
+]);
+```
 
 处理 OAuth 回调。
 

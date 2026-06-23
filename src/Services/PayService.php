@@ -121,14 +121,27 @@ class PayService
     }
 
     /**
-     * 处理支付回调
+     * 处理支付回调（带验签）
+     *
+     * 支付回调路由无需认证，但需要：
+     * 1. 从 URL 参数或请求体获取 tenant_id
+     * 2. 使用租户配置验证签名
      */
     public static function handleCallback(string $driver, Request $request): array
     {
-        $pay = Pay::$driver();
+        // 从 URL 参数获取 tenant_id
+        $tenantId = $request->query('tenant_id');
+
+        if (!$tenantId) {
+            throw new \RuntimeException('支付回调缺少 tenant_id 参数');
+        }
+
+        // 使用租户配置创建 Pay 实例（包含验签）
+        $pay = self::createPayInstance((int) $tenantId, $driver);
         $result = $pay->callback($request->all());
 
         return [
+            'tenant_id' => $tenantId,
             'trade_no' => $result->trade_no ?? '',
             'out_trade_no' => $result->out_trade_no ?? '',
             'total_amount' => $result->total_amount ?? 0,

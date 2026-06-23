@@ -17,6 +17,7 @@ use MultiTenantSaas\Services\SocialiteService;
 // ========== 认证 API ==========
 Route::prefix('v1/auth')->group(function () {
     
+    // 登录（速率限制：每分钟5次）
     Route::post('/login', function (Request $request) {
         $request->validate([
             'email' => 'required|email',
@@ -53,26 +54,9 @@ Route::prefix('v1/auth')->group(function () {
                 'token' => $token,
             ],
         ]);
-    });
+    })->middleware('throttle:5,1');
 
-    Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'user_id' => $request->user()->user_id,
-                'name' => $request->user()->name,
-                'email' => $request->user()->email,
-                'role' => $request->user()->role,
-            ],
-        ]);
-    });
-
-    Route::middleware('auth:sanctum')->post('/logout', function (Request $request) {
-        $request->user()->currentAccessToken()->delete();
-        return response()->json(['success' => true, 'message' => '已登出']);
-    });
-
-    // 注册
+    // 注册（速率限制：每分钟3次）
     Route::post('/register', function (Request $request) {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -115,9 +99,9 @@ Route::prefix('v1/auth')->group(function () {
                 'token' => $token,
             ],
         ], 201);
-    });
+    })->middleware('throttle:3,1');
 
-    // 忘记密码（发送重置邮件）
+    // 忘记密码（生成重置 token，速率限制：每分钟3次）
     Route::post('/forgot-password', function (Request $request) {
         $request->validate(['email' => 'required|email']);
 
@@ -125,16 +109,30 @@ Route::prefix('v1/auth')->group(function () {
 
         // 始终返回成功，避免邮箱枚举
         if ($user) {
-            // TODO: 发送密码重置邮件
+            // 生成重置 token
+            $token = \Illuminate\Support\Str::random(64);
+            $expiresAt = now()->addHour();
+
+            // 存储到 password_reset_tokens 表
+            \Illuminate\Support\Facades\DB::table('password_reset_tokens')->updateOrInsert(
+                ['email' => $user->email],
+                [
+                    'token' => hash('sha256', $token),
+                    'created_at' => now(),
+                ]
+            );
+
+            // TODO: 发送邮件，包含重置链接
+            // 重置链接: https://your-domain.com/reset-password?token={$token}&email={$user->email}
         }
 
         return response()->json([
             'success' => true,
             'message' => '如果该邮箱已注册，您将收到重置密码邮件',
         ]);
-    });
+    })->middleware('throttle:3,1');
 
-    // 重置密码
+    // 重置密码（速率限制：每分钟3次）
     Route::post('/reset-password', function (Request $request) {
         $request->validate([
             'email' => 'required|email',
@@ -142,7 +140,23 @@ Route::prefix('v1/auth')->group(function () {
             'token' => 'required|string',
         ]);
 
-        // TODO: 验证 token
+        // 验证 token
+        $resetRecord = \Illuminate\Support\Facades\DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->first();
+
+        if (!$resetRecord || !hash_equals($resetRecord->token, hash('sha256', $request->token))) {
+            return response()->json(['success' => false, 'message' => '重置链接无效或已过期'], 400);
+        }
+
+        // 检查 token 是否过期（1小时）
+        if (now()->diffInMinutes($resetRecord->created_at) > 60) {
+            \Illuminate\Support\Facades\DB::table('password_reset_tokens')
+                ->where('email', $request->email)
+                ->delete();
+            return response()->json(['success' => false, 'message' => '重置链接已过期，请重新申请'], 400);
+        }
+
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
@@ -152,11 +166,16 @@ Route::prefix('v1/auth')->group(function () {
         $user->password = bcrypt($request->password);
         $user->save();
 
+        // 删除已使用的 token
+        \Illuminate\Support\Facades\DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->delete();
+
         return response()->json([
             'success' => true,
             'message' => '密码已重置',
         ]);
-    });
+    })->middleware('throttle:3,1');
 });
 
 // ========== 需要认证的 API ==========
@@ -627,39 +646,14 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         return response()->json(['success' => true, 'data' => $result]);
     });
 
-    // ----- 租户支付配置 -----
-    Route::get('/tenants/{tenantId}/payment/config', function (int $tenantId) {
-        return response()->json(['success' => true, 'data' => PayService::getPaymentConfig($tenantId)]);
-    });
-
-    Route::put('/tenants/{tenantId}/payment/{driver}', function (Request $request, int $tenantId, string $driver) {
-        if (!in_array($driver, ['wechat', 'alipay'])) {
-            return response()->json(['success' => false, 'message' => '不支持的支付方式'], 400);
-        }
-        PayService::updatePaymentConfig($tenantId, $driver, $request->all());
-        return response()->json(['success' => true, 'message' => '支付配置已更新']);
-    });
-
-    // ----- 租户 OAuth 配置 -----
-    Route::get('/tenants/{tenantId}/oauth/config', function (int $tenantId) {
-        return response()->json(['success' => true, 'data' => SocialiteService::getOAuthConfigForDisplay($tenantId)]);
-    });
-
-    Route::put('/tenants/{tenantId}/oauth/{provider}', function (Request $request, int $tenantId, string $provider) {
-        SocialiteService::updateOAuthConfig($tenantId, $provider, $request->all());
-        return response()->json(['success' => true, 'message' => 'OAuth 配置已更新']);
-    });
-
-    // ----- 支付回调（无需认证） -----
+    // ----- 支付回调（无需认证，无需租户检查） -----
     Route::post('/pay/wechat/notify', function (Request $request) {
         $result = PayService::handleCallback('wechat', $request);
-        // 处理支付成功逻辑：更新订单状态、充值积分等
         return response('success');
     });
 
     Route::post('/pay/alipay/notify', function (Request $request) {
         $result = PayService::handleCallback('alipay', $request);
-        // 处理支付成功逻辑
         return response('success');
     });
 });

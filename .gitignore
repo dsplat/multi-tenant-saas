@@ -1,4 +1,4 @@
-/node_modules
+node_modules
 /public/build
 /public/hot
 /public/storage
@@ -16,6 +16,7 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+composer.lock
 
 # Laravel 缓存文件
 /bootstrap/cache/*.php

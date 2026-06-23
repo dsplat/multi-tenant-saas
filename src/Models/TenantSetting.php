@@ -119,6 +119,12 @@ class TenantSetting extends Model
         return static::get($tenantId, $group, $key, $default);
     }
 
+    /**
+     * 获取配置值（按 tenant_id 显式查询，绕过 TenantScope）
+     *
+     * 注意：此方法绕过租户隔离，因为需要按指定 tenant_id 查询。
+     * 安全由调用方（API 路由/Service）保证用户有权限访问该租户。
+     */
     public static function get(int $tenantId, string $group, string $key, mixed $default = null): mixed
     {
         $setting = static::withoutGlobalScope(TenantScope::class)
@@ -141,6 +147,11 @@ class TenantSetting extends Model
         return static::set($tenantId, $group, $key, $value, $isEncrypted, $description);
     }
 
+    /**
+     * 设置配置值（按 tenant_id 显式操作，绕过 TenantScope）
+     *
+     * 注意：安全由调用方保证。
+     */
     public static function set(
         int $tenantId,
         string $group,

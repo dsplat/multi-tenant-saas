@@ -124,7 +124,7 @@ class SocialiteService
     }
 
     /**
-     * 记录 OAuth 账号
+     * 记录 OAuth 账号（token 加密存储）
      */
     protected static function recordOAuthAccount(User $user, $socialUser, string $provider, int $tenantId): void
     {
@@ -139,8 +139,8 @@ class SocialiteService
                 'provider_email' => $socialUser->getEmail(),
                 'provider_name' => $socialUser->getName(),
                 'provider_avatar' => $socialUser->getAvatar(),
-                'access_token' => $socialUser->token,
-                'refresh_token' => $socialUser->refreshToken,
+                'access_token' => $socialUser->token ? encrypt($socialUser->token) : null,
+                'refresh_token' => $socialUser->refreshToken ? encrypt($socialUser->refreshToken) : null,
                 'token_expires_at' => $socialUser->expiresIn ? now()->addSeconds($socialUser->expiresIn) : null,
             ]
         );

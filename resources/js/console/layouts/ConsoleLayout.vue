@@ -14,11 +14,19 @@
         <a href="/console/credits" :class="['nav-item', { active: isActive('/credits') }]">
           <span>积分管理</span>
         </a>
+        <div class="nav-divider"></div>
         <a href="/console/oauth" :class="['nav-item', { active: isActive('/oauth') }]">
           <span>第三方登录</span>
         </a>
-        <a href="/console/settings" :class="['nav-item', { active: isActive('/settings') }]">
-          <span>租户设置</span>
+        <a href="/console/sms" :class="['nav-item', { active: isActive('/sms') }]">
+          <span>短信配置</span>
+        </a>
+        <a href="/console/api-tokens" :class="['nav-item', { active: isActive('/api-tokens') }]">
+          <span>API Token</span>
+        </a>
+        <div class="nav-divider"></div>
+        <a href="/console/tenant-settings" :class="['nav-item', { active: isActive('/tenant-settings') }]">
+          <span>邮件/认证/注册</span>
         </a>
       </nav>
     </aside>
@@ -102,6 +110,7 @@ const handleLogout = () => {
 .logo h2 { margin: 0; font-size: 16px; }
 
 .nav-menu { flex: 1; padding: 8px 0; }
+.nav-divider { height: 1px; background: rgba(255,255,255,0.1); margin: 4px 16px; }
 
 .nav-item {
   display: block;

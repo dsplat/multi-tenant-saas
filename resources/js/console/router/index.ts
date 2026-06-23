@@ -50,6 +50,18 @@ const router = createRouter({
           component: () => import('../views/OAuthSettings.vue'),
           meta: { title: '第三方登录', requiresAuth: true },
         },
+        {
+          path: 'sms',
+          name: 'SmsSettings',
+          component: () => import('../views/SmsSettings.vue'),
+          meta: { title: '短信配置', requiresAuth: true },
+        },
+        {
+          path: 'api-tokens',
+          name: 'ApiTokens',
+          component: () => import('../views/ApiTokens.vue'),
+          meta: { title: 'API Token', requiresAuth: true },
+        },
       ],
     },
   ],

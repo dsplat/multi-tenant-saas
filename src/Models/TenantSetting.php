@@ -8,6 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Crypt;
 
+/**
+ * 租户配置模型
+ *
+ * 安全说明：
+ * - 静态方法 (get/set/getGroup/getAll/remove) 绕过 TenantScope，按 tenant_id 显式查询
+ * - 调用方（Controller/Service）必须确保用户有权访问目标租户
+ * - Controller 层通过 AuthorizesTenantAccess Trait 保证访问控制
+ * - 此设计允许跨租户操作（如 admin 审核、系统服务），同时保持数据隔离
+ */
 class TenantSetting extends Model
 {
     use HasGlobalId;

@@ -12,6 +12,9 @@ use MultiTenantSaas\Modules\SSL\Services\TenantSslService;
 use MultiTenantSaas\Services\TenantSettingService;
 use MultiTenantSaas\Services\TenantCreditService;
 use MultiTenantSaas\Services\TenantMemberService;
+use MultiTenantSaas\Services\QuotaService;
+use MultiTenantSaas\Models\AuditLog;
+use MultiTenantSaas\Models\SystemSetting;
 
 // ========== 认证 API ==========
 Route::prefix('v1/auth')->group(function () {
@@ -236,5 +239,153 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         };
         
         return response()->json(['success' => true, 'message' => '配置已更新']);
+    });
+
+    // ----- 短信配置 -----
+    Route::get('/tenants/{tenantId}/settings/sms', function (int $tenantId) {
+        $service = app(TenantSettingService::class);
+        $data = $service->getSmsConfig($tenantId);
+        return response()->json(['success' => true, 'data' => $data]);
+    });
+
+    Route::put('/tenants/{tenantId}/settings/sms', function (Request $request, int $tenantId) {
+        $service = app(TenantSettingService::class);
+        $service->updateSmsConfig($tenantId, $request->all());
+        return response()->json(['success' => true, 'message' => '短信配置已更新']);
+    });
+
+    // ----- 支付订单 -----
+    Route::get('/tenants/{tenantId}/payments', function (Request $request, int $tenantId) {
+        $query = \MultiTenantSaas\Models\Payment::where('tenant_id', $tenantId)
+            ->orderBy('created_at', 'desc');
+
+        $perPage = min((int) $request->get('per_page', 15), 100);
+        $payments = $query->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => $payments->items(),
+            'meta' => [
+                'current_page' => $payments->currentPage(),
+                'last_page' => $payments->lastPage(),
+                'per_page' => $payments->perPage(),
+                'total' => $payments->total(),
+            ],
+        ]);
+    });
+
+    Route::post('/tenants/{tenantId}/payments', function (Request $request, int $tenantId) {
+        $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'required|string',
+        ]);
+
+        $payment = \MultiTenantSaas\Models\Payment::create([
+            'tenant_id' => $tenantId,
+            'amount' => $request->amount,
+            'payment_method' => $request->payment_method,
+            'status' => 'pending',
+        ]);
+
+        return response()->json(['success' => true, 'data' => $payment], 201);
+    });
+
+    // ----- 审计日志 -----
+    Route::get('/tenants/{tenantId}/audit-logs', function (Request $request, int $tenantId) {
+        $query = AuditLog::where('tenant_id', $tenantId)->orderBy('created_at', 'desc');
+
+        if ($request->filled('action')) {
+            $query->where('action', $request->action);
+        }
+        if ($request->filled('resource_type')) {
+            $query->where('resource_type', $request->resource_type);
+        }
+
+        $perPage = min((int) $request->get('per_page', 15), 100);
+        $logs = $query->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => $logs->items(),
+            'meta' => [
+                'current_page' => $logs->currentPage(),
+                'last_page' => $logs->lastPage(),
+                'per_page' => $logs->perPage(),
+                'total' => $logs->total(),
+            ],
+        ]);
+    });
+
+    // ----- API Token 管理 -----
+    Route::get('/tenants/{tenantId}/api-tokens', function (int $tenantId) {
+        $tokens = \MultiTenantSaas\Models\ApiToken::where('tenant_id', $tenantId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json(['success' => true, 'data' => $tokens]);
+    });
+
+    Route::post('/tenants/{tenantId}/api-tokens', function (Request $request, int $tenantId) {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'expires_at' => 'nullable|date|after:now',
+        ]);
+
+        $plainToken = \Str::random(40);
+        $token = \MultiTenantSaas\Models\ApiToken::create([
+            'tenant_id' => $tenantId,
+            'name' => $request->name,
+            'token' => hash('sha256', $plainToken),
+            'expires_at' => $request->expires_at,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => array_merge($token->toArray(), ['plain_token' => $plainToken]),
+        ], 201);
+    });
+
+    Route::delete('/tenants/{tenantId}/api-tokens/{tokenId}', function (int $tenantId, int $tokenId) {
+        \MultiTenantSaas\Models\ApiToken::where('tenant_id', $tenantId)
+            ->where('id', $tokenId)
+            ->delete();
+
+        return response()->json(['success' => true, 'message' => 'Token已删除']);
+    });
+
+    // ----- 配额 -----
+    Route::get('/tenants/{tenantId}/quotas', function (int $tenantId) {
+        $service = app(QuotaService::class);
+        $quotas = $service->getAll($tenantId);
+        return response()->json(['success' => true, 'data' => $quotas]);
+    });
+
+    // ----- 系统设置 (super_admin) -----
+    Route::middleware(function (Request $request, \Closure $next) {
+        if ($request->user()->role !== 'super_admin') {
+            return response()->json(['success' => false, 'message' => '无权限访问'], 403);
+        }
+        return $next($request);
+    })->group(function () {
+        Route::get('/admin/settings', function () {
+            $settings = SystemSetting::all()->groupBy('group');
+            return response()->json(['success' => true, 'data' => $settings]);
+        });
+
+        Route::put('/admin/settings/{group}', function (Request $request, string $group) {
+            $allowedGroups = ['system', 'mail', 'credit', 'dify'];
+            if (!in_array($group, $allowedGroups)) {
+                return response()->json(['success' => false, 'message' => '未知配置组'], 400);
+            }
+
+            foreach ($request->all() as $key => $value) {
+                SystemSetting::updateOrCreate(
+                    ['group' => $group, 'key' => $key],
+                    ['value' => $value]
+                );
+            }
+
+            return response()->json(['success' => true, 'message' => '系统设置已更新']);
+        });
     });
 });

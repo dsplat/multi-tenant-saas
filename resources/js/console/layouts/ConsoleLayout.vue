@@ -14,6 +14,9 @@
         <a href="/console/credits" :class="['nav-item', { active: isActive('/credits') }]">
           <span>积分管理</span>
         </a>
+        <a href="/console/oauth" :class="['nav-item', { active: isActive('/oauth') }]">
+          <span>第三方登录</span>
+        </a>
         <a href="/console/settings" :class="['nav-item', { active: isActive('/settings') }]">
           <span>租户设置</span>
         </a>

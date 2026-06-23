@@ -52,6 +52,36 @@ const router = createRouter({
           meta: { title: '第三方登录', requiresAuth: true },
         },
         {
+          path: 'audit-logs',
+          name: 'AuditLogs',
+          component: () => import('../views/AuditLogs.vue'),
+          meta: { title: '审计日志', requiresAuth: true },
+        },
+        {
+          path: 'sms',
+          name: 'SmsSettings',
+          component: () => import('../views/SmsSettings.vue'),
+          meta: { title: '短信配置', requiresAuth: true },
+        },
+        {
+          path: 'payments',
+          name: 'PaymentOrders',
+          component: () => import('../views/PaymentOrders.vue'),
+          meta: { title: '支付订单', requiresAuth: true },
+        },
+        {
+          path: 'api-tokens',
+          name: 'ApiTokens',
+          component: () => import('../views/ApiTokens.vue'),
+          meta: { title: 'API Token', requiresAuth: true },
+        },
+        {
+          path: 'quotas',
+          name: 'Quotas',
+          component: () => import('../views/Quotas.vue'),
+          meta: { title: '配额管理', requiresAuth: true },
+        },
+        {
           path: 'settings',
           name: 'Settings',
           component: () => import('../views/Settings.vue'),

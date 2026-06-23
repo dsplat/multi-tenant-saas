@@ -20,6 +20,21 @@
         <a href="/admin/oauth" :class="['nav-item', { active: isActive('/oauth') }]">
           <span>第三方登录</span>
         </a>
+        <a href="/admin/audit-logs" :class="['nav-item', { active: isActive('/audit-logs') }]">
+          <span>审计日志</span>
+        </a>
+        <a href="/admin/sms" :class="['nav-item', { active: isActive('/sms') }]">
+          <span>短信配置</span>
+        </a>
+        <a href="/admin/payments" :class="['nav-item', { active: isActive('/payments') }]">
+          <span>支付订单</span>
+        </a>
+        <a href="/admin/api-tokens" :class="['nav-item', { active: isActive('/api-tokens') }]">
+          <span>API Token</span>
+        </a>
+        <a href="/admin/quotas" :class="['nav-item', { active: isActive('/quotas') }]">
+          <span>配额管理</span>
+        </a>
         <a href="/admin/settings" :class="['nav-item', { active: isActive('/settings') }]">
           <span>系统设置</span>
         </a>

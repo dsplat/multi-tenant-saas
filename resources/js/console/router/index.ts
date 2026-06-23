@@ -38,6 +38,18 @@ const router = createRouter({
           component: () => import('../views/Credits.vue'),
           meta: { title: '积分管理', requiresAuth: true },
         },
+        {
+          path: 'tenant-settings',
+          name: 'TenantSettings',
+          component: () => import('../views/TenantSettings.vue'),
+          meta: { title: '租户设置', requiresAuth: true },
+        },
+        {
+          path: 'oauth',
+          name: 'OAuthSettings',
+          component: () => import('../views/OAuthSettings.vue'),
+          meta: { title: '第三方登录', requiresAuth: true },
+        },
       ],
     },
   ],

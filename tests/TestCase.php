@@ -15,11 +15,32 @@ abstract class TestCase extends BaseTestCase
         
         $this->setUpDatabase();
         $this->seedTenants();
+        
+        // 加载 API 路由
+        $this->app['router']->prefix('api')->group(function () {
+            require __DIR__.'/../routes/api.php';
+        });
     }
 
     protected function getPackageProviders($app): array
     {
-        return [TenancyServiceProvider::class];
+        return [
+            \Laravel\Sanctum\SanctumServiceProvider::class,
+            TenancyServiceProvider::class,
+        ];
+    }
+
+    protected function defineEnvironment($app): void
+    {
+        $app['config']->set('auth.defaults.guard', 'sanctum');
+        $app['config']->set('auth.guards.sanctum', [
+            'driver' => 'sanctum',
+            'provider' => 'users',
+        ]);
+        $app['config']->set('auth.providers.users', [
+            'driver' => 'eloquent',
+            'model' => \MultiTenantSaas\Models\User::class,
+        ]);
     }
 
     protected function setUpDatabase(): void
@@ -32,6 +53,45 @@ abstract class TestCase extends BaseTestCase
             $table->string('status', 20)->default('active');
             $table->timestamps();
             $table->softDeletes();
+        });
+
+        Schema::create('users', function (Blueprint $table) {
+            $table->bigInteger('user_id')->unsigned()->primary();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password');
+            $table->string('phone', 20)->nullable()->unique();
+            $table->string('role', 20)->default('platform_user');
+            $table->string('avatar', 500)->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->timestamp('last_active_at')->nullable();
+            $table->rememberToken();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        Schema::create('tenant_users', function (Blueprint $table) {
+            $table->bigInteger('tenant_user_id')->unsigned()->primary();
+            $table->bigInteger('tenant_id')->unsigned();
+            $table->bigInteger('user_id')->unsigned();
+            $table->string('role', 20)->default('end_user');
+            $table->integer('credits')->default(0);
+            $table->boolean('is_active')->default(true);
+            $table->timestamp('joined_at')->nullable();
+            $table->timestamps();
+            $table->unique(['tenant_id', 'user_id']);
+        });
+
+        Schema::create('personal_access_tokens', function (Blueprint $table) {
+            $table->id();
+            $table->morphs('tokenable');
+            $table->string('name');
+            $table->string('token', 64)->unique();
+            $table->text('abilities')->nullable();
+            $table->timestamp('last_used_at')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
         });
 
         Schema::create('customers', function (Blueprint $table) {

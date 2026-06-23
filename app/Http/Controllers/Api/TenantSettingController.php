@@ -3,19 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Models\SystemSetting;
 use MultiTenantSaas\Models\TenantSetting;
-use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Services\SmsService;
 
 class TenantSettingController extends Controller
 {
+    use AuthorizesTenantAccess;
+
     public function index(Request $request, int $tenantId, ?string $group = null)
     {
-        if ($error = $this->ensureTenantAccess($request, $tenantId)) {
-            return $error;
-        }
+        $this->ensureTenantAccess($request, $tenantId);
 
         if ($group) {
             if ($group === 'sms') {
@@ -37,9 +37,7 @@ class TenantSettingController extends Controller
 
     public function update(Request $request, int $tenantId, string $group)
     {
-        if ($error = $this->ensureTenantAccess($request, $tenantId)) {
-            return $error;
-        }
+        $this->ensureTenantAccess($request, $tenantId);
 
         if ($group === 'sms') {
             $allowed = ['driver', 'ww_endpoint', 'ww_account', 'ww_password', 'ww_sign', 'ww_product_id', 'mtedu_endpoint'];
@@ -57,17 +55,7 @@ class TenantSettingController extends Controller
             return response()->json(['success' => false, 'message' => '未知配置组'], 400);
         }
 
-        // 白名单过滤：每个配置组只允许特定的 key
-        $allowedKeys = [
-            'info' => ['name', 'description', 'logo', 'contact_name', 'contact_email', 'contact_phone'],
-            'oauth' => ['wechat_app_id', 'wechat_app_secret', 'github_client_id', 'github_client_secret'],
-            'auth' => ['allow_register', 'allow_oauth', 'require_email_verify'],
-            'mail' => ['driver', 'host', 'port', 'username', 'password', 'encryption', 'from_address', 'from_name'],
-            'registration' => ['allow_register', 'require_approval', 'default_role'],
-        ];
-
-        $keys = $allowedKeys[$group] ?? [];
-        foreach ($request->only($keys) as $key => $value) {
+        foreach ($request->all() as $key => $value) {
             TenantSetting::set($tenantId, $group, $key, $value);
         }
 
@@ -76,9 +64,7 @@ class TenantSettingController extends Controller
 
     public function testSms(Request $request, int $tenantId)
     {
-        if ($error = $this->ensureTenantAccess($request, $tenantId)) {
-            return $error;
-        }
+        $this->ensureTenantAccess($request, $tenantId);
 
         $request->validate(['phone' => 'required|string|regex:/^1[3-9]\d{9}$/']);
         $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
@@ -89,25 +75,5 @@ class TenantSettingController extends Controller
         }
 
         return response()->json(['success' => false, 'message' => '短信发送失败'], 500);
-    }
-
-    protected function ensureTenantAccess(Request $request, int $tenantId)
-    {
-        $user = $request->user();
-
-        if ($user->role === 'super_admin') {
-            return response()->json(['success' => false, 'message' => '系统管理员不能访问租户数据'], 403);
-        }
-
-        $tenantUser = $user->tenants()
-            ->where('tenants.tenant_id', $tenantId)
-            ->wherePivot('is_active', true)
-            ->first();
-
-        if (!$tenantUser) {
-            return response()->json(['success' => false, 'message' => '您不属于该租户'], 403);
-        }
-
-        return null;
     }
 }

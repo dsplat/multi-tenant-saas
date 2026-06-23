@@ -3,16 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Modules\Domain\Services\DomainService;
 
 class TenantDomainController extends Controller
 {
+    use AuthorizesTenantAccess;
+
     public function index(Request $request, int $tenantId)
     {
-        if ($error = $this->ensureTenantAccess($request, $tenantId)) {
-            return $error;
-        }
+        $this->ensureTenantAccess($request, $tenantId);
 
         $service = new DomainService();
         return response()->json(['success' => true, 'data' => $service->getDomainInfo($tenantId)]);
@@ -20,9 +21,7 @@ class TenantDomainController extends Controller
 
     public function update(Request $request, int $tenantId)
     {
-        if ($error = $this->ensureTenantAccess($request, $tenantId)) {
-            return $error;
-        }
+        $this->ensureTenantAccess($request, $tenantId);
 
         $request->validate(['domain' => 'required|string']);
         $service = new DomainService();
@@ -33,9 +32,7 @@ class TenantDomainController extends Controller
 
     public function approve(Request $request, int $tenantId)
     {
-        if ($error = $this->ensureTenantAccess($request, $tenantId)) {
-            return $error;
-        }
+        $this->ensureTenantAccess($request, $tenantId);
 
         $service = new DomainService();
         $service->approveDomain($tenantId);
@@ -45,33 +42,11 @@ class TenantDomainController extends Controller
 
     public function reject(Request $request, int $tenantId)
     {
-        if ($error = $this->ensureTenantAccess($request, $tenantId)) {
-            return $error;
-        }
+        $this->ensureTenantAccess($request, $tenantId);
 
         $service = new DomainService();
         $service->rejectDomain($tenantId, $request->reason ?? '');
 
         return response()->json(['success' => true, 'message' => '域名已拒绝']);
-    }
-
-    protected function ensureTenantAccess(Request $request, int $tenantId)
-    {
-        $user = $request->user();
-
-        if ($user->role === 'super_admin') {
-            return response()->json(['success' => false, 'message' => '系统管理员不能访问租户数据'], 403);
-        }
-
-        $tenantUser = $user->tenants()
-            ->where('tenants.tenant_id', $tenantId)
-            ->wherePivot('is_active', true)
-            ->first();
-
-        if (!$tenantUser) {
-            return response()->json(['success' => false, 'message' => '您不属于该租户'], 403);
-        }
-
-        return null;
     }
 }

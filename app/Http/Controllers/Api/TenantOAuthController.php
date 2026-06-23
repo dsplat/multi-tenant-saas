@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Services\SocialiteService;
 
 class TenantOAuthController extends Controller
 {
+    use AuthorizesTenantAccess;
     public function getOAuthConfig(Request $request, int $tenantId)
     {
         $this->ensureTenantAccess($request, $tenantId);
@@ -38,21 +40,4 @@ class TenantOAuthController extends Controller
         return response()->json(['success' => true, 'data' => $result]);
     }
 
-    private function ensureTenantAccess(Request $request, int $tenantId): void
-    {
-        $user = $request->user();
-
-        if ($user->role === 'super_admin') {
-            abort(403, '系统管理员不能访问租户数据');
-        }
-
-        $tenantUser = $user->tenants()
-            ->where('tenants.tenant_id', $tenantId)
-            ->wherePivot('is_active', true)
-            ->first();
-
-        if (!$tenantUser) {
-            abort(403, '您不属于该租户');
-        }
-    }
 }

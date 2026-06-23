@@ -3,36 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Models\TenantUser;
 
 class TenantMemberController extends Controller
 {
-    protected function ensureTenantAccess(Request $request, int $tenantId)
-    {
-        $user = $request->user();
-
-        if ($user->role === 'super_admin') {
-            return response()->json(['success' => false, 'message' => '系统管理员不能访问租户数据'], 403);
-        }
-
-        $tenantUser = $user->tenants()
-            ->where('tenants.tenant_id', $tenantId)
-            ->wherePivot('is_active', true)
-            ->first();
-
-        if (!$tenantUser) {
-            return response()->json(['success' => false, 'message' => '您不属于该租户'], 403);
-        }
-
-        return null;
-    }
+    use AuthorizesTenantAccess;
 
     public function index(Request $request, int $tenantId)
     {
-        if ($error = $this->ensureTenantAccess($request, $tenantId)) {
-            return $error;
-        }
+        $this->ensureTenantAccess($request, $tenantId);
 
         $members = TenantUser::where('tenant_id', $tenantId)
             ->join('users', 'users.user_id', '=', 'tenant_users.user_id')
@@ -47,9 +28,7 @@ class TenantMemberController extends Controller
 
     public function store(Request $request, int $tenantId)
     {
-        if ($error = $this->ensureTenantAccess($request, $tenantId)) {
-            return $error;
-        }
+        $this->ensureTenantAccess($request, $tenantId);
 
         $request->validate([
             'user_id' => 'required',
@@ -66,9 +45,7 @@ class TenantMemberController extends Controller
 
     public function update(Request $request, int $tenantId, int $userId)
     {
-        if ($error = $this->ensureTenantAccess($request, $tenantId)) {
-            return $error;
-        }
+        $this->ensureTenantAccess($request, $tenantId);
 
         $member = TenantUser::where('tenant_id', $tenantId)
             ->where('user_id', $userId)

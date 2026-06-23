@@ -3,17 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Models\CreditAccount;
 use MultiTenantSaas\Models\CreditTransaction;
 
 class TenantCreditController extends Controller
 {
+    use AuthorizesTenantAccess;
+
     public function index(Request $request, int $tenantId)
     {
-        if ($error = $this->ensureTenantAccess($request, $tenantId)) {
-            return $error;
-        }
+        $this->ensureTenantAccess($request, $tenantId);
 
         $account = CreditAccount::where('tenant_id', $tenantId)->whereNull('user_id')->first();
         $transactions = CreditTransaction::where('tenant_id', $tenantId)
@@ -32,25 +33,5 @@ class TenantCreditController extends Controller
                 'transactions' => $transactions,
             ],
         ]);
-    }
-
-    protected function ensureTenantAccess(Request $request, int $tenantId)
-    {
-        $user = $request->user();
-
-        if ($user->role === 'super_admin') {
-            return response()->json(['success' => false, 'message' => '系统管理员不能访问租户数据'], 403);
-        }
-
-        $tenantUser = $user->tenants()
-            ->where('tenants.tenant_id', $tenantId)
-            ->wherePivot('is_active', true)
-            ->first();
-
-        if (!$tenantUser) {
-            return response()->json(['success' => false, 'message' => '您不属于该租户'], 403);
-        }
-
-        return null;
     }
 }

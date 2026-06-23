@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Modules\SSL\Services\TenantSslService;
 
 class TenantSslController extends Controller
 {
+    use AuthorizesTenantAccess;
     public function index(Request $request, int $tenantId)
     {
         $this->ensureTenantAccess($request, $tenantId);
@@ -45,21 +47,4 @@ class TenantSslController extends Controller
         return response()->json(['success' => true, 'message' => 'SSL证书已删除']);
     }
 
-    private function ensureTenantAccess(Request $request, int $tenantId): void
-    {
-        $user = $request->user();
-
-        if ($user->role === 'super_admin') {
-            abort(403, '系统管理员不能访问租户数据');
-        }
-
-        $tenantUser = $user->tenants()
-            ->where('tenants.tenant_id', $tenantId)
-            ->wherePivot('is_active', true)
-            ->first();
-
-        if (!$tenantUser) {
-            abort(403, '您不属于该租户');
-        }
-    }
 }

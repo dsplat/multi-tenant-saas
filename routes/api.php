@@ -7,14 +7,10 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\CreditAccount;
 use MultiTenantSaas\Models\CreditTransaction;
-use MultiTenantSaas\Modules\Domain\Services\DomainService;
-use MultiTenantSaas\Modules\SSL\Services\TenantSslService;
-use MultiTenantSaas\Services\TenantSettingService;
-use MultiTenantSaas\Services\TenantCreditService;
-use MultiTenantSaas\Services\TenantMemberService;
-use MultiTenantSaas\Services\QuotaService;
 use MultiTenantSaas\Models\AuditLog;
 use MultiTenantSaas\Models\SystemSetting;
+use MultiTenantSaas\Modules\Domain\Services\DomainService;
+use MultiTenantSaas\Modules\SSL\Services\TenantSslService;
 
 // ========== 认证 API ==========
 Route::prefix('v1/auth')->group(function () {
@@ -207,53 +203,50 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
         return response()->json(['success' => true, 'message' => 'SSL证书已删除']);
     });
 
-    // ----- 租户配置 -----
+    // ----- 租户配置（通用） -----
     Route::get('/tenants/{tenantId}/settings/{group?}', function (int $tenantId, string $group = null) {
-        $service = app(TenantSettingService::class);
-        
         if ($group) {
-            $data = match ($group) {
-                'info' => $service->getTenantInfo($tenantId),
-                'oauth' => $service->getOAuthConfig($tenantId),
-                'auth' => $service->getAuthConfig($tenantId),
-                'mail' => $service->getMailConfig($tenantId),
-                'registration' => $service->getRegistrationConfig($tenantId),
-                'sms' => [
+            // SMS 配置从全局 config 读取
+            if ($group === 'sms') {
+                return response()->json(['success' => true, 'data' => [
                     'driver' => config('services.sms.driver', 'log'),
                     'ww_endpoint' => config('services.sms.ww_endpoint', ''),
                     'ww_account' => config('services.sms.ww_account', ''),
                     'ww_sign' => config('services.sms.ww_sign', ''),
                     'mtedu_endpoint' => config('services.sms.mtedu_endpoint', ''),
-                ],
-                default => [],
-            };
+                ]]);
+            }
+            $data = \MultiTenantSaas\Models\TenantSetting::getGroup($tenantId, $group);
         } else {
-            $data = $service->getAllConfig($tenantId);
+            $data = \MultiTenantSaas\Models\TenantSetting::getAll($tenantId);
         }
         
         return response()->json(['success' => true, 'data' => $data]);
     });
 
     Route::put('/tenants/{tenantId}/settings/{group}', function (Request $request, int $tenantId, string $group) {
-        $service = app(TenantSettingService::class);
-        
-        match ($group) {
-            'info' => $service->updateTenantInfo($tenantId, $request->all()),
-            'auth' => $service->updateAuthConfig($tenantId, $request->all()),
-            'mail' => $service->updateMailConfig($tenantId, $request->all()),
-            'registration' => $service->updateRegistrationConfig($tenantId, $request->all()),
-            'sms' => (function () use ($request) {
-                $allowed = ['driver', 'ww_endpoint', 'ww_account', 'ww_password', 'ww_sign', 'ww_product_id', 'mtedu_endpoint'];
-                foreach ($request->only($allowed) as $key => $value) {
-                    SystemSetting::updateOrCreate(
-                        ['group' => 'sms', 'key' => $key],
-                        ['value' => $value]
-                    );
-                }
-            })(),
-            default => abort(400, '未知配置组'),
-        };
-        
+        // SMS 配置存储到全局 system_settings
+        if ($group === 'sms') {
+            $allowed = ['driver', 'ww_endpoint', 'ww_account', 'ww_password', 'ww_sign', 'ww_product_id', 'mtedu_endpoint'];
+            foreach ($request->only($allowed) as $key => $value) {
+                SystemSetting::updateOrCreate(
+                    ['group' => 'sms', 'key' => $key],
+                    ['value' => $value]
+                );
+            }
+            return response()->json(['success' => true, 'message' => '短信配置已更新']);
+        }
+
+        // 其他配置存储到 tenant_settings
+        $allowedGroups = ['info', 'oauth', 'auth', 'mail', 'registration'];
+        if (!in_array($group, $allowedGroups)) {
+            return response()->json(['success' => false, 'message' => '未知配置组'], 400);
+        }
+
+        foreach ($request->all() as $key => $value) {
+            \MultiTenantSaas\Models\TenantSetting::set($tenantId, $group, $key, $value);
+        }
+
         return response()->json(['success' => true, 'message' => '配置已更新']);
     });
 

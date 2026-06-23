@@ -14,7 +14,6 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
         
         $this->setUpDatabase();
-        $this->seedTenants();
         
         // 加载 API 路由
         $this->app['router']->prefix('api')->group(function () {
@@ -30,6 +29,13 @@ abstract class TestCase extends BaseTestCase
         ];
     }
 
+    protected function defineRoutes($router): void
+    {
+        $router->get('/api/v1/test', function () {
+            return response()->json(['success' => true]);
+        });
+    }
+
     protected function defineEnvironment($app): void
     {
         $app['config']->set('auth.defaults.guard', 'sanctum');
@@ -41,6 +47,9 @@ abstract class TestCase extends BaseTestCase
             'driver' => 'eloquent',
             'model' => \MultiTenantSaas\Models\User::class,
         ]);
+        
+        // 设置 APP_KEY 用于加密
+        $app['config']->set('app.key', 'base64:' . base64_encode(random_bytes(32)));
     }
 
     protected function setUpDatabase(): void
@@ -114,6 +123,34 @@ abstract class TestCase extends BaseTestCase
 
             $table->unique(['tenant_id', 'group', 'key']);
             $table->index('tenant_id');
+        });
+
+        Schema::create('credit_accounts', function (Blueprint $table) {
+            $table->bigInteger('credit_account_id')->unsigned()->primary();
+            $table->bigInteger('tenant_id')->unsigned();
+            $table->bigInteger('user_id')->unsigned()->nullable();
+            $table->integer('balance')->default(0);
+            $table->integer('total_earned')->default(0);
+            $table->integer('total_spent')->default(0);
+            $table->string('status', 20)->default('active');
+            $table->timestamps();
+
+            $table->index('tenant_id');
+            $table->index('user_id');
+        });
+
+        Schema::create('credit_transactions', function (Blueprint $table) {
+            $table->bigInteger('credit_transaction_id')->unsigned()->primary();
+            $table->bigInteger('tenant_id')->unsigned();
+            $table->bigInteger('credit_account_id')->unsigned();
+            $table->string('type', 20);
+            $table->integer('amount');
+            $table->integer('balance_after')->default(0);
+            $table->string('description', 255)->nullable();
+            $table->timestamps();
+
+            $table->index('tenant_id');
+            $table->index('credit_account_id');
         });
     }
 

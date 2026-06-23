@@ -2,14 +2,33 @@
 
 namespace MultiTenantSaas\Tests;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantSetting;
 use MultiTenantSaas\Services\IdGenerator;
 
 class TenantSettingTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        
+        // 创建测试租户
+        Tenant::create([
+            'tenant_id' => 1001,
+            'name' => 'Tenant A',
+            'slug' => 'tenant-a',
+            'status' => 'active',
+        ]);
+        Tenant::create([
+            'tenant_id' => 1002,
+            'name' => 'Tenant B',
+            'slug' => 'tenant-b',
+            'status' => 'active',
+        ]);
+    }
 
     public function test_can_get_and_set_setting(): void
     {
@@ -35,17 +54,19 @@ class TenantSettingTest extends TestCase
     {
         TenantSetting::set(1001, 'oauth', 'client_secret', 'my-secret', true);
 
-        // 直接查询数据库验证加密
-        $raw = TenantSetting::withoutTenantScope()
+        // 通过 accessor 读取（自动解密）
+        $value = TenantSetting::get(1001, 'oauth', 'client_secret');
+        $this->assertEquals('my-secret', $value);
+
+        // 通过 DB 直接查原始值（验证确实加密了）
+        $raw = \DB::table('tenant_settings')
             ->where('tenant_id', 1001)
             ->where('key', 'client_secret')
             ->first();
 
-        $this->assertNotEquals('my-secret', $raw->attributes['value']);
-        $this->assertTrue($raw->is_encrypted);
-
-        // 通过 accessor 解密
-        $this->assertEquals('my-secret', $raw->value);
+        $this->assertNotNull($raw);
+        $this->assertNotEquals('my-secret', $raw->value);
+        $this->assertTrue((bool) $raw->is_encrypted);
     }
 
     public function test_can_remove_setting(): void
@@ -140,7 +161,7 @@ class IdGeneratorTest extends TestCase
 
 class TenantScopeTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     public function test_tenant_scope_filters_by_tenant_id(): void
     {

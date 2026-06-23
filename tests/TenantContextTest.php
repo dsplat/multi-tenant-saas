@@ -7,6 +7,19 @@ use MultiTenantSaas\Models\Tenant;
 
 class TenantContextTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        
+        // 创建测试租户
+        Tenant::create([
+            'tenant_id' => 1001,
+            'name' => 'Tenant A',
+            'slug' => 'tenant-a',
+            'status' => 'active',
+        ]);
+    }
+
     public function test_can_set_and_get_tenant_id(): void
     {
         TenantContext::setId('1001');

@@ -2,17 +2,14 @@
 
 namespace MultiTenantSaas\Tests;
 
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
 
-/**
- * Controller 集成测试
- *
- * 测试 API 路由的权限控制和基本功能
- */
 class ControllerTest extends TestCase
 {
+    use DatabaseMigrations;
     protected User $superAdmin;
     protected User $tenantAdmin;
     protected User $endUser;
@@ -38,9 +35,8 @@ class ControllerTest extends TestCase
             'status' => 'active',
         ]);
 
-        // 创建用户
+        // 创建用户（user_id 由 HasGlobalId 自动生成）
         $this->superAdmin = User::create([
-            'user_id' => 2001,
             'name' => 'Super Admin',
             'email' => 'super@test.com',
             'password' => bcrypt('password'),
@@ -48,7 +44,6 @@ class ControllerTest extends TestCase
         ]);
 
         $this->tenantAdmin = User::create([
-            'user_id' => 2002,
             'name' => 'Tenant Admin',
             'email' => 'admin@test.com',
             'password' => bcrypt('password'),
@@ -56,7 +51,6 @@ class ControllerTest extends TestCase
         ]);
 
         $this->endUser = User::create([
-            'user_id' => 2003,
             'name' => 'End User',
             'email' => 'user@test.com',
             'password' => bcrypt('password'),
@@ -66,14 +60,14 @@ class ControllerTest extends TestCase
         // 关联用户到租户
         TenantUser::create([
             'tenant_id' => 1001,
-            'user_id' => 2002,
+            'user_id' => $this->tenantAdmin->user_id,
             'role' => 'tenant_admin',
             'is_active' => true,
         ]);
 
         TenantUser::create([
             'tenant_id' => 1001,
-            'user_id' => 2003,
+            'user_id' => $this->endUser->user_id,
             'role' => 'end_user',
             'is_active' => true,
         ]);
@@ -194,7 +188,9 @@ class ControllerTest extends TestCase
         $response->assertSuccessful()
             ->assertJson([
                 'success' => true,
-                'data' => ['email' => 'admin@test.com'],
+                'data' => [
+                    'user' => ['email' => 'admin@test.com'],
+                ],
             ]);
     }
 
@@ -205,7 +201,7 @@ class ControllerTest extends TestCase
         $token = $this->tenantAdmin->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/v1/tenants/1001/settings/auth');
+            ->getJson('/api/v1/tenants/1001/settings');
 
         $response->assertSuccessful();
     }

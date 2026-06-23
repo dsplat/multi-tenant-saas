@@ -26,6 +26,7 @@ class Tenant extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = [
+        'tenant_id',
         'name',
         'slug',
         'domain',

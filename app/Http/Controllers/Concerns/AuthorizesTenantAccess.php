@@ -26,12 +26,13 @@ trait AuthorizesTenantAccess
             abort(403, '系统管理员不能访问租户数据');
         }
 
-        $tenantUser = $user->tenants()
-            ->where('tenants.tenant_id', $tenantId)
-            ->wherePivot('is_active', true)
-            ->first();
+        // 直接查询 tenant_users 表
+        $exists = \MultiTenantSaas\Models\TenantUser::where('user_id', $user->user_id)
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->exists();
 
-        if (!$tenantUser) {
+        if (!$exists) {
             abort(403, '您不属于该租户');
         }
     }

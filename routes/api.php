@@ -21,6 +21,8 @@ Route::prefix('v1/auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:3,1');
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,1');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:3,1');
+    Route::post('/verify-email', [AuthController::class, 'verifyEmail'])->middleware('throttle:5,1');
+    Route::post('/resend-verification', [AuthController::class, 'resendVerification'])->middleware('throttle:3,1');
 });
 
 // ========== 支付回调（无需认证，带 tenant_id 验签） ==========
@@ -42,14 +44,18 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
 
     // 租户管理（仅 super_admin）
     Route::get('/tenants', [TenantController::class, 'index']);
+    Route::post('/tenants', [TenantController::class, 'store']);
     Route::get('/tenants/{tenantId}', [TenantController::class, 'show']);
     Route::put('/tenants/{tenantId}', [TenantController::class, 'update']);
     Route::delete('/tenants/{tenantId}', [TenantController::class, 'destroy']);
+    Route::post('/tenants/{tenantId}/suspend', [TenantController::class, 'suspend']);
+    Route::post('/tenants/{tenantId}/activate', [TenantController::class, 'activate']);
 
     // 成员管理
     Route::get('/tenants/{tenantId}/members', [TenantMemberController::class, 'index']);
     Route::post('/tenants/{tenantId}/members', [TenantMemberController::class, 'store']);
     Route::put('/tenants/{tenantId}/members/{userId}', [TenantMemberController::class, 'update']);
+    Route::delete('/tenants/{tenantId}/members/{userId}', [TenantMemberController::class, 'destroy']);
 
     // 积分管理
     Route::get('/tenants/{tenantId}/credits', [TenantCreditController::class, 'index']);

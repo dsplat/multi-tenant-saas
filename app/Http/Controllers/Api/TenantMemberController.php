@@ -66,4 +66,39 @@ class TenantMemberController extends Controller
 
         return response()->json(['success' => true, 'message' => '已更新']);
     }
+
+    /**
+     * 移除租户成员
+     */
+    public function destroy(Request $request, int $tenantId, int $userId)
+    {
+        $this->ensureTenantAccess($request, $tenantId);
+
+        $member = TenantUser::where('tenant_id', $tenantId)
+            ->where('user_id', $userId)
+            ->firstOrFail();
+
+        // 防止最后一个管理员被移除
+        if ($member->role === 'tenant_admin') {
+            $adminCount = TenantUser::where('tenant_id', $tenantId)
+                ->where('role', 'tenant_admin')
+                ->where('is_active', true)
+                ->count();
+            if ($adminCount <= 1) {
+                return response()->json(['success' => false, 'message' => '无法移除最后一个管理员'], 400);
+            }
+        }
+
+        $oldValues = ['role' => $member->role, 'is_active' => $member->is_active];
+        $member->delete();
+
+        // 删除该用户在此租户上下文的 token
+        \DB::table('personal_access_tokens')
+            ->where('tokenable_id', $userId)
+            ->delete();
+
+        AuditService::log('remove', 'tenant_user', $userId, $oldValues, null);
+
+        return response()->json(['success' => true, 'message' => '成员已移除']);
+    }
 }

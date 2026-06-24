@@ -1,6 +1,6 @@
 <?php
 
-namespace MultiTenantSaas\Services;
+namespace App\Services;
 
 use MultiTenantSaas\Models\CreditAccount;
 use MultiTenantSaas\Models\PaymentOrder;

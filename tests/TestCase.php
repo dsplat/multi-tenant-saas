@@ -170,6 +170,36 @@ abstract class TestCase extends BaseTestCase
             $table->index('user_id');
             $table->index(['resource_type', 'resource_id']);
         });
+
+        Schema::create('password_reset_tokens', function (Blueprint $table) {
+            $table->string('email')->index();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
+        });
+
+        Schema::create('email_verification_tokens', function (Blueprint $table) {
+            $table->id();
+            $table->string('email')->index();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
+        });
+
+        Schema::create('payment_orders', function (Blueprint $table) {
+            $table->id();
+            $table->bigInteger('tenant_id')->unsigned()->index();
+            $table->string('order_no', 64)->unique();
+            $table->string('driver', 20)->default('wechat');
+            $table->decimal('amount', 10, 2);
+            $table->string('description')->nullable();
+            $table->string('status', 20)->default('pending');
+            $table->timestamp('paid_at')->nullable();
+            $table->string('transaction_id')->nullable();
+            $table->json('extra')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+
+            $table->index(['tenant_id', 'status']);
+        });
     }
 
     protected function seedTenants(): void

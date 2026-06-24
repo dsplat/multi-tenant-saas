@@ -168,8 +168,8 @@ class ControllerTest extends TestCase
         $response = $this->postJson('/api/v1/auth/register', [
             'name' => 'New User',
             'email' => 'new@test.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'password' => 'Password123',
+            'password_confirmation' => 'Password123',
         ]);
 
         $response->assertSuccessful()

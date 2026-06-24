@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Validation\ValidationException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withProviders([
@@ -16,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->prepend([
+            \App\Http\Middleware\AddSecurityHeaders::class,
             \MultiTenantSaas\Middleware\IdentifyDomain::class,
         ]);
 
@@ -33,5 +35,25 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // API 请求统一返回 JSON
+        $exceptions->shouldRenderJsonWhen(fn() => true);
+
+        // 验证异常 → 422
+        $exceptions->render(function (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        });
+
+        // 生产环境隐藏详细错误
+        $exceptions->renderable(function (\Throwable $e) {
+            if (app()->environment('production')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '服务器内部错误',
+                ], 500);
+            }
+        });
     })->create();

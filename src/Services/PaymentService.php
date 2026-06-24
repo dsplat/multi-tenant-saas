@@ -148,7 +148,7 @@ class PaymentService
             'attach' => null,
         ];
 
-        Log::info('MantouPay H5 prepay request', ['sign_params' => $signParams, 'post_params' => $params, 'sign' => $sign]);
+        Log::info('MantouPay H5 prepay request', ['trade_no' => $order->out_trade_no, 'amount' => $order->total_fee]);
 
         $resp = Http::asForm()
             ->post($this->gateway.'/v3/wechat/h5/prepay', $params)
@@ -204,7 +204,7 @@ class PaymentService
             'timestamp' => $ts,
         ];
 
-        Log::info('MantouPay Native prepay request', ['sign_params' => $signParams, 'post_params' => $params, 'sign' => $sign]);
+        Log::info('MantouPay Native prepay request', ['trade_no' => $order->out_trade_no, 'amount' => $order->total_fee]);
 
         $resp = Http::asForm()
             ->post($this->gateway.'/v3/wechat/nativepay', $params)
@@ -258,7 +258,7 @@ class PaymentService
             'attach' => null,
         ];
 
-        Log::info('MantouPay JSAPI prepay request', ['sign_params' => $signParams, 'post_params' => $params]);
+        Log::info('MantouPay JSAPI prepay request', ['trade_no' => $order->out_trade_no, 'amount' => $order->total_fee]);
 
         $resp = Http::asForm()
             ->post($this->gateway.'/v3/wechat/prepay', $params)

@@ -34,8 +34,11 @@ class Tenant extends Model
         'logo',
         'description',
         'subscription_plan',
+        'subscription_plan_id',
         'subscription_started_at',
         'subscription_expires_at',
+        'auto_renew',
+        'trial_ends_at',
         'total_credits',
         'used_credits',
         'contact_name',
@@ -57,6 +60,7 @@ class Tenant extends Model
         return [
             'subscription_started_at' => 'datetime',
             'subscription_expires_at' => 'datetime',
+            'trial_ends_at' => 'datetime',
             'ssl_uploaded_at' => 'datetime',
             'ssl_cert_expires_at' => 'datetime',
             'settings' => 'array',
@@ -65,6 +69,7 @@ class Tenant extends Model
             'used_credits' => 'integer',
             'tenant_id' => 'integer',
             'is_platform_default' => 'boolean',
+            'auto_renew' => 'boolean',
         ];
     }
 
@@ -74,7 +79,7 @@ class Tenant extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'tenant_users', 'tenant_id', 'user_id', 'tenant_id')
-            ->withPivot('role', 'credits', 'is_active', 'joined_at')
+            ->withPivot('role', 'role_id', 'credits', 'is_active', 'joined_at')
             ->withTimestamps();
     }
 
@@ -100,6 +105,14 @@ class Tenant extends Model
     public function creditAccounts(): HasMany
     {
         return $this->hasMany(CreditAccount::class, 'tenant_id', 'tenant_id');
+    }
+
+    /**
+     * 订阅计划
+     */
+    public function subscriptionPlan(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
     }
 
     /**

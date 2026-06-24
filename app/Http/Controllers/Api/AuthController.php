@@ -15,8 +15,41 @@ use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\AuditService;
 
+/**
+ * @OA\Tag(name="认证", description="用户认证相关接口")
+ */
 class AuthController extends Controller
 {
+    /**
+     * @OA\Post(
+     *     path="/v1/auth/login",
+     *     summary="用户登录",
+     *     description="使用邮箱和密码登录，返回 Bearer Token",
+     *     tags={"认证"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email","password"},
+     *             @OA\Property(property="email", type="string", format="email", example="user@example.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="password123")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="登录成功",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="登录成功"),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="token", type="string", example="1|abcdef123456"),
+     *                 @OA\Property(property="user", type="object")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="认证失败", @OA\JsonContent(ref="#/components/schemas/ErrorResponse")),
+     *     @OA\Response(response=429, description="请求过多")
+     * )
+     */
     public function login(Request $request)
     {
         $request->validate([

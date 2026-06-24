@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Services\RbacService;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -135,13 +136,14 @@ class CheckPermission
     protected function unauthorized(Request $request): Response
     {
         if ($request->expectsJson()) {
-            return response()->json(['message' => '未登录', 'error' => 'Unauthenticated'], 401);
+            return response()->json(['message' => trans('common.unauthenticated'), 'error' => 'Unauthenticated'], 401);
         }
         return redirect()->guest(route('login'));
     }
 
-    protected function forbidden(Request $request, string $message = '无权访问'): Response
+    protected function forbidden(Request $request, ?string $message = null): Response
     {
+        $message = $message ?? trans('common.forbidden');
         if ($request->expectsJson()) {
             return response()->json(['message' => $message, 'error' => 'Forbidden'], 403);
         }

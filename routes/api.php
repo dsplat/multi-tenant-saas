@@ -14,6 +14,10 @@ use App\Http\Controllers\Api\TenantOAuthController;
 use App\Http\Controllers\Api\TenantTokenController;
 use App\Http\Controllers\Api\TenantQuotaController;
 use App\Http\Controllers\Api\AdminSettingsController;
+use App\Http\Controllers\Api\RbacController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\FileController;
 
 // ========== 认证 API（无需认证） ==========
 Route::prefix('v1/auth')->group(function () {
@@ -30,6 +34,10 @@ Route::post('/v1/pay/wechat/notify', [TenantPaymentController::class, 'wechatNot
 Route::post('/v1/pay/alipay/notify', [TenantPaymentController::class, 'alipayNotify']);
 Route::get('/v1/pay/wechat/notify', [TenantPaymentController::class, 'wechatNotify']);
 Route::get('/v1/pay/alipay/notify', [TenantPaymentController::class, 'alipayNotify']);
+
+// ========== 退款回调（无需认证，带 tenant_id 验签） ==========
+Route::post('/v1/pay/wechat/refund-notify', [TenantPaymentController::class, 'wechatRefundNotify']);
+Route::post('/v1/pay/alipay/refund-notify', [TenantPaymentController::class, 'alipayRefundNotify']);
 
 // ========== 第三方登录回调（无需认证） ==========
 Route::get('/v1/auth/{provider}/redirect', [TenantOAuthController::class, 'redirect']);
@@ -87,6 +95,7 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     // 支付订单
     Route::get('/tenants/{tenantId}/payment-orders', [TenantPaymentController::class, 'index']);
     Route::post('/tenants/{tenantId}/payment-orders', [TenantPaymentController::class, 'store']);
+    Route::post('/tenants/{tenantId}/payment-orders/refund', [TenantPaymentController::class, 'refund']);
 
     // 审计日志
     Route::get('/tenants/{tenantId}/audit-logs', [TenantAuditController::class, 'index']);
@@ -102,4 +111,39 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     // 系统设置（仅 super_admin）
     Route::get('/admin/settings', [AdminSettingsController::class, 'index']);
     Route::put('/admin/settings/{group}', [AdminSettingsController::class, 'update']);
+
+    // RBAC 权限管理
+    Route::get('/rbac/permissions', [RbacController::class, 'permissions']);
+    Route::get('/tenants/{tenantId}/roles', [RbacController::class, 'roles']);
+    Route::post('/tenants/{tenantId}/roles', [RbacController::class, 'storeRole']);
+    Route::put('/tenants/{tenantId}/roles/{roleId}/permissions', [RbacController::class, 'updateRolePermissions']);
+    Route::delete('/tenants/{tenantId}/roles/{roleId}', [RbacController::class, 'destroyRole']);
+    Route::post('/tenants/{tenantId}/members/{userId}/role', [RbacController::class, 'assignMemberRole']);
+
+    // 通知中心
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+    Route::delete('/notifications/read/clear', [NotificationController::class, 'clearRead']);
+
+    // 订阅管理
+    Route::get('/subscription/plans', [SubscriptionController::class, 'plans']);
+    Route::get('/subscription/plans/{planId}', [SubscriptionController::class, 'showPlan']);
+    Route::post('/subscription/plans', [SubscriptionController::class, 'storePlan']);
+    Route::put('/subscription/plans/{planId}', [SubscriptionController::class, 'updatePlan']);
+    Route::delete('/subscription/plans/{planId}', [SubscriptionController::class, 'destroyPlan']);
+    Route::get('/tenants/{tenantId}/subscription', [SubscriptionController::class, 'current']);
+    Route::post('/tenants/{tenantId}/subscription/subscribe', [SubscriptionController::class, 'subscribe']);
+    Route::post('/tenants/{tenantId}/subscription/cancel', [SubscriptionController::class, 'cancel']);
+    Route::post('/tenants/{tenantId}/subscription/change', [SubscriptionController::class, 'changePlan']);
+
+    // 文件存储
+    Route::get('/files', [FileController::class, 'index']);
+    Route::post('/files', [FileController::class, 'store']);
+    Route::get('/files/usage', [FileController::class, 'usage']);
+    Route::get('/files/{id}', [FileController::class, 'show']);
+    Route::get('/files/{id}/download', [FileController::class, 'download']);
+    Route::delete('/files/{id}', [FileController::class, 'destroy']);
 });

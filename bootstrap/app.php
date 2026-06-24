@@ -27,11 +27,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->api(prepend: [
             \MultiTenantSaas\Middleware\IdentifyTenant::class,
+            \MultiTenantSaas\Middleware\SetLocale::class,
         ]);
 
         $middleware->alias([
             'tenant.ensure' => \MultiTenantSaas\Middleware\EnsureTenantContext::class,
             'tenant.permission' => \MultiTenantSaas\Middleware\CheckPermission::class,
+            'rbac.permission' => \MultiTenantSaas\Middleware\CheckRbacPermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

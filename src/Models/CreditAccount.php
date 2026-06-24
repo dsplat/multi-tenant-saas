@@ -24,6 +24,12 @@ class CreditAccount extends Model
         'recharge_balance',
         'total_recharged',
         'total_consumed',
+        'expires_at',
+        'expired_total',
+        'last_warning_at',
+        'auto_recharge_enabled',
+        'auto_recharge_threshold',
+        'auto_recharge_amount',
     ];
 
     protected function casts(): array
@@ -34,6 +40,12 @@ class CreditAccount extends Model
             'recharge_balance' => 'integer',
             'total_recharged' => 'integer',
             'total_consumed' => 'integer',
+            'expires_at' => 'datetime',
+            'expired_total' => 'integer',
+            'last_warning_at' => 'datetime',
+            'auto_recharge_enabled' => 'boolean',
+            'auto_recharge_threshold' => 'integer',
+            'auto_recharge_amount' => 'integer',
         ];
     }
 

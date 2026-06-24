@@ -60,6 +60,12 @@ abstract class TestCase extends BaseTestCase
             $table->string('slug', 100)->nullable()->unique();
             $table->string('custom_domain', 200)->nullable()->unique();
             $table->string('status', 20)->default('active');
+            $table->string('subscription_plan', 50)->default('free');
+            $table->unsignedBigInteger('subscription_plan_id')->nullable();
+            $table->timestamp('subscription_started_at')->nullable();
+            $table->timestamp('subscription_expires_at')->nullable();
+            $table->boolean('auto_renew')->default(false);
+            $table->timestamp('trial_ends_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
@@ -85,6 +91,7 @@ abstract class TestCase extends BaseTestCase
             $table->bigInteger('tenant_id')->unsigned();
             $table->bigInteger('user_id')->unsigned();
             $table->string('role', 20)->default('end_user');
+            $table->unsignedBigInteger('role_id')->nullable();
             $table->integer('credits')->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamp('joined_at')->nullable();
@@ -132,9 +139,14 @@ abstract class TestCase extends BaseTestCase
             $table->integer('balance')->default(0);
             $table->integer('total_earned')->default(0);
             $table->integer('total_spent')->default(0);
+            $table->timestamp('expires_at')->nullable();
+            $table->integer('expired_total')->default(0);
+            $table->timestamp('last_warning_at')->nullable();
+            $table->boolean('auto_recharge_enabled')->default(false);
+            $table->integer('auto_recharge_threshold')->default(100);
+            $table->integer('auto_recharge_amount')->default(1000);
             $table->string('status', 20)->default('active');
             $table->timestamps();
-
             $table->index('tenant_id');
             $table->index('user_id');
         });
@@ -199,6 +211,122 @@ abstract class TestCase extends BaseTestCase
             $table->softDeletes();
 
             $table->index(['tenant_id', 'status']);
+        });
+
+        // RBAC 表
+        Schema::create('permissions', function (Blueprint $table) {
+            $table->id();
+            $table->string('name', 100)->unique();
+            $table->string('display_name', 200);
+            $table->string('group', 50)->default('general');
+            $table->text('description')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('roles', function (Blueprint $table) {
+            $table->id();
+            $table->bigInteger('tenant_id')->unsigned()->nullable()->index();
+            $table->string('name', 50);
+            $table->string('display_name', 200);
+            $table->text('description')->nullable();
+            $table->boolean('is_system')->default(false);
+            $table->timestamps();
+            $table->unique(['tenant_id', 'name']);
+        });
+
+        Schema::create('role_permissions', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('role_id');
+            $table->unsignedBigInteger('permission_id');
+            $table->timestamps();
+            $table->unique(['role_id', 'permission_id']);
+        });
+
+        // 通知表
+        Schema::create('notifications', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('type');
+            $table->morphs('notifiable');
+            $table->text('data');
+            $table->timestamp('read_at')->nullable();
+            $table->timestamps();
+            $table->index(['notifiable_type', 'notifiable_id']);
+            $table->index('read_at');
+        });
+
+        // 订阅计划表
+        Schema::create('subscription_plans', function (Blueprint $table) {
+            $table->id();
+            $table->string('name', 50)->unique();
+            $table->string('display_name', 200);
+            $table->text('description')->nullable();
+            $table->integer('price_monthly')->default(0);
+            $table->integer('price_yearly')->default(0);
+            $table->unsignedSmallInteger('trial_days')->default(0);
+            $table->json('features')->nullable();
+            $table->json('limits')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->unsignedSmallInteger('sort_order')->default(0);
+            $table->timestamps();
+        });
+
+        // 财务记录表
+        Schema::create('financial_records', function (Blueprint $table) {
+            $table->bigInteger('financial_record_id')->unsigned()->primary();
+            $table->bigInteger('tenant_id')->unsigned();
+            $table->string('type', 30);
+            $table->integer('amount')->default(0);
+            $table->string('status', 20)->default('pending');
+            $table->string('payment_method', 30)->nullable();
+            $table->string('payment_order_no', 64)->nullable();
+            $table->timestamp('paid_at')->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+            $table->index('tenant_id');
+        });
+
+        // 文件上传表
+        Schema::create('file_uploads', function (Blueprint $table) {
+            $table->id();
+            $table->bigInteger('tenant_id')->unsigned()->nullable()->index();
+            $table->bigInteger('user_id')->unsigned()->nullable()->index();
+            $table->string('disk', 20)->default('local');
+            $table->string('path', 500);
+            $table->string('filename', 255);
+            $table->string('mime_type', 100)->nullable();
+            $table->bigInteger('size')->unsigned()->default(0);
+            $table->string('hash', 64)->nullable()->index();
+            $table->string('category', 50)->default('general');
+            $table->boolean('is_public')->default(false);
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        // ApiToken 模块表
+        Schema::create('user_api_tokens', function (Blueprint $table) {
+            $table->id();
+            $table->bigInteger('user_id')->unsigned()->index();
+            $table->bigInteger('tenant_id')->unsigned()->nullable()->index();
+            $table->unsignedInteger('apisvr_token_id');
+            $table->text('apisvr_key');
+            $table->integer('remain_quota_cache')->default(0);
+            $table->integer('used_quota_cache')->default(0);
+            $table->timestamp('quota_synced_at')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+        });
+
+        Schema::create('user_api_token_histories', function (Blueprint $table) {
+            $table->id();
+            $table->bigInteger('user_id')->unsigned()->index();
+            $table->bigInteger('tenant_id')->unsigned()->nullable()->index();
+            $table->unsignedInteger('apisvr_token_id');
+            $table->text('masked_key');
+            $table->string('action', 20)->default('created');
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
         });
     }
 

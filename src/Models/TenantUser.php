@@ -20,6 +20,7 @@ class TenantUser extends Model
         'tenant_id',
         'user_id',
         'role',
+        'role_id',
         'credits',
         'is_active',
         'joined_at',

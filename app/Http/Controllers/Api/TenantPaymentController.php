@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use MultiTenantSaas\Models\PaymentOrder;
 use MultiTenantSaas\Services\AuditService;
 use MultiTenantSaas\Services\PayService;
+use MultiTenantSaas\Services\RefundService;
 
 class TenantPaymentController extends Controller
 {
@@ -136,6 +137,69 @@ class TenantPaymentController extends Controller
             'success' => true,
             'data' => $order,
         ], 201);
+    }
+
+    /**
+     * 发起退款
+     */
+    public function refund(Request $request, int $tenantId)
+    {
+        $this->ensureTenantAccess($request, $tenantId);
+
+        $validated = $request->validate([
+            'order_no' => 'required|string',
+            'amount' => 'required|numeric|min:0.01',
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            $result = RefundService::refund(
+                $tenantId,
+                $validated['order_no'],
+                $validated['amount'],
+                $validated['reason'] ?? ''
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * 退款回调（微信）
+     */
+    public function wechatRefundNotify(Request $request)
+    {
+        try {
+            $result = RefundService::handleRefundCallback('wechat', $request);
+            \Log::info('微信退款回调成功', $result);
+            return response('success');
+        } catch (\Throwable $e) {
+            \Log::error('微信退款回调失败', ['error' => $e->getMessage()]);
+            return response('fail', 400);
+        }
+    }
+
+    /**
+     * 退款回调（支付宝）
+     */
+    public function alipayRefundNotify(Request $request)
+    {
+        try {
+            $result = RefundService::handleRefundCallback('alipay', $request);
+            \Log::info('支付宝退款回调成功', $result);
+            return response('success');
+        } catch (\Throwable $e) {
+            \Log::error('支付宝退款回调失败', ['error' => $e->getMessage()]);
+            return response('fail', 400);
+        }
     }
 
 }

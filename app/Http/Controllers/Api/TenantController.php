@@ -9,6 +9,7 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantSetting;
 use MultiTenantSaas\Services\AuditService;
 use MultiTenantSaas\Services\IdGenerator;
+use MultiTenantSaas\Services\NotificationService;
 
 class TenantController extends Controller
 {
@@ -166,6 +167,9 @@ class TenantController extends Controller
             'status' => 'suspended',
             'reason' => $request->reason,
         ]);
+
+        // 通知租户所有成员
+        NotificationService::notifyTenantSuspended($tenant, $request->reason);
 
         return response()->json(['success' => true, 'message' => '租户已暂停']);
     }

@@ -64,6 +64,14 @@ class PayService
     }
 
     /**
+     * 公开的 Pay 实例创建方法（供 RefundService 等使用）
+     */
+    public static function createPayInstancePublic(int $tenantId, string $driver): Pay
+    {
+        return self::createPayInstance($tenantId, $driver);
+    }
+
+    /**
      * 微信支付 - JSAPI
      */
     public static function wechatJsapi(int $tenantId, float $amount, string $orderNo, string $openId): array

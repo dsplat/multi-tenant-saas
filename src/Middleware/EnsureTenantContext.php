@@ -50,12 +50,12 @@ class EnsureTenantContext
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => false,
-                'message' => '缺少租户信息',
+                'message' => trans("common.missing_tenant"),
                 'error' => 'MissingTenant',
             ], 400);
         }
 
-        abort(400, '缺少租户信息');
+        abort(400, trans("common.missing_tenant"));
     }
 
     /**
@@ -64,9 +64,9 @@ class EnsureTenantContext
     protected function inactiveTenantResponse(Request $request, $tenant): Response
     {
         $message = match ($tenant->status) {
-            'suspended' => '该租户已被暂停',
-            'cancelled' => '该租户已被取消',
-            default => '该租户不可用',
+            'suspended' => trans("tenant.suspended"),
+            'cancelled' => trans("tenant.cancelled"),
+            default => trans("tenant.inactive"),
         };
 
         if ($request->expectsJson()) {

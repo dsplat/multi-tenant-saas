@@ -75,7 +75,7 @@ class ApiTokenService
             $item = collect($list)->firstWhere('name', $tokenName);
 
             if (! $item) {
-                throw new \RuntimeException('[ApiTokenService] 创建 New API token 后未能查询到记录: ' . $tokenName);
+                throw new \RuntimeException('[ApiTokenService] ' . trans("apitoken.token_not_found") . ': ' . $tokenName);
             }
         }
 
@@ -84,7 +84,7 @@ class ApiTokenService
         $rawKey = $keyResult['key'] ?? null;
 
         if (! $rawKey || str_contains((string) $rawKey, '****')) {
-            throw new \RuntimeException('[ApiTokenService] 无法从 New API 获取完整 key，token id: ' . $item['id']);
+            throw new \RuntimeException('[ApiTokenService] ' . trans("apitoken.key_incomplete") . ': ' . $item['id']);
         }
 
         // 加 sk- 前缀存储，保证 getDecryptedKey() 返回可直接使用的完整 key
@@ -225,7 +225,7 @@ class ApiTokenService
             try {
                 $this->delete('/api/token/' . (int) $existing['id']);
             } catch (\Throwable $e) {
-                Log::warning('[ApiTokenService] createPromoTokenInApisvr 旧 token 删除失败', [
+                Log::warning('[ApiTokenService] ' . trans("apitoken.old_token_delete_failed"), [
                     'token_id' => $existing['id'],
                     'error' => $e->getMessage(),
                 ]);
@@ -245,14 +245,14 @@ class ApiTokenService
         $list = $this->getList('/api/token/', ['keyword' => $tokenName, 'size' => 5]);
         $item = collect($list)->firstWhere('name', $tokenName);
         if (! $item) {
-            throw new RuntimeException('[ApiTokenService] 创建活动 token 后未能查询到记录: ' . $tokenName);
+            throw new RuntimeException('[ApiTokenService] ' . trans("apitoken.promo_token_not_found") . ': ' . $tokenName);
         }
 
         $keyResult = $this->post('/api/token/' . (int) $item['id'] . '/key', []);
         $rawKey = $keyResult['key'] ?? null;
 
         if (! $rawKey || str_contains((string) $rawKey, '****')) {
-            throw new RuntimeException('[ApiTokenService] 无法从 New API 获取活动 token 完整 key: ' . $item['id']);
+            throw new RuntimeException('[ApiTokenService] ' . trans("apitoken.promo_key_incomplete") . ': ' . $item['id']);
         }
 
         $fullKey = str_starts_with($rawKey, 'sk-') ? $rawKey : 'sk-' . $rawKey;
@@ -354,7 +354,7 @@ class ApiTokenService
                     $record->saveQuietly();
                     $count++;
                 } catch (\Throwable $e) {
-                    Log::warning('[ApiTokenService] syncAllQuotas 单条失败', [
+                    Log::warning('[ApiTokenService] ' . trans("apitoken.sync_quota_failed"), [
                         'user_id' => $record->user_id,
                         'error' => $e->getMessage(),
                     ]);
@@ -519,14 +519,14 @@ class ApiTokenService
     {
         if ($response->failed()) {
             $body = $response->body();
-            Log::error('[ApiTokenService] New API HTTP 错误', [
+            Log::error('[ApiTokenService] ' . trans("apitoken.http_error"), [
                 'method' => $method,
                 'path' => $path,
                 'status' => $response->status(),
                 'body' => mb_substr($body, 0, 500),
             ]);
             throw new RuntimeException(
-                '[ApiTokenService] ' . $method . ' ' . $path . ' 失败，HTTP ' . $response->status()
+                '[ApiTokenService] ' . $method . ' ' . $path . ' ' . trans("apitoken.http_failed") . ': HTTP ' . $response->status()
             );
         }
 
@@ -534,13 +534,13 @@ class ApiTokenService
         $json = $response->json();
         if (is_array($json) && isset($json['success']) && $json['success'] === false) {
             $message = $json['message'] ?? 'unknown error';
-            Log::error('[ApiTokenService] New API 业务错误', [
+            Log::error('[ApiTokenService] ' . trans("apitoken.business_error"), [
                 'method' => $method,
                 'path' => $path,
                 'message' => $message,
             ]);
             throw new RuntimeException(
-                '[ApiTokenService] ' . $method . ' ' . $path . ' 业务失败: ' . $message
+                '[ApiTokenService] ' . $method . ' ' . $path . ' ' . trans("apitoken.business_failed") . ': ' . $message
             );
         }
     }

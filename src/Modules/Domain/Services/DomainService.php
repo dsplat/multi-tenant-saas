@@ -47,7 +47,7 @@ class DomainService
 
         if ($existing) {
             throw ValidationException::withMessages([
-                'domain' => '该域名已被其他租户使用',
+                'domain' => trans("domain.already_used"),
             ]);
         }
 
@@ -64,7 +64,7 @@ class DomainService
         $tenant = Tenant::findOrFail($tenantId);
 
         if (empty($tenant->custom_domain)) {
-            throw new \RuntimeException('租户未配置自定义域名');
+            throw new \RuntimeException(trans("domain.not_configured"));
         }
 
         TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'domain_status', self::STATUS_APPROVED);

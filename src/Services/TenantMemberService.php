@@ -76,7 +76,7 @@ class TenantMemberService
                     DB::rollBack();
                     return [
                         'success' => false,
-                        'message' => '该用户已经是企业成员',
+                        'message' => trans("tenant.member_already_exists"),
                     ];
                 }
 
@@ -115,7 +115,7 @@ class TenantMemberService
 
             return [
                 'success' => true,
-                'message' => '成员邀请成功',
+                'message' => trans("tenant.member_invited"),
                 'data' => [
                     'user' => $user,
                     'tenant_user' => $tenantUser,
@@ -125,7 +125,7 @@ class TenantMemberService
             DB::rollBack();
             return [
                 'success' => false,
-                'message' => '邀请失败：' . $e->getMessage(),
+                'message' => trans("tenant.invite_failed") . ': ' . $e->getMessage(),
             ];
         }
     }
@@ -147,7 +147,7 @@ class TenantMemberService
         if (!$tenantUser) {
             return [
                 'success' => false,
-                'message' => '成员不存在',
+                'message' => trans("tenant.member_not_found"),
             ];
         }
 
@@ -160,7 +160,7 @@ class TenantMemberService
             if ($adminCount <= 1) {
                 return [
                     'success' => false,
-                    'message' => '不能修改最后一个管理员的角色',
+                    'message' => trans("tenant.last_admin_role_protected"),
                 ];
             }
         }
@@ -169,7 +169,7 @@ class TenantMemberService
 
         return [
             'success' => true,
-            'message' => '角色更新成功',
+            'message' => trans("tenant.role_updated"),
         ];
     }
 
@@ -190,7 +190,7 @@ class TenantMemberService
         if (!$tenantUser) {
             return [
                 'success' => false,
-                'message' => '成员不存在',
+                'message' => trans("tenant.member_not_found"),
             ];
         }
 
@@ -198,7 +198,7 @@ class TenantMemberService
 
         return [
             'success' => true,
-            'message' => '积分更新成功',
+            'message' => trans("credit.update_success"),
         ];
     }
 
@@ -218,7 +218,7 @@ class TenantMemberService
         if (!$tenantUser) {
             return [
                 'success' => false,
-                'message' => '成员不存在',
+                'message' => trans("tenant.member_not_found"),
             ];
         }
 
@@ -231,7 +231,7 @@ class TenantMemberService
             if ($adminCount <= 1) {
                 return [
                     'success' => false,
-                    'message' => '不能移除最后一个管理员',
+                    'message' => trans("tenant.last_admin_protected"),
                 ];
             }
         }
@@ -240,7 +240,7 @@ class TenantMemberService
 
         return [
             'success' => true,
-            'message' => '成员已移除',
+            'message' => trans("tenant.member_removed"),
         ];
     }
 

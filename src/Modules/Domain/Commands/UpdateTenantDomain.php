@@ -25,8 +25,8 @@ class UpdateTenantDomain extends Command
         $tenant = Tenant::where('custom_domain', $old)->first();
 
         if (!$tenant) {
-            $this->error("未找到 custom_domain = '{$old}' 的租户。");
-            $this->line('现有自定义域名：');
+            $this->error(trans('domain.tenant_not_found_by_domain', ['domain' => $old]));
+            $this->line(trans('domain.existing_custom_domains'));
             Tenant::whereNotNull('custom_domain')->get(['name', 'custom_domain'])->each(
                 fn ($t) => $this->line("  [{$t->name}] {$t->custom_domain}")
             );
@@ -34,21 +34,21 @@ class UpdateTenantDomain extends Command
             return self::FAILURE;
         }
 
-        $this->info("租户：{$tenant->name}（ID: {$tenant->tenant_id}）");
-        $this->line("  旧域名：{$old}");
-        $this->line("  新域名：{$new}");
+        $this->info(trans('domain.tenant_info', ['name' => $tenant->name, 'id' => $tenant->tenant_id]));
+        $this->line('  ' . trans('domain.old_domain') . ": {$old}");
+        $this->line('  ' . trans('domain.new_domain') . ": {$new}");
 
-        if (!$this->confirm('确认更新？', true)) {
-            $this->warn('已取消。');
+        if (!$this->confirm(trans('domain.confirm_update'), true)) {
+            $this->warn(trans('common.cancelled'));
             return self::SUCCESS;
         }
 
         $tenant->update(['custom_domain' => $new]);
-        $this->info('✓ 数据库已更新。');
+        $this->info(trans('domain.db_updated'));
 
         if ($this->option('regenerate-map')) {
             $output = $this->option('map-output');
-            $this->line('重新生成 nginx 白名单...');
+            $this->line(trans('domain.regenerating_nginx_map'));
 
             $params = [];
             if ($output) {
@@ -61,12 +61,12 @@ class UpdateTenantDomain extends Command
             $exitCode = Artisan::call('domains:generate-nginx-map', $params);
 
             if ($exitCode === 0) {
-                $this->info('✓ nginx 白名单已重新生成。');
+                $this->info(trans('domain.nginx_map_regenerated'));
             } else {
-                $this->warn('⚠ nginx 白名单生成时出现问题，请手动检查。');
+                $this->warn(trans('domain.nginx_map_failed'));
             }
         } else {
-            $this->warn('提示：请在服务器上执行以下命令更新 nginx 白名单：');
+            $this->warn(trans('domain.manual_reload_hint'));
             $this->line('  php artisan domains:generate-nginx-map --reload');
         }
 

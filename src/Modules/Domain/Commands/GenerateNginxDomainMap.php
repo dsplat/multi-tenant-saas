@@ -15,18 +15,18 @@ class GenerateNginxDomainMap extends Command
 
     public function handle(NginxConfigService $service): int
     {
-        $this->info('开始生成Nginx域名白名单配置...');
+        $this->info(trans('domain.generating_nginx_config'));
 
         $outputPath = $this->option('output');
 
         $service->generateDomainWhitelistMap($outputPath);
 
         $finalPath = $outputPath ?? config('domain.nginx_map_file', '/etc/nginx/conf.d/allowed-domains.map');
-        $this->info("✓ 配置文件已生成: {$finalPath}");
+        $this->info(trans('domain.config_generated', ['path' => $finalPath]));
 
         if ($this->option('reload')) {
             $this->newLine();
-            $this->info('正在reload Nginx配置...');
+            $this->info(trans('domain.reloading_nginx'));
 
             $testResult = shell_exec('nginx -t 2>&1');
             $this->line($testResult);
@@ -37,14 +37,14 @@ class GenerateNginxDomainMap extends Command
                 } else {
                     $reloadResult = shell_exec('sudo nginx -s reload 2>&1');
                 }
-                $this->info("✓ Nginx已reload: {$reloadResult}");
+                $this->info(trans('domain.nginx_reloaded', ['result' => $reloadResult]));
             } else {
-                $this->error('✗ Nginx配置测试失败，未执行reload');
+                $this->error(trans('domain.nginx_test_failed'));
                 return self::FAILURE;
             }
         } else {
             $this->newLine();
-            $this->comment('提示：配置已生成，请手动reload Nginx：');
+            $this->comment(trans('domain.manual_reload_hint'));
             if (PHP_OS_FAMILY === 'Darwin') {
                 $this->line('  nginx -t && brew services reload nginx');
             } else {

@@ -72,7 +72,7 @@ class SystemSettingService
         if (empty($apiKey)) {
             return [
                 'success' => false,
-                'message' => '请先配置 API Key',
+                'message' => trans("common.api_key_required"),
             ];
         }
 
@@ -87,7 +87,7 @@ class SystemSettingService
             if ($response->successful()) {
                 return [
                     'success' => true,
-                    'message' => '连接成功',
+                    'message' => trans("common.connection_success"),
                     'data' => $response->json(),
                 ];
             }
@@ -100,7 +100,7 @@ class SystemSettingService
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => '连接失败: '.$e->getMessage(),
+                'message' => trans("common.connection_failed") . ': ' . $e->getMessage(),
             ];
         }
     }
@@ -116,7 +116,7 @@ class SystemSettingService
             'default_language' => SystemSetting::get(self::GROUP_SYSTEM, 'default_language', 'zh-CN'),
             'default_timezone' => SystemSetting::get(self::GROUP_SYSTEM, 'default_timezone', 'Asia/Shanghai'),
             'maintenance_mode' => SystemSetting::get(self::GROUP_SYSTEM, 'maintenance_mode', false),
-            'maintenance_message' => SystemSetting::get(self::GROUP_SYSTEM, 'maintenance_message', '系统维护中，请稍后访问'),
+            'maintenance_message' => SystemSetting::get(self::GROUP_SYSTEM, 'maintenance_message', trans("common.maintenance_message")),
         ];
     }
 
@@ -230,12 +230,12 @@ class SystemSettingService
 
             return [
                 'success' => true,
-                'message' => '测试邮件发送成功，请检查收件箱',
+                'message' => trans("common.test_email_sent"),
             ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => '邮件发送失败: '.$e->getMessage(),
+                'message' => trans("common.email_send_failed") . ': ' . $e->getMessage(),
             ];
         }
     }

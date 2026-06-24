@@ -36,7 +36,7 @@ class TenantSslService
         $domain = $tenant->custom_domain;
 
         if (! $domain) {
-            throw new RuntimeException('租户尚未配置自定义域名，无法上传 SSL 证书。');
+            throw new RuntimeException(trans("ssl.no_domain"));
         }
 
         // 解析证书过期时间

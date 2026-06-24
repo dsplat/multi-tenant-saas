@@ -33,15 +33,15 @@ class RefundService
             ->first();
 
         if (!$order) {
-            throw new \RuntimeException('订单不存在');
+            throw new \RuntimeException('trans("payment.order_not_found")');
         }
 
         if ($order->status !== 'paid' && $order->status !== 'completed') {
-            throw new \RuntimeException('订单状态不支持退款');
+            throw new \RuntimeException(trans("payment.order_status_invalid"));
         }
 
         if ($refundAmount > floatval($order->amount)) {
-            throw new \RuntimeException('退款金额不能超过订单金额');
+            throw new \RuntimeException(trans("payment.refund_amount_exceeds"));
         }
 
         $driver = $order->driver;
@@ -99,7 +99,7 @@ class RefundService
             ];
 
         } catch (\Exception $e) {
-            Log::error('退款发起失败', [
+            Log::error(trans('payment.refund_init_failed'), [
                 'tenant_id' => $tenantId,
                 'order_no' => $orderNo,
                 'error' => $e->getMessage(),
@@ -168,7 +168,7 @@ class RefundService
                 'order_no' => $orderNo,
                 'status' => $order->status,
                 'has_refund' => false,
-                'message' => '该订单无退款记录',
+                'message' => trans("payment.no_refund_record"),
             ];
         }
 
@@ -194,7 +194,7 @@ class RefundService
                 $gatewayStatus = $result->toArray();
             }
         } catch (\Exception $e) {
-            Log::warning('查询退款状态失败，返回本地状态', [
+            Log::warning(trans('payment.refund_query_failed'), [
                 'tenant_id' => $tenantId,
                 'order_no' => $orderNo,
                 'error' => $e->getMessage(),
@@ -227,7 +227,7 @@ class RefundService
         $tenantId = $request->query('tenant_id');
 
         if (!$tenantId) {
-            throw new \RuntimeException('退款回调缺少 tenant_id 参数');
+            throw new \RuntimeException(trans("payment.missing_tenant_callback"));
         }
 
         $pay = PayService::createPayInstancePublic((int) $tenantId, $driver);

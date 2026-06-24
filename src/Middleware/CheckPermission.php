@@ -52,7 +52,7 @@ class CheckPermission
     protected function checkAdminAccess(Request $request, $user, Closure $next, ?string $role): Response
     {
         if ($user->role !== self::ROLE_SUPER_ADMIN) {
-            return $this->forbidden($request, '仅超级管理员可以访问');
+            return $this->forbidden($request, trans("common.super_admin_only"));
         }
 
         return $next($request);
@@ -66,12 +66,12 @@ class CheckPermission
         $tenantId = TenantContext::getId();
 
         if (!$tenantId) {
-            return $this->forbidden($request, '缺少租户信息');
+            return $this->forbidden($request, trans("common.missing_tenant"));
         }
 
         // super_admin 不能访问租户后台（租户数据隔离）
         if ($user->role === self::ROLE_SUPER_ADMIN) {
-            return $this->forbidden($request, '系统管理员不能访问租户后台');
+            return $this->forbidden($request, trans("common.admin_no_tenant_console"));
         }
 
         // 检查用户是否属于该租户
@@ -81,14 +81,14 @@ class CheckPermission
             ->first();
 
         if (!$tenantUser) {
-            return $this->forbidden($request, '您不属于该租户');
+            return $this->forbidden($request, trans("common.not_in_tenant"));
         }
 
         $tenantRole = $tenantUser->pivot->role;
 
         // console 仅允许 tenant_admin
         if ($tenantRole !== self::ROLE_TENANT_ADMIN) {
-            return $this->forbidden($request, '仅租户管理员可以访问管理后台');
+            return $this->forbidden($request, trans("common.tenant_admin_only"));
         }
 
         TenantContext::setTenantRole($tenantRole);
@@ -104,12 +104,12 @@ class CheckPermission
         $tenantId = TenantContext::getId();
 
         if (!$tenantId) {
-            return $this->forbidden($request, '缺少租户信息');
+            return $this->forbidden($request, trans("common.missing_tenant"));
         }
 
         // super_admin 不能访问租户私有数据
         if ($user->role === self::ROLE_SUPER_ADMIN) {
-            return $this->forbidden($request, '系统管理员不能访问租户数据');
+            return $this->forbidden($request, trans("common.admin_no_tenant_data"));
         }
 
         // 检查用户是否属于该租户
@@ -119,7 +119,7 @@ class CheckPermission
             ->first();
 
         if (!$tenantUser) {
-            return $this->forbidden($request, '您不属于该租户');
+            return $this->forbidden($request, trans("common.not_in_tenant"));
         }
 
         $tenantRole = $tenantUser->pivot->role;
@@ -127,7 +127,7 @@ class CheckPermission
 
         // 检查指定角色
         if ($role && $tenantRole !== $role) {
-            return $this->forbidden($request, "需要 {$role} 角色权限");
+            return $this->forbidden($request, trans("common.role_required", ['role' => $role]));
         }
 
         return $next($request);

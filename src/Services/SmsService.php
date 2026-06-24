@@ -122,7 +122,7 @@ class SmsService
         try {
             $payload = [
                 'phone'   => $phone,
-                'message' => '【馒头科技】您的验证码是' . $code . '，10分钟内有效，请勿泄露。',
+                'message' => trans("sms.verification_code", ["code" => $code]),
                 'msgtype' => 0,   // 0=纯文本，1=模板（模板模式可能导致网关自产随机码）
                 'code'    => $code,
                 'type'    => $type,

@@ -165,7 +165,7 @@ class TenantCreditService
         if ($amount <= 0) {
             return [
                 'success' => false,
-                'message' => '充值金额必须大于0',
+                'message' => trans("credit.invalid_amount"),
             ];
         }
 
@@ -196,14 +196,14 @@ class TenantCreditService
 
             return [
                 'success' => true,
-                'message' => '充值成功',
+                'message' => trans("credit.recharge_success"),
                 'transaction' => $transaction,
             ];
         } catch (\Exception $e) {
             DB::rollBack();
             return [
                 'success' => false,
-                'message' => '充值失败：' . $e->getMessage(),
+                'message' => trans("credit.recharge_failed") . ': ' . $e->getMessage(),
             ];
         }
     }

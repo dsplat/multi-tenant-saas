@@ -160,7 +160,7 @@ class PaymentService
         Log::info('MantouPay H5 prepay response', ['trade_no' => $order->out_trade_no, 'resp' => $resp]);
 
         if (! ($resp['status'] ?? false)) {
-            throw new \RuntimeException('H5 预下单失败: '.($resp['message'] ?? '未知错误'));
+            throw new \RuntimeException(trans("payment.h5_preorder_failed") . ': ' . ($resp['message'] ?? trans("common.unknown_error")));
         }
 
         return $resp['data'];
@@ -216,7 +216,7 @@ class PaymentService
         Log::info('MantouPay Native prepay response', ['trade_no' => $order->out_trade_no, 'resp' => $resp]);
 
         if (! ($resp['status'] ?? false)) {
-            throw new \RuntimeException('Native 预下单失败: '.($resp['message'] ?? '未知错误'));
+            throw new \RuntimeException(trans("payment.native_preorder_failed") . ': ' . ($resp['message'] ?? trans("common.unknown_error")));
         }
 
         return $resp['data'];
@@ -270,7 +270,7 @@ class PaymentService
         Log::info('MantouPay JSAPI prepay response', ['trade_no' => $order->out_trade_no, 'resp' => $resp]);
 
         if (! ($resp['status'] ?? false)) {
-            throw new \RuntimeException('JSAPI 预下单失败: '.($resp['message'] ?? '未知错误'));
+            throw new \RuntimeException(trans("payment.jsapi_preorder_failed") . ': ' . ($resp['message'] ?? trans("common.unknown_error")));
         }
 
         return $resp['data'];
@@ -356,7 +356,7 @@ class PaymentService
         $localSign = strtoupper(md5($str));
 
         if ($sign !== $localSign) {
-            throw new \RuntimeException('签名验证失败');
+            throw new \RuntimeException(trans("payment.signature_invalid"));
         }
 
         return $params;

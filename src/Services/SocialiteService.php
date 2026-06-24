@@ -216,9 +216,9 @@ class SocialiteService
     public static function getSupportedProviders(): array
     {
         return [
-            'wechat' => ['name' => '微信', 'icon' => 'wechat'],
-            'dingtalk' => ['name' => '钉钉', 'icon' => 'dingtalk'],
-            'feishu' => ['name' => '飞书', 'icon' => 'feishu'],
+            'wechat' => ['name' => trans("common.wechat"), 'icon' => 'wechat'],
+            'dingtalk' => ['name' => trans("common.dingtalk"), 'icon' => 'dingtalk'],
+            'feishu' => ['name' => trans("common.feishu"), 'icon' => 'feishu'],
             'github' => ['name' => 'GitHub', 'icon' => 'github'],
             'google' => ['name' => 'Google', 'icon' => 'google'],
         ];

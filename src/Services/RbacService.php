@@ -138,7 +138,7 @@ class RbacService
         $role = Role::findOrFail($roleId);
         
         if ($role->is_system) {
-            throw new \RuntimeException('系统内置角色权限不可修改');
+            throw new \RuntimeException(trans("tenant.system_role_protected"));
         }
 
         $role->permissions()->sync($permissionIds);
@@ -153,7 +153,7 @@ class RbacService
         $role = Role::findOrFail($roleId);
 
         if ($role->is_system) {
-            throw new \RuntimeException('系统内置角色不可删除');
+            throw new \RuntimeException(trans("tenant.system_role_no_delete"));
         }
 
         // 解除该角色关联的成员

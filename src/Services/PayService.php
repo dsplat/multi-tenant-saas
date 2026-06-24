@@ -141,7 +141,7 @@ class PayService
         $tenantId = $request->query('tenant_id');
 
         if (!$tenantId) {
-            throw new \RuntimeException('支付回调缺少 tenant_id 参数');
+            throw new \RuntimeException(trans("payment.missing_tenant_callback"));
         }
 
         // 使用租户配置创建 Pay 实例（包含验签）

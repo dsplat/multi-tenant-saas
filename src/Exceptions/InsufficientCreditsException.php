@@ -9,9 +9,9 @@ class InsufficientCreditsException extends RuntimeException
 {
     public ErrorCode $errorCode;
 
-    public function __construct(string $message = '积分余额不足，请充值后重试', ErrorCode $errorCode = ErrorCode::InsufficientCredits, int $code = 0, ?\Throwable $previous = null)
+    public function __construct(?string $message = null, ErrorCode $errorCode = ErrorCode::InsufficientCredits, int $code = 0, ?\Throwable $previous = null)
     {
         $this->errorCode = $errorCode;
-        parent::__construct($message, $code, $previous);
+        parent::__construct($message ?? trans('credit.insufficient_balance'), $code, $previous);
     }
 }

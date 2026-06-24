@@ -3,13 +3,12 @@
 return [
     'default_tenant_id' => null,
     
-    'admin_domain' => env('ADMIN_DOMAIN', 'admin.lyt.com'),
+    'admin_domain' => env('ADMIN_DOMAIN', 'admin.example.com'),
     
     'platform_domains' => [
         'localhost',
         '127.0.0.1',
-        'admin.example.com',
-        'admin.lyt.com',
+        env('ADMIN_DOMAIN', 'admin.example.com'),
     ],
     
     'cache' => [

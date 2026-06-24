@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace MultiTenantSaas\Modules\Payment\Services;
 
 use MultiTenantSaas\Models\CreditAccount;
 use MultiTenantSaas\Models\PaymentOrder;
@@ -8,13 +8,16 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * 馒头支付平台服务
+ * 支付网关服务
+ *
+ * 独立支付网关对接层，框架核心支付由 PayService（yansongda/pay）提供
+ * 本模块为可选的第三方支付网关适配
  *
  * 支付流程：
  * 1. 前端选择充值套餐 → POST /api/v1/pay/create
- * 2. 后端创建 payment_order，调用馒头预下单
+ * 2. 后端创建 payment_order，调用网关预下单
  * 3. 前端拿到支付参数（JSAPI）或跳转 URL（H5）
- * 4. 用户完成支付 → 馒头 POST /api/v1/pay/notify
+ * 4. 用户完成支付 → 网关 POST /api/v1/pay/notify
  * 5. 后端验签、幂等处理、到账积分
  */
 class PaymentService
@@ -35,13 +38,13 @@ class PaymentService
 
     public function __construct()
     {
-        $this->gateway = config('mantou_pay.gateway', 'https://pay.mtedu.com');
-        $this->serviceId = config('mantou_pay.service_id', '');
-        $this->password = config('mantou_pay.password', '');
-        $this->appId = config('mantou_pay.app_id', '');
-        $this->notifyUrl = config('mantou_pay.notify_url', '');
-        $this->returnUrl = config('mantou_pay.return_url', '');
-        $this->showUrl = config('mantou_pay.show_url', '');
+        $this->gateway = config('payment.gateway', 'https://pay.example.com');
+        $this->serviceId = config('payment.service_id', '');
+        $this->password = config('payment.password', '');
+        $this->appId = config('payment.app_id', '');
+        $this->notifyUrl = config('payment.notify_url', '');
+        $this->returnUrl = config('payment.return_url', '');
+        $this->showUrl = config('payment.show_url', '');
     }
 
     /**

@@ -1,18 +1,18 @@
 <?php
 
-namespace App\Services;
+namespace MultiTenantSaas\Modules\ApiToken\Services;
 
-use MultiTenantSaas\Models\UserApiToken;
-use MultiTenantSaas\Models\UserApiTokenHistory;
+use MultiTenantSaas\Modules\ApiToken\Models\UserApiToken;
+use MultiTenantSaas\Modules\ApiToken\Models\UserApiTokenHistory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
- * New API (apisvr) Admin API 调用层
+ * API Token 模块服务
  *
- * 负责：
+ * 对接 new-api 后端，负责：
  * - 用户 Token 的创建/查询/禁用/轮换
  * - Quota 追加与本地缓存同步
  * - 模型白名单调整
@@ -25,11 +25,14 @@ class ApiTokenService
 
     private int $adminUserId;
 
+    private int $timeout;
+
     public function __construct()
     {
-        $this->baseUrl = rtrim(config('services.apisvr.base_url', 'https://apisvr.mtedu.com'), '/');
-        $this->adminKey = config('services.apisvr.admin_key', '');
-        $this->adminUserId = (int) config('services.apisvr.admin_user_id', 1);
+        $this->baseUrl = rtrim(config('apitoken.base_url', 'https://api.example.com'), '/');
+        $this->adminKey = config('apitoken.admin_key', '');
+        $this->adminUserId = (int) config('apitoken.admin_user_id', 1);
+        $this->timeout = (int) config('apitoken.timeout', 15);
     }
 
     // -------------------------------------------------------------------------
@@ -386,7 +389,7 @@ class ApiTokenService
     public function fetchTokenLogs(int $apiserTokenId, int $page = 1, int $pageSize = 20): array
     {
         $response = Http::withHeaders($this->headers())
-            ->timeout(15)
+            ->timeout($this->timeout)
             ->get($this->baseUrl . '/api/log/', [
                 'p' => $page,
                 'page_size' => $pageSize,
@@ -443,7 +446,7 @@ class ApiTokenService
     private function get(string $path): array
     {
         $response = Http::withHeaders($this->headers())
-            ->timeout(15)
+            ->timeout($this->timeout)
             ->get($this->baseUrl . $path);
 
         $this->assertSuccess($response, 'GET', $path);
@@ -461,7 +464,7 @@ class ApiTokenService
     private function getList(string $path, array $query = []): array
     {
         $response = Http::withHeaders($this->headers())
-            ->timeout(15)
+            ->timeout($this->timeout)
             ->get($this->baseUrl . $path, $query);
 
         $this->assertSuccess($response, 'GET', $path);
@@ -472,7 +475,7 @@ class ApiTokenService
     private function post(string $path, array $payload): array
     {
         $response = Http::withHeaders($this->headers())
-            ->timeout(15)
+            ->timeout($this->timeout)
             ->post($this->baseUrl . $path, $payload);
 
         $this->assertSuccess($response, 'POST', $path);
@@ -483,7 +486,7 @@ class ApiTokenService
     private function put(string $path, array $payload): array
     {
         $response = Http::withHeaders($this->headers())
-            ->timeout(15)
+            ->timeout($this->timeout)
             ->put($this->baseUrl . $path, $payload);
 
         $this->assertSuccess($response, 'PUT', $path);
@@ -494,7 +497,7 @@ class ApiTokenService
     private function delete(string $path): void
     {
         $response = Http::withHeaders($this->headers())
-            ->timeout(15)
+            ->timeout($this->timeout)
             ->delete($this->baseUrl . $path);
 
         $this->assertSuccess($response, 'DELETE', $path);

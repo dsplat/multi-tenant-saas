@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Context;
 
 use Illuminate\Http\Request;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Models\Tenant;
 
 /**
@@ -14,8 +15,11 @@ use MultiTenantSaas\Models\Tenant;
  * - 不使用静态属性，完全依赖 Request attributes
  * - 不使用 config() 写入（Octane 下会跨请求持久化）
  * - Request 对象每次请求都是新实例，天然隔离
+ *
+ * 可替换：派生项目可实现 TenantContextContract 并在服务容器中替换绑定。
+ * 静态方法保留用于便捷调用，实例方法（resolve/store 系列）通过 DI 注入支持替换。
  */
-class TenantContext
+class TenantContext implements TenantContextContract
 {
     /**
      * 获取当前请求实例
@@ -157,5 +161,52 @@ class TenantContext
             $request->attributes->remove('domain_type');
             $request->attributes->remove('tenant_role');
         }
+    }
+
+    // ========== 实例方法（TenantContextContract 实现，委托到静态方法） ==========
+
+    public function resolveId(): ?string
+    {
+        return static::getId();
+    }
+
+    public function storeTenantId(?string $tenantId): void
+    {
+        static::setTenantId($tenantId);
+    }
+
+    public function resolveTenant(): ?Tenant
+    {
+        return static::getTenant();
+    }
+
+    public function storeTenant(?Tenant $tenant): void
+    {
+        static::setTenant($tenant);
+    }
+
+    public function resolveDomainType(): ?string
+    {
+        return static::getDomainType();
+    }
+
+    public function storeDomainType(?string $type): void
+    {
+        static::setDomainType($type);
+    }
+
+    public function resolveTenantRole(): ?string
+    {
+        return static::getTenantRole();
+    }
+
+    public function storeTenantRole(?string $role): void
+    {
+        static::setTenantRole($role);
+    }
+
+    public function purge(): void
+    {
+        static::clear();
     }
 }

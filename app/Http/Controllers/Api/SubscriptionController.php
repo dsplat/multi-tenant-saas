@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Models\SubscriptionPlan;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\SubscriptionService;
 use MultiTenantSaas\Services\AuditService;
+use MultiTenantSaas\Services\RbacService;
 
 /**
  * @OA\Tag(
@@ -17,6 +19,8 @@ use MultiTenantSaas\Services\AuditService;
  */
 class SubscriptionController extends Controller
 {
+    use AuthorizesTenantAccess;
+
     /**
      * 获取所有订阅计划
      */
@@ -32,7 +36,7 @@ class SubscriptionController extends Controller
     public function plans(Request $request)
     {
         $plans = SubscriptionPlan::active()->get();
-        return response()->json(['data' => $plans]);
+        return response()->json(['success' => true, 'data' => $plans]);
     }
 
     /**
@@ -41,7 +45,7 @@ class SubscriptionController extends Controller
     public function showPlan(Request $request, int $planId)
     {
         $plan = SubscriptionPlan::findOrFail($planId);
-        return response()->json(['data' => $plan]);
+        return response()->json(['success' => true, 'data' => $plan]);
     }
 
     /**
@@ -49,8 +53,8 @@ class SubscriptionController extends Controller
      */
     public function storePlan(Request $request)
     {
-        if ($request->user()->role !== 'super_admin') {
-            return response()->json(['message' => trans('common.no_permission')], 403);
+        if (!RbacService::check('subscription.manage')) {
+            return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
         $validated = $request->validate([
@@ -68,9 +72,9 @@ class SubscriptionController extends Controller
 
         $plan = SubscriptionPlan::create($validated);
 
-        AuditService::log('create', 'subscription_plan', $plan->id, "创建订阅计划: {$plan->display_name}");
+        AuditService::log('create', 'subscription_plan', $plan->id, null, ['name' => $plan->display_name]);
 
-        return response()->json(['data' => $plan], 201);
+        return response()->json(['success' => true, 'data' => $plan], 201);
     }
 
     /**
@@ -78,8 +82,8 @@ class SubscriptionController extends Controller
      */
     public function updatePlan(Request $request, int $planId)
     {
-        if ($request->user()->role !== 'super_admin') {
-            return response()->json(['message' => trans('common.no_permission')], 403);
+        if (!RbacService::check('subscription.manage')) {
+            return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
         $plan = SubscriptionPlan::findOrFail($planId);
@@ -97,9 +101,9 @@ class SubscriptionController extends Controller
 
         $plan->update($validated);
 
-        AuditService::log('update', 'subscription_plan', $plan->id, "更新订阅计划: {$plan->display_name}");
+        AuditService::log('update', 'subscription_plan', $plan->id, null, ['name' => $plan->display_name]);
 
-        return response()->json(['data' => $plan]);
+        return response()->json(['success' => true, 'data' => $plan]);
     }
 
     /**
@@ -107,21 +111,21 @@ class SubscriptionController extends Controller
      */
     public function destroyPlan(Request $request, int $planId)
     {
-        if ($request->user()->role !== 'super_admin') {
-            return response()->json(['message' => trans('common.no_permission')], 403);
+        if (!RbacService::check('subscription.manage')) {
+            return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
         $plan = SubscriptionPlan::findOrFail($planId);
 
         if ($plan->name === 'free') {
-            return response()->json(['message' => trans("subscription.plan_not_deletable")], 422);
+            return response()->json(['success' => false, 'message' => trans("subscription.plan_not_deletable")], 422);
         }
 
         $plan->delete();
 
-        AuditService::log('delete', 'subscription_plan', $planId, "删除订阅计划: {$plan->display_name}");
+        AuditService::log('delete', 'subscription_plan', $planId, null, ['name' => $plan->display_name]);
 
-        return response()->json(['message' => trans('common.deleted')]);
+        return response()->json(['success' => true, 'message' => trans('common.deleted')]);
     }
 
     /**
@@ -129,10 +133,13 @@ class SubscriptionController extends Controller
      */
     public function current(Request $request, int $tenantId)
     {
+        $this->ensureTenantAccess($request, $tenantId);
+
         $tenant = Tenant::findOrFail($tenantId);
         $plan = SubscriptionService::getCurrentPlan($tenantId);
 
         return response()->json([
+            'success' => true,
             'data' => [
                 'plan' => $plan,
                 'subscription_started_at' => $tenant->subscription_started_at,
@@ -150,6 +157,8 @@ class SubscriptionController extends Controller
      */
     public function subscribe(Request $request, int $tenantId)
     {
+        $this->ensureTenantAccess($request, $tenantId);
+
         $validated = $request->validate([
             'plan_id' => 'required|integer|exists:subscription_plans,id',
             'billing_cycle' => 'in:monthly,yearly',
@@ -164,9 +173,10 @@ class SubscriptionController extends Controller
                 $validated['start_trial'] ?? false
             );
 
-            AuditService::log('subscribe', 'tenant', $tenantId, "订阅计划ID: {$validated['plan_id']}");
+            AuditService::log('subscribe', 'tenant', $tenantId, null, ['plan_id' => $validated['plan_id']]);
 
             return response()->json([
+                'success' => true,
                 'message' => trans("subscription.subscribe_success"),
                 'data' => [
                     'plan' => SubscriptionService::getCurrentPlan($tenantId),
@@ -175,7 +185,7 @@ class SubscriptionController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
     }
 
@@ -184,11 +194,13 @@ class SubscriptionController extends Controller
      */
     public function cancel(Request $request, int $tenantId)
     {
+        $this->ensureTenantAccess($request, $tenantId);
+
         $tenant = SubscriptionService::cancel($tenantId);
 
-        AuditService::log('cancel_subscription', 'tenant', $tenantId, '取消自动续费');
+        AuditService::log('cancel_subscription', 'tenant', $tenantId, null, ['auto_renew' => false]);
 
-        return response()->json(['message' => trans("subscription.cancel_success")]);
+        return response()->json(['success' => true, 'message' => trans("subscription.cancel_success")]);
     }
 
     /**
@@ -196,6 +208,8 @@ class SubscriptionController extends Controller
      */
     public function changePlan(Request $request, int $tenantId)
     {
+        $this->ensureTenantAccess($request, $tenantId);
+
         $validated = $request->validate([
             'plan_id' => 'required|integer|exists:subscription_plans,id',
             'billing_cycle' => 'in:monthly,yearly',
@@ -208,9 +222,10 @@ class SubscriptionController extends Controller
                 $validated['billing_cycle'] ?? 'monthly'
             );
 
-            AuditService::log('change_plan', 'tenant', $tenantId, "变更到计划ID: {$validated['plan_id']}");
+            AuditService::log('change_plan', 'tenant', $tenantId, null, ['plan_id' => $validated['plan_id']]);
 
             return response()->json([
+                'success' => true,
                 'message' => trans("subscription.change_success"),
                 'data' => [
                     'plan' => SubscriptionService::getCurrentPlan($tenantId),
@@ -218,7 +233,7 @@ class SubscriptionController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
     }
 
@@ -227,10 +242,13 @@ class SubscriptionController extends Controller
      */
     public function history(Request $request, int $tenantId)
     {
+        $this->ensureTenantAccess($request, $tenantId);
+
         $perPage = (int) $request->input('per_page', 15);
         $history = SubscriptionService::getHistory($tenantId, $perPage);
 
         return response()->json([
+            'success' => true,
             'data' => $history->items(),
             'meta' => [
                 'current_page' => $history->currentPage(),

@@ -34,6 +34,7 @@ class NotificationController extends Controller
         $notifications = $query->paginate($perPage);
 
         return response()->json([
+            'success' => true,
             'data' => $notifications->items(),
             'meta' => [
                 'current_page' => $notifications->currentPage(),
@@ -51,7 +52,7 @@ class NotificationController extends Controller
     public function unreadCount(Request $request)
     {
         $count = NotificationService::getUnreadCount($request->user());
-        return response()->json(['unread_count' => $count]);
+        return response()->json(['success' => true, 'unread_count' => $count]);
     }
 
     /**
@@ -62,12 +63,12 @@ class NotificationController extends Controller
         $notification = $request->user()->notifications()->where('id', $id)->first();
 
         if (!$notification) {
-            return response()->json(['message' => trans("notification.not_found")], 404);
+            return response()->json(['success' => false, 'message' => trans("notification.not_found")], 404);
         }
 
         $notification->markAsRead();
 
-        return response()->json(['message' => trans("notification.marked_read")]);
+        return response()->json(['success' => true, 'message' => trans("notification.marked_read")]);
     }
 
     /**
@@ -77,9 +78,9 @@ class NotificationController extends Controller
     {
         $request->user()->unreadNotifications->markAsRead();
 
-        AuditService::log('update', 'notification', null, '批量标记通知为已读');
+        AuditService::log('update', 'notification', null, null, ['action' => 'mark_all_read']);
 
-        return response()->json(['message' => trans("notification.all_marked_read")]);
+        return response()->json(['success' => true, 'message' => trans("notification.all_marked_read")]);
     }
 
     /**
@@ -90,12 +91,12 @@ class NotificationController extends Controller
         $notification = $request->user()->notifications()->where('id', $id)->first();
 
         if (!$notification) {
-            return response()->json(['message' => trans("notification.not_found")], 404);
+            return response()->json(['success' => false, 'message' => trans("notification.not_found")], 404);
         }
 
         $notification->delete();
 
-        return response()->json(['message' => trans("notification.deleted")]);
+        return response()->json(['success' => true, 'message' => trans("notification.deleted")]);
     }
 
     /**
@@ -105,7 +106,7 @@ class NotificationController extends Controller
     {
         $request->user()->notifications()->whereNotNull('read_at')->delete();
 
-        return response()->json(['message' => trans("notification.read_cleared")]);
+        return response()->json(['success' => true, 'message' => trans("notification.read_cleared")]);
     }
 
     /**

@@ -9,4 +9,7 @@ return [
     'trial_started' => 'Trial started',
     'expired_downgraded' => 'Subscription expired, downgraded to free plan',
     'auto_renew_failed' => 'Auto renewal failed',
+    'quota_members' => 'Members',
+    'quota_credits' => 'Credits',
+    'quota_storage' => 'Storage',
 ];

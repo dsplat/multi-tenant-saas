@@ -360,14 +360,6 @@ abstract class TestCase extends BaseTestCase
         });
     }
 
-    protected function seedTenants(): void
-    {
-        \MultiTenantSaas\Models\Tenant::insert([
-            ['tenant_id' => 1001, 'name' => 'Tenant A', 'slug' => 'tenant-a', 'status' => 'active', 'created_at' => now(), 'updated_at' => now()],
-            ['tenant_id' => 1002, 'name' => 'Tenant B', 'slug' => 'tenant-b', 'status' => 'active', 'created_at' => now(), 'updated_at' => now()],
-            ['tenant_id' => 1003, 'name' => 'Tenant C', 'slug' => 'tenant-c', 'status' => 'inactive', 'created_at' => now(), 'updated_at' => now()],
-        ]);
-    }
 
     protected function tearDown(): void
     {

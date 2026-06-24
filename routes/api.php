@@ -47,7 +47,7 @@ Route::get('/v1/auth/{provider}/callback', [TenantOAuthController::class, 'callb
 Route::get('/v1/files/{id}/share', [FileController::class, 'shareDownload']);
 
 // ========== 需要认证的 API ==========
-Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(function () {
 
     // 认证
     Route::get('/auth/me', [AuthController::class, 'me']);
@@ -105,7 +105,8 @@ Route::middleware('auth:sanctum')->prefix('v1')->group(function () {
     Route::get('/tenants/{tenantId}/audit-logs', [TenantAuditController::class, 'index'])->middleware('rbac.permission:audit.view');
 
     // API Token
-    Route::get('/tenants/{tenantId}/api-tokens', [TenantTokenController::class, 'index']);
+    Route::get("/tenants/{tenantId}/api-tokens", [TenantTokenController::class, "index"]);
+    Route::get("/tenants/{tenantId}/api-tokens/abilities", [TenantTokenController::class, "abilities"]);
     Route::post('/tenants/{tenantId}/api-tokens', [TenantTokenController::class, 'store']);
     Route::delete('/tenants/{tenantId}/api-tokens/{tokenId}', [TenantTokenController::class, 'destroy']);
 

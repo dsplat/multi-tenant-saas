@@ -17,8 +17,8 @@ class AuditService
         string $action,
         string $resourceType,
         ?int $resourceId = null,
-        ?array $oldValues = null,
-        ?array $newValues = null
+        \BackedEnum|float|int|string|array|null $oldValues = null,
+        \BackedEnum|float|int|string|array|null $newValues = null
     ): AuditLog {
         return AuditLog::create([
             'tenant_id' => TenantContext::getId(),

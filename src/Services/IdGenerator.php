@@ -2,6 +2,8 @@
 
 namespace MultiTenantSaas\Services;
 
+use MultiTenantSaas\Contracts\IdGeneratorContract;
+
 /**
  * 全局ID生成器
  *
@@ -22,8 +24,10 @@ namespace MultiTenantSaas\Services;
  * - 同表碰撞会因 PRIMARY KEY 或 UNIQUE 约束写入失败，由业务层捕获处理
  * - 如果增加重试逻辑，会带来额外的数据库查询开销，在高并发场景下得不偿失
  * - 结论：接受极低概率的写入失败，而非牺牲性能
+ *
+ * 可替换：派生项目可实现 IdGeneratorContract 并在服务容器中替换绑定。
  */
-class IdGenerator
+class IdGenerator implements IdGeneratorContract
 {
     protected int $min;
     protected int $max;

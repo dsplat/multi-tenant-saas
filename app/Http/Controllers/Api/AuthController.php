@@ -4,6 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use Illuminate\Support\Facades\Event;
+use MultiTenantSaas\Events\UserLoggedIn;
+use MultiTenantSaas\Events\UserRegistered;
+use MultiTenantSaas\Jobs\SendEmailVerificationJob;
+use MultiTenantSaas\Jobs\SendPasswordResetJob;
 use App\Mail\EmailVerificationMail;
 use App\Mail\PasswordResetMail;
 use Illuminate\Http\Request;
@@ -67,16 +72,13 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => trans("auth.account_suspended")], 403);
         }
 
-        $token = $user->createToken('admin-token')->plainTextToken;
+        $token = $user->createToken('auth-token', ['*'])->plainTextToken;
 
         $tenantUser = TenantUser::where('user_id', $user->user_id)
             ->where('is_active', true)
             ->first();
 
-        AuditService::log('login', 'auth', $user->user_id, null, [
-            'email' => $user->email,
-            'ip' => $request->ip(),
-        ]);
+        Event::dispatch(new UserLoggedIn($user, $request->ip()));
 
         return response()->json([
             'success' => true,
@@ -115,15 +117,12 @@ class AuthController extends Controller
             ]);
         }
 
-        // 发送邮箱验证邮件
-        $this->sendEmailVerification($user);
+        // 异步发送邮箱验证邮件
+        SendEmailVerificationJob::dispatch($user->user_id);
 
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $token = $user->createToken('auth-token', ['*'])->plainTextToken;
 
-        AuditService::log('register', 'auth', $user->user_id, null, [
-            'email' => $user->email,
-            'tenant_id' => $tenantId,
-        ]);
+        Event::dispatch(new UserRegistered($user, $tenantId));
 
         return response()->json([
             'success' => true,
@@ -197,18 +196,7 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if ($user) {
-            $token = Str::random(64);
-
-            DB::table('password_reset_tokens')->updateOrInsert(
-                ['email' => $user->email],
-                [
-                    'token' => hash('sha256', $token),
-                    'created_at' => now(),
-                ]
-            );
-
-            // 发送密码重置邮件
-            Mail::to($user->email)->send(new PasswordResetMail($token, $user->email));
+            SendPasswordResetJob::dispatch($user->user_id);
         }
 
         return response()->json([
@@ -237,7 +225,7 @@ class AuthController extends Controller
             DB::table('password_reset_tokens')
                 ->where('email', $request->email)
                 ->delete();
-            return response()->json(['success' => false, 'message' => '重置链接已过期，请重新申请'], 400);
+            return response()->json(['success' => false, 'message' => trans("auth.reset_link_expired")], 400);
         }
 
         $user = User::where('email', $request->email)->first();
@@ -295,20 +283,6 @@ class AuthController extends Controller
      */
     private function sendEmailVerification(User $user): void
     {
-        $token = Str::random(64);
-
-        DB::table('email_verification_tokens')->updateOrInsert(
-            ['email' => $user->email],
-            [
-                'token' => hash('sha256', $token),
-                'created_at' => now(),
-            ]
-        );
-
-        try {
-            Mail::to($user->email)->send(new EmailVerificationMail($token, $user->email));
-        } catch (\Throwable $e) {
-            \Log::warning('邮箱验证邮件发送失败', ['email' => $user->email, 'error' => $e->getMessage()]);
-        }
+        SendEmailVerificationJob::dispatch($user->user_id);
     }
 }

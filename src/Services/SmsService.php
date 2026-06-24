@@ -8,8 +8,9 @@ use Illuminate\Support\Facades\Log;
 /**
  * 短信发送服务
  *
- * driver=log   → 仅写日志（本地/测试默认）
- * driver=mtedu → 调用 mtedu VPC 内网短信网关
+ * driver=log → 仅写日志（本地/测试默认）
+ * driver=ww  → 调用网建短信网关
+ * driver=http→ 通用 HTTP 短信网关（自定义 endpoint）
  */
 class SmsService
 {
@@ -29,7 +30,7 @@ class SmsService
 
         return match ($driver) {
             'ww' => static::sendViaWw($phone, $code, $type),
-            'mtedu' => static::sendViaMtedu($phone, $code, $type),
+            'http' => static::sendViaHttp($phone, $code, $type),
             default => static::sendViaLog($phone, $code, $type),
         };
     }
@@ -45,7 +46,7 @@ class SmsService
         $password = (string) config('services.sms.ww_password');
         $corpid = (string) config('services.sms.ww_corpid');
         $productId = (string) config('services.sms.ww_product_id');
-        $sign = (string) config('services.sms.ww_sign', '馒头商学院');
+        $sign = (string) config('services.sms.ww_sign', 'YourApp');
         $smsg = '【' . $sign . "】您的验证码是{$code}，5分钟内有效，请勿泄露。";
 
         if ($endpoint === '' || $account === '' || $password === '' || $productId === '') {
@@ -115,65 +116,55 @@ class SmsService
         }
     }
 
-    private static function sendViaMtedu(string $phone, string $code, string $type): string|false
+    /**
+     * 通用 HTTP 短信网关驱动
+     *
+     * 配置项（services.sms）：
+     *   http_endpoint: 网关地址
+     *   http_timeout:  超时秒数（默认 5）
+     */
+    private static function sendViaHttp(string $phone, string $code, string $type): string|false
     {
-        $endpoint = config('services.sms.mtedu_endpoint');
+        $endpoint = config('services.sms.http_endpoint');
+
+        if (empty($endpoint)) {
+            Log::error('SmsService http driver: endpoint not configured');
+            return false;
+        }
 
         try {
             $payload = [
                 'phone'   => $phone,
                 'message' => trans("sms.verification_code", ["code" => $code]),
-                'msgtype' => 0,   // 0=纯文本，1=模板（模板模式可能导致网关自产随机码）
                 'code'    => $code,
                 'type'    => $type,
             ];
 
-            $response = Http::asJson()->timeout(5)->post($endpoint, $payload);
+            $timeout = (int) config('services.sms.http_timeout', 5);
+            $response = Http::asJson()->timeout($timeout)->post($endpoint, $payload);
 
             $body = $response->json();
 
-            Log::info('SmsService mtedu response', [
-                'phone'    => static::maskPhone($phone),
-                'type'     => $type,
-                'code_sent' => $code,
+            Log::info('SmsService http response', [
+                'phone'       => static::maskPhone($phone),
+                'type'        => $type,
                 'http_status' => $response->status(),
-                'response' => $body,
+                'response'    => $body,
             ]);
 
-            if ($response->successful()) {
-                if (isset($body['status']) && $body['status'] == 1) {
-                    // 若网关在 data.code 返回其自产验证码，优先使用；否则用我们的
-                    $actualCode = $body['data']['code'] ?? $body['code'] ?? $code;
-
-                    if ($actualCode !== $code) {
-                        Log::warning('SmsService mtedu: gateway overrode code', [
-                            'phone'         => static::maskPhone($phone),
-                            'our_code'      => $code,
-                            'gateway_code'  => $actualCode,
-                        ]);
-                    }
-
-                    return (string) $actualCode;
-                }
-
-                Log::warning('SmsService mtedu send failed', [
-                    'phone'    => static::maskPhone($phone),
-                    'type'     => $type,
-                    'response' => $body,
-                ]);
-
-                return false;
+            if ($response->successful() && isset($body['status']) && (int) $body['status'] === 1) {
+                return (string) ($body['data']['code'] ?? $body['code'] ?? $code);
             }
 
-            Log::error('SmsService mtedu HTTP error', [
-                'phone'  => $phone,
-                'status' => $response->status(),
-                'body'   => $response->body(),
+            Log::warning('SmsService http send failed', [
+                'phone'    => static::maskPhone($phone),
+                'type'     => $type,
+                'response' => $body,
             ]);
 
             return false;
         } catch (\Throwable $e) {
-            Log::error('SmsService mtedu exception', [
+            Log::error('SmsService http exception', [
                 'phone'   => static::maskPhone($phone),
                 'message' => $e->getMessage(),
             ]);

@@ -5,13 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Models\SystemSetting;
+use MultiTenantSaas\Services\RbacService;
 
 class AdminSettingsController extends Controller
 {
     public function index(Request $request)
     {
-        if ($request->user()->role !== 'super_admin') {
-            return response()->json(['success' => false, 'message' => '无权限访问'], 403);
+        if (!RbacService::check('system.settings')) {
+            return response()->json(['success' => false, 'message' => trans('common.forbidden')], 403);
         }
 
         $settings = SystemSetting::all()->groupBy('group');
@@ -20,11 +21,11 @@ class AdminSettingsController extends Controller
 
     public function update(Request $request, string $group)
     {
-        if ($request->user()->role !== 'super_admin') {
-            return response()->json(['success' => false, 'message' => '无权限访问'], 403);
+        if (!RbacService::check('system.settings')) {
+            return response()->json(['success' => false, 'message' => trans('common.forbidden')], 403);
         }
 
-        $allowedGroups = ['system', 'mail', 'credit', 'dify'];
+        $allowedGroups = ['system', 'mail', 'credit', 'sms'];
         if (!in_array($group, $allowedGroups)) {
             return response()->json(['success' => false, 'message' => trans("common.not_found")], 400);
         }
@@ -34,18 +35,18 @@ class AdminSettingsController extends Controller
             if (!preg_match('/^[a-zA-Z0-9_]+$/', $key)) {
                 continue;
             }
-            
+
             // 跳过非标量值
             if (is_array($value) || is_object($value)) {
                 continue;
             }
-            
+
             SystemSetting::updateOrCreate(
                 ['group' => $group, 'key' => $key],
                 ['value' => $value]
             );
         }
 
-        return response()->json(['success' => true, 'message' => '系统设置已更新']);
+        return response()->json(['success' => true, 'message' => trans('common.updated')]);
     }
 }

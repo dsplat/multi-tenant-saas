@@ -17,4 +17,5 @@ return [
     'account_suspended' => 'Account has been suspended',
     'email_not_verified' => 'Email not verified',
     'password_mismatch' => 'Passwords do not match',
+    'reset_link_expired' => 'Reset link expired, please request a new one',
 ];

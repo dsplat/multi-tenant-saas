@@ -17,4 +17,5 @@ return [
     'account_suspended' => '账号已被暂停',
     'email_not_verified' => '邮箱未验证',
     'password_mismatch' => '两次密码不一致',
+    'reset_link_expired' => '重置链接已过期，请重新申请',
 ];

@@ -46,7 +46,7 @@ class TenantPaymentController extends Controller
     {
         try {
             $result = PayService::handleCallback('wechat', $request);
-            \Log::info('微信支付回调成功', $result);
+            \Log::info('WeChat payment callback success', $result);
 
             if (isset($result['order_id'])) {
                 AuditService::log('payment_callback', 'payment_order', $result['order_id'], null, $result);
@@ -54,7 +54,7 @@ class TenantPaymentController extends Controller
 
             return response('success');
         } catch (\Throwable $e) {
-            \Log::error('微信支付回调失败', [
+            \Log::error('WeChat payment callback failed', [
                 'error' => $e->getMessage(),
                 'query' => $request->query(),
             ]);
@@ -66,7 +66,7 @@ class TenantPaymentController extends Controller
     {
         try {
             $result = PayService::handleCallback('alipay', $request);
-            \Log::info('支付宝回调成功', $result);
+            \Log::info('Alipay callback success', $result);
 
             if (isset($result['order_id'])) {
                 AuditService::log('payment_callback', 'payment_order', $result['order_id'], null, $result);
@@ -74,7 +74,7 @@ class TenantPaymentController extends Controller
 
             return response('success');
         } catch (\Throwable $e) {
-            \Log::error('支付宝回调失败', [
+            \Log::error('Alipay callback failed', [
                 'error' => $e->getMessage(),
                 'query' => $request->query(),
             ]);
@@ -205,10 +205,10 @@ class TenantPaymentController extends Controller
     {
         try {
             $result = RefundService::handleRefundCallback('wechat', $request);
-            \Log::info('微信退款回调成功', $result);
+            \Log::info('WeChat refund callback success', $result);
             return response('success');
         } catch (\Throwable $e) {
-            \Log::error('微信退款回调失败', ['error' => $e->getMessage()]);
+            \Log::error('WeChat refund callback failed', ['error' => $e->getMessage()]);
             return response('fail', 400);
         }
     }
@@ -220,10 +220,10 @@ class TenantPaymentController extends Controller
     {
         try {
             $result = RefundService::handleRefundCallback('alipay', $request);
-            \Log::info('支付宝退款回调成功', $result);
+            \Log::info('Alipay refund callback success', $result);
             return response('success');
         } catch (\Throwable $e) {
-            \Log::error('支付宝退款回调失败', ['error' => $e->getMessage()]);
+            \Log::error('Alipay refund callback failed', ['error' => $e->getMessage()]);
             return response('fail', 400);
         }
     }

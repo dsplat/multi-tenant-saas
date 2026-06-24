@@ -20,56 +20,38 @@ class ControllerTest extends TestCase
     {
         parent::setUp();
 
-        // 创建租户
-        $this->tenant = Tenant::create([
-            'tenant_id' => 1001,
+        // 使用工厂创建测试数据，避免硬编码 ID
+        $this->tenant = Tenant::factory()->create([
             'name' => 'Test Tenant',
             'slug' => 'test',
-            'status' => 'active',
         ]);
 
-        $this->otherTenant = Tenant::create([
-            'tenant_id' => 1002,
+        $this->otherTenant = Tenant::factory()->create([
             'name' => 'Other Tenant',
             'slug' => 'other',
-            'status' => 'active',
         ]);
 
-        // 创建用户（user_id 由 HasGlobalId 自动生成）
-        $this->superAdmin = User::create([
-            'name' => 'Super Admin',
+        $this->superAdmin = User::factory()->superAdmin()->create([
             'email' => 'super@test.com',
-            'password' => bcrypt('password'),
-            'role' => 'super_admin',
         ]);
 
-        $this->tenantAdmin = User::create([
-            'name' => 'Tenant Admin',
+        $this->tenantAdmin = User::factory()->create([
             'email' => 'admin@test.com',
-            'password' => bcrypt('password'),
-            'role' => 'platform_user',
         ]);
 
-        $this->endUser = User::create([
-            'name' => 'End User',
+        $this->endUser = User::factory()->create([
             'email' => 'user@test.com',
-            'password' => bcrypt('password'),
-            'role' => 'platform_user',
         ]);
 
         // 关联用户到租户
-        TenantUser::create([
-            'tenant_id' => 1001,
+        TenantUser::factory()->admin()->create([
+            'tenant_id' => $this->tenant->tenant_id,
             'user_id' => $this->tenantAdmin->user_id,
-            'role' => 'tenant_admin',
-            'is_active' => true,
         ]);
 
-        TenantUser::create([
-            'tenant_id' => 1001,
+        TenantUser::factory()->endUser()->create([
+            'tenant_id' => $this->tenant->tenant_id,
             'user_id' => $this->endUser->user_id,
-            'role' => 'end_user',
-            'is_active' => true,
         ]);
     }
 
@@ -103,7 +85,7 @@ class ControllerTest extends TestCase
         $token = $this->tenantAdmin->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/v1/tenants/1001/members');
+            ->getJson("/api/v1/tenants/{$this->tenant->tenant_id}/members");
 
         $response->assertSuccessful()
             ->assertJson(['success' => true]);
@@ -114,7 +96,7 @@ class ControllerTest extends TestCase
         $token = $this->tenantAdmin->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/v1/tenants/1002/members');
+            ->getJson("/api/v1/tenants/{$this->otherTenant->tenant_id}/members");
 
         $response->assertStatus(403);
     }
@@ -124,7 +106,7 @@ class ControllerTest extends TestCase
         $token = $this->superAdmin->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/v1/tenants/1001/members');
+            ->getJson("/api/v1/tenants/{$this->tenant->tenant_id}/members");
 
         $response->assertStatus(403);
     }
@@ -134,7 +116,7 @@ class ControllerTest extends TestCase
         $token = $this->endUser->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/v1/tenants/1001/members');
+            ->getJson("/api/v1/tenants/{$this->tenant->tenant_id}/members");
 
         $response->assertSuccessful();
     }
@@ -201,7 +183,7 @@ class ControllerTest extends TestCase
         $token = $this->tenantAdmin->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/v1/tenants/1001/settings');
+            ->getJson("/api/v1/tenants/{$this->tenant->tenant_id}/settings");
 
         $response->assertSuccessful();
     }
@@ -211,7 +193,7 @@ class ControllerTest extends TestCase
         $token = $this->tenantAdmin->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->putJson('/api/v1/tenants/1001/settings/auth', [
+            ->putJson("/api/v1/tenants/{$this->tenant->tenant_id}/settings/auth", [
                 'allow_phone_login' => true,
             ]);
 
@@ -225,7 +207,7 @@ class ControllerTest extends TestCase
         $token = $this->tenantAdmin->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/v1/tenants/1001/credits');
+            ->getJson("/api/v1/tenants/{$this->tenant->tenant_id}/credits");
 
         $response->assertSuccessful()
             ->assertJson(['success' => true]);
@@ -235,19 +217,17 @@ class ControllerTest extends TestCase
 
     public function test_wechat_notify_returns_success(): void
     {
-        // 微信支付回调需要 tenant_id 参数
-        $response = $this->postJson('/api/v1/pay/wechat/notify?tenant_id=1001', [
+        $response = $this->postJson("/api/v1/pay/wechat/notify?tenant_id={$this->tenant->tenant_id}", [
             'out_trade_no' => 'TEST001',
             'trade_status' => 'TRADE_SUCCESS',
         ]);
 
-        // 因为没有真实支付配置，会抛异常，但路由是通的
         $this->assertContains($response->status(), [200, 400, 500]);
     }
 
     public function test_alipay_notify_returns_success(): void
     {
-        $response = $this->postJson('/api/v1/pay/alipay/notify?tenant_id=1001', [
+        $response = $this->postJson("/api/v1/pay/alipay/notify?tenant_id={$this->tenant->tenant_id}", [
             'out_trade_no' => 'TEST001',
             'trade_status' => 'TRADE_SUCCESS',
         ]);
@@ -261,7 +241,6 @@ class ControllerTest extends TestCase
     {
         $response = $this->getJson('/api/v1/auth/wechat/redirect');
 
-        // 未配置 OAuth 会返回错误，但路由是通的
         $this->assertContains($response->status(), [200, 500]);
     }
 
@@ -272,7 +251,7 @@ class ControllerTest extends TestCase
         $token = $this->tenantAdmin->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/v1/tenants/1001/domain');
+            ->getJson("/api/v1/tenants/{$this->tenant->tenant_id}/domain");
 
         $response->assertSuccessful()
             ->assertJson(['success' => true]);
@@ -285,7 +264,7 @@ class ControllerTest extends TestCase
         $token = $this->tenantAdmin->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/v1/tenants/1001/quotas');
+            ->getJson("/api/v1/tenants/{$this->tenant->tenant_id}/quotas");
 
         $response->assertSuccessful()
             ->assertJson(['success' => true]);

@@ -9,4 +9,7 @@ return [
     'trial_started' => '试用已开始',
     'expired_downgraded' => '订阅已过期，已降级为免费版',
     'auto_renew_failed' => '自动续费失败',
+    'quota_members' => '成员数量',
+    'quota_credits' => '积分余额',
+    'quota_storage' => '存储空间',
 ];

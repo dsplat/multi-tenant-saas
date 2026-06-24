@@ -77,7 +77,7 @@ return new class extends Migration
                 'price_yearly' => 999000,
                 'trial_days' => 30,
                 'features' => json_encode(['basic_api', 'priority_support', 'custom_branding', 'export_data', 'advanced_analytics', 'api_webhooks', 'sso', 'dedicated_support', 'sla_guarantee', 'white_label']),
-                'limits' => json_encode(['max_users' => 0, 'max_storage_mb' => 0, 'api_calls_daily' => 0]),
+                'limits' => json_encode(['max_users' => null, 'max_storage_mb' => null, 'api_calls_daily' => null]),
                 'is_active' => true,
                 'sort_order' => 4,
                 'created_at' => $now,

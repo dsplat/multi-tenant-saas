@@ -20,11 +20,12 @@ class CheckRbacPermission
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => "无权限: {$permission}",
+                    'message' => trans('common.forbidden'),
                     'error' => 'Forbidden',
+                    'permission' => $permission,
                 ], 403);
             }
-            abort(403, "无权限: {$permission}");
+            abort(403, trans('common.forbidden'));
         }
 
         return $next($request);

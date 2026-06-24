@@ -3,60 +3,40 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Middleware\IdentifyDomain;
 
+/**
+ * SPA 入口控制器
+ *
+ * 为前端单页应用提供 catch-all 路由支持。
+ * 所有非 API 请求均返回对应的 index.html，由前端路由接管。
+ */
 class TestController extends Controller
 {
+    /**
+     * 平台首页
+     */
     public function index(Request $request)
     {
-        $domainType = TenantContext::getDomainType();
-        $tenantId = TenantContext::getId();
-        $tenant = TenantContext::getTenant();
-        $tenantRole = TenantContext::getTenantRole();
-
         return response()->json([
-            'message' => 'Multi-Tenant SaaS 测试页面',
-            'domain_type' => $domainType,
-            'host' => $request->header('X-Original-Host') ?? $request->getHost(),
-            'path' => $request->getPathInfo(),
-            'tenant_id' => $tenantId,
-            'tenant_name' => $tenant?->name,
-            'tenant_role' => $tenantRole,
-            'user' => $request->user()?->name ?? '未登录',
+            'name' => config('app.name'),
+            'version' => '1.0.0',
+            'status' => 'ok',
         ]);
     }
 
+    /**
+     * 租户管理后台 SPA
+     */
     public function console(Request $request)
     {
-        $domainType = TenantContext::getDomainType();
-        $tenantId = TenantContext::getId();
-        $tenant = TenantContext::getTenant();
-        $tenantRole = TenantContext::getTenantRole();
-
-        return response()->json([
-            'message' => '租户管理后台',
-            'domain_type' => $domainType,
-            'host' => $request->header('X-Original-Host') ?? $request->getHost(),
-            'path' => $request->getPathInfo(),
-            'tenant_id' => $tenantId,
-            'tenant_name' => $tenant?->name,
-            'tenant_role' => $tenantRole,
-            'user' => $request->user()?->name ?? '未登录',
-            'access' => in_array($tenantRole, ['super_admin', 'tenant_admin']) ? '允许' : '拒绝',
-        ]);
+        return response()->file(public_path('console/index.html'));
     }
 
+    /**
+     * 系统管理后台 SPA
+     */
     public function admin(Request $request)
     {
-        $domainType = TenantContext::getDomainType();
-
-        return response()->json([
-            'message' => '系统管理后台',
-            'domain_type' => $domainType,
-            'host' => $request->header('X-Original-Host') ?? $request->getHost(),
-            'path' => $request->getPathInfo(),
-            'user' => $request->user()?->name ?? '未登录',
-        ]);
+        return response()->file(public_path('admin/index.html'));
     }
 }

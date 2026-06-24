@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::create('notification_preferences', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->bigInteger('user_id')->unsigned();
+            $table->foreign('user_id')->references('user_id')->on('users')->onDelete('cascade');
             $table->string('channel', 30)->comment('通知通道: database, mail, broadcast');
             $table->string('type', 100)->nullable()->comment('通知类型, null=全局默认');
             $table->boolean('enabled')->default(true)->comment('是否启用');

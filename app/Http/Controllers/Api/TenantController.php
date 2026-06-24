@@ -7,10 +7,15 @@ use App\Http\Resources\TenantResource;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantSetting;
+use Illuminate\Support\Facades\Event;
+use MultiTenantSaas\Events\TenantCreated;
+use MultiTenantSaas\Events\TenantSuspended;
+use MultiTenantSaas\Events\TenantActivated;
 use MultiTenantSaas\Services\AuditService;
 use MultiTenantSaas\Services\IdGenerator;
 use MultiTenantSaas\Services\NotificationService;
 use MultiTenantSaas\Services\RbacService;
+use MultiTenantSaas\Context\TenantContext;
 
 /**
  * @OA\Tag(
@@ -20,6 +25,27 @@ use MultiTenantSaas\Services\RbacService;
  */
 class TenantController extends Controller
 {
+    /**
+     * 确保用户有权访问目标租户（super_admin 可访问任意租户）
+     */
+    private function ensureTenantAccessOrSuperAdmin(Request $request, int $tenantId): void
+    {
+        $user = $request->user();
+
+        if ($user->role === 'super_admin') {
+            return;
+        }
+
+        $isMember = \DB::table('tenant_users')
+            ->where('tenant_id', $tenantId)
+            ->where('user_id', $user->id)
+            ->exists();
+
+        if (!$isMember) {
+            abort(403, trans('common.not_in_tenant'));
+        }
+    }
+
     /**
      * @OA\Get(
      *     path="/v1/tenants",
@@ -57,6 +83,8 @@ class TenantController extends Controller
             return response()->json(['success' => false, 'message' => trans("common.no_permission")], 403);
         }
 
+        $this->ensureTenantAccessOrSuperAdmin($request, $tenantId);
+
         $tenant = Tenant::findOrFail($tenantId);
 
         return response()->json(['success' => true, 'data' => new TenantResource($tenant)]);
@@ -91,7 +119,7 @@ class TenantController extends Controller
      */
     public function store(Request $request)
     {
-        if (!RbacService::check('tenant.view')) {
+        if (!RbacService::check('tenant.create')) {
             return response()->json(['success' => false, 'message' => trans("common.no_permission")], 403);
         }
 
@@ -124,6 +152,7 @@ class TenantController extends Controller
         // 开通流程：初始化默认配置
         $this->provisionTenant($tenant, $request->welcome_credits ?? 0);
 
+        Event::dispatch(new TenantCreated($tenant));
         AuditService::log('create', 'tenant', $tenant->tenant_id, null, [
             'name' => $tenant->name,
             'slug' => $tenant->slug,
@@ -139,28 +168,35 @@ class TenantController extends Controller
 
     public function update(Request $request, int $tenantId)
     {
-        if (!RbacService::check('tenant.view')) {
+        if (!RbacService::check('tenant.update')) {
             return response()->json(['success' => false, 'message' => trans("common.no_permission")], 403);
         }
 
-        $tenant = Tenant::findOrFail($tenantId);
-        $oldValues = $tenant->only(['name', 'status', 'subscription_plan', 'custom_domain', 'description', 'contact_name', 'contact_email', 'contact_phone']);
-        $tenant->update($request->only([
-            'name', 'status', 'subscription_plan', 'custom_domain',
-            'description', 'contact_name', 'contact_email', 'contact_phone',
-        ]));
+        $this->ensureTenantAccessOrSuperAdmin($request, $tenantId);
 
-        AuditService::log('update', 'tenant', $tenantId, $oldValues, $request->only([
-            'name', 'status', 'subscription_plan', 'custom_domain',
-            'description', 'contact_name', 'contact_email', 'contact_phone',
-        ]));
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'status' => 'sometimes|in:active,suspended,inactive',
+            'subscription_plan' => 'sometimes|in:free,basic,pro,enterprise',
+            'custom_domain' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'contact_name' => 'nullable|string|max:255',
+            'contact_email' => 'nullable|email|max:255',
+            'contact_phone' => 'nullable|string|max:20',
+        ]);
+
+        $tenant = Tenant::findOrFail($tenantId);
+        $oldValues = $tenant->only(array_keys($validated));
+        $tenant->update($validated);
+
+        AuditService::log('update', 'tenant', $tenantId, $oldValues, $validated);
 
         return response()->json(['success' => true, 'data' => new TenantResource($tenant)]);
     }
 
     public function destroy(Request $request, int $tenantId)
     {
-        if (!RbacService::check('tenant.view')) {
+        if (!RbacService::check('tenant.delete')) {
             return response()->json(['success' => false, 'message' => trans("common.no_permission")], 403);
         }
 
@@ -178,7 +214,7 @@ class TenantController extends Controller
      */
     public function suspend(Request $request, int $tenantId)
     {
-        if (!RbacService::check('tenant.view')) {
+        if (!RbacService::check('tenant.suspend')) {
             return response()->json(['success' => false, 'message' => trans("common.no_permission")], 403);
         }
 
@@ -221,7 +257,7 @@ class TenantController extends Controller
      */
     public function activate(Request $request, int $tenantId)
     {
-        if (!RbacService::check('tenant.view')) {
+        if (!RbacService::check('tenant.activate')) {
             return response()->json(['success' => false, 'message' => trans("common.no_permission")], 403);
         }
 

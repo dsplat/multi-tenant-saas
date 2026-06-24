@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('subscription_histories', function (Blueprint $table) {
             $table->id();
-            $table->string('tenant_id', 50)->index();
+            $table->bigInteger('tenant_id')->unsigned();
             $table->foreignId('plan_id')->nullable()->constrained('subscription_plans')->nullOnDelete();
             $table->string('action', 30)->comment('subscribe, cancel, change, trial, renew, downgrade, upgrade');
             $table->string('from_plan', 50)->nullable()->comment('变更前计划');

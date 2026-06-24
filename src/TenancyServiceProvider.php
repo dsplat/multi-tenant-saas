@@ -2,8 +2,19 @@
 
 namespace MultiTenantSaas;
 
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use MultiTenantSaas\Console\Commands\CheckTenantIsolation;
+use MultiTenantSaas\Contracts\IdGeneratorContract;
+use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Events\TenantActivated;
+use MultiTenantSaas\Events\TenantCreated;
+use MultiTenantSaas\Events\TenantSuspended;
+use MultiTenantSaas\Events\UserLoggedIn;
+use MultiTenantSaas\Events\UserRegistered;
+use MultiTenantSaas\Listeners\LogEventListener;
 use MultiTenantSaas\Services\IdGenerator;
 use MultiTenantSaas\Services\HealthService;
 use MultiTenantSaas\Context\TenantContext;
@@ -29,6 +40,11 @@ class TenancyServiceProvider extends ServiceProvider
             __DIR__ . '/Modules/Payment/Config/payment.php' => config_path('payment.php'),
         ], 'tenancy-modules-config');
 
+        // 发布队列配置
+        $this->publishes([
+            __DIR__ . '/../config/queue.php' => config_path('queue.php'),
+        ], 'tenancy-queue-config');
+
         // 注册健康检查
         HealthService::registerChecks();
 
@@ -38,6 +54,22 @@ class TenancyServiceProvider extends ServiceProvider
                 CheckTenantIsolation::class,
             ]);
         }
+
+        // 注册认证后 API 限流策略
+        // 按用户 ID 限流，每分钟 60 次
+        RateLimiter::for('api', function ($request) {
+            $user = $request->user();
+            return Limit::perMinute(60)->by(
+                $user ? $user->getAuthIdentifier() : $request->ip()
+            );
+        });
+
+        // 注册事件监听器（事件系统）
+        Event::listen(TenantCreated::class, [LogEventListener::class, 'handleTenantCreated']);
+        Event::listen(TenantSuspended::class, [LogEventListener::class, 'handleTenantSuspended']);
+        Event::listen(TenantActivated::class, [LogEventListener::class, 'handleTenantActivated']);
+        Event::listen(UserRegistered::class, [LogEventListener::class, 'handleUserRegistered']);
+        Event::listen(UserLoggedIn::class, [LogEventListener::class, 'handleUserLoggedIn']);
     }
 
     public function register(): void
@@ -49,15 +81,17 @@ class TenancyServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__ . '/Modules/ApiToken/Config/apitoken.php', 'apitoken');
         $this->mergeConfigFrom(__DIR__ . '/Modules/Payment/Config/payment.php', 'payment');
 
-        // 注册ID生成器
-        $this->app->singleton(IdGenerator::class, function () {
+        // 注册ID生成器（绑定接口契约 + 具体实现）
+        $this->app->singleton(IdGeneratorContract::class, function () {
             return new IdGenerator();
         });
+        $this->app->alias(IdGeneratorContract::class, IdGenerator::class);
 
-        // 注册租户上下文
-        $this->app->singleton(TenantContext::class, function () {
+        // 注册租户上下文（绑定接口契约 + 具体实现）
+        $this->app->singleton(TenantContextContract::class, function () {
             return new TenantContext();
         });
+        $this->app->alias(TenantContextContract::class, TenantContext::class);
 
         // 注册配置存储
         $this->app->singleton(TenantConfigStore::class, function () {

@@ -3,7 +3,7 @@
 use App\Http\Controllers\TestController;
 use Illuminate\Support\Facades\Route;
 
-// 测试路由
+// 平台首页
 Route::get('/', [TestController::class, 'index']);
 
 // 系统后台路由（admin 域名专用）

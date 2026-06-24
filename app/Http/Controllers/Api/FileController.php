@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Services\FileService;
 use MultiTenantSaas\Services\AuditService;
 use MultiTenantSaas\Models\FileUpload;
+use MultiTenantSaas\Context\TenantContext;
 
 /**
  * @OA\Tag(
@@ -16,18 +18,21 @@ use MultiTenantSaas\Models\FileUpload;
  */
 class FileController extends Controller
 {
+    use AuthorizesTenantAccess;
+
     /**
      * 文件列表
      */
     public function index(Request $request)
     {
-        $tenantId = $request->input('tenant_id');
+        $tenantId = TenantContext::getId();
         $category = $request->input('category');
         $perPage = (int) $request->input('per_page', 20);
 
         $files = FileService::listFiles($tenantId, $category, $perPage);
 
         return response()->json([
+            'success' => true,
             'data' => $files->items(),
             'meta' => [
                 'current_page' => $files->currentPage(),
@@ -46,6 +51,7 @@ class FileController extends Controller
         $file = FileUpload::findOrFail($id);
 
         return response()->json([
+            'success' => true,
             'data' => $file,
             'url' => FileService::getUrl($file),
             'preview_url' => FileService::getPreviewUrl($file),
@@ -60,7 +66,7 @@ class FileController extends Controller
         $file = FileUpload::findOrFail($id);
 
         if (!$file->isImage()) {
-            return response()->json(['message' => trans('file.type_not_supported')], 422);
+            return response()->json(['success' => false, 'message' => trans('file.type_not_supported')], 422);
         }
 
         try {
@@ -68,7 +74,7 @@ class FileController extends Controller
                 ->header('Content-Type', $file->mime_type)
                 ->header('Content-Disposition', 'inline; filename="' . $file->filename . '"');
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 404);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 404);
         }
     }
 
@@ -103,13 +109,12 @@ class FileController extends Controller
             'file' => 'required|file|max:102400', // 100MB
             'category' => 'nullable|string|max:50',
             'is_public' => 'boolean',
-            'tenant_id' => 'nullable|integer',
         ]);
 
         try {
             $file = FileService::upload(
                 $request->file('file'),
-                $request->input('tenant_id'),
+                TenantContext::getId(),
                 $request->user()?->id,
                 $request->input('category', 'general'),
                 null,
@@ -123,12 +128,13 @@ class FileController extends Controller
             ]);
 
             return response()->json([
+                'success' => true,
                 'message' => trans("file.upload_success"),
                 'data' => $file,
                 'url' => FileService::getUrl($file),
             ], 201);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
     }
 
@@ -142,7 +148,7 @@ class FileController extends Controller
         try {
             return FileService::download($file);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 404);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 404);
         }
     }
 
@@ -160,7 +166,7 @@ class FileController extends Controller
 
         FileService::delete($file);
 
-        return response()->json(['message' => trans("file.deleted")]);
+        return response()->json(['success' => true, 'message' => trans("file.deleted")]);
     }
 
     /**
@@ -199,7 +205,7 @@ class FileController extends Controller
         $signature = $request->query('sig', '');
 
         if (!FileService::verifyShareUrl($id, $token, $signature)) {
-            return response()->json(['message' => trans('common.token_invalid')], 403);
+            return response()->json(['success' => false, 'message' => trans('common.token_invalid')], 403);
         }
 
         $file = FileUpload::findOrFail($id);
@@ -207,7 +213,7 @@ class FileController extends Controller
         try {
             return FileService::download($file);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 404);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 404);
         }
     }
 
@@ -216,12 +222,13 @@ class FileController extends Controller
      */
     public function usage(Request $request)
     {
-        $tenantId = $request->input('tenant_id');
+        $tenantId = TenantContext::getId();
 
         $quotaInfo = FileService::getStorageQuotaInfo($tenantId);
         $fileCount = FileUpload::when($tenantId, fn($q) => $q->where('tenant_id', $tenantId))->count();
 
         return response()->json([
+            'success' => true,
             'data' => array_merge($quotaInfo, ['file_count' => $fileCount]),
         ]);
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Services\RbacService;
 use MultiTenantSaas\Services\AuditService;
@@ -15,13 +16,15 @@ use MultiTenantSaas\Services\AuditService;
  */
 class RbacController extends Controller
 {
+    use AuthorizesTenantAccess;
+
     /**
      * 获取权限列表（按分组）
      */
     public function permissions(Request $request)
     {
         $grouped = RbacService::getAllPermissionsGrouped();
-        return response()->json(['data' => $grouped]);
+        return response()->json(['success' => true, 'data' => $grouped]);
     }
 
     /**
@@ -29,8 +32,10 @@ class RbacController extends Controller
      */
     public function roles(Request $request, int $tenantId)
     {
+        $this->ensureTenantAccess($request, $tenantId);
+
         $roles = RbacService::getTenantRoles($tenantId);
-        return response()->json(['data' => $roles]);
+        return response()->json(['success' => true, 'data' => $roles]);
     }
 
     /**
@@ -38,6 +43,8 @@ class RbacController extends Controller
      */
     public function storeRole(Request $request, int $tenantId)
     {
+        $this->ensureTenantAccess($request, $tenantId);
+
         $validated = $request->validate([
             'name' => 'required|string|max:50',
             'display_name' => 'required|string|max:200',
@@ -54,9 +61,9 @@ class RbacController extends Controller
             $validated['permission_ids'] ?? []
         );
 
-        AuditService::log('create', 'role', $role->id, "创建角色: {$role->display_name}");
+        AuditService::log('create', 'role', $role->id, null, ['name' => $role->display_name]);
 
-        return response()->json(['data' => $role->load('permissions')], 201);
+        return response()->json(['success' => true, 'data' => $role->load('permissions')], 201);
     }
 
     /**
@@ -64,6 +71,8 @@ class RbacController extends Controller
      */
     public function updateRolePermissions(Request $request, int $tenantId, int $roleId)
     {
+        $this->ensureTenantAccess($request, $tenantId);
+
         $validated = $request->validate([
             'permission_ids' => 'required|array',
             'permission_ids.*' => 'integer|exists:permissions,id',
@@ -72,12 +81,12 @@ class RbacController extends Controller
         try {
             RbacService::updateRolePermissions($roleId, $validated['permission_ids']);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
-        AuditService::log('update', 'role', $roleId, '更新角色权限');
+        AuditService::log('update', 'role', $roleId, null, ['permission_count' => count($validated['permission_ids'])]);
 
-        return response()->json(['message' => trans("tenant.role_updated")]);
+        return response()->json(['success' => true, 'message' => trans("tenant.role_updated")]);
     }
 
     /**
@@ -85,15 +94,17 @@ class RbacController extends Controller
      */
     public function destroyRole(Request $request, int $tenantId, int $roleId)
     {
+        $this->ensureTenantAccess($request, $tenantId);
+
         try {
             RbacService::deleteRole($roleId);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
-        AuditService::log('delete', 'role', $roleId, '删除角色');
+        AuditService::log('delete', 'role', $roleId, null, ['deleted' => true]);
 
-        return response()->json(['message' => trans("tenant.role_deleted")]);
+        return response()->json(['success' => true, 'message' => trans("tenant.role_deleted")]);
     }
 
     /**
@@ -101,6 +112,8 @@ class RbacController extends Controller
      */
     public function assignMemberRole(Request $request, int $tenantId, int $userId)
     {
+        $this->ensureTenantAccess($request, $tenantId);
+
         $validated = $request->validate([
             'role_id' => 'required|integer|exists:roles,id',
         ]);
@@ -110,8 +123,8 @@ class RbacController extends Controller
             ->where('user_id', $userId)
             ->update(['role_id' => $validated['role_id']]);
 
-        AuditService::log('update', 'tenant_member', $userId, "分配角色ID: {$validated['role_id']}");
+        AuditService::log('update', 'tenant_member', $userId, null, ['role_id' => $validated['role_id']]);
 
-        return response()->json(['message' => trans("tenant.role_assigned")]);
+        return response()->json(['success' => true, 'message' => trans("tenant.role_assigned")]);
     }
 }

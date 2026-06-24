@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Concerns;
 
-use MultiTenantSaas\Services\IdGenerator;
+use MultiTenantSaas\Contracts\IdGeneratorContract;
 
 /**
  * 全局ID Trait
@@ -21,7 +21,7 @@ trait HasGlobalId
     {
         static::creating(function ($model) {
             if (empty($model->{$model->getKeyName()})) {
-                $model->{$model->getKeyName()} = app(IdGenerator::class)->generate();
+                $model->{$model->getKeyName()} = app(IdGeneratorContract::class)->generate();
             }
         });
     }

@@ -50,7 +50,7 @@ class RbacController extends Controller
             'display_name' => 'required|string|max:200',
             'description' => 'nullable|string',
             'permission_ids' => 'array',
-            'permission_ids.*' => 'integer|exists:permissions,id',
+            'permission_ids.*' => 'integer|exists:permissions,permission_id',
         ]);
 
         $role = RbacService::createRole(
@@ -75,7 +75,7 @@ class RbacController extends Controller
 
         $validated = $request->validate([
             'permission_ids' => 'required|array',
-            'permission_ids.*' => 'integer|exists:permissions,id',
+            'permission_ids.*' => 'integer|exists:permissions,permission_id',
         ]);
 
         try {
@@ -115,7 +115,7 @@ class RbacController extends Controller
         $this->ensureTenantAccess($request, $tenantId);
 
         $validated = $request->validate([
-            'role_id' => 'required|integer|exists:roles,id',
+            'role_id' => 'required|integer|exists:roles,role_id',
         ]);
 
         \DB::table('tenant_users')

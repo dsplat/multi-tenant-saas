@@ -4,10 +4,13 @@ namespace MultiTenantSaas\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use MultiTenantSaas\Concerns\HasGlobalId;
 
 class SubscriptionPlan extends Model
 {
-    use HasFactory;
+    use HasGlobalId, HasFactory;
+
+    protected $primaryKey = 'subscription_plan_id';
 
     protected $fillable = [
         'name',

@@ -4,12 +4,15 @@ namespace MultiTenantSaas\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use MultiTenantSaas\Concerns\HasGlobalId;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Role extends Model
 {
-    use HasFactory;
+    use HasGlobalId, HasFactory;
+
+    protected $primaryKey = 'role_id';
 
     protected $fillable = [
         'tenant_id',

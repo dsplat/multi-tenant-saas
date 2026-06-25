@@ -32,4 +32,5 @@ return [
     'dingtalk' => 'DingTalk',
     'feishu' => 'Feishu',
     'cancelled' => 'Cancelled',
+    'oauth_not_configured' => 'Tenant :tenant has not configured :provider OAuth',
 ];

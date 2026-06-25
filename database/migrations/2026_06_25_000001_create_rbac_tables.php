@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use MultiTenantSaas\Contracts\IdGeneratorContract;
 
 return new class extends Migration
 {
@@ -10,7 +11,7 @@ return new class extends Migration
     {
         // 权限表（全局，系统级）
         Schema::create('permissions', function (Blueprint $table) {
-            $table->id();
+            $table->unsignedBigInteger('permission_id')->primary()->comment('权限ID（全局ID）');
             $table->string('name', 100)->unique()->comment('权限标识，如 tenant.users.create');
             $table->string('display_name', 200);
             $table->string('group', 50)->default('general')->comment('权限分组');
@@ -20,7 +21,7 @@ return new class extends Migration
 
         // 角色表（支持系统级 + 租户级）
         Schema::create('roles', function (Blueprint $table) {
-            $table->id();
+            $table->unsignedBigInteger('role_id')->primary()->comment('角色ID（全局ID）');
             $table->bigInteger('tenant_id')->unsigned()->nullable()->index()->comment('null=系统级角色');
             $table->string('name', 50)->comment('角色标识');
             $table->string('display_name', 200);
@@ -38,15 +39,15 @@ return new class extends Migration
             $table->unsignedBigInteger('permission_id');
             $table->timestamps();
 
-            $table->foreign('role_id')->references('id')->on('roles')->onDelete('cascade');
-            $table->foreign('permission_id')->references('id')->on('permissions')->onDelete('cascade');
+            $table->foreign('role_id')->references('role_id')->on('roles')->onDelete('cascade');
+            $table->foreign('permission_id')->references('permission_id')->on('permissions')->onDelete('cascade');
             $table->unique(['role_id', 'permission_id']);
         });
 
         // tenant_users 增加 role_id 列（向后兼容，保留 role 字符串列）
         Schema::table('tenant_users', function (Blueprint $table) {
             $table->unsignedBigInteger('role_id')->nullable()->after('role');
-            $table->foreign('role_id')->references('id')->on('roles')->onDelete('set null');
+            $table->foreign('role_id')->references('role_id')->on('roles')->onDelete('set null');
         });
 
         // 插入系统内置角色
@@ -69,17 +70,19 @@ return new class extends Migration
     private function seedSystemRoles(): void
     {
         $now = now();
+        $idGenerator = app(IdGeneratorContract::class);
         \DB::table('roles')->insert([
-            ['tenant_id' => null, 'name' => 'super_admin', 'display_name' => '超级管理员', 'description' => '系统级管理角色', 'is_system' => true, 'created_at' => $now, 'updated_at' => $now],
-            ['tenant_id' => null, 'name' => 'platform_user', 'display_name' => '平台用户', 'description' => '平台运营角色', 'is_system' => true, 'created_at' => $now, 'updated_at' => $now],
-            ['tenant_id' => null, 'name' => 'tenant_admin', 'display_name' => '租户管理员', 'description' => '租户管理角色', 'is_system' => true, 'created_at' => $now, 'updated_at' => $now],
-            ['tenant_id' => null, 'name' => 'end_user', 'display_name' => '普通用户', 'description' => '终端用户角色', 'is_system' => true, 'created_at' => $now, 'updated_at' => $now],
+            ['role_id' => $idGenerator->generate(), 'tenant_id' => null, 'name' => 'super_admin', 'display_name' => '超级管理员', 'description' => '系统级管理角色', 'is_system' => true, 'created_at' => $now, 'updated_at' => $now],
+            ['role_id' => $idGenerator->generate(), 'tenant_id' => null, 'name' => 'platform_user', 'display_name' => '平台用户', 'description' => '平台运营角色', 'is_system' => true, 'created_at' => $now, 'updated_at' => $now],
+            ['role_id' => $idGenerator->generate(), 'tenant_id' => null, 'name' => 'tenant_admin', 'display_name' => '租户管理员', 'description' => '租户管理角色', 'is_system' => true, 'created_at' => $now, 'updated_at' => $now],
+            ['role_id' => $idGenerator->generate(), 'tenant_id' => null, 'name' => 'end_user', 'display_name' => '普通用户', 'description' => '终端用户角色', 'is_system' => true, 'created_at' => $now, 'updated_at' => $now],
         ]);
     }
 
     private function seedPermissions(): void
     {
         $now = now();
+        $idGenerator = app(IdGeneratorContract::class);
         $permissions = [
             // 租户管理
             ['name' => 'tenant.create', 'display_name' => '创建租户', 'group' => 'tenant', 'description' => '创建新租户'],
@@ -118,6 +121,7 @@ return new class extends Migration
         ];
 
         foreach ($permissions as &$p) {
+            $p['permission_id'] = $idGenerator->generate();
             $p['created_at'] = $now;
             $p['updated_at'] = $now;
         }
@@ -126,8 +130,8 @@ return new class extends Migration
         // 为 tenant_admin 分配除 tenant.create/delete/suspend 外的所有权限
         $adminPerms = \DB::table('permissions')
             ->whereNotIn('name', ['tenant.create', 'tenant.delete', 'tenant.suspend'])
-            ->pluck('id');
-        $adminRoleId = \DB::table('roles')->where('name', 'tenant_admin')->whereNull('tenant_id')->value('id');
+            ->pluck('permission_id');
+        $adminRoleId = \DB::table('roles')->where('name', 'tenant_admin')->whereNull('tenant_id')->value('role_id');
 
         $insert = $adminPerms->map(fn($pid) => [
             'role_id' => $adminRoleId,
@@ -140,8 +144,8 @@ return new class extends Migration
         // end_user 只给查看权限
         $userPerms = \DB::table('permissions')
             ->whereIn('name', ['tenant.view', 'member.view', 'credit.view', 'setting.view', 'payment.view', 'audit.view', 'file.upload'])
-            ->pluck('id');
-        $userRoleId = \DB::table('roles')->where('name', 'end_user')->whereNull('tenant_id')->value('id');
+            ->pluck('permission_id');
+        $userRoleId = \DB::table('roles')->where('name', 'end_user')->whereNull('tenant_id')->value('role_id');
 
         $insert2 = $userPerms->map(fn($pid) => [
             'role_id' => $userRoleId,
@@ -152,8 +156,8 @@ return new class extends Migration
         \DB::table('role_permissions')->insert($insert2);
 
         // super_admin 获得所有权限
-        $allPerms = \DB::table('permissions')->pluck('id');
-        $superRoleId = \DB::table('roles')->where('name', 'super_admin')->whereNull('tenant_id')->value('id');
+        $allPerms = \DB::table('permissions')->pluck('permission_id');
+        $superRoleId = \DB::table('roles')->where('name', 'super_admin')->whereNull('tenant_id')->value('role_id');
 
         $insert3 = $allPerms->map(fn($pid) => [
             'role_id' => $superRoleId,

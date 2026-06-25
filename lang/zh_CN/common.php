@@ -32,4 +32,5 @@ return [
     'dingtalk' => '钉钉',
     'feishu' => '飞书',
     'cancelled' => '已取消',
+    'oauth_not_configured' => '租户 :tenant 未配置 :provider OAuth',
 ];

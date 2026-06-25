@@ -12,4 +12,11 @@ return [
     'invalid_amount' => 'Recharge amount must be greater than 0',
     'update_success' => 'Credits updated successfully',
     'recharge_failed' => 'Recharge failed',
+    'process_expired_credits' => 'Processing expired credits: :count items',
+    'process_transaction_expiry' => 'Processing transaction expiry: :count items',
+    'process_low_balance' => 'Sending low balance warnings: :count items',
+    'process_auto_recharge' => 'Triggering auto recharge: :count items',
+    'account_expired' => 'Account credits expired',
+    'gift_expired' => 'Gift credits expired (Transaction ID: :id)',
+    'auto_recharge_detail' => 'Balance: :balance, Threshold: :threshold, Auto recharge: :amount',
 ];

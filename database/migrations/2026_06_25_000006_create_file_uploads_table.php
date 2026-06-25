@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('file_uploads', function (Blueprint $table) {
-            $table->id();
+            $table->unsignedBigInteger('file_upload_id')->primary()->comment('文件ID（全局ID）');
             $table->bigInteger('tenant_id')->unsigned()->nullable()->index();
             $table->bigInteger('user_id')->unsigned()->nullable()->index();
             $table->string('disk', 20)->default('local')->comment('存储磁盘: local/s3/oss');

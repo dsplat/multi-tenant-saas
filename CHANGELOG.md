@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-06-24
+
+### Fixed
+- ProcessCreditExpiry 引用 credit_transactions 不存在的 expires_at/expired 列（新增迁移补列）
+- RefundService trans() 被包在引号里不执行翻译
+- UserApiToken API Key 明文存储（改用 Crypt 加密/解密）
+- SocialiteService Octane config 跨请求污染（改用 app 容器请求级隔离）
+- TestCase schema 与真实迁移多处不匹配（列名/字段/类型全量对齐）
+- 6 个模型缺少 HasGlobalId（FileUpload/NotificationPreference/Permission/Role/SubscriptionHistory/SubscriptionPlan）
+- SubscriptionHistory / UserApiToken 缺少 BelongsToTenant（跨租户数据泄露）
+- /credits /api-tokens /quotas 路由缺少 RBAC 中间件
+- ProcessCreditExpiry / RefundService 硬编码中文改用 trans()
+- RbacController exists 验证规则引用旧主键列名
+
+### Changed
+- 6 个迁移主键从 auto-increment id 改为全局 ID（unsignedBigInteger）
+- RBAC 迁移外键引用 + seed 代码适配新主键名
+- subscription_histories 迁移 plan_id 外键引用适配新主键名
+
 ## [0.2.0] - 2026-06-24
 
 ### Added

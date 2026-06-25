@@ -5,10 +5,14 @@ namespace MultiTenantSaas\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use MultiTenantSaas\Concerns\BelongsToTenant;
+use MultiTenantSaas\Concerns\HasGlobalId;
 
 class SubscriptionHistory extends Model
 {
-    use HasFactory;
+    use BelongsToTenant, HasGlobalId, HasFactory;
+
+    protected $primaryKey = 'subscription_history_id';
 
     protected $table = 'subscription_histories';
 

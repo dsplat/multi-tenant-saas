@@ -20,19 +20,19 @@ class ProcessCreditExpiry extends Command
     {
         // 处理账户级过期积分
         $expiredCount = $this->processExpiredCredits();
-        $this->info("处理账户级过期积分: {$expiredCount} 条");
+        $this->info(trans('credit.process_expired_credits', ['count' => $expiredCount]));
 
         // 处理交易级过期积分（赠送积分按笔过期）
         $txnExpiredCount = $this->processTransactionLevelExpiry();
-        $this->info("处理交易级过期积分: {$txnExpiredCount} 条");
+        $this->info(trans('credit.process_transaction_expiry', ['count' => $txnExpiredCount]));
 
         // 处理低余额预警
         $warnCount = $this->processLowBalanceWarning();
-        $this->info("发送低余额预警: {$warnCount} 条");
+        $this->info(trans('credit.process_low_balance', ['count' => $warnCount]));
 
         // 处理自动充值
         $rechargeCount = $this->processAutoRecharge();
-        $this->info("触发自动充值: {$rechargeCount} 条");
+        $this->info(trans('credit.process_auto_recharge', ['count' => $rechargeCount]));
 
         return self::SUCCESS;
     }
@@ -59,7 +59,7 @@ class ProcessCreditExpiry extends Command
                 'type' => 'expire',
                 'amount' => -$expiredAmount,
                 'balance_after' => 0,
-                'description' => '账户积分过期',
+                'description' => trans('credit.account_expired'),
             ]);
 
             $count++;
@@ -109,7 +109,7 @@ class ProcessCreditExpiry extends Command
                     'type' => 'expire',
                     'amount' => -$txn->amount,
                     'balance_after' => max(0, $account->balance - $totalExpired),
-                    'description' => "赠送积分过期 (交易ID: {$txn->transaction_id})",
+                    'description' => trans('credit.gift_expired', ['id' => $txn->transaction_id]),
                     'metadata' => ['original_transaction_id' => $txn->transaction_id],
                 ]);
 
@@ -170,7 +170,7 @@ class ProcessCreditExpiry extends Command
                 // TODO: 调用 PayService 发起自动扣款
                 // 目前仅记录订单，实际扣款需对接支付网关
 
-                Log::info("自动充值已触发", [
+                Log::info(trans('credit.auto_recharge_triggered'), [
                     'tenant_id' => $account->tenant_id,
                     'order_no' => $orderNo,
                     'amount' => $rechargeAmount,
@@ -184,7 +184,11 @@ class ProcessCreditExpiry extends Command
                     NotificationService::sendToTenantAdmins(
                         $account->tenant_id,
                         trans('credit.auto_recharge_triggered'),
-                        "余额: {$account->balance}, 阈值: {$account->auto_recharge_threshold}, 自动充值: {$rechargeAmount}",
+                        trans('credit.auto_recharge_detail', [
+                            'balance' => $account->balance,
+                            'threshold' => $account->auto_recharge_threshold,
+                            'amount' => $rechargeAmount,
+                        ]),
                         'info',
                         url('/console/credits')
                     );
@@ -192,7 +196,7 @@ class ProcessCreditExpiry extends Command
 
                 $count++;
             } catch (\Exception $e) {
-                Log::error("自动充值失败", [
+                Log::error(trans('credit.recharge_failed'), [
                     'tenant_id' => $account->tenant_id,
                     'error' => $e->getMessage(),
                 ]);

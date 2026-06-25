@@ -4,15 +4,18 @@ namespace MultiTenantSaas\Modules\ApiToken\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Crypt;
+use MultiTenantSaas\Concerns\BelongsToTenant;
 
 /**
  * 用户 API Token 模型
  *
  * 对接 new-api 后端的用户 Token 本地缓存
+ * apisvr_key 加密存储，通过 getDecryptedKey() 解密读取
  */
 class UserApiToken extends Model
 {
-    use SoftDeletes;
+    use BelongsToTenant, SoftDeletes;
 
     protected $table = 'user_api_tokens';
 
@@ -38,6 +41,22 @@ class UserApiToken extends Model
             'user_id' => 'integer',
             'tenant_id' => 'integer',
         ];
+    }
+
+    /**
+     * 加密存储 API Key
+     */
+    protected function setApisvrKeyAttribute($value): void
+    {
+        $this->attributes['apisvr_key'] = $value ? Crypt::encryptString($value) : null;
+    }
+
+    /**
+     * 解密读取 API Key
+     */
+    protected function getApisvrKeyAttribute($value): ?string
+    {
+        return $value ? Crypt::decryptString($value) : null;
     }
 
     /**

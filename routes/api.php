@@ -69,7 +69,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
     Route::delete('/tenants/{tenantId}/members/{userId}', [TenantMemberController::class, 'destroy'])->middleware('rbac.permission:member.delete');
 
     // 积分管理
-    Route::get('/tenants/{tenantId}/credits', [TenantCreditController::class, 'index']);
+    Route::get('/tenants/{tenantId}/credits', [TenantCreditController::class, 'index'])->middleware('rbac.permission:credit.view');
 
     // 域名管理（需 domain.manage 权限）
     Route::get('/tenants/{tenantId}/domain', [TenantDomainController::class, 'index'])->middleware('rbac.permission:domain.manage');
@@ -105,13 +105,13 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
     Route::get('/tenants/{tenantId}/audit-logs', [TenantAuditController::class, 'index'])->middleware('rbac.permission:audit.view');
 
     // API Token
-    Route::get("/tenants/{tenantId}/api-tokens", [TenantTokenController::class, "index"]);
-    Route::get("/tenants/{tenantId}/api-tokens/abilities", [TenantTokenController::class, "abilities"]);
-    Route::post('/tenants/{tenantId}/api-tokens', [TenantTokenController::class, 'store']);
-    Route::delete('/tenants/{tenantId}/api-tokens/{tokenId}', [TenantTokenController::class, 'destroy']);
+    Route::get("/tenants/{tenantId}/api-tokens", [TenantTokenController::class, "index"])->middleware('rbac.permission:member.view');
+    Route::get("/tenants/{tenantId}/api-tokens/abilities", [TenantTokenController::class, "abilities"])->middleware('rbac.permission:member.view');
+    Route::post('/tenants/{tenantId}/api-tokens', [TenantTokenController::class, 'store'])->middleware('rbac.permission:member.update');
+    Route::delete('/tenants/{tenantId}/api-tokens/{tokenId}', [TenantTokenController::class, 'destroy'])->middleware('rbac.permission:member.update');
 
     // 配额
-    Route::get('/tenants/{tenantId}/quotas', [TenantQuotaController::class, 'index']);
+    Route::get('/tenants/{tenantId}/quotas', [TenantQuotaController::class, 'index'])->middleware('rbac.permission:tenant.view');
 
     // 系统设置（仅 super_admin）
     Route::get('/admin/settings', [AdminSettingsController::class, 'index']);

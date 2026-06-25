@@ -4,13 +4,14 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use MultiTenantSaas\Contracts\IdGeneratorContract;
 
 return new class extends Migration
 {
     public function up(): void
     {
         Schema::create('subscription_plans', function (Blueprint $table) {
-            $table->id();
+            $table->unsignedBigInteger('subscription_plan_id')->primary()->comment('计划ID（全局ID）');
             $table->string('name', 50)->unique()->comment('计划标识: free/basic/pro/enterprise');
             $table->string('display_name', 200);
             $table->text('description')->nullable();
@@ -26,8 +27,10 @@ return new class extends Migration
 
         // 插入默认计划
         $now = now();
+        $idGenerator = app(IdGeneratorContract::class);
         DB::table('subscription_plans')->insert([
             [
+                'subscription_plan_id' => $idGenerator->generate(),
                 'name' => 'free',
                 'display_name' => '免费版',
                 'description' => '适合个人和小团队试用',
@@ -42,6 +45,7 @@ return new class extends Migration
                 'updated_at' => $now,
             ],
             [
+                'subscription_plan_id' => $idGenerator->generate(),
                 'name' => 'basic',
                 'display_name' => '基础版',
                 'description' => '适合小型企业日常使用',
@@ -56,6 +60,7 @@ return new class extends Migration
                 'updated_at' => $now,
             ],
             [
+                'subscription_plan_id' => $idGenerator->generate(),
                 'name' => 'pro',
                 'display_name' => '专业版',
                 'description' => '适合中型企业深度使用',
@@ -70,6 +75,7 @@ return new class extends Migration
                 'updated_at' => $now,
             ],
             [
+                'subscription_plan_id' => $idGenerator->generate(),
                 'name' => 'enterprise',
                 'display_name' => '企业版',
                 'description' => '适合大型企业定制化需求',

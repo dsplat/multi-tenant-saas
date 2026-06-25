@@ -30,6 +30,9 @@ class SocialiteService
 
     /**
      * 动态配置 Socialite 驱动（租户级）
+     *
+     * 使用 app 容器保存原始配置，请求结束后恢复
+     * app 容器在 Octane 下按请求隔离，避免跨请求污染
      */
     protected static function configureDriver(string $provider, int $tenantId): void
     {
@@ -39,22 +42,30 @@ class SocialiteService
         $config = array_filter($config, fn($v) => $v !== '' && $v !== null);
 
         if (empty($config['client_id']) || empty($config['client_secret'])) {
-            throw new \RuntimeException("租户 {$tenantId} 未配置 {$provider} OAuth");
+            throw new \RuntimeException(trans('common.oauth_not_configured', ['provider' => $provider, 'tenant' => $tenantId]));
+        }
+
+        // 保存原始配置到 app 容器（请求级隔离）
+        $key = "oauth.original.{$provider}";
+        if (!app()->bound($key)) {
+            app()->instance($key, config("services.{$provider}"));
         }
 
         // 动态设置配置
-        // TODO: Octane 安全 - config() 写入在请求间持久化
-        // 正确做法：使用 Socialite::driver()->setConfig() 传递租户配置
-        // 临时方案：请求结束时还原
         config(["services.{$provider}" => $config]);
     }
 
     /**
      * 还原 OAuth 配置（请求结束时调用）
+     * 从 app 容器恢复原始值，而非置为 null
      */
     public static function resetDriverConfig(string $provider): void
     {
-        config(["services.{$provider}" => null]);
+        $key = "oauth.original.{$provider}";
+        if (app()->bound($key)) {
+            config(["services.{$provider}" => app($key)]);
+            app()->forgetInstance($key);
+        }
     }
 
     /**

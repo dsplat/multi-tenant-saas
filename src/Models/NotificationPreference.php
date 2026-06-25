@@ -3,12 +3,15 @@
 namespace MultiTenantSaas\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use MultiTenantSaas\Concerns\HasGlobalId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class NotificationPreference extends Model
 {
-    use HasFactory;
+    use HasGlobalId, HasFactory;
+
+    protected $primaryKey = 'notification_preference_id';
 
     protected $table = 'notification_preferences';
 

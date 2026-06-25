@@ -33,7 +33,7 @@ class RefundService
             ->first();
 
         if (!$order) {
-            throw new \RuntimeException('trans("payment.order_not_found")');
+            throw new \RuntimeException(trans("payment.order_not_found"));
         }
 
         if ($order->status !== 'paid' && $order->status !== 'completed') {
@@ -56,7 +56,7 @@ class RefundService
             } elseif ($driver === 'alipay') {
                 $result = self::alipayRefund($pay, $order, $refundNo, $refundAmount, $reason);
             } else {
-                throw new \RuntimeException("不支持的支付方式: {$driver}");
+                throw new \RuntimeException(trans("payment.unsupported_driver") . ": {$driver}");
             }
 
             // 更新订单状态

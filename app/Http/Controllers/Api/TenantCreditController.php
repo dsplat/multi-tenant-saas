@@ -26,8 +26,8 @@ class TenantCreditController extends Controller
             'success' => true,
             'data' => [
                 'balance' => [
-                    'total' => $account?->total_earned ?? 0,
-                    'used' => $account?->total_spent ?? 0,
+                    'total' => $account?->total_recharged ?? 0,
+                    'used' => $account?->total_consumed ?? 0,
                     'available' => $account?->balance ?? 0,
                 ],
                 'transactions' => $transactions,

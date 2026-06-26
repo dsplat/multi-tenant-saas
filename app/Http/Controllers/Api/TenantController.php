@@ -257,7 +257,7 @@ class TenantController extends Controller
      */
     public function activate(Request $request, int $tenantId)
     {
-        if (!RbacService::check('tenant.activate')) {
+        if (!RbacService::check('tenant.suspend')) {
             return response()->json(['success' => false, 'message' => trans("common.no_permission")], 403);
         }
 

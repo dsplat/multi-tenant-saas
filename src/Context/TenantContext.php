@@ -40,7 +40,7 @@ class TenantContext implements TenantContextContract
         }
 
         return $request->attributes->get('tenant_id')
-            ?? config('tenancy.current_tenant_id');
+            ?? config('tenancy.default_tenant_id');
     }
 
     /**
@@ -77,17 +77,13 @@ class TenantContext implements TenantContextContract
             }
         }
 
-        // 通过 ID 加载（带缓存）
+        // 通过 ID 加载（直接查询，Request 级缓存已覆盖）
         $id = static::getId();
         if (!$id) {
             return null;
         }
 
-        $tenant = cache()->remember(
-            config('tenancy.cache.prefix', 'tenant:') . $id,
-            config('tenancy.cache.ttl', 3600),
-            fn () => Tenant::find($id)
-        );
+        $tenant = Tenant::find($id);
 
         // 写入 Request
         if ($request && $tenant) {

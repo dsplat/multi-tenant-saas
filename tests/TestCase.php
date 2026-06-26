@@ -133,36 +133,45 @@ abstract class TestCase extends BaseTestCase
         });
 
         Schema::create('credit_accounts', function (Blueprint $table) {
-            $table->bigInteger('credit_account_id')->unsigned()->primary();
-            $table->bigInteger('tenant_id')->unsigned();
-            $table->bigInteger('user_id')->unsigned()->nullable();
-            $table->integer('balance')->default(0);
-            $table->integer('total_earned')->default(0);
-            $table->integer('total_spent')->default(0);
+            $table->unsignedBigInteger('credit_account_id')->primary();
+            $table->unsignedBigInteger('tenant_id');
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->enum('account_type', ['enterprise', 'personal'])->default('personal');
+            $table->unsignedBigInteger('balance')->default(0);
+            $table->unsignedBigInteger('total_recharged')->default(0);
+            $table->unsignedBigInteger('total_consumed')->default(0);
             $table->timestamp('expires_at')->nullable();
             $table->integer('expired_total')->default(0);
             $table->timestamp('last_warning_at')->nullable();
             $table->boolean('auto_recharge_enabled')->default(false);
             $table->integer('auto_recharge_threshold')->default(100);
             $table->integer('auto_recharge_amount')->default(1000);
-            $table->string('status', 20)->default('active');
+            $table->enum('status', ['active', 'frozen', 'closed'])->default('active');
             $table->timestamps();
             $table->index('tenant_id');
             $table->index('user_id');
         });
 
         Schema::create('credit_transactions', function (Blueprint $table) {
-            $table->bigInteger('credit_transaction_id')->unsigned()->primary();
-            $table->bigInteger('tenant_id')->unsigned();
-            $table->bigInteger('credit_account_id')->unsigned();
-            $table->string('type', 20);
-            $table->integer('amount');
-            $table->integer('balance_after')->default(0);
+            $table->unsignedBigInteger('transaction_id')->primary();
+            $table->unsignedBigInteger('account_id');
+            $table->unsignedBigInteger('tenant_id');
+            $table->unsignedBigInteger('user_id');
+            $table->enum('type', ['recharge', 'consume', 'refund', 'transfer', 'gift', 'expire']);
+            $table->bigInteger('amount');
+            $table->unsignedBigInteger('balance_after')->default(0);
+            $table->string('related_type', 100)->nullable();
+            $table->unsignedBigInteger('related_id')->nullable();
             $table->string('description', 255)->nullable();
-            $table->timestamps();
+            $table->json('metadata')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->boolean('expired')->default(false);
+            $table->timestamp('created_at')->nullable();
 
-            $table->index('tenant_id');
-            $table->index('credit_account_id');
+            $table->index(['account_id', 'created_at']);
+            $table->index(['tenant_id', 'type', 'created_at']);
+            $table->index(['user_id', 'created_at']);
+            $table->index(['related_type', 'related_id']);
         });
 
         Schema::create('audit_logs', function (Blueprint $table) {
@@ -215,7 +224,7 @@ abstract class TestCase extends BaseTestCase
 
         // RBAC 表
         Schema::create('permissions', function (Blueprint $table) {
-            $table->id();
+            $table->unsignedBigInteger('permission_id')->primary();
             $table->string('name', 100)->unique();
             $table->string('display_name', 200);
             $table->string('group', 50)->default('general');
@@ -224,7 +233,7 @@ abstract class TestCase extends BaseTestCase
         });
 
         Schema::create('roles', function (Blueprint $table) {
-            $table->id();
+            $table->unsignedBigInteger('role_id')->primary();
             $table->bigInteger('tenant_id')->unsigned()->nullable()->index();
             $table->string('name', 50);
             $table->string('display_name', 200);
@@ -256,7 +265,7 @@ abstract class TestCase extends BaseTestCase
 
         // 订阅计划表
         Schema::create('subscription_plans', function (Blueprint $table) {
-            $table->id();
+            $table->unsignedBigInteger('subscription_plan_id')->primary();
             $table->string('name', 50)->unique();
             $table->string('display_name', 200);
             $table->text('description')->nullable();
@@ -287,7 +296,7 @@ abstract class TestCase extends BaseTestCase
 
         // 文件上传表
         Schema::create('file_uploads', function (Blueprint $table) {
-            $table->id();
+            $table->unsignedBigInteger('file_upload_id')->primary();
             $table->bigInteger('tenant_id')->unsigned()->nullable()->index();
             $table->bigInteger('user_id')->unsigned()->nullable()->index();
             $table->string('disk', 20)->default('local');
@@ -331,8 +340,9 @@ abstract class TestCase extends BaseTestCase
 
         // 通知偏好
         Schema::create('notification_preferences', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('notification_preference_id')->primary();
+            $table->bigInteger('user_id')->unsigned();
+            $table->foreign('user_id')->references('user_id')->on('users')->onDelete('cascade');
             $table->string('channel', 30);
             $table->string('type', 100)->nullable();
             $table->boolean('enabled')->default(true);
@@ -343,9 +353,9 @@ abstract class TestCase extends BaseTestCase
 
         // 订阅历史
         Schema::create('subscription_histories', function (Blueprint $table) {
-            $table->id();
-            $table->string('tenant_id', 50)->index();
-            $table->foreignId('plan_id')->nullable();
+            $table->unsignedBigInteger('subscription_history_id')->primary();
+            $table->bigInteger('tenant_id')->unsigned();
+            $table->unsignedBigInteger('plan_id')->nullable();
             $table->string('action', 30);
             $table->string('from_plan', 50)->nullable();
             $table->string('to_plan', 50)->nullable();

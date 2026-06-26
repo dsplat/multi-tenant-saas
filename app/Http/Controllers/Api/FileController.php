@@ -44,11 +44,20 @@ class FileController extends Controller
     }
 
     /**
+     * 获取当前租户的文件（显式租户所有权校验）
+     */
+    private function findFileForCurrentTenant(int $id): FileUpload
+    {
+        $tenantId = TenantContext::getId();
+        return FileUpload::where('tenant_id', $tenantId)->findOrFail($id);
+    }
+
+    /**
      * 获取文件信息
      */
     public function show(Request $request, int $id)
     {
-        $file = FileUpload::findOrFail($id);
+        $file = $this->findFileForCurrentTenant($id);
 
         return response()->json([
             'success' => true,
@@ -63,7 +72,7 @@ class FileController extends Controller
      */
     public function preview(Request $request, int $id)
     {
-        $file = FileUpload::findOrFail($id);
+        $file = $this->findFileForCurrentTenant($id);
 
         if (!$file->isImage()) {
             return response()->json(['success' => false, 'message' => trans('file.type_not_supported')], 422);
@@ -143,7 +152,7 @@ class FileController extends Controller
      */
     public function download(Request $request, int $id)
     {
-        $file = FileUpload::findOrFail($id);
+        $file = $this->findFileForCurrentTenant($id);
 
         try {
             return FileService::download($file);
@@ -157,7 +166,7 @@ class FileController extends Controller
      */
     public function destroy(Request $request, int $id)
     {
-        $file = FileUpload::findOrFail($id);
+        $file = $this->findFileForCurrentTenant($id);
 
         AuditService::log('delete', 'file', $id, null, [
             'filename' => $file->filename,
@@ -174,7 +183,7 @@ class FileController extends Controller
      */
     public function share(Request $request, int $id)
     {
-        $file = FileUpload::findOrFail($id);
+        $file = $this->findFileForCurrentTenant($id);
 
         $request->validate([
             'expires_in' => 'nullable|integer|min:1|max:10080', // 最多 7 天

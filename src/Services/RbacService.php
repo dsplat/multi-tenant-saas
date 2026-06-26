@@ -71,7 +71,7 @@ class RbacService
             self::CACHE_PREFIX . $roleId,
             self::CACHE_TTL,
             fn () => DB::table('role_permissions')
-                ->join('permissions', 'permissions.id', '=', 'role_permissions.permission_id')
+                ->join('permissions', 'permissions.permission_id', '=', 'role_permissions.permission_id')
                 ->where('role_permissions.role_id', $roleId)
                 ->pluck('permissions.name')
                 ->toArray()
@@ -182,6 +182,6 @@ class RbacService
     {
         return Role::where(function ($q) use ($tenantId) {
             $q->whereNull('tenant_id')->orWhere('tenant_id', $tenantId);
-        })->with('permissions:id,name,display_name,group')->get();
+        })->with('permissions:permission_id,name,display_name,group')->get();
     }
 }

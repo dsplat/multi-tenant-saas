@@ -16,6 +16,12 @@ return [
         'ttl' => 3600,
     ],
 
+    // 全局ID生成器配置
+    'id' => [
+        'min_value' => (int) env('ID_GENERATOR_MIN', 1000000000000000),
+        'max_value' => (int) env('ID_GENERATOR_MAX', 9007199254740991),
+    ],
+
     // 文件存储配置
     'file_storage_disk' => env('FILE_STORAGE_DISK', 'local'),
 

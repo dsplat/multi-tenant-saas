@@ -41,7 +41,7 @@ class LogEventListener
 
     public function handleUserRegistered(UserRegistered $event): void
     {
-        Log::info('User registered', ['user_id' => $event->user->user_id, 'email' => $event->user->email]);
+        Log::info('User registered', ['user_id' => $event->user->user_id, 'tenant_id' => $event->tenantId]);
         AuditService::log('register', 'user', $event->user->user_id, null, [
             'email' => $event->user->email,
             'tenant_id' => $event->tenantId,

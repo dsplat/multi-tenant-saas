@@ -72,7 +72,7 @@ class SubscriptionController extends Controller
 
         $plan = SubscriptionPlan::create($validated);
 
-        AuditService::log('create', 'subscription_plan', $plan->id, null, ['name' => $plan->display_name]);
+        AuditService::log('create', 'subscription_plan', $plan->subscription_plan_id, null, ['name' => $plan->display_name]);
 
         return response()->json(['success' => true, 'data' => $plan], 201);
     }
@@ -88,7 +88,8 @@ class SubscriptionController extends Controller
 
         $plan = SubscriptionPlan::findOrFail($planId);
         $validated = $request->validate([
-            'display_name' => 'string|max:200',
+            'name' => 'sometimes|string|max:50|unique:subscription_plans,name,' . $planId . ',subscription_plan_id',
+            'display_name' => 'sometimes|string|max:200',
             'description' => 'nullable|string',
             'price_monthly' => 'integer|min:0',
             'price_yearly' => 'integer|min:0',
@@ -101,7 +102,7 @@ class SubscriptionController extends Controller
 
         $plan->update($validated);
 
-        AuditService::log('update', 'subscription_plan', $plan->id, null, ['name' => $plan->display_name]);
+        AuditService::log('update', 'subscription_plan', $plan->subscription_plan_id, null, ['name' => $plan->display_name]);
 
         return response()->json(['success' => true, 'data' => $plan]);
     }
@@ -160,7 +161,7 @@ class SubscriptionController extends Controller
         $this->ensureTenantAccess($request, $tenantId);
 
         $validated = $request->validate([
-            'plan_id' => 'required|integer|exists:subscription_plans,id',
+            'plan_id' => 'required|integer|exists:subscription_plans,subscription_plan_id',
             'billing_cycle' => 'in:monthly,yearly',
             'start_trial' => 'boolean',
         ]);
@@ -211,7 +212,7 @@ class SubscriptionController extends Controller
         $this->ensureTenantAccess($request, $tenantId);
 
         $validated = $request->validate([
-            'plan_id' => 'required|integer|exists:subscription_plans,id',
+            'plan_id' => 'required|integer|exists:subscription_plans,subscription_plan_id',
             'billing_cycle' => 'in:monthly,yearly',
         ]);
 

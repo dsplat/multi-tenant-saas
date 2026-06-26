@@ -40,11 +40,6 @@ class TenancyServiceProvider extends ServiceProvider
             __DIR__ . '/Modules/Payment/Config/payment.php' => config_path('payment.php'),
         ], 'tenancy-modules-config');
 
-        // 发布队列配置
-        $this->publishes([
-            __DIR__ . '/../config/queue.php' => config_path('queue.php'),
-        ], 'tenancy-queue-config');
-
         // 注册健康检查
         HealthService::registerChecks();
 

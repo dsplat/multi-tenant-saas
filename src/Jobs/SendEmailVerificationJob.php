@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Jobs;
 
-use App\Mail\EmailVerificationMail;
+use MultiTenantSaas\Mail\EmailVerificationMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;

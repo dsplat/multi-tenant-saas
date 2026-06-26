@@ -9,8 +9,6 @@ use MultiTenantSaas\Events\UserLoggedIn;
 use MultiTenantSaas\Events\UserRegistered;
 use MultiTenantSaas\Jobs\SendEmailVerificationJob;
 use MultiTenantSaas\Jobs\SendPasswordResetJob;
-use App\Mail\EmailVerificationMail;
-use App\Mail\PasswordResetMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;

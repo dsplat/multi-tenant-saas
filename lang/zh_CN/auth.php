@@ -18,4 +18,6 @@ return [
     'email_not_verified' => '邮箱未验证',
     'password_mismatch' => '两次密码不一致',
     'reset_link_expired' => '重置链接已过期，请重新申请',
+    'verify_email_subject' => '验证您的邮箱地址',
+    'reset_password_subject' => '重置您的密码',
 ];

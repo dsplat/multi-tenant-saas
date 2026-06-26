@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
  * 为前端单页应用提供 catch-all 路由支持。
  * 所有非 API 请求均返回对应的 index.html，由前端路由接管。
  */
-class TestController extends Controller
+class SpaController extends Controller
 {
     /**
      * 平台首页

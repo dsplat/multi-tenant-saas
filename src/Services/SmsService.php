@@ -85,7 +85,7 @@ class SmsService
             $msgState = static::extractXmlValue($response->body(), 'MsgState');
 
             if ($state === '0') {
-                Log::error('SmsService ww send ok', [
+                Log::info('SmsService ww send ok', [
                     'phone' => static::maskPhone($phone),
                     'type' => $type,
                     'msg_id' => $msgId,

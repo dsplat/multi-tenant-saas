@@ -217,9 +217,18 @@ class AlertService
      */
     protected function dispatchNotifications(string $ruleName, string $severity, string $message, array $context): void
     {
+        $tenantId = TenantContext::getId();
+
         $rules = DB::table(self::TABLE_RULES)
             ->where('name', $ruleName)
             ->where('enabled', true)
+            ->where(function ($q) use ($tenantId) {
+                if ($tenantId) {
+                    $q->where('tenant_id', $tenantId)->orWhereNull('tenant_id');
+                } else {
+                    $q->whereNull('tenant_id');
+                }
+            })
             ->get();
 
         if ($rules->isEmpty()) {

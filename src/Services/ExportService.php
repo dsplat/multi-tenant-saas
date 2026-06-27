@@ -192,10 +192,8 @@ class ExportService
         }
 
         $tenantId = TenantContext::getId();
-        if ($task->tenant_id) {
-            if (!$tenantId || (int) $task->tenant_id !== (int) $tenantId) {
-                abort(403, trans('common.cross_tenant_forbidden'));
-            }
+        if (!$tenantId || (int) ($task->tenant_id ?? 0) !== (int) $tenantId) {
+            abort(403, trans('common.cross_tenant_forbidden'));
         }
 
         // 用户级权限检查：当前用户必须为该导出任务的所有者

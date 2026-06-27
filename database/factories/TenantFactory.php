@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class TenantFactory extends Factory
 {
+    protected $model = \MultiTenantSaas\Models\Tenant::class;
+
     public function definition(): array
     {
         return [

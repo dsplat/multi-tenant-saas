@@ -44,7 +44,7 @@ parse_files() {
         if [[ "$in_section" == "true" ]]; then
             if [[ "$line" =~ ^-[[:space:]]*(.+) ]]; then
                 local f="${BASH_REMATCH[1]}"
-                f=$(echo "$f" | sed 's/#.*//' | xargs)
+                f=$(echo "$f" | sed 's/`//g; s/（.*//; s/(.*//; s/#.*//' | xargs)
                 [[ -n "$f" ]] && files+=("$f")
             elif [[ "$line" =~ ^[^[:space:]-] ]]; then
                 break

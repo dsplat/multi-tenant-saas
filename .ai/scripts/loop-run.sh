@@ -97,8 +97,8 @@ parse_subtask_files() {
             # 遇到非列表行（不以 - 开头）则结束
             if [[ "$line" =~ ^-[[:space:]]*(.+) ]]; then
                 local f="${BASH_REMATCH[1]}"
-                # 去掉尾部注释和空格
-                f=$(echo "$f" | sed 's/#.*//' | xargs)
+                # 去掉反引号、中文注释（...）、英文注释(#...)、空格
+                f=$(echo "$f" | sed 's/`//g; s/（.*//; s/(.*//; s/#.*//' | xargs)
                 [[ -n "$f" ]] && files+=("$f")
             elif [[ "$line" =~ ^[^[:space:]-] ]]; then
                 break

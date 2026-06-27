@@ -163,6 +163,11 @@ class RefundService
         $extra = $order->extra ?? [];
         $refundNo = $extra['refund_no'] ?? null;
 
+        if (!$refundNo && isset($extra['refunds']) && is_array($extra['refunds'])) {
+            $latestRefund = end($extra['refunds']);
+            $refundNo = $latestRefund['refund_no'] ?? null;
+        }
+
         if (!$refundNo) {
             return [
                 'order_no' => $orderNo,

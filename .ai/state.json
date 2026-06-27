@@ -1,0 +1,30 @@
+{
+  "version": "2.0",
+  "updated": "2026-06-27",
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Multi-Tenant SaaS 框架完善与扩展",
+      "status": "BLOCKED",
+      "sprint": "sprint-001",
+      "estimated_hours": 40,
+      "created": "2026-06-27",
+      "updated": "2026-06-27T11:08:36.866810"
+    },
+    {
+      "id": "TASK-001b",
+      "status": "BLOCKED",
+      "updated": "2026-06-27T13:49:58.916074"
+    },
+    {
+      "id": "TASK-001c",
+      "status": "BLOCKED",
+      "updated": "2026-06-27T13:50:31.832236"
+    },
+    {
+      "id": "TASK-001a",
+      "status": "BLOCKED",
+      "updated": "2026-06-27T13:39:32.816342"
+    }
+  ]
+}

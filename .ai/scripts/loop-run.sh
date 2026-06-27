@@ -229,7 +229,8 @@ SUBTASK: ${TASK_ID}b
     local current_content=""
 
     while IFS= read -r line; do
-        if [[ "$line" =~ ^SUBTASK:[[:space:]]*(.+) ]]; then
+        # 兼容 markdown 前缀: SUBTASK: / ## SUBTASK: / **SUBTASK:**
+        if [[ "$line" =~ ^[#*[:space:]]*SUBTASK[:*[:space:]]*(.+) ]]; then
             # 保存上一个块
             if [[ -n "$current_id" && -n "$current_content" ]]; then
                 local stf="$PROJECT_DIR/.ai/tasks/${current_id}.md"
@@ -287,7 +288,8 @@ $split_output
             current_id=""
             current_content=""
             while IFS= read -r line; do
-                if [[ "$line" =~ ^SUBTASK:[[:space:]]*(.+) ]]; then
+                # 兼容 markdown 前缀
+                if [[ "$line" =~ ^[#*[:space:]]*SUBTASK[:*[:space:]]*(.+) ]]; then
                     if [[ -n "$current_id" && -n "$current_content" ]]; then
                         local stf="$PROJECT_DIR/.ai/tasks/${current_id}.md"
                         printf "# %s: [Auto-split from %s (retry)]\n\n%s\n\n## 状态\nREADY\n" \

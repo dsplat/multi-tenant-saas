@@ -18,6 +18,14 @@ class Tenant extends Model
     use HasFactory, HasGlobalId, SoftDeletes;
 
     /**
+     * 工厂类位于 Database\Factories 命名空间，而非 HasFactory 默认查找的路径
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\TenantFactory::new();
+    }
+
+    /**
      * 主键字段名
      */
     protected $primaryKey = 'tenant_id';

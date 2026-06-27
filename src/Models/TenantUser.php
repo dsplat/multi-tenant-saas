@@ -12,6 +12,14 @@ class TenantUser extends Model
 {
     use BelongsToTenant, HasFactory, HasGlobalId;
 
+    /**
+     * 工厂类位于 Database\Factories 命名空间，而非 HasFactory 默认查找的路径
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\TenantUserFactory::new();
+    }
+
     protected $primaryKey = 'tenant_user_id';
 
     protected $table = 'tenant_users';

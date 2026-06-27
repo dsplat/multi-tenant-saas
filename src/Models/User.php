@@ -15,6 +15,14 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, HasGlobalId, Notifiable, SoftDeletes;
 
+    /**
+     * 工厂类位于 Database\Factories 命名空间，而非 HasFactory 默认查找的路径
+     */
+    protected static function newFactory()
+    {
+        return \Database\Factories\UserFactory::new();
+    }
+
     protected $primaryKey = 'user_id';
 
     protected $fillable = [

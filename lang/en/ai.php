@@ -52,4 +52,16 @@ return [
     'image_input_not_found' => 'Input image not found',
     'image_mask_not_found' => 'Mask image not found',
     'image_prompt_too_long' => 'Image prompt exceeds length limit (max :max chars)',
+
+    // Video AI (thrown by AiVideoService, RunwayProvider, KlingProvider)
+    'video_input_not_found' => 'Input video not found',
+    'video_prompt_too_long' => 'Video prompt exceeds length limit (max :max chars)',
+    'video_resolution_not_supported' => 'Provider :provider does not support resolution :resolution',
+    'video_duration_not_supported' => 'Provider :provider does not support duration :duration seconds',
+    'video_frame_count_invalid' => 'Frame count must be greater than 0',
+    'video_task_not_found' => 'Video task not found',
+    'video_task_not_completed' => 'Video task is not completed yet',
+    'video_task_failed' => 'Video task failed: :reason',
+    'video_task_timeout' => 'Video task polling timed out',
+    'video_output_unavailable' => 'Video task completed but no downloadable output',
 ];

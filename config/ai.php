@@ -94,6 +94,12 @@ return [
             'base_url' => env('AI_KUAISHOU_BASE_URL', 'https://api.kuaishou.com/v1'),
             'timeout' => (int) env('AI_KUAISHOU_TIMEOUT', 60),
         ],
+
+        'kling' => [
+            'api_key' => env('AI_KLING_API_KEY', env('KLING_API_KEY', '')),
+            'base_url' => env('AI_KLING_BASE_URL', 'https://api.klingai.com/v1'),
+            'timeout' => (int) env('AI_KLING_TIMEOUT', 60),
+        ],
     ],
 
     /*
@@ -139,6 +145,33 @@ return [
         'storage_category' => env('AI_IMAGE_STORAGE_CATEGORY', 'ai_generated'),
         'storage_disk' => env('AI_IMAGE_STORAGE_DISK'),
         'storage_is_public' => (bool) env('AI_IMAGE_STORAGE_PUBLIC', false),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | 视频 AI 配置
+    |--------------------------------------------------------------------------
+    |
+    | AiVideoService 默认提供商、模型、分辨率、时长、帧率与异步轮询参数。
+    | 视频生成为异步任务：提交 → 队列延迟轮询 → 完成通知 → 结果存储。
+    | 提供商 HTTP 配置复用 ai.providers.runway 与 ai.providers.kling。
+    |
+    */
+
+    'video' => [
+        'default_provider' => env('AI_VIDEO_DEFAULT_PROVIDER', 'runway'),
+        'default_model' => env('AI_VIDEO_DEFAULT_MODEL', 'gen-3'),
+        'default_resolution' => env('AI_VIDEO_DEFAULT_RESOLUTION', '1280x768'),
+        'default_duration' => (int) env('AI_VIDEO_DEFAULT_DURATION', 5),
+        'default_fps' => (int) env('AI_VIDEO_DEFAULT_FPS', 24),
+        'max_prompt_length' => (int) env('AI_VIDEO_MAX_PROMPT_LENGTH', 4000),
+        'poll_interval_seconds' => (int) env('AI_VIDEO_POLL_INTERVAL', 10),
+        'max_poll_attempts' => (int) env('AI_VIDEO_MAX_POLL_ATTEMPTS', 120),
+        'poll_queue' => env('AI_VIDEO_POLL_QUEUE', 'default'),
+        'storage_category' => env('AI_VIDEO_STORAGE_CATEGORY', 'ai_generated'),
+        'storage_disk' => env('AI_VIDEO_STORAGE_DISK'),
+        'storage_is_public' => (bool) env('AI_VIDEO_STORAGE_PUBLIC', false),
+        'callback_event' => env('AI_VIDEO_CALLBACK_EVENT', 'ai.video.task.updated'),
     ],
 
     /*

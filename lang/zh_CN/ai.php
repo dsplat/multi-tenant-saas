@@ -52,4 +52,16 @@ return [
     'image_input_not_found' => '输入图片不存在',
     'image_mask_not_found' => '遮罩图不存在',
     'image_prompt_too_long' => '图片提示文本超出长度限制（最大 :max 字符）',
+
+    // 视频 AI（由 AiVideoService、RunwayProvider、KlingProvider 抛出）
+    'video_input_not_found' => '输入视频不存在',
+    'video_prompt_too_long' => '视频提示文本超出长度限制（最大 :max 字符）',
+    'video_resolution_not_supported' => '提供商 :provider 不支持分辨率 :resolution',
+    'video_duration_not_supported' => '提供商 :provider 不支持时长 :duration 秒',
+    'video_frame_count_invalid' => '帧数量必须大于 0',
+    'video_task_not_found' => '视频任务不存在',
+    'video_task_not_completed' => '视频任务尚未完成',
+    'video_task_failed' => '视频任务失败：:reason',
+    'video_task_timeout' => '视频任务轮询超时',
+    'video_output_unavailable' => '视频任务完成但未返回可下载结果',
 ];

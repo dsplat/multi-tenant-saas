@@ -28,4 +28,18 @@ return [
     'system_role_protected' => '系统内置角色权限不可修改',
     'system_role_no_delete' => '系统内置角色不可删除',
     'resumed' => '租户已恢复',
+
+    // IP 白名单与设备信任
+    'ip_whitelist_blocked' => '当前 IP 不在白名单中，禁止访问',
+    'ip_whitelist_created' => 'IP 白名单条目创建成功',
+    'ip_whitelist_updated' => 'IP 白名单条目更新成功',
+    'ip_whitelist_deleted' => 'IP 白名单条目删除成功',
+    'ip_whitelist_not_found' => 'IP 白名单条目不存在',
+    'ip_whitelist_invalid' => 'IP / CIDR / 范围格式无效',
+    'ip_whitelist_enabled' => 'IP 白名单已启用',
+    'ip_whitelist_disabled' => 'IP 白名单已禁用',
+    'trusted_device_added' => '设备已加入信任列表',
+    'trusted_device_revoked' => '设备信任已撤销',
+    'trusted_device_not_found' => '信任设备不存在',
+    'trusted_device_expired' => '设备信任已过期，请重新二次验证',
 ];

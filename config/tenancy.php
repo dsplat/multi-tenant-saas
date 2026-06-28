@@ -28,6 +28,16 @@ return [
     // 积分预警阈值
     'credit_warning_threshold' => (int) env('CREDIT_WARNING_THRESHOLD', 100),
 
+    // IP 白名单配置
+    'ip_whitelist' => [
+        // 是否启用中间件拦截
+        'enabled' => (bool) env('IP_WHITELIST_ENABLED', true),
+        // 默认生效范围：all / api / admin
+        'default_scope' => env('IP_WHITELIST_DEFAULT_SCOPE', 'all'),
+        // 默认信任设备天数
+        'trusted_device_days' => (int) env('TRUSTED_DEVICE_DAYS', 30),
+    ],
+
     // 订阅计划配额限制
     'plans' => [
         'free' => [

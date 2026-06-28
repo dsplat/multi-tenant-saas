@@ -28,4 +28,18 @@ return [
     'system_role_protected' => 'System built-in role permissions cannot be modified',
     'system_role_no_delete' => 'System built-in roles cannot be deleted',
     'resumed' => 'Tenant resumed',
+
+    // IP whitelist and trusted devices
+    'ip_whitelist_blocked' => 'Your IP is not in the whitelist, access denied',
+    'ip_whitelist_created' => 'IP whitelist entry created successfully',
+    'ip_whitelist_updated' => 'IP whitelist entry updated successfully',
+    'ip_whitelist_deleted' => 'IP whitelist entry deleted successfully',
+    'ip_whitelist_not_found' => 'IP whitelist entry not found',
+    'ip_whitelist_invalid' => 'Invalid IP / CIDR / range format',
+    'ip_whitelist_enabled' => 'IP whitelist enabled',
+    'ip_whitelist_disabled' => 'IP whitelist disabled',
+    'trusted_device_added' => 'Device has been added to trusted list',
+    'trusted_device_revoked' => 'Device trust has been revoked',
+    'trusted_device_not_found' => 'Trusted device not found',
+    'trusted_device_expired' => 'Device trust has expired, please complete a second verification',
 ];

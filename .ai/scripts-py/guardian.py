@@ -272,7 +272,8 @@ def guardian_main():
         info(f"清理工作区（防止前序任务脏文件污染）")
         subprocess.run(["git", "reset", "HEAD", "--", "."], cwd=project_dir, capture_output=True)
         subprocess.run(["git", "checkout", "--", "."], cwd=project_dir, capture_output=True)
-        subprocess.run(["git", "clean", "-fd"], cwd=project_dir, capture_output=True)
+        # 清理 untracked 文件，但保留 .ai/ 和 vendor/
+        subprocess.run(["git", "clean", "-fd", "-e", ".ai", "-e", "vendor"], cwd=project_dir, capture_output=True)
         ok("工作区已清理")
         
         # 重置任务状态

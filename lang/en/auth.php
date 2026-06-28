@@ -29,4 +29,24 @@ return [
     'reset_password_button' => 'Reset Password',
     'reset_password_expiry' => 'This link will expire in 60 minutes. If you did not request a password reset, please ignore this email.',
     'email_auto_send_note' => 'This email was sent automatically. Please do not reply.',
+
+    // Multi-factor authentication (MFA)
+    'mfa_required' => 'Multi-factor authentication required',
+    'mfa_code_invalid' => 'Invalid or expired verification code',
+    'mfa_code_sent' => 'Verification code sent',
+    'mfa_code_expired' => 'Verification code expired, please request a new one',
+    'mfa_totp_setup' => 'Please scan the QR code with your authenticator app to bind',
+    'mfa_device_bound' => 'MFA device bound successfully',
+    'mfa_device_unbound' => 'MFA device unbound',
+    'mfa_recovery_codes_generated' => 'Recovery codes generated, please save them securely (shown only once)',
+    'mfa_email_subject' => 'Your Multi-Factor Authentication Code',
+    'mfa_email_body' => 'Your multi-factor authentication code is: :code. It expires in 5 minutes. Do not share it.',
+    'mfa_no_device' => 'No MFA device bound',
+    'mfa_disabled' => 'Multi-factor authentication disabled',
+
+    // Session management
+    'session_revoked' => 'Session revoked',
+    'sessions_revoked' => 'All other sessions have been revoked',
+    'session_anomalous_detected' => 'Anomalous login detected, please confirm it was you',
+    'session_not_found' => 'Session not found',
 ];

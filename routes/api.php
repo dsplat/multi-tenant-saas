@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\RbacController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\FileController;
+use App\Http\Controllers\Api\MfaController;
 
 // ========== 认证 API（无需认证） ==========
 Route::prefix('v1/auth')->group(function () {
@@ -52,6 +53,32 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
     // 认证
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::post('/auth/mfa/verify', [AuthController::class, 'mfaVerify'])->middleware('throttle:5,1');
+
+    // 多因素认证与会话管理
+    Route::prefix('/mfa')->group(function () {
+        // TOTP 设备
+        Route::post('/totp/setup', [MfaController::class, 'setupTotp']);
+        Route::post('/totp/confirm', [MfaController::class, 'confirmTotp']);
+        // 邮箱/短信设备
+        Route::post('/email/setup', [MfaController::class, 'setupEmail']);
+        Route::post('/sms/setup', [MfaController::class, 'setupSms']);
+        // 验证码发送
+        Route::post('/email/send', [MfaController::class, 'sendEmailCode'])->middleware('throttle:3,1');
+        Route::post('/sms/send', [MfaController::class, 'sendSmsCode'])->middleware('throttle:3,1');
+        // 设备管理
+        Route::get('/devices', [MfaController::class, 'devices']);
+        Route::delete('/devices/{deviceId}', [MfaController::class, 'destroyDevice']);
+        Route::put('/devices/{deviceId}', [MfaController::class, 'renameDevice']);
+        Route::post('/devices/{deviceId}/primary', [MfaController::class, 'setPrimary']);
+        // 恢复码
+        Route::post('/recovery-codes/generate', [MfaController::class, 'generateRecoveryCodes']);
+        Route::get('/recovery-codes/status', [MfaController::class, 'recoveryCodeStatus']);
+        // 会话管理
+        Route::get('/sessions', [MfaController::class, 'sessions']);
+        Route::delete('/sessions/{sessionId}', [MfaController::class, 'revokeSession']);
+        Route::post('/sessions/revoke-all', [MfaController::class, 'revokeAllSessions']);
+    });
 
     // 租户管理（需 tenant.view/create/update/delete/suspend 权限）
     Route::get('/tenants', [TenantController::class, 'index'])->middleware('rbac.permission:tenant.view');

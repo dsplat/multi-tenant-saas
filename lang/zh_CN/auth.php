@@ -29,4 +29,24 @@ return [
     'reset_password_button' => '重置密码',
     'reset_password_expiry' => '此链接将在 60 分钟后过期。如果您没有请求重置密码，请忽略此邮件。',
     'email_auto_send_note' => '本邮件由系统自动发送，请勿回复。',
+
+    // 多因素认证（MFA）
+    'mfa_required' => '需要多因素认证',
+    'mfa_code_invalid' => '验证码无效或已过期',
+    'mfa_code_sent' => '验证码已发送',
+    'mfa_code_expired' => '验证码已过期，请重新获取',
+    'mfa_totp_setup' => '请使用认证器应用扫描二维码绑定',
+    'mfa_device_bound' => 'MFA 设备绑定成功',
+    'mfa_device_unbound' => 'MFA 设备已解绑',
+    'mfa_recovery_codes_generated' => '恢复码已生成，请妥善保存（仅显示一次）',
+    'mfa_email_subject' => '您的多因素认证验证码',
+    'mfa_email_body' => '您的多因素认证验证码是：:code，5 分钟内有效，请勿泄露。',
+    'mfa_no_device' => '尚未绑定 MFA 设备',
+    'mfa_disabled' => '多因素认证已关闭',
+
+    // 会话管理
+    'session_revoked' => '会话已强制下线',
+    'sessions_revoked' => '其他会话已全部下线',
+    'session_anomalous_detected' => '检测到异常登录，请确认是否为您本人操作',
+    'session_not_found' => '会话不存在',
 ];

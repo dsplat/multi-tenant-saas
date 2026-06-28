@@ -64,6 +64,16 @@ abstract class TestCase extends BaseTestCase
         
         // 设置 APP_KEY 用于加密
         $app['config']->set('app.key', 'base64:' . base64_encode(random_bytes(32)));
+
+        // 设置缓存为 array 驱动，供 MFA 验证码缓存等使用
+        $app['config']->set('cache.default', 'array');
+        $app['config']->set('cache.stores.array', [
+            'driver' => 'array',
+            'serialize' => false,
+        ]);
+
+        // 设置邮件驱动为 log，避免测试中真实投递
+        $app['config']->set('mail.default', 'log');
     }
 
     protected function setUpDatabase(): void
@@ -675,6 +685,60 @@ abstract class TestCase extends BaseTestCase
             $table->unique(['tenant_id', 'period'], 'uniq_tenant_period');
             $table->index(['tenant_id', 'period']);
             $table->index('subscription_plan_id');
+        });
+
+        // MFA 设备表
+        Schema::create('mfa_devices', function (Blueprint $table) {
+            $table->unsignedBigInteger('mfa_device_id')->primary();
+            $table->bigInteger('tenant_id')->unsigned()->nullable();
+            $table->bigInteger('user_id')->unsigned();
+            $table->string('type', 20);
+            $table->text('secret')->nullable();
+            $table->string('label', 100)->nullable();
+            $table->boolean('is_primary')->default(false);
+            $table->boolean('is_verified')->default(false);
+            $table->timestamp('last_used_at')->nullable();
+            $table->timestamps();
+
+            $table->index(['tenant_id', 'user_id']);
+            $table->index(['user_id', 'type']);
+            $table->unique(['user_id', 'type']);
+        });
+
+        // MFA 恢复码表
+        Schema::create('mfa_recovery_codes', function (Blueprint $table) {
+            $table->unsignedBigInteger('recovery_code_id')->primary();
+            $table->bigInteger('tenant_id')->unsigned()->nullable();
+            $table->bigInteger('user_id')->unsigned();
+            $table->string('code', 255);
+            $table->boolean('is_used')->default(false);
+            $table->timestamp('used_at')->nullable();
+            $table->timestamp('created_at')->nullable();
+
+            $table->index(['tenant_id', 'user_id']);
+            $table->index(['user_id', 'is_used']);
+        });
+
+        // 用户会话表
+        Schema::create('user_sessions', function (Blueprint $table) {
+            $table->unsignedBigInteger('user_session_id')->primary();
+            $table->bigInteger('tenant_id')->unsigned()->nullable();
+            $table->bigInteger('user_id')->unsigned();
+            $table->unsignedBigInteger('token_id')->nullable();
+            $table->string('session_id', 100)->nullable();
+            $table->string('ip_address', 45)->nullable();
+            $table->string('device_info', 500)->nullable();
+            $table->string('device_fingerprint', 64)->nullable();
+            $table->timestamp('login_at')->nullable();
+            $table->timestamp('last_active_at')->nullable();
+            $table->string('location', 255)->nullable();
+            $table->boolean('is_anomalous')->default(false);
+            $table->timestamps();
+
+            $table->index(['tenant_id', 'user_id']);
+            $table->index(['user_id', 'last_active_at']);
+            $table->index('token_id');
+            $table->index('device_fingerprint');
         });
     }
 

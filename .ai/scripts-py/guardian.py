@@ -400,26 +400,14 @@ def show_status():
 
 
 def daemonize():
-    """后台运行"""
+    """后台运行（用 nohup 替代 os.fork）"""
     log_file = Path(__file__).parent.parent / "guardian.log"
-    
-    pid = os.fork()
-    if pid > 0:
-        print(f"守护进程已启动 (PID: {pid})")
-        print(f"日志: {log_file}")
-        print(f"查看状态: python3 guardian.py --status")
-        return
-    
-    sys.stdin.close()
-    with open(log_file, 'w') as f:
-        sys.stdout = f
-        sys.stderr = f
-        print(f"[{datetime.now()}] 守护进程 v2 启动 (PID: {os.getpid()})")
-        f.flush()
-        ret = guardian_main()
-        print(f"[{datetime.now()}] 守护进程结束 (退出码: {ret})")
-    
-    sys.exit(ret)
+    script_path = Path(__file__).resolve()
+    cmd = f"nohup {sys.executable} {script_path} >> {log_file} 2>&1 &"
+    os.system(cmd)
+    print(f"守护进程已启动")
+    print(f"日志: {log_file}")
+    print(f"查看状态: python3 guardian.py --status")
 
 
 def main():

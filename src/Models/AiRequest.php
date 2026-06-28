@@ -16,12 +16,15 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  *
  * 说明：本模型启用 BelongsToTenant 全局作用域实现租户隔离；
  * 所有请求记录按租户隔离查询。tenant_id 为 null 的记录为系统级调用。
+ * cost 字段精度为 decimal:6，赋值时应传入 string 类型以避免 float 精度问题。
  */
 class AiRequest extends Model
 {
     use BelongsToTenant, HasFactory, HasGlobalId;
 
     protected $primaryKey = 'request_id';
+
+    protected $keyType = 'int';
 
     public const STATUS_PENDING = 'pending';
 
@@ -96,21 +99,33 @@ class AiRequest extends Model
 
     /**
      * 标记为成功
+     *
+     * @param  bool  $persist  是否自动持久化
      */
-    public function markAsSuccess(): void
+    public function markAsSuccess(bool $persist = false): void
     {
         $this->status = self::STATUS_SUCCESS;
+
+        if ($persist) {
+            $this->save();
+        }
     }
 
     /**
      * 标记为失败
+     *
+     * @param  bool  $persist  是否自动持久化
      */
-    public function markAsFailed(?string $errorMessage = null): void
+    public function markAsFailed(?string $errorMessage = null, bool $persist = false): void
     {
         $this->status = self::STATUS_FAILED;
 
         if ($errorMessage !== null) {
             $this->error_message = $errorMessage;
+        }
+
+        if ($persist) {
+            $this->save();
         }
     }
 

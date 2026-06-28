@@ -22,6 +22,8 @@ class AiModelAlias extends Model
 
     protected $primaryKey = 'alias_id';
 
+    protected $keyType = 'int';
+
     public const TYPE_TEXT = 'text';
 
     public const TYPE_IMAGE = 'image';

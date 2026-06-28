@@ -24,6 +24,8 @@ class AiProvider extends Model
 
     protected $primaryKey = 'provider_id';
 
+    protected $keyType = 'int';
+
     public const STATUS_ACTIVE = 'active';
 
     public const STATUS_INACTIVE = 'inactive';
@@ -60,6 +62,9 @@ class AiProvider extends Model
 
     /**
      * 加密写入 API Key
+     *
+     * 注意：api_key 通过 mutator 实现加解密，切勿将其加入 $casts，
+     * 否则 mutator 会被绕过，导致数据以明文存储。
      */
     public function setApiKeyAttribute($value): void
     {
@@ -74,6 +79,9 @@ class AiProvider extends Model
 
     /**
      * 解密读取 API Key
+     *
+     * 注意：api_key 通过 mutator 实现加解密，切勿将其加入 $casts，
+     * 否则 mutator 会被绕过，导致数据以明文存储。
      */
     public function getApiKeyAttribute($value): ?string
     {

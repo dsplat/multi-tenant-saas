@@ -18,6 +18,12 @@ abstract class TestCase extends BaseTestCase
         // SQLite 无 NOW() 函数，注册自定义函数以兼容源码中 DB::raw('NOW()') 的用法
         \Illuminate\Support\Facades\DB::connection()->getPdo()->sqliteCreateFunction('NOW', fn () => date('Y-m-d H:i:s'), 0);
 
+        // 加载项目 lang 目录，使 trans()/__() 在测试中可解析翻译 key
+        $langPath = realpath(__DIR__.'/../lang');
+        if ($langPath !== false) {
+            app('translation.loader')->addPath($langPath);
+        }
+
         $router = $this->app['router'];
         $router->aliasMiddleware('tenant.ensure', \MultiTenantSaas\Middleware\EnsureTenantContext::class);
         $router->aliasMiddleware('tenant.permission', \MultiTenantSaas\Middleware\CheckPermission::class);
@@ -286,6 +292,9 @@ abstract class TestCase extends BaseTestCase
             $table->json('limits')->nullable();
             $table->boolean('is_active')->default(true);
             $table->unsignedSmallInteger('sort_order')->default(0);
+            $table->unsignedBigInteger('ai_text_tokens')->default(0);
+            $table->unsignedBigInteger('ai_image_generations')->default(0);
+            $table->unsignedBigInteger('ai_video_seconds')->default(0);
             $table->timestamps();
         });
 
@@ -553,6 +562,119 @@ abstract class TestCase extends BaseTestCase
             $table->index(['tenant_id', 'provider']);
             $table->index(['user_id', 'provider']);
             $table->unique(['provider', 'provider_id']);
+        });
+
+        // AI 网关模块表
+        Schema::create('ai_providers', function (Blueprint $table) {
+            $table->unsignedBigInteger('provider_id')->primary();
+            $table->bigInteger('tenant_id')->unsigned()->nullable();
+            $table->string('code', 50);
+            $table->string('name', 100);
+            $table->string('base_url', 255)->nullable();
+            $table->text('api_key')->nullable();
+            $table->string('status', 20)->default('active');
+            $table->smallInteger('priority')->default(0);
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+
+            $table->unique(['tenant_id', 'code']);
+            $table->index('status');
+            $table->index('priority');
+        });
+
+        Schema::create('ai_requests', function (Blueprint $table) {
+            $table->unsignedBigInteger('request_id')->primary();
+            $table->bigInteger('tenant_id')->unsigned()->nullable();
+            $table->bigInteger('user_id')->unsigned()->nullable();
+            $table->string('model', 100);
+            $table->string('provider', 50);
+            $table->text('prompt_summary')->nullable();
+            $table->unsignedInteger('input_tokens')->default(0);
+            $table->unsignedInteger('output_tokens')->default(0);
+            $table->unsignedInteger('response_time_ms')->nullable();
+            $table->decimal('cost', 12, 6)->default(0);
+            $table->string('status', 20)->default('pending');
+            $table->text('error_message')->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+
+            $table->index(['tenant_id', 'created_at']);
+            $table->index(['tenant_id', 'model']);
+            $table->index(['tenant_id', 'provider']);
+            $table->index('user_id');
+            $table->index('status');
+        });
+
+        Schema::create('ai_model_aliases', function (Blueprint $table) {
+            $table->unsignedBigInteger('alias_id')->primary();
+            $table->string('alias', 100);
+            $table->string('actual_model', 100);
+            $table->string('provider', 50)->nullable();
+            $table->string('type', 20);
+            $table->boolean('is_active')->default(true);
+            $table->boolean('is_deprecated')->default(false);
+            $table->string('description', 255)->nullable();
+            $table->timestamps();
+
+            $table->unique('alias');
+            $table->index(['provider', 'type']);
+            $table->index('is_active');
+        });
+
+        // AI 提示词模板表
+        Schema::create('ai_prompts', function (Blueprint $table) {
+            $table->unsignedBigInteger('prompt_id')->primary();
+            $table->bigInteger('tenant_id')->unsigned()->nullable();
+            $table->string('name', 100);
+            $table->string('category', 50)->default('general');
+            $table->text('system_prompt')->nullable();
+            $table->text('user_prompt')->nullable();
+            $table->json('variables')->nullable();
+            $table->unsignedInteger('version')->default(1);
+            $table->string('status', 20)->default('active');
+            $table->timestamps();
+
+            $table->index(['tenant_id', 'name'], 'idx_tenant_name');
+            $table->index('category', 'idx_category');
+            $table->index('status', 'idx_status');
+        });
+
+        // 租户 AI 配置表
+        Schema::create('ai_tenant_configs', function (Blueprint $table) {
+            $table->unsignedBigInteger('ai_tenant_config_id')->primary();
+            $table->unsignedBigInteger('tenant_id');
+            $table->boolean('text_enabled')->default(true);
+            $table->boolean('image_enabled')->default(true);
+            $table->boolean('video_enabled')->default(true);
+            $table->json('custom_api_keys')->nullable();
+            $table->json('allowed_models')->nullable();
+            $table->decimal('monthly_budget_limit', 12, 2)->default(0);
+            $table->string('overage_action', 20)->default('block');
+            $table->timestamps();
+
+            $table->unique('tenant_id', 'uniq_tenant');
+            $table->index('text_enabled');
+            $table->index('image_enabled');
+            $table->index('video_enabled');
+        });
+
+        // 租户 AI 用量配额表
+        Schema::create('ai_usage_quotas', function (Blueprint $table) {
+            $table->unsignedBigInteger('ai_usage_quota_id')->primary();
+            $table->unsignedBigInteger('tenant_id');
+            $table->unsignedBigInteger('subscription_plan_id')->nullable();
+            $table->unsignedBigInteger('text_token_limit')->default(0);
+            $table->unsignedBigInteger('image_generation_limit')->default(0);
+            $table->unsignedBigInteger('video_duration_limit')->default(0);
+            $table->string('period', 20)->default('monthly');
+            $table->unsignedBigInteger('used_tokens')->default(0);
+            $table->unsignedBigInteger('used_images')->default(0);
+            $table->unsignedBigInteger('used_video_seconds')->default(0);
+            $table->timestamps();
+
+            $table->unique(['tenant_id', 'period'], 'uniq_tenant_period');
+            $table->index(['tenant_id', 'period']);
+            $table->index('subscription_plan_id');
         });
     }
 

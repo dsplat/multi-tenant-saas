@@ -64,4 +64,19 @@ return [
     'video_task_failed' => '视频任务失败：:reason',
     'video_task_timeout' => '视频任务轮询超时',
     'video_output_unavailable' => '视频任务完成但未返回可下载结果',
+
+    // 租户 AI 配置（由 AiConfigService 抛出）
+    'tenant_config_not_found' => '租户 AI 配置不存在',
+    'ai_capability_disabled' => 'AI 能力 :category 未启用',
+    'ai_model_not_allowed' => '模型 :model 不在允许使用的列表中',
+    'overage_action_invalid' => '超额处理策略 :action 非法，仅支持 block/warn/allow',
+    'custom_api_key_required' => '提供商 :provider 未配置自定义 API Key',
+    'config_import_invalid' => '配置导入数据格式非法',
+
+    // 租户 AI 用量（由 AiUsageService 抛出）
+    'text_quota_exceeded' => '文本 AI Token 用量已达上限（已用 :used / 上限 :limit）',
+    'image_quota_exceeded' => '图片 AI 生成次数已达上限（已用 :used / 上限 :limit）',
+    'video_quota_exceeded' => '视频 AI 时长已达上限（已用 :used / 上限 :limit）',
+    'budget_exceeded' => 'AI 月度预算已达上限（已用 :used / 预算 :limit）',
+    'quota_warning' => 'AI 用量告警：:category 已使用 :percent%（:used / :limit）',
 ];

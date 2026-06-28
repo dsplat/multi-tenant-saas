@@ -184,4 +184,47 @@ return [
         'enable' => true,
         'file' => storage_path('logs/ai.log'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | 租户级 AI 配置
+    |--------------------------------------------------------------------------
+    |
+    | 租户 AI 能力开关、自定义 API Key、模型白名单、月度预算与超额处理策略的
+    | 默认值。AiConfigService 在为租户初始化配置时读取此处作为默认。
+    |
+    | overage_action 可选：block（拒绝）、warn（告警但允许）、allow（允许并计费）。
+    |
+    */
+
+    'tenant' => [
+        'default_text_enabled' => (bool) env('AI_TENANT_TEXT_ENABLED', true),
+        'default_image_enabled' => (bool) env('AI_TENANT_IMAGE_ENABLED', true),
+        'default_video_enabled' => (bool) env('AI_TENANT_VIDEO_ENABLED', true),
+        'default_monthly_budget_limit' => (float) env('AI_TENANT_MONTHLY_BUDGET', 0),
+        'default_overage_action' => env('AI_TENANT_OVERAGE_ACTION', 'block'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | AI 用量与配额
+    |--------------------------------------------------------------------------
+    |
+    | AiUsageService 用量追踪与超额判断参数。quota.period 控制计费周期粒度，
+    | 当前仅支持 monthly；quota.warn_threshold 为用量占配额比例阈值（0-1），
+    | 达到后触发告警（overage_action 为 warn/allow 时生效）。
+    |
+    | usage_records 控制是否将用量同步写入 usage_records 表（依赖 UsageService，
+    | TASK-007 v0.4.0 未实现时自动跳过）。
+    |
+    */
+
+    'quota' => [
+        'period' => env('AI_QUOTA_PERIOD', 'monthly'),
+        'warn_threshold' => (float) env('AI_QUOTA_WARN_THRESHOLD', 0.8),
+    ],
+
+    'usage_records' => [
+        'enabled' => (bool) env('AI_USAGE_RECORDS_ENABLED', true),
+    ],
 ];

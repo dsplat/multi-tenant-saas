@@ -64,4 +64,19 @@ return [
     'video_task_failed' => 'Video task failed: :reason',
     'video_task_timeout' => 'Video task polling timed out',
     'video_output_unavailable' => 'Video task completed but no downloadable output',
+
+    // Tenant AI config (thrown by AiConfigService)
+    'tenant_config_not_found' => 'Tenant AI config not found',
+    'ai_capability_disabled' => 'AI capability :category is disabled',
+    'ai_model_not_allowed' => 'Model :model is not in the allowed list',
+    'overage_action_invalid' => 'Overage action :action is invalid, only block/warn/allow supported',
+    'custom_api_key_required' => 'Provider :provider has no custom API Key configured',
+    'config_import_invalid' => 'Config import payload is invalid',
+
+    // Tenant AI usage (thrown by AiUsageService)
+    'text_quota_exceeded' => 'Text AI token quota exceeded (used :used / limit :limit)',
+    'image_quota_exceeded' => 'Image AI generation quota exceeded (used :used / limit :limit)',
+    'video_quota_exceeded' => 'Video AI duration quota exceeded (used :used / limit :limit)',
+    'budget_exceeded' => 'AI monthly budget exceeded (used :used / budget :limit)',
+    'quota_warning' => 'AI usage warning: :category reached :percent% (used :used / limit :limit)',
 ];

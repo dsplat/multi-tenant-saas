@@ -431,13 +431,17 @@ class StableDiffusionProvider
     protected function normalizeResponse(Response $response, string $model, array $formData): array
     {
         $data = $response->json() ?? [];
+        $contentType = $this->contentTypeFromFormat((string) ($formData['output_format'] ?? 'png'));
 
         $images = [];
         foreach (($data['images'] ?? []) as $item) {
+            $b64 = $item['image'] ?? null;
+            $detectedType = $b64 !== null ? $this->detectContentType($b64) : null;
+
             $images[] = [
-                'b64' => $item['image'] ?? null,
+                'b64' => $b64,
                 'url' => null,
-                'content_type' => 'image/png',
+                'content_type' => $detectedType ?? $contentType,
                 'revised_prompt' => null,
             ];
         }
@@ -454,5 +458,40 @@ class StableDiffusionProvider
             ],
             'raw' => $data,
         ];
+    }
+
+    /**
+     * 从 base64 图片数据检测实际 MIME 类型
+     *
+     * @return string|null 检测到的 MIME 类型，无法检测时返回 null
+     */
+    protected function detectContentType(string $b64): ?string
+    {
+        $binary = base64_decode($b64, true);
+
+        if ($binary === false || $binary === '') {
+            return null;
+        }
+
+        $info = @getimagesizefromstring($binary);
+
+        if ($info === false || ($info['mime'] ?? '') === '') {
+            return null;
+        }
+
+        return $info['mime'];
+    }
+
+    /**
+     * 将 output_format 转换为 MIME 类型
+     */
+    protected function contentTypeFromFormat(string $format): string
+    {
+        return match ($format) {
+            'jpeg', 'jpg' => 'image/jpeg',
+            'webp' => 'image/webp',
+            'png' => 'image/png',
+            default => 'image/png',
+        };
     }
 }

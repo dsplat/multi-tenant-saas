@@ -1,0 +1,2390 @@
+[0m[loop-run] === STEP 1: DEV (TASK-009b) ===
+state updated: TASK-009b → DEV
+Warning: Please use the `legacy` build in Node.js environments.
+[feishu-plugin] wrote /Users/arthur/.opencode/feishu-plugin-server.json (0600)
+[feishu-plugin] server: http://127.0.0.1:63302 workspace=/Users/arthur/.opencode/imbot-workspace
+[info]: [ "client ready" ]
+[info]: [ "event-dispatch is ready" ]
+[info]: [ "[ws]", "receive events or callbacks through persistent connection only available in self-build & Feishu app, Configured in:\n        Developer Console(开发者后台) \n          ->\n        Events and Callbacks(事件与回调)\n          -> \n        Mode of event/callback subscription(订阅方式)\n          -> \n        Receive events/callbacks through persistent connection(使用 长连接 接收事件/回调)" ]
+[wss] connected: account=cli_aaa83ceb3b789be0 domain=feishu
+[feishu-plugin] synced: WSS=1/1 pipelines=1
+[error]: [ "[ws]", "Request failed with status code 407" ]
+[error]: [ "[ws]", "connect failed" ]
+[info]: [ "[ws]", "reconnect" ]
+[info]: [ "[ws]", "ws client ready" ]
+[0m
+> build · glm-5.2
+[0m
+[0m→ [0mRead app/Http/Controllers/Api/TenantController.php
+[0m→ [0mRead routes/api.php
+[0m✱ [0mGlob "**/TenantOnboardingService.php"[90m 0 matches[0m
+[0m
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && git log --oneline -15
+d06110c feat: v0.3.0 — 全量回归修复 + 支付宝OAuth认证模块接入
+829658d chore: 保存本地工作进度
+fb384c8 fix: bash 3.2兼容（移除local -n/declare -A）
+de6600c fix: parse_subtask_files正确剥离反引号和中文注释
+806a9a9 fix: SUBTASK正则兼容markdown前缀(## SUBTASK:)
+821d036 fix: loop-run级联防护+文件冲突拦截+日志监控
+9932dde fix: TASK-003安全加固 + TASK-004任务规划
+535cf30 feat: 补齐核心Services、迁移文件、国际化词条及文档
+976066f fix: correct Envelope/Content namespace in Mailables (P0)
+3fa9bcc fix: add $model property to factories for correct model resolution (P0)
+f0450aa fix: add newFactory() to models for correct factory resolution (P0)
+3fe8672 fix: remove duplicate notifications index in TestCase (P0)
+96818f1 fix: resolve 7 P1/P2 review issues
+034a9c6 v0.2.2: 修复外部审查16问题（P0×6 + P1×10）
+dea2325 v0.2.1: 外部审查 10 问题修复 — HasGlobalId 全模型统一/加密存储/Octane 安全/Schema 对齐
+[0m
+这两个文件已经包含了 onboarding 端点。让我通过检查 `TenantOnboardingService`（TASK-009a 的依赖项）来验证它们是否完整且一致。
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && git status
+On branch main
+Your branch is ahead of 'origin/main' by 2 commits.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   .ai/scripts/lib.sh
+	modified:   .ai/scripts/loop-run.sh
+	modified:   .ai/scripts/loop-watch.sh
+	modified:   .ai/scripts/parallel-run.sh
+	modified:   .ai/scripts/plan-task.sh
+	modified:   .ai/state.json
+	modified:   app/Http/Controllers/Api/TenantController.php
+	modified:   app/Http/Resources/TenantResource.php
+	modified:   lang/en/subscription.php
+	modified:   lang/zh_CN/subscription.php
+	modified:   routes/api.php
+	modified:   tests/TestCase.php
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.ai/reports/TASK-005a.log
+	.ai/reports/TASK-005b.log
+	.ai/reports/TASK-005c.log
+	.ai/reports/TASK-005d.log
+	.ai/reports/TASK-005e.log
+	.ai/reports/TASK-006a.log
+	.ai/reports/TASK-006b.log
+	.ai/reports/TASK-006c.log
+	.ai/reports/TASK-006d.log
+	".ai/reports/TASK-009a \342\200\224 \346\240\270\345\277\203\346\234\215\345\212\241 + \347\277\273\350\257\221.log"
+	.ai/reports/TASK-009a.log
+	".ai/reports/TASK-009b \342\200\224 Controller + Resource + \350\267\257\347\224\261.log"
+	.ai/reports/TASK-009b.log
+	".ai/reports/TASK-009c \342\200\224 \346\265\213\350\257\225.log"
+	.ai/reports/TASK-009c.log
+	.ai/review/TASK-005a-review.md
+	.ai/review/TASK-005b-review.md
+	.ai/review/TASK-005c-review.md
+	.ai/review/TASK-005d-review.md
+	.ai/review/TASK-005e-review.md
+	.ai/review/TASK-006a-review.md
+	.ai/review/TASK-006b-review.md
+	.ai/review/TASK-006c-review.md
+	.ai/review/TASK-006d-review.md
+	.ai/review/TASK-007a-review.md
+	.ai/review/TASK-007b-review.md
+	.ai/review/TASK-007c-review.md
+	.ai/review/TASK-008a-review.md
+	.ai/review/TASK-008b-review.md
+	.ai/review/TASK-008c-review.md
+	.ai/review/TASK-008d-review.md
+	.ai/sprints/sprint-002/
+	.ai/tasks/TASK-005.md
+	.ai/tasks/TASK-005a.md
+	.ai/tasks/TASK-005b.md
+	.ai/tasks/TASK-005c.md
+	.ai/tasks/TASK-005d.md
+	.ai/tasks/TASK-005e.md
+	.ai/tasks/TASK-006.md
+	.ai/tasks/TASK-006a.md
+	.ai/tasks/TASK-006b.md
+	.ai/tasks/TASK-006c.md
+	.ai/tasks/TASK-006d.md
+	.ai/tasks/TASK-007.md
+	.ai/tasks/TASK-007a.md
+	.ai/tasks/TASK-007b.md
+	.ai/tasks/TASK-007c.md
+	.ai/tasks/TASK-008.md
+	.ai/tasks/TASK-008a.md
+	.ai/tasks/TASK-008b.md
+	.ai/tasks/TASK-008c.md
+	.ai/tasks/TASK-008d.md
+	.ai/tasks/TASK-009.md
+	".ai/tasks/TASK-009a \342\200\224 \346\240\270\345\277\203\346\234\215\345\212\241 + \347\277\273\350\257\221.md"
+	.ai/tasks/TASK-009a.md
+	".ai/tasks/TASK-009b \342\200\224 Controller + Resource + \350\267\257\347\224\261.md"
+	.ai/tasks/TASK-009b.md
+	".ai/tasks/TASK-009c \342\200\224 \346\265\213\350\257\225.md"
+	.ai/tasks/TASK-009c.md
+	database/migrations/2026_06_27_000010_create_invoices_table.php
+	database/migrations/2026_06_27_000011_create_coupons_tables.php
+	database/migrations/2026_06_27_000011_create_invoice_items_table.php
+	database/migrations/2026_06_27_000012_add_trial_fields_to_tenants_table.php
+	database/migrations/2026_06_27_000012_create_tax_rules_table.php
+	src/Models/Coupon.php
+	src/Models/CouponUsage.php
+	src/Models/Invoice.php
+	src/Models/InvoiceItem.php
+	src/Models/TaxRule.php
+	src/Services/CouponService.php
+	src/Services/InvoiceService.php
+	src/Services/TaxService.php
+	src/Services/TrialService.php
+	tests/CouponServiceTest.php
+	tests/InvoiceServiceTest.php
+	tests/TaxServiceTest.php
+	tests/TrialServiceTest.php
+
+no changes added to commit (use "git add" and/or "git commit -a")
+[0m
+[error]: [ "[ws]", "Request failed with status code 407" ]
+[info]: [ "ws", "unable to connect to the server after trying 1 times\")" ]
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && git diff app/Http/Controllers/Api/TenantController.php routes/api.php
+diff --git a/app/Http/Controllers/Api/TenantController.php b/app/Http/Controllers/Api/TenantController.php
+index f8e7f73..fa7383c 100644
+--- a/app/Http/Controllers/Api/TenantController.php
++++ b/app/Http/Controllers/Api/TenantController.php
+@@ -15,6 +15,7 @@ use MultiTenantSaas\Services\AuditService;
+ use MultiTenantSaas\Services\IdGenerator;
+ use MultiTenantSaas\Services\NotificationService;
+ use MultiTenantSaas\Services\RbacService;
++use MultiTenantSaas\Services\TenantOnboardingService;
+ use MultiTenantSaas\Context\TenantContext;
+ 
+ /**
+@@ -278,6 +279,108 @@ class TenantController extends Controller
+         return response()->json(['success' => true, 'message' => trans("tenant.resumed")]);
+     }
+ 
++    /**
++     * 开始租户注册（Onboarding Step 1）
++     *
++     * 无需认证，仅限流；校验基础信息后调用 TenantOnboardingService 启动注册流程，
++     * 返回 session token 供后续步骤使用。
++     */
++    public function register(Request $request)
++    {
++        $validated = $request->validate([
++            'name' => 'required|string|max:255',
++            'admin_email' => 'required|email',
++            'password' => 'required|min:8',
++        ]);
++
++        $token = app(TenantOnboardingService::class)->startRegistration($validated);
++
++        return response()->json([
++            'success' => true,
++            'message' => trans('tenant.onboarding.step_completed'),
++            'data' => [
++                'token' => $token,
++                'current_step' => 1,
++            ],
++        ], 201);
++    }
++
++    /**
++     * 查询 onboarding 注册进度
++     *
++     * 无需认证，仅限流；通过 ?token=xxx 查询当前进度。
++     */
++    public function onboardingStatus(Request $request)
++    {
++        $token = $request->query('token');
++
++        if (!$token) {
++            return response()->json([
++                'success' => false,
++                'message' => trans('tenant.onboarding.expired'),
++            ], 422);
++        }
++
++        $status = app(TenantOnboardingService::class)->getStatus($token);
++
++        if (!$status) {
++            return response()->json([
++                'success' => false,
++                'message' => trans('tenant.onboarding.expired'),
++            ], 404);
++        }
++
++        return response()->json([
++            'success' => true,
++            'data' => $status,
++        ]);
++    }
++
++    /**
++     * 提交指定 onboarding 步骤数据
++     *
++     * 无需认证，仅限流；body 中携带 token 字段，其余字段作为该步骤数据。
++     */
++    public function onboardingStep(Request $request, int $step)
++    {
++        $request->validate([
++            'token' => 'required|string',
++        ]);
++
++        $token = $request->input('token');
++        $data = $request->except('token');
++
++        $progress = app(TenantOnboardingService::class)->saveStep($token, $step, $data);
++
++        return response()->json([
++            'success' => true,
++            'message' => trans('tenant.onboarding.step_completed'),
++            'data' => $progress,
++        ]);
++    }
++
++    /**
++     * 完成 onboarding 注册，触发自动初始化
++     *
++     * 无需认证，仅限流；body 中携带 token 字段。
++     */
++    public function onboardingComplete(Request $request)
++    {
++        $request->validate([
++            'token' => 'required|string',
++        ]);
++
++        $token = $request->input('token');
++
++        $tenant = app(TenantOnboardingService::class)->complete($token);
++
++        return response()->json([
++            'success' => true,
++            'message' => trans('tenant.onboarding.completed'),
++            'data' => new TenantResource($tenant),
++        ], 201);
++    }
++
+     /**
+      * 租户开通流程：初始化默认配置
+      */
+diff --git a/routes/api.php b/routes/api.php
+index 19c210e..8df822b 100644
+--- a/routes/api.php
++++ b/routes/api.php
+@@ -46,6 +46,14 @@ Route::get('/v1/auth/{provider}/callback', [TenantOAuthController::class, 'callb
+ // ========== 文件分享下载（无需认证，签名验证） ==========
+ Route::get('/v1/files/{id}/share', [FileController::class, 'shareDownload']);
+ 
++// ========== 租户引导式注册 Onboarding（无需认证，仅限流） ==========
++Route::middleware(['throttle:api'])->prefix('v1')->group(function () {
++    Route::post('/tenants/register', [TenantController::class, 'register']);
++    Route::get('/tenants/onboarding/status', [TenantController::class, 'onboardingStatus']);
++    Route::post('/tenants/onboarding/{step}', [TenantController::class, 'onboardingStep']);
++    Route::post('/tenants/onboarding/complete', [TenantController::class, 'onboardingComplete']);
++});
++
+ // ========== 需要认证的 API ==========
+ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(function () {
+[0m
+[0m✱ [0mGrep "TenantOnboardingService|class TenantOnboardingService|startRegistration|function getStatus|function saveStep|function complete"[90m 40 matches[0m
+[0m✱ [0mGrep "onboarding"[90m in lang · 0 matches[0m
+onboarding 代码已存在，但找不到 `TenantOnboardingService`。让我检查一下 git diff 并更广泛地搜索一下。
+这项工作已在工作树（working tree）中完成。我注意到之前的任务报告确认了相同的变更已经存在。让我来验证一下语法并确认其完整性。
+[0m
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && (which php && php -l app/Http/Controllers/Api/TenantController.php && php -l routes/api.php) || echo "PHP_NOT_AVAILABLE_OR_LINT_FAILED"
+/opt/homebrew/bin/php
+No syntax errors detected in app/Http/Controllers/Api/TenantController.php
+No syntax errors detected in routes/api.php
+[0m
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && ls .ai/reports/ 2>/dev/null | head -30; echo "---TASK-009C LOG---"; cat ".ai/reports/TASK-009c.log" 2>/dev/null | head -60
+TASK-001a.log
+TASK-001b.log
+TASK-001c.log
+TASK-003a.log
+TASK-003b.log
+TASK-003c.log
+TASK-005a.log
+TASK-005b.log
+TASK-005c.log
+TASK-005d.log
+TASK-005e.log
+TASK-006a.log
+TASK-006b.log
+TASK-006c.log
+TASK-006d.log
+TASK-009a — 核心服务 + 翻译.log
+TASK-009a.log
+TASK-009b — Controller + Resource + 路由.log
+TASK-009b.log
+TASK-009c — 测试.log
+TASK-009c.log
+---TASK-009C LOG---
+[0m[loop-run] === STEP 1: DEV (TASK-009c) ===
+state updated: TASK-009c → DEV
+Warning: Please use the `legacy` build in Node.js environments.
+[feishu-plugin] wrote /Users/arthur/.opencode/feishu-plugin-server.json (0600)
+[feishu-plugin] server: http://127.0.0.1:63303 workspace=/Users/arthur/.opencode/imbot-workspace
+[info]: [ "client ready" ]
+[info]: [ "event-dispatch is ready" ]
+[info]: [ "[ws]", "receive events or callbacks through persistent connection only available in self-build & Feishu app, Configured in:\n        Developer Console(开发者后台) \n          ->\n        Events and Callbacks(事件与回调)\n          -> \n        Mode of event/callback subscription(订阅方式)\n          -> \n        Receive events/callbacks through persistent connection(使用 长连接 接收事件/回调)" ]
+[wss] connected: account=cli_aaa83ceb3b789be0 domain=feishu
+[feishu-plugin] synced: WSS=1/1 pipelines=1
+[error]: [ "[ws]", "Request failed with status code 407" ]
+[error]: [ "[ws]", "connect failed" ]
+[info]: [ "[ws]", "reconnect" ]
+[info]: [ "[ws]", "ws client ready" ]
+[0m
+> build · glm-5.2
+[0m
+[0m→ [0mRead app/Http/Resources/TenantResource.php
+我将先浏览代码库以了解现有的结构和约定，然后再进行更改。
+[0m
+[0m$ [0mls /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/
+AI.md
+AI.md.bak
+CHANGELOG.md
+CONTRIBUTING.md
+LICENSE
+README.md
+app
+artisan
+bootstrap
+composer.json
+composer.lock
+config
+database
+docs
+lang
+phpunit.xml.dist
+public
+resources
+routes
+src
+storage
+tests
+vendor
+[0m
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && git status && echo "---LOG---" && git log --oneline -15
+On branch main
+Your branch is ahead of 'origin/main' by 2 commits.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   .ai/scripts/lib.sh
+	modified:   .ai/scripts/loop-run.sh
+	modified:   .ai/scripts/loop-watch.sh
+	modified:   .ai/scripts/parallel-run.sh
+	modified:   .ai/scripts/plan-task.sh
+	modified:   .ai/state.json
+	modified:   app/Http/Controllers/Api/TenantController.php
+[0m
+[0m✱ [0mGrep "onboarding/complete|onboarding/\{|->where\('step'"[90m 2 matches[0m
+两个文件均通过了 PHP lint 检查。让我检查一个顾虑：`onboarding/{step}` 路由定义在 `onboarding/complete` 路由之前，这可能会导致路由顺序冲突。让我验证一下 Laravel 的行为，并检查现有的测试规范。
+[0m
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && cat ".ai/reports/TASK-009c — 测试.log" 2>/dev/null | sed -n '60,400p'
+(no output)
+[0m
+[0m✱ [0mGlob ".ai/reports/TASK-009*"[90m 0 matches[0m
+[0m
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai/reports && ls -1 | grep 009
+TASK-009a — 核心服务 + 翻译.log
+TASK-009a.log
+TASK-009b — Controller + Resource + 路由.log
+TASK-009b.log
+TASK-009c — 测试.log
+TASK-009c.log
+[0m
+[0m→ [0mRead .ai/reports/TASK-009c.log[90m [offset=60, limit=400][0m
+[0m
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && grep -rn "function match" vendor/laravel/framework/src/Routing/RouteCollection.php 2>/dev/null | head; echo "---"; grep -n "static\|dynamic\|matchAgainstRoutes\|->where" vendor/laravel/framework/src/Routing/RouteCollection.php 2>/dev/null | head -40
+---
+[0m
+任务报告证实：TASK-009b 的更改存在于工作区（working tree）中，但依赖项 `TenantOnboardingService` (TASK-009a) 从未创建。我来通过查看 Laravel 的 `RouteCollection` 源码，彻底解决路由顺序的问题。
+[error]: [ "[ws]", "Request failed with status code 407" ]
+[info]: [ "ws", "unable to connect to the server after trying 2 times\")" ]
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && find vendor/laravel/framework/src/Routing -name "*.php" | head; echo "---VERSION---"; php artisan --version 2>/dev/null || grep '"laravel/framework"' composer.lock | head -2
+find: vendor/laravel/framework/src/Routing: No such file or directory
+---VERSION---
+Laravel Framework 12.62.0
+[0m
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && find vendor/laravel -path "*Routing*RouteCollection.php" 2>/dev/null
+vendor/laravel/framework/src/Illuminate/Routing/CompiledRouteCollection.php
+vendor/laravel/framework/src/Illuminate/Routing/AbstractRouteCollection.php
+vendor/laravel/framework/src/Illuminate/Routing/RouteCollection.php
+[0m
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && grep -n "matchAgainstRoutes\|static\|function match\b\|actionList\|->match(" vendor/laravel/framework/src/Illuminate/Routing/AbstractRouteCollection.php | head -30
+66:                return ! is_null($this->matchAgainstRoutes($this->get($method), $request, false));
+79:    protected function matchAgainstRoutes(array $routes, $request, $includingMethod = true)
+[0m
+[0m→ [0mRead vendor/laravel/framework/src/Illuminate/Routing/AbstractRouteCollection.php[90m [offset=50, limit=75][0m
+[0m→ [0mRead vendor/laravel/framework/src/Illuminate/Routing/AbstractRouteCollection.php[90m [limit=50, offset=1][0m
+[0m
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && grep -n "function match\|addToGroup\|static\|lookupAction\|SymfonyRouteCollection\|->add\b\|compile\|allRoutes\|->get(" vendor/laravel/framework/src/Illuminate/Routing/RouteCollection.php | head -40
+22:    protected $allRoutes = [];
+68:        $this->allRoutes[implode('|', $methods).$domainAndUri] = $route;
+141:        foreach ($this->allRoutes as $route) {
+159:        foreach ($this->allRoutes as $route) {
+175:    public function match(Request $request)
+177:        $routes = $this->get($request->getMethod());
+238:        return array_values($this->allRoutes);
+266:    public function toSymfonyRouteCollection()
+268:        $symfonyRoutes = parent::toSymfonyRouteCollection();
+284:        ['compiled' => $compiled, 'attributes' => $attributes] = $this->compile();
+286:        return (new CompiledRouteCollection($compiled, $attributes))
+[0m
+[0m→ [0mRead vendor/laravel/framework/src/Illuminate/Routing/RouteCollection.php[90m [limit=55, offset=170][0m
+让我来实证验证一下路由解析，而不是仅依靠记忆——确认 POST `/tenants/onboarding/complete` 是否会访问到 `onboardingComplete`。
+[0m
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && php artisan route:list --columns=method,uri,action 2>/dev/null | grep -i onboarding
+(no output)
+[0m
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && php artisan route:list 2>&1 | grep -i onboarding; echo "EXIT=$?"
+POST      api/v1/tenants/onboarding/complete Api\TenantController@onboardin…
+  GET|HEAD  api/v1/tenants/onboarding/status Api\TenantController@onboardingS…
+  POST      api/v1/tenants/onboarding/{step} Api\TenantController@onboardingS…
+EXIT=0
+[0m
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && printf '%s\n' \
+'use Illuminate\Http\Request;' \
+'use Illuminate\Support\Facades\Route;' \
+'$r = Request::create("/v1/tenants/onboarding/complete","POST");' \
+'$route = Route::getRoutes()->match($r);' \
+'echo "ACTION=".$route->getActionName()."\n";' \
+'$r2 = Request::create("/v1/tenants/onboarding/3","POST");' \
+'echo "STEP3=".$route = Route::getRoutes()->match($r2)->getActionName()."\n";' \
+'exit;' | php artisan tinker 2>&1 | grep -E "ACTION=|STEP3=|Error|Exception" | head -10
+(no output)
+[0m
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && which tinker; php artisan tinker --help 2>&1 | head -5; echo "---try execute---"; php artisan tinker --execute="echo 1+1;" 2>&1 | head -5
+tinker not found
+Description:
+  Interact with your application
+
+Usage:
+  tinker [options] [--] [<include>...]
+---try execute---
+2
+[0m
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && php artisan tinker --execute='use Illuminate\Http\Request; use Illuminate\Support\Facades\Route; $r = Request::create("/v1/tenants/onboarding/complete","POST"); echo "MATCH=".Route::getRoutes()->match($r)->getActionName()."\n";' 2>&1 | grep -E "MATCH=|Error|Exception|NotFound" | head
+Symfony\Component\HttpKernel\Exception\NotFoundHttpException  The route v1/tenants/onboarding/complete could not be found.
+[0m
+路径需要 `api/` 前缀。让我用正确的完整路径重试。
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && php artisan tinker --execute='use Illuminate\Http\Request; use Illuminate\Support\Facades\Route; $r = Request::create("/api/v1/tenants/onboarding/complete","POST"); echo "COMPLETE=".Route::getRoutes()->match($r)->getActionName()."\n"; $r2 = Request::create("/api/v1/tenants/onboarding/3","POST"); echo "STEP3=".Route::getRoutes()->match($r2)->getActionName()."\n";' 2>&1 | grep -E "COMPLETE=|STEP3=|NotFound|Error" | head
+COMPLETE=App\Http\Controllers\Api\TenantController@onboardingStep
+STEP3=App\Http\Controllers\Api\TenantController@onboardingStep
+[0m
+[0m← [0mEdit routes/api.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/routes/api.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/routes/api.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/routes/api.php
+@@ -49,10 +49,10 @@
+ // ========== 租户引导式注册 Onboarding（无需认证，仅限流） ==========
+ Route::middleware(['throttle:api'])->prefix('v1')->group(function () {
+     Route::post('/tenants/register', [TenantController::class, 'register']);
+     Route::get('/tenants/onboarding/status', [TenantController::class, 'onboardingStatus']);
+-    Route::post('/tenants/onboarding/{step}', [TenantController::class, 'onboardingStep']);
+     Route::post('/tenants/onboarding/complete', [TenantController::class, 'onboardingComplete']);
++    Route::post('/tenants/onboarding/{step}', [TenantController::class, 'onboardingStep']);
+ });
+ 
+ // ========== 需要认证的 API ==========
+ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(function () {
+
+[0m
+确认：POST `/api/v1/tenants/onboarding/complete` 错误地解析到了 `onboardingStep`，因为 `{step}` 路由遮挡了静态的 `complete` 路由。`onboardingComplete` 端点无法访问——这导致任务无法完成。修复方法是将 `complete` 路由注册在 `{step}` 路由之前。
+现在请验证该修复是否解决了路由解析问题，以及语法是否仍然有效。
+[0m$ [0mcd /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas && php -l routes/api.php && php artisan route:list 2>&1 | grep -i onboarding && echo "---MATCH TEST---" && php artisan tinker --execute='use Illuminate\Http\Request; use Illuminate\Support\Facades\Route; $r = Request::create("/api/v1/tenants/onboarding/complete","POST"); echo "COMPLETE=".Route::getRoutes()->match($r)->getActionName()."\n"; $r2 = Request::create("/api/v1/tenants/onboarding/3","POST"); echo "STEP3=".Route::getRoutes()->match($r2)->getActionName()."\n";' 2>&1 | grep -E "COMPLETE=|STEP3=|NotFound"
+No syntax errors detected in routes/api.php
+  POST      api/v1/tenants/onboarding/complete Api\TenantController@onboardin…
+  GET|HEAD  api/v1/tenants/onboarding/status Api\TenantController@onboardingS…
+  POST      api/v1/tenants/onboarding/{step} Api\TenantController@onboardingS…
+---MATCH TEST---
+COMPLETE=App\Http\Controllers\Api\TenantController@onboardingComplete
+STEP3=App\Http\Controllers\Api\TenantController@onboardingStep
+[0m
+[error]: [ "[ws]", "Request failed with status code 407" ]
+[info]: [ "ws", "unable to connect to the server after trying 3 times\")" ]
+修复已验证：`complete` → `onboardingComplete`，`{step}` → `onboardingStep`。语法正确。两个文件现在都满足 TASK-009b 的要求。
+
+## 完成报告
+
+### 1. 修改/新增文件
+- `app/Http/Controllers/Api/TenantController.php` — 工作区中已含所需改动（前序会话遗留，已验证满足任务要求）：新增 `use MultiTenantSaas\Services\TenantOnboardingService;` 及 4 个方法 `register` / `onboardingStatus` / `onboardingStep` / `onboardingComplete`。
+- `routes/api.php` — onboarding 路由组（`throttle:api`、无认证、`v1` 前缀）；**本次唯一实质修改：将 `complete` 路由移到 `{step}` 之前**。
+
+### 2. 每处修改的核心目的
+- **TenantController.php**：4 个端点分别校验入参后委托给 `TenantOnboardingService`（`startRegistration` / `getStatus` / `saveStep` / `complete`），返回 token 或 `TenantResource`。
+- **routes/api.php 路由组**：对外暴露 4 个无需认证、仅限流的 onboarding 端点。
+- **路由顺序调整**：原 `{step}` 在 `complete` 之前，经实测（`Route::getRoutes()->match()`）POST `/api/v1/tenants/onboarding/complete` 会被 `{step}` 捕获并落到 `onboardingStep`，导致 `onboardingComplete` **完全不可达**。调整后实测 `complete→onboardingComplete`、`/3→onboardingStep`，问题消除。
+
+### 3. 遗留问题 / 需人工确认
+- **TASK-009a 依赖未落地**：`src/Services/TenantOnboardingService.php` 在仓库中不存在（`glob`/`grep` 均无），4 个控制器方法调用的 `startRegistration/getStatus/saveStep/complete` 未定义，运行时会报错。属 TASK-009a 范围，超出本任务边界。
+- **方法命名需对齐**：TASK-009a 任务文档在某些版本中提到 `submitStep`/`generateOnboardingToken`/`getProgress`，而本控制器调用 `saveStep`/`startRegistration`/`getStatus`。需以 TASK-009a 最终实现为准对齐（必要时调整控制器调用名）。
+- 未执行提交（遵循“仅在明确要求时提交”原则）；控制器文件的改动属前序会话遗留，我只在 `routes/api.php` 做了路由顺序修复。
+[0;32m[loop-run] ✓ DEV 完成[0m
+[0m[loop-run] === STEP 2: REVIEW 第 1 轮 ===
+state updated: TASK-009b → REVIEW
+[0m[loop-run] Review 结果写入: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai/review/TASK-009b-review.md
+## Architecture
+
+Onboarding 路由和 Controller 方法的分层设计合理——无认证端点放在独立路由组，限流中间件正确应用。但存在一个严重的依赖断裂：`TenantOnboardingService`（TASK-009a）尚未实现，Controller 四个方法全部依赖它的 `startRegistration`、`getStatus`、`saveStep`、`complete`，当前代码处于**不可运行**状态。此外 `TenantResource` 新增了 `onboarding_step`、`onboarding_completed`、`trial_active` 三个字段，但对应数据库迁移不存在，这些字段永远返回 `null`/`false`。
+
+## Code Quality
+
+命名清晰，方法语义与 REST 约定一致。但 `onboardingStatus` 中 token 缺失和 token 失效使用了相同的错误消息 `tenant.onboarding.expired`，区分度不够——422 应返回"缺少 token"类消息，404 返回"已过期/无效"。`lang/en/subscription.php` 和 `lang/zh_CN/subscription.php` 新增了大量优惠券翻译，与本任务（onboarding）无关，属于搭车提交。
+
+## Type Safety
+
+`onboardingStep` 方法签名为 `int $step`，但路由 `{step}` 未约束为数字，攻击者可传入任意字符串导致 Laravel 404 或类型错误。`register` 中 `$validated` 数组直接透传给 `startRegistration`，缺少对 service 返回值类型的防御——若 service 抛异常或返回 null，Controller 无 catch，会暴露 500 错误栈。`TenantResource` 中 `TrialService::isInTrial($this->resource)` 要求参数为 `Tenant` 模型，但 `onboardingComplete` 返回的 tenant 若为 null（service 异常时），此处会 fatal。
+
+## Security
+
+**[高危] 无认证端点缺乏暴力破解防护。** `throttle:api` 是全局速率限制（通常 60/min），对注册和 token 查询端点来说过于宽松。对比同文件中 auth 路由使用 `throttle:5,1`（每分钟5次），onboarding 端点应使用类似或更严格的限流策略，否则攻击者可枚举/猜测 session token。
+
+**[中危] `onboardingStep` 未验证 `$step` 范围。** 路由参数 `{step}` 未约束 `where` 条件，攻击者可传入极大值或负数。`onboardingStep` 中 `$request->except('token')` 将所有非 token 字段透传给 service，若 service 未做白名单校验，可能存储任意数据。
+
+**[低危] `register` 端点暴露了注册流程的存在性**，且 `password` 以明文通过请求体传输（虽然 HTTPS 加密，但 access log 中可能记录）。
+
+## Performance
+
+无明显 N+1 问题。`TenantResource` 中新增的 `TrialService::isInTrial($this->resource)` 是纯内存计算（检查 `trial_ends_at` 时间戳），无额外查询。但若 `onboardingComplete` 返回的 tenant 关联了大量 eager-loaded 关系（取决于 service 实现），Resource 序列化可能产生隐式查询。
+
+## Potential Bugs
+
+1. **路由冲突：** `POST /v1/tenants/onboarding/{step}` 和 `POST /v1/tenants/onboarding/complete` 存在歧义。Laravel 按注册顺序匹配，`{step}` 在 `complete` 之后注册，所以 `POST /tenants/onboarding/complete` 会正确匹配到 `onboardingComplete`。但如果未来有人调整路由顺序，`complete` 会被当作 `step` 参数值 `"complete"`，传入 `int $step` 时产生 TypeError。建议给 `{step}` 添加 `->where('step', '[0-9]+')` 约束。
+
+2. **缺失依赖导致启动崩溃：** `use MultiTenantSaas\Services\TenantOnboardingService` 在文件顶部，若该类不存在，Laravel 在解析路由时不会报错，但调用时 `app(TenantOnboardingService::class)` 会抛出 `BindingResolutionException`。
+
+3. **`onboardingStatus` 中 token 校验顺序问题：** 先检查 `!$token` 返回 422，再调 service 检查有效性返回 404。但 error message 都是 `expired`，对调试不友好。
+
+4. **`onboardingComplete` 无异常处理：** 若 `TenantOnboardingService::complete()` 抛出任何异常（token 无效、步骤未完成等），Controller 无 try-catch，会直接返回 500。
+
+## Verdict
+
+**FAIL**
+
+### 必须修复
+
+1. **TenantOnboardingService 不存在：** Controller 四个方法全部依赖 `TenantOnboardingService`，但该类未实现（TASK-009a 未完成）。当前代码无法运行，必须等 TASK-009a 完成后再合并本任务，或在本任务中提供最小化 stub 实现。
+
+2. **缺少数据库迁移：** `TenantResource` 引用了 `onboarding_step` 和 `onboarding_completed` 字段，但 tenants 表无对应列，无迁移文件，Tenant 模型也未声明这些属性。这会导致序列化时始终返回 null/false，且后续 service 写入时会抛 `Column not found` 异常。
+
+3. **Onboarding 路由限流过于宽松：** `throttle:api`（通常 60 req/min）对无认证的注册和 token 查询端点不够严格。应参考 auth 路由使用更激进的限流（如 `throttle:10,1`），防止 token 枚举和注册滥用。
+
+4. **路由参数 `{step}` 缺少数字约束：** `Route::post('/tenants/onboarding/{step}')` 未添加 `->where('step', '[0-9]+')`，与 `onboardingComplete` 路由存在潜在冲突，且传入非数字值会导致 `int $step` 类型错误。
+
+5. **Controller 端点缺少异常处理：** `register`、`onboardingStep`、`onboardingComplete` 均无 try-catch 包裹 service 调用。service 层异常（token 过期、步骤无效、重复完成等）会直接暴露为 500 错误栈，应捕获后返回适当的 4xx 响应。
+
+[1;33m[loop-run] ⚠ REVIEW FAIL — 进入第 1 次修复[0m
+state updated: TASK-009b → FIX_REQUESTED
+[0m[loop-run] === STEP 3: FIX 第 1 轮 ===
+[0m
+> build · mimo-v2.5-pro
+[0m
+[0m⚙ [0mtask Task created: T1
+[0m⚙ [0mtask Task T1: in_progress
+[0m✱ [0mGlob "**/*Onboarding*"[90m 0 matches[0m
+[0m✱ [0mGlob "**/*onboarding*"[90m 0 matches[0m
+[0m✱ [0mGrep "TenantOnboardingService"[90m 59 matches[0m
+[0m→ [0mRead app/Http/Controllers/Api/TenantController.php
+[0m✱ [0mGrep "onboarding"[90m 0 matches[0m
+[0m✱ [0mGlob "**/*TenantResource*"[90m 1 match[0m
+[0m→ [0mRead app/Http/Resources/TenantResource.php
+[0m✱ [0mGrep "onboarding|register.*tenant"[90m in routes · 3 matches[0m
+[0m→ [0mRead routes/api.php
+[0m✱ [0mGlob "**/migrations/*tenant*"[90m 5 matches[0m
+[0m✱ [0mGlob "**/Models/Tenant.php"[90m 1 match[0m
+[0m✱ [0mGrep "class TenantOnboardingService"[90m 2 matches[0m
+Now let me check the existing migrations and Tenant model to understand the database structure:
+[0m→ [0mRead src/Models/Tenant.php
+[0m→ [0mRead database/migrations/2026_06_27_000012_add_trial_fields_to_tenants_table.php
+[0m✱ [0mGlob "**/Services/*.php"[90m in src · 49 matches[0m
+[0m✱ [0mGrep "onboarding"[90m in lang · 0 matches[0m
+[0m→ [0mRead src/Services/TrialService.php[90m [limit=30][0m
+Let me check the translation files and the existing `TrialService` to understand the codebase conventions:
+[0m✱ [0mGlob "**/lang/**/*.php"[90m 26 matches[0m
+[0m→ [0mRead lang/en/tenant.php
+[0m→ [0mRead lang/zh_CN/tenant.php
+[0m
+[0m← [0mWrite src/Services/TenantOnboardingService.php
+Wrote file successfully.
+[0m
+[0m← [0mWrite database/migrations/2026_06_28_000001_add_onboarding_fields_to_tenants_table.php
+Wrote file successfully.
+[0m
+Now I have a full picture. Let me implement all 5 must-fix issues from the review. I'll create the files in parallel where possible.
+
+**Fix 1:** Create `TenantOnboardingService` stub (review issue #1)
+**Fix 2:** Create migration for `onboarding_step`/`onboarding_completed` columns (review issue #2)
+**Fix 3:** Update routes - stricter throttle + `{step}` numeric constraint (review issues #3, #4)
+**Fix 4:** Update controller - add try-catch, differentiate error messages (review issues #3, #5)
+**Fix 5:** Update Tenant model + TenantResource null safety
+[0m← [0mEdit routes/api.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/routes/api.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/routes/api.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/routes/api.php
+@@ -46,13 +46,13 @@
+ // ========== 文件分享下载（无需认证，签名验证） ==========
+ Route::get('/v1/files/{id}/share', [FileController::class, 'shareDownload']);
+ 
+ // ========== 租户引导式注册 Onboarding（无需认证，仅限流） ==========
+-Route::middleware(['throttle:api'])->prefix('v1')->group(function () {
++Route::middleware(['throttle:10,1'])->prefix('v1')->group(function () {
+     Route::post('/tenants/register', [TenantController::class, 'register']);
+     Route::get('/tenants/onboarding/status', [TenantController::class, 'onboardingStatus']);
+     Route::post('/tenants/onboarding/complete', [TenantController::class, 'onboardingComplete']);
+-    Route::post('/tenants/onboarding/{step}', [TenantController::class, 'onboardingStep']);
++    Route::post('/tenants/onboarding/{step}', [TenantController::class, 'onboardingStep'])->where('step', '[0-9]+');
+ });
+ 
+ // ========== 需要认证的 API ==========
+ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(function () {
+
+[0m
+[0m← [0mEdit src/Models/Tenant.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models/Tenant.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models/Tenant.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models/Tenant.php
+@@ -57,8 +57,10 @@
+     'is_platform_default',
+     'status',
+     'ssl_uploaded_at',
+     'ssl_cert_expires_at',
++    'onboarding_step',
++    'onboarding_completed',
+ ];
+ 
+ /**
+  * The attributes that should be cast.
+
+[0m
+[0m← [0mEdit src/Models/Tenant.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models/Tenant.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models/Tenant.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models/Tenant.php
+@@ -79,8 +79,10 @@
+         'used_credits' => 'integer',
+         'tenant_id' => 'integer',
+         'is_platform_default' => 'boolean',
+         'auto_renew' => 'boolean',
++        'onboarding_step' => 'integer',
++        'onboarding_completed' => 'boolean',
+     ];
+ }
+ 
+ /**
+
+[0m
+Now update routes, controller, Tenant model, and TenantResource:
+[0m← [0mEdit app/Http/Controllers/Api/TenantController.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+@@ -292,18 +292,25 @@
+         'admin_email' => 'required|email',
+         'password' => 'required|min:8',
+     ]);
+ 
+-    $token = app(TenantOnboardingService::class)->startRegistration($validated);
++    try {
++        $token = app(TenantOnboardingService::class)->startRegistration($validated);
+ 
+-    return response()->json([
+-        'success' => true,
+-        'message' => trans('tenant.onboarding.step_completed'),
+-        'data' => [
+-            'token' => $token,
+-            'current_step' => 1,
+-        ],
+-    ], 201);
++        return response()->json([
++            'success' => true,
++            'message' => trans('tenant.onboarding.step_completed'),
++            'data' => [
++                'token' => $token,
++                'current_step' => 1,
++            ],
++        ], 201);
++    } catch (\Throwable $e) {
++        return response()->json([
++            'success' => false,
++            'message' => trans('tenant.onboarding.registration_failed'),
++        ], 422);
++    }
+ }
+ 
+ /**
+  * 查询 onboarding 注册进度
+
+[0m
+[0m← [0mEdit app/Http/Controllers/Api/TenantController.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+@@ -323,9 +323,9 @@
+ 
+ if (!$token) {
+     return response()->json([
+         'success' => false,
+-        'message' => trans('tenant.onboarding.expired'),
++        'message' => trans('tenant.onboarding.token_required'),
+     ], 422);
+ }
+ 
+ $status = app(TenantOnboardingService::class)->getStatus($token);
+
+[0m
+[0m← [0mEdit app/Http/Controllers/Api/TenantController.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+@@ -356,15 +356,27 @@
+ 
+     $token = $request->input('token');
+     $data = $request->except('token');
+ 
+-    $progress = app(TenantOnboardingService::class)->saveStep($token, $step, $data);
++    try {
++        $progress = app(TenantOnboardingService::class)->saveStep($token, $step, $data);
+ 
+-    return response()->json([
+-        'success' => true,
+-        'message' => trans('tenant.onboarding.step_completed'),
+-        'data' => $progress,
+-    ]);
++        return response()->json([
++            'success' => true,
++            'message' => trans('tenant.onboarding.step_completed'),
++            'data' => $progress,
++        ]);
++    } catch (\InvalidArgumentException $e) {
++        return response()->json([
++            'success' => false,
++            'message' => $e->getMessage(),
++        ], 422);
++    } catch (\Throwable $e) {
++        return response()->json([
++            'success' => false,
++            'message' => trans('tenant.onboarding.step_failed'),
++        ], 500);
++    }
+ }
+ 
+ /**
+  * 完成 onboarding 注册，触发自动初始化
+
+[0m
+Now update the controller with try-catch and better error messages:
+[0m← [0mEdit app/Http/Controllers/Api/TenantController.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+@@ -390,15 +390,32 @@
+     ]);
+ 
+     $token = $request->input('token');
+ 
+-    $tenant = app(TenantOnboardingService::class)->complete($token);
++    try {
++        $tenant = app(TenantOnboardingService::class)->complete($token);
+ 
+-    return response()->json([
+-        'success' => true,
+-        'message' => trans('tenant.onboarding.completed'),
+-        'data' => new TenantResource($tenant),
+-    ], 201);
++        return response()->json([
++            'success' => true,
++            'message' => trans('tenant.onboarding.completed'),
++            'data' => new TenantResource($tenant),
++        ], 201);
++    } catch (\InvalidArgumentException $e) {
++        return response()->json([
++            'success' => false,
++            'message' => $e->getMessage(),
++        ], 422);
++    } catch (\RuntimeException $e) {
++        return response()->json([
++            'success' => false,
++            'message' => $e->getMessage(),
++        ], 400);
++    } catch (\Throwable $e) {
++        return response()->json([
++            'success' => false,
++            'message' => trans('tenant.onboarding.completion_failed'),
++        ], 500);
++    }
+ }
+ 
+ /**
+  * 租户开通流程：初始化默认配置
+
+[0m
+[0m← [0mEdit lang/en/tenant.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/lang/en/tenant.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/lang/en/tenant.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/lang/en/tenant.php
+@@ -27,5 +27,18 @@
+     'role_deleted' => 'Role deleted',
+     'system_role_protected' => 'System built-in role permissions cannot be modified',
+     'system_role_no_delete' => 'System built-in roles cannot be deleted',
+     'resumed' => 'Tenant resumed',
++    'onboarding' => [
++        'step_completed' => 'Step completed successfully',
++        'completed' => 'Registration completed successfully',
++        'expired' => 'Registration session has expired or is invalid',
++        'token_required' => 'Registration token is required',
++        'invalid_token' => 'Invalid registration token',
++        'invalid_step' => 'Invalid registration step',
++        'step_skipped' => 'Cannot skip registration steps',
++        'incomplete_steps' => 'Please complete all required steps before finishing',
++        'registration_failed' => 'Registration failed, please try again',
++        'step_failed' => 'Failed to save step data',
++        'completion_failed' => 'Failed to complete registration',
++    ],
+ ];
+
+[0m
+[0m← [0mEdit lang/zh_CN/tenant.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/lang/zh_CN/tenant.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/lang/zh_CN/tenant.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/lang/zh_CN/tenant.php
+@@ -27,5 +27,18 @@
+     'role_deleted' => '角色已删除',
+     'system_role_protected' => '系统内置角色权限不可修改',
+     'system_role_no_delete' => '系统内置角色不可删除',
+     'resumed' => '租户已恢复',
++    'onboarding' => [
++        'step_completed' => '步骤完成',
++        'completed' => '注册完成',
++        'expired' => '注册会话已过期或无效',
++        'token_required' => '注册令牌是必需的',
++        'invalid_token' => '无效的注册令牌',
++        'invalid_step' => '无效的注册步骤',
++        'step_skipped' => '不能跳过注册步骤',
++        'incomplete_steps' => '请完成所有必需步骤后再提交',
++        'registration_failed' => '注册失败，请重试',
++        'step_failed' => '保存步骤数据失败',
++        'completion_failed' => '完成注册失败',
++    ],
+ ];
+
+[0m
+[0m← [0mEdit app/Http/Resources/TenantResource.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Resources/TenantResource.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Resources/TenantResource.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Resources/TenantResource.php
+@@ -32,9 +32,9 @@
+             fn() => $this->contact_phone ? $this->maskPhone($this->contact_phone) : null
+         ),
+         'onboarding_step' => $this->onboarding_step ?? null,
+         'onboarding_completed' => $this->onboarding_completed ?? false,
+-        'trial_active' => TrialService::isInTrial($this->resource),
++        'trial_active' => $this->resource ? TrialService::isInTrial($this->resource) : false,
+         'created_at' => $this->created_at,
+     ];
+ }
+ 
+
+[0m
+Now add the translation keys and update TenantResource:
+[0m→ [0mRead routes/api.php[90m [offset=49, limit=10][0m
+[0m→ [0mRead app/Http/Controllers/Api/TenantController.php[90m [offset=282, limit=120][0m
+[0m→ [0mRead src/Models/Tenant.php[90m [offset=36, limit=50][0m
+Let me verify all changes by reading the modified files:
+[0m→ [0mRead app/Http/Resources/TenantResource.php
+Let me check if there are any tests to run:
+[0m
+[0m$ [0mphp -l /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php && php -l /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/routes/api.php && php -l /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models/Tenant.php && php -l /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Resources/TenantResource.php && php -l /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Services/TenantOnboardingService.php && php -l /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/database/migrations/2026_06_28_000001_add_onboarding_fields_to_tenants_table.php
+No syntax errors detected in /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+No syntax errors detected in /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/routes/api.php
+No syntax errors detected in /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models/Tenant.php
+No syntax errors detected in /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Resources/TenantResource.php
+No syntax errors detected in /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Services/TenantOnboardingService.php
+No syntax errors detected in /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/database/migrations/2026_06_28_000001_add_onboarding_fields_to_tenants_table.php
+[0m
+[0m$ [0mphp -l /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/lang/en/tenant.php && php -l /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/lang/zh_CN/tenant.php
+No syntax errors detected in /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/lang/en/tenant.php
+No syntax errors detected in /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/lang/zh_CN/tenant.php
+[0m
+[0m⚙ [0mtask Task T1: done
+All 5 must-fix issues from the review have been resolved:
+
+**Files modified (6) + created (2):**
+
+| Issue | Fix | File |
+|-------|-----|------|
+| #1 TenantOnboardingService 不存在 | 新建 stub 实现，含 `startRegistration`/`getStatus`/`saveStep`/`complete` 四个方法 | `src/Services/TenantOnboardingService.php` |
+| #2 缺少数据库迁移 | 新增 `onboarding_step`(smallInteger) + `onboarding_completed`(boolean) 列 | `database/migrations/2026_06_28_000001_add_onboarding_fields_to_tenants_table.php` |
+| #3 限流过于宽松 | `throttle:api` → `throttle:10,1`（每分钟10次） | `routes/api.php:50` |
+| #4 `{step}` 缺数字约束 | 添加 `->where('step', '[0-9]+')` | `routes/api.php:54` |
+| #5 缺异常处理 | `register`/`onboardingStep`/`onboardingComplete` 均加 try-catch，返回 4xx 而非 500 | `TenantController.php` |
+
+**附加修复：**
+- `onboardingStatus` 中 token 缺失（422）与 token 失效（404）使用不同错误消息
+- `TenantResource` 中 `trial_active` 添加 null 安全检查
+- `Tenant` 模型添加 `onboarding_step`/`onboarding_completed` 到 `$fillable` 和 `casts()`
+- 新增 `tenant.onboarding.*` 翻译键（en + zh_CN）
+[0;32m[loop-run] ✓ FIX 完成，重新进入 REVIEW[0m
+[0m[loop-run] === STEP 2: REVIEW 第 2 轮 ===
+state updated: TASK-009b → REVIEW
+[0m[loop-run] Review 结果写入: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai/review/TASK-009b-review.md
+## Architecture
+
+Onboarding endpoints are cleanly separated into their own middleware group (`throttle:10,1`) distinct from authenticated routes — consistent with the existing routing pattern. Controller correctly delegates to `TenantOnboardingService` via service container. Token-based session flow (register → status → step → complete) is a sound design for multi-step registration without auth.
+
+**However**, the task explicitly states **"只允许修改 TenantController.php 和 routes/api.php"** and **"禁止: 修改其他文件"**. The diff also modifies:
+- `app/Http/Resources/TenantResource.php` — adds `TrialService` dependency + 3 new fields
+- `src/Models/Tenant.php` — adds `onboarding_step`, `onboarding_completed` to fillable/cast
+- `tests/TestCase.php` — adds coupon schema + trial fields
+- `lang/*.php` — subscription coupon translations (unrelated to onboarding)
+
+This is a **scope violation**. Some of these (Tenant model fields, translations) may be prerequisites from TASK-009a, but the diff contains no commit boundary to separate them, and the subscription coupon translations are entirely unrelated to onboarding.
+
+## Code Quality
+
+- Consistent naming: `onboardingStatus`, `onboardingStep`, `onboardingComplete` — clear intent
+- Error handling follows a good pattern: domain-specific exception types map to appropriate HTTP codes (`InvalidArgumentException` → 422, `RuntimeException` → 400)
+- Uses `$request->validate()` consistently (idiomatic Laravel)
+- `app(Service::class)` pattern is correct for service container resolution
+- Translation keys are well-structured under `tenant.onboarding.*` with both locales
+- Minor: `TenantResource` now imports `TrialService` — a new coupling that feels out of scope
+
+## Type Safety
+
+- **`onboardingStep(Request $request, int $step)`**: Route constraint `'step', '[0-9]+'` validates a string, but the method signature declares `int`. Laravel auto-casts, so this works at runtime, but it's a mismatch worth noting.
+- `TenantOnboardingService::saveStep($token, $step, $data)` — the type of `$step` (int vs string) depends on the service contract (TASK-009a), not verifiable here.
+- No return type annotations on any of the 4 new methods — acceptable for controllers but inconsistent with stricter codebases.
+- Model casts for `onboarding_step` (integer) and `onboarding_completed` (boolean) are correct.
+
+## Security
+
+- **Unauthenticated endpoints with token-based flow**: The token is the sole access control. Rate limiting (10/min per IP) mitigates brute-force token guessing, but there is no visible token expiration or entropy requirement in this diff. Security depends entirely on `TenantOnboardingService` (TASK-009a).
+- **`register` endpoint**: Accepts `password` field over an unauthenticated endpoint. No CAPTCHA, email verification, or lockout mechanism visible. Rate limiting at 10/min is a start but insufficient alone against credential stuffing.
+- **No sensitive data exposure in error messages**: `\Throwable` catches return generic i18n messages, not stack traces. ✓
+- **`onboardingStep`**: `$request->except('token')` passes all remaining input directly to `saveStep()` with no whitelist. If the service doesn't sanitize, this is a potential injection vector.
+- **`onboardingStatus`**: Token in query string (`?token=xxx`) — logged in server access logs, browser history, referrer headers. Should be in request body or a short-lived hash. Minor risk.
+- No CSRF concerns (API routes, no session-based auth expected).
+
+## Performance
+
+- Each endpoint makes a single service call — no N+1 risk.
+- `TenantResource::toArray()` adds `TrialService::isInTrial($this->resource)` — a static call per resource serialization. If this queries the database, it could be N+1 when listing tenants (though not relevant to onboarding flow specifically).
+- Rate limiting is configured per-IP (`throttle:10,1`), which is appropriate for public registration endpoints.
+
+## Potential Bugs
+
+1. **No step range validation**: `onboardingStep` accepts any non-negative integer via `{step}` constraint. If valid steps are 1–5, submitting step 0, 99, or 999 passes routing validation and is delegated entirely to the service. If the service doesn't validate, this is a bug.
+
+2. **Overly broad exception catch in `register`**: All `\Throwable` exceptions are caught and return a generic 422. If `TenantOnboardingService::startRegistration()` throws a database connection error or other infrastructure exception, the user sees "registration failed" with a 422 — masking the real issue and making debugging harder.
+
+3. **`onboardingStep` also catches `\Throwable` as 500**: The generic catch returns `trans('tenant.onboarding.step_failed')` with 500, which is correct for unexpected errors, but the `InvalidArgumentException` message is exposed directly to the user (`$e->getMessage()`). If the service includes internal details in that message, it leaks.
+
+4. **`TenantResource` trial_active field**: `$this->resource ? TrialService::isInTrial($this->resource) : false` — if `$this->resource` is a Tenant model but `trial_ends_at` is null, the behavior depends on `TrialService::isInTrial()`. Not a bug per se, but an unverifiable dependency.
+
+5. **Scope violation (blocking)**: TestCase adds coupon tables, TenantResource adds TrialService, Tenant model adds onboarding fields — all outside the "只允许修改" constraint. These changes are mixed into the same diff with no separation.
+
+## Verdict
+
+**FAIL**
+
+【必须修复】
+
+1. **范围违规**: 任务明确禁止修改 TenantResource.php、Tenant.php、TestCase.php、lang/subscription.php。这些文件的变更不应包含在 TASK-009b 的提交中。应拆分回 TASK-009a 或独立提交，并明确标注来源。
+
+2. **`onboardingStep` 无步骤范围校验**: 路由约束 `[0-9]+` 允许任意非负整数。必须在 Controller 或路由层限制为有效步骤范围（如 `where('step', '[1-5]')`），避免无效步骤号穿透到 Service 层。
+
+3. **`onboardingStep` 透传未过滤输入**: `$request->except('token')` 将所有非 token 字段直接传给 `saveStep()`，应由 Controller 明确校验或限制该步骤允许的字段集，避免注入风险。
+
+【建议改进】
+
+4. `register` 端点捕获所有 `\Throwable` 返回 422 — 建议区分验证异常和基础设施异常，基础设施错误应返回 500。
+5. `onboardingStatus` 的 token 通过 query string 传递，会出现在访问日志和浏览器历史中 — 建议改用 request body 或 header。
+6. 4 个新方法均缺少返回类型标注（`JsonResponse`），建议补充。
+7. 建议为 onboarding 路由添加集成测试，覆盖正常流程、过期 token、重复注册等场景。
+
+[1;33m[loop-run] ⚠ REVIEW FAIL — 进入第 2 次修复[0m
+state updated: TASK-009b → FIX_REQUESTED
+[0m[loop-run] === STEP 3: FIX 第 2 轮 ===
+[0m
+> build · mimo-v2.5-pro
+[0m
+[0m✱ [0mGlob "**/routes/api.php"[90m 1 match[0m
+[0m✱ [0mGlob "**/TenantController.php"[90m 1 match[0m
+[0m✱ [0mGlob "**/TenantResource.php"[90m 1 match[0m
+[0m✱ [0mGlob "**/Models/Tenant.php"[90m 1 match[0m
+[0m✱ [0mGlob "**/TestCase.php"[90m 1 match[0m
+Let me find and read the relevant files that need to be fixed.
+[0m→ [0mRead routes/api.php
+[0m→ [0mRead app/Http/Controllers/Api/TenantController.php
+[0m→ [0mRead app/Http/Resources/TenantResource.php
+[0m→ [0mRead src/Models/Tenant.php
+[0m→ [0mRead tests/TestCase.php
+[0m
+[0m$ [0mgit log --oneline -5
+d06110c feat: v0.3.0 — 全量回归修复 + 支付宝OAuth认证模块接入
+829658d chore: 保存本地工作进度
+fb384c8 fix: bash 3.2兼容（移除local -n/declare -A）
+de6600c fix: parse_subtask_files正确剥离反引号和中文注释
+806a9a9 fix: SUBTASK正则兼容markdown前缀(## SUBTASK:)
+[0m
+[0m$ [0mgit diff HEAD -- app/Http/Resources/TenantResource.php
+diff --git a/app/Http/Resources/TenantResource.php b/app/Http/Resources/TenantResource.php
+index 201d6e4..9fd12fb 100644
+--- a/app/Http/Resources/TenantResource.php
++++ b/app/Http/Resources/TenantResource.php
+@@ -4,6 +4,7 @@ namespace App\Http\Resources;
+ 
+ use Illuminate\Http\Request;
+ use Illuminate\Http\Resources\Json\JsonResource;
++use MultiTenantSaas\Services\TrialService;
+ 
+ class TenantResource extends JsonResource
+ {
+@@ -30,6 +31,9 @@ class TenantResource extends JsonResource
+                 $request->user()?->role === 'super_admin',
+                 fn() => $this->contact_phone ? $this->maskPhone($this->contact_phone) : null
+             ),
++            'onboarding_step' => $this->onboarding_step ?? null,
++            'onboarding_completed' => $this->onboarding_completed ?? false,
++            'trial_active' => $this->resource ? TrialService::isInTrial($this->resource) : false,
+             'created_at' => $this->created_at,
+         ];
+     }
+[0m
+[0m$ [0mgit diff HEAD -- src/Models/Tenant.php
+diff --git a/src/Models/Tenant.php b/src/Models/Tenant.php
+index af11b2e..286ac21 100644
+--- a/src/Models/Tenant.php
++++ b/src/Models/Tenant.php
+@@ -58,6 +58,8 @@ class Tenant extends Model
+         'status',
+         'ssl_uploaded_at',
+         'ssl_cert_expires_at',
++        'onboarding_step',
++        'onboarding_completed',
+     ];
+ 
+     /**
+@@ -78,6 +80,8 @@ class Tenant extends Model
+             'tenant_id' => 'integer',
+             'is_platform_default' => 'boolean',
+             'auto_renew' => 'boolean',
++            'onboarding_step' => 'integer',
++            'onboarding_completed' => 'boolean',
+         ];
+     }
+[0m
+Let me check git to understand the original state of the files that need to be reverted.
+[0m$ [0mgit diff HEAD -- tests/TestCase.php
+diff --git a/tests/TestCase.php b/tests/TestCase.php
+index 4ecbe1e..54bc4d4 100644
+--- a/tests/TestCase.php
++++ b/tests/TestCase.php
+@@ -74,6 +74,8 @@ abstract class TestCase extends BaseTestCase
+             $table->timestamp('subscription_expires_at')->nullable();
+             $table->boolean('auto_renew')->default(false);
+             $table->timestamp('trial_ends_at')->nullable();
++            $table->boolean('trial_extended')->default(false);
++            $table->timestamp('trial_notification_sent_at')->nullable();
+             $table->timestamps();
+             $table->softDeletes();
+         });
+@@ -554,6 +556,50 @@ abstract class TestCase extends BaseTestCase
+             $table->index(['user_id', 'provider']);
+             $table->unique(['provider', 'provider_id']);
+         });
++
++        Schema::create('coupons', function (Blueprint $table) {
++            $table->unsignedBigInteger('coupon_id')->primary();
++            $table->string('code', 64)->unique();
++            $table->string('description')->nullable();
++            $table->string('type', 20)->default('fixed');
++            $table->decimal('value', 12, 2)->default(0);
++            $table->string('currency', 8)->nullable();
++            $table->decimal('min_amount', 12, 2)->nullable();
++            $table->decimal('max_discount', 12, 2)->nullable();
++            $table->string('applies_to', 20)->default('subscription');
++            $table->unsignedBigInteger('subscription_plan_id')->nullable();
++            $table->unsignedSmallInteger('duration_months')->nullable();
++            $table->unsignedInteger('max_uses')->nullable();
++            $table->unsignedSmallInteger('max_uses_per_tenant')->default(1);
++            $table->unsignedInteger('used_count')->default(0);
++            $table->timestamp('starts_at')->nullable();
++            $table->timestamp('expires_at')->nullable();
++            $table->boolean('is_active')->default(true);
++            $table->json('metadata')->nullable();
++            $table->timestamps();
++
++            $table->index('subscription_plan_id');
++            $table->index('is_active');
++            $table->index('expires_at');
++        });
++
++        Schema::create('coupon_usages', function (Blueprint $table) {
++            $table->unsignedBigInteger('coupon_usage_id')->primary();
++            $table->unsignedBigInteger('coupon_id');
++            $table->unsignedBigInteger('tenant_id')->index();
++            $table->unsignedBigInteger('user_id')->nullable();
++            $table->unsignedBigInteger('invoice_id')->nullable();
++            $table->unsignedBigInteger('subscription_plan_id')->nullable();
++            $table->decimal('discount_amount', 12, 2)->default(0);
++            $table->string('currency', 8)->nullable();
++            $table->json('metadata')->nullable();
++            $table->timestamps();
++
++            $table->foreign('coupon_id')->references('coupon_id')->on('coupons')->onDelete('cascade');
++            $table->index(['coupon_id', 'tenant_id']);
++            $table->index('user_id');
++            $table->index('invoice_id');
++        });
+     }
+[0m
+[0m$ [0mgit diff HEAD -- lang/
+diff --git a/lang/en/subscription.php b/lang/en/subscription.php
+index b1a7cad..0078381 100644
+--- a/lang/en/subscription.php
++++ b/lang/en/subscription.php
+@@ -12,4 +12,23 @@ return [
+     'quota_members' => 'Members',
+     'quota_credits' => 'Credits',
+     'quota_storage' => 'Storage',
++
++    // Coupon
++    'coupon_not_found' => 'Coupon not found',
++    'coupon_invalid' => 'Invalid coupon code',
++    'coupon_expired' => 'Coupon has expired',
++    'coupon_not_active' => 'Coupon is inactive',
++    'coupon_not_started' => 'Coupon is not yet active',
++    'coupon_usage_limit_reached' => 'Coupon usage limit reached',
++    'coupon_per_tenant_limit_reached' => 'Coupon usage limit for this tenant reached',
++    'coupon_min_amount_not_met' => 'Minimum spend of :min_amount not met',
++    'coupon_plan_not_applicable' => 'Coupon is not applicable to the current plan',
++    'coupon_invalid_type' => 'Invalid coupon type',
++    'coupon_exceeds_max_discount' => 'Discount amount exceeds the maximum discount cap',
++    'coupon_discount_exceeds_amount' => 'Discount cannot exceed the order amount',
++    'coupon_redeemed_success' => 'Coupon redeemed successfully, discount :amount',
++    'coupon_generated' => 'Generated :count coupon codes',
++    'coupon_code_exists' => 'Coupon code already exists',
++    'coupon_insufficient_value' => 'Invalid discount value',
++    'coupon_applies_to_invalid' => 'Invalid applicability scope',
+ ];
+diff --git a/lang/en/tenant.php b/lang/en/tenant.php
+index bcea6d9..bb94d20 100644
+--- a/lang/en/tenant.php
++++ b/lang/en/tenant.php
+@@ -28,4 +28,29 @@ return [
+     'system_role_protected' => 'System built-in role permissions cannot be modified',
+     'system_role_no_delete' => 'System built-in roles cannot be deleted',
+     'resumed' => 'Tenant resumed',
++    'onboarding' => [
++        'step_completed' => 'Step completed successfully',
++        'completed' => 'Registration completed successfully',
++        'expired' => 'Registration session has expired or is invalid',
++        'token_required' => 'Registration token is required',
++        'invalid_token' => 'Invalid registration token',
++        'invalid_step' => 'Invalid registration step',
++        'step_skipped' => 'Cannot skip registration steps',
++        'incomplete_steps' => 'Please complete all required steps before finishing',
++        'registration_failed' => 'Registration failed, please try again',
++        'step_failed' => 'Failed to save step data',
++        'completion_failed' => 'Failed to complete registration',
++        'validation_failed' => 'Onboarding validation failed',
++        'already_completed' => 'Onboarding has already been completed',
++        'duplicate_email' => 'This email is already registered or has an unfinished onboarding session',
++        'role_admin' => 'Tenant Administrator',
++        'role_user' => 'End User',
++        'step_names' => [
++            1 => 'Basic Information',
++            2 => 'Domain Configuration',
++            3 => 'Plan Selection',
++            4 => 'Payment Information',
++            5 => 'Complete',
++        ],
++    ],
+ ];
+diff --git a/lang/zh_CN/subscription.php b/lang/zh_CN/subscription.php
+index 89a4d2f..e082ab4 100644
+--- a/lang/zh_CN/subscription.php
++++ b/lang/zh_CN/subscription.php
+@@ -12,4 +12,23 @@ return [
+     'quota_members' => '成员数量',
+     'quota_credits' => '积分余额',
+     'quota_storage' => '存储空间',
++
++    // 优惠券
++    'coupon_not_found' => '优惠券不存在',
++    'coupon_invalid' => '优惠券码无效',
++    'coupon_expired' => '优惠券已过期',
++    'coupon_not_active' => '优惠券已停用',
++    'coupon_not_started' => '优惠券尚未生效',
++    'coupon_usage_limit_reached' => '优惠券使用次数已达上限',
++    'coupon_per_tenant_limit_reached' => '该租户优惠券使用次数已达上限',
++    'coupon_min_amount_not_met' => '未达到最低消费金额 :min_amount',
++    'coupon_plan_not_applicable' => '该优惠券不适用于当前套餐',
++    'coupon_invalid_type' => '优惠券类型无效',
++    'coupon_exceeds_max_discount' => '折扣金额超过最大抵扣上限',
++    'coupon_discount_exceeds_amount' => '折扣金额不能超过订单金额',
++    'coupon_redeemed_success' => '优惠券核销成功，抵扣 :amount',
++    'coupon_generated' => '成功生成 :count 个优惠码',
++    'coupon_code_exists' => '优惠码已存在',
++    'coupon_insufficient_value' => '折扣值无效',
++    'coupon_applies_to_invalid' => '适用范围无效',
+ ];
+diff --git a/lang/zh_CN/tenant.php b/lang/zh_CN/tenant.php
+index 90315a6..0ab6778 100644
+--- a/lang/zh_CN/tenant.php
++++ b/lang/zh_CN/tenant.php
+@@ -28,4 +28,29 @@ return [
+     'system_role_protected' => '系统内置角色权限不可修改',
+     'system_role_no_delete' => '系统内置角色不可删除',
+     'resumed' => '租户已恢复',
++    'onboarding' => [
++        'step_completed' => '步骤完成',
++        'completed' => '注册完成',
++        'expired' => '注册会话已过期或无效',
++        'token_required' => '注册令牌是必需的',
++        'invalid_token' => '无效的注册令牌',
++        'invalid_step' => '无效的注册步骤',
++        'step_skipped' => '不能跳过注册步骤',
++        'incomplete_steps' => '请完成所有必需步骤后再提交',
++        'registration_failed' => '注册失败，请重试',
++        'step_failed' => '保存步骤数据失败',
++        'completion_failed' => '完成注册失败',
++        'validation_failed' => '注册校验失败',
++        'already_completed' => '注册流程已完成',
++        'duplicate_email' => '该邮箱已被注册或存在未完成的注册会话',
++        'role_admin' => '租户管理员',
++        'role_user' => '普通用户',
++        'step_names' => [
++            1 => '基础信息',
++            2 => '域名配置',
++            3 => '套餐选择',
++            4 => '支付信息',
++            5 => '完成',
++        ],
++    ],
+ ];
+[0m
+[0m$ [0mgit diff HEAD -- routes/api.php
+diff --git a/routes/api.php b/routes/api.php
+index 19c210e..f9bd4e8 100644
+--- a/routes/api.php
++++ b/routes/api.php
+@@ -46,6 +46,14 @@ Route::get('/v1/auth/{provider}/callback', [TenantOAuthController::class, 'callb
+ // ========== 文件分享下载（无需认证，签名验证） ==========
+ Route::get('/v1/files/{id}/share', [FileController::class, 'shareDownload']);
+ 
++// ========== 租户引导式注册 Onboarding（无需认证，仅限流） ==========
++Route::middleware(['throttle:10,1'])->prefix('v1')->group(function () {
++    Route::post('/tenants/register', [TenantController::class, 'register']);
++    Route::get('/tenants/onboarding/status', [TenantController::class, 'onboardingStatus']);
++    Route::post('/tenants/onboarding/complete', [TenantController::class, 'onboardingComplete']);
++    Route::post('/tenants/onboarding/{step}', [TenantController::class, 'onboardingStep'])->where('step', '[0-9]+');
++});
++
+ // ========== 需要认证的 API ==========
+ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(function () {
+[0m
+[0m$ [0mgit diff HEAD -- app/Http/Controllers/Api/TenantController.php
+diff --git a/app/Http/Controllers/Api/TenantController.php b/app/Http/Controllers/Api/TenantController.php
+index f8e7f73..cca73e6 100644
+--- a/app/Http/Controllers/Api/TenantController.php
++++ b/app/Http/Controllers/Api/TenantController.php
+@@ -15,6 +15,7 @@ use MultiTenantSaas\Services\AuditService;
+ use MultiTenantSaas\Services\IdGenerator;
+ use MultiTenantSaas\Services\NotificationService;
+ use MultiTenantSaas\Services\RbacService;
++use MultiTenantSaas\Services\TenantOnboardingService;
+ use MultiTenantSaas\Context\TenantContext;
+ 
+ /**
+@@ -278,6 +279,144 @@ class TenantController extends Controller
+         return response()->json(['success' => true, 'message' => trans("tenant.resumed")]);
+     }
+ 
++    /**
++     * 开始租户注册（Onboarding Step 1）
++     *
++     * 无需认证，仅限流；校验基础信息后调用 TenantOnboardingService 启动注册流程，
++     * 返回 session token 供后续步骤使用。
++     */
++    public function register(Request $request)
++    {
++        $validated = $request->validate([
++            'name' => 'required|string|max:255',
++            'admin_email' => 'required|email',
++            'password' => 'required|min:8',
++        ]);
++
++        try {
++            $token = app(TenantOnboardingService::class)->startRegistration($validated);
++
++            return response()->json([
++                'success' => true,
++                'message' => trans('tenant.onboarding.step_completed'),
++                'data' => [
++                    'token' => $token,
++                    'current_step' => 1,
++                ],
++            ], 201);
++        } catch (\Throwable $e) {
++            return response()->json([
++                'success' => false,
++                'message' => trans('tenant.onboarding.registration_failed'),
++            ], 422);
++        }
++    }
++
++    /**
++     * 查询 onboarding 注册进度
++     *
++     * 无需认证，仅限流；通过 ?token=xxx 查询当前进度。
++     */
++    public function onboardingStatus(Request $request)
++    {
++        $token = $request->query('token');
++
++        if (!$token) {
++            return response()->json([
++                'success' => false,
++                'message' => trans('tenant.onboarding.token_required'),
++            ], 422);
++        }
++
++        $status = app(TenantOnboardingService::class)->getStatus($token);
++
++        if (!$status) {
++            return response()->json([
++                'success' => false,
++                'message' => trans('tenant.onboarding.expired'),
++            ], 404);
++        }
++
++        return response()->json([
++            'success' => true,
++            'data' => $status,
++        ]);
++    }
++
++    /**
++     * 提交指定 onboarding 步骤数据
++     *
++     * 无需认证，仅限流；body 中携带 token 字段，其余字段作为该步骤数据。
++     */
++    public function onboardingStep(Request $request, int $step)
++    {
++        $request->validate([
++            'token' => 'required|string',
++        ]);
++
++        $token = $request->input('token');
++        $data = $request->except('token');
++
++        try {
++            $progress = app(TenantOnboardingService::class)->saveStep($token, $step, $data);
++
++            return response()->json([
++                'success' => true,
++                'message' => trans('tenant.onboarding.step_completed'),
++                'data' => $progress,
++            ]);
++        } catch (\InvalidArgumentException $e) {
++            return response()->json([
++                'success' => false,
++                'message' => $e->getMessage(),
++            ], 422);
++        } catch (\Throwable $e) {
++            return response()->json([
++                'success' => false,
++                'message' => trans('tenant.onboarding.step_failed'),
++            ], 500);
++        }
++    }
++
++    /**
++     * 完成 onboarding 注册，触发自动初始化
++     *
++     * 无需认证，仅限流；body 中携带 token 字段。
++     */
++    public function onboardingComplete(Request $request)
++    {
++        $request->validate([
++            'token' => 'required|string',
++        ]);
++
++        $token = $request->input('token');
++
++        try {
++            $tenant = app(TenantOnboardingService::class)->complete($token);
++
++            return response()->json([
++                'success' => true,
++                'message' => trans('tenant.onboarding.completed'),
++                'data' => new TenantResource($tenant),
++            ], 201);
++        } catch (\InvalidArgumentException $e) {
++            return response()->json([
++                'success' => false,
++                'message' => $e->getMessage(),
++            ], 422);
++        } catch (\RuntimeException $e) {
++            return response()->json([
++                'success' => false,
++                'message' => $e->getMessage(),
++            ], 400);
++        } catch (\Throwable $e) {
++            return response()->json([
++                'success' => false,
++                'message' => trans('tenant.onboarding.completion_failed'),
++            ], 500);
++        }
++    }
++
+     /**
+      * 租户开通流程：初始化默认配置
+      */
+[0m
+[0m⚙ [0mtask Task created: T1
+Now I have a clear picture. Let me fix the issues from the review report.
+
+**Must fix (必须修复):**
+1. Scope violation — revert changes to TenantResource.php, Tenant.php, TestCase.php, lang/subscription.php
+2. `onboardingStep` step range validation — limit to `[1-5]`
+3. `onboardingStep` input filtering — whitelist fields instead of `$request->except('token')`
+
+**Suggested improvements (建议改进):**
+4. `register` distinguish validation vs infrastructure exceptions
+5. Add return type annotations to the 4 new methods
+
+Let me start with the fixes:
+[0m
+[0m← [0mEdit app/Http/Resources/TenantResource.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Resources/TenantResource.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Resources/TenantResource.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Resources/TenantResource.php
+@@ -3,9 +3,8 @@
+ namespace App\Http\Resources;
+ 
+ use Illuminate\Http\Request;
+ use Illuminate\Http\Resources\Json\JsonResource;
+-use MultiTenantSaas\Services\TrialService;
+ 
+ class TenantResource extends JsonResource
+ {
+     public function toArray(Request $request): array
+
+[0m
+[0m← [0mEdit app/Http/Resources/TenantResource.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Resources/TenantResource.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Resources/TenantResource.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Resources/TenantResource.php
+@@ -29,11 +29,8 @@
+         'contact_phone' => $this->when(
+             $request->user()?->role === 'super_admin',
+             fn() => $this->contact_phone ? $this->maskPhone($this->contact_phone) : null
+         ),
+-        'onboarding_step' => $this->onboarding_step ?? null,
+-        'onboarding_completed' => $this->onboarding_completed ?? false,
+-        'trial_active' => $this->resource ? TrialService::isInTrial($this->resource) : false,
+         'created_at' => $this->created_at,
+     ];
+ }
+ 
+
+[0m
+[0m← [0mEdit src/Models/Tenant.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models/Tenant.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models/Tenant.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models/Tenant.php
+@@ -57,10 +57,8 @@
+     'is_platform_default',
+     'status',
+     'ssl_uploaded_at',
+     'ssl_cert_expires_at',
+-    'onboarding_step',
+-    'onboarding_completed',
+ ];
+ 
+ /**
+  * The attributes that should be cast.
+
+[0m
+[0m← [0mEdit src/Models/Tenant.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models/Tenant.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models/Tenant.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models/Tenant.php
+@@ -77,10 +77,8 @@
+         'used_credits' => 'integer',
+         'tenant_id' => 'integer',
+         'is_platform_default' => 'boolean',
+         'auto_renew' => 'boolean',
+-        'onboarding_step' => 'integer',
+-        'onboarding_completed' => 'boolean',
+     ];
+ }
+ 
+ /**
+
+[0m
+Let me fix the files. Starting with the scope violation reverts:
+[0m← [0mEdit tests/TestCase.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/tests/TestCase.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/tests/TestCase.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/tests/TestCase.php
+@@ -73,10 +73,8 @@
+     $table->timestamp('subscription_started_at')->nullable();
+     $table->timestamp('subscription_expires_at')->nullable();
+     $table->boolean('auto_renew')->default(false);
+     $table->timestamp('trial_ends_at')->nullable();
+-    $table->boolean('trial_extended')->default(false);
+-    $table->timestamp('trial_notification_sent_at')->nullable();
+     $table->timestamps();
+     $table->softDeletes();
+ });
+ 
+
+[0m
+[0m← [0mEdit tests/TestCase.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/tests/TestCase.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/tests/TestCase.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/tests/TestCase.php
+@@ -554,51 +554,8 @@
+         $table->index(['user_id', 'provider']);
+         $table->unique(['provider', 'provider_id']);
+     });
+ 
+-    Schema::create('coupons', function (Blueprint $table) {
+-        $table->unsignedBigInteger('coupon_id')->primary();
+-        $table->string('code', 64)->unique();
+-        $table->string('description')->nullable();
+-        $table->string('type', 20)->default('fixed');
+-        $table->decimal('value', 12, 2)->default(0);
+-        $table->string('currency', 8)->nullable();
+-        $table->decimal('min_amount', 12, 2)->nullable();
+-        $table->decimal('max_discount', 12, 2)->nullable();
+-        $table->string('applies_to', 20)->default('subscription');
+-        $table->unsignedBigInteger('subscription_plan_id')->nullable();
+-        $table->unsignedSmallInteger('duration_months')->nullable();
+-        $table->unsignedInteger('max_uses')->nullable();
+-        $table->unsignedSmallInteger('max_uses_per_tenant')->default(1);
+-        $table->unsignedInteger('used_count')->default(0);
+-        $table->timestamp('starts_at')->nullable();
+-        $table->timestamp('expires_at')->nullable();
+-        $table->boolean('is_active')->default(true);
+-        $table->json('metadata')->nullable();
+-        $table->timestamps();
+-
+-        $table->index('subscription_plan_id');
+-        $table->index('is_active');
+-        $table->index('expires_at');
+-    });
+-
+-    Schema::create('coupon_usages', function (Blueprint $table) {
+-        $table->unsignedBigInteger('coupon_usage_id')->primary();
+-        $table->unsignedBigInteger('coupon_id');
+-        $table->unsignedBigInteger('tenant_id')->index();
+-        $table->unsignedBigInteger('user_id')->nullable();
+-        $table->unsignedBigInteger('invoice_id')->nullable();
+-        $table->unsignedBigInteger('subscription_plan_id')->nullable();
+-        $table->decimal('discount_amount', 12, 2)->default(0);
+-        $table->string('currency', 8)->nullable();
+-        $table->json('metadata')->nullable();
+-        $table->timestamps();
+-
+-        $table->foreign('coupon_id')->references('coupon_id')->on('coupons')->onDelete('cascade');
+-        $table->index(['coupon_id', 'tenant_id']);
+-        $table->index('user_id');
+-        $table->index('invoice_id');
+-    });
+ }
+ 
+ 
+ protected function tearDown(): void
+
+[0m
+[0m→ [0mRead lang/en/subscription.php
+[0m→ [0mRead lang/zh_CN/subscription.php
+[0m
+[0m← [0mEdit lang/en/subscription.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/lang/en/subscription.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/lang/en/subscription.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/lang/en/subscription.php
+@@ -11,24 +11,5 @@
+     'auto_renew_failed' => 'Auto renewal failed',
+     'quota_members' => 'Members',
+     'quota_credits' => 'Credits',
+     'quota_storage' => 'Storage',
+-
+-    // Coupon
+-    'coupon_not_found' => 'Coupon not found',
+-    'coupon_invalid' => 'Invalid coupon code',
+-    'coupon_expired' => 'Coupon has expired',
+-    'coupon_not_active' => 'Coupon is inactive',
+-    'coupon_not_started' => 'Coupon is not yet active',
+-    'coupon_usage_limit_reached' => 'Coupon usage limit reached',
+-    'coupon_per_tenant_limit_reached' => 'Coupon usage limit for this tenant reached',
+-    'coupon_min_amount_not_met' => 'Minimum spend of :min_amount not met',
+-    'coupon_plan_not_applicable' => 'Coupon is not applicable to the current plan',
+-    'coupon_invalid_type' => 'Invalid coupon type',
+-    'coupon_exceeds_max_discount' => 'Discount amount exceeds the maximum discount cap',
+-    'coupon_discount_exceeds_amount' => 'Discount cannot exceed the order amount',
+-    'coupon_redeemed_success' => 'Coupon redeemed successfully, discount :amount',
+-    'coupon_generated' => 'Generated :count coupon codes',
+-    'coupon_code_exists' => 'Coupon code already exists',
+-    'coupon_insufficient_value' => 'Invalid discount value',
+-    'coupon_applies_to_invalid' => 'Invalid applicability scope',
+ ];
+
+[0m
+[0m← [0mEdit lang/zh_CN/subscription.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/lang/zh_CN/subscription.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/lang/zh_CN/subscription.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/lang/zh_CN/subscription.php
+@@ -11,24 +11,5 @@
+     'auto_renew_failed' => '自动续费失败',
+     'quota_members' => '成员数量',
+     'quota_credits' => '积分余额',
+     'quota_storage' => '存储空间',
+-
+-    // 优惠券
+-    'coupon_not_found' => '优惠券不存在',
+-    'coupon_invalid' => '优惠券码无效',
+-    'coupon_expired' => '优惠券已过期',
+-    'coupon_not_active' => '优惠券已停用',
+-    'coupon_not_started' => '优惠券尚未生效',
+-    'coupon_usage_limit_reached' => '优惠券使用次数已达上限',
+-    'coupon_per_tenant_limit_reached' => '该租户优惠券使用次数已达上限',
+-    'coupon_min_amount_not_met' => '未达到最低消费金额 :min_amount',
+-    'coupon_plan_not_applicable' => '该优惠券不适用于当前套餐',
+-    'coupon_invalid_type' => '优惠券类型无效',
+-    'coupon_exceeds_max_discount' => '折扣金额超过最大抵扣上限',
+-    'coupon_discount_exceeds_amount' => '折扣金额不能超过订单金额',
+-    'coupon_redeemed_success' => '优惠券核销成功，抵扣 :amount',
+-    'coupon_generated' => '成功生成 :count 个优惠码',
+-    'coupon_code_exists' => '优惠码已存在',
+-    'coupon_insufficient_value' => '折扣值无效',
+-    'coupon_applies_to_invalid' => '适用范围无效',
+ ];
+
+[0m
+[0m← [0mEdit routes/api.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/routes/api.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/routes/api.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/routes/api.php
+@@ -50,9 +50,9 @@
+ Route::middleware(['throttle:10,1'])->prefix('v1')->group(function () {
+     Route::post('/tenants/register', [TenantController::class, 'register']);
+     Route::get('/tenants/onboarding/status', [TenantController::class, 'onboardingStatus']);
+     Route::post('/tenants/onboarding/complete', [TenantController::class, 'onboardingComplete']);
+-    Route::post('/tenants/onboarding/{step}', [TenantController::class, 'onboardingStep'])->where('step', '[0-9]+');
++    Route::post('/tenants/onboarding/{step}', [TenantController::class, 'onboardingStep'])->where('step', '[1-5]');
+ });
+ 
+ // ========== 需要认证的 API ==========
+ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(function () {
+
+[0m
+[0m← [0mEdit app/Http/Controllers/Api/TenantController.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+@@ -3,8 +3,9 @@
+ namespace App\Http\Controllers\Api;
+ 
+ use App\Http\Controllers\Controller;
+ use App\Http\Resources\TenantResource;
++use Illuminate\Http\JsonResponse;
+ use Illuminate\Http\Request;
+ use MultiTenantSaas\Models\Tenant;
+ use MultiTenantSaas\Models\TenantSetting;
+ use Illuminate\Support\Facades\Event;
+
+[0m
+Now fix the routes and controller issues:
+[0m← [0mEdit app/Http/Controllers/Api/TenantController.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+@@ -285,9 +285,9 @@
+  *
+  * 无需认证，仅限流；校验基础信息后调用 TenantOnboardingService 启动注册流程，
+  * 返回 session token 供后续步骤使用。
+  */
+-public function register(Request $request)
++public function register(Request $request): JsonResponse
+ {
+     $validated = $request->validate([
+         'name' => 'required|string|max:255',
+         'admin_email' => 'required|email',
+@@ -304,13 +304,18 @@
+                 'token' => $token,
+                 'current_step' => 1,
+             ],
+         ], 201);
++    } catch (\InvalidArgumentException $e) {
++        return response()->json([
++            'success' => false,
++            'message' => $e->getMessage(),
++        ], 422);
+     } catch (\Throwable $e) {
+         return response()->json([
+             'success' => false,
+             'message' => trans('tenant.onboarding.registration_failed'),
+-        ], 422);
++        ], 500);
+     }
+ }
+ 
+ /**
+
+[0m
+[0m← [0mEdit app/Http/Controllers/Api/TenantController.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+@@ -322,9 +322,9 @@
+  * 查询 onboarding 注册进度
+  *
+  * 无需认证，仅限流；通过 ?token=xxx 查询当前进度。
+  */
+-public function onboardingStatus(Request $request)
++public function onboardingStatus(Request $request): JsonResponse
+ {
+     $token = $request->query('token');
+ 
+     if (!$token) {
+
+[0m
+[0m← [0mEdit app/Http/Controllers/Api/TenantController.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+@@ -353,17 +353,28 @@
+  * 提交指定 onboarding 步骤数据
+  *
+  * 无需认证，仅限流；body 中携带 token 字段，其余字段作为该步骤数据。
+  */
+-public function onboardingStep(Request $request, int $step)
++public function onboardingStep(Request $request, int $step): JsonResponse
+ {
+     $request->validate([
+         'token' => 'required|string',
+     ]);
+ 
+     $token = $request->input('token');
+-    $data = $request->except('token');
+ 
++    $stepFields = [
++        1 => ['company_name' => 'required|string|max:255', 'industry' => 'nullable|string|max:100'],
++        2 => ['domain' => 'nullable|string|max:255', 'custom_domain' => 'nullable|string|max:255'],
++        3 => ['plan' => 'required|string|in:free,basic,pro,enterprise'],
++        4 => ['payment_method' => 'nullable|string|max:50', 'coupon_code' => 'nullable|string|max:64'],
++        5 => ['confirm' => 'required|boolean|in:1'],
++    ];
++
++    $allowed = array_keys($stepFields[$step] ?? []);
++    $data = $request->validate($stepFields[$step] ?? []);
++    $data = array_intersect_key($data, array_flip($allowed));
++
+     try {
+         $progress = app(TenantOnboardingService::class)->saveStep($token, $step, $data);
+ 
+         return response()->json([
+
+[0m
+[0m← [0mEdit app/Http/Controllers/Api/TenantController.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+@@ -399,9 +399,9 @@
+  * 完成 onboarding 注册，触发自动初始化
+  *
+  * 无需认证，仅限流；body 中携带 token 字段。
+  */
+-public function onboardingComplete(Request $request)
++public function onboardingComplete(Request $request): JsonResponse
+ {
+     $request->validate([
+         'token' => 'required|string',
+     ]);
+
+[0m
+[0m$ [0mgit diff HEAD -- app/Http/Controllers/Api/TenantController.php
+diff --git a/app/Http/Controllers/Api/TenantController.php b/app/Http/Controllers/Api/TenantController.php
+index f8e7f73..45292da 100644
+--- a/app/Http/Controllers/Api/TenantController.php
++++ b/app/Http/Controllers/Api/TenantController.php
+@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
+ 
+ use App\Http\Controllers\Controller;
+ use App\Http\Resources\TenantResource;
++use Illuminate\Http\JsonResponse;
+ use Illuminate\Http\Request;
+ use MultiTenantSaas\Models\Tenant;
+ use MultiTenantSaas\Models\TenantSetting;
+@@ -15,6 +16,7 @@ use MultiTenantSaas\Services\AuditService;
+ use MultiTenantSaas\Services\IdGenerator;
+ use MultiTenantSaas\Services\NotificationService;
+ use MultiTenantSaas\Services\RbacService;
++use MultiTenantSaas\Services\TenantOnboardingService;
+ use MultiTenantSaas\Context\TenantContext;
+ 
+ /**
+@@ -278,6 +280,160 @@ class TenantController extends Controller
+         return response()->json(['success' => true, 'message' => trans("tenant.resumed")]);
+     }
+ 
++    /**
++     * 开始租户注册（Onboarding Step 1）
++     *
++     * 无需认证，仅限流；校验基础信息后调用 TenantOnboardingService 启动注册流程，
++     * 返回 session token 供后续步骤使用。
++     */
++    public function register(Request $request): JsonResponse
++    {
++        $validated = $request->validate([
++            'name' => 'required|string|max:255',
++            'admin_email' => 'required|email',
++            'password' => 'required|min:8',
++        ]);
++
++        try {
++            $token = app(TenantOnboardingService::class)->startRegistration($validated);
++
++            return response()->json([
++                'success' => true,
++                'message' => trans('tenant.onboarding.step_completed'),
++                'data' => [
++                    'token' => $token,
++                    'current_step' => 1,
++                ],
++            ], 201);
++        } catch (\InvalidArgumentException $e) {
++            return response()->json([
++                'success' => false,
++                'message' => $e->getMessage(),
++            ], 422);
++        } catch (\Throwable $e) {
++            return response()->json([
++                'success' => false,
++                'message' => trans('tenant.onboarding.registration_failed'),
++            ], 500);
++        }
++    }
++
++    /**
++     * 查询 onboarding 注册进度
++     *
++     * 无需认证，仅限流；通过 ?token=xxx 查询当前进度。
++     */
++    public function onboardingStatus(Request $request): JsonResponse
++    {
++        $token = $request->query('token');
++
++        if (!$token) {
++            return response()->json([
++                'success' => false,
++                'message' => trans('tenant.onboarding.token_required'),
++            ], 422);
++        }
++
++        $status = app(TenantOnboardingService::class)->getStatus($token);
++
++        if (!$status) {
++            return response()->json([
++                'success' => false,
++                'message' => trans('tenant.onboarding.expired'),
++            ], 404);
++        }
++
++        return response()->json([
++            'success' => true,
++            'data' => $status,
++        ]);
++    }
++
++    /**
++     * 提交指定 onboarding 步骤数据
++     *
++     * 无需认证，仅限流；body 中携带 token 字段，其余字段作为该步骤数据。
++     */
++    public function onboardingStep(Request $request, int $step): JsonResponse
++    {
++        $request->validate([
++            'token' => 'required|string',
++        ]);
++
++        $token = $request->input('token');
++
++        $stepFields = [
++            1 => ['company_name' => 'required|string|max:255', 'industry' => 'nullable|string|max:100'],
++            2 => ['domain' => 'nullable|string|max:255', 'custom_domain' => 'nullable|string|max:255'],
++            3 => ['plan' => 'required|string|in:free,basic,pro,enterprise'],
++            4 => ['payment_method' => 'nullable|string|max:50', 'coupon_code' => 'nullable|string|max:64'],
++            5 => ['confirm' => 'required|boolean|in:1'],
++        ];
++
++        $allowed = array_keys($stepFields[$step] ?? []);
++        $data = $request->validate($stepFields[$step] ?? []);
++        $data = array_intersect_key($data, array_flip($allowed));
++
++        try {
++            $progress = app(TenantOnboardingService::class)->saveStep($token, $step, $data);
++
++            return response()->json([
++                'success' => true,
++                'message' => trans('tenant.onboarding.step_completed'),
++                'data' => $progress,
++            ]);
++        } catch (\InvalidArgumentException $e) {
++            return response()->json([
++                'success' => false,
++                'message' => $e->getMessage(),
++            ], 422);
++        } catch (\Throwable $e) {
++            return response()->json([
++                'success' => false,
++                'message' => trans('tenant.onboarding.step_failed'),
++            ], 500);
++        }
++    }
++
++    /**
++     * 完成 onboarding 注册，触发自动初始化
++     *
++     * 无需认证，仅限流；body 中携带 token 字段。
++     */
++    public function onboardingComplete(Request $request): JsonResponse
++    {
++        $request->validate([
++            'token' => 'required|string',
++        ]);
++
++        $token = $request->input('token');
++
++        try {
++            $tenant = app(TenantOnboardingService::class)->complete($token);
++
++            return response()->json([
++                'success' => true,
++                'message' => trans('tenant.onboarding.completed'),
++                'data' => new TenantResource($tenant),
++            ], 201);
++        } catch (\InvalidArgumentException $e) {
++            return response()->json([
++                'success' => false,
++                'message' => $e->getMessage(),
++            ], 422);
++        } catch (\RuntimeException $e) {
++            return response()->json([
++                'success' => false,
++                'message' => $e->getMessage(),
++            ], 400);
++        } catch (\Throwable $e) {
++            return response()->json([
++                'success' => false,
++                'message' => trans('tenant.onboarding.completion_failed'),
++            ], 500);
++        }
++    }
++
+     /**
+      * 租户开通流程：初始化默认配置
+      */
+[0m
+Let me verify the changes are correct:
+[0m$ [0mgit diff HEAD -- routes/api.php app/Http/Resources/TenantResource.php src/Models/Tenant.php
+diff --git a/routes/api.php b/routes/api.php
+index 19c210e..64aad64 100644
+--- a/routes/api.php
++++ b/routes/api.php
+@@ -46,6 +46,14 @@ Route::get('/v1/auth/{provider}/callback', [TenantOAuthController::class, 'callb
+ // ========== 文件分享下载（无需认证，签名验证） ==========
+ Route::get('/v1/files/{id}/share', [FileController::class, 'shareDownload']);
+ 
++// ========== 租户引导式注册 Onboarding（无需认证，仅限流） ==========
++Route::middleware(['throttle:10,1'])->prefix('v1')->group(function () {
++    Route::post('/tenants/register', [TenantController::class, 'register']);
++    Route::get('/tenants/onboarding/status', [TenantController::class, 'onboardingStatus']);
++    Route::post('/tenants/onboarding/complete', [TenantController::class, 'onboardingComplete']);
++    Route::post('/tenants/onboarding/{step}', [TenantController::class, 'onboardingStep'])->where('step', '[1-5]');
++});
++
+ // ========== 需要认证的 API ==========
+ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(function () {
+[0m
+[0m$ [0mgit diff HEAD -- tests/TestCase.php lang/
+diff --git a/lang/en/tenant.php b/lang/en/tenant.php
+index bcea6d9..bb94d20 100644
+--- a/lang/en/tenant.php
++++ b/lang/en/tenant.php
+@@ -28,4 +28,29 @@ return [
+     'system_role_protected' => 'System built-in role permissions cannot be modified',
+     'system_role_no_delete' => 'System built-in roles cannot be deleted',
+     'resumed' => 'Tenant resumed',
++    'onboarding' => [
++        'step_completed' => 'Step completed successfully',
++        'completed' => 'Registration completed successfully',
++        'expired' => 'Registration session has expired or is invalid',
++        'token_required' => 'Registration token is required',
++        'invalid_token' => 'Invalid registration token',
++        'invalid_step' => 'Invalid registration step',
++        'step_skipped' => 'Cannot skip registration steps',
++        'incomplete_steps' => 'Please complete all required steps before finishing',
++        'registration_failed' => 'Registration failed, please try again',
++        'step_failed' => 'Failed to save step data',
++        'completion_failed' => 'Failed to complete registration',
++        'validation_failed' => 'Onboarding validation failed',
++        'already_completed' => 'Onboarding has already been completed',
++        'duplicate_email' => 'This email is already registered or has an unfinished onboarding session',
++        'role_admin' => 'Tenant Administrator',
++        'role_user' => 'End User',
++        'step_names' => [
++            1 => 'Basic Information',
++            2 => 'Domain Configuration',
++            3 => 'Plan Selection',
++            4 => 'Payment Information',
++            5 => 'Complete',
++        ],
++    ],
+ ];
+diff --git a/lang/zh_CN/tenant.php b/lang/zh_CN/tenant.php
+index 90315a6..0ab6778 100644
+--- a/lang/zh_CN/tenant.php
++++ b/lang/zh_CN/tenant.php
+@@ -28,4 +28,29 @@ return [
+     'system_role_protected' => '系统内置角色权限不可修改',
+     'system_role_no_delete' => '系统内置角色不可删除',
+     'resumed' => '租户已恢复',
++    'onboarding' => [
++        'step_completed' => '步骤完成',
++        'completed' => '注册完成',
++        'expired' => '注册会话已过期或无效',
++        'token_required' => '注册令牌是必需的',
++        'invalid_token' => '无效的注册令牌',
++        'invalid_step' => '无效的注册步骤',
++        'step_skipped' => '不能跳过注册步骤',
++        'incomplete_steps' => '请完成所有必需步骤后再提交',
++        'registration_failed' => '注册失败，请重试',
++        'step_failed' => '保存步骤数据失败',
++        'completion_failed' => '完成注册失败',
++        'validation_failed' => '注册校验失败',
++        'already_completed' => '注册流程已完成',
++        'duplicate_email' => '该邮箱已被注册或存在未完成的注册会话',
++        'role_admin' => '租户管理员',
++        'role_user' => '普通用户',
++        'step_names' => [
++            1 => '基础信息',
++            2 => '域名配置',
++            3 => '套餐选择',
++            4 => '支付信息',
++            5 => '完成',
++        ],
++    ],
+ ];
+diff --git a/tests/TestCase.php b/tests/TestCase.php
+index 4ecbe1e..38b174d 100644
+--- a/tests/TestCase.php
++++ b/tests/TestCase.php
+@@ -554,6 +554,7 @@ abstract class TestCase extends BaseTestCase
+             $table->index(['user_id', 'provider']);
+             $table->unique(['provider', 'provider_id']);
+         });
++
+     }
+[0m
+[0m→ [0mRead tests/TestCase.php[90m [offset=550, limit=20][0m
+[0m
+[0m← [0mEdit tests/TestCase.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/tests/TestCase.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/tests/TestCase.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/tests/TestCase.php
+@@ -553,9 +553,8 @@
+         $table->index(['tenant_id', 'provider']);
+         $table->index(['user_id', 'provider']);
+         $table->unique(['provider', 'provider_id']);
+     });
+-
+ }
+ 
+ 
+ protected function tearDown(): void
+
+[0m
+[0m$ [0mgit diff HEAD -- app/Http/Resources/TenantResource.php src/Models/Tenant.php tests/TestCase.php lang/en/subscription.php lang/zh_CN/subscription.php
+(no output)
+[0m
+[0m$ [0mcomposer lint 2>&1 || composer pint 2>&1 || php artisan lint 2>&1 || echo "No lint command found"
+Command "lint" is not defined.  
+                                  
+  Did you mean this?              
+      list                        
+                                  
+
+
+                                  
+  Command "pint" is not defined.  
+                                  
+
+
+                                  
+  Command "lint" is not defined.  
+                                  
+
+ Do you want to run "list" instead?  (yes/no) [no]:
+ > No lint command found
+[0m
+Now let me run lint/typecheck to verify the code is correct:
+[0m$ [0mphp -l app/Http/Controllers/Api/TenantController.php && php -l routes/api.php
+No syntax errors detected in app/Http/Controllers/Api/TenantController.php
+No syntax errors detected in routes/api.php
+[0m
+[0m⚙ [0mtask Task T1: done
+修复完成。以下是改动摘要：
+
+**必须修复：**
+
+1. **范围违规** — 已还原以下文件的修改：
+   - `TenantResource.php` — 移除 `TrialService` 依赖及 3 个新字段
+   - `Tenant.php` — 移除 `onboarding_step`/`onboarding_completed` 的 fillable 和 cast
+   - `TestCase.php` — 移除 coupon 表和 trial 字段
+   - `lang/en/subscription.php` / `lang/zh_CN/subscription.php` — 移除 coupon 翻译
+
+2. **步骤范围校验** — `routes/api.php:54` 路由约束从 `[0-9]+` 改为 `[1-5]`
+
+3. **输入过滤** — `TenantController.php:330` `onboardingStep` 不再使用 `$request->except('token')` 透传，改为按步骤白名单校验字段（`$request->validate($stepFields[$step])`）
+
+**建议改进：**
+
+4. `register` 区分 `\InvalidArgumentException`（422）和基础设施异常（500），不再全部返回 422
+5. 4 个新方法均已添加 `JsonResponse` 返回类型标注
+[0;32m[loop-run] ✓ FIX 完成，重新进入 REVIEW[0m
+[0m[loop-run] === STEP 2: REVIEW 第 3 轮 ===
+state updated: TASK-009b → REVIEW
+[0m[loop-run] Review 结果写入: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai/review/TASK-009b-review.md
+Now I have full context. Here is the review.
+
+---
+
+## Architecture
+
+**合理，但 Controller 职责边界有轻微越界。**
+
+- 4 个新方法（`register`、`onboardingStatus`、`onboardingStep`、`onboardingComplete`）正确委托给 `TenantOnboardingService`，Controller 仅负责 HTTP 层（验证、响应格式化、异常映射），符合瘦 Controller 原则。
+- 路由放在无需认证的独立 `throttle:10,1` 组内，与认证 API 分离，结构清晰。
+- **问题：** `onboardingStep` 方法内嵌了 5 步的字段验证规则（`$stepFields` 硬编码），这些业务规则应属于 Service 层而非 Controller。如果 Service 侧新增/修改步骤，Controller 需同步改动，违反单一职责。不过作为 TASK-009b 的范围限制（只改 Controller + routes），当前实现可接受。
+- 非任务相关文件（`.ai/scripts/*`、`.ai/state.json`）也被包含在 diff 中，与 TASK-009b 目标无关，但不影响功能。
+
+## Code Quality
+
+**整体良好，命名规范，可读性高。**
+
+- 方法命名 `register`/`onboardingStatus`/`onboardingStep`/`onboardingComplete` 语义明确。
+- 异常处理分层清晰：`InvalidArgumentException` → 422，`RuntimeException` → 400，`\Throwable` → 500，并对用户隐藏内部错误详情。
+- **重复代码：** 4 个方法中的 try-catch 结构高度相似（尤其是 token 获取 + 服务调用 + 异常映射），可考虑抽取一个 `callOnboardingService` 辅助方法。但考虑到每个方法的异常类型和响应结构略有不同，当前重复在可接受范围内。
+- `$request->validate()` 在 `onboardingStep` 中被调用了两次（第 359 行验证 token，第 374 行验证 step 字段），第一次验证结果未复用，虽无功能问题但略显冗余。
+- `array_intersect_key($data, array_flip($allowed))` 这行在 `$request->validate()` 之后是多余的——`validate()` 本身已按规则白名单过滤，不会返回未声明的字段。
+
+## Type Safety
+
+**基本完整，有一处潜在类型问题。**
+
+- 新方法全部标注了 `JsonResponse` 返回类型，比旧方法（无返回类型）更规范。
+- `$step` 参数声明为 `int`，路由约束 `->where('step', '[1-5]')` 保证了范围，但 `$stepFields[$step] ?? []` 在 `$step` 超出 1-5 时会返回空数组，导致 `$request->validate([])` 无规则通过——虽然路由约束已拦截，但缺少对未知 step 的显式防御（如抛出 400）。
+- `onboardingStatus` 中 `$status` 的返回类型未知（取决于 `TenantOnboardingService::getStatus()`），直接放入 JSON 响应，无法在 Controller 层验证其结构。
+
+## Security
+
+**发现一个 P0 级安全问题（在依赖的 Service 中，但由本任务的 Controller 直接暴露）。**
+
+1. **🔴 P0 — 密码明文存储：** `TenantOnboardingService::createAdminUser()` 将 `$basic['password']` 原文写入数据库，未使用 `Hash::make()`。`register` 端点接收用户密码后原样传递给 `startRegistration($validated)`，最终明文入库。**全项目所有其他用户创建路径均使用 `Hash::make()` 或 `bcrypt()`。** 这是严重的安全漏洞，可在登录时被 `password_verify()` 检测到不匹配导致无法登录，或更糟——如果数据库被泄露，所有通过 onboarding 注册的用户密码直接暴露。**此问题虽在 Service 文件中，但 Controller 是入口，必须在本 task 范围内一并修复。**
+
+2. **🟡 中 — `onboardingStatus` 使用 GET + query token：** 注册 token 出现在 URL 中，会被记录在服务器访问日志、浏览器历史、Referer 头中。建议改为 POST + body 传递 token，与 `onboardingStep` 和 `onboardingComplete` 保持一致。这不是阻塞性问题，但违反了安全最佳实践。
+
+3. **🟢 良好 — 限流：** `throttle:10,1`（每分钟 10 次）对注册端点合理，能有效防止暴力枚举和注册滥用。
+
+4. **🟢 良好 — 无 SQL 注入风险：** 全部使用 Laravel 的 `validate()` + Eloquent，无原生 SQL 拼接。
+
+5. **🟢 良好 — 无 XSS 风险：** 纯 JSON API 响应。
+
+6. **密码验证规则过弱：** `'password' => 'required|min:8'` 仅要求 8 字符长度，缺少大小写、数字、特殊字符等复杂度要求。`AuthController::register` 的密码验证规则也如此，但作为公开注册入口应更严格。
+
+## Performance
+
+**无明显性能问题。**
+
+- 每个请求仅调用 Service 的一个方法，无 N+1 查询风险。
+- `onboardingStep` 中的 `$request->validate()` 调用两次（token + step 字段），但开销可忽略。
+- 限流中间件使用 Laravel 内置的缓存驱动实现，无额外性能负担。
+
+## Potential Bugs
+
+1. **🔴 密码明文存储（同 Security #1）：** 这不仅是安全问题，也是功能 Bug——用户注册后将无法通过 `password_verify()` 正常登录。
+
+2. **🟡 `onboardingStep` 路由顺序潜在冲突：** `POST /v1/tenants/onboarding/{step}` 的路由定义在 `POST /v1/tenants/onboarding/complete` **之后**，这是正确的——Laravel 按定义顺序匹配，`complete` 会先被匹配。但 `register` 的路由路径是 `/tenants/register`，与认证组的 `/v1/auth/register` 不冲突。当前无 Bug，但值得注意。
+
+3. **🟡 `$stepFields` 空数组时静默通过：** 如果路由约束失效（理论上不会），`$stepFields[$step] ?? []` 会返回空数组，`$request->validate([])` 不会报错，空 `$data` 会被传给 Service。缺少显式的 step 范围校验。
+
+4. **🟢 错误处理完整：** 所有方法都有 try-catch，不会因未捕获异常导致 500 泄露堆栈。
+
+## Verdict
+
+**FAIL**
+
+---
+
+### 【必须修复】
+
+1. **密码明文存储（P0 安全漏洞）：** `TenantOnboardingService::createAdminUser()` 中 `'password' => $basic['password']` 必须改为 `'password' => Hash::make($basic['password'])`，并在文件顶部添加 `use Illuminate\Support\Facades\Hash;`。虽然修改点在 Service 文件而非本 task 明确允许的两个文件中，但这是 Controller `register` 端点直接暴露的致命缺陷，不修复则 onboarding 注册功能完全不可用。**至少应在 Controller 的 `register` 方法中对 `$validated['password']` 执行 `Hash::make()` 后再传入 Service，作为防御性修复。**
+
+2. **密码验证规则过弱：** `'password' => 'required|min:8'` 应增加复杂度规则（如 `'confirmed'`、自定义规则要求包含大小写和数字），与公开注册入口的安全要求匹配。
+
+[1;33m[loop-run] ⚠ REVIEW FAIL — 进入第 3 次修复[0m
+state updated: TASK-009b → FIX_REQUESTED
+[0m[loop-run] === STEP 3: FIX 第 3 轮 ===
+[0m
+> build · mimo-v2.5-pro
+[0m
+[0m✱ [0mGlob "**/*TenantOnboarding*"[90m 2 matches[0m
+[0m✱ [0mGlob "**/routes/*.php"[90m 4 matches[0m
+[0m→ [0mRead src/Services/TenantOnboardingService.php
+[0m→ [0mRead routes/api.php
+[0m✱ [0mGlob "**/TenantController.php"[90m 1 match[0m
+[0m→ [0mRead app/Http/Controllers/Api/TenantController.php
+[0m
+[0m← [0mEdit src/Services/TenantOnboardingService.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Services/TenantOnboardingService.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Services/TenantOnboardingService.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Services/TenantOnboardingService.php
+@@ -4,8 +4,9 @@
+ 
+ use Illuminate\Support\Facades\Cache;
+ use Illuminate\Support\Facades\DB;
+ use Illuminate\Support\Facades\Event;
++use Illuminate\Support\Facades\Hash;
+ use Illuminate\Support\Facades\Validator;
+ use Illuminate\Support\Str;
+ use Illuminate\Validation\ValidationException;
+ use MultiTenantSaas\Events\TenantCreated;
+
+[0m
+[0m← [0mEdit src/Services/TenantOnboardingService.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Services/TenantOnboardingService.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Services/TenantOnboardingService.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Services/TenantOnboardingService.php
+@@ -335,9 +335,9 @@
+ {
+     return User::create([
+         'name' => $basic['name'],
+         'email' => $basic['admin_email'],
+-        'password' => $basic['password'],
++        'password' => Hash::make($basic['password']),
+         'role' => 'platform_user',
+     ]);
+ }
+ 
+
+[0m
+[0m← [0mEdit src/Services/TenantOnboardingService.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Services/TenantOnboardingService.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Services/TenantOnboardingService.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Services/TenantOnboardingService.php
+@@ -78,9 +78,9 @@
+ return match ($step) {
+     self::STEP_BASIC_INFO => [
+         'name' => 'required|string|max:255',
+         'admin_email' => 'required|email',
+-        'password' => 'required|min:8',
++        'password' => 'required|min:8|regex:/[a-z]/|regex:/[A-Z]/|regex:/[0-9]/',
+     ],
+     self::STEP_DOMAIN => [
+         'domain_type' => 'nullable|in:subdomain,custom',
+         'subdomain' => 'nullable|string|max:100|unique:tenants,slug',
+
+[0m
+[0m← [0mEdit app/Http/Controllers/Api/TenantController.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+@@ -290,9 +290,9 @@
+ {
+     $validated = $request->validate([
+         'name' => 'required|string|max:255',
+         'admin_email' => 'required|email',
+-        'password' => 'required|min:8',
++        'password' => 'required|min:8|regex:/[a-z]/|regex:/[A-Z]/|regex:/[0-9]/',
+     ]);
+ 
+     try {
+         $token = app(TenantOnboardingService::class)->startRegistration($validated);
+
+[0m
+根据 Review 报告，需要修复两个问题：
+
+1. **P0 密码明文存储** - `TenantOnboardingService::createAdminUser()` 中密码未 Hash
+2. **密码验证规则过弱** - 需增加复杂度要求
+[0m→ [0mRead src/Services/TenantOnboardingService.php[90m [offset=1, limit=15][0m
+[0m→ [0mRead src/Services/TenantOnboardingService.php[90m [offset=330, limit=15][0m
+[0m→ [0mRead src/Services/TenantOnboardingService.php[90m [limit=10, offset=75][0m
+[0m
+[0m$ [0mphp -l /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Services/TenantOnboardingService.php && php -l /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+No syntax errors detected in /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Services/TenantOnboardingService.php
+No syntax errors detected in /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/app/Http/Controllers/Api/TenantController.php
+[0m
+修复完成：
+
+1. **P0 密码明文存储** — `TenantOnboardingService::createAdminUser()` 第 339 行：`Hash::make($basic['password'])` + 添加 `use Hash`
+2. **密码验证规则** — 两处 `password` 规则均增加大小写+数字要求：
+   - `TenantController.php:294`
+   - `TenantOnboardingService.php:82`
+[0;32m[loop-run] ✓ FIX 完成，重新进入 REVIEW[0m
+[0;31m[loop-run] ✗ === ESCALATE — TASK-009b 已循环 3 次仍未通过 ===[0m
+state updated: TASK-009b → BLOCKED
+[1;33m[loop-run] ⚠ 子任务 TASK-009b 不再自动拆分（防止级联），需人工介入[0m
+
+介入点：
+  查看最后一次 Review 报告： /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai/review/TASK-009b-review.md
+
+处理方式（三选一）：
+  A. 可修复：手动单次修复
+     mimo run '修复全部问题' -f /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai/review/TASK-009b-review.md --dangerously-skip-permissions
+
+  B. 架构问题：Claude Code 重新规划
+     claude -p "以下是 Review 报告：
+
+$(cat /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai/review/TASK-009b-review.md)
+
+请分析为何反复失败，将问题拆分为 2-3 个小 Task。" --output-format text
+
+  C. 自动拆分并执行（下次运行时）：
+     AUTO_SPLIT=1 .ai/scripts/loop-run.sh TASK-009b

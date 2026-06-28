@@ -46,12 +46,21 @@ class DalleProvider
     ];
 
     /**
-     * 支持的尺寸
+     * DALL-E 3 支持的尺寸
      */
-    protected const SUPPORTED_SIZES = [
+    protected const DALLE3_SIZES = [
         '1024x1024',
         '1792x1024',
         '1024x1792',
+    ];
+
+    /**
+     * DALL-E 2 支持的尺寸
+     */
+    protected const DALLE2_SIZES = [
+        '256x256',
+        '512x512',
+        '1024x1024',
     ];
 
     /**
@@ -141,13 +150,15 @@ class DalleProvider
     }
 
     /**
-     * 校验尺寸是否合法
+     * 校验尺寸是否合法（根据模型区分支持的尺寸集）
      *
      * @throws \RuntimeException 尺寸非法时抛出
      */
-    protected function assertSizeSupported(string $size): void
+    protected function assertSizeSupported(string $size, string $model): void
     {
-        if (! in_array($size, self::SUPPORTED_SIZES, true)) {
+        $validSizes = $model === 'dall-e-2' ? self::DALLE2_SIZES : self::DALLE3_SIZES;
+
+        if (! in_array($size, $validSizes, true)) {
             throw new \RuntimeException(trans('ai.image_size_not_supported', [
                 'provider' => 'dalle',
                 'size' => $size,
@@ -207,7 +218,7 @@ class DalleProvider
         $this->assertModelSupported($model);
 
         $size = (string) ($options['size'] ?? config('ai.image.default_size', '1024x1024'));
-        $this->assertSizeSupported($size);
+        $this->assertSizeSupported($size, $model);
 
         $payload = [
             'model' => $model,
@@ -309,7 +320,7 @@ class DalleProvider
         }
 
         $size = (string) ($options['size'] ?? config('ai.image.default_size', '1024x1024'));
-        $this->assertSizeSupported($size);
+        $this->assertSizeSupported($size, $model);
 
         $request = $this->httpMultipart()
             ->attach('image', (string) file_get_contents($imagePath), basename($imagePath));

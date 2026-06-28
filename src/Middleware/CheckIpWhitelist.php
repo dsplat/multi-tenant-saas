@@ -63,7 +63,7 @@ class CheckIpWhitelist
             return IpWhitelistService::SCOPE_API;
         }
 
-        if ($request->is('admin/*') || str_contains($request->getPathInfo(), '/admin')) {
+        if ($request->is('admin/*')) {
             return IpWhitelistService::SCOPE_ADMIN;
         }
 

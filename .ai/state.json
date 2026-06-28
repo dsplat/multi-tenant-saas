@@ -1,64 +1,79 @@
 {
-  "version": "2.0",
-  "updated": "2026-06-28",
-  "tasks": [
-    {
-      "id": "TASK-001",
-      "title": "Multi-Tenant SaaS 框架完善与扩展",
-      "status": "SUPERSEDED",
-      "sprint": "sprint-001",
-      "estimated_hours": 40,
-      "created": "2026-06-27",
-      "updated": "2026-06-28",
-      "note": "AI循环超3轮FAIL，代码已提交(535cf30)，遗留问题移交后续Task"
-    },
-    {
-      "id": "TASK-001a",
-      "status": "SUPERSEDED",
-      "updated": "2026-06-28"
-    },
-    {
-      "id": "TASK-001b",
-      "status": "SUPERSEDED",
-      "updated": "2026-06-28"
-    },
-    {
-      "id": "TASK-001c",
-      "status": "SUPERSEDED",
-      "updated": "2026-06-28"
-    },
-    {
-      "id": "TASK-002",
-      "title": "v0.2.2基座审查修复（6轮P0/P1/P2）",
-      "status": "DONE",
-      "sprint": "sprint-001",
-      "created": "2026-06-24",
-      "updated": "2026-06-28",
-      "note": "v0.2.2→v0.2.3+2：RBAC权限/Factory/Mailable/TestCase索引/afterCommit/i18n/backoff/类型修复"
-    },
-    {
-      "id": "TASK-003",
-      "title": "TASK-001新增代码审查修复+安全加固",
-      "status": "DONE",
-      "sprint": "sprint-001",
-      "estimated_hours": 4,
-      "created": "2026-06-28",
-      "updated": "2026-06-28",
-      "depends_on": "TASK-001",
-      "note": "ExportService fail-closed修复+AlertService租户过滤+审查误报5项关闭+SocialiteService决策+TASK-003任务文件生成"
-    },
-    {
-      "id": "TASK-004",
-      "title": "全量回归修复 + 支付宝OAuth认证模块接入",
-      "status": "READY",
-      "sprint": "sprint-001",
-      "estimated_hours": 8,
-      "created": "2026-06-28",
-      "updated": "2026-06-28",
-      "depends_on": "TASK-003",
-      "auto_split": true,
-      "human_confirmation": false,
-      "note": "全量回归(TestCase 11表+ServiceProvider注册+全测试通过) + SocialiteService state校验 + AlipayOAuthService独立实现 + i18n补全"
-    }
-  ]
+    "version": "2.0",
+    "updated": "2026-06-28",
+    "tasks": [
+        {
+            "id": "TASK-001",
+            "title": "Multi-Tenant SaaS 框架完善与扩展",
+            "status": "SUPERSEDED",
+            "sprint": "sprint-001",
+            "estimated_hours": 40,
+            "created": "2026-06-27",
+            "updated": "2026-06-28",
+            "note": "AI循环超3轮FAIL，代码已提交(535cf30)，遗留问题移交后续Task"
+        },
+        {
+            "id": "TASK-001a",
+            "status": "SUPERSEDED",
+            "updated": "2026-06-28"
+        },
+        {
+            "id": "TASK-001b",
+            "status": "SUPERSEDED",
+            "updated": "2026-06-28"
+        },
+        {
+            "id": "TASK-001c",
+            "status": "SUPERSEDED",
+            "updated": "2026-06-28"
+        },
+        {
+            "id": "TASK-002",
+            "title": "v0.2.2基座审查修复（6轮P0/P1/P2）",
+            "status": "DONE",
+            "sprint": "sprint-001",
+            "created": "2026-06-24",
+            "updated": "2026-06-28",
+            "note": "v0.2.2→v0.2.3+2：RBAC权限/Factory/Mailable/TestCase索引/afterCommit/i18n/backoff/类型修复"
+        },
+        {
+            "id": "TASK-003",
+            "title": "TASK-001新增代码审查修复+安全加固",
+            "status": "DONE",
+            "sprint": "sprint-001",
+            "estimated_hours": 4,
+            "created": "2026-06-28",
+            "updated": "2026-06-28",
+            "depends_on": "TASK-001",
+            "note": "ExportService fail-closed修复+AlertService租户过滤+审查误报5项关闭+SocialiteService决策+TASK-003任务文件生成"
+        },
+        {
+            "id": "TASK-004",
+            "title": "全量回归修复 + 支付宝OAuth认证模块接入",
+            "status": "DONE",
+            "sprint": "sprint-001",
+            "estimated_hours": 8,
+            "created": "2026-06-28",
+            "updated": "2026-06-28T08:03:10.287952",
+            "depends_on": "TASK-003",
+            "auto_split": true,
+            "human_confirmation": false,
+            "note": "全量回归305tests全绿+AlipayOAuthService独立实现+22singleton注册+SocialiteService安全加固"
+        },
+        {
+            "id": "TASK-004a",
+            "status": "DONE",
+            "updated": "2026-06-28T08:03:10.287952"
+        },
+        {
+            "id": "TASK-004b",
+            "status": "DONE",
+            "updated": "2026-06-28T08:03:10.287952"
+        },
+        {
+            "id": "TASK-004c",
+            "status": "DONE",
+            "updated": "2026-06-28T08:03:10.287952"
+        }
+    ]
 }

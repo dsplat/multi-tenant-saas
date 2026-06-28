@@ -29,7 +29,7 @@ class RbacService
             return true;
         }
 
-        $tenantId = TenantContext::getId();
+        $tenantId = TenantContext::getId() ?? request()->route('tenantId');
         if (!$tenantId) {
             return false;
         }

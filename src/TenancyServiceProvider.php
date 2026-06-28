@@ -15,8 +15,25 @@ use MultiTenantSaas\Events\TenantSuspended;
 use MultiTenantSaas\Events\UserLoggedIn;
 use MultiTenantSaas\Events\UserRegistered;
 use MultiTenantSaas\Listeners\LogEventListener;
+use MultiTenantSaas\Services\AlipayOAuthService;
+use MultiTenantSaas\Services\AlertService;
+use MultiTenantSaas\Services\ApiVersionService;
+use MultiTenantSaas\Services\CacheService;
+use MultiTenantSaas\Services\ExportService;
 use MultiTenantSaas\Services\IdGenerator;
 use MultiTenantSaas\Services\HealthService;
+use MultiTenantSaas\Services\LoginLogService;
+use MultiTenantSaas\Services\PaymentSecurityService;
+use MultiTenantSaas\Services\PerformanceService;
+use MultiTenantSaas\Services\PluginService;
+use MultiTenantSaas\Services\QueueService;
+use MultiTenantSaas\Services\RateLimitService;
+use MultiTenantSaas\Services\SocialiteService;
+use MultiTenantSaas\Services\StructuredLogService;
+use MultiTenantSaas\Services\SubscriptionService;
+use MultiTenantSaas\Services\TenantProfileService;
+use MultiTenantSaas\Services\UserPreferenceService;
+use MultiTenantSaas\Services\UserProfileService;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Context\TenantConfigStore;
 
@@ -106,5 +123,26 @@ class TenancyServiceProvider extends ServiceProvider
                 \MultiTenantSaas\Modules\Payment\Services\PaymentService::class
             );
         }
+
+        // 注册支付宝 OAuth 服务
+        $this->app->singleton(AlipayOAuthService::class);
+
+        // 注册核心业务服务
+        $this->app->singleton(UserProfileService::class);
+        $this->app->singleton(UserPreferenceService::class);
+        $this->app->singleton(LoginLogService::class);
+        $this->app->singleton(StructuredLogService::class);
+        $this->app->singleton(ApiVersionService::class);
+        $this->app->singleton(ExportService::class);
+        $this->app->singleton(PluginService::class);
+        $this->app->singleton(RateLimitService::class);
+        $this->app->singleton(AlertService::class);
+        $this->app->singleton(PerformanceService::class);
+        $this->app->singleton(CacheService::class);
+        $this->app->singleton(PaymentSecurityService::class);
+        $this->app->singleton(SubscriptionService::class);
+        $this->app->singleton(TenantProfileService::class);
+        $this->app->singleton(QueueService::class);
+        $this->app->singleton(SocialiteService::class);
     }
 }

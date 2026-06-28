@@ -9,6 +9,9 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/lib.sh"
+
 TASK_ID="${1:?用法: $0 TASK-ID（如 TASK-0001）}"
 PROJECT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 TASK_FILE="$PROJECT_DIR/.ai/tasks/${TASK_ID}.md"
@@ -58,6 +61,7 @@ if not found:
 data["tasks"] = tasks
 with open("$state_file", "w") as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
+    f.write('\n')
 print(f"state updated: $TASK_ID → $status")
 PYEOF
 }
@@ -65,7 +69,6 @@ PYEOF
 # =============================================================================
 # 拆分函数
 # =============================================================================
-
 # 检测 Task 是否需要 pre-split
 # 条件: AUTO_SPLIT=1 且 Task 文件包含 auto_split/Auto-split 标记 且非子任务
 should_pre_split() {
@@ -80,33 +83,6 @@ should_pre_split() {
         return 0
     fi
     return 1
-}
-
-# 解析子任务文件中的"只允许修改"文件列表
-parse_subtask_files() {
-    local subtask_file="$1"
-    local in_section=false
-    local files=()
-
-    while IFS= read -r line; do
-        if [[ "$line" =~ ^只允许修改 ]]; then
-            in_section=true
-            continue
-        fi
-        if [[ "$in_section" == "true" ]]; then
-            # 遇到非列表行（不以 - 开头）则结束
-            if [[ "$line" =~ ^-[[:space:]]*(.+) ]]; then
-                local f="${BASH_REMATCH[1]}"
-                # 去掉反引号、中文注释（...）、英文注释(#...)、空格
-                f=$(echo "$f" | sed 's/`//g; s/（.*//; s/(.*//; s/#.*//' | xargs)
-                [[ -n "$f" ]] && files+=("$f")
-            elif [[ "$line" =~ ^[^[:space:]-] ]]; then
-                break
-            fi
-        fi
-    done < "$subtask_file"
-
-    printf '%s\n' "${files[@]}"
 }
 
 # 验证子任务文件是否重叠

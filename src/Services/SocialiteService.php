@@ -70,9 +70,15 @@ class SocialiteService
 
     /**
      * 获取 OAuth 重定向 URL
+     *
+     * 支付宝使用 RSA2 签名的独立授权流程，不走 Socialite 驱动
      */
     public static function getRedirectUrl(string $provider, int $tenantId): string
     {
+        if ($provider === 'alipay') {
+            return app(AlipayOAuthService::class)->getAuthorizeUrl($tenantId);
+        }
+
         self::configureDriver($provider, $tenantId);
 
         try {
@@ -86,13 +92,22 @@ class SocialiteService
 
     /**
      * 处理 OAuth 回调
+     *
+     * 支付宝走独立的 AlipayOAuthService 流程；其余提供商复用 Socialite，
+     * 并捕获 InvalidStateException 显式 abort(403)，避免 state 不匹配被静默忽略
      */
     public static function handleCallback(string $provider, int $tenantId): array
     {
+        if ($provider === 'alipay') {
+            return app(AlipayOAuthService::class)->handleCallback($tenantId);
+        }
+
         self::configureDriver($provider, $tenantId);
 
         try {
             $socialUser = Socialite::driver($provider)->user();
+        } catch (\Laravel\Socialite\Two\InvalidStateException $e) {
+            abort(403, trans('common.oauth_state_invalid'));
         } finally {
             self::resetDriverConfig($provider);
         }
@@ -190,7 +205,7 @@ class SocialiteService
      */
     public static function getOAuthConfigForDisplay(int $tenantId): array
     {
-        $providers = ['wechat', 'dingtalk', 'feishu', 'github', 'google'];
+        $providers = ['wechat', 'dingtalk', 'feishu', 'github', 'google', 'alipay'];
         $result = [];
 
         foreach ($providers as $provider) {
@@ -232,6 +247,7 @@ class SocialiteService
             'feishu' => ['name' => trans("common.feishu"), 'icon' => 'feishu'],
             'github' => ['name' => 'GitHub', 'icon' => 'github'],
             'google' => ['name' => 'Google', 'icon' => 'google'],
+            'alipay' => ['name' => trans("common.alipay"), 'icon' => 'alipay'],
         ];
     }
 }

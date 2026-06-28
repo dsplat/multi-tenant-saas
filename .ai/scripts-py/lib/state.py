@@ -50,11 +50,16 @@ class StateManager:
             self._data = {"version": "2.0", "tasks": []}
     
     def save(self) -> None:
-        """保存状态文件"""
+        """保存状态文件（原子写入）"""
         self._data["updated"] = datetime.date.today().isoformat()
-        with open(self.state_file, 'w', encoding='utf-8') as f:
+        tmp_path = self.state_file.with_suffix('.tmp')
+        with open(tmp_path, 'w', encoding='utf-8') as f:
             json.dump(self._data, f, indent=2, ensure_ascii=False)
             f.write('\n')
+            f.flush()
+            import os
+            os.fsync(f.fileno())
+        os.replace(str(tmp_path), str(self.state_file))
     
     def get_task(self, task_id: str) -> Optional[TaskState]:
         """获取任务状态"""

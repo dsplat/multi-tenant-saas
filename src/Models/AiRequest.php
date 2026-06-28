@@ -2,11 +2,15 @@
 
 namespace MultiTenantSaas\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Models\User;
 
 /**
  * AI 请求日志模型
@@ -101,22 +105,35 @@ class AiRequest extends Model
      * 标记为成功
      *
      * @param  bool  $persist  是否自动持久化
+     *
+     * @throws QueryException 当持久化失败时
      */
-    public function markAsSuccess(bool $persist = false): void
+    public function markAsSuccess(bool $persist = true): void
     {
         $this->status = self::STATUS_SUCCESS;
 
         if ($persist) {
-            $this->save();
+            try {
+                $this->save();
+            } catch (QueryException $e) {
+                Log::error('[AiRequest] markAsSuccess save failed', [
+                    'request_id' => $this->request_id,
+                    'error' => $e->getMessage(),
+                ]);
+                throw $e;
+            }
         }
     }
 
     /**
      * 标记为失败
      *
+     * @param  string|null  $errorMessage  错误信息
      * @param  bool  $persist  是否自动持久化
+     *
+     * @throws QueryException 当持久化失败时
      */
-    public function markAsFailed(?string $errorMessage = null, bool $persist = false): void
+    public function markAsFailed(?string $errorMessage = null, bool $persist = true): void
     {
         $this->status = self::STATUS_FAILED;
 
@@ -125,14 +142,22 @@ class AiRequest extends Model
         }
 
         if ($persist) {
-            $this->save();
+            try {
+                $this->save();
+            } catch (QueryException $e) {
+                Log::error('[AiRequest] markAsFailed save failed', [
+                    'request_id' => $this->request_id,
+                    'error' => $e->getMessage(),
+                ]);
+                throw $e;
+            }
         }
     }
 
     /**
      * 作用域：按状态筛选
      */
-    public function scopeByStatus($query, string $status)
+    public function scopeByStatus(Builder $query, string $status): Builder
     {
         return $query->where('status', $status);
     }
@@ -140,7 +165,7 @@ class AiRequest extends Model
     /**
      * 作用域：仅成功记录
      */
-    public function scopeSuccess($query)
+    public function scopeSuccess(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_SUCCESS);
     }
@@ -148,7 +173,7 @@ class AiRequest extends Model
     /**
      * 作用域：仅失败记录
      */
-    public function scopeFailed($query)
+    public function scopeFailed(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_FAILED);
     }
@@ -156,7 +181,7 @@ class AiRequest extends Model
     /**
      * 作用域：按提供商标识筛选
      */
-    public function scopeByProvider($query, string $provider)
+    public function scopeByProvider(Builder $query, string $provider): Builder
     {
         return $query->where('provider', $provider);
     }
@@ -164,7 +189,7 @@ class AiRequest extends Model
     /**
      * 作用域：按模型筛选
      */
-    public function scopeByModel($query, string $model)
+    public function scopeByModel(Builder $query, string $model): Builder
     {
         return $query->where('model', $model);
     }

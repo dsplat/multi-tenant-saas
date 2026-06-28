@@ -1,69 +1,95 @@
 ## Architecture
 
-三个模型职责清晰，边界合理：
-- `AiProvider` — 租户级 / 系统级 AI 提供商配置，`tenant_id` nullable 实现双层覆盖（系统默认 + 租户覆盖），设计得当。
-- `AiRequest` — 请求日志/审计表，独立于 Provider 存储，便于归档和分析。
-- `AiModelAlias` — 全局模型别名映射，不挂 `BelongsToTenant`，正确——模型别名是平台级配置，不应租户隔离。
+模块划分清晰，职责单一。`AiProvider` / `AiRequest` / `AiModelAlias` 三者边界明确，无循环依赖。
 
-迁移索引设计合理：`ai_requests` 的复合索引 `(tenant_id, created_at)`, `(tenant_id, model)`, `(tenant_id, provider)` 覆盖了按租户聚合查询的典型场景。`ai_providers` 的 `(tenant_id, code)` 唯一约束也正确。
+`BelongsToTenant` 的 `empty()` → `is_null()` 改动正确解决了系统级记录（`tenant_id=null`）创建问题——`is_null` 不会拦截显式传入的 `null`，允许系统级 Provider 正常创建。`TenantScope` 在 `tenantId` 为 null 时不做过滤（`if ($tenantId)`），系统级查询也能正确走通。
 
-**小问题：** `AiProvider` 与 `AiRequest` 之间缺少 Eloquent relationship（如 `$provider->requests()` 或 `$request->provider()`）。当前 `AiRequest.provider` 是 string 字段（存 code），没有外键关联，这在日志表中是合理设计（避免级联删除影响历史记录），但缺少便利的关系方法可能是后续任务的工作。
+`AiModelAlias` 不挂 `BelongsToTenant` 合理——别名是全局配置，无需租户隔离。
+
+**小瑕疵**：`AiProvider` 和 `AiRequest` 的 `tenant_id` 列类型是 `bigInteger()->unsigned()->nullable()`，但 `BelongsToTenant::getCurrentTenantId()` 返回 `?string`，模型 cast 为 `integer`。类型在 string/int 之间摇摆，虽不影响运行（PHP 松散比较），但建议统一。
 
 ---
 
 ## Code Quality
 
-- **命名规范：** PSR-12 合规，属性/方法命名清晰，常量命名统一（`STATUS_*`, `TYPE_*`）。
-- **可读性：** 每个模型都添加了类级别 PHPDoc 说明用途，关键逻辑（如 `api_key` 加密/解密）有内联注释。
-- **重复代码：** `AiProvider` 和 `AiModelAlias` 都有 `STATUS_ACTIVE` / `is_active` 概念，但语义不同（一个是字符串状态字段，一个是布尔字段），可以接受。`AiRequest` 的 `markAsSuccess()` / `markAsFailed()` 封装了状态转换，简洁实用。
-- **复杂度：** 整体低，每个模型文件 ~80-120 行，职责单一。
+**优点：**
+- Scope 方法全部补齐了 `Builder` 参数类型和 `Builder` 返回类型，与 `Tenant.php` 一致
+- `isActive()` / `isDeprecated()` 去掉冗余 `=== true` 比较，cast 为 boolean 后直接返回即可
+- 中文 docblock 质量高，关键设计决策有注释（如 api_key 加密注意事项）
+- `$persist` 默认值从 `false` 改为 `true` 消除了调用方遗忘 `save()` 的隐式陷阱
+
+**问题：**
+
+1. **`AiRequest::user()` 缺少 `User` import** — 类中引用了 `User::class`（第 82 行），但文件头没有 `use MultiTenantSaas\Models\User;`。PHP 会将其解析为 `MultiTenantSaas\Models\User`（同命名空间），如果该类确实存在于该命名空间则没问题，但如果 User 模型在其他位置（如 `App\Models\User`）则会 fatal error。需确认 User 模型的 FQCN。
+
+2. **`markAsSuccess` / `markAsFailed` 的 `save()` 无异常保护** — `$persist = true` 后直接调用 `$this->save()`，如果数据库写入失败，模型内存状态已变更但未持久化，调用者无感知。建议至少在 docblock 中注明可能抛出 `QueryException`。
 
 ---
 
 ## Type Safety
 
-- 所有 cast 声明完整，`cost` 使用 `decimal:6` 精度合适。
-- `AiProvider::decryptApiKey()` 返回 `?string`，在解密失败时返回 null 并记录日志，正确。
-- `AiModelAlias::toModelEnum()` 返回 `?AiModelEnum`，处理了自定义模型不在枚举中的情况。
-- **潜在问题：** `AiRequest::$fillable` 中包含 `cost`，但 `cost` 的 cast 是 `decimal:6`。Eloquent 的 decimal cast 在赋值时会做字符串转换，但如果传入 float 可能有精度问题。建议文档中注明应传入 string 类型的金额值。
+**基本完善**，`casts()` 方法式声明覆盖了关键字段。
+
+**问题：**
+
+1. **`AiRequest.cost` 精度风险**：cast 为 `decimal:6`，Laravel 的 decimal cast 在赋值时**截断而非四舍五入**。传入 `0.123456789` 会得到 `"0.123456"` 而非 `"0.123457"`。docblock 有提醒应传 string，但运行时无保护。对于计费字段，这可能导致金额偏差。
+
+2. **`setApiKeyAttribute($value)` 无参数类型标注** — 声明为 `setApiKeyAttribute($value): void`，但 `$value` 未标注类型。虽然 Eloquent mutator 的惯例是不加类型，但对于加密字段，明确 `?string` 类型能防止非预期类型传入。
 
 ---
 
 ## Security
 
-- ✅ **敏感数据保护：** `api_key` 使用 `Crypt::encryptString` / `decryptString` 加密存储，这是正确的做法。解密失败时降级返回 null 而非暴露错误详情。
-- ✅ **无 SQL 注入风险：** 全部使用 Eloquent ORM，无原生查询。
-- ✅ **无 XSS 风险：** 纯模型层，不涉及输出渲染。
-- ⚠️ **api_key 在 fillable 中：** `AiProvider::$fillable` 包含 `api_key`，意味着可通过 `create()` / `fill()` 批量赋值。虽然有 mutator 加密，但如果上层未做输入校验，可能被注入恶意内容。这是 Laravel 的常见模式，风险低，但建议在 Service 层（后续任务）做长度/格式校验。
-- ✅ `AiRequest` 的 `prompt_summary` 是摘要字段而非完整 prompt，避免了敏感数据暴露。
+**✅ 良好：**
+- `api_key` 使用 `Crypt::encryptString` / `decryptString`，解密失败不抛异常，返回 null + 日志记录
+- `api_key` 故意不加入 `$casts`，避免 mutator 被绕过（有注释说明）
+- `$fillable` 白名单模式，无 `$guarded = []` 的风险
+- `TenantScope` 强制租户隔离，绕过需 admin 域名 + 显式调用
+
+**⚠️ 关注点：**
+
+1. **`api_key` 加密依赖 `APP_KEY`**：`APP_KEY` 泄露或轮换会导致已加密数据无法解密。这是 Laravel `Crypt` 的已知限制，建议运维文档标注。
+
+2. **`AiRequest.error_message` 可能含敏感信息**（堆栈、内部路径）。当前模型层无法控制暴露，但 Service 层应做脱敏。
+
+3. **无 SQL 注入风险**：全部 Eloquent ORM，scope 参数类型声明为 `string`。
 
 ---
 
 ## Performance
 
-- ✅ 迁移索引设计合理，覆盖了主要查询路径。
-- ✅ `AiRequest` 的 `response_time_ms`、`input_tokens`、`output_tokens` 为 unsigned integer，适合聚合查询。
-- ✅ `AiProvider` 的 `priority` 为 smallInteger，足够且节省空间。
-- **潜在 N+1：** 如果后续查询 `AiProvider` 时需要关联 `AiModelAlias`，但当前没有这种关系定义，暂无问题。
-- **无内存泄漏风险：** 无循环引用、无静态属性存储。
+**✅ 良好：**
+- 迁移索引设计合理：`ai_requests` 的 `(tenant_id, created_at)`、`(tenant_id, model)`、`(tenant_id, provider)` 覆盖了常见的租户+维度查询
+- `ai_providers` 的 `(tenant_id, code)` 唯一索引避免重复配置
+- `ai_requests` 的 `idx_status` 已改为 `(tenant_id, status)` 复合索引，选择性大幅提升
+
+**⚠️ 关注点：**
+
+1. **`getApiKeyAttribute` 每次访问都调用 `Crypt::decryptString`**：循环中访问 `$provider->api_key` 会反复解密。建议调用方注意缓存，或在 accessor 中做 lazy cache（解密一次后存入 `$this->attributes` 副本）。
+
+2. **`ai_providers` 仍有 `idx_status` 单列索引**：与 `ai_requests` 的改进不一致，`status` 基数低（仅 2 个值），单列索引选择性差。建议也改为 `(tenant_id, status)` 或直接移除（已有 `(tenant_id, code)` 覆盖大部分查询路径）。
 
 ---
 
 ## Potential Bugs
 
-- ⚠️ **`AiProvider` 加密与 `$casts` 冲突：** `api_key` 不在 `$casts` 中，但通过 mutator（`setApiKeyAttribute` / `getApiKeyAttribute`）处理。这是正确的模式——mutator 和 cast 不能同时作用于同一字段。但如果未来有人误加 `'api_key' => 'string'` 到 casts 中，mutator 会被绕过，数据将明文存储。建议在 mutator 上方加注释说明。
-- ⚠️ **`AiRequest.markAsFailed()` 不保存：** `markAsFailed()` 只设置属性，不调用 `save()`。调用者需要手动 `save()`。与 `markAsSuccess()` 行为一致（也是只设属性），所以这是有意设计，但容易被误用——调用者可能期望它自动持久化。
-- ✅ 边界条件处理良好：nullable 字段、默认值都已覆盖。
+1. **⚠️ `AiRequest::user()` 缺少 import（高风险）**：
+   `AiRequest.php:82` 引用 `User::class`，但无 `use` 语句。PHP 会解析为当前命名空间 `MultiTenantSaas\Models\User`。如果 User 模型不在该命名空间，调用 `$request->user()` 将 fatal error。即使在同命名空间，缺少显式 import 也不符合 PSR-12 规范。
+
+2. **⚠️ `markAsSuccess` / `markAsFailed` 的 `save()` 无事务保护（中等风险）**：
+   `$persist = true` 时直接调用 `$this->save()`。如果调用者在事务中使用（如 `$request->markAsFailed()` 后又做了其他操作失败回滚），model 内存状态不会回滚。此外，save 失败时调用者无感知。
+
+3. **`BelongsToTenant` 与 `HasGlobalId` 的 boot 顺序依赖**：
+   `use BelongsToTenant, HasFactory, HasGlobalId` — Laravel 按声明顺序 boot traits。`HasGlobalId` 的 `creating` 回调先于 `BelongsToTenant` 执行，两者都操作 creating 事件但字段不同（主键 vs tenant_id），当前无冲突。但若未来任一 trait 依赖另一方的字段值，顺序敏感性会成为隐患。
 
 ---
 
 ## Verdict
 
-**PASS**
+**FAIL**
 
-【建议改进】（非阻塞）：
+【必须修复】：
 
-1. **`AiProvider::$api_key` mutator 加注释：** 在 `setApiKeyAttribute` / `getApiKeyAttribute` 方法上方明确标注"不要将 api_key 加入 $casts，否则 mutator 会被覆盖导致明文存储"。
-2. **`AiRequest::markAsSuccess()` / `markAsFailed()` 考虑提供自动保存的便捷方法：** 例如 `markAsSuccessAndSave()` 或在方法内加可选参数 `$persist = false`，减少调用方忘记 `save()` 的风险。
-3. **`AiRequest.cost` 精度文档：** 在 PHPDoc 中注明 cost 字段应传入 string 类型以避免 float 精度问题。
-4. **缺少 `$primaryKeyType` 声明：** 三个模型都使用非标准主键名（`provider_id`, `request_id`, `alias_id`），应在模型中显式声明 `protected $keyType = 'string'` 或确认它们是 `int` 类型（当前是 unsignedBigInteger，所以默认 int 没问题，但显式声明更清晰）。
+1. **`AiRequest.php` 缺少 `User` 类的 import 语句**：第 82 行 `return $this->belongsTo(User::class, ...)` 中的 `User` 无 import。如果 `User` 模型不在 `MultiTenantSaas\Models` 命名空间下，运行时将 fatal error。需确认 User 模型的 FQCN 并添加正确的 `use` 语句。
+
+2. **`markAsSuccess` / `markAsFailed` 调用 `save()` 时无异常处理**：`$persist = true` 是新默认值，意味着所有现有调用路径都会自动 `save()`。建议在方法内用 `try/catch` 捕获 `QueryException` 并记录日志，或至少在 docblock 中明确标注"可能抛出数据库异常"，让调用者做好防御。

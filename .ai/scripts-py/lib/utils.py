@@ -15,8 +15,8 @@ class Colors:
 
 
 def _print(color: str, prefix: str, message: str) -> None:
-    """带颜色的日志输出"""
-    print(f"{color}[loop-run] {prefix} {message}{Colors.NC}", file=sys.stderr)
+    """带颜色的日志输出（强制立即刷盘）"""
+    print(f"{color}[loop-run] {prefix} {message}{Colors.NC}", file=sys.stderr, flush=True)
 
 
 def log(message: str) -> None:

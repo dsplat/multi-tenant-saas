@@ -28,7 +28,7 @@ return new class extends Migration
             $table->index(['tenant_id', 'model'], 'idx_tenant_model');
             $table->index(['tenant_id', 'provider'], 'idx_tenant_provider');
             $table->index('user_id', 'idx_user');
-            $table->index('status', 'idx_status');
+            $table->index(['tenant_id', 'status'], 'idx_tenant_status');
         });
     }
 

@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Crypt;
@@ -121,7 +122,7 @@ class AiProvider extends Model
     /**
      * 作用域：仅启用的提供商
      */
-    public function scopeActive($query)
+    public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_ACTIVE);
     }
@@ -129,7 +130,7 @@ class AiProvider extends Model
     /**
      * 作用域：按提供商标识筛选
      */
-    public function scopeByCode($query, string $code)
+    public function scopeByCode(Builder $query, string $code): Builder
     {
         return $query->where('code', $code);
     }

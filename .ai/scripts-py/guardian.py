@@ -60,11 +60,18 @@ def load_guardian_state() -> dict:
 
 
 def save_guardian_state(state: dict):
+    """原子写入 guardian.json（写临时文件 → fsync → rename）"""
     state["updated_at"] = datetime.now().isoformat()
-    GUARDIAN_STATE.write_text(json.dumps(state, indent=2, ensure_ascii=False))
-    # 强制刷盘
-    import os
-    os.sync()
+    content = json.dumps(state, indent=2, ensure_ascii=False)
+    
+    tmp_path = GUARDIAN_STATE.with_suffix('.tmp')
+    # 1. 写入临时文件
+    with open(tmp_path, 'w') as f:
+        f.write(content)
+        f.flush()
+        os.fsync(f.fileno())  # 强制刷盘
+    # 2. 原子 rename（macOS APFS 保证原子性）
+    os.replace(str(tmp_path), str(GUARDIAN_STATE))
 
 
 def get_task_status(state_mgr: StateManager, task_id: str) -> str:

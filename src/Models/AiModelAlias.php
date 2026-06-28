@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use MultiTenantSaas\Concerns\HasGlobalId;
@@ -64,7 +65,7 @@ class AiModelAlias extends Model
      */
     public function isActive(): bool
     {
-        return $this->is_active === true;
+        return $this->is_active;
     }
 
     /**
@@ -72,7 +73,7 @@ class AiModelAlias extends Model
      */
     public function isDeprecated(): bool
     {
-        return $this->is_deprecated === true;
+        return $this->is_deprecated;
     }
 
     /**
@@ -88,7 +89,7 @@ class AiModelAlias extends Model
     /**
      * 作用域：仅激活的别名
      */
-    public function scopeActive($query)
+    public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
     }
@@ -96,7 +97,7 @@ class AiModelAlias extends Model
     /**
      * 作用域：按别名筛选
      */
-    public function scopeByAlias($query, string $alias)
+    public function scopeByAlias(Builder $query, string $alias): Builder
     {
         return $query->where('alias', $alias);
     }
@@ -104,7 +105,7 @@ class AiModelAlias extends Model
     /**
      * 作用域：按提供商标识筛选
      */
-    public function scopeByProvider($query, string $provider)
+    public function scopeByProvider(Builder $query, string $provider): Builder
     {
         return $query->where('provider', $provider);
     }
@@ -112,7 +113,7 @@ class AiModelAlias extends Model
     /**
      * 作用域：按类型筛选
      */
-    public function scopeByType($query, string $type)
+    public function scopeByType(Builder $query, string $type): Builder
     {
         return $query->where('type', $type);
     }

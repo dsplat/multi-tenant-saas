@@ -573,6 +573,31 @@ abstract class TestCase extends BaseTestCase
 
             $table->index(['tenant_id', 'metric_type', 'period']);
         });
+
+        // 邮件模板表（字段定义与 Migration 一致）
+        Schema::create('mail_templates', function (Blueprint $table) {
+            $table->unsignedBigInteger('template_id')->primary();
+            $table->bigInteger('tenant_id')->unsigned()->nullable();
+            $table->string('type', 50);
+            $table->string('name_key', 50)->nullable();
+            $table->string('name');
+            $table->string('subject');
+            $table->longText('html_body');
+            $table->text('text_body')->nullable();
+            $table->json('variables')->nullable();
+            $table->string('status', 20)->default('activated');
+            $table->timestamps();
+            $table->softDeletes();
+
+            $table->index(['tenant_id', 'type']);
+            $table->index(['type', 'status']);
+            $table->index(['name_key', 'tenant_id']);
+
+            $table->foreign('tenant_id')
+                ->references('tenant_id')
+                ->on('tenants')
+                ->onDelete('cascade');
+        });
     }
 
 

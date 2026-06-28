@@ -387,7 +387,7 @@ $DIFF
     echo ""
 
     # 判断 PASS / FAIL
-    if grep -A1 "^## Verdict" "$REVIEW_FILE" | grep -q "PASS"; then
+    if grep -A3 "^## Verdict" "$REVIEW_FILE" | grep -q "PASS"; then
         ok "=== REVIEW PASS — $TASK_ID 完成 ==="
         update_state "TEST"
         exit 0

@@ -14,4 +14,25 @@ return [
     'deleted' => 'Notification deleted',
     'read_cleared' => 'Read notifications cleared',
     'not_found' => 'Notification not found',
+
+    'mail_templates' => [
+        'not_found' => 'Mail template not found',
+        'invalid_status' => 'Invalid template status',
+        'status_activated' => 'Activated',
+        'status_disabled' => 'Disabled',
+        'types' => [
+            'billing' => 'Billing',
+            'notification' => 'Notification',
+            'welcome' => 'Welcome',
+            'reset' => 'Password Reset',
+        ],
+        'names' => [
+            'welcome_registration' => 'Welcome Registration Email',
+            'password_reset' => 'Password Reset Email',
+            'payment_success' => 'Payment Success Notice',
+            'invoice_generated' => 'Invoice Generated Notice',
+            'subscription_expiring' => 'Subscription Expiring Reminder',
+            'tenant_suspended' => 'Tenant Suspended Notice',
+        ],
+    ],
 ];

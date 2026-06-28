@@ -14,4 +14,25 @@ return [
     'deleted' => '通知已删除',
     'read_cleared' => '已清空已读通知',
     'not_found' => '通知不存在',
+
+    'mail_templates' => [
+        'not_found' => '邮件模板不存在',
+        'invalid_status' => '无效的模板状态',
+        'status_activated' => '已激活',
+        'status_disabled' => '已停用',
+        'types' => [
+            'billing' => '账单',
+            'notification' => '通知',
+            'welcome' => '欢迎',
+            'reset' => '密码重置',
+        ],
+        'names' => [
+            'welcome_registration' => '欢迎注册邮件',
+            'password_reset' => '密码重置邮件',
+            'payment_success' => '支付成功通知',
+            'invoice_generated' => '账单生成通知',
+            'subscription_expiring' => '订阅到期提醒',
+            'tenant_suspended' => '租户暂停通知',
+        ],
+    ],
 ];

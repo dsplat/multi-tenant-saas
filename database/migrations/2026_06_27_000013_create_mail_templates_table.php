@@ -12,6 +12,7 @@ return new class extends Migration
             $table->unsignedBigInteger('template_id')->primary()->comment('模板ID（全局ID，16位数字）');
             $table->bigInteger('tenant_id')->unsigned()->nullable()->comment('租户ID，NULL表示系统默认模板');
             $table->string('type', 50)->comment('类型: billing/notification/welcome/reset');
+            $table->string('name_key', 50)->nullable()->comment('模板固定标识符，用于幂等匹配，不受 locale 影响');
             $table->string('name')->comment('模板名称');
             $table->string('subject')->comment('邮件主题');
             $table->longText('html_body')->comment('HTML 正文');
@@ -23,6 +24,7 @@ return new class extends Migration
 
             $table->index(['tenant_id', 'type']);
             $table->index(['type', 'status']);
+            $table->index(['name_key', 'tenant_id']);
 
             $table->foreign('tenant_id')
                 ->references('tenant_id')

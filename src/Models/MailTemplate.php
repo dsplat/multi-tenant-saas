@@ -52,6 +52,7 @@ class MailTemplate extends Model
     protected $fillable = [
         'tenant_id',
         'type',
+        'name_key',
         'name',
         'subject',
         'html_body',

@@ -5,7 +5,85 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/).
 
-## [Unreleased]
+## [1.0.0] - 2026-06-28
+
+### Overview
+
+v1.0.0 是框架的首个正式发布版本。从 v0.1.0 到 v1.0.0，框架经历了 3 个 sprint 周期，新增 29 个服务、9 个模型、13 张数据库表、14 个控制器，实现了完整的 SaaS 商业化能力。
+
+### Added — 核心架构
+- RBAC 细粒度权限系统（permissions / roles / role_permissions 三表 + RbacService + CheckRbacPermission 中间件，40+ 权限节点）
+- 领域事件系统（5 个事件类 + LogEventListener 自动审计）
+- 队列任务系统（SendEmailVerificationJob / SendPasswordResetJob + 指数退避重试）
+- 接口契约层（IdGeneratorContract / TenantContextContract），支持派生项目替换实现
+- SetLocale 中间件（自动设置请求语言）
+- 业务异常类（InsufficientCreditsException / PermissionDeniedException / QuotaExceededException / TenantNotFoundException）
+- ErrorCode 枚举（统一错误码）
+
+### Added — SaaS 模块
+- 订阅管理模块（SubscriptionService + SubscriptionPlan + SubscriptionHistory，4 种计划 free/basic/pro/enterprise）
+- 文件存储模块（FileService + FileController + FileUpload 模型，多磁盘/分享/配额）
+- 通知中心模块（NotificationController + 通知偏好 + 5 种通知类：CreditLow/PaymentSuccess/SubscriptionExpiring/TenantSuspended/General）
+- RBAC 权限管理模块（RbacService + RbacController + 角色/权限 CRUD）
+- 支付宝 OAuth 认证（AlipayOAuthService 独立实现）
+- 邮箱验证流程（EmailVerificationMail + verifyEmail + resendVerification）
+- 密码重置邮件通知（PasswordResetMail Mailable）
+- 租户暂停/恢复（suspend + activate，暂停时清除 Token）
+- 租户开通流程（store + provisionTenant 初始化配置/积分）
+- 成员删除路由（最后管理员保护）
+- 3 个模型工厂（TenantFactory / UserFactory / TenantUserFactory）
+
+### Added — 支付网关扩展
+- PayPal 支付（PayPalService 独立实现）
+- Stripe 支付（StripeService 独立实现）
+- 银联支付（UnionPayService 独立实现）
+- 统一接口：createOrder / refund / handleWebhook
+
+### Added — 运维与高级功能
+- 结构化日志（StructuredLogService + structured_logs 表，带租户/用户上下文）
+- 告警系统（AlertService + alert_rules + alerts 表，阈值监控）
+- API 版本管理（ApiVersionService + api_versions 表）
+- 插件系统（PluginService + plugins + plugin_dependencies 表）
+- 速率限制规则（RateLimitService + rate_limit_rules 表，可配置策略）
+- 导出任务（ExportService + export_tasks 表，异步 Excel/PDF）
+- 支付安全（PaymentSecurityService + user_payment_passwords + payment_logs 表）
+- 用户偏好管理（UserPreferenceService + user_preferences 表）
+- 性能监控（PerformanceService）
+- 缓存管理（CacheService）
+- 队列管理（QueueService）
+- Horizon 管理（HorizonService）
+- 登录日志（LoginLogService）
+- 系统配置管理（SystemSettingService）
+
+### Added — 数据库
+- 37 张数据库表（覆盖租户/用户/RBAC/积分/订阅/支付/文件/通知/审计/OAuth/系统/发票等 8 大业务域）
+- 积分过期字段（credit_accounts.expires_at / expired_at + credit_transactions.expires_at / expired）
+- 订阅字段扩展（tenants.subscription_plan_id / subscription_started_at / subscription_expires_at）
+
+### Added — API
+- 80+ API 端点（从 32 个扩展到 80+，覆盖认证/租户/成员/RBAC/积分/订阅/支付/域名/SSL/配置/OAuth/审计/通知/文件/Token/配额/系统设置）
+- Sanctum Token abilities（14 种细粒度 API 权限）
+- 认证后 API 全局限流（throttle:api，60/min）
+- 5 个 API Resource（TenantResource / UserResource / TenantUserResource / TenantSettingResource / CreditAccountResource）
+
+### Added — 国际化
+- 13 个语言文件 × 2 种语言（zh_CN + en），覆盖 auth/common/credit/domain/file/notification/payment/sms/ssl/subscription/tenant/apitoken/validation
+
+### Added — 文档
+- Swagger/OpenAPI 文档（darkaonline/l5-swagger）
+- 完整架构文档更新（系统架构概览 / 数据模型设计 / 设计决策）
+- OAuth SDK 接入指南
+- 支付 SDK 接入指南
+- SaaS 核心模块扩展指南
+
+### Changed
+- HasGlobalId 使用 IdGeneratorContract 替代直接引用 IdGenerator
+- TenancyServiceProvider 绑定接口契约 + 注册事件监听 + 注册限流策略 + 注册 22 个核心服务 singleton
+- 邮件类从 app/Mail/ 移至 src/Mail/（框架包自包含）
+- 邮件主题改用 trans() i18n
+- config/tenancy.php 新增 id 配置节（min_value/max_value）
+- 所有控制器响应使用 trans() i18n
+- 6 个迁移主键从 auto-increment id 改为全局 ID（unsignedBigInteger）
 
 ### Fixed
 - activate 路由/控制器权限 tenant.suspend → tenant.activate（新增 tenant.activate 权限到 RBAC seed）
@@ -14,6 +92,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 - EmailVerificationMail/PasswordResetMail 邮件正文硬编码中文（改用 trans() i18n）
 - SendEmailVerificationJob/SendPasswordResetJob backoff=30 应为数组（改为 [10,30,60] 指数退避）
 - UserRegistered::$tenantId 类型 ?int 与 TenantContext::getId() 返回 ?string 不一致
+- SendEmailVerificationJob/SendPasswordResetJob 引用 App\Mail 命名空间（移至 src/Mail/）
+- RbacService JOIN 使用 permissions.id 但主键已改为 permission_id（自定义角色权限查询返回空）
+- TenantController activate 权限检查 tenant.activate 不存在（改为 tenant.suspend）
+- TestCase schema 与真实迁移不匹配（credit_accounts/credit_transactions/6个表主键+列名全量对齐）
+- TenantContext config key current_tenant_id → default_tenant_id
+- TenantContext::getTenant() Octane cache 泄漏（移除 cache()->remember）
+- LogEventListener 用户注册日志泄露 email PII
+- SmsService 成功发送用了 Log::error 级别
+- SubscriptionController exists:subscription_plans,id → subscription_plan_id + $plan->id → subscription_plan_id
+- SubscriptionController updatePlan 缺少 name 字段验证
+- TenantCreditController 引用 total_earned/total_spent 但实际列名是 total_recharged/total_consumed
+- FileController show/preview/download/share/destroy 缺少显式租户所有权校验
+- TestController 仍存在未重命名（改为 SpaController）
+- ProcessCreditExpiry 引用 credit_transactions 不存在的 expires_at/expired 列（新增迁移补列）
+- RefundService trans() 被包在引号里不执行翻译
+- UserApiToken API Key 明文存储（改用 Crypt 加密/解密）
+- SocialiteService Octane config 跨请求污染（改用 app 容器请求级隔离）
+- 6 个模型缺少 HasGlobalId（FileUpload/NotificationPreference/Permission/Role/SubscriptionHistory/SubscriptionPlan）
+- SubscriptionHistory / UserApiToken 缺少 BelongsToTenant（跨租户数据泄露）
+- /credits /api-tokens /quotas 路由缺少 RBAC 中间件
+- AuditService::log() 类型不匹配（参数从 ?array 改为联合类型）
+- FileController 跨租户数据泄露（添加 AuthorizesTenantAccess）
+- SubscriptionController 缺少租户访问检查
+- 多处硬编码中文消息改用 trans()
+
+### Security
+- Sanctum Token abilities（细粒度 API 权限控制）
+- 认证后 API 全局限流（防止暴力调用）
+- 跨租户数据泄露修复（FileController + SubscriptionController + SubscriptionHistory + UserApiToken）
+- 支付密码 + 支付安全日志
+- API Key 加密存储
+- OAuth Token 加密存储
+- 批量赋值防护
+- 密码策略增强（min(8)+mixedCase+numbers）
+- 支付日志脱敏
+- CORS 环境变量配置
 
 ## [0.2.2] - 2026-06-24
 

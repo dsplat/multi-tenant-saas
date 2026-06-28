@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP Version](https://img.shields.io/badge/PHP-%5E8.2-777BB4)](https://php.net)
 [![Laravel Version](https://img.shields.io/badge/Laravel-%5E12.0-FF2D20)](https://laravel.com)
+[![Version](https://img.shields.io/badge/version-v1.0.0-blue)](CHANGELOG.md)
 
 ---
 
@@ -44,11 +45,13 @@ Order::create(['name' => '新订单']);
 - **域名白名单**：自动管理 Nginx 域名白名单
 - **SSL 证书**：支持自定义域名 SSL 证书管理
 
-### 👥 权限控制
+### 👥 RBAC 权限控制
 
 - **平台级角色**：`super_admin`（超级管理员）、`platform_user`（普通用户）
 - **租户内角色**：`tenant_admin`（租户管理员）、`end_user`（终端用户）
-- **中间件保护**：通过中间件实现细粒度权限控制
+- **细粒度权限**：40+ 权限节点，按 `tenant.view`、`member.create` 等命名
+- **自定义角色**：租户可创建自定义角色并分配权限
+- **中间件保护**：`rbac.permission:permission.name` 中间件实现路由级权限控制
 
 ### 🆔 全局唯一 ID
 
@@ -60,21 +63,86 @@ Order::create(['name' => '新订单']);
 
 - 租户级积分账户
 - 用户级积分账户
+- 积分过期与到期提醒
 - 配额检查和限制
 - 交易记录追溯
+
+### 📋 订阅管理
+
+- 订阅计划（free/basic/pro/enterprise）
+- 月付/年付定价
+- 试用期管理
+- 订阅历史记录
+- 升级/降级/取消
+
+### 💳 多支付网关
+
+| 支付方式 | 驱动 | 说明 |
+|----------|------|------|
+| 微信支付 | `wechat` | 通过 yansongda/pay |
+| 支付宝 | `alipay` | 通过 yansongda/pay |
+| PayPal | `paypal` | 独立 Service 实现 |
+| Stripe | `stripe` | 独立 Service 实现 |
+| 银联 | `unionpay` | 独立 Service 实现 |
+
+- 统一的 `createOrder` / `refund` / `handleWebhook` 接口
+- 支付安全日志
+- 租户级支付配置
 
 ### 🔐 第三方登录
 
 - 微信（企业微信）
 - 钉钉
 - 飞书
+- 支付宝
 - 租户独立配置
+
+### 📁 文件存储
+
+- 多磁盘支持（local/s3/oss）
+- 文件分享（签名 URL）
+- 存储配额管理
+- 图片预览
+
+### 🔔 通知中心
+
+- 站内通知（Laravel Notification）
+- 通知偏好配置
+- 5 种内置通知类型：
+  - 积分不足提醒
+  - 支付成功通知
+  - 订阅即将到期通知
+  - 租户暂停通知
+  - 通用通知
 
 ### 📝 审计日志
 
 - 自动记录关键操作
 - 支持自定义审计事件
 - 租户隔离的日志查询
+
+### 🌍 国际化
+
+- 支持 `zh_CN` 和 `en` 双语
+- 13 个语言文件覆盖所有业务模块
+- `SetLocale` 中间件自动设置语言
+
+### 📊 监控与运维
+
+- **健康检查**：spatie/laravel-health 集成
+- **结构化日志**：带租户/用户上下文的日志记录
+- **告警系统**：阈值监控 + 告警规则
+- **性能监控**：PerformanceService 追踪关键指标
+- **队列监控**：Horizon 集成（开发环境）
+
+### 🔧 高级特性
+
+- **API 版本管理**：多版本 API 共存 + 废弃通知
+- **插件系统**：租户级插件安装与管理
+- **速率限制**：可配置的 API 限流规则
+- **导出任务**：Excel/PDF 异步导出
+- **支付安全**：支付密码 + 支付日志
+- **Swagger/OpenAPI**：API 文档自动生成
 
 ---
 
@@ -181,34 +249,54 @@ server {
 multi-tenant-saas/
 ├── app/
 │   ├── Http/
-│   │   ├── Controllers/    # 控制器
-│   │   └── Middleware/     # 自定义中间件
-│   └── Models/             # 业务模型
+│   │   ├── Controllers/    # 控制器（18 个）
+│   │   ├── Middleware/     # 自定义中间件
+│   │   └── Resources/      # API Resource（5 个）
+│   ├── Models/             # 业务模型
+│   └── Notifications/      # 通知类（5 种）
 ├── config/
 │   ├── tenancy.php         # 框架核心配置
 │   ├── id.php              # ID生成器配置
 │   ├── domain.php          # 域名配置
-│   └── ssl.php             # SSL配置
+│   ├── ssl.php             # SSL配置
+│   ├── pay.php             # 支付配置
+│   ├── socialite.php       # 第三方登录配置
+│   ├── queue.php           # 队列配置
+│   ├── health.php          # 健康检查配置
+│   ├── sanctum.php         # API认证配置
+│   ├── cors.php            # CORS配置
+│   ├── l5-swagger.php      # Swagger配置
+│   └── database.php        # 数据库配置
 ├── database/
-│   └── migrations/         # 数据库迁移
+│   ├── factories/          # 模型工厂
+│   ├── migrations/         # 数据库迁移（37 张表）
+│   └── seeders/            # 数据填充
 ├── docs/                   # 文档
+├── lang/                   # 国际化
+│   ├── zh_CN/              # 中文（13 个文件）
+│   └── en/                 # 英文（13 个文件）
 ├── src/                    # 框架核心代码
-│   ├── Concerns/           # Traits
-│   ├── Context/            # 上下文管理
-│   ├── Contracts/          # 接口定义
-│   ├── DTOs/               # 数据传输对象
-│   ├── Enums/              # 枚举
-│   ├── Exceptions/         # 异常
+│   ├── Concerns/           # Traits（BelongsToTenant / HasGlobalId）
+│   ├── Context/            # 上下文管理（TenantContext）
+│   ├── Contracts/          # 接口定义（IdGeneratorContract / TenantContextContract）
+│   ├── Enums/              # 枚举（ErrorCode）
+│   ├── Events/             # 领域事件（5 个）
+│   ├── Exceptions/         # 业务异常（4 个）
 │   ├── Helpers/            # 辅助函数
-│   ├── Middleware/          # 中间件
-│   ├── Models/             # 框架模型
-│   ├── Modules/            # 可选模块
+│   ├── Jobs/               # 队列任务（2 个）
+│   ├── Listeners/          # 事件监听器
+│   ├── Mail/               # 邮件类（2 个）
+│   ├── Middleware/          # 中间件（6 个）
+│   ├── Models/             # 框架模型（17 个）
+│   ├── Modules/            # 可选模块（4 个）
+│   │   ├── ApiToken/       # API Token 模块
 │   │   ├── Domain/         # 域名管理模块
+│   │   ├── Payment/        # 支付模块
 │   │   └── SSL/            # SSL证书模块
-│   ├── Scopes/             # 全局作用域
-│   ├── Services/           # 服务层
+│   ├── Scopes/             # 全局作用域（TenantScope）
+│   ├── Services/           # 服务层（39 个）
 │   └── TenancyServiceProvider.php
-├── tests/                  # 测试
+├── tests/                  # 测试（25 个文件）
 └── composer.json
 ```
 
@@ -218,25 +306,56 @@ multi-tenant-saas/
 
 ### 中间件
 
-| 中间件 | 说明 |
-|--------|------|
-| `IdentifyDomain` | 识别域名类型（admin/console/api/app） |
-| `IdentifyTenant` | 识别当前租户 |
-| `CheckPermission` | 权限控制（角色检查） |
-| `EnsureTenantContext` | 确保租户上下文有效 |
+| 中间件 | 别名 | 说明 |
+|--------|------|------|
+| `IdentifyDomain` | `domain.identify` | 识别域名类型（admin/console/api/app） |
+| `IdentifyTenant` | `tenant.identify` | 识别当前租户 |
+| `CheckPermission` | `tenant.permission` | 角色级权限控制 |
+| `CheckRbacPermission` | `rbac.permission` | RBAC 细粒度权限控制 |
+| `EnsureTenantContext` | `tenant.ensure` | 确保租户上下文有效 |
+| `SetLocale` | `locale.set` | 自动设置请求语言 |
 
 ### 服务
 
-| 服务 | 说明 |
-|------|------|
-| `IdGenerator` | 16位随机ID生成器 |
-| `TenantService` | 租户CRUD管理 |
-| `TenantSettingService` | 租户配置管理 |
-| `TenantCreditService` | 积分/配额管理 |
-| `TenantMemberService` | 成员管理 |
-| `SocialiteService` | 第三方登录 |
-| `PaymentService` | 支付服务 |
-| `AuditService` | 审计日志 |
+| 分类 | 服务 | 说明 |
+|------|------|------|
+| **基础** | `IdGenerator` | 16位随机ID生成器 |
+| | `TenantService` | 租户CRUD管理 |
+| | `TenantSettingService` | 租户配置管理 |
+| | `TenantMemberService` | 成员管理 |
+| | `TenantProfileService` | 租户档案管理 |
+| **权限** | `RbacService` | RBAC权限管理 |
+| **积分** | `TenantCreditService` | 积分/配额管理 |
+| | `RefundService` | 退款服务 |
+| **订阅** | `SubscriptionService` | 订阅管理 |
+| **支付** | `PaymentService` | 支付统一入口 |
+| | `PayPalService` | PayPal支付 |
+| | `StripeService` | Stripe支付 |
+| | `UnionPayService` | 银联支付 |
+| | `PaymentSecurityService` | 支付安全 |
+| **OAuth** | `SocialiteService` | 第三方登录 |
+| | `AlipayOAuthService` | 支付宝OAuth |
+| **文件** | `FileService` | 文件存储管理 |
+| **通知** | `NotificationPreferenceService` | 通知偏好 |
+| **审计** | `AuditService` | 审计日志 |
+| | `StructuredLogService` | 结构化日志 |
+| | `LoginLogService` | 登录日志 |
+| **运维** | `CacheService` | 缓存管理 |
+| | `QueueService` | 队列管理 |
+| | `HorizonService` | Horizon管理 |
+| | `PerformanceService` | 性能监控 |
+| | `AlertService` | 告警系统 |
+| | `SystemSettingService` | 系统配置 |
+| | `ExportService` | 导出任务 |
+| | `HealthService` | 健康检查 |
+| **高级** | `ApiVersionService` | API版本管理 |
+| | `PluginService` | 插件系统 |
+| | `RateLimitService` | 速率限制 |
+| | `UserPreferenceService` | 用户偏好 |
+| | `SmsService` | 短信服务 |
+| | `DomainService` | 域名管理 |
+| | `SslService` | SSL证书管理 |
+| | `NginxConfigService` | Nginx配置管理 |
 
 ### 模型
 
@@ -250,6 +369,24 @@ multi-tenant-saas/
 | `CreditTransaction` | 积分交易记录 |
 | `FinancialRecord` | 财务记录 |
 | `AuditLog` | 审计日志 |
+| `Permission` | 权限节点 |
+| `Role` | 角色 |
+| `RolePermission` | 角色-权限关系 |
+| `SubscriptionPlan` | 订阅计划 |
+| `SubscriptionHistory` | 订阅历史 |
+| `FileUpload` | 文件上传 |
+| `NotificationPreference` | 通知偏好 |
+| `UserApiToken` | 用户API Token |
+| `SystemSetting` | 系统配置 |
+
+### 模块
+
+| 模块 | 说明 |
+|------|------|
+| `ApiToken` | API Token 管理（用户级 Token + abilities） |
+| `Domain` | 域名管理（白名单/自定义域名） |
+| `Payment` | 支付模块（多网关统一接口） |
+| `SSL` | SSL 证书管理（申请/续期/部署） |
 
 ---
 
@@ -332,16 +469,22 @@ $allOrders = Order::forAllTenants()->get();
 - [多域名架构设计](docs/architecture/多域名架构设计.md)
 - [租户隔离架构](docs/architecture/租户隔离架构.md)
 - [数据模型设计](docs/architecture/数据模型设计.md)
+- [设计决策](docs/architecture/设计决策.md)
 - [快速开始](docs/guides/快速开始.md)
 - [四重访问架构](docs/guides/四重访问架构.md)
 - [域名配置指南](docs/guides/域名配置指南.md)
 - [权限控制指南](docs/guides/权限控制指南.md)
+- [OAuth SDK接入指南](docs/guides/OAuth_SDK接入指南.md)
+- [支付SDK接入指南](docs/guides/支付SDK接入指南.md)
+- [SaaS核心模块扩展指南](docs/guides/SaaS核心模块扩展指南.md)
 - [部署指南](docs/deployment/部署指南.md)
 - [Nginx配置指南](docs/deployment/Nginx配置指南.md)
 - [本地开发环境](docs/development/本地开发环境.md)
+- [编码规范](docs/development/coding-standards.md)
 - [核心API](docs/api/核心API.md)
 - [中间件API](docs/api/中间件API.md)
 - [服务层API](docs/api/服务层API.md)
+- [OpenAPI规范](docs/api/openapi.yaml)
 
 ---
 
@@ -357,10 +500,11 @@ $allOrders = Order::forAllTenants()->get();
 
 | 库 | 用途 | 配置 |
 |---|---|---|
-| `laravel/sanctum` | API 认证 + Token | 内置 |
+| `laravel/sanctum` | API 认证 + Token abilities | `config/sanctum.php` |
 | `laravel/socialite` | 第三方登录（微信/钉钉/飞书） | `config/socialite.php` |
 | `yansongda/pay` | 支付（微信/支付宝） | `config/pay.php` |
 | `spatie/laravel-health` | 健康检查 | `config/health.php` |
+| `darkaonline/l5-swagger` | Swagger/OpenAPI 文档 | `config/l5-swagger.php` |
 | `maatwebsite/excel` | Excel 导入导出 | 内置 |
 | `barryvdh/laravel-dompdf` | PDF 生成 | 内置 |
 | `laravel/horizon` | 队列监控 (dev) | `/horizon` |

@@ -243,6 +243,7 @@ class ZhipuProvider implements AiProviderContract
 
         return [
             'id' => $data['id'] ?? null,
+            'object' => $data['object'] ?? null,
             'model' => $data['model'] ?? $model,
             'role' => 'assistant',
             'content' => $choice['message']['content'] ?? '',
@@ -271,6 +272,7 @@ class ZhipuProvider implements AiProviderContract
 
         return [
             'id' => $result['id'] ?? null,
+            'object' => $result['object'] ?? null,
             'model' => $result['model'] ?? $model,
             'text' => $result['content'] ?? '',
             'finish_reason' => $result['finish_reason'] ?? null,
@@ -406,6 +408,7 @@ class ZhipuProvider implements AiProviderContract
 
             yield [
                 'id' => $json['id'] ?? null,
+                'object' => $json['object'] ?? null,
                 'model' => $json['model'] ?? null,
                 'content' => $delta['content'] ?? '',
                 'role' => $delta['role'] ?? null,

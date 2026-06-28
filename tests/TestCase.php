@@ -100,6 +100,9 @@ abstract class TestCase extends BaseTestCase
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->timestamp('password_changed_at')->nullable();
+            $table->unsignedInteger('login_attempts')->default(0);
+            $table->timestamp('locked_until')->nullable();
             $table->string('phone', 20)->nullable()->unique();
             $table->string('role', 20)->default('platform_user');
             $table->string('avatar', 500)->nullable();
@@ -739,6 +742,44 @@ abstract class TestCase extends BaseTestCase
             $table->index(['user_id', 'last_active_at']);
             $table->index('token_id');
             $table->index('device_fingerprint');
+        });
+
+        // 密码历史表
+        Schema::create('password_histories', function (Blueprint $table) {
+            $table->unsignedBigInteger('password_history_id')->primary();
+            $table->bigInteger('tenant_id')->unsigned()->nullable();
+            $table->bigInteger('user_id')->unsigned();
+            $table->string('password_hash');
+            $table->timestamps();
+
+            $table->index(['tenant_id', 'user_id']);
+            $table->index(['user_id', 'created_at']);
+        });
+
+        // SSO 提供方表
+        Schema::create('sso_providers', function (Blueprint $table) {
+            $table->unsignedBigInteger('sso_provider_id')->primary();
+            $table->bigInteger('tenant_id')->unsigned();
+            $table->string('type', 20);
+            $table->string('name', 100);
+            $table->string('display_name', 200)->nullable();
+            $table->string('entity_id', 500)->nullable();
+            $table->string('metadata_url', 500)->nullable();
+            $table->text('certificate')->nullable();
+            $table->string('sso_url', 500)->nullable();
+            $table->string('slo_url', 500)->nullable();
+            $table->string('client_id', 200)->nullable();
+            $table->text('client_secret')->nullable();
+            $table->string('authorize_url', 500)->nullable();
+            $table->string('token_url', 500)->nullable();
+            $table->string('userinfo_url', 500)->nullable();
+            $table->string('scope', 200)->default('openid profile email');
+            $table->json('attribute_mapping')->nullable();
+            $table->string('status', 20)->default('active');
+            $table->timestamps();
+
+            $table->index(['tenant_id', 'status']);
+            $table->unique(['tenant_id', 'name']);
         });
     }
 

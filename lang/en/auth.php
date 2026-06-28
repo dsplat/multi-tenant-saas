@@ -49,4 +49,33 @@ return [
     'sessions_revoked' => 'All other sessions have been revoked',
     'session_anomalous_detected' => 'Anomalous login detected, please confirm it was you',
     'session_not_found' => 'Session not found',
+
+    // Password policy
+    'password_too_short' => 'Password must be at least :min characters',
+    'password_too_long' => 'Password may not exceed :max characters',
+    'password_requires_upper' => 'Password must contain an uppercase letter',
+    'password_requires_lower' => 'Password must contain a lowercase letter',
+    'password_requires_digit' => 'Password must contain a digit',
+    'password_requires_special' => 'Password must contain a special character',
+    'password_in_history' => 'New password must not match a recently used password',
+    'password_expired' => 'Password has expired, please change it',
+    'password_changed' => 'Password changed successfully',
+    'password_strength_weak' => 'Password strength is too weak',
+    'account_locked' => 'Account is locked, please try again in :minutes minutes',
+
+    // SSO / SAML integration
+    'sso_provider_not_found' => 'SSO provider not found',
+    'sso_provider_disabled' => 'SSO provider is disabled',
+    'sso_provider_type_invalid' => 'SSO provider type is invalid',
+    'sso_provider_saved' => 'SSO provider configuration saved',
+    'sso_provider_deleted' => 'SSO provider deleted',
+    'sso_tenant_required' => 'Unable to resolve tenant context',
+    'sso_external_id_missing' => 'IdP did not return a valid user identifier',
+    'sso_user_linked' => 'SSO account linked',
+    'saml_response_missing' => 'Missing SAML response',
+    'saml_response_invalid' => 'Invalid SAML response format',
+    'saml_signature_invalid' => 'SAML response signature verification failed',
+    'oidc_code_missing' => 'Missing OIDC authorization code',
+    'oidc_token_exchange_failed' => 'OIDC token exchange failed',
+    'oidc_userinfo_failed' => 'OIDC userinfo retrieval failed',
 ];

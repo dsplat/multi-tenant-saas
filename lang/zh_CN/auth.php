@@ -49,4 +49,33 @@ return [
     'sessions_revoked' => '其他会话已全部下线',
     'session_anomalous_detected' => '检测到异常登录，请确认是否为您本人操作',
     'session_not_found' => '会话不存在',
+
+    // 密码策略
+    'password_too_short' => '密码长度不能少于 :min 位',
+    'password_too_long' => '密码长度不能超过 :max 位',
+    'password_requires_upper' => '密码必须包含大写字母',
+    'password_requires_lower' => '密码必须包含小写字母',
+    'password_requires_digit' => '密码必须包含数字',
+    'password_requires_special' => '密码必须包含特殊字符',
+    'password_in_history' => '新密码不能与最近使用过的密码重复',
+    'password_expired' => '密码已过期，请及时修改',
+    'password_changed' => '密码修改成功',
+    'password_strength_weak' => '密码强度过低',
+    'account_locked' => '账号已被锁定，请 :minutes 分钟后重试',
+
+    // SSO / SAML 集成
+    'sso_provider_not_found' => 'SSO 提供方不存在',
+    'sso_provider_disabled' => 'SSO 提供方已停用',
+    'sso_provider_type_invalid' => 'SSO 提供方类型无效',
+    'sso_provider_saved' => 'SSO 提供方配置已保存',
+    'sso_provider_deleted' => 'SSO 提供方已删除',
+    'sso_tenant_required' => '无法识别租户上下文',
+    'sso_external_id_missing' => 'IdP 未返回可用的用户标识',
+    'sso_user_linked' => 'SSO 账号已关联',
+    'saml_response_missing' => '缺少 SAML 响应',
+    'saml_response_invalid' => 'SAML 响应格式无效',
+    'saml_signature_invalid' => 'SAML 响应签名校验失败',
+    'oidc_code_missing' => '缺少 OIDC 授权码',
+    'oidc_token_exchange_failed' => 'OIDC 令牌换取失败',
+    'oidc_userinfo_failed' => 'OIDC 用户信息获取失败',
 ];

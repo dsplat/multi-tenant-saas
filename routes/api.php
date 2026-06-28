@@ -44,6 +44,12 @@ Route::post('/v1/pay/alipay/refund-notify', [TenantPaymentController::class, 'al
 Route::get('/v1/auth/{provider}/redirect', [TenantOAuthController::class, 'redirect']);
 Route::get('/v1/auth/{provider}/callback', [TenantOAuthController::class, 'callback']);
 
+// ========== SSO / SAML 集成（无需认证，回调在登录前） ==========
+Route::get('/v1/sso/saml/metadata', [AuthController::class, 'samlMetadata']);
+Route::get('/v1/sso/{provider}/redirect', [AuthController::class, 'ssoRedirect'])->middleware('throttle:10,1');
+Route::get('/v1/sso/{provider}/callback', [AuthController::class, 'ssoCallback'])->middleware('throttle:10,1');
+Route::post('/v1/sso/{provider}/callback', [AuthController::class, 'ssoCallback'])->middleware('throttle:10,1');
+
 // ========== 文件分享下载（无需认证，签名验证） ==========
 Route::get('/v1/files/{id}/share', [FileController::class, 'shareDownload']);
 
@@ -121,6 +127,11 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
     // OAuth 配置（需 setting.update 权限）
     Route::get('/tenants/{tenantId}/oauth/config', [TenantOAuthController::class, 'getOAuthConfig'])->middleware('rbac.permission:setting.view');
     Route::put('/tenants/{tenantId}/oauth/{provider}', [TenantOAuthController::class, 'updateOAuthConfig'])->middleware('rbac.permission:setting.update');
+
+    // SSO / SAML 提供方管理（需 setting.* 权限）
+    Route::get('/tenants/{tenantId}/sso/providers', [AuthController::class, 'ssoProviders'])->middleware('rbac.permission:setting.view');
+    Route::post('/tenants/{tenantId}/sso/providers', [AuthController::class, 'storeSsoProvider'])->middleware('rbac.permission:setting.update');
+    Route::delete('/tenants/{tenantId}/sso/providers/{name}', [AuthController::class, 'destroySsoProvider'])->middleware('rbac.permission:setting.update');
 
     // 支付订单（需 payment.* 权限）
     Route::get('/tenants/{tenantId}/payment-orders', [TenantPaymentController::class, 'index'])->middleware('rbac.permission:payment.view');

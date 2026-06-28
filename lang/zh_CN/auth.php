@@ -78,4 +78,7 @@ return [
     'oidc_code_missing' => '缺少 OIDC 授权码',
     'oidc_token_exchange_failed' => 'OIDC 令牌换取失败',
     'oidc_userinfo_failed' => 'OIDC 用户信息获取失败',
+    'sso_state_invalid' => 'SSO 状态验证失败，请重试',
+    'saml_certificate_missing' => 'SAML 签名证书缺失',
+    'oidc_jwt_invalid' => 'OIDC 令牌格式无效',
 ];

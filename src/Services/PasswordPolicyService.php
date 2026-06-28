@@ -257,16 +257,13 @@ class PasswordPolicyService
         $maxAttempts = (int) $this->config('max_login_attempts', self::DEFAULT_MAX_LOGIN_ATTEMPTS);
         $lockMinutes = (int) $this->config('lock_minutes', self::DEFAULT_LOCK_MINUTES);
 
-        $attempts = (int) $user->login_attempts + 1;
+        $user->increment('login_attempts');
+        $user->refresh();
 
-        if ($attempts >= $maxAttempts) {
-            $user->login_attempts = $attempts;
+        if ($user->login_attempts >= $maxAttempts) {
             $user->locked_until = now()->addMinutes($lockMinutes);
-        } else {
-            $user->login_attempts = $attempts;
+            $user->save();
         }
-
-        $user->save();
     }
 
     /**

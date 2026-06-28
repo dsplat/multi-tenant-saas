@@ -7,6 +7,7 @@ use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rules\Password;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Events\UserLoggedIn;
@@ -18,6 +19,7 @@ use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\AuditService;
 use MultiTenantSaas\Services\MfaService;
+use MultiTenantSaas\Services\PasswordPolicyService;
 use MultiTenantSaas\Services\SessionService;
 use MultiTenantSaas\Services\SsoService;
 
@@ -72,13 +74,30 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
+        /** @var PasswordPolicyService $passwordPolicy */
+        $passwordPolicy = app(PasswordPolicyService::class);
+
+        if ($user && $passwordPolicy->isLocked($user)) {
+            return response()->json([
+                'success' => false,
+                'message' => trans('auth.account_locked'),
+                'data' => ['locked_remaining_seconds' => $passwordPolicy->getLockRemainingSeconds($user)],
+            ], 423);
+        }
+
         if (! $user || ! password_verify($request->password, $user->password)) {
+            if ($user) {
+                $passwordPolicy->recordFailedLogin($user);
+            }
+
             return response()->json(['success' => false, 'message' => trans('auth.login_failed')], 401);
         }
 
         if (! $user->is_active) {
             return response()->json(['success' => false, 'message' => trans('auth.account_suspended')], 403);
         }
+
+        $passwordPolicy->recordSuccessfulLogin($user);
 
         /** @var MfaService $mfaService */
         $mfaService = app(MfaService::class);
@@ -421,6 +440,8 @@ class AuthController extends Controller
             ], 400);
         }
 
+        Session::put('sso_state', $result['state']);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -457,8 +478,19 @@ class AuthController extends Controller
 
         $acsUrl = $request->input('acs_url', $this->defaultAcsUrl($request, $provider));
 
+        $expectedState = Session::pull('sso_state');
+        $incomingState = $request->input('state');
+        if ($expectedState === null || $incomingState === null || ! hash_equals((string) $expectedState, (string) $incomingState)) {
+            return response()->json([
+                'success' => false,
+                'message' => trans('auth.sso_state_invalid'),
+            ], 400);
+        }
+
+        $callbackInput = $request->only(['SAMLResponse', 'RelayState', 'code', 'state']);
+
         try {
-            $result = $ssoService->handleCallback($ssoProvider, $request->all(), $acsUrl);
+            $result = $ssoService->handleCallback($ssoProvider, $callbackInput, $acsUrl);
         } catch (\RuntimeException $e) {
             return response()->json([
                 'success' => false,
@@ -550,11 +582,13 @@ class AuthController extends Controller
         /** @var SsoService $ssoService */
         $ssoService = app(SsoService::class);
 
+        $validated = $request->validated();
+
         $existing = $ssoService->getProvider($tenantId, $request->input('name'));
         if ($existing) {
-            $provider = $ssoService->updateProvider($existing->sso_provider_id, $request->all());
+            $provider = $ssoService->updateProvider($existing->sso_provider_id, $validated);
         } else {
-            $provider = $ssoService->createProvider($request->all());
+            $provider = $ssoService->createProvider($validated);
         }
 
         return response()->json([

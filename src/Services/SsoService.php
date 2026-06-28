@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Services;
 
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -487,73 +488,73 @@ class SsoService
      */
     public function findOrCreateUser(SsoProvider $provider, array $attributes): array
     {
-        $providerKey = $provider->type.':'.$provider->name;
-        $externalId = (string) ($attributes['external_id'] ?? '');
-        $email = $attributes['email'] ? strtolower(trim($attributes['email'])) : null;
+        return DB::transaction(function () use ($provider, $attributes) {
+            $providerKey = $provider->type.':'.$provider->name;
+            $externalId = (string) ($attributes['external_id'] ?? '');
+            $email = $attributes['email'] ? strtolower(trim($attributes['email'])) : null;
 
-        // 1. 已绑定
-        $linked = OauthAccount::where('provider', $providerKey)
-            ->where('provider_id', $externalId)
-            ->first();
-        if ($linked) {
-            $user = User::find($linked->user_id);
-            if ($user) {
-                return [$user, false];
+            // 1. 已绑定
+            $linked = OauthAccount::where('provider', $providerKey)
+                ->where('provider_id', $externalId)
+                ->first();
+            if ($linked) {
+                $user = User::find($linked->user_id);
+                if ($user) {
+                    return [$user, false];
+                }
             }
-        }
 
-        // 2. 按 email 匹配
-        $user = null;
-        if ($email) {
-            $user = User::where('email', $email)->first();
-        }
+            // 2. 按 email 匹配
+            $user = null;
+            if ($email) {
+                $user = User::where('email', $email)->first();
+            }
 
-        $isNew = false;
+            $isNew = false;
 
-        // 3. 创建新用户
-        if (! $user) {
-            $isNew = true;
-            $user = User::unguarded(function () use ($attributes, $email) {
-                return User::create([
-                    'name' => $attributes['name'] ?: ('SSO User '.substr($attributes['external_id'] ?? '', 0, 8)),
-                    'email' => $email ?: ($attributes['external_id'].'@sso.local'),
-                    'password' => bin2hex(random_bytes(16)), // 随机强密码（SSO 用户不会用密码登录）
-                    'avatar' => $attributes['avatar'] ?? null,
-                    'role' => 'platform_user',
-                    'email_verified_at' => $email ? now() : null,
-                    'password_changed_at' => now(),
-                    'login_attempts' => 0,
-                    'is_active' => true,
+            // 3. 创建新用户
+            if (! $user) {
+                $isNew = true;
+                $user = new User;
+                $user->name = $attributes['name'] ?: ('SSO User '.substr($attributes['external_id'] ?? '', 0, 8));
+                $user->email = $email ?: ($attributes['external_id'].'@sso.local');
+                $user->password = bin2hex(random_bytes(16));
+                $user->avatar = $attributes['avatar'] ?? null;
+                $user->role = 'platform_user';
+                $user->email_verified_at = $email ? now() : null;
+                $user->password_changed_at = now();
+                $user->login_attempts = 0;
+                $user->is_active = true;
+                $user->save();
+            }
+
+            // 关联 oauth_account（若尚未绑定）
+            if (! $linked) {
+                OauthAccount::create([
+                    'tenant_id' => $provider->tenant_id,
+                    'user_id' => $user->user_id,
+                    'provider' => $providerKey,
+                    'provider_id' => $externalId,
+                    'provider_email' => $email,
+                    'provider_name' => $attributes['name'] ?? null,
+                    'provider_avatar' => $attributes['avatar'] ?? null,
                 ]);
-            });
-        }
+            }
 
-        // 关联 oauth_account（若尚未绑定）
-        if (! $linked) {
-            OauthAccount::create([
-                'tenant_id' => $provider->tenant_id,
-                'user_id' => $user->user_id,
-                'provider' => $providerKey,
-                'provider_id' => $externalId,
-                'provider_email' => $email,
-                'provider_name' => $attributes['name'] ?? null,
-                'provider_avatar' => $attributes['avatar'] ?? null,
-            ]);
-        }
+            // 创建租户成员关系（JIT 加入）
+            $tenantId = (int) $provider->tenant_id;
+            if (! TenantUser::where('tenant_id', $tenantId)->where('user_id', $user->user_id)->exists()) {
+                TenantUser::create([
+                    'tenant_id' => $tenantId,
+                    'user_id' => $user->user_id,
+                    'role' => 'end_user',
+                    'is_active' => true,
+                    'joined_at' => now(),
+                ]);
+            }
 
-        // 创建租户成员关系（JIT 加入）
-        $tenantId = (int) $provider->tenant_id;
-        if (! TenantUser::where('tenant_id', $tenantId)->where('user_id', $user->user_id)->exists()) {
-            TenantUser::create([
-                'tenant_id' => $tenantId,
-                'user_id' => $user->user_id,
-                'role' => 'end_user',
-                'is_active' => true,
-                'joined_at' => now(),
-            ]);
-        }
-
-        return [$user, $isNew];
+            return [$user, $isNew];
+        });
     }
 
     // ----------------------------------------
@@ -578,9 +579,12 @@ class SsoService
             throw new \RuntimeException(trans('auth.saml_response_invalid'));
         }
 
-        // 签名校验（配置了证书时强制校验）
+        // 签名校验
         $certificate = (string) ($provider->certificate ?? '');
-        if ($certificate !== '' && ! $this->verifySamlSignature($xml, $certificate)) {
+        if ($certificate === '') {
+            throw new \RuntimeException(trans('auth.saml_certificate_missing'));
+        }
+        if (! $this->verifySamlSignature($xml, $certificate)) {
             throw new \RuntimeException(trans('auth.saml_signature_invalid'));
         }
 
@@ -628,17 +632,21 @@ class SsoService
     {
         $parts = explode('.', $jwt);
         if (count($parts) < 2) {
-            return [];
+            throw new \RuntimeException(trans('auth.oidc_jwt_invalid'));
         }
 
         $payload = base64_decode(strtr($parts[1], '-_', '+/'), true);
         if ($payload === false) {
-            return [];
+            throw new \RuntimeException(trans('auth.oidc_jwt_invalid'));
         }
 
         $data = json_decode($payload, true);
 
-        return is_array($data) ? $data : [];
+        if (! is_array($data)) {
+            throw new \RuntimeException(trans('auth.oidc_jwt_invalid'));
+        }
+
+        return $data;
     }
 
     /**

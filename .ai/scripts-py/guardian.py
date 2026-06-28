@@ -62,6 +62,9 @@ def load_guardian_state() -> dict:
 def save_guardian_state(state: dict):
     state["updated_at"] = datetime.now().isoformat()
     GUARDIAN_STATE.write_text(json.dumps(state, indent=2, ensure_ascii=False))
+    # 强制刷盘
+    import os
+    os.sync()
 
 
 def get_task_status(state_mgr: StateManager, task_id: str) -> str:
@@ -400,10 +403,10 @@ def show_status():
 
 
 def daemonize():
-    """后台运行（用 nohup 替代 os.fork）"""
+    """后台运行（用 nohup + unbuffered 输出）"""
     log_file = Path(__file__).parent.parent / "guardian.log"
     script_path = Path(__file__).resolve()
-    cmd = f"nohup {sys.executable} {script_path} >> {log_file} 2>&1 &"
+    cmd = f"nohup {sys.executable} -u {script_path} >> {log_file} 2>&1 &"
     os.system(cmd)
     print(f"守护进程已启动")
     print(f"日志: {log_file}")

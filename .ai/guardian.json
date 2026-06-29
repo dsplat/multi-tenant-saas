@@ -57,14 +57,14 @@
       "attempt": 4
     },
     "TASK-034": {
-      "root_cause": "代码不完整，存在未实现/占位逻辑",
-      "category": "incomplete_code",
-      "strategy": "rewrite_prompt",
-      "fix_instruction": "补全所有 TODO/pass/NotImplemented 占位，确保每个函数完整实现且可运行。",
-      "attempt": 1
+      "root_cause": "修改了超出任务范围的文件",
+      "category": "scope_overflow",
+      "strategy": "add_detail",
+      "fix_instruction": "严格只修改任务【范围】内允许的文件，回滚所有越界变更，不要触碰无关文件。",
+      "attempt": 3
     }
   },
   "model_switches": [],
   "started_at": "2026-06-30T00:20:44.328239",
-  "updated_at": "2026-06-30T01:57:43.366302"
+  "updated_at": "2026-06-30T02:36:54.867331"
 }

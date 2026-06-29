@@ -1,0 +1,17 @@
+{
+  "task_id": "TASK-034",
+  "git_diff_summary": ".ai/guardian.json               |  12 ++---\n .ai/metrics.json                |  64 +++++++++++++++-------\n .ai/review/TASK-034-review.md   |  51 +++++-------------\n .ai/state.json                  |   4 +-\n .ai/tasks/TASK-034-fix.md       |   6 +--\n src/Services/InvoiceService.php |   2 +-\n src/TenancyServiceProvider.php  |   6 +++\n tests/TestCase.php              | 114 ++++++++++++++++++++++++++++++++++++++++\n 8 files changed, 190 insertions(+), 69 deletions(-)",
+  "changed_files": [
+    ".ai/guardian.json",
+    ".ai/metrics.json",
+    ".ai/review/TASK-034-review.md",
+    ".ai/state.json",
+    ".ai/tasks/TASK-034-fix.md",
+    "src/Services/InvoiceService.php",
+    "src/TenancyServiceProvider.php",
+    "tests/TestCase.php"
+  ],
+  "review_notes": "",
+  "key_decisions": [],
+  "timestamp": ""
+}

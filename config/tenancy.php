@@ -95,6 +95,16 @@ return [
         'queue' => env('WEBHOOK_QUEUE', 'default'),
     ],
 
+    // 事件总线配置
+    'event_bus' => [
+        // 异步分发队列名称
+        'queue' => env('EVENT_BUS_QUEUE', 'default'),
+        // 事件分发最大重试次数（指数退避：5s, 15s, 30s）
+        'max_retries' => (int) env('EVENT_BUS_MAX_RETRIES', 3),
+        // 外部订阅 Webhook 投递超时（秒）
+        'timeout' => (int) env('EVENT_BUS_TIMEOUT', 30),
+    ],
+
     // 订阅计划配额限制
     'plans' => [
         'free' => [

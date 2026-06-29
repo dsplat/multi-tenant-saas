@@ -78,6 +78,13 @@ return [
     'webhook_inactive' => 'Webhook 未激活',
     'webhook_event_invalid' => '不支持的事件类型',
     'webhook_signature_invalid' => 'Webhook 签名验证失败',
+    'event_subscription_not_found' => '事件订阅不存在',
+    'event_subscription_handler_not_found' => '事件处理器类 :handler 不存在',
+    'event_subscription_handler_invalid' => '事件处理器 :handler 须实现 EventHandler 接口',
+    'event_type_invalid' => '不支持的事件类型 :event',
+    'event_subscription_type_invalid' => '无效的订阅类型',
+    'dead_letter_not_found' => '死信记录不存在',
+    'dead_letter_retried' => '死信已重新投递',
     'provider' => [
         'wechat' => '微信开放平台',
         'wechat_work_internal' => '企业微信（内部应用）',

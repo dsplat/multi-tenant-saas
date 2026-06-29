@@ -289,6 +289,7 @@ def _parse_verdict(review_output: str) -> bool:
     解析 REVIEW 输出的 Verdict 段落
     
     查找 ## Verdict 后面的 PASS/FAIL
+    优先匹配 **PASS** 或 **FAIL** 格式
     """
     import re
     # 查找 ## Verdict 段落
@@ -298,21 +299,28 @@ def _parse_verdict(review_output: str) -> bool:
         re.IGNORECASE | re.DOTALL
     )
     if verdict_match:
-        verdict_text = verdict_match.group(1).strip().upper()
-        # 检查是否包含 PASS（但非 FAIL）
-        if 'FAIL' in verdict_text or 'REJECTED' in verdict_text:
+        verdict_text = verdict_match.group(1).strip()
+        # 优先匹配 **PASS** 或 **FAIL** 格式（更精确）
+        if re.search(r'\*\*PASS\*\*', verdict_text, re.IGNORECASE):
+            return True
+        if re.search(r'\*\*FAIL\*\*', verdict_text, re.IGNORECASE):
             return False
-        if 'PASS' in verdict_text:
+        # 回退：检查独立的 PASS/FAIL 词（排除方法名如 failed()）
+        verdict_upper = verdict_text.upper()
+        # 检查是否有独立的 FAIL 词（不是 FAILED 的一部分）
+        if re.search(r'\bFAIL\b', verdict_upper):
+            return False
+        if re.search(r'\bPASS\b', verdict_upper):
             return True
     
     # 回退：检查全文的 Verdict 关键词
-    # 找最后一个 PASS/FAIL 标记
+    # 找最后一个 **PASS** 或 **FAIL** 标记
     lines = review_output.strip().split('\n')
     for line in reversed(lines):
         upper = line.strip().upper()
-        if upper.startswith('**FAIL**') or upper == 'FAIL':
+        if '**FAIL**' in upper or upper == 'FAIL':
             return False
-        if upper.startswith('**PASS**') or upper == 'PASS':
+        if '**PASS**' in upper or upper == 'PASS':
             return True
     
     # 无法判断时默认失败

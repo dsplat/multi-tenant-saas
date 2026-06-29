@@ -1,0 +1,145 @@
+{
+  "version": "3.0",
+  "project": {
+    "name": "multi_tenant_saas",
+    "type": "laravel"
+  },
+  "roles": {
+    "product_manager": {
+      "name": "产品经理",
+      "cli_tool": "opencode",
+      "model": "bailian/glm-5.2",
+      "prompt_file": "prompts/pm-prompt.md",
+      "description": "需求分析、Sprint规划、Task拆分",
+      "timeout": 180
+    },
+    "developer": {
+      "name": "开发工程师",
+      "cli_tool": "opencode",
+      "model": "bailian/glm-5.2",
+      "prompt_file": "prompts/dev-prompt.md",
+      "description": "代码开发",
+      "timeout": 300
+    },
+    "reviewer": {
+      "name": "代码审查",
+      "cli_tool": "mimo",
+      "model": "mimo/mimo-v2.5-pro",
+      "prompt_file": "prompts/review-prompt.md",
+      "description": "代码审查（只检查和建议）",
+      "timeout": 180
+    },
+    "fixer": {
+      "name": "修复工程师",
+      "cli_tool": "opencode",
+      "model": "bailian/glm-5.2",
+      "prompt_file": "prompts/fix-prompt.md",
+      "description": "代码修复（复用DEV上下文）",
+      "timeout": 300
+    }
+  },
+  "pipeline": {
+    "steps": [
+      "developer",
+      "reviewer",
+      "fixer"
+    ],
+    "max_loops": 3
+  },
+  "guardian": {
+    "max_task_time": 1800,
+    "max_retries": 3,
+    "auto_commit": true,
+    "auto_diagnose": true,
+    "diagnose_tool": "mimo",
+    "model_fallback": true,
+    "adaptive_prompt": true
+  },
+  "test": {
+    "enabled": true,
+    "auto_detect": true,
+    "commands": {
+      "python": "python -m pytest --tb=short -q",
+      "laravel": "php artisan test",
+      "node": "npm test",
+      "generic": ""
+    },
+    "fail_back_to_fix": true,
+    "max_test_fix_loops": 2,
+    "coverage_check": false,
+    "coverage_threshold": 80.0
+  },
+  "metrics": {
+    "enabled": true,
+    "store_path": ".ai/metrics.json",
+    "track_tokens": true,
+    "track_timing": true,
+    "track_success_rate": true
+  },
+  "web": {
+    "host": "127.0.0.1",
+    "port": 9420,
+    "auto_open": false,
+    "log_requests": false
+  },
+  "observer": {
+    "enabled": false,
+    "webhooks": [],
+    "llm_summary": true,
+    "cli_tool": "mimo",
+    "model": "mimo/mimo-v2.5-pro",
+    "events": [
+      "dev_complete",
+      "review_pass",
+      "review_fail",
+      "fix_complete",
+      "test_pass",
+      "test_fail",
+      "task_done",
+      "task_failed",
+      "sprint_start",
+      "sprint_complete"
+    ]
+  },
+  "model_fallbacks": [
+    {
+      "role": "developer",
+      "chain": [
+        "bailian/glm-5.2",
+        "bailian/deepseek-v4-pro"
+      ],
+      "trigger_on": [
+        "model_capability",
+        "timeout",
+        "incomplete_code"
+      ]
+    },
+    {
+      "role": "fixer",
+      "chain": [
+        "bailian/glm-5.2",
+        "bailian/deepseek-v4-pro"
+      ],
+      "trigger_on": [
+        "model_capability",
+        "timeout",
+        "incomplete_code"
+      ]
+    }
+  ],
+  "timeouts": {
+    "split": 120,
+    "dev": 300,
+    "review": 180,
+    "fix": 240,
+    "test": 120
+  },
+  "git_auto_add_dirs": [
+    "src/",
+    "database/",
+    "config/",
+    "tests/",
+    "lang/",
+    "routes/"
+  ]
+}

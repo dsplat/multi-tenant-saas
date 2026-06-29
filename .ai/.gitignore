@@ -1,0 +1,18 @@
+# AI Task Runner - Git 忽略规则
+
+# 运行时日志
+guardian.log
+reports/*.log
+
+# 临时文件
+*.tmp
+*.bak
+
+# 不要忽略以下文件（它们需要版本控制）
+!config.json
+!state.json
+!guardian.json
+!prompts/
+!tasks/
+!sprints/
+!review/

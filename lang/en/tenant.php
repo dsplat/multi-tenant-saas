@@ -91,4 +91,34 @@ return [
     'branding_domain_in_use' => 'The custom domain is already in use',
     'branding_not_found' => 'Branding configuration not found',
     'branding_domain_resolved' => 'Tenant resolved via custom domain',
+
+    // Data residency (TASK-029)
+    'residency_region_unsupported' => 'Unsupported data residency region: :region',
+    'residency_region_not_allowed_by_plan' => 'Plan :plan is not allowed to use region :region',
+    'residency_region_description' => 'Tenant data residency region',
+    'residency_enforced_description' => 'Whether to enforce data storage region compliance',
+    'residency_violation' => 'Data storage region violation: expected :expected, actual :actual',
+    'residency_migration_disabled' => 'Cross-region migration is disabled',
+    'residency_migration_same_region' => 'Source region and target region are the same, no migration needed',
+    'residency_migration_mismatch' => 'Tenant current region (:current) does not match source region (:from)',
+    'residency_migration_failed' => 'Tenant :tenant cross-region migration failed: :error',
+    'residency_migration_completed' => 'Tenant :tenant cross-region migration completed: :from → :to',
+
+    // Tenant clone (TASK-029)
+    'clone_source_not_found' => 'Template tenant not found',
+    'clone_slug_required' => 'Target tenant slug is required',
+    'clone_slug_in_use' => 'Target tenant slug is already in use',
+    'clone_completed' => 'Tenant clone completed: source :source → target :target',
+    'clone_snapshot_invalid' => 'Tenant snapshot structure is invalid',
+    'clone_snapshot_imported' => 'Snapshot imported to tenant :target',
+
+    // Cross-tenant hierarchy (TASK-029)
+    'hierarchy_self_reference' => 'Parent tenant and child tenant cannot be the same',
+    'hierarchy_parent_not_found' => 'Parent tenant not found',
+    'hierarchy_child_not_found' => 'Child tenant not found',
+    'hierarchy_relation_type_invalid' => 'Invalid relation type: :type',
+    'hierarchy_already_exists' => 'The parent-child tenant relationship already exists',
+    'hierarchy_resource_shared' => 'Parent :parent shared resource :resource_type#:resource_id to child :child',
+    'hierarchy_not_found' => 'Parent-child tenant relationship not found: parent :parent, child :child',
+    'hierarchy_billing_aggregated' => 'Hierarchy billing aggregated: parent :parent, period :period, total :total',
 ];

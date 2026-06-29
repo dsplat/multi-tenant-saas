@@ -91,4 +91,34 @@ return [
     'branding_domain_in_use' => '该自定义域名已被占用',
     'branding_not_found' => '白标配置不存在',
     'branding_domain_resolved' => '已通过自定义域名解析租户',
+
+    // 数据驻留（TASK-029）
+    'residency_region_unsupported' => '不支持的数据驻留区域: :region',
+    'residency_region_not_allowed_by_plan' => '套餐 :plan 不允许使用区域 :region',
+    'residency_region_description' => '租户数据驻留区域',
+    'residency_enforced_description' => '是否强制合规校验数据存储区域',
+    'residency_violation' => '数据存储区域违规：期望 :expected，实际 :actual',
+    'residency_migration_disabled' => '跨区域迁移已被禁用',
+    'residency_migration_same_region' => '源区域与目标区域相同，无需迁移',
+    'residency_migration_mismatch' => '租户当前区域(:current)与源区域(:from)不一致',
+    'residency_migration_failed' => '租户 :tenant 跨区域迁移失败: :error',
+    'residency_migration_completed' => '租户 :tenant 跨区域迁移完成: :from → :to',
+
+    // 租户克隆（TASK-029）
+    'clone_source_not_found' => '模板租户不存在',
+    'clone_slug_required' => '目标租户 slug 必填',
+    'clone_slug_in_use' => '目标租户 slug 已被占用',
+    'clone_completed' => '租户克隆完成：源 :source → 目标 :target',
+    'clone_snapshot_invalid' => '租户快照结构无效',
+    'clone_snapshot_imported' => '快照已导入到租户 :target',
+
+    // 跨租户层级关系（TASK-029）
+    'hierarchy_self_reference' => '父租户与子租户不能相同',
+    'hierarchy_parent_not_found' => '父租户不存在',
+    'hierarchy_child_not_found' => '子租户不存在',
+    'hierarchy_relation_type_invalid' => '无效的关系类型: :type',
+    'hierarchy_already_exists' => '该父-子租户关系已存在',
+    'hierarchy_resource_shared' => '父租户 :parent 已向子租户 :child 共享资源 :resource_type#:resource_id',
+    'hierarchy_not_found' => '父-子租户关系不存在：父 :parent，子 :child',
+    'hierarchy_billing_aggregated' => '层级计费聚合完成：父租户 :parent，周期 :period，合计 :total',
 ];

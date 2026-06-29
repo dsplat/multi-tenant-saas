@@ -1134,6 +1134,22 @@ abstract class TestCase extends BaseTestCase
             $table->unique('tenant_id', 'bc_tenant_unique');
             $table->unique('custom_domain', 'bc_domain_unique');
         });
+
+        // 租户层级关系表（TASK-029）
+        Schema::create('tenant_hierarchies', function (Blueprint $table) {
+            $table->unsignedBigInteger('tenant_hierarchy_id')->primary();
+            $table->unsignedBigInteger('tenant_id')->comment('父租户 ID');
+            $table->unsignedBigInteger('child_tenant_id')->comment('子租户 ID');
+            $table->string('relation_type', 30)->default('subsidiary');
+            $table->json('permission_scope')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+            $table->softDeletes();
+
+            $table->index('tenant_id', 'th_tenant_index');
+            $table->index('child_tenant_id', 'th_child_index');
+            $table->unique(['tenant_id', 'child_tenant_id'], 'th_parent_child_unique');
+        });
     }
 
     protected function tearDown(): void

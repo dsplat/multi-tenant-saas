@@ -8,15 +8,15 @@
     "product_manager": {
       "name": "产品经理",
       "cli_tool": "opencode",
-      "model": "bailian/glm-5.2",
+      "model": "bailian/deepseek-v4-pro",
       "prompt_file": "prompts/pm-prompt.md",
       "description": "需求分析、Sprint规划、Task拆分",
       "timeout": 180
     },
     "developer": {
       "name": "开发工程师",
-      "cli_tool": "opencode",
-      "model": "bailian/glm-5.2",
+      "cli_tool": "mimo",
+      "model": "mimo/mimo-v2.5-pro",
       "prompt_file": "prompts/dev-prompt.md",
       "description": "代码开发",
       "timeout": 300
@@ -105,6 +105,7 @@
     {
       "role": "developer",
       "chain": [
+        "mimo/mimo-v2.5-pro",
         "bailian/glm-5.2",
         "bailian/deepseek-v4-pro"
       ],

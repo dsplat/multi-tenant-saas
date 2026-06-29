@@ -1,11 +1,11 @@
 {
   "sequence": [
     "TASK-033",
-    "TASK-034",
     "TASK-035",
     "TASK-036",
-    "TASK-037",
     "TASK-038",
+    "TASK-034",
+    "TASK-037",
     "TASK-039",
     "TASK-040",
     "TASK-041",
@@ -28,7 +28,16 @@
   "failed": null,
   "current": "TASK-033",
   "retries": {},
-  "diagnoses": {},
-  "started_at": "2026-06-29T23:33:43.750655",
-  "updated_at": "2026-06-29T23:37:17.632320"
+  "diagnoses": {
+    "TASK-033": {
+      "root_cause": "未能通过规则匹配具体原因",
+      "category": "other",
+      "strategy": "retry_same",
+      "fix_instruction": "",
+      "attempt": 2
+    }
+  },
+  "model_switches": [],
+  "started_at": "2026-06-30T00:20:44.328239",
+  "updated_at": "2026-06-30T00:31:49.768048"
 }

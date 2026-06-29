@@ -5,42 +5,42 @@
     {
       "id": "TASK-033",
       "status": "SKIPPED",
-      "updated": "2026-06-30T00:38:54.051509",
+      "updated": "2026-06-30T00:35:36.313176",
       "title": "AI 推理服务契约与驱动抽象（非流式）",
       "sprint": "sprint-agent"
     },
     {
       "id": "TASK-034",
-      "status": "DEV",
-      "updated": "2026-06-30T01:37:36.787314",
+      "status": "SKIPPED",
+      "updated": "2026-06-30T02:14:10.668794",
       "title": "AI 推理服务流式接口（streamChat + SSE）",
       "sprint": "sprint-agent"
     },
     {
       "id": "TASK-035",
-      "status": "READY",
-      "updated": "2026-06-30T00:40:04.221849",
+      "status": "SKIPPED",
+      "updated": "2026-06-30T00:37:06.612503",
       "title": "Agent 数据库迁移（5 张表）",
       "sprint": "sprint-agent"
     },
     {
       "id": "TASK-036",
-      "status": "DONE",
-      "updated": "2026-06-30T02:01:58.080884",
+      "status": "SKIPPED",
+      "updated": "2026-06-30T00:38:46.914404",
       "title": "Agent 模块事件类",
       "sprint": "sprint-agent"
     },
     {
       "id": "TASK-037",
-      "status": "READY",
-      "updated": "2026-06-30T00:09:25.700229",
+      "status": "DONE",
+      "updated": "2026-06-30T02:21:10.747455",
       "title": "Eloquent 模型（5 个）",
       "sprint": "sprint-agent"
     },
     {
       "id": "TASK-038",
-      "status": "READY",
-      "updated": "2026-06-30T01:24:51.028764",
+      "status": "SKIPPED",
+      "updated": "2026-06-30T00:40:17.215002",
       "title": "服务契约与 DTO",
       "sprint": "sprint-agent"
     },

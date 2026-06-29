@@ -1,55 +1,47 @@
-Let me read the actual deliverables and the spec.
-Now let me check the git diff to see the actual file changes (the diff provided in the prompt only shows `.ai/` config files).
-Now I have the full picture. Here's the review:
-
----
-
+Let me first examine the actual codebase to understand the context of these changes.
+Let me also check existing contracts for style consistency and the spec for requirements.
 ## Architecture
-
-4 个契约接口完全对齐 spec §4.1–4.4，文件路径符合 spec §9。每个契约单一职责，通过 Laravel 服务容器绑定实现可替换，模块边界清晰。DTO 作为纯值对象放在 `Services/Agent/Dto/`，与契约分离，层次合理。无循环依赖。
+4 个契约接口职责清晰，分别覆盖 CRUD/配置（`AgentServiceContract`）、运行时执行（`AgentRuntimeContract`）、工具注册/执行（`ToolRegistryContract`）、监控日志（`AgentMonitorContract`），符合 ISP。DTO 作为 `readonly` 值对象放在 `Services/Agent/Dto/` 与 Agent 域对齐。依赖方向正确：Contract → DTO，无循环依赖。与既有 `IdGeneratorContract`、`TenantContextContract` 风格一致。
 
 **评价：良好**
 
 ## Code Quality
-
-命名遵循项目既有惯例（`*Contract` 后缀、`readonly` 属性、`fromArray`/`toArray` 工厂模式），与 `IdGeneratorContract`、`TenantContextContract` 风格一致。DocBlock 使用 PHPStan array-shape 语法，信息充分。代码简洁无冗余。
+- 命名统一（`*Contract` 后缀、`readonly` 类），docblock 使用 PHPStan array-shape 语法，中文注释与项目风格一致。
+- `Tool::toFunctionCallingFormat()` 贴合 OpenAI schema，实用。
+- `fromArray`/`toArray` 工厂模式与项目惯例一致。
+- `Tool::fromArray` 已做 `name` 必填校验（`empty()` 检查 + `InvalidArgumentException`），diff 中 review 文档声称"缺少校验"与实际代码不符。
 
 **评价：良好**
 
 ## Type Safety
+- `AgentResponse` 已使用 `@phpstan-type ToolCallArray` 和 `TokenUsageArray` 定义结构类型，构造器 docblock 标注 `array<int, ToolCallArray>` 和 `TokenUsageArray|null`，静态分析可检查。
+- `runStream` 返回 `\Generator<string>` — PHPDoc 不支持 Generator 泛型，PHPStan/Psalm 无法验证 yield 类型，但这是 PHP 生态限制，非代码缺陷。
+- `getConversationContext` 返回形状 `array{role: string, content: string}` 可能过窄——tool 消息通常含 `tool_call_id` 等额外字段，实现端可能需放宽。
 
-- `AgentResponse::fromArray` 返回 `self`，但内部 `$data['tool_calls']` 未校验结构，传入畸形数据时 `toolCalls` 类型注解形同虚设。
-- `Tool::fromArray:46` 的 `json_decode` 未检查返回值——若 JSON 非法返回 `null`，会静默赋值给 `array` 类型的 `parametersSchema`。
-- `AgentMonitorContract::logToolCall` 的 `$output` 参数标注为 `mixed`，但 docblock 未写 `@param`，接口文档不完整。
-- `AgentResponse` 的 `@property-read` docblock 声明了属性但类用的是 `readonly` 构造器提升属性，`@property-read` 冗余（不影响功能但增加维护负担）。
-
-**评价：有改进空间**
+**评价：良好（1 个细微问题）**
 
 ## Security
-
-纯接口定义和不可变 DTO，无运行时逻辑。`execute` 方法接收 `tenantId` 作为显式参数，符合多租户隔离设计。无 SQL 拼接、无 XSS 向量、无敏感数据暴露路径。
+纯接口 + 不可变 DTO，无运行时逻辑，无 SQL 注入/XSS/敏感数据暴露风险。`ToolRegistryContract::execute()` 接受 `$tenantId` 用于租户隔离，接口层面 OK。
 
 **评价：无风险**
 
 ## Performance
-
-接口定义无执行逻辑，无 N+1、循环、内存风险。
+接口定义无执行逻辑，无 N+1、循环、内存风险。`ToolRegistryContract::all()` 返回 `Collection<Tool>`——若实现端加载全量工具可能有 N+1 风险，但属实现层面问题，契约本身无问题。
 
 **评价：无风险**
 
 ## Potential Bugs
+1. `AgentResponse::fromArray` 的 `toolCalls` 未做元素结构校验，传入 `[['bad' => 'data']]` 时 `hasToolCalls()` 返回 `true` 但结构不匹配 `ToolCallArray`，下游可能 fatal。
+2. `AgentResponse` 构造器 `agentId` 默认值为 `0`——如果 0 不是合法 ID，`fromArray` 缺失 `agent_id` 时会静默产生无效响应，建议默认 `null` 或在 `fromArray` 中抛异常。
 
-1. `Tool::fromArray` 中 `json_decode` 失败时 `$data['parameters_schema']` 为非法 JSON 字符串，`json_decode` 返回 `null`，最终 `parametersSchema` 被赋值 `null` 而非 `[]`——违反 `array` 类型声明。虽然 `is_string` 判断会命中，但 `json_decode($invalid, true)` 返回 `null`，缺少 `?? []` 兜底。
-2. `AgentResponse::fromArray` 的 `toolCalls` 未做元素校验，若传入 `[['bad' => 'data']]`，下游 `hasToolCalls()` 返回 `true` 但结构不匹配，可能导致运行时错误。
-
-**评价：有 1 个潜在 bug（#1）**
+**评价：有 2 个潜在问题（非阻塞）**
 
 ## Verdict
-
 **PASS**
 
 【建议改进】（非阻塞）：
 
-1. `Tool::fromArray:46-48` — `json_decode` 后追加 `?? []` 防御非法 JSON：`json_decode($data['parameters_schema'], true) ?? []`
-2. `AgentMonitorContract::logToolCall:25` — 为 `$output` 参数补 `@param` docblock，保持接口文档完整性
-3. `AgentResponse::fromArray` — 考虑对 `$data['tool_calls']` 做 `array_is_list` 或元素结构校验，与类型注解一致
+1. `AgentResponse::fromArray:54` — 对 `$data['tool_calls']` 做元素结构校验（至少检查 `id`/`name`/`arguments` key 存在），或添加 `@phpstan-assert` 约束。
+2. `AgentResponse` 构造器 `agentId` 默认值 `0` 语义不明——考虑改为 `?int $agentId = null` 或在 `fromArray` 中 required。
+3. `AgentMonitorContract:34` — `$output` 参数已有 `@param mixed $output` docblock（review 文档声称缺失不正确）。
+4. **Review 文档本身**：`.ai/review/TASK-038-review.md` 对 `Tool::fromArray` 的 finding（"缺少 name 校验"）与实际代码矛盾——代码 L36-38 已有 `empty($data['name'])` 校验 + `InvalidArgumentException`。建议修正 review 文档。

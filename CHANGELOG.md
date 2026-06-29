@@ -9,13 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ### Overview
 
-v1.1.0 完成 sprint-008 安全审计与全量文档补全，达到正式发布条件。新增 OWASP Top 10 安全测试套件与审计报告，补全 AI 模块 / 计费 / 部署（Docker + Kubernetes） / 运维 / SDK 示例等文档。
+v1.1.0 完成 sprint-008 安全审计与全量文档补全，达到正式发布条件。新增 OWASP Top 10 安全测试套件与审计报告，补全 AI 模块 / 计费 / 部署（Docker + Kubernetes） / 运维 / SDK 示例等文档。同期新增企业级扩展模块（Webhook / EventBus / FeatureFlag / Metrics / SLA / 数据隔离 / 租户克隆 / BYOK / 负载测试等 11 个服务）。
+
+### Added — 企业级扩展模块（TASK-019 ~ TASK-030）
+- `WebhookService` + `Webhook` / `WebhookDelivery`：Webhook 事件订阅、重试、签名验证、交付记录
+- `EventBusService` + `EventSubscription` / `DeadLetter`：异步事件总线、死信队列、事件订阅管理
+- `FeatureFlagService` + `FeatureFlag`：功能开关、灰度发布、租户级/百分比规则评估
+- `MetricsService` + `MetricsSnapshot`：指标统计、快照服务
+- `SlaService` + `SlaEvent`：SLA 定义、事件追踪、违规检测
+- `CostService` + `CostAllocation`：成本追踪、资源计费、部门分摊
+- `ResourceService`：租户资源配额管理
+- `ReportService` + `CustomReport`：自定义报表、PDF/Excel 导出
+- `ErrorTrackingService`：错误追踪与聚合
+- `InAppNotificationService` + `InAppNotification`：应用内通知、未读数、批量已读
+- `BroadcastingService` + `BroadcastEvent`：实时广播、WebSocket/SSE 推送
+- `IsolationService`：数据隔离策略（shared-db / schema-based / database-based）
+- `DataResidencyService`：数据驻留管理、区域配置、跨区域迁移
+- `TenantCloneService`：租户克隆、模板创建、快照导入导出
+- `CrossTenantService` + `TenantHierarchy`：跨租户数据共享、层级关系
+- `TenantKeyService` + `TenantKey`：BYOK 密钥管理、加密存储、密钥轮换
+- `tests/LoadTest.php` + `tests/PerformanceTest.php`：负载测试套件与性能基准测试
 
 ### Added — 安全
 - `tests/SecurityTest.php`：OWASP Top 10 自动化安全测试套件（14 用例，覆盖 SQL 注入 / XSS / CSRF / 敏感数据泄露 / 批量赋值 / 租户隔离 / 越权访问 / 限流探测）
 - `docs/security/安全审计报告.md`：OWASP Top 10 (2021) 逐项核查 + `composer audit` 结果 + 手动安全测试结果 + 安全响应头清单 + 残留项跟进
 
 ### Added — 文档
+- `docs/api/服务层API.md`：新增 18 个企业级服务 API 文档（Webhook / EventBus / FeatureFlag / Cost / Resource / Report / ErrorTracking / Broadcasting / InAppNotification / Isolation / DataResidency / TenantClone / CrossTenant / Sandbox / DeveloperPortal / TenantKey / Metrics / SLA）
 - `docs/architecture/AI模块架构.md`：AI 网关分层、提供商契约、服务层职责、数据模型、配置与安全
 - `docs/api/AI模块API.md`：AI 服务层 API + PHP SDK + HTTP 端点 + 错误码
 - `docs/api/端点总览.md`：全量 HTTP 端点参考（含 AI / 开发者门户 / Webhook / 广播）

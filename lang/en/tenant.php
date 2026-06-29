@@ -57,4 +57,18 @@ return [
     'retention_data_type' => 'Data Type',
     'retention_record_count' => 'Record Count',
     'retention_data_expiring_soon' => 'The following data is expiring soon',
+
+    // Database isolation (TASK-027)
+    'isolation_setup_completed' => 'Tenant database isolation setup completed',
+    'isolation_teardown_completed' => 'Tenant database isolation teardown completed',
+    'isolation_type_unsupported' => 'Unsupported isolation strategy type: :type',
+    'isolation_strategy_not_found' => 'Isolation strategy not found: :type',
+    'isolation_migrate_type_mismatch' => 'Tenant current isolation strategy (:current) does not match migration source (:from)',
+    'isolation_migrate_verify_failed' => 'Migration verification failed: table :table expected :expected rows, got :actual',
+    'isolation_schema_unsupported' => 'Schema-level isolation is only supported on PostgreSQL, not supported by current database',
+    'isolation_database_create_failed' => 'Failed to create tenant database: :error',
+    'isolation_database_drop_failed' => 'Failed to drop tenant database: :error',
+    'isolation_invalid_identifier' => 'Identifier :field contains invalid characters: :value',
+    'isolation_migrate_started' => 'Start migrating tenant :tenant isolation strategy: :from → :to',
+    'isolation_migrate_completed' => 'Tenant :tenant isolation strategy migration completed: :from → :to',
 ];

@@ -230,4 +230,26 @@ return [
             ],
         ],
     ],
+
+    // 数据库隔离配置（TASK-027）
+    'isolation' => [
+        // 默认隔离策略：shared（共享数据库+行级隔离）/ database（独立数据库）/ schema（独立 Schema，仅 PostgreSQL）
+        'default' => env('TENANCY_ISOLATION_DEFAULT', 'shared'),
+        // 租户连接名前缀（database/schema 策略动态注册的连接名 = 前缀 + tenant_id）
+        'connection_prefix' => env('TENANCY_ISOLATION_CONNECTION_PREFIX', 'tenant.'),
+        // 基础连接名（租户连接继承该连接配置，仅覆盖 database/search_path）
+        'base_connection' => env('TENANCY_ISOLATION_BASE_CONNECTION', env('DB_CONNECTION', 'sqlite')),
+        // 管理员连接名（用于 CREATE/DROP DATABASE，需 DBA 权限；留空则使用基础连接）
+        'admin_connection' => env('TENANCY_ISOLATION_ADMIN_CONNECTION'),
+        // 是否在 setupDatabase 后自动运行迁移（设为 false 可由运维手动管理 schema）
+        'run_migrations' => (bool) env('TENANCY_ISOLATION_RUN_MIGRATIONS', true),
+        // 迁移文件路径（database 策略在新库上执行的迁移目录）
+        'migrations_path' => env('TENANCY_ISOLATION_MIGRATIONS_PATH', database_path('migrations')),
+        // 租户数据表清单（迁移工具导出/导入时遍历的租户表，需运维按项目实际填入）
+        'tenant_tables' => [],
+        // 独立数据库名命名模板（{:id} 替换为租户 ID）
+        'database_name_template' => env('TENANCY_ISOLATION_DB_NAME_TEMPLATE', 'tenant_{:id}'),
+        // 独立 Schema 名命名模板（{:id} 替换为租户 ID）
+        'schema_name_template' => env('TENANCY_ISOLATION_SCHEMA_NAME_TEMPLATE', 'tenant_{:id}'),
+    ],
 ];

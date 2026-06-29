@@ -159,6 +159,38 @@ class TenantContext implements TenantContextContract
         }
     }
 
+    // ========== 数据库隔离（TASK-027） ==========
+
+    /**
+     * 获取当前租户的隔离策略类型（shared/database/schema）
+     */
+    public static function getIsolationType(): ?string
+    {
+        $tenant = static::getTenant();
+
+        return $tenant?->isolation_type;
+    }
+
+    /**
+     * 获取当前租户的独立数据库名称（database 策略）
+     */
+    public static function getDatabaseName(): ?string
+    {
+        $tenant = static::getTenant();
+
+        return $tenant?->database_name;
+    }
+
+    /**
+     * 获取当前租户的独立 Schema 名称（schema 策略）
+     */
+    public static function getSchemaName(): ?string
+    {
+        $tenant = static::getTenant();
+
+        return $tenant?->schema_name;
+    }
+
     // ========== 实例方法（TenantContextContract 实现，委托到静态方法） ==========
 
     public function resolveId(): ?string

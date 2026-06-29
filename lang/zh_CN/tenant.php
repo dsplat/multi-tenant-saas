@@ -57,4 +57,18 @@ return [
     'retention_data_type' => '数据类型',
     'retention_record_count' => '记录数',
     'retention_data_expiring_soon' => '以下数据即将过期',
+
+    // 数据库隔离（TASK-027）
+    'isolation_setup_completed' => '租户数据库隔离初始化完成',
+    'isolation_teardown_completed' => '租户数据库隔离已清理',
+    'isolation_type_unsupported' => '不支持的隔离策略类型: :type',
+    'isolation_strategy_not_found' => '未找到隔离策略: :type',
+    'isolation_migrate_type_mismatch' => '租户当前隔离策略(:current)与迁移源策略(:from)不一致',
+    'isolation_migrate_verify_failed' => '迁移验证失败：表 :table 期望 :expected 行，实际 :actual 行',
+    'isolation_schema_unsupported' => 'Schema 级隔离仅适用于 PostgreSQL，当前数据库不支持',
+    'isolation_database_create_failed' => '独立数据库创建失败: :error',
+    'isolation_database_drop_failed' => '独立数据库删除失败: :error',
+    'isolation_invalid_identifier' => '标识符 :field 包含非法字符: :value',
+    'isolation_migrate_started' => '开始迁移租户 :tenant 隔离策略: :from → :to',
+    'isolation_migrate_completed' => '租户 :tenant 隔离策略迁移完成: :from → :to',
 ];

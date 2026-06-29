@@ -96,6 +96,9 @@ abstract class TestCase extends BaseTestCase
             $table->string('slug', 100)->nullable()->unique();
             $table->string('custom_domain', 200)->nullable()->unique();
             $table->string('status', 20)->default('active');
+            $table->string('isolation_type', 20)->default('shared');
+            $table->string('database_name', 100)->nullable();
+            $table->string('schema_name', 100)->nullable();
             $table->string('subscription_plan', 50)->default('free');
             $table->unsignedBigInteger('subscription_plan_id')->nullable();
             $table->timestamp('subscription_started_at')->nullable();
@@ -104,6 +107,8 @@ abstract class TestCase extends BaseTestCase
             $table->timestamp('trial_ends_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index('isolation_type', 'tenants_isolation_type_index');
         });
 
         Schema::create('users', function (Blueprint $table) {

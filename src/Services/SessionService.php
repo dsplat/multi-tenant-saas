@@ -120,7 +120,8 @@ class SessionService
             $query->where('token_id', '!=', $exceptTokenId);
         }
 
-        $sessions = $query->get();
+        // 仅取必要列，减少模型 hydrate 开销
+        $sessions = $query->select(['user_session_id', 'token_id'])->get();
         $count = $sessions->count();
 
         $tokenIds = $sessions->pluck('token_id')->filter()->all();
@@ -193,7 +194,10 @@ class SessionService
         $timeout = $timeoutMinutes ?? $this->getSessionTimeout();
         $threshold = now()->subMinutes($timeout);
 
-        $sessions = UserSession::where('last_active_at', '<', $threshold)->get();
+        // 仅取必要列，减少模型 hydrate 开销
+        $sessions = UserSession::where('last_active_at', '<', $threshold)
+            ->select(['user_session_id', 'token_id'])
+            ->get();
         $count = $sessions->count();
 
         $tokenIds = $sessions->pluck('token_id')->filter()->all();

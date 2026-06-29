@@ -57,7 +57,20 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+            // 连接池：参考 MySQL max_connections 设置，保持利用率 < 80%。
+            // pool.max 上限应 <= floor(MySQL max_connections * 0.8 / fpm_worker数)。
+            'pool' => [
+                'enabled' => (bool) env('DB_POOL_ENABLED', false),
+                'max' => (int) env('DB_POOL_MAX', 50),
+                'idle' => (int) env('DB_POOL_IDLE', 10),
+                'timeout' => (int) env('DB_POOL_TIMEOUT', 3),
+            ],
             'options' => extension_loaded('pdo_mysql') ? array_filter([
+                // 持久连接复用，减少握手开销
+                PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', false),
+                // 超时控制：连接 3s、读写 30s，避免长事务拖垮连接池
+                PDO::ATTR_TIMEOUT => env('DB_TIMEOUT', 3),
+                PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci',
                 defined('Pdo\Mysql::ATTR_SSL_CA') ? \Pdo\Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],

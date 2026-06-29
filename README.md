@@ -2,10 +2,12 @@
 
 开箱即用的 Laravel 多租户 SaaS 基础框架，为构建企业级多租户应用提供完整的解决方案。
 
+📖 **完整文档**：[docs/README.md](docs/README.md) ｜ 🛡 [安全审计报告](docs/security/安全审计报告.md) ｜ 🚀 [5 分钟快速开始](docs/guides/快速开始.md) ｜ 🤖 [AI 模块](docs/guides/AI模块使用指南.md)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP Version](https://img.shields.io/badge/PHP-%5E8.2-777BB4)](https://php.net)
 [![Laravel Version](https://img.shields.io/badge/Laravel-%5E12.0-FF2D20)](https://laravel.com)
-[![Version](https://img.shields.io/badge/version-v1.0.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v1.1.0-blue)](CHANGELOG.md)
 
 ---
 
@@ -143,6 +145,33 @@ Order::create(['name' => '新订单']);
 - **导出任务**：Excel/PDF 异步导出
 - **支付安全**：支付密码 + 支付日志
 - **Swagger/OpenAPI**：API 文档自动生成
+
+### 🤖 AI 网关
+
+- **多提供商统一接口**：OpenAI / 智谱 / Anthropic / DeepSeek（文本），DALL-E / Stability（图像），Runway / 可灵（视频）
+- **租户级配置**：能力开关、自定义 API Key（加密）、模型白名单、月度预算
+- **用量与配额**：按 `monthly` 周期聚合 token/张数/秒数，超额策略 `block`/`warn`/`allow`
+- **异步视频生成**：提交 → 队列延迟轮询 → 完成事件回调 → 结果存储
+- **流式输出**：`streamChat` 支持 SSE 风格逐 chunk 输出
+- **Prompt 模板**：模板管理 + 变量渲染
+- **PHP SDK**：`AiResource` 一行调用文本/图像/视频/用量
+
+### 💲 计费体系
+
+- **订阅**：free / basic / pro / enterprise 四档计划，月付/年付，试用期
+- **积分/配额**：租户级预付费积分账户，充值/消耗/退款/过期，配额检查
+- **AI 用量计费**：按 token/张/秒计费，月度预算与超额策略
+- **发票税务**：发票开具、税率配置、优惠券核销
+- **成本核算**：基础设施 / AI / 第三方成本分摊 + 损益与趋势预测
+
+### 🛡 安全
+
+- **OWASP Top 10 合规**：0 高危（见 [安全审计报告](docs/security/安全审计报告.md)）
+- **租户数据隔离**：全局作用域 + 跨租户 403
+- **RBAC + Token abilities**：40+ 权限节点 + 14 种 API 权限
+- **敏感数据保护**：密码哈希、敏感字段隐藏、手机号脱敏、API Key/Tokens 加密存储
+- **安全响应头**：`X-Content-Type-Options` / `X-Frame-Options` / HSTS
+- **限流与 MFA**：认证端点限流 + TOTP/邮箱/短信多因素认证
 
 ---
 
@@ -470,21 +499,33 @@ $allOrders = Order::forAllTenants()->get();
 - [租户隔离架构](docs/architecture/租户隔离架构.md)
 - [数据模型设计](docs/architecture/数据模型设计.md)
 - [设计决策](docs/architecture/设计决策.md)
-- [快速开始](docs/guides/快速开始.md)
+- [快速开始（5 分钟上手）](docs/guides/快速开始.md)
 - [四重访问架构](docs/guides/四重访问架构.md)
 - [域名配置指南](docs/guides/域名配置指南.md)
 - [权限控制指南](docs/guides/权限控制指南.md)
+- [AI 模块使用指南](docs/guides/AI模块使用指南.md)
+- [计费配置指南](docs/guides/计费配置指南.md)
 - [OAuth SDK接入指南](docs/guides/OAuth_SDK接入指南.md)
 - [支付SDK接入指南](docs/guides/支付SDK接入指南.md)
 - [SaaS核心模块扩展指南](docs/guides/SaaS核心模块扩展指南.md)
-- [部署指南](docs/deployment/部署指南.md)
+- [部署指南（Docker / Kubernetes）](docs/deployment/部署指南.md)
+- [运维手册](docs/deployment/运维手册.md)
+- [发布检查清单](docs/deployment/发布检查清单.md)
+- [备份恢复流程](docs/deployment/备份恢复流程.md)
+- [故障应急手册](docs/deployment/故障应急手册.md)
+- [监控告警配置](docs/deployment/监控告警配置.md)
 - [Nginx配置指南](docs/deployment/Nginx配置指南.md)
 - [本地开发环境](docs/development/本地开发环境.md)
 - [编码规范](docs/development/coding-standards.md)
+- [HTTP 端点总览](docs/api/端点总览.md)
+- [AI 模块 API](docs/api/AI模块API.md)
 - [核心API](docs/api/核心API.md)
 - [中间件API](docs/api/中间件API.md)
 - [服务层API](docs/api/服务层API.md)
 - [OpenAPI规范](docs/api/openapi.yaml)
+- [安全审计报告（OWASP Top 10）](docs/security/安全审计报告.md)
+- [PHP SDK 使用示例](docs/examples/php-sdk-quickstart.md)
+- [REST API 调用示例](docs/examples/rest-api-examples.md)
 
 ---
 

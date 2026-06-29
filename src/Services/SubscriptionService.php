@@ -7,6 +7,7 @@ use MultiTenantSaas\Models\SubscriptionPlan;
 use MultiTenantSaas\Models\SubscriptionHistory;
 use MultiTenantSaas\Models\FinancialRecord;
 use MultiTenantSaas\Services\NotificationService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -191,19 +192,46 @@ class SubscriptionService
 
     /**
      * 获取租户当前计划
+     *
+     * 订阅计划为低频变更的热数据，按 planId/name 缓存以减少重复查询。
      */
     public static function getCurrentPlan(int $tenantId): ?SubscriptionPlan
     {
         $tenant = Tenant::find($tenantId);
-        if (!$tenant || !$tenant->subscription_plan_id) {
-            if ($tenant && $tenant->subscription_plan) {
-                return SubscriptionPlan::where('name', $tenant->subscription_plan)->first();
+
+        return $tenant ? static::resolvePlanFromTenant($tenant) : null;
+    }
+
+    /**
+     * 直接由 Tenant 模型解析计划（避免批量场景下重复回查租户行造成 N+1）
+     *
+     * 订阅计划为低频变更的热数据，按 planId/name 缓存。
+     */
+    protected static function resolvePlanFromTenant(Tenant $tenant): ?SubscriptionPlan
+    {
+        $ttl = (int) config('cache.ttl.subscription_plan', 1800);
+
+        if (!$tenant->subscription_plan_id) {
+            if ($tenant->subscription_plan) {
+                return Cache::remember(
+                    "plan:name:{$tenant->subscription_plan}",
+                    $ttl,
+                    fn () => SubscriptionPlan::where('name', $tenant->subscription_plan)->first()
+                );
             }
-            return SubscriptionPlan::where('name', 'free')->first();
+
+            return Cache::remember(
+                'plan:name:free',
+                $ttl,
+                fn () => SubscriptionPlan::where('name', 'free')->first()
+            );
         }
-        return $tenant->subscription_plan_id
-            ? SubscriptionPlan::find($tenant->subscription_plan_id)
-            : SubscriptionPlan::where('name', 'free')->first();
+
+        return Cache::remember(
+            "plan:{$tenant->subscription_plan_id}",
+            $ttl,
+            fn () => SubscriptionPlan::find($tenant->subscription_plan_id)
+        );
     }
 
     /**
@@ -233,7 +261,8 @@ class SubscriptionService
                 ->get();
 
             foreach ($tenants as $tenant) {
-                $plan = static::getCurrentPlan($tenant->tenant_id);
+                // 直接复用已加载的 Tenant 模型解析计划，避免逐租户回查造成 N+1
+                $plan = static::resolvePlanFromTenant($tenant);
                 if ($plan && !$plan->isFree()) {
                     NotificationService::notifySubscriptionExpiring($tenant, $days);
                     $count++;
@@ -293,7 +322,8 @@ class SubscriptionService
      */
     protected function autoRenew(Tenant $tenant): void
     {
-        $plan = static::getCurrentPlan($tenant->tenant_id);
+        // 直接复用传入的 Tenant 模型，避免回查租户行
+        $plan = static::resolvePlanFromTenant($tenant);
 
         if (!$plan || $plan->isFree()) {
             return;

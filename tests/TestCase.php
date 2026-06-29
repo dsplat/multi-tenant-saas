@@ -1098,6 +1098,42 @@ abstract class TestCase extends BaseTestCase
             $table->index('channel');
             $table->index('is_sent');
         });
+
+        // 租户加密密钥表（TASK-028）
+        Schema::create('tenant_keys', function (Blueprint $table) {
+            $table->unsignedBigInteger('tenant_key_id')->primary();
+            $table->unsignedBigInteger('tenant_id');
+            $table->text('encrypted_key');
+            $table->string('key_type', 20)->default('system');
+            $table->string('status', 20)->default('active');
+            $table->unsignedBigInteger('previous_key_id')->nullable();
+            $table->timestamp('rotated_at')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+
+            $table->index('tenant_id', 'tk_tenant_index');
+            $table->index(['tenant_id', 'status'], 'tk_tenant_status_index');
+            $table->index('previous_key_id', 'tk_previous_index');
+        });
+
+        // 白标品牌配置表（TASK-028）
+        Schema::create('branding_configs', function (Blueprint $table) {
+            $table->unsignedBigInteger('branding_config_id')->primary();
+            $table->unsignedBigInteger('tenant_id');
+            $table->string('logo_url', 500)->nullable();
+            $table->string('favicon_url', 500)->nullable();
+            $table->string('primary_color', 20)->nullable();
+            $table->string('secondary_color', 20)->nullable();
+            $table->text('custom_css')->nullable();
+            $table->string('custom_domain', 200)->nullable();
+            $table->string('login_page_style', 20)->default('default');
+            $table->string('email_template', 50)->default('default');
+            $table->timestamps();
+            $table->softDeletes();
+
+            $table->unique('tenant_id', 'bc_tenant_unique');
+            $table->unique('custom_domain', 'bc_domain_unique');
+        });
     }
 
     protected function tearDown(): void

@@ -266,7 +266,9 @@ class WebhookService
      */
     public function getDeliveries(int $webhookId, ?string $status = null)
     {
-        $query = WebhookDelivery::where('webhook_id', $webhookId);
+        $query = WebhookDelivery::where('webhook_id', $webhookId)
+            // 预加载 webhook 关联，避免调用方访问 delivery->webhook 时触发 N+1
+            ->with('webhook:webhook_id,url,is_active,description');
 
         if ($status !== null) {
             $query->where('status', $status);
@@ -291,6 +293,8 @@ class WebhookService
     public function getDeliveriesByEvent(string $eventType)
     {
         return WebhookDelivery::where('event_type', $eventType)
+            // 预加载 webhook 关联，避免批量展示交付记录时逐条回查
+            ->with('webhook:webhook_id,url,is_active,description')
             ->orderByDesc('created_at')
             ->get();
     }

@@ -252,4 +252,79 @@ return [
         // 独立 Schema 名命名模板（{:id} 替换为租户 ID）
         'schema_name_template' => env('TENANCY_ISOLATION_SCHEMA_NAME_TEMPLATE', 'tenant_{:id}'),
     ],
+
+    // 租户加密密钥配置（TASK-028）
+    'encryption' => [
+        // 系统主密钥（用于加密租户密钥），从 .env 读取
+        'master_key' => env('APP_MASTER_KEY'),
+        // 加密算法
+        'cipher' => env('TENANT_KEY_CIPHER', 'aes-256-cbc'),
+        // 密钥轮换异步队列名（为空则同步执行 re-encrypt）
+        'rotation_queue' => env('TENANT_KEY_ROTATION_QUEUE'),
+        // 需要在密钥轮换时 re-encrypt 的数据字段清单
+        // 每项: ['table' => string, 'column' => string, 'id_column' => string, 'tenant_column' => ?string]
+        'encrypted_fields' => [],
+    ],
+
+    // 白标品牌配置（TASK-028）
+    'branding' => [
+        // Logo 上传允许的 MIME 类型
+        'logo_mime_types' => ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'],
+        // Logo 最大尺寸（字节）
+        'logo_max_size' => (int) env('BRANDING_LOGO_MAX_SIZE', 2097152),
+        // 默认主色调
+        'default_primary_color' => env('BRANDING_DEFAULT_PRIMARY_COLOR', '#2563eb'),
+        // 默认辅助色
+        'default_secondary_color' => env('BRANDING_DEFAULT_SECONDARY_COLOR', '#64748b'),
+        // 默认登录页样式
+        'default_login_page_style' => env('BRANDING_DEFAULT_LOGIN_STYLE', 'default'),
+        // 默认邮件模板
+        'default_email_template' => env('BRANDING_DEFAULT_EMAIL_TEMPLATE', 'default'),
+        // 是否启用自定义域名
+        'custom_domain_enabled' => (bool) env('BRANDING_CUSTOM_DOMAIN_ENABLED', true),
+    ],
+
+    // 数据驻留配置（TASK-029）
+    'residency' => [
+        // 可用区域列表（code => 中文名）
+        'regions' => [
+            'CN' => ['name' => '中国大陆', 'storage_disk' => env('RESIDENCY_CN_DISK', 'local')],
+            'US' => ['name' => '美国', 'storage_disk' => env('RESIDENCY_US_DISK', 'local')],
+            'EU' => ['name' => '欧盟', 'storage_disk' => env('RESIDENCY_EU_DISK', 'local')],
+            'APAC' => ['name' => '亚太', 'storage_disk' => env('RESIDENCY_APAC_DISK', 'local')],
+        ],
+        // 默认区域（新建租户未指定时使用）
+        'default_region' => env('RESIDENCY_DEFAULT_REGION', 'CN'),
+        // 是否启用合规校验（启用后 enforceStorageRegion 会强制拒绝跨区域读写）
+        'compliance_enforced' => (bool) env('RESIDENCY_COMPLIANCE_ENFORCED', true),
+        // 各订阅套餐允许的区域（未列出的套餐不限制）
+        'plan_allowed_regions' => [
+            'free' => ['CN'],
+            'basic' => ['CN', 'APAC'],
+            'pro' => ['CN', 'US', 'EU', 'APAC'],
+            'enterprise' => ['CN', 'US', 'EU', 'APAC'],
+        ],
+        // 跨区域迁移：是否启用 IsolationService 迁移工具联动
+        'cross_region_migration_enabled' => (bool) env('RESIDENCY_CROSS_REGION_MIGRATION', true),
+        // TenantSetting 中存储驻留信息的 group 名
+        'settings_group' => 'residency',
+    ],
+
+    // 租户克隆配置（TASK-029）
+    'clone' => [
+        // 快照版本
+        'snapshot_version' => 1,
+        // 快照中需导出的 TenantSetting group 白名单（为空表示导出全部 group）
+        'included_setting_groups' => [],
+        // 快照中需排除的 TenantSetting group（敏感数据应排除）
+        'excluded_setting_groups' => ['secrets', 'credentials'],
+        // 克隆时是否复制角色（roles）与角色权限映射
+        'clone_roles' => true,
+        // 克隆时是否复制 BrandingConfig
+        'clone_branding' => true,
+        // 克隆时是否复制 AiTenantConfig（不含 custom_api_keys 等敏感字段）
+        'clone_ai_config' => true,
+        // 克隆时 AiTenantConfig 中需排除的字段
+        'ai_config_excluded_fields' => ['custom_api_keys'],
+    ],
 ];

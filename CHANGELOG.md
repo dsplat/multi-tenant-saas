@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/).
 
+## [1.1.0] - 2026-06-29
+
+### Overview
+
+v1.1.0 完成 sprint-008 安全审计与全量文档补全，达到正式发布条件。新增 OWASP Top 10 安全测试套件与审计报告，补全 AI 模块 / 计费 / 部署（Docker + Kubernetes） / 运维 / SDK 示例等文档。
+
+### Added — 安全
+- `tests/SecurityTest.php`：OWASP Top 10 自动化安全测试套件（14 用例，覆盖 SQL 注入 / XSS / CSRF / 敏感数据泄露 / 批量赋值 / 租户隔离 / 越权访问 / 限流探测）
+- `docs/security/安全审计报告.md`：OWASP Top 10 (2021) 逐项核查 + `composer audit` 结果 + 手动安全测试结果 + 安全响应头清单 + 残留项跟进
+
+### Added — 文档
+- `docs/architecture/AI模块架构.md`：AI 网关分层、提供商契约、服务层职责、数据模型、配置与安全
+- `docs/api/AI模块API.md`：AI 服务层 API + PHP SDK + HTTP 端点 + 错误码
+- `docs/api/端点总览.md`：全量 HTTP 端点参考（含 AI / 开发者门户 / Webhook / 广播）
+- `docs/deployment/运维手册.md`：日常运维 / 日志 / 数据库 / 缓存 / 监控告警 / 租户运维 / 安全运维 / 故障处理 / 发布流程
+- `docs/guides/AI模块使用指南.md`：文本 / 图像 / 视频 AI 用法 + Prompt 模板 + 用量配额 + SDK 调用
+- `docs/guides/计费配置指南.md`：订阅 / 积分配额 / AI 计费 / 支付 / 发票税务 / 成本核算
+- `docs/examples/php-sdk-quickstart.md` + `php-sdk-sample.php`：PHP SDK 可运行示例
+- `docs/examples/rest-api-examples.md`：REST API（curl）调用示例覆盖认证 / 租户 / RBAC / 积分 / 订阅 / 支付 / 文件 / AI / Webhook
+- `docs/api/openapi.yaml`：补全 AI 模块端点（/ai/text、/ai/image、/ai/video、/ai/usage）
+
+### Changed — 文档
+- `docs/deployment/部署指南.md`：新增 Kubernetes 部署章节（Namespace / ConfigMap / Deployment / CronJob / Ingress / StatefulSet / 滚动更新）
+- `docs/architecture/系统架构概览.md`：新增「AI 与计费模块」章节与数据表总览补全（AI / 发票 / 优惠券 / 成本）
+- `docs/guides/快速开始.md`：定位为「5 分钟上手」
+- `docs/README.md` / `README.md`：文档索引补全，新增 AI / 计费 / 安全 / 示例入口与特性说明
+
+### Security
+- 新增 OWASP Top 10 自动化测试与审计报告（0 高危）
+- 残留 3 条 medium（guzzlehttp 传递依赖），修复建议见审计报告 §4
+
 ## [1.0.0] - 2026-06-28
 
 ### Overview

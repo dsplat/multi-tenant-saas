@@ -694,3 +694,175 @@ paths:
       responses:
         '200':
           description: 成功
+
+  /api/v1/ai/text:
+    post:
+      tags: [AI]
+      summary: 文本补全
+      description: 调用 AI 网关进行对话/补全，按租户配置路由提供商并记录用量。
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messages]
+              properties:
+                model:
+                  type: string
+                  example: gpt-4o-mini
+                  description: 模型标识，须在租户白名单内
+                messages:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      role: { type: string, enum: [system, user, assistant] }
+                      content: { type: string }
+                options:
+                  type: object
+                  properties:
+                    temperature: { type: number, example: 0.7 }
+                    max_tokens: { type: integer, example: 256 }
+                    json_mode: { type: boolean }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      model: { type: string }
+                      content: { type: string }
+                      usage:
+                        type: object
+                        properties:
+                          input_tokens: { type: integer }
+                          output_tokens: { type: integer }
+        '403': { description: '能力未启用 / 模型不在白名单 (ai_category_disabled / ai_model_not_allowed)' }
+        '429': { description: '配额或预算超限 (ai_quota_exceeded / ai_budget_exceeded)' }
+        '502': { description: '上游提供商错误 (ai_provider_error)' }
+
+  /api/v1/ai/image:
+    post:
+      tags: [AI]
+      summary: 图像生成
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt]
+              properties:
+                prompt: { type: string, example: '赛博朋克猫' }
+                options:
+                  type: object
+                  properties:
+                    provider: { type: string, enum: [dalle, stability] }
+                    model: { type: string, example: dall-e-3 }
+                    size: { type: string, example: '1024x1024' }
+                    quality: { type: string, example: standard }
+                    n: { type: integer, example: 1 }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      urls:
+                        type: array
+                        items: { type: string, format: uri }
+                      file_upload_id: { type: string }
+
+  /api/v1/ai/video:
+    post:
+      tags: [AI]
+      summary: 视频生成（异步）
+      description: 提交异步视频生成任务，返回 request_id，完成后通过 ai.video.task.updated 事件与 Webhook 通知。
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt]
+              properties:
+                prompt: { type: string }
+                options:
+                  type: object
+                  properties:
+                    provider: { type: string, enum: [runway, kling] }
+                    model: { type: string, example: gen-3 }
+                    duration: { type: integer, example: 5 }
+                    resolution: { type: string, example: '1280x768' }
+                    fps: { type: integer, example: 24 }
+      responses:
+        '200':
+          description: 已提交
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      request_id: { type: string }
+                      status: { type: string, enum: [pending, processing, completed, failed] }
+                      poll_interval_seconds: { type: integer }
+
+  /api/v1/ai/usage:
+    get:
+      tags: [AI]
+      summary: 查询 AI 用量
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema: { type: string, example: '2026-06' }
+        - name: category
+          in: query
+          schema: { type: string, enum: [text, image, video] }
+        - name: model
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      period: { type: string }
+                      summary:
+                        type: object
+                        properties:
+                          spend: { type: number }
+                          currency: { type: string }
+                      by_category: { type: object }
+                      by_model: { type: object }

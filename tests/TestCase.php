@@ -814,6 +814,42 @@ abstract class TestCase extends BaseTestCase
             $table->index(['user_id', 'expires_at']);
             $table->unique(['user_id', 'device_fingerprint'], 'uniq_user_fingerprint');
         });
+
+        // 用户同意记录表（GDPR 合规）
+        Schema::create('consents', function (Blueprint $table) {
+            $table->unsignedBigInteger('consent_id')->primary();
+            $table->unsignedBigInteger('tenant_id')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->string('type', 50);
+            $table->string('version', 50)->default('1.0');
+            $table->boolean('is_granted')->default(false);
+            $table->string('ip_address', 45)->nullable();
+            $table->string('user_agent', 500)->nullable();
+            $table->timestamp('granted_at')->nullable();
+            $table->timestamp('revoked_at')->nullable();
+            $table->timestamps();
+
+            $table->index(['user_id', 'type']);
+            $table->index(['tenant_id', 'type']);
+            $table->index(['is_granted', 'revoked_at']);
+        });
+
+        // 数据保留策略表（GDPR 合规）
+        Schema::create('data_retention_policies', function (Blueprint $table) {
+            $table->unsignedBigInteger('data_retention_policy_id')->primary();
+            $table->unsignedBigInteger('tenant_id')->nullable();
+            $table->string('data_type', 50);
+            $table->unsignedInteger('retention_days')->default(365);
+            $table->boolean('auto_cleanup')->default(false);
+            $table->string('cleanup_strategy', 20)->default('delete');
+            $table->boolean('is_exempt')->default(false);
+            $table->string('description', 255)->nullable();
+            $table->timestamps();
+
+            $table->unique(['tenant_id', 'data_type'], 'uniq_retention_tenant_type');
+            $table->index(['auto_cleanup', 'is_exempt']);
+            $table->index('data_type');
+        });
     }
 
 

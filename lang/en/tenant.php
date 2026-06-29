@@ -42,4 +42,19 @@ return [
     'trusted_device_revoked' => 'Device trust has been revoked',
     'trusted_device_not_found' => 'Trusted device not found',
     'trusted_device_expired' => 'Device trust has expired, please complete a second verification',
+
+    // GDPR compliance and data retention
+    'gdpr_processing_activity_logged' => 'Processing activity logged',
+    'consent_granted' => 'Consent recorded',
+    'consent_revoked' => 'Consent revoked',
+    'consent_invalid_type' => 'Invalid consent type',
+    'consent_needs_acceptance' => 'Terms acceptance required',
+    'retention_cleanup_starting' => 'Starting data retention processing',
+    'retention_cleanup_completed' => 'Data cleanup completed',
+    'retention_dry_run_mode' => 'Dry-run mode: check only, no actual cleanup',
+    'retention_expired_total' => 'Total expired records: :count',
+    'retention_records_cleaned' => 'Records cleaned: :count',
+    'retention_data_type' => 'Data Type',
+    'retention_record_count' => 'Record Count',
+    'retention_data_expiring_soon' => 'The following data is expiring soon',
 ];

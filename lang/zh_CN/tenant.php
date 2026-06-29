@@ -42,4 +42,19 @@ return [
     'trusted_device_revoked' => '设备信任已撤销',
     'trusted_device_not_found' => '信任设备不存在',
     'trusted_device_expired' => '设备信任已过期，请重新二次验证',
+
+    // GDPR 合规与数据保留
+    'gdpr_processing_activity_logged' => '处理活动已记录',
+    'consent_granted' => '同意已记录',
+    'consent_revoked' => '同意已撤回',
+    'consent_invalid_type' => '无效的同意类型',
+    'consent_needs_acceptance' => '需要重新接受条款',
+    'retention_cleanup_starting' => '开始处理数据保留策略',
+    'retention_cleanup_completed' => '数据清理已完成',
+    'retention_dry_run_mode' => 'Dry-run 模式：仅检查不实际清理',
+    'retention_expired_total' => '过期数据总数: :count',
+    'retention_records_cleaned' => '已清理记录数: :count',
+    'retention_data_type' => '数据类型',
+    'retention_record_count' => '记录数',
+    'retention_data_expiring_soon' => '以下数据即将过期',
 ];

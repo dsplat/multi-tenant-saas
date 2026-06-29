@@ -8,7 +8,7 @@
     "product_manager": {
       "name": "产品经理",
       "cli_tool": "opencode",
-      "model": "bailian/deepseek-v4-pro",
+      "model": "alibaba-cn/deepseek-v4-pro",
       "prompt_file": "prompts/pm-prompt.md",
       "description": "需求分析、Sprint规划、Task拆分",
       "timeout": 180
@@ -24,7 +24,7 @@
     "reviewer": {
       "name": "代码审查",
       "cli_tool": "mimo",
-      "model": "mimo/mimo-v2.5-pro",
+      "model": "xiaomi/mimo-v2.5-pro",
       "prompt_file": "prompts/review-prompt.md",
       "description": "代码审查（只检查和建议）",
       "timeout": 180
@@ -87,7 +87,7 @@
     "webhooks": [],
     "llm_summary": true,
     "cli_tool": "mimo",
-    "model": "mimo/mimo-v2.5-pro",
+    "model": "xiaomi/mimo-v2.5-pro",
     "events": [
       "dev_complete",
       "review_pass",

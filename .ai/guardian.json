@@ -24,15 +24,15 @@
     "TASK-054"
   ],
   "completed": [
-    "TASK-034",
-    "TASK-035",
-    "TASK-038",
-    "TASK-037"
+    "TASK-038"
   ],
   "skipped": [
     "TASK-033",
-    "TASK-039",
-    "TASK-036"
+    "TASK-036",
+    "TASK-037",
+    "TASK-034",
+    "TASK-035",
+    "TASK-039"
   ],
   "failed": null,
   "current": "TASK-040",
@@ -45,7 +45,28 @@
       "fix_instruction": "",
       "attempt": 4
     },
+    "TASK-035": {
+      "root_cause": "未能通过规则匹配具体原因",
+      "category": "other",
+      "strategy": "retry_same",
+      "fix_instruction": "",
+      "attempt": 4
+    },
     "TASK-036": {
+      "root_cause": "修改了超出任务范围的文件",
+      "category": "scope_overflow",
+      "strategy": "add_detail",
+      "fix_instruction": "严格只修改任务【范围】内允许的文件，回滚所有越界变更，不要触碰无关文件。",
+      "attempt": 4
+    },
+    "TASK-034": {
+      "root_cause": "修改了超出任务范围的文件",
+      "category": "scope_overflow",
+      "strategy": "add_detail",
+      "fix_instruction": "严格只修改任务【范围】内允许的文件，回滚所有越界变更，不要触碰无关文件。",
+      "attempt": 4
+    },
+    "TASK-037": {
       "root_cause": "修改了超出任务范围的文件",
       "category": "scope_overflow",
       "strategy": "add_detail",
@@ -64,10 +85,10 @@
       "category": "scope_overflow",
       "strategy": "add_detail",
       "fix_instruction": "严格只修改任务【范围】内允许的文件，回滚所有越界变更，不要触碰无关文件。",
-      "attempt": 1
+      "attempt": 3
     }
   },
   "model_switches": [],
   "started_at": "2026-06-30T00:20:44.328239",
-  "updated_at": "2026-06-30T06:00:41.236313"
+  "updated_at": "2026-06-30T06:20:02.817935"
 }

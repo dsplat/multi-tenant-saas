@@ -113,6 +113,19 @@ return [
     'sla_check_starting' => 'Started checking SLA compliance',
     'sla_event_not_found' => 'SLA event not found',
     'sla_event_resolved' => 'SLA event resolved',
+
+    // Cost & resource tracking (TASK-024)
+    'cost_allocated' => 'Cost allocated',
+    'cost_ai_allocated' => 'AI usage cost allocated to tenant',
+    'cost_report_generated' => 'Monthly cost report generated',
+    'cost_forecast_completed' => 'Cost trend forecast completed',
+    'cost_profit_loss_calculated' => 'Tenant profit/loss analysis completed',
+    'resource_db_connections_high' => 'Database connections too high: :current, threshold :threshold',
+    'resource_queue_backlog_high' => 'Queue backlog: :queue current :current, threshold :threshold',
+    'resource_cache_hit_rate_low' => 'Cache hit rate too low: :current%, threshold :threshold%',
+    'resource_storage_usage_high' => 'Storage usage too high: :current MB, threshold :threshold MB',
+    'resource_alert_triggered' => 'Resource alert triggered: :metric',
+    'resource_alert_sent' => 'Resource alert sent',
     'provider' => [
         'wechat' => 'WeChat Open Platform',
         'wechat_work_internal' => 'WeChat Work (Internal App)',

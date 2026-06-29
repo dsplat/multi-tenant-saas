@@ -1006,6 +1006,25 @@ abstract class TestCase extends BaseTestCase
             $table->index('status');
             $table->index('started_at');
         });
+
+        // 成本分摊表（TASK-024）
+        Schema::create('cost_allocations', function (Blueprint $table) {
+            $table->unsignedBigInteger('cost_allocation_id')->primary();
+            $table->bigInteger('tenant_id')->unsigned()->nullable();
+            $table->string('cost_type', 30);
+            $table->string('cost_subtype', 50)->nullable();
+            $table->decimal('amount', 14, 4)->default(0);
+            $table->string('currency', 10)->default('CNY');
+            $table->string('period', 7);
+            $table->string('allocation_basis', 100)->nullable();
+            $table->decimal('allocation_value', 14, 4)->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+
+            $table->index(['tenant_id', 'period', 'cost_type']);
+            $table->index(['period', 'cost_type']);
+            $table->index('tenant_id');
+        });
     }
 
     protected function tearDown(): void

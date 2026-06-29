@@ -113,6 +113,19 @@ return [
     'sla_check_starting' => '开始检查 SLA 达标情况',
     'sla_event_not_found' => 'SLA 事件不存在',
     'sla_event_resolved' => 'SLA 事件已解决',
+
+    // 成本与资源追踪（TASK-024）
+    'cost_allocated' => '成本已分摊',
+    'cost_ai_allocated' => 'AI 用量成本已归入租户',
+    'cost_report_generated' => '月度成本报表已生成',
+    'cost_forecast_completed' => '成本趋势预测已完成',
+    'cost_profit_loss_calculated' => '租户盈亏分析已完成',
+    'resource_db_connections_high' => '数据库连接数过高：:current，阈值 :threshold',
+    'resource_queue_backlog_high' => '队列积压：:queue 当前 :current，阈值 :threshold',
+    'resource_cache_hit_rate_low' => '缓存命中率过低：:current%，阈值 :threshold%',
+    'resource_storage_usage_high' => '存储用量过高：:current MB，阈值 :threshold MB',
+    'resource_alert_triggered' => '资源告警触发：:metric',
+    'resource_alert_sent' => '资源告警已发送',
     'provider' => [
         'wechat' => '微信开放平台',
         'wechat_work_internal' => '企业微信（内部应用）',

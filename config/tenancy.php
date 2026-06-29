@@ -148,4 +148,34 @@ return [
             ],
         ],
     ],
+
+    // 成本追踪配置（TASK-024）
+    'cost_tracking' => [
+        // 默认币种
+        'default_currency' => env('COST_DEFAULT_CURRENCY', 'CNY'),
+        // 分摊周期（monthly/weekly/daily）
+        'period' => 'monthly',
+        // 趋势预测月数
+        'forecast_months' => (int) env('COST_FORECAST_MONTHS', 3),
+        // 历史数据回溯月数（用于趋势预测）
+        'history_months' => (int) env('COST_HISTORY_MONTHS', 6),
+        // 基础设施成本分摊依据
+        'infrastructure_basis' => [
+            'compute' => 'by_users',
+            'storage' => 'by_storage',
+            'bandwidth' => 'by_requests',
+        ],
+    ],
+
+    // 资源监控配置（TASK-024）
+    'resource_monitoring' => [
+        // 数据库连接数告警阈值
+        'db_connections_threshold' => (int) env('RESOURCE_DB_CONN_THRESHOLD', 100),
+        // 队列积压告警阈值（任务数）
+        'queue_backlog_threshold' => (int) env('RESOURCE_QUEUE_THRESHOLD', 1000),
+        // 缓存命中率告警阈值（百分比）
+        'cache_hit_rate_threshold' => (float) env('CACHE_HIT_RATE_THRESHOLD', 80.0),
+        // 存储用量告警阈值（MB）
+        'storage_usage_threshold_mb' => (int) env('STORAGE_USAGE_THRESHOLD_MB', 10240),
+    ],
 ];

@@ -39,8 +39,8 @@
     },
     {
       "id": "TASK-038",
-      "status": "READY",
-      "updated": "2026-06-30T00:09:25.700918",
+      "status": "DONE",
+      "updated": "2026-06-30T01:37:34.712849",
       "title": "服务契约与 DTO",
       "sprint": "sprint-agent"
     },

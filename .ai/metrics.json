@@ -420,14 +420,28 @@
       "tokens_used": 0,
       "cache_hit": 0,
       "cache_miss": 0
+    },
+    {
+      "task_id": "TASK-033",
+      "role": "dev_review",
+      "success": true,
+      "duration": 504.56,
+      "model": "bailian/glm-5.2",
+      "cli_tool": "opencode",
+      "retry_count": 0,
+      "error_category": "",
+      "timestamp": "2026-06-30T06:31:23.869965",
+      "tokens_used": 2225481,
+      "cache_hit": 2112960,
+      "cache_miss": 0
     }
   ],
   "summary": {
-    "total_executions": 30,
-    "total_success": 20,
+    "total_executions": 31,
+    "total_success": 21,
     "total_failures": 10,
-    "total_tokens_used": 11953529,
-    "total_cache_hit": 11021312,
+    "total_tokens_used": 14179010,
+    "total_cache_hit": 13134272,
     "total_cache_miss": 0,
     "by_role": {
       "guardian_task": {
@@ -440,11 +454,11 @@
         "success_rate": 44.4
       },
       "dev_review": {
-        "total": 6,
-        "success": 6,
-        "avg_duration": 418.59,
-        "tokens_used": 11953529,
-        "cache_hit": 11021312,
+        "total": 7,
+        "success": 7,
+        "avg_duration": 430.87,
+        "tokens_used": 14179010,
+        "cache_hit": 13134272,
         "cache_miss": 0,
         "success_rate": 100.0
       },
@@ -466,13 +480,17 @@
       "mimo/mimo-v2.5-pro": {
         "total": 6,
         "success": 6
+      },
+      "bailian/glm-5.2": {
+        "total": 1,
+        "success": 1
       }
     },
     "by_error_category": {
       "unknown": 10,
-      "": 20
+      "": 21
     },
-    "overall_success_rate": 66.7
+    "overall_success_rate": 67.7
   },
-  "updated": "2026-06-30T06:20:02.804168"
+  "updated": "2026-06-30T06:31:23.870050"
 }

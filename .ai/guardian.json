@@ -24,9 +24,11 @@
     "TASK-054"
   ],
   "completed": [],
-  "skipped": [],
+  "skipped": [
+    "TASK-033"
+  ],
   "failed": null,
-  "current": "TASK-033",
+  "current": "TASK-035",
   "retries": {},
   "diagnoses": {
     "TASK-033": {
@@ -34,10 +36,17 @@
       "category": "other",
       "strategy": "retry_same",
       "fix_instruction": "",
-      "attempt": 2
+      "attempt": 4
+    },
+    "TASK-035": {
+      "root_cause": "未能通过规则匹配具体原因",
+      "category": "other",
+      "strategy": "retry_same",
+      "fix_instruction": "",
+      "attempt": 3
     }
   },
   "model_switches": [],
   "started_at": "2026-06-30T00:20:44.328239",
-  "updated_at": "2026-06-30T00:31:49.768048"
+  "updated_at": "2026-06-30T00:40:04.266736"
 }

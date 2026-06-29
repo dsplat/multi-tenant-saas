@@ -28,18 +28,32 @@
       "tokens_used": 0,
       "cache_hit": 0,
       "cache_miss": 0
+    },
+    {
+      "task_id": "TASK-035",
+      "role": "guardian_task",
+      "success": false,
+      "duration": 0.0,
+      "model": "",
+      "cli_tool": "",
+      "retry_count": 2,
+      "error_category": "unknown",
+      "timestamp": "2026-06-30T00:40:04.254015",
+      "tokens_used": 0,
+      "cache_hit": 0,
+      "cache_miss": 0
     }
   ],
   "summary": {
-    "total_executions": 2,
+    "total_executions": 3,
     "total_success": 0,
-    "total_failures": 2,
+    "total_failures": 3,
     "total_tokens_used": 0,
     "total_cache_hit": 0,
     "total_cache_miss": 0,
     "by_role": {
       "guardian_task": {
-        "total": 2,
+        "total": 3,
         "success": 0,
         "avg_duration": 0.0,
         "tokens_used": 0,
@@ -50,14 +64,14 @@
     },
     "by_model": {
       "": {
-        "total": 2,
+        "total": 3,
         "success": 0
       }
     },
     "by_error_category": {
-      "unknown": 2
+      "unknown": 3
     },
     "overall_success_rate": 0.0
   },
-  "updated": "2026-06-30T00:31:49.751134"
+  "updated": "2026-06-30T00:40:04.254102"
 }

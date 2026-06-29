@@ -53,15 +53,15 @@
     },
     {
       "id": "TASK-040",
-      "status": "READY",
-      "updated": "2026-06-30T00:09:25.702015",
+      "status": "DEV",
+      "updated": "2026-06-30T06:00:46.327138",
       "title": "AgentService 实现（CRUD + 配置管理）",
       "sprint": "sprint-agent"
     },
     {
       "id": "TASK-041",
-      "status": "READY",
-      "updated": "2026-06-30T00:09:25.702358",
+      "status": "DEV",
+      "updated": "2026-06-30T06:00:44.138389",
       "title": "预置 Agent 模板与克隆",
       "sprint": "sprint-agent"
     },

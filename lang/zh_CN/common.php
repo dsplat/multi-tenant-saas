@@ -95,6 +95,9 @@ return [
     'sandbox_expired' => '沙箱环境已过期',
     'sandbox_cleaned' => '沙箱环境已清理',
     'sandbox_activated' => '沙箱租户已激活',
+    'feature_flag_not_found' => '功能开关 :name 不存在',
+    'feature_flag_disabled' => '功能未开放',
+    'feature_flag_percentage_invalid' => '灰度比例必须在 0-100 之间',
     'provider' => [
         'wechat' => '微信开放平台',
         'wechat_work_internal' => '企业微信（内部应用）',

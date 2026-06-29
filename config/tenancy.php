@@ -105,6 +105,22 @@ return [
         'timeout' => (int) env('EVENT_BUS_TIMEOUT', 30),
     ],
 
+    // 功能开关配置
+    'feature_flags' => [
+        // 缓存 TTL（秒）
+        'cache_ttl' => (int) env('FEATURE_FLAG_CACHE_TTL', 300),
+        // 是否在服务启动时自动播种预置开关
+        'auto_seed' => (bool) env('FEATURE_FLAG_AUTO_SEED', false),
+        // 预置开关定义
+        'presets' => [
+            ['name' => 'ai_text', 'description' => 'AI 文本生成', 'scope' => 'global', 'status' => 'active', 'rollout_percentage' => 100],
+            ['name' => 'ai_image', 'description' => 'AI 图像生成', 'scope' => 'global', 'status' => 'active', 'rollout_percentage' => 100],
+            ['name' => 'ai_video', 'description' => 'AI 视频生成', 'scope' => 'global', 'status' => 'active', 'rollout_percentage' => 100],
+            ['name' => 'beta_features', 'description' => 'Beta 功能集合', 'scope' => 'tenant', 'status' => 'inactive', 'rollout_percentage' => 0],
+            ['name' => 'new_dashboard', 'description' => '新版控制台', 'scope' => 'tenant', 'status' => 'inactive', 'rollout_percentage' => 0],
+        ],
+    ],
+
     // 订阅计划配额限制
     'plans' => [
         'free' => [

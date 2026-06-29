@@ -21,14 +21,14 @@ use MultiTenantSaas\Modules\ApiToken\Services\ApiTokenService;
 use MultiTenantSaas\Modules\Payment\Services\PaymentService;
 use MultiTenantSaas\Services\AiGatewayService;
 use MultiTenantSaas\Services\AiVideoService;
-use MultiTenantSaas\Services\DeveloperPortalService;
-use MultiTenantSaas\Services\SandboxService;
 use MultiTenantSaas\Services\AlertService;
 use MultiTenantSaas\Services\AlipayOAuthService;
 use MultiTenantSaas\Services\ApiVersionService;
 use MultiTenantSaas\Services\CacheService;
+use MultiTenantSaas\Services\DeveloperPortalService;
 use MultiTenantSaas\Services\EventBusService;
 use MultiTenantSaas\Services\ExportService;
+use MultiTenantSaas\Services\FeatureFlagService;
 use MultiTenantSaas\Services\HealthService;
 use MultiTenantSaas\Services\IdGenerator;
 use MultiTenantSaas\Services\LoginLogService;
@@ -37,6 +37,7 @@ use MultiTenantSaas\Services\PerformanceService;
 use MultiTenantSaas\Services\PluginService;
 use MultiTenantSaas\Services\QueueService;
 use MultiTenantSaas\Services\RateLimitService;
+use MultiTenantSaas\Services\SandboxService;
 use MultiTenantSaas\Services\SocialiteService;
 use MultiTenantSaas\Services\StructuredLogService;
 use MultiTenantSaas\Services\SubscriptionService;
@@ -153,6 +154,7 @@ class TenancyServiceProvider extends ServiceProvider
         $this->app->singleton(TenantProfileService::class);
         $this->app->singleton(QueueService::class);
         $this->app->singleton(SocialiteService::class);
+        $this->app->singleton(FeatureFlagService::class);
 
         // 注册 AI 网关服务（模型路由、提供商注册、限流、重试与请求日志）
         $this->app->singleton(AiGatewayService::class);

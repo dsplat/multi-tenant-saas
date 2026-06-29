@@ -95,6 +95,9 @@ return [
     'sandbox_expired' => 'Sandbox environment has expired',
     'sandbox_cleaned' => 'Sandbox environment has been cleaned',
     'sandbox_activated' => 'Sandbox tenant has been activated',
+    'feature_flag_not_found' => 'Feature flag :name not found',
+    'feature_flag_disabled' => 'Feature is not available',
+    'feature_flag_percentage_invalid' => 'Rollout percentage must be between 0 and 100',
     'provider' => [
         'wechat' => 'WeChat Open Platform',
         'wechat_work_internal' => 'WeChat Work (Internal App)',

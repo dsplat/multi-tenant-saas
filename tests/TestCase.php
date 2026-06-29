@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\SanctumServiceProvider;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Middleware\CheckFeatureFlag;
 use MultiTenantSaas\Middleware\CheckPermission;
 use MultiTenantSaas\Middleware\CheckRbacPermission;
 use MultiTenantSaas\Middleware\EnsureTenantContext;
@@ -35,6 +36,7 @@ abstract class TestCase extends BaseTestCase
         $router->aliasMiddleware('tenant.ensure', EnsureTenantContext::class);
         $router->aliasMiddleware('tenant.permission', CheckPermission::class);
         $router->aliasMiddleware('rbac.permission', CheckRbacPermission::class);
+        $router->aliasMiddleware('feature.flag', CheckFeatureFlag::class);
 
         // 加载 API 路由
         $router->prefix('api')->group(function () {
@@ -944,6 +946,23 @@ abstract class TestCase extends BaseTestCase
 
             $table->index(['developer_id', 'status']);
             $table->index('expires_at');
+        });
+
+        // 功能开关表（TASK-022）
+        Schema::create('feature_flags', function (Blueprint $table) {
+            $table->unsignedBigInteger('feature_flag_id')->primary();
+            $table->string('name', 100)->unique();
+            $table->string('description', 255)->nullable();
+            $table->string('scope', 20)->default('global');
+            $table->json('conditions')->nullable();
+            $table->json('dependencies')->nullable();
+            $table->unsignedTinyInteger('rollout_percentage')->default(0);
+            $table->string('status', 20)->default('inactive');
+            $table->timestamps();
+            $table->softDeletes();
+
+            $table->index('status');
+            $table->index('scope');
         });
     }
 

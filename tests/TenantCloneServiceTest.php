@@ -28,6 +28,9 @@ class TenantCloneServiceTest extends TestCase
     /** 源（模板）租户 ID */
     private int $sourceTenantId = 2950;
 
+    /** 测试权限 ID */
+    private int $testPermissionId;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -55,12 +58,12 @@ class TenantCloneServiceTest extends TestCase
         TenantSetting::set($this->sourceTenantId, 'info', 'timezone', 'Asia/Shanghai');
 
         // 权限（系统级，无 tenant_id）
-        Permission::create([
-            'permission_id' => 5001,
+        $permission = Permission::create([
             'name' => 'clone.test.permission',
             'display_name' => 'Clone Test',
             'group' => 'general',
         ]);
+        $this->testPermissionId = $permission->permission_id;
 
         // 角色（Role 不使用 BelongsToTenant，无全局作用域）
         $role = Role::create([
@@ -70,7 +73,7 @@ class TenantCloneServiceTest extends TestCase
             'description' => 'Content editor',
             'is_system' => false,
         ]);
-        $role->permissions()->sync([5001]);
+        $role->permissions()->sync([$this->testPermissionId]);
 
         // 品牌配置（使用 BelongsToTenant，需绕过作用域写入）
         BrandingConfig::withoutGlobalScope(TenantScope::class)->create([
@@ -118,7 +121,7 @@ class TenantCloneServiceTest extends TestCase
         $this->assertNotNull($clonedRole);
         $this->assertSame('Editor', $clonedRole->display_name);
         $this->assertSame(
-            [5001],
+            [$this->testPermissionId],
             $clonedRole->permissions()->pluck('permissions.permission_id')->all()
         );
 
@@ -194,7 +197,8 @@ class TenantCloneServiceTest extends TestCase
         // 验证 AI 配置已导出（不含 custom_api_keys）
         $this->assertNotNull($snapshot['ai_config']);
         $this->assertArrayNotHasKey('custom_api_keys', $snapshot['ai_config']);
-        $this->assertFalse($snapshot['ai_config']['image_enabled']);
+        // 数据库返回 0/1，不是 true/false
+        $this->assertEquals(0, $snapshot['ai_config']['image_enabled']);
     }
 
     public function test_export_snapshot_json_returns_valid_json(): void

@@ -21,6 +21,8 @@ use MultiTenantSaas\Modules\ApiToken\Services\ApiTokenService;
 use MultiTenantSaas\Modules\Payment\Services\PaymentService;
 use MultiTenantSaas\Services\AiGatewayService;
 use MultiTenantSaas\Services\AiVideoService;
+use MultiTenantSaas\Services\DeveloperPortalService;
+use MultiTenantSaas\Services\SandboxService;
 use MultiTenantSaas\Services\AlertService;
 use MultiTenantSaas\Services\AlipayOAuthService;
 use MultiTenantSaas\Services\ApiVersionService;
@@ -157,5 +159,9 @@ class TenancyServiceProvider extends ServiceProvider
 
         // 注册 AI 视频服务（视频生成、异步任务轮询、结果存储）
         $this->app->singleton(AiVideoService::class);
+
+        // 注册开发者门户与沙箱服务
+        $this->app->singleton(DeveloperPortalService::class);
+        $this->app->singleton(SandboxService::class);
     }
 }

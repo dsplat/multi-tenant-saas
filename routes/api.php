@@ -20,6 +20,9 @@ use App\Http\Controllers\Api\TenantSslController;
 use App\Http\Controllers\Api\TenantTokenController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use MultiTenantSaas\Services\DeveloperPortalService;
+use MultiTenantSaas\Services\SandboxService;
+use MultiTenantSaas\Services\WebhookService;
 
 // ========== 认证 API（无需认证） ==========
 Route::prefix('v1/auth')->group(function () {
@@ -202,14 +205,15 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
     Route::get('/webhooks/events', function () {
         return response()->json([
             'success' => true,
-            'data' => app(\MultiTenantSaas\Services\WebhookService::class)->getSupportedEvents(),
+            'data' => app(WebhookService::class)->getSupportedEvents(),
         ]);
     })->middleware('rbac.permission:webhook.manage');
 
     Route::get('/webhooks', function (Request $request) {
-        $service = app(\MultiTenantSaas\Services\WebhookService::class);
+        $service = app(WebhookService::class);
         $eventType = $request->query('event');
         $webhooks = $service->listWebhooks($eventType);
+
         return response()->json(['success' => true, 'data' => $webhooks]);
     })->middleware('rbac.permission:webhook.manage');
 
@@ -220,16 +224,18 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
             'description' => ['nullable', 'string', 'max:255'],
             'is_active' => ['boolean'],
         ]);
-        $webhook = app(\MultiTenantSaas\Services\WebhookService::class)
+        $webhook = app(WebhookService::class)
             ->createWebhook($data['url'], $data['events'], $data['description'] ?? null, $data['is_active'] ?? true);
+
         return response()->json(['success' => true, 'data' => $webhook], 201);
     })->middleware('rbac.permission:webhook.manage');
 
     Route::get('/webhooks/{id}', function (int $id) {
-        $webhook = app(\MultiTenantSaas\Services\WebhookService::class)->findWebhook($id);
-        if (!$webhook) {
+        $webhook = app(WebhookService::class)->findWebhook($id);
+        if (! $webhook) {
             return response()->json(['success' => false, 'message' => trans('common.webhook_not_found')], 404);
         }
+
         return response()->json(['success' => true, 'data' => $webhook]);
     })->middleware('rbac.permission:webhook.manage');
 
@@ -240,57 +246,214 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
             'description' => ['nullable', 'string', 'max:255'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
-        $webhook = app(\MultiTenantSaas\Services\WebhookService::class)->updateWebhook($id, $data);
-        if (!$webhook) {
+        $webhook = app(WebhookService::class)->updateWebhook($id, $data);
+        if (! $webhook) {
             return response()->json(['success' => false, 'message' => trans('common.webhook_not_found')], 404);
         }
+
         return response()->json(['success' => true, 'data' => $webhook]);
     })->middleware('rbac.permission:webhook.manage');
 
     Route::delete('/webhooks/{id}', function (int $id) {
-        $deleted = app(\MultiTenantSaas\Services\WebhookService::class)->deleteWebhook($id);
-        if (!$deleted) {
+        $deleted = app(WebhookService::class)->deleteWebhook($id);
+        if (! $deleted) {
             return response()->json(['success' => false, 'message' => trans('common.webhook_not_found')], 404);
         }
+
         return response()->json(['success' => true, 'message' => trans('common.deleted')]);
     })->middleware('rbac.permission:webhook.manage');
 
     Route::post('/webhooks/{id}/activate', function (int $id) {
-        $webhook = app(\MultiTenantSaas\Services\WebhookService::class)->activateWebhook($id);
-        if (!$webhook) {
+        $webhook = app(WebhookService::class)->activateWebhook($id);
+        if (! $webhook) {
             return response()->json(['success' => false, 'message' => trans('common.webhook_not_found')], 404);
         }
+
         return response()->json(['success' => true, 'data' => $webhook]);
     })->middleware('rbac.permission:webhook.manage');
 
     Route::post('/webhooks/{id}/deactivate', function (int $id) {
-        $webhook = app(\MultiTenantSaas\Services\WebhookService::class)->deactivateWebhook($id);
-        if (!$webhook) {
+        $webhook = app(WebhookService::class)->deactivateWebhook($id);
+        if (! $webhook) {
             return response()->json(['success' => false, 'message' => trans('common.webhook_not_found')], 404);
         }
+
         return response()->json(['success' => true, 'data' => $webhook]);
     })->middleware('rbac.permission:webhook.manage');
 
     Route::post('/webhooks/{id}/regenerate-secret', function (int $id) {
-        $webhook = app(\MultiTenantSaas\Services\WebhookService::class)->regenerateSecret($id);
-        if (!$webhook) {
+        $webhook = app(WebhookService::class)->regenerateSecret($id);
+        if (! $webhook) {
             return response()->json(['success' => false, 'message' => trans('common.webhook_not_found')], 404);
         }
+
         return response()->json(['success' => true, 'data' => $webhook]);
     })->middleware('rbac.permission:webhook.manage');
 
     Route::get('/webhooks/{id}/deliveries', function (Request $request, int $id) {
-        $service = app(\MultiTenantSaas\Services\WebhookService::class);
+        $service = app(WebhookService::class);
         $status = $request->query('status');
         $deliveries = $service->getDeliveries($id, $status);
+
         return response()->json(['success' => true, 'data' => $deliveries]);
     })->middleware('rbac.permission:webhook.manage');
 
     Route::post('/webhooks/deliveries/{id}/resend', function (int $id) {
-        $resend = app(\MultiTenantSaas\Services\WebhookService::class)->resend($id);
-        if (!$resend) {
+        $resend = app(WebhookService::class)->resend($id);
+        if (! $resend) {
             return response()->json(['success' => false, 'message' => trans('common.webhook_delivery_not_found')], 404);
         }
+
         return response()->json(['success' => true, 'message' => trans('common.webhook_resent')]);
     })->middleware('rbac.permission:webhook.manage');
+
+    // ========== 开发者门户（API Key 管理 / 使用统计 / 文档 / 沙箱） ==========
+    Route::prefix('/developer')->group(function () {
+        // API Key 管理
+        Route::get('/api-keys', function () {
+            $userId = (int) auth()->id();
+
+            return response()->json([
+                'success' => true,
+                'data' => app(DeveloperPortalService::class)->listApiKeys($userId),
+            ]);
+        });
+
+        Route::post('/api-keys', function (Request $request) {
+            $data = $request->validate([
+                'name' => ['required', 'string', 'max:100'],
+                'abilities' => ['nullable', 'array'],
+                'abilities.*' => ['string'],
+            ]);
+            try {
+                $result = app(DeveloperPortalService::class)
+                    ->createApiKey((int) auth()->id(), $data['name'], $data['abilities'] ?? ['*']);
+
+                return response()->json(['success' => true, 'data' => $result], 201);
+            } catch (InvalidArgumentException $e) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            }
+        });
+
+        Route::get('/api-keys/{id}', function (int $id) {
+            $result = app(DeveloperPortalService::class)->findApiKey((int) auth()->id(), $id);
+            if (! $result) {
+                return response()->json(['success' => false, 'message' => trans('common.api_key_not_found')], 404);
+            }
+
+            return response()->json(['success' => true, 'data' => $result]);
+        });
+
+        Route::delete('/api-keys/{id}', function (int $id) {
+            $revoked = app(DeveloperPortalService::class)
+                ->revokeApiKey((int) auth()->id(), $id);
+            if (! $revoked) {
+                return response()->json(['success' => false, 'message' => trans('common.api_key_not_found')], 404);
+            }
+
+            return response()->json(['success' => true, 'message' => trans('common.api_key_revoked')]);
+        });
+
+        Route::put('/api-keys/{id}/scopes', function (Request $request, int $id) {
+            $data = $request->validate([
+                'abilities' => ['required', 'array'],
+                'abilities.*' => ['string'],
+            ]);
+            try {
+                $updated = app(DeveloperPortalService::class)
+                    ->updateApiKeyScopes((int) auth()->id(), $id, $data['abilities']);
+                if (! $updated) {
+                    return response()->json(['success' => false, 'message' => trans('common.api_key_not_found')], 404);
+                }
+
+                return response()->json(['success' => true, 'message' => trans('common.updated')]);
+            } catch (InvalidArgumentException $e) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            }
+        });
+
+        // API 使用统计
+        Route::get('/api-usage', function (Request $request) {
+            $tokenId = $request->query('api_key_id') ? (int) $request->query('api_key_id') : null;
+
+            return response()->json([
+                'success' => true,
+                'data' => app(DeveloperPortalService::class)
+                    ->getUsageStats((int) auth()->id(), $tokenId),
+            ]);
+        });
+
+        // 文档
+        Route::get('/docs', function (Request $request) {
+            $category = $request->query('category');
+            $service = app(DeveloperPortalService::class);
+            if ($category) {
+                return response()->json(['success' => true, 'data' => $service->getDocumentationByCategory($category)]);
+            }
+
+            return response()->json(['success' => true, 'data' => $service->getDocumentation()]);
+        });
+
+        Route::get('/docs/categories', function () {
+            return response()->json([
+                'success' => true,
+                'data' => app(DeveloperPortalService::class)->getDocumentationCategories(),
+            ]);
+        });
+
+        // 沙箱环境
+        Route::post('/sandboxes', function () {
+            return response()->json([
+                'success' => true,
+                'data' => app(SandboxService::class)->createSandbox((int) auth()->id()),
+            ], 201);
+        });
+
+        Route::get('/sandboxes/{id}', function (int $id) {
+            $sandbox = app(SandboxService::class)->findSandbox($id);
+            if (! $sandbox) {
+                return response()->json(['success' => false, 'message' => trans('common.sandbox_not_found')], 404);
+            }
+            if ($sandbox->developer_id !== (int) auth()->id()) {
+                return response()->json(['success' => false, 'message' => trans('common.forbidden')], 403);
+            }
+
+            return response()->json(['success' => true, 'data' => $sandbox]);
+        });
+
+        Route::delete('/sandboxes/{id}', function (int $id) {
+            $sandbox = app(SandboxService::class)->findSandbox($id);
+            if (! $sandbox) {
+                return response()->json(['success' => false, 'message' => trans('common.sandbox_not_found')], 404);
+            }
+            if ($sandbox->developer_id !== (int) auth()->id()) {
+                return response()->json(['success' => false, 'message' => trans('common.forbidden')], 403);
+            }
+
+            $cleaned = app(SandboxService::class)->cleanup($id);
+            if (! $cleaned) {
+                return response()->json(['success' => false, 'message' => trans('common.sandbox_not_found')], 404);
+            }
+
+            return response()->json(['success' => true, 'message' => trans('common.sandbox_cleaned')]);
+        });
+
+        Route::post('/sandboxes/{id}/activate', function (int $id) {
+            $sandbox = app(SandboxService::class)->findSandbox($id);
+            if (! $sandbox) {
+                return response()->json(['success' => false, 'message' => trans('common.sandbox_not_found')], 404);
+            }
+            if ($sandbox->developer_id !== (int) auth()->id()) {
+                return response()->json(['success' => false, 'message' => trans('common.forbidden')], 403);
+            }
+
+            try {
+                app(SandboxService::class)->activateSandboxTenant($id);
+
+                return response()->json(['success' => true, 'message' => trans('common.sandbox_activated')]);
+            } catch (RuntimeException $e) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+            }
+        });
+    });
 });

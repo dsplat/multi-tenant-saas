@@ -3,7 +3,14 @@
 namespace MultiTenantSaas\Tests;
 
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Laravel\Sanctum\SanctumServiceProvider;
+use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Middleware\CheckPermission;
+use MultiTenantSaas\Middleware\CheckRbacPermission;
+use MultiTenantSaas\Middleware\EnsureTenantContext;
+use MultiTenantSaas\Models\User;
 use MultiTenantSaas\TenancyServiceProvider;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
@@ -16,7 +23,7 @@ abstract class TestCase extends BaseTestCase
         $this->setUpDatabase();
 
         // SQLite 无 NOW() 函数，注册自定义函数以兼容源码中 DB::raw('NOW()') 的用法
-        \Illuminate\Support\Facades\DB::connection()->getPdo()->sqliteCreateFunction('NOW', fn () => date('Y-m-d H:i:s'), 0);
+        DB::connection()->getPdo()->sqliteCreateFunction('NOW', fn () => date('Y-m-d H:i:s'), 0);
 
         // 加载项目 lang 目录，使 trans()/__() 在测试中可解析翻译 key
         $langPath = realpath(__DIR__.'/../lang');
@@ -25,9 +32,9 @@ abstract class TestCase extends BaseTestCase
         }
 
         $router = $this->app['router'];
-        $router->aliasMiddleware('tenant.ensure', \MultiTenantSaas\Middleware\EnsureTenantContext::class);
-        $router->aliasMiddleware('tenant.permission', \MultiTenantSaas\Middleware\CheckPermission::class);
-        $router->aliasMiddleware('rbac.permission', \MultiTenantSaas\Middleware\CheckRbacPermission::class);
+        $router->aliasMiddleware('tenant.ensure', EnsureTenantContext::class);
+        $router->aliasMiddleware('tenant.permission', CheckPermission::class);
+        $router->aliasMiddleware('rbac.permission', CheckRbacPermission::class);
 
         // 加载 API 路由
         $router->prefix('api')->group(function () {
@@ -38,7 +45,7 @@ abstract class TestCase extends BaseTestCase
     protected function getPackageProviders($app): array
     {
         return [
-            \Laravel\Sanctum\SanctumServiceProvider::class,
+            SanctumServiceProvider::class,
             TenancyServiceProvider::class,
         ];
     }
@@ -59,11 +66,11 @@ abstract class TestCase extends BaseTestCase
         ]);
         $app['config']->set('auth.providers.users', [
             'driver' => 'eloquent',
-            'model' => \MultiTenantSaas\Models\User::class,
+            'model' => User::class,
         ]);
-        
+
         // 设置 APP_KEY 用于加密
-        $app['config']->set('app.key', 'base64:' . base64_encode(random_bytes(32)));
+        $app['config']->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
 
         // 设置缓存为 array 驱动，供 MFA 验证码缓存等使用
         $app['config']->set('cache.default', 'array');
@@ -924,12 +931,25 @@ abstract class TestCase extends BaseTestCase
             $table->index('event_type');
             $table->index(['tenant_id', 'status']);
         });
-    }
 
+        // 沙箱环境表（开发者门户 - TASK-021）
+        Schema::create('sandbox_environments', function (Blueprint $table) {
+            $table->unsignedBigInteger('sandbox_environment_id')->primary();
+            $table->unsignedBigInteger('developer_id')->index();
+            $table->unsignedBigInteger('sandbox_tenant_id')->index();
+            $table->string('api_key', 128)->unique();
+            $table->string('status', 20)->default('active');
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+
+            $table->index(['developer_id', 'status']);
+            $table->index('expires_at');
+        });
+    }
 
     protected function tearDown(): void
     {
-        \MultiTenantSaas\Context\TenantContext::clear();
+        TenantContext::clear();
         parent::tearDown();
     }
 }

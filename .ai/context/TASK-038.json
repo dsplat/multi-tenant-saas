@@ -1,12 +1,12 @@
 {
   "task_id": "TASK-038",
-  "git_diff_summary": ".ai/guardian.json               |  20 ++++-\n .ai/metrics.json                |  86 +++++++++++++-----\n .ai/state.json                  |   4 +-\n src/Services/InvoiceService.php |   4 +-\n tests/TestCase.php              | 193 ++++++++++++++++++++++++++++++++++++++++\n 5 files changed, 279 insertions(+), 28 deletions(-)",
+  "git_diff_summary": ".ai/context/TASK-037.json     | 15 ++++++++\n .ai/metrics.json              | 84 ++++++++++++++++++++++++++++++++-----------\n .ai/review/TASK-037-review.md | 55 ++++++++++++++++++++++++++++\n .ai/review/TASK-038-review.md | 48 +++++++++++--------------\n .ai/state.json                |  4 +--\n 5 files changed, 155 insertions(+), 51 deletions(-)",
   "changed_files": [
-    ".ai/guardian.json",
+    ".ai/context/TASK-037.json",
     ".ai/metrics.json",
-    ".ai/state.json",
-    "src/Services/InvoiceService.php",
-    "tests/TestCase.php"
+    ".ai/review/TASK-037-review.md",
+    ".ai/review/TASK-038-review.md",
+    ".ai/state.json"
   ],
   "review_notes": "",
   "key_decisions": [],

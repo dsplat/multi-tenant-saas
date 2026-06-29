@@ -16,7 +16,7 @@ namespace MultiTenantSaas\Services\Ai;
  *  - usage:         token 用量统计
  *  - raw:           原始后端响应（调试 / 透传）
  */
-class AiResponse
+final class AiResponse
 {
     public function __construct(
         public readonly string $content = '',
@@ -31,17 +31,17 @@ class AiResponse
      * 从数组构造（键名兼容 snake_case，贴合 OpenAI 响应结构）
      *
      * @param  array  $data  {
-     *     content?: string,
-     *     tool_calls?: array,
-     *     finish_reason?: string,
-     *     model?: string,
-     *     usage?: array,
-     *     raw?: array
-     * }
+     *                       content?: string,
+     *                       tool_calls?: array,
+     *                       finish_reason?: string,
+     *                       model?: string,
+     *                       usage?: array,
+     *                       raw?: array
+     *                       }
      */
     public static function fromArray(array $data): static
     {
-        return new static(
+        return new self(
             content: (string) ($data['content'] ?? ''),
             toolCalls: (array) ($data['tool_calls'] ?? []),
             finishReason: (string) ($data['finish_reason'] ?? ''),

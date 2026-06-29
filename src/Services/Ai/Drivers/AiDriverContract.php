@@ -18,22 +18,22 @@ interface AiDriverContract
      * 对话补全（多轮消息）
      *
      * @param  array  $messages  OpenAI 消息结构 [{role, content, ...}, ...]
-     * @param  array  $options   {
-     *     model?: string,
-     *     provider?: string,
-     *     tools?: array,
-     *     tool_choice?: string|array,
-     *     temperature?: float,
-     *     max_tokens?: int,
-     * }
+     * @param  array  $options  {
+     *                          model?: string,
+     *                          provider?: string,
+     *                          tools?: array,
+     *                          tool_choice?: string|array,
+     *                          temperature?: float,
+     *                          max_tokens?: int,
+     *                          }
      */
     public function chat(array $messages, array $options = []): AiResponse;
 
     /**
      * 文本补全（单轮提示）
      *
-     * @param  string  $prompt   提示文本
-     * @param  array   $options  同 chat() 的 $options（不含 messages）
+     * @param  string  $prompt  提示文本
+     * @param  array  $options  同 chat() 的 $options（不含 messages）
      */
     public function complete(string $prompt, array $options = []): AiResponse;
 }

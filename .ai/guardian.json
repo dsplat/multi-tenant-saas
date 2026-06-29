@@ -24,15 +24,17 @@
     "TASK-054"
   ],
   "completed": [
-    "TASK-038"
+    "TASK-038",
+    "TASK-036",
+    "TASK-034"
   ],
   "skipped": [
-    "TASK-036",
     "TASK-035",
-    "TASK-033"
+    "TASK-033",
+    "TASK-037"
   ],
   "failed": null,
-  "current": "TASK-034",
+  "current": "TASK-039",
   "retries": {},
   "diagnoses": {
     "TASK-033": {
@@ -43,28 +45,28 @@
       "attempt": 4
     },
     "TASK-035": {
-      "root_cause": "未能通过规则匹配具体原因",
-      "category": "other",
-      "strategy": "retry_same",
-      "fix_instruction": "",
-      "attempt": 4
-    },
-    "TASK-036": {
       "root_cause": "修改了超出任务范围的文件",
       "category": "scope_overflow",
       "strategy": "add_detail",
       "fix_instruction": "严格只修改任务【范围】内允许的文件，回滚所有越界变更，不要触碰无关文件。",
       "attempt": 4
     },
-    "TASK-034": {
+    "TASK-037": {
       "root_cause": "修改了超出任务范围的文件",
       "category": "scope_overflow",
       "strategy": "add_detail",
       "fix_instruction": "严格只修改任务【范围】内允许的文件，回滚所有越界变更，不要触碰无关文件。",
-      "attempt": 3
+      "attempt": 4
+    },
+    "TASK-039": {
+      "root_cause": "代码不完整，存在未实现/占位逻辑",
+      "category": "incomplete_code",
+      "strategy": "rewrite_prompt",
+      "fix_instruction": "补全所有 TODO/pass/NotImplemented 占位，确保每个函数完整实现且可运行。",
+      "attempt": 1
     }
   },
   "model_switches": [],
   "started_at": "2026-06-30T00:20:44.328239",
-  "updated_at": "2026-06-30T02:36:54.867331"
+  "updated_at": "2026-06-30T03:47:15.267933"
 }

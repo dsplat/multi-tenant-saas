@@ -1,12 +1,14 @@
 {
   "task_id": "TASK-037",
-  "git_diff_summary": ".ai/metrics.json                                   |  42 ++++++---\n .ai/review/TASK-038-review.md                      |  48 ++++------\n .ai/state.json                                     |  22 ++---\n .../2026_06_27_000012_create_tax_rules_table.php   |   2 +-\n src/Services/InvoiceService.php                    |   4 +-\n tests/TestCase.php                                 | 103 +++++++++++++++++++++\n 6 files changed, 165 insertions(+), 56 deletions(-)",
+  "git_diff_summary": ".ai/guardian.json               |  30 ++++++-----\n .ai/metrics.json                |  66 ++++++++++++++++-------\n .ai/review/TASK-037-review.md   |  54 +++++--------------\n .ai/review/TASK-039-review.md   |  64 ++++++++++++----------\n .ai/state.json                  |   4 +-\n src/Services/InvoiceService.php |   2 +-\n src/TenancyServiceProvider.php  |   6 +++\n tests/TestCase.php              | 115 ++++++++++++++++++++++++++++++++++++++++\n 8 files changed, 237 insertions(+), 104 deletions(-)",
   "changed_files": [
+    ".ai/guardian.json",
     ".ai/metrics.json",
-    ".ai/review/TASK-038-review.md",
+    ".ai/review/TASK-037-review.md",
+    ".ai/review/TASK-039-review.md",
     ".ai/state.json",
-    "database/migrations/2026_06_27_000012_create_tax_rules_table.php",
     "src/Services/InvoiceService.php",
+    "src/TenancyServiceProvider.php",
     "tests/TestCase.php"
   ],
   "review_notes": "",

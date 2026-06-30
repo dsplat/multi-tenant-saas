@@ -1,11 +1,14 @@
 {
   "task_id": "TASK-035",
-  "git_diff_summary": ".ai/metrics.json                | 42 +++++++++++++++---\n .ai/state.json                  |  4 +-\n src/Services/InvoiceService.php |  2 +-\n tests/TestCase.php              | 97 +++++++++++++++++++++++++++++++++++++++++\n 4 files changed, 135 insertions(+), 10 deletions(-)",
+  "git_diff_summary": ".ai/metrics.json                                   | 42 ++++++++++++++--------\n .ai/state.json                                     |  6 ++--\n .../2026_06_29_000001_create_agents_table.php      | 40 +++++++++++++++++++++\n .../2026_06_29_000002_create_agent_tools_table.php | 31 ++++++++++++++++\n ..._29_000003_create_agent_conversations_table.php | 40 +++++++++++++++++++++\n ...04_create_agent_conversation_messages_table.php | 33 +++++++++++++++++\n ...6_06_29_000005_create_agent_tool_logs_table.php | 33 +++++++++++++++++\n 7 files changed, 208 insertions(+), 17 deletions(-)",
   "changed_files": [
     ".ai/metrics.json",
     ".ai/state.json",
-    "src/Services/InvoiceService.php",
-    "tests/TestCase.php"
+    "database/migrations/2026_06_29_000001_create_agents_table.php",
+    "database/migrations/2026_06_29_000002_create_agent_tools_table.php",
+    "database/migrations/2026_06_29_000003_create_agent_conversations_table.php",
+    "database/migrations/2026_06_29_000004_create_agent_conversation_messages_table.php",
+    "database/migrations/2026_06_29_000005_create_agent_tool_logs_table.php"
   ],
   "review_notes": "",
   "key_decisions": [],

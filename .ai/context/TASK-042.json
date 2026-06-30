@@ -1,0 +1,16 @@
+{
+  "task_id": "TASK-042",
+  "git_diff_summary": ".ai/config.json                     |  12 +-\n .ai/metrics.json                    | 104 +++++++++++++++--\n .ai/review/TASK-042-review.md       |  29 +++++\n .ai/state.json                      |   4 +-\n src/Services/Agent/AgentMonitor.php | 221 ++++++++++++++++++++++++++++++++++++\n src/Services/Agent/AiPricing.php    |  68 +++++++++++\n src/TenancyServiceProvider.php      |  10 ++\n 7 files changed, 428 insertions(+), 20 deletions(-)",
+  "changed_files": [
+    ".ai/config.json",
+    ".ai/metrics.json",
+    ".ai/review/TASK-042-review.md",
+    ".ai/state.json",
+    "src/Services/Agent/AgentMonitor.php",
+    "src/Services/Agent/AiPricing.php",
+    "src/TenancyServiceProvider.php"
+  ],
+  "review_notes": "",
+  "key_decisions": [],
+  "timestamp": ""
+}

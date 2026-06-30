@@ -67,8 +67,8 @@
     },
     {
       "id": "TASK-042",
-      "status": "READY",
-      "updated": "2026-06-30T00:09:25.702668",
+      "status": "DONE",
+      "updated": "2026-06-30T11:30:33.695180",
       "title": "AgentMonitor 实现",
       "sprint": "sprint-agent"
     },

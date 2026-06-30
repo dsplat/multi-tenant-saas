@@ -16,7 +16,7 @@ use MultiTenantSaas\Services\Agent\Dto\AgentResponse;
 use MultiTenantSaas\Services\Ai\StreamChunk;
 
 /**
- * Agent 运行时 — ReAct 循环（非流式 + 流式）
+ * Agent 运行时 — ReAct 循环（非流式 + 流式）+ 记忆压缩
  *
  * 加载 Agent 配置 → 构建上下文（system_prompt+历史+新消息）→ 调用 AI 推理 →
  * 文本则返回 / tool_calls 则经 ToolRegistry 执行后追加结果 → 循环至 max_tool_calls。
@@ -24,7 +24,10 @@ use MultiTenantSaas\Services\Ai\StreamChunk;
  * 非流式通过 run() 返回 AgentResponse；流式通过 runStream() 逐 chunk 产出 StreamChunk，
  * 遇 tool_calls 暂停流式 → 执行工具 → 结果入上下文 → 继续流式 → 末尾发送 [DONE]。
  *
- * 记忆压缩（归 TASK-045）、降级（归 TASK-046）不在本类实现。
+ * 记忆压缩：run()/runStream() 入口自动触发 MemoryCompressor.compressMemory()，
+ * getConversationContext() 应用 token 预算截断策略。
+ *
+ * 降级（归 TASK-046）不在本类实现。
  */
 class AgentRuntime implements AgentRuntimeContract
 {
@@ -33,6 +36,7 @@ class AgentRuntime implements AgentRuntimeContract
         private ToolRegistryContract $toolRegistry,
         private AgentMonitorContract $monitor,
         private TenantContextContract $tenantContext,
+        private ?MemoryCompressor $memoryCompressor = null,
     ) {}
 
     /**
@@ -65,6 +69,10 @@ class AgentRuntime implements AgentRuntimeContract
         }
 
         $maxToolCalls = $options['max_tool_calls'] ?? ($agent->model_config['max_tool_calls'] ?? 5);
+
+        // 自动触发记忆压缩（如果 MemoryCompressor 已注入）
+        $maxTokens = $options['max_tokens'] ?? ($agent->model_config['max_tokens'] ?? 8000);
+        $this->compressMemory($conversationId, $maxTokens);
 
         // 保存用户消息
         $this->saveMessage($conversationId, 'user', $message);
@@ -358,6 +366,16 @@ class AgentRuntime implements AgentRuntimeContract
             $context[] = $contextMsg;
         }
 
+        // 应用截断策略（如果 MemoryCompressor 已注入）
+        if ($this->memoryCompressor !== null) {
+            $tokenBudget = 8000;
+            if ($agent !== null) {
+                $modelConfig = $agent->model_config ?? [];
+                $tokenBudget = $modelConfig['max_tokens'] ?? 8000;
+            }
+            $context = $this->memoryCompressor->truncateContext($context, $tokenBudget);
+        }
+
         return $context;
     }
 
@@ -365,15 +383,18 @@ class AgentRuntime implements AgentRuntimeContract
      * 压缩会话记忆（摘要旧消息）
      *
      * 当会话历史过长时，自动摘要旧消息以节省 Token。
-     * 属于 TASK-045 实现范围。
      *
      * @param  int  $conversationId  会话 ID
-     *
-     * @throws \BadMethodCallException 始终抛出，记忆压缩归 TASK-045
+     * @param  int  $maxTokens       token 阈值（默认 8000）
+     * @return bool 是否执行了压缩
      */
-    public function compressMemory(int $conversationId): void
+    public function compressMemory(int $conversationId, int $maxTokens = 8000): bool
     {
-        throw new \BadMethodCallException('记忆压缩功能归 TASK-045 实现');
+        if ($this->memoryCompressor === null) {
+            return false;
+        }
+
+        return $this->memoryCompressor->compressMemory($conversationId, $maxTokens);
     }
 
     /**
@@ -406,6 +427,10 @@ class AgentRuntime implements AgentRuntimeContract
         }
 
         $maxToolCalls = $options['max_tool_calls'] ?? ($agent->model_config['max_tool_calls'] ?? 5);
+
+        // 自动触发记忆压缩（如果 MemoryCompressor 已注入）
+        $maxTokens = $options['max_tokens'] ?? ($agent->model_config['max_tokens'] ?? 8000);
+        $this->compressMemory($conversationId, $maxTokens);
 
         // 保存用户消息
         $this->saveMessage($conversationId, 'user', $message);

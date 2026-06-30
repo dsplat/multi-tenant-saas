@@ -24,6 +24,7 @@ use MultiTenantSaas\Services\Ai\AiTextService;
 use MultiTenantSaas\Services\Agent\AgentMonitor;
 use MultiTenantSaas\Services\Agent\AgentRuntime;
 use MultiTenantSaas\Services\Agent\AgentService;
+use MultiTenantSaas\Services\Agent\MemoryCompressor;
 use MultiTenantSaas\Services\AlipayOAuthService;
 use MultiTenantSaas\Services\AlertService;
 use MultiTenantSaas\Services\ApiVersionService;
@@ -136,6 +137,14 @@ class TenancyServiceProvider extends ServiceProvider
         });
         $this->app->alias(AgentMonitorContract::class, AgentMonitor::class);
 
+        // 注册记忆压缩器
+        $this->app->singleton(MemoryCompressor::class, function ($app) {
+            return new MemoryCompressor(
+                $app->make(AiTextServiceContract::class),
+                $app->make(TenantContextContract::class),
+            );
+        });
+
         // 注册 Agent 运行时（绑定接口契约 + 具体实现，ReAct 循环引擎）
         $this->app->singleton(AgentRuntimeContract::class, function ($app) {
             return new AgentRuntime(
@@ -143,6 +152,7 @@ class TenancyServiceProvider extends ServiceProvider
                 $app->make(ToolRegistryContract::class),
                 $app->make(AgentMonitorContract::class),
                 $app->make(TenantContextContract::class),
+                $app->make(MemoryCompressor::class),
             );
         });
         $this->app->alias(AgentRuntimeContract::class, AgentRuntime::class);

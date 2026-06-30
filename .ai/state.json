@@ -88,8 +88,8 @@
     },
     {
       "id": "TASK-045",
-      "status": "READY",
-      "updated": "2026-06-30T00:09:25.703751",
+      "status": "DONE",
+      "updated": "2026-06-30T13:05:55.303964",
       "title": "MemoryCompressor 记忆压缩",
       "sprint": "sprint-agent"
     },

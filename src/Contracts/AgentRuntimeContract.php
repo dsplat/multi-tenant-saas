@@ -67,6 +67,8 @@ interface AgentRuntimeContract
      * 当会话历史过长时，自动摘要旧消息以节省 Token。
      *
      * @param  int  $conversationId  会话 ID
+     * @param  int  $maxTokens       token 阈值（默认 8000）
+     * @return bool 是否执行了压缩
      */
-    public function compressMemory(int $conversationId): void;
+    public function compressMemory(int $conversationId, int $maxTokens = 8000): bool;
 }

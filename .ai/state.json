@@ -32,8 +32,8 @@
     },
     {
       "id": "TASK-037",
-      "status": "READY",
-      "updated": "2026-06-30T10:00:00",
+      "status": "DONE",
+      "updated": "2026-06-30T09:44:20.480843",
       "title": "Eloquent 模型（5 个）",
       "sprint": "sprint-agent"
     },

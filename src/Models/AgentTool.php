@@ -2,28 +2,17 @@
 
 namespace MultiTenantSaas\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 /**
- * AgentTool 模型（工具定义）
- *
- * @property int $tool_id
- * @property int $tenant_id
- * @property string $name
- * @property string $slug
- * @property string $description
- * @property string|null $category
- * @property array $parameters_schema
- * @property string $handler_class
- * @property bool $enabled
+ * Agent 工具模型
  */
 class AgentTool extends Model
 {
-    use BelongsToTenant, HasFactory, HasGlobalId;
+    use BelongsToTenant, HasGlobalId, HasFactory;
 
     protected $primaryKey = 'tool_id';
 
@@ -46,10 +35,5 @@ class AgentTool extends Model
             'parameters_schema' => 'array',
             'enabled' => 'boolean',
         ];
-    }
-
-    public function tenant(): BelongsTo
-    {
-        return $this->belongsTo(Tenant::class, 'tenant_id', 'tenant_id');
     }
 }

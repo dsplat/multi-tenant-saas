@@ -1,15 +1,14 @@
 {
   "task_id": "TASK-037",
-  "git_diff_summary": ".ai/guardian.json               |  30 ++++++-----\n .ai/metrics.json                |  66 ++++++++++++++++-------\n .ai/review/TASK-037-review.md   |  54 +++++--------------\n .ai/review/TASK-039-review.md   |  64 ++++++++++++----------\n .ai/state.json                  |   4 +-\n src/Services/InvoiceService.php |   2 +-\n src/TenancyServiceProvider.php  |   6 +++\n tests/TestCase.php              | 115 ++++++++++++++++++++++++++++++++++++++++\n 8 files changed, 237 insertions(+), 104 deletions(-)",
+  "git_diff_summary": ".ai/metrics.json                        | 42 ++++++++++++++++-------\n .ai/state.json                          |  6 ++--\n src/Models/Agent.php                    | 44 +++++++++++-------------\n src/Models/AgentConversation.php        | 60 +++++++++++++++++++++++++++++++++\n src/Models/AgentConversationMessage.php | 46 +++++++++++++++++++++++++\n src/Models/AgentTool.php                | 24 +++----------\n src/Models/AgentToolLog.php             | 54 +++++++++++++++++++++++++++++\n 7 files changed, 217 insertions(+), 59 deletions(-)",
   "changed_files": [
-    ".ai/guardian.json",
     ".ai/metrics.json",
-    ".ai/review/TASK-037-review.md",
-    ".ai/review/TASK-039-review.md",
     ".ai/state.json",
-    "src/Services/InvoiceService.php",
-    "src/TenancyServiceProvider.php",
-    "tests/TestCase.php"
+    "src/Models/Agent.php",
+    "src/Models/AgentConversation.php",
+    "src/Models/AgentConversationMessage.php",
+    "src/Models/AgentTool.php",
+    "src/Models/AgentToolLog.php"
   ],
   "review_notes": "",
   "key_decisions": [],

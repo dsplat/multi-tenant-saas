@@ -574,14 +574,42 @@
       "tokens_used": 0,
       "cache_hit": 0,
       "cache_miss": 0
+    },
+    {
+      "task_id": "TASK-037",
+      "role": "dev_review",
+      "success": true,
+      "duration": 298.44,
+      "model": "glm-5.2",
+      "cli_tool": "claude",
+      "retry_count": 0,
+      "error_category": "",
+      "timestamp": "2026-06-30T09:44:20.478029",
+      "tokens_used": 172653,
+      "cache_hit": 145088,
+      "cache_miss": 0
+    },
+    {
+      "task_id": "TASK-037",
+      "role": "test",
+      "success": true,
+      "duration": 0.0,
+      "model": "",
+      "cli_tool": "test_runner",
+      "retry_count": 0,
+      "error_category": "skipped: 80 unrelated failures",
+      "timestamp": "2026-06-30T09:44:20.515280",
+      "tokens_used": 0,
+      "cache_hit": 0,
+      "cache_miss": 0
     }
   ],
   "summary": {
-    "total_executions": 41,
-    "total_success": 31,
+    "total_executions": 43,
+    "total_success": 33,
     "total_failures": 10,
-    "total_tokens_used": 18176087,
-    "total_cache_hit": 16597376,
+    "total_tokens_used": 18348740,
+    "total_cache_hit": 16742464,
     "total_cache_miss": 0,
     "by_role": {
       "guardian_task": {
@@ -594,17 +622,17 @@
         "success_rate": 44.4
       },
       "dev_review": {
-        "total": 12,
-        "success": 12,
-        "avg_duration": 428.67,
-        "tokens_used": 18176087,
-        "cache_hit": 16597376,
+        "total": 13,
+        "success": 13,
+        "avg_duration": 418.65,
+        "tokens_used": 18348740,
+        "cache_hit": 16742464,
         "cache_miss": 0,
         "success_rate": 100.0
       },
       "test": {
-        "total": 11,
-        "success": 11,
+        "total": 12,
+        "success": 12,
         "avg_duration": 0.0,
         "tokens_used": 0,
         "cache_hit": 0,
@@ -614,8 +642,8 @@
     },
     "by_model": {
       "": {
-        "total": 29,
-        "success": 19
+        "total": 30,
+        "success": 20
       },
       "mimo/mimo-v2.5-pro": {
         "total": 6,
@@ -628,14 +656,18 @@
       "qwen3.7-max": {
         "total": 1,
         "success": 1
+      },
+      "glm-5.2": {
+        "total": 1,
+        "success": 1
       }
     },
     "by_error_category": {
       "unknown": 10,
-      "": 26,
-      "skipped: 80 unrelated failures": 5
+      "": 27,
+      "skipped: 80 unrelated failures": 6
     },
-    "overall_success_rate": 75.6
+    "overall_success_rate": 76.7
   },
-  "updated": "2026-06-30T09:34:14.604723"
+  "updated": "2026-06-30T09:44:20.515311"
 }

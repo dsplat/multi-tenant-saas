@@ -18,8 +18,8 @@
     },
     {
       "id": "TASK-035",
-      "status": "DONE",
-      "updated": "2026-06-30T07:00:00.000000",
+      "status": "READY",
+      "updated": "2026-06-30T08:25:00",
       "title": "Agent 数据库迁移（5 张表）",
       "sprint": "sprint-agent"
     },

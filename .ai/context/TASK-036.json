@@ -1,14 +1,15 @@
 {
   "task_id": "TASK-036",
-  "git_diff_summary": ".ai/guardian.json              | 20 +++++----\n .ai/metrics.json               | 30 +++++++++----\n .ai/review/TASK-034-review.md  | 68 ++++++++++++++---------------\n .ai/state.json                 |  4 +-\n src/TenancyServiceProvider.php | 47 +++++++++++++-------\n tests/InvoiceServiceTest.php   |  6 +--\n tests/TestCase.php             | 97 ++++++++++++++++++++++++++++++++++++++++++\n 7 files changed, 200 insertions(+), 72 deletions(-)",
+  "git_diff_summary": ".ai/metrics.json                   | 42 +++++++++++++++++++++++++++-----------\n .ai/review/TASK-036-review.md      | 29 ++++++++++++++++++++++++++\n .ai/state.json                     |  6 +++---\n src/Events/ConversationEnded.php   | 19 +++++++++++++++++\n src/Events/ConversationStarted.php | 19 +++++++++++++++++\n src/Events/ToolCallCompleted.php   | 20 ++++++++++++++++++\n src/Events/ToolCallFailed.php      | 23 +++++++++++++++++++++\n src/Events/ToolCalled.php          | 20 ++++++++++++++++++\n 8 files changed, 163 insertions(+), 15 deletions(-)",
   "changed_files": [
-    ".ai/guardian.json",
     ".ai/metrics.json",
-    ".ai/review/TASK-034-review.md",
+    ".ai/review/TASK-036-review.md",
     ".ai/state.json",
-    "src/TenancyServiceProvider.php",
-    "tests/InvoiceServiceTest.php",
-    "tests/TestCase.php"
+    "src/Events/ConversationEnded.php",
+    "src/Events/ConversationStarted.php",
+    "src/Events/ToolCallCompleted.php",
+    "src/Events/ToolCallFailed.php",
+    "src/Events/ToolCalled.php"
   ],
   "review_notes": "",
   "key_decisions": [],

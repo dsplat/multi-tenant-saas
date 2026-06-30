@@ -109,8 +109,8 @@
     },
     {
       "id": "TASK-048",
-      "status": "READY",
-      "updated": "2026-06-30T00:09:25.704779",
+      "status": "DONE",
+      "updated": "2026-06-30T14:26:54.677932",
       "title": "AgentChatController（对话 API + SSE）",
       "sprint": "sprint-agent"
     },

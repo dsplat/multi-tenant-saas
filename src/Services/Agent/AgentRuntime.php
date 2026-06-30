@@ -1,0 +1,500 @@
+<?php
+
+namespace MultiTenantSaas\Services\Agent;
+
+use Generator;
+use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Contracts\AgentMonitorContract;
+use MultiTenantSaas\Contracts\AgentRuntimeContract;
+use MultiTenantSaas\Contracts\AiTextServiceContract;
+use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Contracts\ToolRegistryContract;
+use MultiTenantSaas\Models\Agent;
+use MultiTenantSaas\Models\AgentConversation;
+use MultiTenantSaas\Models\AgentConversationMessage;
+use MultiTenantSaas\Services\Agent\Dto\AgentResponse;
+
+/**
+ * Agent 运行时 — ReAct 循环（非流式）
+ *
+ * 加载 Agent 配置 → 构建上下文（system_prompt+历史+新消息）→ 调用 AI 推理 →
+ * 文本则返回 / tool_calls 则经 ToolRegistry 执行后追加结果 → 循环至 max_tool_calls。
+ *
+ * 流式（归 TASK-044）、记忆压缩（归 TASK-045）、降级（归 TASK-046）不在本类实现。
+ */
+class AgentRuntime implements AgentRuntimeContract
+{
+    public function __construct(
+        private AiTextServiceContract $aiService,
+        private ToolRegistryContract $toolRegistry,
+        private AgentMonitorContract $monitor,
+        private TenantContextContract $tenantContext,
+    ) {}
+
+    /**
+     * 执行 Agent 对话（ReAct 循环）
+     *
+     * @param  int  $agentId         Agent ID
+     * @param  int  $conversationId  会话 ID
+     * @param  string  $message      用户消息
+     * @param  array  $options       可选配置 {
+     *                               max_tool_calls?: int,
+     *                               temperature?: float,
+     *                               ...
+     *                               }
+     * @return AgentResponse {message, tool_calls, token_usage, finish_reason}
+     */
+    public function run(int $agentId, int $conversationId, string $message, array $options = []): AgentResponse
+    {
+        $tenantId = $this->resolveTenantId();
+
+        $agent = $this->loadAgent($agentId, $tenantId);
+
+        if ($agent === null) {
+            return AgentResponse::fromArray([
+                'message' => '',
+                'tool_calls' => [],
+                'token_usage' => [],
+                'finish_reason' => 'error',
+                'error' => "Agent [{$agentId}] 不存在",
+            ]);
+        }
+
+        $maxToolCalls = $options['max_tool_calls'] ?? ($agent->model_config['max_tool_calls'] ?? 5);
+
+        // 保存用户消息
+        $this->saveMessage($conversationId, 'user', $message);
+
+        // 构建上下文
+        $context = $this->buildContext($agent, $conversationId, $message);
+
+        // 构建 tools 定义
+        $toolDefinitions = [];
+        if (! empty($agent->tools)) {
+            $toolDefinitions = $this->toolRegistry->getToolDefinitions($agent->tools);
+        }
+
+        // ReAct 循环
+        $allToolCalls = [];
+        $loopCount = 0;
+        $totalUsage = ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
+
+        while ($loopCount < $maxToolCalls) {
+            $loopCount++;
+
+            // 调用 AI 推理
+            $chatOptions = $this->buildChatOptions($agent, $toolDefinitions, $options);
+            $aiResponse = $this->aiService->chat($context, $chatOptions);
+
+            // 累加 token 用量
+            $totalUsage = $this->accumulateUsage($totalUsage, $aiResponse->usage);
+
+            // 无工具调用 → 文本回复，结束循环
+            if (! $aiResponse->hasToolCalls()) {
+                // 保存 assistant 消息
+                $this->saveMessage($conversationId, 'assistant', $aiResponse->content, [
+                    'model' => $aiResponse->model,
+                ]);
+
+                // 记录会话轮次
+                $this->monitor->logConversationTurn($conversationId, $agentId, [
+                    'message' => $message,
+                    'response' => $aiResponse->content,
+                    'token_usage' => $totalUsage,
+                    'tool_calls' => [],
+                    'loop_count' => $loopCount,
+                ]);
+
+                return AgentResponse::fromArray([
+                    'message' => $aiResponse->content,
+                    'tool_calls' => [],
+                    'token_usage' => $totalUsage,
+                    'finish_reason' => $aiResponse->finishReason ?: 'stop',
+                    'agent_id' => $agentId,
+                    'conversation_id' => $conversationId,
+                    'model' => $aiResponse->model,
+                    'raw' => $aiResponse->raw,
+                ]);
+            }
+
+            // 有工具调用 → 执行工具
+            $allToolCalls = array_merge($allToolCalls, $aiResponse->toolCalls);
+
+            // 保存 assistant 消息（含 tool_calls）
+            $this->saveMessage($conversationId, 'assistant', $aiResponse->content, [
+                'model' => $aiResponse->model,
+            ], $aiResponse->toolCalls);
+
+            // 将 assistant 消息加入上下文
+            $assistantMsg = ['role' => 'assistant', 'content' => $aiResponse->content];
+            if (! empty($aiResponse->toolCalls)) {
+                $assistantMsg['tool_calls'] = $aiResponse->toolCalls;
+            }
+            $context[] = $assistantMsg;
+
+            // 执行每个工具调用
+            foreach ($aiResponse->toolCalls as $toolCall) {
+                $toolName = $toolCall['function']['name'] ?? $toolCall['name'] ?? '';
+                $toolArguments = $toolCall['function']['arguments'] ?? $toolCall['arguments'] ?? [];
+
+                if (is_string($toolArguments)) {
+                    $toolArguments = json_decode($toolArguments, true) ?? [];
+                }
+
+                $startTime = microtime(true);
+                $toolOutput = null;
+                $toolError = null;
+
+                try {
+                    $toolOutput = $this->toolRegistry->execute($toolName, $toolArguments, $tenantId);
+                } catch (\Throwable $e) {
+                    $toolError = $e->getMessage();
+                    Log::warning('AgentRuntime: 工具执行失败', [
+                        'tool' => $toolName,
+                        'agent_id' => $agentId,
+                        'conversation_id' => $conversationId,
+                        'error' => $toolError,
+                    ]);
+                }
+
+                $durationMs = (int) ((microtime(true) - $startTime) * 1000);
+
+                // 记录工具调用
+                $this->monitor->logToolCall(
+                    $conversationId,
+                    $agentId,
+                    $toolName,
+                    $toolArguments,
+                    $toolOutput,
+                    $durationMs,
+                    $toolError,
+                );
+
+                // 保存 tool 消息
+                $toolResult = $toolError !== null
+                    ? json_encode(['error' => $toolError])
+                    : (is_string($toolOutput) ? $toolOutput : json_encode($toolOutput));
+
+                $this->saveMessage($conversationId, 'tool', $toolResult, [
+                    'tool_name' => $toolName,
+                ]);
+
+                // 将工具结果加入上下文
+                $toolCallId = $toolCall['id'] ?? $toolCall['tool_call_id'] ?? null;
+                $toolContextMsg = [
+                    'role' => 'tool',
+                    'content' => $toolResult,
+                    'name' => $toolName,
+                ];
+                if ($toolCallId !== null) {
+                    $toolContextMsg['tool_call_id'] = $toolCallId;
+                }
+                $context[] = $toolContextMsg;
+            }
+        }
+
+        // 超过最大工具调用次数，强制结束
+        $this->saveMessage($conversationId, 'assistant', '工具调用次数已达上限，对话自动结束。');
+
+        $this->monitor->logConversationTurn($conversationId, $agentId, [
+            'message' => $message,
+            'response' => '工具调用次数已达上限',
+            'token_usage' => $totalUsage,
+            'tool_calls' => $allToolCalls,
+            'loop_count' => $loopCount,
+        ]);
+
+        return AgentResponse::fromArray([
+            'message' => '工具调用次数已达上限，对话自动结束。',
+            'tool_calls' => $allToolCalls,
+            'token_usage' => $totalUsage,
+            'finish_reason' => 'max_tool_calls',
+            'agent_id' => $agentId,
+            'conversation_id' => $conversationId,
+        ]);
+    }
+
+    /**
+     * 继续执行（工具调用后）
+     *
+     * 将工具执行结果加入上下文并继续对话。
+     *
+     * @param  int  $conversationId  会话 ID
+     * @param  array  $toolResults   工具执行结果列表
+     * @return AgentResponse
+     */
+    public function continueWithToolResults(int $conversationId, array $toolResults): AgentResponse
+    {
+        $tenantId = $this->resolveTenantId();
+
+        $conversation = AgentConversation::where('conversation_id', $conversationId)
+            ->where('tenant_id', $tenantId)
+            ->first();
+
+        if ($conversation === null) {
+            return AgentResponse::fromArray([
+                'message' => '',
+                'tool_calls' => [],
+                'token_usage' => [],
+                'finish_reason' => 'error',
+                'error' => "会话 [{$conversationId}] 不存在",
+            ]);
+        }
+
+        $agentId = $conversation->agent_id;
+        $agent = $this->loadAgent($agentId, $tenantId);
+
+        if ($agent === null) {
+            return AgentResponse::fromArray([
+                'message' => '',
+                'tool_calls' => [],
+                'token_usage' => [],
+                'finish_reason' => 'error',
+                'error' => "Agent [{$agentId}] 不存在",
+            ]);
+        }
+
+        // 保存工具结果消息
+        foreach ($toolResults as $result) {
+            $toolResult = $result['content'] ?? json_encode($result);
+            $this->saveMessage($conversationId, 'tool', $toolResult, [
+                'tool_name' => $result['tool_name'] ?? '',
+            ]);
+        }
+
+        // 构建上下文
+        $context = $this->getConversationContext($conversationId);
+
+        // 构建 tools 定义
+        $toolDefinitions = [];
+        if (! empty($agent->tools)) {
+            $toolDefinitions = $this->toolRegistry->getToolDefinitions($agent->tools);
+        }
+
+        $chatOptions = $this->buildChatOptions($agent, $toolDefinitions);
+        $aiResponse = $this->aiService->chat($context, $chatOptions);
+
+        // 保存 assistant 消息
+        $this->saveMessage($conversationId, 'assistant', $aiResponse->content, [
+            'model' => $aiResponse->model,
+        ]);
+
+        // 记录会话轮次
+        $this->monitor->logConversationTurn($conversationId, $agentId, [
+            'message' => '',
+            'response' => $aiResponse->content,
+            'token_usage' => $aiResponse->usage,
+            'tool_calls' => $aiResponse->toolCalls,
+        ]);
+
+        return AgentResponse::fromArray([
+            'message' => $aiResponse->content,
+            'tool_calls' => $aiResponse->toolCalls,
+            'token_usage' => $aiResponse->usage,
+            'finish_reason' => $aiResponse->finishReason ?: 'stop',
+            'agent_id' => $agentId,
+            'conversation_id' => $conversationId,
+            'model' => $aiResponse->model,
+            'raw' => $aiResponse->raw,
+        ]);
+    }
+
+    /**
+     * 获取会话上下文
+     *
+     * 构建用于 AI 推理的消息上下文，包括系统提示词和历史消息。
+     *
+     * @param  int  $conversationId  会话 ID
+     * @param  int  $maxMessages     最大历史消息数
+     * @return array OpenAI 消息格式 [{role, content, ...}, ...]
+     */
+    public function getConversationContext(int $conversationId, int $maxMessages = 20): array
+    {
+        $tenantId = $this->resolveTenantId();
+
+        $conversation = AgentConversation::where('conversation_id', $conversationId)
+            ->where('tenant_id', $tenantId)
+            ->first();
+
+        if ($conversation === null) {
+            return [];
+        }
+
+        $agent = $conversation->agent;
+        $context = [];
+
+        // 系统提示词
+        if ($agent !== null && ! empty($agent->system_prompt)) {
+            $context[] = [
+                'role' => 'system',
+                'content' => $agent->system_prompt,
+            ];
+        }
+
+        // 历史消息
+        $messages = AgentConversationMessage::where('conversation_id', $conversationId)
+            ->orderBy('created_at', 'asc')
+            ->limit($maxMessages)
+            ->get();
+
+        foreach ($messages as $msg) {
+            $contextMsg = [
+                'role' => $msg->role,
+                'content' => $msg->content ?? '',
+            ];
+
+            if ($msg->role === 'assistant' && $msg->tool_calls !== null) {
+                $contextMsg['tool_calls'] = $msg->tool_calls;
+            }
+
+            if ($msg->role === 'tool' && $msg->tool_call_id !== null) {
+                $contextMsg['tool_call_id'] = $msg->tool_call_id;
+            }
+
+            $context[] = $contextMsg;
+        }
+
+        return $context;
+    }
+
+    /**
+     * 压缩会话记忆（摘要旧消息）
+     *
+     * 当会话历史过长时，自动摘要旧消息以节省 Token。
+     * 属于 TASK-045 实现范围。
+     *
+     * @param  int  $conversationId  会话 ID
+     *
+     * @throws \BadMethodCallException 始终抛出，记忆压缩归 TASK-045
+     */
+    public function compressMemory(int $conversationId): void
+    {
+        throw new \BadMethodCallException('记忆压缩功能归 TASK-045 实现');
+    }
+
+    /**
+     * 流式执行 Agent 对话 (SSE)
+     *
+     * 属于 TASK-044 实现范围。
+     *
+     * @throws \BadMethodCallException 始终抛出，流式归 TASK-044
+     */
+    public function runStream(int $agentId, int $conversationId, string $message, array $options = []): Generator
+    {
+        throw new \BadMethodCallException('流式执行归 TASK-044 实现');
+    }
+
+    /**
+     * 累加 token 用量
+     */
+    private function accumulateUsage(array $total, array $usage): array
+    {
+        $total['prompt_tokens'] += $usage['prompt_tokens'] ?? 0;
+        $total['completion_tokens'] += $usage['completion_tokens'] ?? 0;
+        $total['total_tokens'] += $usage['total_tokens'] ?? 0;
+
+        return $total;
+    }
+
+    /**
+     * 从 TenantContextContract 解析当前租户 ID
+     */
+    private function resolveTenantId(): int
+    {
+        $tenantId = $this->tenantContext->resolveId();
+
+        if ($tenantId === null) {
+            throw new \RuntimeException('无法从租户上下文解析 tenant_id');
+        }
+
+        return (int) $tenantId;
+    }
+
+    /**
+     * 加载 Agent（租户隔离）
+     */
+    private function loadAgent(int $agentId, int $tenantId): ?Agent
+    {
+        return Agent::where('agent_id', $agentId)
+            ->where('tenant_id', $tenantId)
+            ->first();
+    }
+
+    /**
+     * 构建上下文消息列表（system_prompt + 历史 + 新消息）
+     */
+    private function buildContext(Agent $agent, int $conversationId, string $message): array
+    {
+        $context = $this->getConversationContext($conversationId);
+
+        // 如果 getConversationContext 未包含 system_prompt，则补充
+        $hasSystemPrompt = false;
+        foreach ($context as $msg) {
+            if ($msg['role'] === 'system') {
+                $hasSystemPrompt = true;
+                break;
+            }
+        }
+
+        if (! $hasSystemPrompt && ! empty($agent->system_prompt)) {
+            array_unshift($context, [
+                'role' => 'system',
+                'content' => $agent->system_prompt,
+            ]);
+        }
+
+        // 新用户消息（如果尚未存在于上下文末尾）
+        $lastMsg = end($context);
+        if ($lastMsg === false || $lastMsg['role'] !== 'user' || $lastMsg['content'] !== $message) {
+            $context[] = [
+                'role' => 'user',
+                'content' => $message,
+            ];
+        }
+
+        return $context;
+    }
+
+    /**
+     * 构建 chat 调用选项
+     */
+    private function buildChatOptions(Agent $agent, array $toolDefinitions = [], array $overrides = []): array
+    {
+        $modelConfig = $agent->model_config ?? [];
+
+        $options = [
+            'model' => $modelConfig['preferred_model'] ?? config('ai.default_model', 'gpt-4o-mini'),
+            'provider' => $modelConfig['preferred_provider'] ?? config('ai.default_provider', 'openai'),
+            'temperature' => $modelConfig['temperature'] ?? 0.7,
+            'max_tokens' => $modelConfig['max_tokens'] ?? 2000,
+        ];
+
+        if (! empty($toolDefinitions)) {
+            $options['tools'] = $toolDefinitions;
+            $options['tool_choice'] = 'auto';
+        }
+
+        return array_merge($options, $overrides);
+    }
+
+    /**
+     * 保存消息到 agent_conversation_messages 表
+     */
+    private function saveMessage(
+        int $conversationId,
+        string $role,
+        string $content,
+        array $metadata = [],
+        ?array $toolCalls = null,
+    ): AgentConversationMessage {
+        return AgentConversationMessage::create([
+            'conversation_id' => $conversationId,
+            'role' => $role,
+            'content' => $content,
+            'tool_calls' => $toolCalls,
+            'tool_call_id' => $metadata['tool_call_id'] ?? null,
+            'metadata' => $metadata,
+            'created_at' => now(),
+        ]);
+    }
+}

@@ -8,10 +8,12 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use MultiTenantSaas\Console\Commands\CheckTenantIsolation;
 use MultiTenantSaas\Contracts\AgentMonitorContract;
+use MultiTenantSaas\Contracts\AgentRuntimeContract;
 use MultiTenantSaas\Contracts\AgentServiceContract;
 use MultiTenantSaas\Contracts\AiTextServiceContract;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Events\TenantActivated;
 use MultiTenantSaas\Events\TenantCreated;
 use MultiTenantSaas\Events\TenantSuspended;
@@ -20,6 +22,7 @@ use MultiTenantSaas\Events\UserRegistered;
 use MultiTenantSaas\Listeners\LogEventListener;
 use MultiTenantSaas\Services\Ai\AiTextService;
 use MultiTenantSaas\Services\Agent\AgentMonitor;
+use MultiTenantSaas\Services\Agent\AgentRuntime;
 use MultiTenantSaas\Services\Agent\AgentService;
 use MultiTenantSaas\Services\AlipayOAuthService;
 use MultiTenantSaas\Services\AlertService;
@@ -132,6 +135,17 @@ class TenancyServiceProvider extends ServiceProvider
             );
         });
         $this->app->alias(AgentMonitorContract::class, AgentMonitor::class);
+
+        // 注册 Agent 运行时（绑定接口契约 + 具体实现，ReAct 循环引擎）
+        $this->app->singleton(AgentRuntimeContract::class, function ($app) {
+            return new AgentRuntime(
+                $app->make(AiTextServiceContract::class),
+                $app->make(ToolRegistryContract::class),
+                $app->make(AgentMonitorContract::class),
+                $app->make(TenantContextContract::class),
+            );
+        });
+        $this->app->alias(AgentRuntimeContract::class, AgentRuntime::class);
 
         // 注册配置存储
         $this->app->singleton(TenantConfigStore::class, function () {

@@ -9,10 +9,15 @@ namespace MultiTenantSaas\Services\Agent\Dto;
  * Token 用量统计和结束原因。
  *
  * 字段说明：
- *  - message:       AI 助手的文本回复内容
- *  - toolCalls:     AI 请求调用的工具列表（OpenAI Function Calling 格式）
- *  - tokenUsage:    本次对话的 Token 用量统计
- *  - finishReason:  对话结束原因（stop / tool_calls / length / error 等）
+ *  - message:         AI 助手的文本回复内容
+ *  - toolCalls:       AI 请求调用的工具列表（OpenAI Function Calling 格式）
+ *  - tokenUsage:      本次对话的 Token 用量统计
+ *  - finishReason:    对话结束原因（stop / tool_calls / length / error / max_tool_calls 等）
+ *  - agentId:         Agent ID
+ *  - conversationId:  会话 ID
+ *  - model:           实际使用的模型名称
+ *  - error:           错误信息（finish_reason=error 时有值）
+ *  - raw:             原始后端响应（调试 / 透传）
  */
 final class AgentResponse
 {
@@ -21,6 +26,11 @@ final class AgentResponse
         public readonly array $toolCalls = [],
         public readonly array $tokenUsage = [],
         public readonly string $finishReason = '',
+        public readonly int $agentId = 0,
+        public readonly int $conversationId = 0,
+        public readonly string $model = '',
+        public readonly string $error = '',
+        public readonly array $raw = [],
     ) {}
 
     /**
@@ -30,7 +40,12 @@ final class AgentResponse
      *                       message?: string,
      *                       tool_calls?: array,
      *                       token_usage?: array,
-     *                       finish_reason?: string
+     *                       finish_reason?: string,
+     *                       agent_id?: int,
+     *                       conversation_id?: int,
+     *                       model?: string,
+     *                       error?: string,
+     *                       raw?: array
      *                       }
      */
     public static function fromArray(array $data): static
@@ -40,6 +55,11 @@ final class AgentResponse
             toolCalls: (array) ($data['tool_calls'] ?? []),
             tokenUsage: (array) ($data['token_usage'] ?? []),
             finishReason: (string) ($data['finish_reason'] ?? ''),
+            agentId: (int) ($data['agent_id'] ?? 0),
+            conversationId: (int) ($data['conversation_id'] ?? 0),
+            model: (string) ($data['model'] ?? ''),
+            error: (string) ($data['error'] ?? ''),
+            raw: (array) ($data['raw'] ?? []),
         );
     }
 

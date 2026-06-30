@@ -8,7 +8,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
 
 class SubscriptionPlan extends Model
 {
-    use HasGlobalId, HasFactory;
+    use HasFactory, HasGlobalId;
 
     protected $primaryKey = 'subscription_plan_id';
 
@@ -71,5 +71,29 @@ class SubscriptionPlan extends Model
     public function hasFeature(string $feature): bool
     {
         return in_array($feature, $this->features ?? []);
+    }
+
+    /**
+     * 文本 AI 月度 Token 配额（0 表示不限）
+     */
+    public function getAiTextTokens(): int
+    {
+        return (int) ($this->ai_text_tokens ?? 0);
+    }
+
+    /**
+     * 图片 AI 月度生成次数配额（0 表示不限）
+     */
+    public function getAiImageGenerations(): int
+    {
+        return (int) ($this->ai_image_generations ?? 0);
+    }
+
+    /**
+     * 视频 AI 月度时长配额（秒，0 表示不限）
+     */
+    public function getAiVideoSeconds(): int
+    {
+        return (int) ($this->ai_video_seconds ?? 0);
     }
 }

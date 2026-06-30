@@ -516,5 +516,522 @@ $id = generate_id();
 
 ---
 
-**文档版本**: v1.0.0  
-**最后更新**: 2026-06-18
+## WebhookService
+
+Webhook 事件订阅与交付服务，支持重试、签名验证、交付记录。
+
+### 方法
+
+#### registerWebhook(int $tenantId, array $config)
+
+注册 Webhook 端点。
+
+```php
+$webhook = app(WebhookService::class)->registerWebhook($tenantId, [
+    'url' => 'https://api.example.com/webhook',
+    'events' => ['tenant.created', 'payment.completed'],
+    'secret' => 'whsec_xxx',
+]);
+```
+
+#### dispatchEvent(string $event, array $payload)
+
+分发事件到所有订阅的 Webhook。
+
+```php
+app(WebhookService::class)->dispatchEvent('tenant.created', ['tenant_id' => 123]);
+```
+
+#### getDeliveryLog(int $webhookId, int $limit = 50)
+
+获取交付记录。
+
+---
+
+## EventBusService
+
+事件总线服务，支持异步事件分发、死信队列、事件订阅管理。
+
+### 方法
+
+#### publish(string $event, array $payload, bool $async = true)
+
+发布事件。
+
+```php
+app(EventBusService::class)->publish('user.registered', ['user_id' => 456]);
+```
+
+#### subscribe(string $event, string $handler)
+
+订阅事件。
+
+```php
+app(EventBusService::class)->subscribe('user.registered', SendWelcomeEmail::class);
+```
+
+#### getDeadLetters(int $limit = 50)
+
+获取死信队列。
+
+---
+
+## FeatureFlagService
+
+功能开关服务，支持按租户、百分比、规则评估功能开关。
+
+### 方法
+
+#### createFlag(array $data)
+
+创建功能开关。
+
+```php
+app(FeatureFlagService::class)->createFlag([
+    'name' => 'new_dashboard',
+    'enabled' => false,
+    'rollout_percentage' => 10,
+    'allowed_tenants' => [123, 456],
+]);
+```
+
+#### isEnabled(string $flag, ?int $tenantId = null)
+
+检查功能开关是否启用。
+
+```php
+if (app(FeatureFlagService::class)->isEnabled('new_dashboard', $tenantId)) {
+    // 显示新面板
+}
+```
+
+#### setRolloutPercentage(string $flag, int $percentage)
+
+设置灰度百分比。
+
+---
+
+## CostService
+
+成本追踪与资源计费服务。
+
+### 方法
+
+#### recordUsage(int $tenantId, string $resource, float $amount, string $unit)
+
+记录资源用量。
+
+```php
+app(CostService::class)->recordUsage($tenantId, 'api_calls', 100, 'calls');
+```
+
+#### getCostBreakdown(int $tenantId, string $period = 'monthly')
+
+获取成本明细。
+
+```php
+$breakdown = app(CostService::class)->getCostBreakdown($tenantId, 'monthly');
+```
+
+#### allocateCost(int $tenantId, array $allocation)
+
+分配成本到部门/项目。
+
+---
+
+## ResourceService
+
+租户资源配额管理服务。
+
+### 方法
+
+#### setQuota(int $tenantId, string $resource, int $limit)
+
+设置资源配额。
+
+```php
+app(ResourceService::class)->setQuota($tenantId, 'storage_gb', 100);
+```
+
+#### getUsage(int $tenantId, string $resource)
+
+获取资源使用量。
+
+```php
+$usage = app(ResourceService::class)->getUsage($tenantId, 'storage_gb');
+```
+
+#### checkAvailability(int $tenantId, string $resource, int $amount)
+
+检查资源是否可用。
+
+---
+
+## ReportService
+
+自定义报表生成服务，支持 PDF / Excel 导出。
+
+### 方法
+
+#### createReport(array $config)
+
+创建报表任务。
+
+```php
+$report = app(ReportService::class)->createReport([
+    'name' => '月度用量报告',
+    'type' => 'usage',
+    'period' => '2026-06',
+    'format' => 'pdf',
+]);
+```
+
+#### generate(int $reportId)
+
+生成报表文件。
+
+#### download(int $reportId)
+
+下载报表。
+
+---
+
+## ErrorTrackingService
+
+错误追踪与聚合服务。
+
+### 方法
+
+#### reportError(Throwable $e, array $context = [])
+
+上报错误。
+
+```php
+app(ErrorTrackingService::class)->reportError($exception, ['tenant_id' => $id]);
+```
+
+#### getErrorStats(int $tenantId, string $period = '24h')
+
+获取错误统计。
+
+```php
+$stats = app(ErrorTrackingService::class)->getErrorStats($tenantId, '24h');
+// ['total' => 42, 'unique' => 8, 'top_errors' => [...]]
+```
+
+#### resolveError(string $errorId)
+
+标记错误为已解决。
+
+---
+
+## BroadcastingService
+
+实时广播服务，支持 WebSocket / SSE 推送。
+
+### 方法
+
+#### broadcast(string $channel, string $event, array $data)
+
+广播事件。
+
+```php
+app(BroadcastingService::class)->broadcast('tenant.123', 'notification', ['msg' => 'hello']);
+```
+
+#### broadcastToUser(int $userId, string $event, array $data)
+
+向指定用户广播。
+
+#### getActiveChannels()
+
+获取活跃频道列表。
+
+---
+
+## InAppNotificationService
+
+应用内通知服务，支持未读数、偏好设置、批量标记已读。
+
+### 方法
+
+#### send(int $userId, array $notification)
+
+发送应用内通知。
+
+```php
+app(InAppNotificationService::class)->send($userId, [
+    'type' => 'info',
+    'title' => '任务完成',
+    'message' => '您的导出任务已完成',
+]);
+```
+
+#### getUnread(int $userId, int $limit = 20)
+
+获取未读通知。
+
+#### markAsRead(int $notificationId)
+
+标记已读。
+
+#### markAllAsRead(int $userId)
+
+全部标记已读。
+
+---
+
+## IsolationService
+
+数据隔离策略服务，支持 shared-db / schema-based / database-based 策略。
+
+### 方法
+
+#### getStrategy(string $type)
+
+获取隔离策略实例。
+
+```php
+$strategy = app(IsolationService::class)->getStrategy('shared-db');
+```
+
+#### migrateTenant(int $tenantId, string $targetStrategy)
+
+迁移租户隔离策略。
+
+#### getCurrentStrategy(int $tenantId)
+
+获取当前策略。
+
+---
+
+## DataResidencyService
+
+数据驻留管理服务，支持区域配置、跨区域迁移。
+
+### 方法
+
+#### setResidencyRegion(int $tenantId, string $region)
+
+设置数据驻留区域。
+
+```php
+app(DataResidencyService::class)->setResidencyRegion($tenantId, 'CN');
+```
+
+#### migrateToRegion(int $tenantId, string $targetRegion)
+
+跨区域迁移数据。
+
+#### getResidencyConfig(int $tenantId)
+
+获取驻留配置。
+
+#### getAvailableRegions()
+
+获取可用区域列表。
+
+---
+
+## TenantCloneService
+
+租户克隆服务，支持模板创建、快照导入导出、克隆验证。
+
+### 方法
+
+#### createFromTemplate(int $sourceId, array $config)
+
+从模板租户创建新租户。
+
+```php
+$newTenant = app(TenantCloneService::class)->createFromTemplate($templateId, [
+    'name' => 'New Corp',
+    'slug' => 'new-corp',
+]);
+```
+
+#### exportSnapshot(int $tenantId)
+
+导出租户快照。
+
+```php
+$snapshot = app(TenantCloneService::class)->exportSnapshot($tenantId);
+```
+
+#### importSnapshot(int $targetId, array $snapshot)
+
+导入快照到租户。
+
+#### exportSnapshotJson(int $tenantId)
+
+导出 JSON 格式快照。
+
+---
+
+## CrossTenantService
+
+跨租户数据共享服务，支持层级关系、数据共享规则。
+
+### 方法
+
+#### establishHierarchy(int $parentId, int $childId, array $config)
+
+建立父子租户关系。
+
+```php
+app(CrossTenantService::class)->establishHierarchy($parentId, $childId, [
+    'shared_tables' => ['customers', 'products'],
+]);
+```
+
+#### shareData(int $sourceId, int $targetId, string $table, array $filters)
+
+跨租户共享数据。
+
+#### getHierarchy(int $tenantId)
+
+获取租户层级关系。
+
+---
+
+## SandboxService
+
+沙盒环境服务，支持独立测试环境创建、数据隔离、过期清理。
+
+### 方法
+
+#### createSandbox(int $tenantId, array $config)
+
+创建沙盒环境。
+
+```php
+$sandbox = app(SandboxService::class)->createSandbox($tenantId, [
+    'expires_at' => now()->addDays(7),
+    'copy_data' => ['customers'],
+]);
+```
+
+#### destroySandbox(int $sandboxId)
+
+销毁沙盒。
+
+#### listSandboxes(int $tenantId)
+
+列出租户的沙盒。
+
+---
+
+## DeveloperPortalService
+
+开发者门户服务，支持 API Key 管理、文档、SDK 生成。
+
+### 方法
+
+#### getPortalConfig(int $tenantId)
+
+获取门户配置。
+
+#### generateApiKey(int $tenantId, array $permissions)
+
+生成 API 密钥。
+
+#### revokeApiKey(string $keyId)
+
+吊销 API 密钥。
+
+#### listApiKeys(int $tenantId)
+
+列出 API 密钥。
+
+---
+
+## TenantKeyService
+
+租户 BYOK（Bring Your Own Key）密钥管理服务。
+
+### 方法
+
+#### storeKey(int $tenantId, array $keyData)
+
+存储租户自定义密钥。
+
+```php
+app(TenantKeyService::class)->storeKey($tenantId, [
+    'provider' => 'openai',
+    'key' => 'sk-xxx',
+    'encrypted' => true,
+]);
+```
+
+#### getKey(int $tenantId, string $provider)
+
+获取密钥（自动解密）。
+
+#### rotateKey(int $tenantId, string $provider, string $newKey)
+
+轮换密钥。
+
+#### deleteKey(int $tenantId, string $provider)
+
+删除密钥。
+
+---
+
+## MetricsService
+
+指标统计与快照服务。
+
+### 方法
+
+#### recordMetric(string $name, float $value, array $tags = [])
+
+记录指标。
+
+```php
+app(MetricsService::class)->recordMetric('api_latency_ms', 45.2, ['endpoint' => '/users']);
+```
+
+#### getMetrics(string $name, string $period = '1h')
+
+获取指标数据。
+
+#### takeSnapshot(int $tenantId)
+
+生成指标快照。
+
+---
+
+## SlaService
+
+SLA 管理服务，支持 SLA 定义、事件追踪、违规检测。
+
+### 方法
+
+#### defineSla(array $config)
+
+定义 SLA 规则。
+
+```php
+app(SlaService::class)->defineSla([
+    'name' => '99.9% Uptime',
+    'target' => 99.9,
+    'window' => 'monthly',
+]);
+```
+
+#### recordEvent(int $tenantId, string $event, array $data)
+
+记录 SLA 事件。
+
+#### checkCompliance(int $tenantId, string $slaName)
+
+检查 SLA 合规性。
+
+#### getViolationReport(int $tenantId)
+
+获取 SLA 违规报告。
+
+---
+
+**文档版本**: v1.1.0  
+**最后更新**: 2026-06-29

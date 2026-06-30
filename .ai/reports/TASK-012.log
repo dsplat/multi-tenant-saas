@@ -1,0 +1,40 @@
+[loop-run] === STEP 1: DEV (TASK-012) ===
+state updated: TASK-012 → DEV
+
+> build · glm-5.2
+
+TASK-012: 图片 AI 服务
+
+## 交付文件
+
+1. src/Services/AiImageService.php          — 图片 AI 核心服务（文生图/图生图/编辑/风格迁移/存储/日志）
+2. src/Services/Ai/DalleProvider.php         — OpenAI DALL-E 3 提供商（1024×1024/1792×1024/1024×1792, quality, style）
+3. src/Services/Ai/StableDiffusionProvider.php — Stability AI 提供商（SD3/SDXL, negative prompt, seed, steps, CFG scale）
+4. config/ai.php                             — 追加 ai.image.* 图片 AI 配置段
+5. lang/zh_CN/ai.php                         — 追加 7 个图片 AI 翻译 key
+6. lang/en/ai.php                            — 追加 7 个图片 AI 翻译 key
+7. tests/AiImageServiceTest.php              — 18 个测试用例（Http::fake + Storage::fake）
+
+## 验证
+
+- PHP 语法检查：4 个文件全部通过
+- 翻译 key 完整性：13 个 trans('ai.*') key 在 zh_CN/en 双语文件中均存在
+- phpunit tests/AiImageServiceTest.php：18 tests, 46 assertions, OK
+- 代码风格：遵循 PSR-12 + Laravel 最佳实践
+- 类型声明：所有方法参数和返回值均有类型声明
+- 多语言：使用 trans() 函数，无硬编码中文字符串
+
+## 架构说明
+
+- AiImageService 直接调度 DalleProvider / StableDiffusionProvider（图片生成接口与文本对话形态不同，
+  AiGatewayService 的 chat/complete/embed/streamChat 无法承载图片生成）
+- 每次调用复用 AiGatewayService 的日志模式将请求落库 ai_requests 表（记录模型、提供商、图片数量、尺寸、费用）
+- 生成结果通过 FileUploadService 存储，创建 FileUpload 记录并返回访问 URL
+- Provider 通过 MODEL_PROVIDER_MAP 路由，支持 dall-e-3/dall-e-2/sd3/sdxl 等模型标识
+
+## 生命周期补完
+
+本次为第 1 次重试：DEV 阶段代码已全部完成且测试通过（18/18），但 task 生命周期未推进。
+本次仅补完 task 生命周期（report + commit + review），未重写代码、未引入新变更。
+
+state updated: TASK-012 → REVIEW

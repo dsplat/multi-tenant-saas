@@ -2,8 +2,11 @@
 
 namespace MultiTenantSaas\Concerns;
 
-use MultiTenantSaas\Scopes\TenantScope;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Scopes\TenantScope;
 
 /**
  * 多租户 Trait
@@ -20,9 +23,9 @@ trait BelongsToTenant
     {
         static::addGlobalScope(new TenantScope);
 
-        // 创建时自动填充 tenant_id
+        // 创建时自动填充 tenant_id（使用 is_null 而非 empty，允许显式传入 null 创建系统级记录）
         static::creating(function (Model $model) {
-            if (empty($model->tenant_id)) {
+            if (is_null($model->tenant_id)) {
                 $model->tenant_id = static::getCurrentTenantId();
             }
         });
@@ -33,14 +36,14 @@ trait BelongsToTenant
      */
     protected static function getCurrentTenantId(): ?string
     {
-        return \MultiTenantSaas\Context\TenantContext::getId();
+        return TenantContext::getId();
     }
 
     /**
      * 获取租户关系
      */
-    public function tenant(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function tenant(): BelongsTo
     {
-        return $this->belongsTo(\MultiTenantSaas\Models\Tenant::class, 'tenant_id', 'tenant_id');
+        return $this->belongsTo(Tenant::class, 'tenant_id', 'tenant_id');
     }
 }

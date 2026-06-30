@@ -162,8 +162,10 @@ class PerformanceService
     public function getSlowRequests(float $thresholdSec = 1.0, int $limit = 50): Collection
     {
         // structured_logs.context 存 JSON，无法在 SQL 直接过滤 duration；
-        // 这里通过 PHP 侧过滤，生产可改为落库时单独 duration_sec 列
+        // 这里通过 PHP 侧过滤，生产可改为落库时单独 duration_sec 列。
+        // 仅取必要列，减少大字段（context）以外的行 hydrate 开销。
         return collect(DB::table('structured_logs')
+            ->select(['id', 'action', 'context', 'created_at'])
             ->where('category', StructuredLogService::CATEGORY_PERFORMANCE)
             ->where('created_at', '>=', now()->subDay())
             ->orderByDesc('created_at')

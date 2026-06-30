@@ -1,22 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\TenantController;
-use App\Http\Controllers\Api\TenantMemberController;
-use App\Http\Controllers\Api\TenantSettingController;
-use App\Http\Controllers\Api\TenantDomainController;
-use App\Http\Controllers\Api\TenantCreditController;
-use App\Http\Controllers\Api\TenantAuditController;
-use App\Http\Controllers\Api\TenantSslController;
-use App\Http\Controllers\Api\TenantPaymentController;
-use App\Http\Controllers\Api\TenantOAuthController;
-use App\Http\Controllers\Api\TenantTokenController;
-use App\Http\Controllers\Api\TenantQuotaController;
 use App\Http\Controllers\Api\AdminSettingsController;
-use App\Http\Controllers\Api\RbacController;
-use App\Http\Controllers\Api\NotificationController;
-use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FileController;
 use App\Http\Controllers\Api\AgentController;
 use App\Http\Controllers\Api\AgentChatController;
@@ -47,6 +32,12 @@ Route::post('/v1/pay/alipay/refund-notify', [TenantPaymentController::class, 'al
 Route::get('/v1/auth/{provider}/redirect', [TenantOAuthController::class, 'redirect']);
 Route::get('/v1/auth/{provider}/callback', [TenantOAuthController::class, 'callback']);
 
+// ========== SSO / SAML 集成（无需认证，回调在登录前） ==========
+Route::get('/v1/sso/saml/metadata', [AuthController::class, 'samlMetadata']);
+Route::get('/v1/sso/{provider}/redirect', [AuthController::class, 'ssoRedirect'])->middleware('throttle:10,1');
+Route::get('/v1/sso/{provider}/callback', [AuthController::class, 'ssoCallback'])->middleware('throttle:10,1');
+Route::post('/v1/sso/{provider}/callback', [AuthController::class, 'ssoCallback'])->middleware('throttle:10,1');
+
 // ========== 文件分享下载（无需认证，签名验证） ==========
 Route::get('/v1/files/{id}/share', [FileController::class, 'shareDownload']);
 
@@ -56,6 +47,32 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
     // 认证
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::post('/auth/mfa/verify', [AuthController::class, 'mfaVerify'])->middleware('throttle:5,1');
+
+    // 多因素认证与会话管理
+    Route::prefix('/mfa')->group(function () {
+        // TOTP 设备
+        Route::post('/totp/setup', [MfaController::class, 'setupTotp']);
+        Route::post('/totp/confirm', [MfaController::class, 'confirmTotp'])->middleware('throttle:5,1');
+        // 邮箱/短信设备
+        Route::post('/email/setup', [MfaController::class, 'setupEmail']);
+        Route::post('/sms/setup', [MfaController::class, 'setupSms']);
+        // 验证码发送
+        Route::post('/email/send', [MfaController::class, 'sendEmailCode'])->middleware('throttle:3,1');
+        Route::post('/sms/send', [MfaController::class, 'sendSmsCode'])->middleware('throttle:3,1');
+        // 设备管理
+        Route::get('/devices', [MfaController::class, 'devices']);
+        Route::delete('/devices/{deviceId}', [MfaController::class, 'destroyDevice']);
+        Route::put('/devices/{deviceId}', [MfaController::class, 'renameDevice']);
+        Route::post('/devices/{deviceId}/primary', [MfaController::class, 'setPrimary']);
+        // 恢复码
+        Route::post('/recovery-codes/generate', [MfaController::class, 'generateRecoveryCodes'])->middleware('throttle:5,1');
+        Route::get('/recovery-codes/status', [MfaController::class, 'recoveryCodeStatus']);
+        // 会话管理
+        Route::get('/sessions', [MfaController::class, 'sessions']);
+        Route::delete('/sessions/{sessionId}', [MfaController::class, 'revokeSession']);
+        Route::post('/sessions/revoke-all', [MfaController::class, 'revokeAllSessions']);
+    });
 
     // 租户管理（需 tenant.view/create/update/delete/suspend 权限）
     Route::get('/tenants', [TenantController::class, 'index'])->middleware('rbac.permission:tenant.view');
@@ -99,6 +116,11 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
     Route::get('/tenants/{tenantId}/oauth/config', [TenantOAuthController::class, 'getOAuthConfig'])->middleware('rbac.permission:setting.view');
     Route::put('/tenants/{tenantId}/oauth/{provider}', [TenantOAuthController::class, 'updateOAuthConfig'])->middleware('rbac.permission:setting.update');
 
+    // SSO / SAML 提供方管理（需 setting.* 权限）
+    Route::get('/tenants/{tenantId}/sso/providers', [AuthController::class, 'ssoProviders'])->middleware('rbac.permission:setting.view');
+    Route::post('/tenants/{tenantId}/sso/providers', [AuthController::class, 'storeSsoProvider'])->middleware('rbac.permission:setting.update');
+    Route::delete('/tenants/{tenantId}/sso/providers/{name}', [AuthController::class, 'destroySsoProvider'])->middleware('rbac.permission:setting.update');
+
     // 支付订单（需 payment.* 权限）
     Route::get('/tenants/{tenantId}/payment-orders', [TenantPaymentController::class, 'index'])->middleware('rbac.permission:payment.view');
     Route::post('/tenants/{tenantId}/payment-orders', [TenantPaymentController::class, 'store'])->middleware('rbac.permission:payment.create');
@@ -109,8 +131,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
     Route::get('/tenants/{tenantId}/audit-logs', [TenantAuditController::class, 'index'])->middleware('rbac.permission:audit.view');
 
     // API Token
-    Route::get("/tenants/{tenantId}/api-tokens", [TenantTokenController::class, "index"])->middleware('rbac.permission:member.view');
-    Route::get("/tenants/{tenantId}/api-tokens/abilities", [TenantTokenController::class, "abilities"])->middleware('rbac.permission:member.view');
+    Route::get('/tenants/{tenantId}/api-tokens', [TenantTokenController::class, 'index'])->middleware('rbac.permission:member.view');
+    Route::get('/tenants/{tenantId}/api-tokens/abilities', [TenantTokenController::class, 'abilities'])->middleware('rbac.permission:member.view');
     Route::post('/tenants/{tenantId}/api-tokens', [TenantTokenController::class, 'store'])->middleware('rbac.permission:member.update');
     Route::delete('/tenants/{tenantId}/api-tokens/{tokenId}', [TenantTokenController::class, 'destroy'])->middleware('rbac.permission:member.update');
 
@@ -140,6 +162,155 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
     Route::get('/notifications/preferences', [NotificationController::class, 'getPreferences']);
     Route::post('/notifications/preferences', [NotificationController::class, 'updatePreferences']);
     Route::post('/notifications/preferences/batch', [NotificationController::class, 'batchUpdatePreferences']);
+
+    // ========== 站内通知中心（InAppNotificationService） ==========
+    Route::get('/in-app-notifications', function (Request $request) {
+        $userId = (int) $request->user()->id;
+        $service = app(InAppNotificationService::class);
+        $result = $service->list($userId, [
+            'type' => $request->query('type'),
+            'unread_only' => $request->boolean('unread_only'),
+            'per_page' => (int) $request->input('per_page', 20),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $result->items(),
+            'meta' => [
+                'current_page' => $result->currentPage(),
+                'last_page' => $result->lastPage(),
+                'per_page' => $result->perPage(),
+                'total' => $result->total(),
+                'unread_count' => $service->getUnreadCount($userId),
+                'unread_by_type' => $service->getUnreadCountByType($userId),
+            ],
+        ]);
+    });
+
+    Route::get('/in-app-notifications/categories', function () {
+        return response()->json([
+            'success' => true,
+            'data' => app(InAppNotificationService::class)->getCategories(),
+        ]);
+    });
+
+    Route::get('/in-app-notifications/unread-count', function (Request $request) {
+        $userId = (int) $request->user()->id;
+
+        return response()->json([
+            'success' => true,
+            'unread_count' => app(InAppNotificationService::class)->getUnreadCount($userId),
+            'unread_by_type' => app(InAppNotificationService::class)->getUnreadCountByType($userId),
+        ]);
+    });
+
+    Route::post('/in-app-notifications/{id}/read', function (int $id) {
+        $userId = (int) auth()->id();
+        $ok = app(InAppNotificationService::class)->markAsRead($id, $userId);
+
+        if (! $ok) {
+            return response()->json(['success' => false, 'message' => trans('notification.not_found')], 404);
+        }
+
+        return response()->json(['success' => true, 'message' => trans('notification.marked_read')]);
+    });
+
+    Route::post('/in-app-notifications/read/batch', function (Request $request) {
+        $data = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer'],
+        ]);
+        $count = app(InAppNotificationService::class)->markBatchRead($data['ids'], (int) auth()->id());
+
+        return response()->json(['success' => true, 'marked_count' => $count]);
+    });
+
+    Route::post('/in-app-notifications/read-all', function () {
+        $count = app(InAppNotificationService::class)->markAllRead((int) auth()->id());
+
+        return response()->json(['success' => true, 'marked_count' => $count, 'message' => trans('notification.all_marked_read')]);
+    });
+
+    Route::delete('/in-app-notifications/{id}', function (int $id) {
+        $ok = app(InAppNotificationService::class)->delete($id, (int) auth()->id());
+
+        if (! $ok) {
+            return response()->json(['success' => false, 'message' => trans('notification.not_found')], 404);
+        }
+
+        return response()->json(['success' => true, 'message' => trans('notification.deleted')]);
+    });
+
+    Route::delete('/in-app-notifications/read/clear', function () {
+        $count = app(InAppNotificationService::class)->clearRead((int) auth()->id());
+
+        return response()->json(['success' => true, 'cleared_count' => $count, 'message' => trans('notification.read_cleared')]);
+    });
+
+    // 站内通知偏好
+    Route::get('/in-app-notifications/preferences', function () {
+        return response()->json([
+            'success' => true,
+            'data' => app(InAppNotificationService::class)->getPreferences((int) auth()->id()),
+        ]);
+    });
+
+    Route::post('/in-app-notifications/preferences', function (Request $request) {
+        $data = $request->validate([
+            'channel' => ['required', 'string', 'max:30'],
+            'type' => ['nullable', 'string', 'max:100'],
+            'enabled' => ['required', 'boolean'],
+        ]);
+        app(InAppNotificationService::class)->setPreference(
+            (int) auth()->id(),
+            $data['channel'],
+            $data['type'] ?? null,
+            $data['enabled']
+        );
+
+        return response()->json(['success' => true, 'message' => trans('common.updated')]);
+    });
+
+    Route::post('/in-app-notifications/preferences/batch', function (Request $request) {
+        $data = $request->validate([
+            'preferences' => ['required', 'array'],
+            'preferences.*.channel' => ['required', 'string', 'max:30'],
+            'preferences.*.type' => ['nullable', 'string', 'max:100'],
+            'preferences.*.enabled' => ['required', 'boolean'],
+        ]);
+        app(InAppNotificationService::class)->batchSetPreferences((int) auth()->id(), $data['preferences']);
+
+        return response()->json(['success' => true, 'message' => trans('common.updated')]);
+    });
+
+    // ========== 实时广播（BroadcastingService） ==========
+    Route::get('/broadcast/history', function (Request $request) {
+        $service = app(BroadcastingService::class);
+
+        return response()->json([
+            'success' => true,
+            'data' => $service->getHistory(
+                $request->query('event_type'),
+                (int) $request->query('limit', 100)
+            ),
+        ]);
+    })->middleware('rbac.permission:tenant.view');
+
+    Route::get('/broadcast/status', function () {
+        $service = app(BroadcastingService::class);
+
+        return response()->json([
+            'success' => true,
+            'available' => $service->isAvailable(),
+            'channel_prefix' => BroadcastingService::CHANNEL_PREFIX,
+        ]);
+    })->middleware('rbac.permission:tenant.view');
+
+    Route::post('/broadcast/retry', function () {
+        $count = app(BroadcastingService::class)->retryPending();
+
+        return response()->json(['success' => true, 'retried_count' => $count]);
+    })->middleware('rbac.permission:tenant.update');
 
     // 订阅管理
     Route::get('/subscription/plans', [SubscriptionController::class, 'plans']);

@@ -1,0 +1,1816 @@
+[0m[loop-run] === STEP 1: DEV (TASK-010d) ===
+state updated: TASK-010d → DEV
+Warning: Please use the `legacy` build in Node.js environments.
+[feishu-plugin] wrote /Users/arthur/.opencode/feishu-plugin-server.json (0600)
+[feishu-plugin] server: http://127.0.0.1:49427 workspace=/Users/arthur/.opencode/imbot-workspace
+[info]: [ "client ready" ]
+[info]: [ "event-dispatch is ready" ]
+[info]: [ "[ws]", "receive events or callbacks through persistent connection only available in self-build & Feishu app, Configured in:\n        Developer Console(开发者后台) \n          ->\n        Events and Callbacks(事件与回调)\n          -> \n        Mode of event/callback subscription(订阅方式)\n          -> \n        Receive events/callbacks through persistent connection(使用 长连接 接收事件/回调)" ]
+[wss] connected: account=cli_aaa83ceb3b789be0 domain=feishu
+[feishu-plugin] synced: WSS=1/1 pipelines=1
+[info]: [ "[ws]", "ws client ready" ]
+[0m
+> build · glm-5.2
+[0m
+[0m$ [0mls -la
+total 816
+drwxr-xr-x  32 arthur  staff    1024  6月 28 19:31 .
+drwxr-xr-x   3 arthur  staff      96  6月 28 14:16 ..
+drwxr-xr-x   9 arthur  staff     288  6月 28 18:35 .ai
+-rw-r--r--   1 arthur  staff     955  6月 18 12:07 .env
+-rw-r--r--   1 arthur  staff    1692  6月 23 21:51 .env.example
+drwxr-xr-x  16 arthur  staff     512  6月 28 22:40 .git
+-rw-r--r--   1 arthur  staff     447  6月 27 23:23 .gitignore
+drwxr-xr-x   5 arthur  staff     160  6月 28 14:21 .mimocode
+drwxr-xr-x@  3 arthur  staff      96  6月 28 19:31 .phpunit.cache
+-rw-r--r--   1 arthur  staff   14295  6月 27 14:07 AI.md
+-rw-r--r--   1 arthur  staff   13125  6月 27 14:07 AI.md.bak
+drwxr-xr-x   6 arthur  staff     192  6月 27 22:55 app
+-rw-r--r--   1 arthur  staff     248  6月 18 09:22 artisan
+drwxr-xr-x   4 arthur  staff     128  6月 25 07:35 bootstrap
+-rw-r--r--   1 arthur  staff    7287  6月 28 13:46 CHANGELOG.md
+-rw-r--r--   1 arthur  staff    2213  6月 23 21:47 composer.json
+-rw-r--r--   1 arthur  staff  329573  6月 18 15:01 composer.lock
+drwxr-xr-x  12 arthur  staff     384  6月 28 13:46 config
+-rw-r--r--   1 arthur  staff    3183  6月 24 09:43 CONTRIBUTING.md
+drwxr-xr-x   5 arthur  staff     160  6月 18 09:25 database
+drwxr-xr-x   8 arthur  staff     256  6月 28 13:46 docs
+drwxr-xr-x   4 arthur  staff     128  6月 25 07:35 lang
+-rw-r--r--   1 arthur  staff    1068  6月 18 09:17 LICENSE
+-rw-r--r--   1 arthur  staff    1260  6月 27 07:08 phpunit.xml.dist
+drwxr-xr-x   5 arthur  staff     160  6月 18 16:14 public
+-rw-r--r--   1 arthur  staff    9982  6月 28 13:07 README.md
+drwxr-xr-x   4 arthur  staff     128  6月 18 12:47 resources
+drwxr-xr-x   6 arthur  staff     192  6月 27 07:08 routes
+drwxr-xr-x  20 arthur  staff     640  6月 28 00:15 src
+drwxr-xr-x   4 arthur  staff     128  6月 28 19:28 storage
+drwxr-xr-x  32 arthur  staff    1024  6月 28 19:56 tests
+drwxr-xr-x  41 arthur  staff    1312  6月 18 15:01 vendor
+[0m
+[0m$ [0mls -la tests/
+total 616
+drwxr-xr-x  32 arthur  staff   1024  6月 28 19:56 .
+drwxr-xr-x  32 arthur  staff   1024  6月 28 19:31 ..
+-rw-r--r--   1 arthur  staff   9174  6月 27 23:23 AlertServiceTest.php
+-rw-r--r--   1 arthur  staff   1517  6月 28 00:05 AlipayOAuthTest.php
+-rw-r--r--   1 arthur  staff   6462  6月 27 23:23 CacheServiceTest.php
+-rw-r--r--   1 arthur  staff   8521  6月 27 00:53 ControllerTest.php
+-rw-r--r--   1 arthur  staff  13432  6月 27 22:55 CoreServicesTest.php
+-rw-r--r--   1 arthur  staff  15916  6月 28 13:56 CouponServiceTest.php
+-rw-r--r--   1 arthur  staff    245  6月 18 09:34 Customer.php
+-rw-r--r--   1 arthur  staff   3331  6月 27 17:51 DataIsolationTest.php
+-rw-r--r--   1 arthur  staff   8775  6月 27 23:23 ExportServiceTest.php
+-rw-r--r--   1 arthur  staff   2015  6月 24 07:33 IdGeneratorTest.php
+-rw-r--r--   1 arthur  staff   9867  6月 28 13:22 InvoiceServiceTest.php
+-rw-r--r--   1 arthur  staff  10605  6月 27 23:23 PaymentSecurityServiceTest.php
+-rw-r--r--   1 arthur  staff   8354  6月 27 23:23 PayPalServiceTest.php
+-rw-r--r--   1 arthur  staff  10844  6月 27 23:23 PerformanceServiceTest.php
+-rw-r--r--   1 arthur  staff  10972  6月 27 23:23 PluginServiceTest.php
+-rw-r--r--   1 arthur  staff   4934  6月 27 23:23 QueueServiceTest.php
+-rw-r--r--   1 arthur  staff   6244  6月 27 23:23 RateLimitServiceTest.php
+-rw-r--r--   1 arthur  staff   9756  6月 27 23:23 RbacServiceTest.php
+-rw-r--r--   1 arthur  staff   8053  6月 27 23:23 StripeServiceTest.php
+-rw-r--r--   1 arthur  staff   8625  6月 27 23:23 SubscriptionServiceTest.php
+-rw-r--r--   1 arthur  staff   9003  6月 28 13:22 TaxServiceTest.php
+-rw-r--r--   1 arthur  staff   2074  6月 24 07:09 TenantContextTest.php
+-rw-r--r--   1 arthur  staff   9521  6月 27 23:23 TenantCreditServiceTest.php
+-rw-r--r--@  1 arthur  staff  10385  6月 28 20:07 TenantOnboardingTest.php
+-rw-r--r--   1 arthur  staff  11977  6月 27 23:23 TenantProfileServiceTest.php
+-rw-r--r--   1 arthur  staff   2564  6月 24 07:33 TenantScopeTest.php
+-rw-r--r--   1 arthur  staff   2331  6月 24 07:33 TenantSettingTest.php
+-rw-r--r--@  1 arthur  staff  25002  6月 28 19:55 TestCase.php
+-rw-r--r--   1 arthur  staff  10080  6月 28 13:48 TrialServiceTest.php
+-rw-r--r--   1 arthur  staff   6780  6月 27 23:23 UnionPayServiceTest.php
+[0m
+[0m→ [0mRead tests/TestCase.php
+[0m
+[0m$ [0mls -la src/
+total 24
+drwxr-xr-x  20 arthur  staff   640  6月 28 00:15 .
+drwxr-xr-x  32 arthur  staff  1024  6月 28 19:31 ..
+drwxr-xr-x   4 arthur  staff   128  6月 27 00:53 Concerns
+drwxr-xr-x   3 arthur  staff    96  6月 18 12:42 Console
+drwxr-xr-x   4 arthur  staff   128  6月 27 06:53 Context
+drwxr-xr-x   4 arthur  staff   128  6月 27 00:53 Contracts
+drwxr-xr-x   3 arthur  staff    96  6月 25 07:35 Enums
+drwxr-xr-x   7 arthur  staff   224  6月 27 07:08 Events
+drwxr-xr-x   6 arthur  staff   192  6月 25 07:35 Exceptions
+drwxr-xr-x   3 arthur  staff    96  6月 18 09:28 Helpers
+drwxr-xr-x   4 arthur  staff   128  6月 27 07:08 Jobs
+drwxr-xr-x   3 arthur  staff    96  6月 27 07:08 Listeners
+drwxr-xr-x   4 arthur  staff   128  6月 27 14:07 Mail
+drwxr-xr-x   8 arthur  staff   256  6月 27 22:55 Middleware
+drwxr-xr-x  24 arthur  staff   768  6月 28 13:46 Models
+drwxr-xr-x   6 arthur  staff   192  6月 25 07:35 Modules
+drwxr-xr-x   3 arthur  staff    96  6月 18 09:28 Scopes
+drwxr-xr-x  48 arthur  staff  1536  6月 28 22:35 Services
+-rw-r--r--   1 arthur  staff  1952  6月 25 07:35 SwaggerInfo.php
+-rw-r--r--   1 arthur  staff  6058  6月 28 00:29 TenancyServiceProvider.php
+[0m
+[0m$ [0mls -la src/Services/ | grep -i ai
+drwxr-xr-x@  4 arthur  staff    128  6月 28 22:37 Ai
+[0m
+[0m$ [0mls -la src/Services/Ai/
+total 64
+drwxr-xr-x@  4 arthur  staff    128  6月 28 22:37 .
+drwxr-xr-x  48 arthur  staff   1536  6月 28 22:35 ..
+-rw-r--r--@  1 arthur  staff  13943  6月 28 22:37 OpenAiProvider.php
+-rw-r--r--@  1 arthur  staff  14753  6月 28 22:37 ZhipuProvider.php
+[0m
+[0m$ [0mfind src -iname "*aigateway*" -o -iname "*AiGateway*"
+(no output)
+[0m
+[0m✱ [0mGrep "AiGateway"[90m in src · 2 matches[0m
+[0m✱ [0mGrep "class.*AiGatewayService|AiGatewayService::class"[90m in src · 0 matches[0m
+[0m
+[0m$ [0mls -la src/Services/Ai/ src/Models/ | grep -i ai
+src/Services/Ai/:
+-rw-r--r--@  1 arthur  staff  13943  6月 28 22:37 OpenAiProvider.php
+[0m
+[0m$ [0mls -la src/Models/
+total 208
+drwxr-xr-x  24 arthur  staff   768  6月 28 13:46 .
+drwxr-xr-x  20 arthur  staff   640  6月 28 00:15 ..
+-rw-r--r--   1 arthur  staff   979  6月 18 09:28 AuditLog.php
+-rw-r--r--   1 arthur  staff  3473  6月 28 13:59 Coupon.php
+-rw-r--r--   1 arthur  staff  1384  6月 28 13:59 CouponUsage.php
+-rw-r--r--   1 arthur  staff  5323  6月 25 07:35 CreditAccount.php
+-rw-r--r--   1 arthur  staff  2040  6月 18 09:54 CreditTransaction.php
+-rw-r--r--   1 arthur  staff  1780  6月 27 00:53 FileUpload.php
+-rw-r--r--   1 arthur  staff  2224  6月 18 09:54 FinancialRecord.php
+-rw-r--r--   1 arthur  staff  2401  6月 28 13:21 Invoice.php
+-rw-r--r--   1 arthur  staff  1533  6月 28 13:21 InvoiceItem.php
+-rw-r--r--   1 arthur  staff  3296  6月 27 00:53 NotificationPreference.php
+-rw-r--r--   1 arthur  staff  1681  6月 27 13:43 OauthAccount.php
+-rw-r--r--   1 arthur  staff   921  6月 27 13:43 PaymentOrder.php
+-rw-r--r--   1 arthur  staff   710  6月 27 22:55 Permission.php
+-rw-r--r--   1 arthur  staff  1684  6月 28 00:28 Role.php
+-rw-r--r--   1 arthur  staff  2288  6月 27 00:53 SubscriptionHistory.php
+-rw-r--r--   1 arthur  staff  1487  6月 27 00:53 SubscriptionPlan.php
+-rw-r--r--   1 arthur  staff  4400  6月 18 09:54 SystemSetting.php
+-rw-r--r--   1 arthur  staff  2175  6月 28 13:21 TaxRule.php
+-rw-r--r--@  1 arthur  staff  5683  6月 28 19:38 Tenant.php
+-rw-r--r--   1 arthur  staff  6813  6月 24 07:34 TenantSetting.php
+-rw-r--r--   1 arthur  staff  1482  6月 27 08:33 TenantUser.php
+-rw-r--r--   1 arthur  staff  2019  6月 27 08:33 User.php
+[0m
+[0m$ [0mls -la .ai/ .mimocode/
+.ai/:
+total 8
+drwxr-xr-x   9 arthur  staff   288  6月 28 18:35 .
+drwxr-xr-x  32 arthur  staff  1024  6月 28 19:31 ..
+drwxr-xr-x   5 arthur  staff   160  6月 27 14:07 prompts
+drwxr-xr-x  31 arthur  staff   992  6月 28 22:47 reports
+drwxr-xr-x  30 arthur  staff   960  6月 28 20:04 review
+drwxr-xr-x   8 arthur  staff   256  6月 28 20:14 scripts
+drwxr-xr-x   4 arthur  staff   128  6月 28 10:01 sprints
+-rw-r--r--@  1 arthur  staff  4003  6月 28 22:47 state.json
+drwxr-xr-x  59 arthur  staff  1888  6月 28 22:47 tasks
+
+.mimocode/:
+total 48
+drwxr-xr-x   5 arthur  staff    160  6月 28 14:21 .
+drwxr-xr-x  32 arthur  staff   1024  6月 28 19:31 ..
+-rw-r--r--   1 arthur  staff     63  6月 27 17:02 .gitignore
+-rw-r--r--   1 arthur  staff  13713  6月 27 17:02 package-lock.json
+-rw-r--r--   1 arthur  staff     59  6月 27 17:02 package.json
+[0m
+[0m$ [0mls -la .ai/tasks/
+total 608
+drwxr-xr-x  59 arthur  staff   1888  6月 28 22:47 .
+drwxr-xr-x   9 arthur  staff    288  6月 28 18:35 ..
+-rw-r--r--   1 arthur  staff  13505  6月 27 14:07 TASK-001.md
+-rw-r--r--   1 arthur  staff   1627  6月 27 14:07 TASK-001a.md
+-rw-r--r--   1 arthur  staff   1778  6月 27 14:07 TASK-001b.md
+-rw-r--r--   1 arthur  staff   1520  6月 27 14:07 TASK-001c.md
+-rw-r--r--   1 arthur  staff   6102  6月 27 23:23 TASK-002.md
+-rw-r--r--   1 arthur  staff  15331  6月 27 22:57 TASK-003.md
+-rw-r--r--   1 arthur  staff    271  6月 27 23:23 TASK-003a.md
+-rw-r--r--   1 arthur  staff    423  6月 27 23:23 TASK-003b.md
+-rw-r--r--   1 arthur  staff    317  6月 27 23:23 TASK-003c.md
+-rw-r--r--   1 arthur  staff  16273  6月 27 21:24 TASK-004.md
+-rw-r--r--   1 arthur  staff    656  6月 27 23:58 TASK-004a.md
+-rw-r--r--   1 arthur  staff    927  6月 27 23:58 TASK-004b.md
+-rw-r--r--   1 arthur  staff   1979  6月 27 23:58 TASK-004c.md
+-rw-r--r--   1 arthur  staff    938  6月 27 23:29 TASK-004d.md
+-rw-r--r--   1 arthur  staff   3437  6月 28 09:59 TASK-005.md
+-rw-r--r--   1 arthur  staff   1153  6月 28 10:06 TASK-005a.md
+-rw-r--r--   1 arthur  staff   1400  6月 28 10:06 TASK-005b.md
+-rw-r--r--   1 arthur  staff   1012  6月 28 10:06 TASK-005c.md
+-rw-r--r--   1 arthur  staff   1649  6月 28 10:06 TASK-005d.md
+-rw-r--r--   1 arthur  staff   1095  6月 28 10:06 TASK-005e.md
+-rw-r--r--   1 arthur  staff   3488  6月 28 10:00 TASK-006.md
+-rw-r--r--   1 arthur  staff    600  6月 28 13:35 TASK-006a.md
+-rw-r--r--   1 arthur  staff    489  6月 28 13:35 TASK-006b.md
+-rw-r--r--   1 arthur  staff    526  6月 28 13:35 TASK-006c.md
+-rw-r--r--   1 arthur  staff    453  6月 28 13:35 TASK-006d.md
+-rw-r--r--   1 arthur  staff   4200  6月 28 10:00 TASK-007.md
+-rw-r--r--   1 arthur  staff   1800  6月 28 14:27 TASK-007a.md
+-rw-r--r--   1 arthur  staff   2877  6月 28 14:27 TASK-007b.md
+-rw-r--r--   1 arthur  staff   1918  6月 28 14:27 TASK-007c.md
+-rw-r--r--   1 arthur  staff   3217  6月 28 10:01 TASK-008.md
+-rw-r--r--   1 arthur  staff   1993  6月 28 10:06 TASK-008a.md
+-rw-r--r--   1 arthur  staff   2270  6月 28 10:06 TASK-008b.md
+-rw-r--r--   1 arthur  staff   1299  6月 28 10:06 TASK-008c.md
+-rw-r--r--   1 arthur  staff   2409  6月 28 10:06 TASK-008d.md
+-rw-r--r--   1 arthur  staff   3329  6月 28 10:01 TASK-009.md
+-rw-r--r--@  1 arthur  staff   1807  6月 28 19:20 TASK-009a — 核心服务 + 翻译.md
+-rw-r--r--   1 arthur  staff   1351  6月 28 18:44 TASK-009a.md
+-rw-r--r--@  1 arthur  staff   2209  6月 28 19:20 TASK-009b — Controller + Resource + 路由.md
+-rw-r--r--   1 arthur  staff    952  6月 28 18:44 TASK-009b.md
+-rw-r--r--@  1 arthur  staff   2020  6月 28 19:20 TASK-009c — 测试.md
+-rw-r--r--   1 arthur  staff   1031  6月 28 18:44 TASK-009c.md
+-rw-r--r--   1 arthur  staff   5015  6月 28 20:41 TASK-010.md
+-rw-r--r--@  1 arthur  staff    363  6月 28 22:47 TASK-010a.md
+-rw-r--r--@  1 arthur  staff    503  6月 28 22:47 TASK-010b.md
+-rw-r--r--@  1 arthur  staff    499  6月 28 22:47 TASK-010c.md
+-rw-r--r--@  1 arthur  staff    443  6月 28 22:47 TASK-010d.md
+-rw-r--r--   1 arthur  staff   4549  6月 28 20:41 TASK-011.md
+-rw-r--r--   1 arthur  staff   3887  6月 28 20:41 TASK-012.md
+-rw-r--r--   1 arthur  staff   3944  6月 28 20:41 TASK-013.md
+-rw-r--r--   1 arthur  staff   4670  6月 28 20:41 TASK-014.md
+-rw-r--r--   1 arthur  staff   6137  6月 28 20:41 TASK-014b.md
+-rw-r--r--   1 arthur  staff   4403  6月 28 20:41 TASK-014c.md
+-rw-r--r--   1 arthur  staff   4366  6月 28 20:41 TASK-015.md
+-rw-r--r--   1 arthur  staff   4329  6月 28 20:41 TASK-016.md
+-rw-r--r--   1 arthur  staff   4095  6月 28 20:41 TASK-017.md
+-rw-r--r--   1 arthur  staff   4476  6月 28 20:41 TASK-018.md
+-rw-r--r--   1 arthur  staff   1497  6月 27 14:07 TASK-EXAMPLE.md
+[0m
+[0m→ [0mRead .ai/tasks/TASK-010.md
+[0m→ [0mRead .ai/tasks/TASK-010a.md
+[0m→ [0mRead .ai/tasks/TASK-010b.md
+[0m→ [0mRead .ai/tasks/TASK-010c.md
+[0m→ [0mRead .ai/tasks/TASK-010d.md
+[0m→ [0mRead .ai/state.json
+[0m
+[0m$ [0mfind src config -iname "*ai*" -type f
+src/Middleware/IdentifyDomain.php
+src/Mail/PasswordResetMail.php
+src/Mail/EmailVerificationMail.php
+src/Jobs/SendEmailVerificationJob.php
+src/Modules/Domain/Config/domain.php
+src/Modules/Domain/Commands/UpdateTenantDomain.php
+src/Modules/Domain/Commands/GenerateNginxDomainMap.php
+src/Modules/Domain/Services/DomainService.php
+src/Services/Ai/OpenAiProvider.php
+[0m
+[0m$ [0mls -la src/Contracts/ src/Enums/ config/ database/migrations/ 2>&1 | head -100
+config/:
+total 88
+drwxr-xr-x  12 arthur  staff   384  6月 28 13:46 .
+drwxr-xr-x  32 arthur  staff  1024  6月 28 19:31 ..
+-rw-r--r--   1 arthur  staff   385  6月 24 09:40 cors.php
+-rw-r--r--   1 arthur  staff  6382  6月 18 12:29 database.php
+-rw-r--r--   1 arthur  staff  1717  6月 23 21:49 health.php
+-rw-r--r--   1 arthur  staff  3285  6月 27 00:53 id.php
+-rw-r--r--   1 arthur  staff  1847  6月 25 07:35 l5-swagger.php
+-rw-r--r--   1 arthur  staff  1551  6月 28 13:46 pay.php
+-rw-r--r--   1 arthur  staff   807  6月 27 00:53 queue.php
+-rw-r--r--   1 arthur  staff  3105  6月 18 15:01 sanctum.php
+-rw-r--r--   1 arthur  staff  1296  6月 27 13:43 socialite.php
+-rw-r--r--   1 arthur  staff  1404  6月 27 06:53 tenancy.php
+
+database/migrations/:
+total 344
+drwxr-xr-x  42 arthur  staff  1344  6月 28 19:34 .
+drwxr-xr-x   5 arthur  staff   160  6月 18 09:25 ..
+-rw-r--r--   1 arthur  staff  1806  6月 18 09:28 2025_01_01_000001_create_tenants_table.php
+-rw-r--r--   1 arthur  staff  1067  6月 18 09:28 2025_01_01_000002_create_tenant_users_table.php
+-rw-r--r--   1 arthur  staff  1393  6月 18 09:54 2025_01_01_000003_create_tenant_settings_table.php
+-rw-r--r--   1 arthur  staff  1246  6月 18 09:28 2025_01_01_000004_create_audit_logs_table.php
+-rw-r--r--   1 arthur  staff  1542  6月 18 09:54 2026_02_16_081047_create_credit_accounts_table.php
+-rw-r--r--   1 arthur  staff  1601  6月 18 09:54 2026_02_16_081048_create_financial_records_table.php
+-rw-r--r--   1 arthur  staff  1922  6月 18 09:54 2026_02_16_081049_create_credit_transactions_table.php
+-rw-r--r--   1 arthur  staff  1073  6月 18 09:54 2026_02_17_012512_create_system_settings_table.php
+-rw-r--r--   1 arthur  staff  1114  6月 18 11:51 2026_06_18_034651_create_users_table.php
+-rw-r--r--   1 arthur  staff   849  6月 18 12:05 2026_06_18_040520_create_cache_table.php
+-rw-r--r--   1 arthur  staff   787  6月 18 12:05 2026_06_18_040520_create_sessions_table.php
+-rw-r--r--   1 arthur  staff   863  6月 18 15:01 2026_06_18_070125_create_personal_access_tokens_table.php
+-rw-r--r--   1 arthur  staff   588  6月 23 23:44 2026_06_23_000001_create_password_reset_tokens_table.php
+-rw-r--r--   1 arthur  staff   583  6月 25 07:35 2026_06_24_000001_create_email_verification_tokens_table.php
+-rw-r--r--   1 arthur  staff  1075  6月 25 07:35 2026_06_24_000002_create_payment_orders_table.php
+-rw-r--r--   1 arthur  staff  1728  6月 25 07:35 2026_06_24_000003_create_user_api_tokens_table.php
+-rw-r--r--   1 arthur  staff  9844  6月 27 07:08 2026_06_25_000001_create_rbac_tables.php
+-rw-r--r--   1 arthur  staff   740  6月 25 07:35 2026_06_25_000002_create_notifications_table.php
+-rw-r--r--   1 arthur  staff  4667  6月 27 00:53 2026_06_25_000003_create_subscription_plans_table.php
+-rw-r--r--   1 arthur  staff   960  6月 25 07:35 2026_06_25_000004_add_subscription_fields_to_tenants_table.php
+-rw-r--r--   1 arthur  staff  1461  6月 25 07:35 2026_06_25_000005_add_credit_expiry_fields_to_credit_accounts_table.php
+-rw-r--r--   1 arthur  staff  1552  6月 27 00:53 2026_06_25_000006_create_file_uploads_table.php
+-rw-r--r--   1 arthur  staff  1196  6月 27 00:53 2026_06_25_000007_create_notification_preferences_table.php
+-rw-r--r--   1 arthur  staff  1759  6月 27 00:53 2026_06_25_000008_create_subscription_histories_table.php
+-rw-r--r--   1 arthur  staff   881  6月 27 00:53 2026_06_25_000009_add_expiry_fields_to_credit_transactions_table.php
+-rw-r--r--   1 arthur  staff   675  6月 27 17:51 2026_06_27_000001_create_user_preferences_table.php
+-rw-r--r--   1 arthur  staff  1044  6月 27 14:07 2026_06_27_000002_create_structured_logs_table.php
+-rw-r--r--   1 arthur  staff  1656  6月 27 14:07 2026_06_27_000003_create_alert_tables.php
+-rw-r--r--   1 arthur  staff  1001  6月 27 22:48 2026_06_27_000004_create_export_tasks_table.php
+-rw-r--r--   1 arthur  staff   757  6月 27 14:07 2026_06_27_000005_create_api_versions_table.php
+-rw-r--r--   1 arthur  staff  1505  6月 27 14:07 2026_06_27_000006_create_plugins_tables.php
+-rw-r--r--   1 arthur  staff   991  6月 27 14:07 2026_06_27_000007_create_rate_limit_rules_table.php
+-rw-r--r--   1 arthur  staff  1613  6月 27 14:07 2026_06_27_000008_create_payment_security_tables.php
+-rw-r--r--   1 arthur  staff  1281  6月 27 17:51 2026_06_27_000009_create_oauth_accounts_table.php
+-rw-r--r--   1 arthur  staff  1152  6月 28 13:02 2026_06_27_000010_create_invoices_table.php
+-rw-r--r--   1 arthur  staff  3379  6月 28 13:41 2026_06_27_000011_create_coupons_tables.php
+-rw-r--r--   1 arthur  staff   945  6月 28 13:04 2026_06_27_000011_create_invoice_items_table.php
+-rw-r--r--   1 arthur  staff   758  6月 28 13:36 2026_06_27_000012_add_trial_fields_to_tenants_table.php
+-rw-r--r--   1 arthur  staff   947  6月 28 13:04 2026_06_27_000012_create_tax_rules_table.php
+-rw-r--r--@  1 arthur  staff   744  6月 28 19:34 2026_06_28_000001_add_onboarding_fields_to_tenants_table.php
+
+src/Contracts/:
+total 16
+drwxr-xr-x   4 arthur  staff   128  6月 27 00:53 .
+drwxr-xr-x  20 arthur  staff   640  6月 28 00:15 ..
+-rw-r--r--   1 arthur  staff   918  6月 27 00:53 IdGeneratorContract.php
+-rw-r--r--   1 arthur  staff  1350  6月 27 00:53 TenantContextContract.php
+
+src/Enums/:
+total 8
+drwxr-xr-x   3 arthur  staff   96  6月 25 07:35 .
+drwxr-xr-x  20 arthur  staff  640  6月 28 00:15 ..
+-rw-r--r--   1 arthur  staff  542  6月 18 09:53 ErrorCode.php
+[0m
+[0m→ [0mRead src/Services/Ai/OpenAiProvider.php
+[0m
+[0m$ [0mgit log --oneline -20
+7f845a0 test: pre-commit hook should pass for non-model files
+d06110c feat: v0.3.0 — 全量回归修复 + 支付宝OAuth认证模块接入
+829658d chore: 保存本地工作进度
+fb384c8 fix: bash 3.2兼容（移除local -n/declare -A）
+de6600c fix: parse_subtask_files正确剥离反引号和中文注释
+806a9a9 fix: SUBTASK正则兼容markdown前缀(## SUBTASK:)
+821d036 fix: loop-run级联防护+文件冲突拦截+日志监控
+9932dde fix: TASK-003安全加固 + TASK-004任务规划
+535cf30 feat: 补齐核心Services、迁移文件、国际化词条及文档
+976066f fix: correct Envelope/Content namespace in Mailables (P0)
+3fa9bcc fix: add $model property to factories for correct model resolution (P0)
+f0450aa fix: add newFactory() to models for correct factory resolution (P0)
+3fe8672 fix: remove duplicate notifications index in TestCase (P0)
+96818f1 fix: resolve 7 P1/P2 review issues
+034a9c6 v0.2.2: 修复外部审查16问题（P0×6 + P1×10）
+dea2325 v0.2.1: 外部审查 10 问题修复 — HasGlobalId 全模型统一/加密存储/Octane 安全/Schema 对齐
+57bd04d v0.2.0: R11+R12 全量修复 — 接口契约/事件系统/Jobs/Queue/限流/Token abilities/模型工厂
+8ede377 feat: 框架底座 i18n 100% — src/ 全量硬编码中文替换为 trans()
+53698f4 feat: 补齐各模块差距至接近100%
+ae49d12 feat: Phase 2 功能开发 - RBAC/通知/国际化/订阅/退款/文件存储/API文档
+[0m
+[0m$ [0mgit status
+On branch main
+Your branch is ahead of 'origin/main' by 3 commits.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   .ai/scripts/lib.sh
+	modified:   .ai/scripts/loop-run.sh
+	modified:   .ai/scripts/loop-watch.sh
+	modified:   .ai/scripts/parallel-run.sh
+	modified:   .ai/scripts/plan-task.sh
+	modified:   .ai/state.json
+	modified:   .ai/tasks/TASK-010.md
+	modified:   app/Http/Controllers/Api/TenantController.php
+	modified:   app/Http/Resources/TenantResource.php
+	modified:   lang/en/tenant.php
+	modified:   lang/zh_CN/tenant.php
+	modified:   routes/api.php
+	modified:   tests/TestCase.php
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.ai/reports/TASK-005a.log
+	.ai/reports/TASK-005b.log
+	.ai/reports/TASK-005c.log
+	.ai/reports/TASK-005d.log
+	.ai/reports/TASK-005e.log
+	.ai/reports/TASK-006a.log
+	.ai/reports/TASK-006b.log
+	.ai/reports/TASK-006c.log
+	.ai/reports/TASK-006d.log
+	".ai/reports/TASK-009a \342\200\224 \346\240\270\345\277\203\346\234\215\345\212\241 + \347\277\273\350\257\221.log"
+	.ai/reports/TASK-009a.log
+	".ai/reports/TASK-009b \342\200\224 Controller + Resource + \350\267\257\347\224\261.log"
+	.ai/reports/TASK-009b.log
+	".ai/reports/TASK-009c \342\200\224 \346\265\213\350\257\225.log"
+	.ai/reports/TASK-009c.log
+	.ai/reports/TASK-010a.log
+	.ai/reports/TASK-010b.log
+	.ai/reports/TASK-010c.log
+	.ai/reports/TASK-010d.log
+	.ai/reports/TASK-011a.log
+	.ai/reports/TASK-011b.log
+	.ai/reports/TASK-011c.log
+	.ai/reports/TASK-011d.log
+	.ai/review/TASK-005a-review.md
+	.ai/review/TASK-005b-review.md
+	.ai/review/TASK-005c-review.md
+	.ai/review/TASK-005d-review.md
+	.ai/review/TASK-005e-review.md
+	.ai/review/TASK-006a-review.md
+	.ai/review/TASK-006b-review.md
+	.ai/review/TASK-006c-review.md
+	.ai/review/TASK-006d-review.md
+	.ai/review/TASK-007a-review.md
+	.ai/review/TASK-007b-review.md
+	.ai/review/TASK-007c-review.md
+	.ai/review/TASK-008a-review.md
+	.ai/review/TASK-008b-review.md
+	.ai/review/TASK-008c-review.md
+	.ai/review/TASK-008d-review.md
+	.ai/review/TASK-009a-review.md
+	.ai/review/TASK-009b-review.md
+	.ai/review/TASK-009c-review.md
+	.ai/sprints/sprint-002/
+	.ai/tasks/TASK-005.md
+	.ai/tasks/TASK-005a.md
+	.ai/tasks/TASK-005b.md
+	.ai/tasks/TASK-005c.md
+	.ai/tasks/TASK-005d.md
+	.ai/tasks/TASK-005e.md
+	.ai/tasks/TASK-006.md
+	.ai/tasks/TASK-006a.md
+	.ai/tasks/TASK-006b.md
+	.ai/tasks/TASK-006c.md
+	.ai/tasks/TASK-006d.md
+	.ai/tasks/TASK-007.md
+	.ai/tasks/TASK-007a.md
+	.ai/tasks/TASK-007b.md
+	.ai/tasks/TASK-007c.md
+	.ai/tasks/TASK-008.md
+	.ai/tasks/TASK-008a.md
+	.ai/tasks/TASK-008b.md
+	.ai/tasks/TASK-008c.md
+	.ai/tasks/TASK-008d.md
+	.ai/tasks/TASK-009.md
+	".ai/tasks/TASK-009a \342\200\224 \346\240\270\345\277\203\346\234\215\345\212\241 + \347\277\273\350\257\221.md"
+	.ai/tasks/TASK-009a.md
+	".ai/tasks/TASK-009b \342\200\224 Controller + Resource + \350\267\257\347\224\261.md"
+	.ai/tasks/TASK-009b.md
+	".ai/tasks/TASK-009c \342\200\224 \346\265\213\350\257\225.md"
+	.ai/tasks/TASK-009c.md
+	.ai/tasks/TASK-010a.md
+	.ai/tasks/TASK-010b.md
+	.ai/tasks/TASK-010c.md
+	.ai/tasks/TASK-010d.md
+	.ai/tasks/TASK-011.md
+	.ai/tasks/TASK-012.md
+	.ai/tasks/TASK-013.md
+	.ai/tasks/TASK-014.md
+	.ai/tasks/TASK-014b.md
+	.ai/tasks/TASK-014c.md
+	.ai/tasks/TASK-015.md
+	.ai/tasks/TASK-016.md
+	.ai/tasks/TASK-017.md
+	.ai/tasks/TASK-018.md
+	database/migrations/2026_06_27_000010_create_invoices_table.php
+	database/migrations/2026_06_27_000011_create_coupons_tables.php
+	database/migrations/2026_06_27_000011_create_invoice_items_table.php
+	database/migrations/2026_06_27_000012_add_trial_fields_to_tenants_table.php
+	database/migrations/2026_06_27_000012_create_tax_rules_table.php
+	database/migrations/2026_06_28_000001_add_onboarding_fields_to_tenants_table.php
+	src/Models/Coupon.php
+	src/Models/CouponUsage.php
+	src/Models/Invoice.php
+	src/Models/InvoiceItem.php
+	src/Models/TaxRule.php
+	src/Services/Ai/
+	src/Services/CouponService.php
+	src/Services/InvoiceService.php
+	src/Services/TaxService.php
+	src/Services/TenantOnboardingService.php
+	src/Services/TrialService.php
+	tests/CouponServiceTest.php
+	tests/InvoiceServiceTest.php
+	tests/TaxServiceTest.php
+	tests/TenantOnboardingTest.php
+	tests/TrialServiceTest.php
+
+no changes added to commit (use "git add" and/or "git commit -a")
+[0m
+[0m$ [0mcat .ai/reports/TASK-010a.log .ai/reports/TASK-010b.log .ai/reports/TASK-010c.log 2>&1 | head -300
+[0m[loop-run] === STEP 1: DEV (TASK-010a) ===
+state updated: TASK-010a → DEV
+Warning: Please use the `legacy` build in Node.js environments.
+[feishu-plugin] wrote /Users/arthur/.opencode/feishu-plugin-server.json (0600)
+[feishu-plugin] server: http://127.0.0.1:49426 workspace=/Users/arthur/.opencode/imbot-workspace
+[info]: [ "client ready" ]
+[info]: [ "event-dispatch is ready" ]
+[info]: [ "[ws]", "receive events or callbacks through persistent connection only available in self-build & Feishu app, Configured in:\n        Developer Console(开发者后台) \n          ->\n        Events and Callbacks(事件与回调)\n          -> \n        Mode of event/callback subscription(订阅方式)\n          -> \n        Receive events/callbacks through persistent connection(使用 长连接 接收事件/回调)" ]
+[wss] connected: account=cli_aaa83ceb3b789be0 domain=feishu
+[feishu-plugin] synced: WSS=1/1 pipelines=1
+[info]: [ "[ws]", "ws client ready" ]
+[0m
+> build · glm-5.2
+[0m
+[0m→ [0mRead .
+I'll start by exploring the codebase to understand the project structure and existing conventions before creating the new files.
+[0m
+[0m$ [0mls -la /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas
+total 816
+drwxr-xr-x  32 arthur  staff    1024  6月 28 19:31 .
+drwxr-xr-x   3 arthur  staff      96  6月 28 14:16 ..
+drwxr-xr-x   9 arthur  staff     288  6月 28 18:35 .ai
+-rw-r--r--   1 arthur  staff     955  6月 18 12:07 .env
+-rw-r--r--   1 arthur  staff    1692  6月 23 21:51 .env.example
+drwxr-xr-x  16 arthur  staff     512  6月 28 22:40 .git
+-rw-r--r--   1 arthur  staff     447  6月 27 23:23 .gitignore
+drwxr-xr-x   5 arthur  staff     160  6月 28 14:21 .mimocode
+drwxr-xr-x@  3 arthur  staff      96  6月 28 19:31 .phpunit.cache
+-rw-r--r--   1 arthur  staff   14295  6月 27 14:07 AI.md
+-rw-r--r--   1 arthur  staff   13125  6月 27 14:07 AI.md.bak
+drwxr-xr-x   6 arthur  staff     192  6月 27 22:55 app
+-rw-r--r--   1 arthur  staff     248  6月 18 09:22 artisan
+drwxr-xr-x   4 arthur  staff     128  6月 25 07:35 bootstrap
+-rw-r--r--   1 arthur  staff    7287  6月 28 13:46 CHANGELOG.md
+-rw-r--r--   1 arthur  staff    2213  6月 23 21:47 composer.json
+-rw-r--r--   1 arthur  staff  329573  6月 18 15:01 composer.lock
+drwxr-xr-x  12 arthur  staff     384  6月 28 13:46 config
+-rw-r--r--   1 arthur  staff    3183  6月 24 09:43 CONTRIBUTING.md
+drwxr-xr-x   5 arthur  staff     160  6月 18 09:25 database
+drwxr-xr-x   8 arthur  staff     256  6月 28 13:46 docs
+drwxr-xr-x   4 arthur  staff     128  6月 25 07:35 lang
+-rw-r--r--   1 arthur  staff    1068  6月 18 09:17 LICENSE
+-rw-r--r--   1 arthur  staff    1260  6月 27 07:08 phpunit.xml.dist
+drwxr-xr-x   5 arthur  staff     160  6月 18 16:14 public
+-rw-r--r--   1 arthur  staff    9982  6月 28 13:07 README.md
+drwxr-xr-x   4 arthur  staff     128  6月 18 12:47 resources
+drwxr-xr-x   6 arthur  staff     192  6月 27 07:08 routes
+drwxr-xr-x  20 arthur  staff     640  6月 28 00:15 src
+drwxr-xr-x   4 arthur  staff     128  6月 28 19:28 storage
+drwxr-xr-x  32 arthur  staff    1024  6月 28 19:56 tests
+drwxr-xr-x  41 arthur  staff    1312  6月 18 15:01 vendor
+[0m
+[0m→ [0mRead src
+[0m
+[0m$ [0mls -la /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/config
+total 88
+drwxr-xr-x  12 arthur  staff   384  6月 28 13:46 .
+drwxr-xr-x  32 arthur  staff  1024  6月 28 19:31 ..
+-rw-r--r--   1 arthur  staff   385  6月 24 09:40 cors.php
+-rw-r--r--   1 arthur  staff  6382  6月 18 12:29 database.php
+-rw-r--r--   1 arthur  staff  1717  6月 23 21:49 health.php
+-rw-r--r--   1 arthur  staff  3285  6月 27 00:53 id.php
+-rw-r--r--   1 arthur  staff  1847  6月 25 07:35 l5-swagger.php
+-rw-r--r--   1 arthur  staff  1551  6月 28 13:46 pay.php
+-rw-r--r--   1 arthur  staff   807  6月 27 00:53 queue.php
+-rw-r--r--   1 arthur  staff  3105  6月 18 15:01 sanctum.php
+-rw-r--r--   1 arthur  staff  1296  6月 27 13:43 socialite.php
+-rw-r--r--   1 arthur  staff  1404  6月 27 06:53 tenancy.php
+[0m
+[0m→ [0mRead src/Contracts
+[0m→ [0mRead src/Enums
+[0m→ [0mRead src/Contracts/IdGeneratorContract.php
+[0m→ [0mRead src/Contracts/TenantContextContract.php
+[0m→ [0mRead src/Enums/ErrorCode.php
+[0m→ [0mRead config/pay.php
+[0m→ [0mRead config/socialite.php
+[0m→ [0mRead config/tenancy.php
+Now let me examine existing config files and documentation to understand conventions and any AI gateway design intent.
+[0m→ [0mRead composer.json
+[0m
+[0m$ [0mls -la /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/docs
+total 8
+drwxr-xr-x   8 arthur  staff   256  6月 28 13:46 .
+drwxr-xr-x  32 arthur  staff  1024  6月 28 19:31 ..
+drwxr-xr-x   6 arthur  staff   192  6月 28 13:46 api
+drwxr-xr-x   7 arthur  staff   224  6月 28 13:46 architecture
+drwxr-xr-x   4 arthur  staff   128  6月 28 13:46 deployment
+drwxr-xr-x   4 arthur  staff   128  6月 28 13:46 development
+drwxr-xr-x   9 arthur  staff   288  6月 28 13:46 guides
+-rw-r--r--   1 arthur  staff   962  6月 28 13:46 README.md
+[0m
+Let me check the AI.md and docs for any design intent around the AI gateway, and look at the composer.json for namespace and PHP version.
+[0m✱ [0mGrep "AiProvider|AiModel|ai_gateway|ai\.php|AI 网关|AI网关"[90m in . · 79 matches[0m
+[0m→ [0mRead .ai/tasks/TASK-010a.md
+[0m→ [0mRead .ai/tasks/TASK-010.md
+[0m→ [0mRead src/Services/Ai/OpenAiProvider.php
+Critical finding: `ZhipuProvider` and `OpenAiProvider` already exist and `implement AiProviderContract`. I must read them to match the contract exactly. Let me also read the task definition files.
+[0m→ [0mRead src/Services/Ai/ZhipuProvider.php
+[0m✱ [0mGrep "config\(['\"]ai\."[90m in src · 6 matches[0m
+[0m✱ [0mGrep "trans\(['\"]ai\."[90m in src · 19 matches[0m
+The contract must match the existing providers exactly (since I can't modify them). Let me read `ZhipuProvider` and find all `config('ai.*')` and `trans('ai.*')` references to build a compatible contract and config.
+[0m→ [0mRead .env.example
+[0m✱ [0mGrep "OPENAI|ZHIPU|GLM|AI_|DEFAULT_MODEL|DEFAULT_PROVIDER"[90m in . · 0 matches[0m
+I have what I need for the contract. Let me check `.env.example` for any AI env vars and review the enum conventions, plus check AI.md for model design intent.
+[0m✱ [0mGrep "AiModel|AiProvider|gpt-4o|glm-4|DeepSeek|DALL-E|model_enum"[90m in AI.md · 66 matches[0m
+[0m[loop-run] === STEP 1: DEV (TASK-010b) ===
+state updated: TASK-010b → DEV
+Warning: Please use the `legacy` build in Node.js environments.
+[feishu-plugin] wrote /Users/arthur/.opencode/feishu-plugin-server.json (0600)
+[feishu-plugin] server: http://127.0.0.1:49428 workspace=/Users/arthur/.opencode/imbot-workspace
+[info]: [ "client ready" ]
+[info]: [ "event-dispatch is ready" ]
+[info]: [ "[ws]", "receive events or callbacks through persistent connection only available in self-build & Feishu app, Configured in:\n        Developer Console(开发者后台) \n          ->\n        Events and Callbacks(事件与回调)\n          -> \n        Mode of event/callback subscription(订阅方式)\n          -> \n        Receive events/callbacks through persistent connection(使用 长连接 接收事件/回调)" ]
+[wss] connected: account=cli_aaa83ceb3b789be0 domain=feishu
+[feishu-plugin] synced: WSS=1/1 pipelines=1
+[0m
+> build · glm-5.2
+[0m
+[info]: [ "[ws]", "ws client ready" ]
+[0m$ [0mls -la /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas
+total 816
+drwxr-xr-x  32 arthur  staff    1024  6月 28 19:31 .
+drwxr-xr-x   3 arthur  staff      96  6月 28 14:16 ..
+drwxr-xr-x   9 arthur  staff     288  6月 28 18:35 .ai
+-rw-r--r--   1 arthur  staff     955  6月 18 12:07 .env
+-rw-r--r--   1 arthur  staff    1692  6月 23 21:51 .env.example
+drwxr-xr-x  16 arthur  staff     512  6月 28 22:40 .git
+-rw-r--r--   1 arthur  staff     447  6月 27 23:23 .gitignore
+drwxr-xr-x   5 arthur  staff     160  6月 28 14:21 .mimocode
+drwxr-xr-x@  3 arthur  staff      96  6月 28 19:31 .phpunit.cache
+-rw-r--r--   1 arthur  staff   14295  6月 27 14:07 AI.md
+-rw-r--r--   1 arthur  staff   13125  6月 27 14:07 AI.md.bak
+drwxr-xr-x   6 arthur  staff     192  6月 27 22:55 app
+-rw-r--r--   1 arthur  staff     248  6月 18 09:22 artisan
+drwxr-xr-x   4 arthur  staff     128  6月 25 07:35 bootstrap
+-rw-r--r--   1 arthur  staff    7287  6月 28 13:46 CHANGELOG.md
+-rw-r--r--   1 arthur  staff    2213  6月 23 21:47 composer.json
+-rw-r--r--   1 arthur  staff  329573  6月 18 15:01 composer.lock
+drwxr-xr-x  12 arthur  staff     384  6月 28 13:46 config
+-rw-r--r--   1 arthur  staff    3183  6月 24 09:43 CONTRIBUTING.md
+drwxr-xr-x   5 arthur  staff     160  6月 18 09:25 database
+drwxr-xr-x   8 arthur  staff     256  6月 28 13:46 docs
+drwxr-xr-x   4 arthur  staff     128  6月 25 07:35 lang
+-rw-r--r--   1 arthur  staff    1068  6月 18 09:17 LICENSE
+-rw-r--r--   1 arthur  staff    1260  6月 27 07:08 phpunit.xml.dist
+drwxr-xr-x   5 arthur  staff     160  6月 18 16:14 public
+-rw-r--r--   1 arthur  staff    9982  6月 28 13:07 README.md
+drwxr-xr-x   4 arthur  staff     128  6月 18 12:47 resources
+drwxr-xr-x   6 arthur  staff     192  6月 27 07:08 routes
+drwxr-xr-x  20 arthur  staff     640  6月 28 00:15 src
+drwxr-xr-x   4 arthur  staff     128  6月 28 19:28 storage
+drwxr-xr-x  32 arthur  staff    1024  6月 28 19:56 tests
+drwxr-xr-x  41 arthur  staff    1312  6月 18 15:01 vendor
+[0m
+[0m$ [0mls -la /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/database
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/database:
+total 0
+drwxr-xr-x   5 arthur  staff   160  6月 18 09:25 .
+drwxr-xr-x  32 arthur  staff  1024  6月 28 19:31 ..
+drwxr-xr-x   6 arthur  staff   192  6月 27 09:48 factories
+drwxr-xr-x  42 arthur  staff  1344  6月 28 19:34 migrations
+drwxr-xr-x   5 arthur  staff   160  6月 23 22:28 seeders
+
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src:
+total 24
+drwxr-xr-x  20 arthur  staff   640  6月 28 00:15 .
+drwxr-xr-x  32 arthur  staff  1024  6月 28 19:31 ..
+drwxr-xr-x   4 arthur  staff   128  6月 27 00:53 Concerns
+drwxr-xr-x   3 arthur  staff    96  6月 18 12:42 Console
+drwxr-xr-x   4 arthur  staff   128  6月 27 06:53 Context
+drwxr-xr-x   4 arthur  staff   128  6月 27 00:53 Contracts
+drwxr-xr-x   3 arthur  staff    96  6月 25 07:35 Enums
+drwxr-xr-x   7 arthur  staff   224  6月 27 07:08 Events
+drwxr-xr-x   6 arthur  staff   192  6月 25 07:35 Exceptions
+drwxr-xr-x   3 arthur  staff    96  6月 18 09:28 Helpers
+drwxr-xr-x   4 arthur  staff   128  6月 27 07:08 Jobs
+drwxr-xr-x   3 arthur  staff    96  6月 27 07:08 Listeners
+drwxr-xr-x   4 arthur  staff   128  6月 27 14:07 Mail
+drwxr-xr-x   8 arthur  staff   256  6月 27 22:55 Middleware
+drwxr-xr-x  24 arthur  staff   768  6月 28 13:46 Models
+drwxr-xr-x   6 arthur  staff   192  6月 25 07:35 Modules
+drwxr-xr-x   3 arthur  staff    96  6月 18 09:28 Scopes
+drwxr-xr-x  48 arthur  staff  1536  6月 28 22:35 Services
+-rw-r--r--   1 arthur  staff  1952  6月 25 07:35 SwaggerInfo.php
+-rw-r--r--   1 arthur  staff  6058  6月 28 00:29 TenancyServiceProvider.php
+[0m
+[0m$ [0mls -la /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Enums /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/database/migrations | head -80
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/database/migrations:
+total 344
+drwxr-xr-x  42 arthur  staff  1344  6月 28 19:34 .
+drwxr-xr-x   5 arthur  staff   160  6月 18 09:25 ..
+-rw-r--r--   1 arthur  staff  1806  6月 18 09:28 2025_01_01_000001_create_tenants_table.php
+-rw-r--r--   1 arthur  staff  1067  6月 18 09:28 2025_01_01_000002_create_tenant_users_table.php
+-rw-r--r--   1 arthur  staff  1393  6月 18 09:54 2025_01_01_000003_create_tenant_settings_table.php
+-rw-r--r--   1 arthur  staff  1246  6月 18 09:28 2025_01_01_000004_create_audit_logs_table.php
+-rw-r--r--   1 arthur  staff  1542  6月 18 09:54 2026_02_16_081047_create_credit_accounts_table.php
+-rw-r--r--   1 arthur  staff  1601  6月 18 09:54 2026_02_16_081048_create_financial_records_table.php
+-rw-r--r--   1 arthur  staff  1922  6月 18 09:54 2026_02_16_081049_create_credit_transactions_table.php
+-rw-r--r--   1 arthur  staff  1073  6月 18 09:54 2026_02_17_012512_create_system_settings_table.php
+-rw-r--r--   1 arthur  staff  1114  6月 18 11:51 2026_06_18_034651_create_users_table.php
+-rw-r--r--   1 arthur  staff   849  6月 18 12:05 2026_06_18_040520_create_cache_table.php
+-rw-r--r--   1 arthur  staff   787  6月 18 12:05 2026_06_18_040520_create_sessions_table.php
+-rw-r--r--   1 arthur  staff   863  6月 18 15:01 2026_06_18_070125_create_personal_access_tokens_table.php
+-rw-r--r--   1 arthur  staff   588  6月 23 23:44 2026_06_23_000001_create_password_reset_tokens_table.php
+-rw-r--r--   1 arthur  staff   583  6月 25 07:35 2026_06_24_000001_create_email_verification_tokens_table.php
+-rw-r--r--   1 arthur  staff  1075  6月 25 07:35 2026_06_24_000002_create_payment_orders_table.php
+-rw-r--r--   1 arthur  staff  1728  6月 25 07:35 2026_06_24_000003_create_user_api_tokens_table.php
+-rw-r--r--   1 arthur  staff  9844  6月 27 07:08 2026_06_25_000001_create_rbac_tables.php
+-rw-r--r--   1 arthur  staff   740  6月 25 07:35 2026_06_25_000002_create_notifications_table.php
+-rw-r--r--   1 arthur  staff  4667  6月 27 00:53 2026_06_25_000003_create_subscription_plans_table.php
+-rw-r--r--   1 arthur  staff   960  6月 25 07:35 2026_06_25_000004_add_subscription_fields_to_tenants_table.php
+-rw-r--r--   1 arthur  staff  1461  6月 25 07:35 2026_06_25_000005_add_credit_expiry_fields_to_credit_accounts_table.php
+-rw-r--r--   1 arthur  staff  1552  6月 27 00:53 2026_06_25_000006_create_file_uploads_table.php
+-rw-r--r--   1 arthur  staff  1196  6月 27 00:53 2026_06_25_000007_create_notification_preferences_table.php
+-rw-r--r--   1 arthur  staff  1759  6月 27 00:53 2026_06_25_000008_create_subscription_histories_table.php
+-rw-r--r--   1 arthur  staff   881  6月 27 00:53 2026_06_25_000009_add_expiry_fields_to_credit_transactions_table.php
+-rw-r--r--   1 arthur  staff   675  6月 27 17:51 2026_06_27_000001_create_user_preferences_table.php
+-rw-r--r--   1 arthur  staff  1044  6月 27 14:07 2026_06_27_000002_create_structured_logs_table.php
+-rw-r--r--   1 arthur  staff  1656  6月 27 14:07 2026_06_27_000003_create_alert_tables.php
+-rw-r--r--   1 arthur  staff  1001  6月 27 22:48 2026_06_27_000004_create_export_tasks_table.php
+-rw-r--r--   1 arthur  staff   757  6月 27 14:07 2026_06_27_000005_create_api_versions_table.php
+-rw-r--r--   1 arthur  staff  1505  6月 27 14:07 2026_06_27_000006_create_plugins_tables.php
+-rw-r--r--   1 arthur  staff   991  6月 27 14:07 2026_06_27_000007_create_rate_limit_rules_table.php
+-rw-r--r--   1 arthur  staff  1613  6月 27 14:07 2026_06_27_000008_create_payment_security_tables.php
+-rw-r--r--   1 arthur  staff  1281  6月 27 17:51 2026_06_27_000009_create_oauth_accounts_table.php
+-rw-r--r--   1 arthur  staff  1152  6月 28 13:02 2026_06_27_000010_create_invoices_table.php
+-rw-r--r--   1 arthur  staff  3379  6月 28 13:41 2026_06_27_000011_create_coupons_tables.php
+-rw-r--r--   1 arthur  staff   945  6月 28 13:04 2026_06_27_000011_create_invoice_items_table.php
+-rw-r--r--   1 arthur  staff   758  6月 28 13:36 2026_06_27_000012_add_trial_fields_to_tenants_table.php
+-rw-r--r--   1 arthur  staff   947  6月 28 13:04 2026_06_27_000012_create_tax_rules_table.php
+-rw-r--r--@  1 arthur  staff   744  6月 28 19:34 2026_06_28_000001_add_onboarding_fields_to_tenants_table.php
+
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Enums:
+total 8
+drwxr-xr-x   3 arthur  staff   96  6月 25 07:35 .
+drwxr-xr-x  20 arthur  staff  640  6月 28 00:15 ..
+-rw-r--r--   1 arthur  staff  542  6月 18 09:53 ErrorCode.php
+
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models:
+total 208
+drwxr-xr-x  24 arthur  staff   768  6月 28 13:46 .
+drwxr-xr-x  20 arthur  staff   640  6月 28 00:15 ..
+-rw-r--r--   1 arthur  staff   979  6月 18 09:28 AuditLog.php
+-rw-r--r--   1 arthur  staff  3473  6月 28 13:59 Coupon.php
+-rw-r--r--   1 arthur  staff  1384  6月 28 13:59 CouponUsage.php
+-rw-r--r--   1 arthur  staff  5323  6月 25 07:35 CreditAccount.php
+-rw-r--r--   1 arthur  staff  2040  6月 18 09:54 CreditTransaction.php
+-rw-r--r--   1 arthur  staff  1780  6月 27 00:53 FileUpload.php
+-rw-r--r--   1 arthur  staff  2224  6月 18 09:54 FinancialRecord.php
+-rw-r--r--   1 arthur  staff  2401  6月 28 13:21 Invoice.php
+-rw-r--r--   1 arthur  staff  1533  6月 28 13:21 InvoiceItem.php
+-rw-r--r--   1 arthur  staff  3296  6月 27 00:53 NotificationPreference.php
+-rw-r--r--   1 arthur  staff  1681  6月 27 13:43 OauthAccount.php
+-rw-r--r--   1 arthur  staff   921  6月 27 13:43 PaymentOrder.php
+-rw-r--r--   1 arthur  staff   710  6月 27 22:55 Permission.php
+-rw-r--r--   1 arthur  staff  1684  6月 28 00:28 Role.php
+-rw-r--r--   1 arthur  staff  2288  6月 27 00:53 SubscriptionHistory.php
+-rw-r--r--   1 arthur  staff  1487  6月 27 00:53 SubscriptionPlan.php
+-rw-r--r--   1 arthur  staff  4400  6月 18 09:54 SystemSetting.php
+-rw-r--r--   1 arthur  staff  2175  6月 28 13:21 TaxRule.php
+-rw-r--r--@  1 arthur  staff  5683  6月 28 19:38 Tenant.php
+-rw-r--r--   1 arthur  staff  6813  6月 24 07:34 TenantSetting.php
+-rw-r--r--   1 arthur  staff  1482  6月 27 08:33 TenantUser.php
+-rw-r--r--   1 arthur  staff  2019  6月 27 08:33 User.php
+[0m
+[0m$ [0mls /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.mimocode 2>/dev/null; ls /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/docs 2>/dev/null
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai:
+prompts
+reports
+review
+scripts
+sprints
+state.json
+tasks
+
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.mimocode:
+package-lock.json
+package.json
+api
+architecture
+deployment
+development
+guides
+README.md
+[0m
+[0m$ [0mls /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai/tasks /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai/sprints 2>/dev/null
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai/sprints:
+sprint-001
+sprint-002
+
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai/tasks:
+TASK-001.md
+TASK-001a.md
+TASK-001b.md
+TASK-001c.md
+TASK-002.md
+TASK-003.md
+TASK-003a.md
+TASK-003b.md
+TASK-003c.md
+[0m
+[0m$ [0mls -la .ai/reports/
+total 4392
+drwxr-xr-x  31 arthur  staff     992  6月 28 22:47 .
+drwxr-xr-x   9 arthur  staff     288  6月 28 18:35 ..
+-rw-r--r--   1 arthur  staff   95663  6月 27 14:07 TASK-001a.log
+-rw-r--r--   1 arthur  staff  173360  6月 27 14:07 TASK-001b.log
+-rw-r--r--   1 arthur  staff  137370  6月 27 14:07 TASK-001c.log
+-rw-r--r--   1 arthur  staff   39239  6月 27 23:23 TASK-003a.log
+-rw-r--r--   1 arthur  staff  112277  6月 27 23:23 TASK-003b.log
+-rw-r--r--   1 arthur  staff   74678  6月 27 23:23 TASK-003c.log
+-rw-r--r--   1 arthur  staff   39214  6月 28 13:06 TASK-005a.log
+-rw-r--r--   1 arthur  staff   17428  6月 28 13:03 TASK-005b.log
+-rw-r--r--   1 arthur  staff   59884  6月 28 13:08 TASK-005c.log
+-rw-r--r--   1 arthur  staff   98862  6月 28 13:29 TASK-005d.log
+-rw-r--r--   1 arthur  staff  188418  6月 28 13:16 TASK-005e.log
+-rw-r--r--   1 arthur  staff   41330  6月 28 13:41 TASK-006a.log
+-rw-r--r--   1 arthur  staff   98182  6月 28 14:12 TASK-006b.log
+-rw-r--r--   1 arthur  staff  133514  6月 28 13:55 TASK-006c.log
+-rw-r--r--   1 arthur  staff  123610  6月 28 13:58 TASK-006d.log
+-rw-r--r--@  1 arthur  staff     189  6月 28 19:20 TASK-009a — 核心服务 + 翻译.log
+-rw-r--r--@  1 arthur  staff  141674  6月 28 20:06 TASK-009a.log
+-rw-r--r--@  1 arthur  staff   22693  6月 28 19:24 TASK-009b — Controller + Resource + 路由.log
+-rw-r--r--@  1 arthur  staff  119735  6月 28 19:43 TASK-009b.log
+-rw-r--r--@  1 arthur  staff     159  6月 28 19:20 TASK-009c — 测试.log
+-rw-r--r--@  1 arthur  staff  262999  6月 28 20:21 TASK-009c.log
+-rw-r--r--@  1 arthur  staff    6409  6月 28 22:48 TASK-010a.log
+-rw-r--r--@  1 arthur  staff   23606  6月 28 22:48 TASK-010b.log
+-rw-r--r--@  1 arthur  staff   26069  6月 28 22:48 TASK-010c.log
+-rw-r--r--@  1 arthur  staff   44471  6月 28 22:48 TASK-010d.log
+-rw-r--r--@  1 arthur  staff     137  6月 28 22:32 TASK-011a.log
+-rw-r--r--@  1 arthur  staff   21499  6月 28 22:39 TASK-011b.log
+-rw-r--r--@  1 arthur  staff     137  6月 28 22:32 TASK-011c.log
+-rw-r--r--@  1 arthur  staff     137  6月 28 22:32 TASK-011d.log
+[0m
+[0m$ [0mtail -200 .ai/reports/TASK-010a.log
+[0m[loop-run] === STEP 1: DEV (TASK-010a) ===
+state updated: TASK-010a → DEV
+Warning: Please use the `legacy` build in Node.js environments.
+[feishu-plugin] wrote /Users/arthur/.opencode/feishu-plugin-server.json (0600)
+[feishu-plugin] server: http://127.0.0.1:49426 workspace=/Users/arthur/.opencode/imbot-workspace
+[info]: [ "client ready" ]
+[info]: [ "event-dispatch is ready" ]
+[info]: [ "[ws]", "receive events or callbacks through persistent connection only available in self-build & Feishu app, Configured in:\n        Developer Console(开发者后台) \n          ->\n        Events and Callbacks(事件与回调)\n          -> \n        Mode of event/callback subscription(订阅方式)\n          -> \n        Receive events/callbacks through persistent connection(使用 长连接 接收事件/回调)" ]
+[wss] connected: account=cli_aaa83ceb3b789be0 domain=feishu
+[feishu-plugin] synced: WSS=1/1 pipelines=1
+[info]: [ "[ws]", "ws client ready" ]
+[0m
+> build · glm-5.2
+[0m
+[0m→ [0mRead .
+I'll start by exploring the codebase to understand the project structure and existing conventions before creating the new files.
+[0m
+[0m$ [0mls -la /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas
+total 816
+drwxr-xr-x  32 arthur  staff    1024  6月 28 19:31 .
+drwxr-xr-x   3 arthur  staff      96  6月 28 14:16 ..
+drwxr-xr-x   9 arthur  staff     288  6月 28 18:35 .ai
+-rw-r--r--   1 arthur  staff     955  6月 18 12:07 .env
+-rw-r--r--   1 arthur  staff    1692  6月 23 21:51 .env.example
+drwxr-xr-x  16 arthur  staff     512  6月 28 22:40 .git
+-rw-r--r--   1 arthur  staff     447  6月 27 23:23 .gitignore
+drwxr-xr-x   5 arthur  staff     160  6月 28 14:21 .mimocode
+drwxr-xr-x@  3 arthur  staff      96  6月 28 19:31 .phpunit.cache
+-rw-r--r--   1 arthur  staff   14295  6月 27 14:07 AI.md
+-rw-r--r--   1 arthur  staff   13125  6月 27 14:07 AI.md.bak
+drwxr-xr-x   6 arthur  staff     192  6月 27 22:55 app
+-rw-r--r--   1 arthur  staff     248  6月 18 09:22 artisan
+drwxr-xr-x   4 arthur  staff     128  6月 25 07:35 bootstrap
+-rw-r--r--   1 arthur  staff    7287  6月 28 13:46 CHANGELOG.md
+-rw-r--r--   1 arthur  staff    2213  6月 23 21:47 composer.json
+-rw-r--r--   1 arthur  staff  329573  6月 18 15:01 composer.lock
+drwxr-xr-x  12 arthur  staff     384  6月 28 13:46 config
+-rw-r--r--   1 arthur  staff    3183  6月 24 09:43 CONTRIBUTING.md
+drwxr-xr-x   5 arthur  staff     160  6月 18 09:25 database
+drwxr-xr-x   8 arthur  staff     256  6月 28 13:46 docs
+drwxr-xr-x   4 arthur  staff     128  6月 25 07:35 lang
+-rw-r--r--   1 arthur  staff    1068  6月 18 09:17 LICENSE
+-rw-r--r--   1 arthur  staff    1260  6月 27 07:08 phpunit.xml.dist
+drwxr-xr-x   5 arthur  staff     160  6月 18 16:14 public
+-rw-r--r--   1 arthur  staff    9982  6月 28 13:07 README.md
+drwxr-xr-x   4 arthur  staff     128  6月 18 12:47 resources
+drwxr-xr-x   6 arthur  staff     192  6月 27 07:08 routes
+drwxr-xr-x  20 arthur  staff     640  6月 28 00:15 src
+drwxr-xr-x   4 arthur  staff     128  6月 28 19:28 storage
+drwxr-xr-x  32 arthur  staff    1024  6月 28 19:56 tests
+drwxr-xr-x  41 arthur  staff    1312  6月 18 15:01 vendor
+[0m
+[0m→ [0mRead src
+[0m
+[0m$ [0mls -la /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/config
+total 88
+drwxr-xr-x  12 arthur  staff   384  6月 28 13:46 .
+drwxr-xr-x  32 arthur  staff  1024  6月 28 19:31 ..
+-rw-r--r--   1 arthur  staff   385  6月 24 09:40 cors.php
+-rw-r--r--   1 arthur  staff  6382  6月 18 12:29 database.php
+-rw-r--r--   1 arthur  staff  1717  6月 23 21:49 health.php
+-rw-r--r--   1 arthur  staff  3285  6月 27 00:53 id.php
+-rw-r--r--   1 arthur  staff  1847  6月 25 07:35 l5-swagger.php
+-rw-r--r--   1 arthur  staff  1551  6月 28 13:46 pay.php
+-rw-r--r--   1 arthur  staff   807  6月 27 00:53 queue.php
+-rw-r--r--   1 arthur  staff  3105  6月 18 15:01 sanctum.php
+-rw-r--r--   1 arthur  staff  1296  6月 27 13:43 socialite.php
+-rw-r--r--   1 arthur  staff  1404  6月 27 06:53 tenancy.php
+[0m
+[0m→ [0mRead src/Contracts
+[0m→ [0mRead src/Enums
+[0m→ [0mRead src/Contracts/IdGeneratorContract.php
+[0m→ [0mRead src/Contracts/TenantContextContract.php
+[0m→ [0mRead src/Enums/ErrorCode.php
+[0m→ [0mRead config/pay.php
+[0m→ [0mRead config/socialite.php
+[0m→ [0mRead config/tenancy.php
+Now let me examine existing config files and documentation to understand conventions and any AI gateway design intent.
+[0m→ [0mRead composer.json
+[0m
+[0m$ [0mls -la /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/docs
+total 8
+drwxr-xr-x   8 arthur  staff   256  6月 28 13:46 .
+drwxr-xr-x  32 arthur  staff  1024  6月 28 19:31 ..
+drwxr-xr-x   6 arthur  staff   192  6月 28 13:46 api
+drwxr-xr-x   7 arthur  staff   224  6月 28 13:46 architecture
+drwxr-xr-x   4 arthur  staff   128  6月 28 13:46 deployment
+drwxr-xr-x   4 arthur  staff   128  6月 28 13:46 development
+drwxr-xr-x   9 arthur  staff   288  6月 28 13:46 guides
+-rw-r--r--   1 arthur  staff   962  6月 28 13:46 README.md
+[0m
+Let me check the AI.md and docs for any design intent around the AI gateway, and look at the composer.json for namespace and PHP version.
+[0m✱ [0mGrep "AiProvider|AiModel|ai_gateway|ai\.php|AI 网关|AI网关"[90m in . · 79 matches[0m
+[0m→ [0mRead .ai/tasks/TASK-010a.md
+[0m→ [0mRead .ai/tasks/TASK-010.md
+[0m→ [0mRead src/Services/Ai/OpenAiProvider.php
+Critical finding: `ZhipuProvider` and `OpenAiProvider` already exist and `implement AiProviderContract`. I must read them to match the contract exactly. Let me also read the task definition files.
+[0m→ [0mRead src/Services/Ai/ZhipuProvider.php
+[0m✱ [0mGrep "config\(['\"]ai\."[90m in src · 6 matches[0m
+[0m✱ [0mGrep "trans\(['\"]ai\."[90m in src · 19 matches[0m
+The contract must match the existing providers exactly (since I can't modify them). Let me read `ZhipuProvider` and find all `config('ai.*')` and `trans('ai.*')` references to build a compatible contract and config.
+[0m→ [0mRead .env.example
+[0m✱ [0mGrep "OPENAI|ZHIPU|GLM|AI_|DEFAULT_MODEL|DEFAULT_PROVIDER"[90m in . · 0 matches[0m
+I have what I need for the contract. Let me check `.env.example` for any AI env vars and review the enum conventions, plus check AI.md for model design intent.
+[0m✱ [0mGrep "AiModel|AiProvider|gpt-4o|glm-4|DeepSeek|DALL-E|model_enum"[90m in AI.md · 66 matches[0m
+[0m
+[0m$ [0mtail -300 .ai/reports/TASK-010d.log
+drwxr-xr-x   4 arthur  staff     128  6月 25 07:35 lang
+-rw-r--r--   1 arthur  staff    1068  6月 18 09:17 LICENSE
+-rw-r--r--   1 arthur  staff    1260  6月 27 07:08 phpunit.xml.dist
+drwxr-xr-x   5 arthur  staff     160  6月 18 16:14 public
+-rw-r--r--   1 arthur  staff    9982  6月 28 13:07 README.md
+drwxr-xr-x   4 arthur  staff     128  6月 18 12:47 resources
+drwxr-xr-x   6 arthur  staff     192  6月 27 07:08 routes
+drwxr-xr-x  20 arthur  staff     640  6月 28 00:15 src
+drwxr-xr-x   4 arthur  staff     128  6月 28 19:28 storage
+drwxr-xr-x  32 arthur  staff    1024  6月 28 19:56 tests
+drwxr-xr-x  41 arthur  staff    1312  6月 18 15:01 vendor
+[0m
+[0m$ [0mls -la /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/database
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/database:
+total 0
+drwxr-xr-x   5 arthur  staff   160  6月 18 09:25 .
+drwxr-xr-x  32 arthur  staff  1024  6月 28 19:31 ..
+drwxr-xr-x   6 arthur  staff   192  6月 27 09:48 factories
+drwxr-xr-x  42 arthur  staff  1344  6月 28 19:34 migrations
+drwxr-xr-x   5 arthur  staff   160  6月 23 22:28 seeders
+
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src:
+total 24
+drwxr-xr-x  20 arthur  staff   640  6月 28 00:15 .
+drwxr-xr-x  32 arthur  staff  1024  6月 28 19:31 ..
+drwxr-xr-x   4 arthur  staff   128  6月 27 00:53 Concerns
+drwxr-xr-x   3 arthur  staff    96  6月 18 12:42 Console
+drwxr-xr-x   4 arthur  staff   128  6月 27 06:53 Context
+drwxr-xr-x   4 arthur  staff   128  6月 27 00:53 Contracts
+drwxr-xr-x   3 arthur  staff    96  6月 25 07:35 Enums
+drwxr-xr-x   7 arthur  staff   224  6月 27 07:08 Events
+drwxr-xr-x   6 arthur  staff   192  6月 25 07:35 Exceptions
+drwxr-xr-x   3 arthur  staff    96  6月 18 09:28 Helpers
+drwxr-xr-x   4 arthur  staff   128  6月 27 07:08 Jobs
+drwxr-xr-x   3 arthur  staff    96  6月 27 07:08 Listeners
+drwxr-xr-x   4 arthur  staff   128  6月 27 14:07 Mail
+drwxr-xr-x   8 arthur  staff   256  6月 27 22:55 Middleware
+drwxr-xr-x  24 arthur  staff   768  6月 28 13:46 Models
+drwxr-xr-x   6 arthur  staff   192  6月 25 07:35 Modules
+drwxr-xr-x   3 arthur  staff    96  6月 18 09:28 Scopes
+drwxr-xr-x  48 arthur  staff  1536  6月 28 22:35 Services
+-rw-r--r--   1 arthur  staff  1952  6月 25 07:35 SwaggerInfo.php
+-rw-r--r--   1 arthur  staff  6058  6月 28 00:29 TenancyServiceProvider.php
+[0m
+[0m$ [0mls -la /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Enums /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/database/migrations | head -80
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/database/migrations:
+total 344
+drwxr-xr-x  42 arthur  staff  1344  6月 28 19:34 .
+drwxr-xr-x   5 arthur  staff   160  6月 18 09:25 ..
+-rw-r--r--   1 arthur  staff  1806  6月 18 09:28 2025_01_01_000001_create_tenants_table.php
+-rw-r--r--   1 arthur  staff  1067  6月 18 09:28 2025_01_01_000002_create_tenant_users_table.php
+-rw-r--r--   1 arthur  staff  1393  6月 18 09:54 2025_01_01_000003_create_tenant_settings_table.php
+-rw-r--r--   1 arthur  staff  1246  6月 18 09:28 2025_01_01_000004_create_audit_logs_table.php
+-rw-r--r--   1 arthur  staff  1542  6月 18 09:54 2026_02_16_081047_create_credit_accounts_table.php
+-rw-r--r--   1 arthur  staff  1601  6月 18 09:54 2026_02_16_081048_create_financial_records_table.php
+-rw-r--r--   1 arthur  staff  1922  6月 18 09:54 2026_02_16_081049_create_credit_transactions_table.php
+-rw-r--r--   1 arthur  staff  1073  6月 18 09:54 2026_02_17_012512_create_system_settings_table.php
+-rw-r--r--   1 arthur  staff  1114  6月 18 11:51 2026_06_18_034651_create_users_table.php
+-rw-r--r--   1 arthur  staff   849  6月 18 12:05 2026_06_18_040520_create_cache_table.php
+-rw-r--r--   1 arthur  staff   787  6月 18 12:05 2026_06_18_040520_create_sessions_table.php
+-rw-r--r--   1 arthur  staff   863  6月 18 15:01 2026_06_18_070125_create_personal_access_tokens_table.php
+-rw-r--r--   1 arthur  staff   588  6月 23 23:44 2026_06_23_000001_create_password_reset_tokens_table.php
+-rw-r--r--   1 arthur  staff   583  6月 25 07:35 2026_06_24_000001_create_email_verification_tokens_table.php
+-rw-r--r--   1 arthur  staff  1075  6月 25 07:35 2026_06_24_000002_create_payment_orders_table.php
+-rw-r--r--   1 arthur  staff  1728  6月 25 07:35 2026_06_24_000003_create_user_api_tokens_table.php
+-rw-r--r--   1 arthur  staff  9844  6月 27 07:08 2026_06_25_000001_create_rbac_tables.php
+-rw-r--r--   1 arthur  staff   740  6月 25 07:35 2026_06_25_000002_create_notifications_table.php
+-rw-r--r--   1 arthur  staff  4667  6月 27 00:53 2026_06_25_000003_create_subscription_plans_table.php
+-rw-r--r--   1 arthur  staff   960  6月 25 07:35 2026_06_25_000004_add_subscription_fields_to_tenants_table.php
+-rw-r--r--   1 arthur  staff  1461  6月 25 07:35 2026_06_25_000005_add_credit_expiry_fields_to_credit_accounts_table.php
+-rw-r--r--   1 arthur  staff  1552  6月 27 00:53 2026_06_25_000006_create_file_uploads_table.php
+-rw-r--r--   1 arthur  staff  1196  6月 27 00:53 2026_06_25_000007_create_notification_preferences_table.php
+-rw-r--r--   1 arthur  staff  1759  6月 27 00:53 2026_06_25_000008_create_subscription_histories_table.php
+-rw-r--r--   1 arthur  staff   881  6月 27 00:53 2026_06_25_000009_add_expiry_fields_to_credit_transactions_table.php
+-rw-r--r--   1 arthur  staff   675  6月 27 17:51 2026_06_27_000001_create_user_preferences_table.php
+-rw-r--r--   1 arthur  staff  1044  6月 27 14:07 2026_06_27_000002_create_structured_logs_table.php
+-rw-r--r--   1 arthur  staff  1656  6月 27 14:07 2026_06_27_000003_create_alert_tables.php
+-rw-r--r--   1 arthur  staff  1001  6月 27 22:48 2026_06_27_000004_create_export_tasks_table.php
+-rw-r--r--   1 arthur  staff   757  6月 27 14:07 2026_06_27_000005_create_api_versions_table.php
+-rw-r--r--   1 arthur  staff  1505  6月 27 14:07 2026_06_27_000006_create_plugins_tables.php
+-rw-r--r--   1 arthur  staff   991  6月 27 14:07 2026_06_27_000007_create_rate_limit_rules_table.php
+-rw-r--r--   1 arthur  staff  1613  6月 27 14:07 2026_06_27_000008_create_payment_security_tables.php
+-rw-r--r--   1 arthur  staff  1281  6月 27 17:51 2026_06_27_000009_create_oauth_accounts_table.php
+-rw-r--r--   1 arthur  staff  1152  6月 28 13:02 2026_06_27_000010_create_invoices_table.php
+-rw-r--r--   1 arthur  staff  3379  6月 28 13:41 2026_06_27_000011_create_coupons_tables.php
+-rw-r--r--   1 arthur  staff   945  6月 28 13:04 2026_06_27_000011_create_invoice_items_table.php
+-rw-r--r--   1 arthur  staff   758  6月 28 13:36 2026_06_27_000012_add_trial_fields_to_tenants_table.php
+-rw-r--r--   1 arthur  staff   947  6月 28 13:04 2026_06_27_000012_create_tax_rules_table.php
+-rw-r--r--@  1 arthur  staff   744  6月 28 19:34 2026_06_28_000001_add_onboarding_fields_to_tenants_table.php
+
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Enums:
+total 8
+drwxr-xr-x   3 arthur  staff   96  6月 25 07:35 .
+drwxr-xr-x  20 arthur  staff  640  6月 28 00:15 ..
+-rw-r--r--   1 arthur  staff  542  6月 18 09:53 ErrorCode.php
+
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/src/Models:
+total 208
+drwxr-xr-x  24 arthur  staff   768  6月 28 13:46 .
+drwxr-xr-x  20 arthur  staff   640  6月 28 00:15 ..
+-rw-r--r--   1 arthur  staff   979  6月 18 09:28 AuditLog.php
+-rw-r--r--   1 arthur  staff  3473  6月 28 13:59 Coupon.php
+-rw-r--r--   1 arthur  staff  1384  6月 28 13:59 CouponUsage.php
+-rw-r--r--   1 arthur  staff  5323  6月 25 07:35 CreditAccount.php
+-rw-r--r--   1 arthur  staff  2040  6月 18 09:54 CreditTransaction.php
+-rw-r--r--   1 arthur  staff  1780  6月 27 00:53 FileUpload.php
+-rw-r--r--   1 arthur  staff  2224  6月 18 09:54 FinancialRecord.php
+-rw-r--r--   1 arthur  staff  2401  6月 28 13:21 Invoice.php
+-rw-r--r--   1 arthur  staff  1533  6月 28 13:21 InvoiceItem.php
+-rw-r--r--   1 arthur  staff  3296  6月 27 00:53 NotificationPreference.php
+-rw-r--r--   1 arthur  staff  1681  6月 27 13:43 OauthAccount.php
+-rw-r--r--   1 arthur  staff   921  6月 27 13:43 PaymentOrder.php
+-rw-r--r--   1 arthur  staff   710  6月 27 22:55 Permission.php
+-rw-r--r--   1 arthur  staff  1684  6月 28 00:28 Role.php
+-rw-r--r--   1 arthur  staff  2288  6月 27 00:53 SubscriptionHistory.php
+-rw-r--r--   1 arthur  staff  1487  6月 27 00:53 SubscriptionPlan.php
+-rw-r--r--   1 arthur  staff  4400  6月 18 09:54 SystemSetting.php
+-rw-r--r--   1 arthur  staff  2175  6月 28 13:21 TaxRule.php
+-rw-r--r--@  1 arthur  staff  5683  6月 28 19:38 Tenant.php
+-rw-r--r--   1 arthur  staff  6813  6月 24 07:34 TenantSetting.php
+-rw-r--r--   1 arthur  staff  1482  6月 27 08:33 TenantUser.php
+-rw-r--r--   1 arthur  staff  2019  6月 27 08:33 User.php
+[0m
+[0m$ [0mls /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.mimocode 2>/dev/null; ls /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/docs 2>/dev/null
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai:
+prompts
+reports
+review
+scripts
+sprints
+state.json
+tasks
+
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.mimocode:
+package-lock.json
+package.json
+api
+architecture
+deployment
+development
+guides
+README.md
+[0m
+[0m$ [0mls /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai/tasks /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai/sprints 2>/dev/null
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai/sprints:
+sprint-001
+sprint-002
+
+/Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/.ai/tasks:
+TASK-001.md
+TASK-001a.md
+TASK-001b.md
+TASK-001c.md
+TASK-002.md
+TASK-003.md
+TASK-003a.md
+TASK-003b.md
+TASK-003c.md
+[0m
+[0m$ [0mls -la .ai/reports/
+total 4392
+drwxr-xr-x  31 arthur  staff     992  6月 28 22:47 .
+drwxr-xr-x   9 arthur  staff     288  6月 28 18:35 ..
+-rw-r--r--   1 arthur  staff   95663  6月 27 14:07 TASK-001a.log
+-rw-r--r--   1 arthur  staff  173360  6月 27 14:07 TASK-001b.log
+-rw-r--r--   1 arthur  staff  137370  6月 27 14:07 TASK-001c.log
+-rw-r--r--   1 arthur  staff   39239  6月 27 23:23 TASK-003a.log
+-rw-r--r--   1 arthur  staff  112277  6月 27 23:23 TASK-003b.log
+-rw-r--r--   1 arthur  staff   74678  6月 27 23:23 TASK-003c.log
+-rw-r--r--   1 arthur  staff   39214  6月 28 13:06 TASK-005a.log
+-rw-r--r--   1 arthur  staff   17428  6月 28 13:03 TASK-005b.log
+-rw-r--r--   1 arthur  staff   59884  6月 28 13:08 TASK-005c.log
+-rw-r--r--   1 arthur  staff   98862  6月 28 13:29 TASK-005d.log
+-rw-r--r--   1 arthur  staff  188418  6月 28 13:16 TASK-005e.log
+-rw-r--r--   1 arthur  staff   41330  6月 28 13:41 TASK-006a.log
+-rw-r--r--   1 arthur  staff   98182  6月 28 14:12 TASK-006b.log
+-rw-r--r--   1 arthur  staff  133514  6月 28 13:55 TASK-006c.log
+-rw-r--r--   1 arthur  staff  123610  6月 28 13:58 TASK-006d.log
+-rw-r--r--@  1 arthur  staff     189  6月 28 19:20 TASK-009a — 核心服务 + 翻译.log
+-rw-r--r--@  1 arthur  staff  141674  6月 28 20:06 TASK-009a.log
+-rw-r--r--@  1 arthur  staff   22693  6月 28 19:24 TASK-009b — Controller + Resource + 路由.log
+-rw-r--r--@  1 arthur  staff  119735  6月 28 19:43 TASK-009b.log
+-rw-r--r--@  1 arthur  staff     159  6月 28 19:20 TASK-009c — 测试.log
+-rw-r--r--@  1 arthur  staff  262999  6月 28 20:21 TASK-009c.log
+-rw-r--r--@  1 arthur  staff    6409  6月 28 22:48 TASK-010a.log
+-rw-r--r--@  1 arthur  staff   23606  6月 28 22:48 TASK-010b.log
+-rw-r--r--@  1 arthur  staff   26069  6月 28 22:48 TASK-010c.log
+-rw-r--r--@  1 arthur  staff   44471  6月 28 22:48 TASK-010d.log
+-rw-r--r--@  1 arthur  staff     137  6月 28 22:32 TASK-011a.log
+-rw-r--r--@  1 arthur  staff   21499  6月 28 22:39 TASK-011b.log
+-rw-r--r--@  1 arthur  staff     137  6月 28 22:32 TASK-011c.log
+-rw-r--r--@  1 arthur  staff     137  6月 28 22:32 TASK-011d.log
+[0m
+[0m$ [0mtail -200 .ai/reports/TASK-010a.log
+[0m[loop-run] === STEP 1: DEV (TASK-010a) ===
+state updated: TASK-010a → DEV
+Warning: Please use the `legacy` build in Node.js environments.
+[feishu-plugin] wrote /Users/arthur/.opencode/feishu-plugin-server.json (0600)
+[feishu-plugin] server: http://127.0.0.1:49426 workspace=/Users/arthur/.opencode/imbot-workspace
+[info]: [ "client ready" ]
+[info]: [ "event-dispatch is ready" ]
+[info]: [ "[ws]", "receive events or callbacks through persistent connection only available in self-build & Feishu app, Configured in:\n        Developer Console(开发者后台) \n          ->\n        Events and Callbacks(事件与回调)\n          -> \n        Mode of event/callback subscription(订阅方式)\n          -> \n        Receive events/callbacks through persistent connection(使用 长连接 接收事件/回调)" ]
+[wss] connected: account=cli_aaa83ceb3b789be0 domain=feishu
+[feishu-plugin] synced: WSS=1/1 pipelines=1
+[info]: [ "[ws]", "ws client ready" ]
+[0m
+> build · glm-5.2
+[0m
+[0m→ [0mRead .
+I'll start by exploring the codebase to understand the project structure and existing conventions before creating the new files.
+[0m
+[0m$ [0mls -la /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas
+total 816
+drwxr-xr-x  32 arthur  staff    1024  6月 28 19:31 .
+drwxr-xr-x   3 arthur  staff      96  6月 28 14:16 ..
+drwxr-xr-x   9 arthur  staff     288  6月 28 18:35 .ai
+-rw-r--r--   1 arthur  staff     955  6月 18 12:07 .env
+-rw-r--r--   1 arthur  staff    1692  6月 23 21:51 .env.example
+drwxr-xr-x  16 arthur  staff     512  6月 28 22:40 .git
+-rw-r--r--   1 arthur  staff     447  6月 27 23:23 .gitignore
+drwxr-xr-x   5 arthur  staff     160  6月 28 14:21 .mimocode
+drwxr-xr-x@  3 arthur  staff      96  6月 28 19:31 .phpunit.cache
+-rw-r--r--   1 arthur  staff   14295  6月 27 14:07 AI.md
+-rw-r--r--   1 arthur  staff   13125  6月 27 14:07 AI.md.bak
+drwxr-xr-x   6 arthur  staff     192  6月 27 22:55 app
+-rw-r--r--   1 arthur  staff     248  6月 18 09:22 artisan
+drwxr-xr-x   4 arthur  staff     128  6月 25 07:35 bootstrap
+-rw-r--r--   1 arthur  staff    7287  6月 28 13:46 CHANGELOG.md
+-rw-r--r--   1 arthur  staff    2213  6月 23 21:47 composer.json
+-rw-r--r--   1 arthur  staff  329573  6月 18 15:01 composer.lock
+drwxr-xr-x  12 arthur  staff     384  6月 28 13:46 config
+-rw-r--r--   1 arthur  staff    3183  6月 24 09:43 CONTRIBUTING.md
+drwxr-xr-x   5 arthur  staff     160  6月 18 09:25 database
+drwxr-xr-x   8 arthur  staff     256  6月 28 13:46 docs
+drwxr-xr-x   4 arthur  staff     128  6月 25 07:35 lang
+-rw-r--r--   1 arthur  staff    1068  6月 18 09:17 LICENSE
+-rw-r--r--   1 arthur  staff    1260  6月 27 07:08 phpunit.xml.dist
+drwxr-xr-x   5 arthur  staff     160  6月 18 16:14 public
+-rw-r--r--   1 arthur  staff    9982  6月 28 13:07 README.md
+drwxr-xr-x   4 arthur  staff     128  6月 18 12:47 resources
+drwxr-xr-x   6 arthur  staff     192  6月 27 07:08 routes
+drwxr-xr-x  20 arthur  staff     640  6月 28 00:15 src
+drwxr-xr-x   4 arthur  staff     128  6月 28 19:28 storage
+drwxr-xr-x  32 arthur  staff    1024  6月 28 19:56 tests
+drwxr-xr-x  41 arthur  staff    1312  6月 18 15:01 vendor
+[0m
+[0m→ [0mRead src
+[0m
+[0m$ [0mls -la /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/config
+total 88
+drwxr-xr-x  12 arthur  staff   384  6月 28 13:46 .
+drwxr-xr-x  32 arthur  staff  1024  6月 28 19:31 ..
+-rw-r--r--   1 arthur  staff   385  6月 24 09:40 cors.php
+-rw-r--r--   1 arthur  staff  6382  6月 18 12:29 database.php
+-rw-r--r--   1 arthur  staff  1717  6月 23 21:49 health.php
+-rw-r--r--   1 arthur  staff  3285  6月 27 00:53 id.php
+-rw-r--r--   1 arthur  staff  1847  6月 25 07:35 l5-swagger.php
+-rw-r--r--   1 arthur  staff  1551  6月 28 13:46 pay.php
+-rw-r--r--   1 arthur  staff   807  6月 27 00:53 queue.php
+-rw-r--r--   1 arthur  staff  3105  6月 18 15:01 sanctum.php
+-rw-r--r--   1 arthur  staff  1296  6月 27 13:43 socialite.php
+-rw-r--r--   1 arthur  staff  1404  6月 27 06:53 tenancy.php
+[0m
+[0m→ [0mRead src/Contracts
+[0m→ [0mRead src/Enums
+[0m→ [0mRead src/Contracts/IdGeneratorContract.php
+[0m→ [0mRead src/Contracts/TenantContextContract.php
+[0m→ [0mRead src/Enums/ErrorCode.php
+[0m→ [0mRead config/pay.php
+[0m→ [0mRead config/socialite.php
+[0m→ [0mRead config/tenancy.php
+Now let me examine existing config files and documentation to understand conventions and any AI gateway design intent.
+[0m→ [0mRead composer.json
+[0m
+[0m$ [0mls -la /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/docs
+total 8
+drwxr-xr-x   8 arthur  staff   256  6月 28 13:46 .
+drwxr-xr-x  32 arthur  staff  1024  6月 28 19:31 ..
+drwxr-xr-x   6 arthur  staff   192  6月 28 13:46 api
+drwxr-xr-x   7 arthur  staff   224  6月 28 13:46 architecture
+drwxr-xr-x   4 arthur  staff   128  6月 28 13:46 deployment
+drwxr-xr-x   4 arthur  staff   128  6月 28 13:46 development
+drwxr-xr-x   9 arthur  staff   288  6月 28 13:46 guides
+-rw-r--r--   1 arthur  staff   962  6月 28 13:46 README.md
+[0m
+Let me check the AI.md and docs for any design intent around the AI gateway, and look at the composer.json for namespace and PHP version.
+[0m✱ [0mGrep "AiProvider|AiModel|ai_gateway|ai\.php|AI 网关|AI网关"[90m in . · 79 matches[0m
+[0m→ [0mRead .ai/tasks/TASK-010a.md
+[0m→ [0mRead .ai/tasks/TASK-010.md
+[0m→ [0mRead src/Services/Ai/OpenAiProvider.php
+Critical finding: `ZhipuProvider` and `OpenAiProvider` already exist and `implement AiProviderContract`. I must read them to match the contract exactly. Let me also read the task definition files.
+[0m→ [0mRead src/Services/Ai/ZhipuProvider.php
+[0m✱ [0mGrep "config\(['\"]ai\."[90m in src · 6 matches[0m
+[0m✱ [0mGrep "trans\(['\"]ai\."[90m in src · 19 matches[0m
+The contract must match the existing providers exactly (since I can't modify them). Let me read `ZhipuProvider` and find all `config('ai.*')` and `trans('ai.*')` references to build a compatible contract and config.
+[0m→ [0mRead .env.example
+[0m✱ [0mGrep "OPENAI|ZHIPU|GLM|AI_|DEFAULT_MODEL|DEFAULT_PROVIDER"[90m in . · 0 matches[0m
+I have what I need for the contract. Let me check `.env.example` for any AI env vars and review the enum conventions, plus check AI.md for model design intent.
+[0m✱ [0mGrep "AiModel|AiProvider|gpt-4o|glm-4|DeepSeek|DALL-E|model_enum"[90m in AI.md · 66 matches[0m
+[0m
+[0m
+[0m→ [0mRead src/Services/Ai/ZhipuProvider.php
+[0m✱ [0mGrep "AiGatewayService|AiProviderContract|AiModelEnum|ai_providers|ai_requests|ai_model_aliases"[90m in . · 42 matches[0m
+[0m
+[0m$ [0mgrep -n "AiGateway\|AiProvider\|AiModel\|ai_gateway\|AI 网关\|AI网关\|gpt-4o\|glm-4\|DeepSeek\|DALL-E\|model_enum\|ai_requests\|ai_providers\|ai_model_aliases" AI.md | head -100
+(no output)
+[0m
+[0m✱ [0mGrep "Ai|ai_"[90m in AI.md · 100 matches[0m
+[0m
+[0m$ [0mls -la src/Contracts/ src/Enums/ src/Models/ src/Services/ config/ database/migrations/ lang/zh_CN/ lang/en/ 2>&1 | grep -E "(AiProvider|AiRequest|AiModel|ai\.php|AiGateway|2026_06_28.*ai|2026_06_29.*ai|/ai\.php)"
+(no output)
+[0m
+[0m$ [0mls -la src/Contracts/ src/Enums/ config/ lang/zh_CN/ lang/en/ 2>&1
+config/:
+total 88
+drwxr-xr-x  12 arthur  staff   384  6月 28 13:46 .
+drwxr-xr-x  32 arthur  staff  1024  6月 28 19:31 ..
+-rw-r--r--   1 arthur  staff   385  6月 24 09:40 cors.php
+-rw-r--r--   1 arthur  staff  6382  6月 18 12:29 database.php
+-rw-r--r--   1 arthur  staff  1717  6月 23 21:49 health.php
+-rw-r--r--   1 arthur  staff  3285  6月 27 00:53 id.php
+-rw-r--r--   1 arthur  staff  1847  6月 25 07:35 l5-swagger.php
+-rw-r--r--   1 arthur  staff  1551  6月 28 13:46 pay.php
+-rw-r--r--   1 arthur  staff   807  6月 27 00:53 queue.php
+-rw-r--r--   1 arthur  staff  3105  6月 18 15:01 sanctum.php
+-rw-r--r--   1 arthur  staff  1296  6月 27 13:43 socialite.php
+-rw-r--r--   1 arthur  staff  1404  6月 27 06:53 tenancy.php
+
+lang/en/:
+total 112
+drwxr-xr-x  15 arthur  staff   480  6月 28 13:46 .
+drwxr-xr-x   4 arthur  staff   128  6月 25 07:35 ..
+-rw-r--r--   1 arthur  staff   783  6月 25 07:35 apitoken.php
+-rw-r--r--   1 arthur  staff  1882  6月 27 07:08 auth.php
+-rw-r--r--   1 arthur  staff  4728  6月 28 00:15 common.php
+-rw-r--r--   1 arthur  staff  1184  6月 27 00:53 credit.php
+-rw-r--r--   1 arthur  staff  1203  6月 25 07:35 domain.php
+-rw-r--r--   1 arthur  staff   406  6月 25 07:35 file.php
+-rw-r--r--   1 arthur  staff   753  6月 25 07:35 notification.php
+-rw-r--r--   1 arthur  staff  3019  6月 28 13:46 payment.php
+-rw-r--r--   1 arthur  staff   270  6月 25 07:35 sms.php
+-rw-r--r--   1 arthur  staff   334  6月 25 07:35 ssl.php
+-rw-r--r--@  1 arthur  staff   606  6月 28 19:39 subscription.php
+-rw-r--r--@  1 arthur  staff  2846  6月 28 20:20 tenant.php
+-rw-r--r--   1 arthur  staff  1824  6月 25 07:35 validation.php
+
+lang/zh_CN/:
+total 112
+drwxr-xr-x  15 arthur  staff   480  6月 28 13:46 .
+drwxr-xr-x   4 arthur  staff   128  6月 25 07:35 ..
+-rw-r--r--   1 arthur  staff   737  6月 25 07:35 apitoken.php
+-rw-r--r--   1 arthur  staff  1738  6月 27 07:08 auth.php
+-rw-r--r--   1 arthur  staff  4395  6月 28 00:15 common.php
+-rw-r--r--   1 arthur  staff  1068  6月 27 00:53 credit.php
+-rw-r--r--   1 arthur  staff  1152  6月 25 07:35 domain.php
+-rw-r--r--   1 arthur  staff   402  6月 25 07:35 file.php
+-rw-r--r--   1 arthur  staff   729  6月 25 07:35 notification.php
+-rw-r--r--   1 arthur  staff  2768  6月 28 13:46 payment.php
+-rw-r--r--   1 arthur  staff   253  6月 25 07:35 sms.php
+-rw-r--r--   1 arthur  staff   291  6月 25 07:35 ssl.php
+-rw-r--r--@  1 arthur  staff   578  6月 28 19:39 subscription.php
+-rw-r--r--@  1 arthur  staff  2491  6月 28 20:20 tenant.php
+-rw-r--r--   1 arthur  staff  1613  6月 25 07:35 validation.php
+
+src/Contracts/:
+total 16
+drwxr-xr-x   4 arthur  staff   128  6月 27 00:53 .
+drwxr-xr-x  20 arthur  staff   640  6月 28 00:15 ..
+-rw-r--r--   1 arthur  staff   918  6月 27 00:53 IdGeneratorContract.php
+-rw-r--r--   1 arthur  staff  1350  6月 27 00:53 TenantContextContract.php
+
+src/Enums/:
+total 8
+drwxr-xr-x   3 arthur  staff   96  6月 25 07:35 .
+drwxr-xr-x  20 arthur  staff  640  6月 28 00:15 ..
+-rw-r--r--   1 arthur  staff  542  6月 18 09:53 ErrorCode.php
+[0m
+[0m→ [0mRead tests/PluginServiceTest.php
+[0m→ [0mRead src/TenancyServiceProvider.php
+[0m→ [0mRead src/Contracts/IdGeneratorContract.php
+[0m
+[0m$ [0mcat config/pay.php
+<?php
+
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | 微信支付配置
+    |--------------------------------------------------------------------------
+    */
+    'wechat' => [
+        'default' => [
+            'app_id' => env('WECHAT_PAY_APP_ID', ''),
+            'mch_id' => env('WECHAT_PAY_MCH_ID', ''),
+            'notify_url' => env('WECHAT_PAY_NOTIFY_URL', ''),
+            'serial_no' => env('WECHAT_PAY_SERIAL_NO', ''),
+            'private_key' => env('WECHAT_PAY_PRIVATE_KEY', ''),
+            'public_key_path' => env('WECHAT_PAY_PUBLIC_KEY_PATH', ''),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | 支付宝配置
+    |--------------------------------------------------------------------------
+    */
+    'alipay' => [
+        'default' => [
+            'app_id' => env('ALIPAY_APP_ID', ''),
+            'notify_url' => env('ALIPAY_NOTIFY_URL', ''),
+            'return_url' => env('ALIPAY_RETURN_URL', ''),
+            'ali_public_key' => env('ALIPAY_PUBLIC_KEY', ''),
+            'private_key' => env('ALIPAY_PRIVATE_KEY', ''),
+            'mode' => env('ALIPAY_MODE', 'normal'), // normal 或 sandbox
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | 日志配置
+    |--------------------------------------------------------------------------
+    */
+    'log' => [
+        'enable' => true,
+        'file' => storage_path('logs/pay.log'),
+    ],
+];
+[0m
+[0m$ [0mls src/Services/ | head -50
+Ai
+AlertService.php
+AlipayOAuthService.php
+ApiVersionService.php
+AuditService.php
+CacheService.php
+CouponService.php
+ExcelService.php
+ExportService.php
+FileService.php
+HealthCheckService.php
+HealthService.php
+HorizonService.php
+IdGenerator.php
+InvoiceService.php
+LoginLogService.php
+NotificationService.php
+PaymentSecurityService.php
+PayPalService.php
+PayService.php
+PdfService.php
+PerformanceService.php
+PluginService.php
+QueueService.php
+QuotaService.php
+RateLimitService.php
+RbacService.php
+RefundService.php
+SmsService.php
+SocialiteService.php
+StripeService.php
+StructuredLogService.php
+SubscriptionService.php
+SystemSettingService.php
+TaxService.php
+TenantCreditService.php
+TenantMemberService.php
+TenantOnboardingService.php
+TenantProfileService.php
+TenantService.php
+TenantSettingService.php
+TrialService.php
+UnionPayService.php
+UserPreferenceService.php
+UserProfileService.php
+UserService.php
+[0m
+[0m→ [0mRead src/Services/PluginService.php[90m [limit=100][0m
+[0m→ [0mRead database/migrations/2026_06_27_000006_create_plugins_tables.php
+现在我已经掌握了足够的上下文。让我查看一下现有的迁移文件，以便更好地理解 schema 规范，并检查 `TenantSetting` 以了解 `HasTenantScope` 的用法。
+[0m→ [0mRead src/Models/FileUpload.php
+[0m
+[0m$ [0mls src/Concerns/
+BelongsToTenant.php
+HasGlobalId.php
+[0m
+[0m→ [0mRead src/Concerns/BelongsToTenant.php
+[0m→ [0mRead tests/TenantScopeTest.php
+[0m
+[0m$ [0mtail -500 .ai/reports/TASK-010c.log | head -300
+-rw-r--r--   1 arthur  staff   8949  6月 28 13:28 TaxService.php
+-rw-r--r--   1 arthur  staff  11853  6月 25 07:35 TenantCreditService.php
+-rw-r--r--   1 arthur  staff   8630  6月 25 07:35 TenantMemberService.php
+-rw-r--r--@  1 arthur  staff  16197  6月 28 20:12 TenantOnboardingService.php
+-rw-r--r--   1 arthur  staff  12811  6月 27 14:07 TenantProfileService.php
+-rw-r--r--   1 arthur  staff   6714  6月 18 09:53 TenantService.php
+-rw-r--r--   1 arthur  staff   2203  6月 18 09:28 TenantSettingService.php
+-rw-r--r--   1 arthur  staff  12384  6月 28 13:55 TrialService.php
+-rw-r--r--   1 arthur  staff   9714  6月 27 14:07 UnionPayService.php
+-rw-r--r--   1 arthur  staff    757  6月 28 00:29 UserPreferenceService.php
+-rw-r--r--   1 arthur  staff  10840  6月 27 14:07 UserProfileService.php
+-rw-r--r--   1 arthur  staff  14437  6月 25 07:35 UserService.php
+lang/en/:
+total 112
+drwxr-xr-x  15 arthur  staff   480  6月 28 13:46 .
+drwxr-xr-x   4 arthur  staff   128  6月 25 07:35 ..
+-rw-r--r--   1 arthur  staff   783  6月 25 07:35 apitoken.php
+-rw-r--r--   1 arthur  staff  1882  6月 27 07:08 auth.php
+-rw-r--r--   1 arthur  staff  4728  6月 28 00:15 common.php
+-rw-r--r--   1 arthur  staff  1184  6月 27 00:53 credit.php
+-rw-r--r--   1 arthur  staff  1203  6月 25 07:35 domain.php
+-rw-r--r--   1 arthur  staff   406  6月 25 07:35 file.php
+-rw-r--r--   1 arthur  staff   753  6月 25 07:35 notification.php
+-rw-r--r--   1 arthur  staff  3019  6月 28 13:46 payment.php
+-rw-r--r--   1 arthur  staff   270  6月 25 07:35 sms.php
+-rw-r--r--   1 arthur  staff   334  6月 25 07:35 ssl.php
+-rw-r--r--@  1 arthur  staff   606  6月 28 19:39 subscription.php
+-rw-r--r--@  1 arthur  staff  2846  6月 28 20:20 tenant.php
+-rw-r--r--   1 arthur  staff  1824  6月 25 07:35 validation.php
+
+lang/zh_CN/:
+total 112
+drwxr-xr-x  15 arthur  staff   480  6月 28 13:46 .
+drwxr-xr-x   4 arthur  staff   128  6月 25 07:35 ..
+-rw-r--r--   1 arthur  staff   737  6月 25 07:35 apitoken.php
+-rw-r--r--   1 arthur  staff  1738  6月 27 07:08 auth.php
+-rw-r--r--   1 arthur  staff  4395  6月 28 00:15 common.php
+-rw-r--r--   1 arthur  staff  1068  6月 27 00:53 credit.php
+-rw-r--r--   1 arthur  staff  1152  6月 25 07:35 domain.php
+-rw-r--r--   1 arthur  staff   402  6月 25 07:35 file.php
+-rw-r--r--   1 arthur  staff   729  6月 25 07:35 notification.php
+-rw-r--r--   1 arthur  staff  2768  6月 28 13:46 payment.php
+-rw-r--r--   1 arthur  staff   253  6月 25 07:35 sms.php
+-rw-r--r--   1 arthur  staff   291  6月 25 07:35 ssl.php
+-rw-r--r--@  1 arthur  staff   578  6月 28 19:39 subscription.php
+-rw-r--r--@  1 arthur  staff  2491  6月 28 20:20 tenant.php
+-rw-r--r--   1 arthur  staff  1613  6月 25 07:35 validation.php
+[0m
+在 `src/Services/` 下已经有一个 `Ai/` 子目录了。让我探索一下现有的 AI 基础设施。
+[0m$ [0mls -la src/Services/Ai/ && ls -la config/ | grep -i ai
+total 64
+drwxr-xr-x@  4 arthur  staff    128  6月 28 22:37 .
+drwxr-xr-x  48 arthur  staff   1536  6月 28 22:35 ..
+-rw-r--r--@  1 arthur  staff  13943  6月 28 22:37 OpenAiProvider.php
+-rw-r--r--@  1 arthur  staff  14753  6月 28 22:37 ZhipuProvider.php
+[0m
+[0m$ [0mls -la config/ && ls -la src/Contracts/ src/Enums/ src/Models/ 2>&1 | head -50
+total 88
+drwxr-xr-x  12 arthur  staff   384  6月 28 13:46 .
+drwxr-xr-x  32 arthur  staff  1024  6月 28 19:31 ..
+-rw-r--r--   1 arthur  staff   385  6月 24 09:40 cors.php
+-rw-r--r--   1 arthur  staff  6382  6月 18 12:29 database.php
+-rw-r--r--   1 arthur  staff  1717  6月 23 21:49 health.php
+-rw-r--r--   1 arthur  staff  3285  6月 27 00:53 id.php
+-rw-r--r--   1 arthur  staff  1847  6月 25 07:35 l5-swagger.php
+-rw-r--r--   1 arthur  staff  1551  6月 28 13:46 pay.php
+-rw-r--r--   1 arthur  staff   807  6月 27 00:53 queue.php
+-rw-r--r--   1 arthur  staff  3105  6月 18 15:01 sanctum.php
+-rw-r--r--   1 arthur  staff  1296  6月 27 13:43 socialite.php
+-rw-r--r--   1 arthur  staff  1404  6月 27 06:53 tenancy.php
+src/Contracts/:
+total 16
+drwxr-xr-x   4 arthur  staff   128  6月 27 00:53 .
+drwxr-xr-x  20 arthur  staff   640  6月 28 00:15 ..
+-rw-r--r--   1 arthur  staff   918  6月 27 00:53 IdGeneratorContract.php
+-rw-r--r--   1 arthur  staff  1350  6月 27 00:53 TenantContextContract.php
+
+src/Enums/:
+total 8
+drwxr-xr-x   3 arthur  staff   96  6月 25 07:35 .
+drwxr-xr-x  20 arthur  staff  640  6月 28 00:15 ..
+-rw-r--r--   1 arthur  staff  542  6月 18 09:53 ErrorCode.php
+
+src/Models/:
+total 208
+drwxr-xr-x  24 arthur  staff   768  6月 28 13:46 .
+drwxr-xr-x  20 arthur  staff   640  6月 28 00:15 ..
+-rw-r--r--   1 arthur  staff   979  6月 18 09:28 AuditLog.php
+-rw-r--r--   1 arthur  staff  3473  6月 28 13:59 Coupon.php
+-rw-r--r--   1 arthur  staff  1384  6月 28 13:59 CouponUsage.php
+-rw-r--r--   1 arthur  staff  5323  6月 25 07:35 CreditAccount.php
+-rw-r--r--   1 arthur  staff  2040  6月 18 09:54 CreditTransaction.php
+-rw-r--r--   1 arthur  staff  1780  6月 27 00:53 FileUpload.php
+-rw-r--r--   1 arthur  staff  2224  6月 18 09:54 FinancialRecord.php
+-rw-r--r--   1 arthur  staff  2401  6月 28 13:21 Invoice.php
+-rw-r--r--   1 arthur  staff  1533  6月 28 13:21 InvoiceItem.php
+-rw-r--r--   1 arthur  staff  3296  6月 27 00:53 NotificationPreference.php
+-rw-r--r--   1 arthur  staff  1681  6月 27 13:43 OauthAccount.php
+-rw-r--r--   1 arthur  staff   921  6月 27 13:43 PaymentOrder.php
+-rw-r--r--   1 arthur  staff   710  6月 27 22:55 Permission.php
+-rw-r--r--   1 arthur  staff  1684  6月 28 00:28 Role.php
+-rw-r--r--   1 arthur  staff  2288  6月 27 00:53 SubscriptionHistory.php
+-rw-r--r--   1 arthur  staff  1487  6月 27 00:53 SubscriptionPlan.php
+-rw-r--r--   1 arthur  staff  4400  6月 18 09:54 SystemSetting.php
+-rw-r--r--   1 arthur  staff  2175  6月 28 13:21 TaxRule.php
+-rw-r--r--@  1 arthur  staff  5683  6月 28 19:38 Tenant.php
+-rw-r--r--   1 arthur  staff  6813  6月 24 07:34 TenantSetting.php
+-rw-r--r--   1 arthur  staff  1482  6月 27 08:33 TenantUser.php
+-rw-r--r--   1 arthur  staff  2019  6月 27 08:33 User.php
+[0m
+我看到了提供程序，但缺少约定的 Contract/Enum/Config/Model。我来查看一下文档并查找 TASK-010a/b 的产物。
+[0m$ [0mls -la .ai/ .mimocode/ 2>&1; ls docs/ 2>&1
+.ai/:
+total 8
+drwxr-xr-x   9 arthur  staff   288  6月 28 18:35 .
+drwxr-xr-x  32 arthur  staff  1024  6月 28 19:31 ..
+drwxr-xr-x   5 arthur  staff   160  6月 27 14:07 prompts
+drwxr-xr-x  31 arthur  staff   992  6月 28 22:47 reports
+drwxr-xr-x  30 arthur  staff   960  6月 28 20:04 review
+drwxr-xr-x   8 arthur  staff   256  6月 28 20:14 scripts
+drwxr-xr-x   4 arthur  staff   128  6月 28 10:01 sprints
+-rw-r--r--@  1 arthur  staff  4003  6月 28 22:47 state.json
+drwxr-xr-x  59 arthur  staff  1888  6月 28 22:47 tasks
+
+.mimocode/:
+total 48
+drwxr-xr-x   5 arthur  staff    160  6月 28 14:21 .
+drwxr-xr-x  32 arthur  staff   1024  6月 28 19:31 ..
+-rw-r--r--   1 arthur  staff     63  6月 27 17:02 .gitignore
+-rw-r--r--   1 arthur  staff  13713  6月 27 17:02 package-lock.json
+-rw-r--r--   1 arthur  staff     59  6月 27 17:02 package.json
+api
+architecture
+deployment
+development
+guides
+README.md
+[0m
+[0m$ [0mls .ai/tasks/ | grep -i "010\|ai"; echo "---state---"; cat .ai/state.json
+TASK-010.md
+TASK-010a.md
+TASK-010b.md
+TASK-010c.md
+TASK-010d.md
+---state---
+{
+  "version": "2.0",
+  "updated": "2026-06-28",
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Multi-Tenant SaaS 框架完善与扩展",
+      "status": "SUPERSEDED",
+      "sprint": "sprint-001",
+      "estimated_hours": 40,
+      "created": "2026-06-27",
+      "updated": "2026-06-28",
+      "note": "AI循环超3轮FAIL，代码已提交(535cf30)，遗留问题移交后续Task"
+    },
+    {
+      "id": "TASK-001a",
+      "status": "SUPERSEDED",
+      "updated": "2026-06-28"
+    },
+    {
+      "id": "TASK-001b",
+      "status": "SUPERSEDED",
+      "updated": "2026-06-28"
+    },
+    {
+      "id": "TASK-001c",
+      "status": "SUPERSEDED",
+      "updated": "2026-06-28"
+    },
+    {
+      "id": "TASK-002",
+      "title": "v0.2.2基座审查修复（6轮P0/P1/P2）",
+      "status": "DONE",
+      "sprint": "sprint-001",
+      "created": "2026-06-24",
+      "updated": "2026-06-28",
+      "note": "v0.2.2→v0.2.3+2：RBAC权限/Factory/Mailable/TestCase索引/afterCommit/i18n/backoff/类型修复"
+    },
+    {
+      "id": "TASK-003",
+      "title": "TASK-001新增代码审查修复+安全加固",
+      "status": "DONE",
+      "sprint": "sprint-001",
+      "estimated_hours": 4,
+      "created": "2026-06-28",
+      "updated": "2026-06-28",
+      "depends_on": "TASK-001",
+      "note": "ExportService fail-closed修复+AlertService租户过滤+审查误报5项关闭+SocialiteService决策+TASK-003任务文件生成"
+    },
+    {
+      "id": "TASK-004",
+      "title": "全量回归修复 + 支付宝OAuth认证模块接入",
+      "status": "DONE",
+      "sprint": "sprint-001",
+      "estimated_hours": 8,
+      "created": "2026-06-28",
+      "updated": "2026-06-28T08:03:10.287952",
+      "depends_on": "TASK-003",
+      "auto_split": true,
+      "human_confirmation": false,
+      "note": "全量回归305tests全绿+AlipayOAuthService独立实现+22singleton注册+SocialiteService安全加固"
+    },
+    {
+      "id": "TASK-004a",
+      "status": "DONE",
+      "updated": "2026-06-28T08:03:10.287952"
+    },
+    {
+      "id": "TASK-004b",
+      "status": "DONE",
+      "updated": "2026-06-28T08:03:10.287952"
+    },
+    {
+      "id": "TASK-004c",
+      "status": "DONE",
+      "updated": "2026-06-28T08:03:10.287952"
+    },
+    {
+      "id": "TASK-009c",
+      "status": "FIX_REQUESTED",
+      "updated": "2026-06-28T20:14:46.706322"
+    },
+    {
+      "id": "TASK-010",
+      "status": "SPLITTING",
+      "updated": "2026-06-28T22:47:07.535008"
+    },
+    {
+      "id": "TASK-011",
+      "status": "READY",
+      "updated": "2026-06-28T22:40:30.572162"
+    },
+    {
+      "id": "TASK-011d",
+      "status": "READY",
+      "updated": "2026-06-28T22:40:30.572162"
+    },
+    {
+      "id": "TASK-011a",
+      "status": "READY",
+      "updated": "2026-06-28T22:40:30.572162"
+    },
+    {
+      "id": "TASK-011b",
+      "status": "READY",
+      "updated": "2026-06-28T22:40:30.572162"
+    },
+    {
+      "id": "TASK-012",
+      "status": "READY",
+      "updated": "2026-06-28T22:40:30.572162"
+    },
+    {
+      "id": "TASK-013",
+      "status": "READY",
+      "updated": "2026-06-28T22:40:30.572162"
+    },
+    {
+      "id": "TASK-014",
+      "status": "READY",
+      "updated": "2026-06-28T22:40:30.572162"
+    },
+    {
+      "id": "TASK-015",
+      "status": "READY",
+      "updated": "2026-06-28T22:40:30.572162"
+    },
+    {
+      "id": "TASK-016",
+      "status": "READY",
+      "updated": "2026-06-28T22:40:30.572162"
+    },
+    {
+      "id": "TASK-017",
+      "status": "READY",
+      "updated": "2026-06-28T22:40:30.572162"
+    },
+    {
+      "id": "TASK-018",
+      "status": "READY",
+      "updated": "2026-06-28T22:40:30.572162"
+    },
+    {
+      "id": "TASK-010a",
+      "status": "DEV",
+      "updated": "2026-06-28T22:47:35.105588"
+    },
+    {
+      "id": "TASK-010c",
+      "status": "DEV",
+      "updated": "2026-06-28T22:47:35.106194"
+    },
+    {
+      "id": "TASK-010d",
+      "status": "DEV",
+[0m
+[0m# [0mTodos
+[•] 在 tests/TestCase.php 中追加 ai_providers/ai_requests/ai_model_aliases 三张表的 schema 定义
+[ ] 新建 tests/AiGatewayServiceTest.php，覆盖提供商注册/模型路由/故障转移/负载均衡/流式输出/请求日志/模型别名等场景
+[ ] 运行 phpunit 验证测试通过
+[0m
+现在我已经掌握了足够的信息。让我来制定一个待办事项列表，并着手完成任务。
+[0m← [0mEdit tests/TestCase.php
+Index: /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/tests/TestCase.php
+===================================================================
+--- /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/tests/TestCase.php
++++ /Users/arthur/Devel/WorkSpaceAI/framework/multi_tenant_saas/tests/TestCase.php
+@@ -557,8 +557,74 @@
+         $table->index(['tenant_id', 'provider']);
+         $table->index(['user_id', 'provider']);
+         $table->unique(['provider', 'provider_id']);
+     });
++
++    // AI 网关 - 提供商表（系统级配置，tenant_id 为 NULL）
++    Schema::create('ai_providers', function (Blueprint $table) {
++        $table->unsignedBigInteger('ai_provider_id')->primary();
++        $table->bigInteger('tenant_id')->unsigned()->nullable();
++        $table->string('name', 50);
++        $table->string('display_name', 200)->nullable();
++        $table->string('base_url', 255)->nullable();
++        $table->text('api_key')->nullable();
++        $table->string('status', 20)->default('active');
++        $table->unsignedSmallInteger('priority')->default(0);
++        $table->json('capabilities')->nullable();
++        $table->json('metadata')->nullable();
++        $table->timestamps();
++        $table->softDeletes();
++
++        $table->index(['tenant_id', 'status']);
++        $table->index(['name', 'status']);
++        $table->index('priority');
++    });
++
++    // AI 网关 - 请求日志表（租户隔离）
++    Schema::create('ai_requests', function (Blueprint $table) {
++        $table->unsignedBigInteger('ai_request_id')->primary();
++        $table->bigInteger('tenant_id')->unsigned()->nullable();
++        $table->bigInteger('user_id')->unsigned()->nullable();
++        $table->string('provider', 50);
++        $table->string('model', 100);
++        $table->string('operation', 30)->default('chat_completion');
++        $table->text('prompt_summary')->nullable();
++        $table->text('response_summary')->nullable();
++        $table->unsignedInteger('input_tokens')->default(0);
++        $table->unsignedInteger('output_tokens')->default(0);
++        $table->unsignedInteger('total_tokens')->default(0);
++        $table->unsignedInteger('response_time_ms')->default(0);
++        $table->decimal('cost', 12, 6)->default(0);
++        $table->string('status', 20)->default('success');
++        $table->string('error_message', 500)->nullable();
++        $table->json('options')->nullable();
++        $table->json('metadata')->nullable();
++        $table->timestamps();
++
++        $table->index(['tenant_id', 'created_at']);
++        $table->index(['tenant_id', 'provider', 'created_at']);
++        $table->index(['tenant_id', 'model', 'created_at']);
++        $table->index(['user_id', 'created_at']);
++        $table->index(['status', 'created_at']);
++    });
++
++    // AI 网关 - 模型别名映射表
++    Schema::create('ai_model_aliases', function (Blueprint $table) {
++        $table->unsignedBigInteger('ai_model_alias_id')->primary();
++        $table->bigInteger('tenant_id')->unsigned()->nullable();
++        $table->string('alias', 100);
++        $table->string('actual_model', 100);
++        $table->string('provider', 50);
++        $table->string('type', 20)->default('text');
++        $table->boolean('is_active')->default(true);
++        $table->boolean('deprecated')->default(false);
++        $table->text('description')->nullable();
++        $table->timestamps();
++
++        $table->index(['tenant_id', 'is_active']);
++        $table->index(['alias', 'is_active']);
++        $table->index(['provider', 'type']);
++    });
+ }
+ 
+ 
+ protected function tearDown(): void
+
+[0m
+首先，让我根据任务规范，将这三张新表的 schema 添加到 TestCase.php 中：
+[0m# [0mTodos
+[✓] 在 tests/TestCase.php 中追加 ai_providers/ai_requests/ai_model_aliases 三张表的 schema 定义
+[•] 新建 tests/AiGatewayServiceTest.php，覆盖提供商注册/模型路由/故障转移/负载均衡/流式输出/请求日志/模型别名等场景
+[ ] 运行 phpunit 验证测试通过
+[0m

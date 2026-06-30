@@ -3,7 +3,15 @@
 namespace MultiTenantSaas\Tests;
 
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Laravel\Sanctum\SanctumServiceProvider;
+use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Middleware\CheckFeatureFlag;
+use MultiTenantSaas\Middleware\CheckPermission;
+use MultiTenantSaas\Middleware\CheckRbacPermission;
+use MultiTenantSaas\Middleware\EnsureTenantContext;
+use MultiTenantSaas\Models\User;
 use MultiTenantSaas\TenancyServiceProvider;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
@@ -16,12 +24,19 @@ abstract class TestCase extends BaseTestCase
         $this->setUpDatabase();
 
         // SQLite 无 NOW() 函数，注册自定义函数以兼容源码中 DB::raw('NOW()') 的用法
-        \Illuminate\Support\Facades\DB::connection()->getPdo()->sqliteCreateFunction('NOW', fn () => date('Y-m-d H:i:s'), 0);
+        DB::connection()->getPdo()->sqliteCreateFunction('NOW', fn () => date('Y-m-d H:i:s'), 0);
+
+        // 加载项目 lang 目录，使 trans()/__() 在测试中可解析翻译 key
+        $langPath = realpath(__DIR__.'/../lang');
+        if ($langPath !== false) {
+            app('translation.loader')->addPath($langPath);
+        }
 
         $router = $this->app['router'];
-        $router->aliasMiddleware('tenant.ensure', \MultiTenantSaas\Middleware\EnsureTenantContext::class);
-        $router->aliasMiddleware('tenant.permission', \MultiTenantSaas\Middleware\CheckPermission::class);
-        $router->aliasMiddleware('rbac.permission', \MultiTenantSaas\Middleware\CheckRbacPermission::class);
+        $router->aliasMiddleware('tenant.ensure', EnsureTenantContext::class);
+        $router->aliasMiddleware('tenant.permission', CheckPermission::class);
+        $router->aliasMiddleware('rbac.permission', CheckRbacPermission::class);
+        $router->aliasMiddleware('feature.flag', CheckFeatureFlag::class);
 
         // 加载 API 路由
         $router->prefix('api')->group(function () {
@@ -32,7 +47,7 @@ abstract class TestCase extends BaseTestCase
     protected function getPackageProviders($app): array
     {
         return [
-            \Laravel\Sanctum\SanctumServiceProvider::class,
+            SanctumServiceProvider::class,
             TenancyServiceProvider::class,
         ];
     }
@@ -53,11 +68,24 @@ abstract class TestCase extends BaseTestCase
         ]);
         $app['config']->set('auth.providers.users', [
             'driver' => 'eloquent',
-            'model' => \MultiTenantSaas\Models\User::class,
+            'model' => User::class,
         ]);
-        
+
         // 设置 APP_KEY 用于加密
-        $app['config']->set('app.key', 'base64:' . base64_encode(random_bytes(32)));
+        $app['config']->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
+
+        // 设置缓存为 array 驱动，供 MFA 验证码缓存等使用
+        $app['config']->set('cache.default', 'array');
+        $app['config']->set('cache.stores.array', [
+            'driver' => 'array',
+            'serialize' => false,
+        ]);
+
+        // 设置邮件驱动为 log，避免测试中真实投递
+        $app['config']->set('mail.default', 'log');
+
+        // 设置广播驱动为 log，使 isAvailable() 返回 true（部分测试会覆盖为 null 测试降级）
+        $app['config']->set('broadcasting.default', 'log');
     }
 
     protected function setUpDatabase(): void
@@ -68,6 +96,9 @@ abstract class TestCase extends BaseTestCase
             $table->string('slug', 100)->nullable()->unique();
             $table->string('custom_domain', 200)->nullable()->unique();
             $table->string('status', 20)->default('active');
+            $table->string('isolation_type', 20)->default('shared');
+            $table->string('database_name', 100)->nullable();
+            $table->string('schema_name', 100)->nullable();
             $table->string('subscription_plan', 50)->default('free');
             $table->unsignedBigInteger('subscription_plan_id')->nullable();
             $table->timestamp('subscription_started_at')->nullable();
@@ -78,6 +109,8 @@ abstract class TestCase extends BaseTestCase
             $table->timestamp('trial_notification_sent_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index('isolation_type', 'tenants_isolation_type_index');
         });
 
         Schema::create('users', function (Blueprint $table) {
@@ -86,6 +119,9 @@ abstract class TestCase extends BaseTestCase
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->timestamp('password_changed_at')->nullable();
+            $table->unsignedInteger('login_attempts')->default(0);
+            $table->timestamp('locked_until')->nullable();
             $table->string('phone', 20)->nullable()->unique();
             $table->string('role', 20)->default('platform_user');
             $table->string('avatar', 500)->nullable();
@@ -742,7 +778,7 @@ abstract class TestCase extends BaseTestCase
 
     protected function tearDown(): void
     {
-        \MultiTenantSaas\Context\TenantContext::clear();
+        TenantContext::clear();
         parent::tearDown();
     }
 }

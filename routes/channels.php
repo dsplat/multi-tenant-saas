@@ -21,3 +21,19 @@ Broadcast::channel('tenant.{tenantId}', function (User $user, $tenantId) {
         ->wherePivot('is_active', true)
         ->exists();
 });
+
+/**
+ * 租户用户级频道 - 用于用户级别实时通知推送（通知中心专用）
+ * 客户端订阅: Echo.private(`tenant.{tenantId}.{userId}`)
+ * 命名规范: private-tenant.{tenantId}.{userId}
+ */
+Broadcast::channel('tenant.{tenantId}.{userId}', function (User $user, $tenantId, $userId) {
+    if ((int) $user->id !== (int) $userId) {
+        return false;
+    }
+
+    return $user->tenants()
+        ->where('tenants.tenant_id', $tenantId)
+        ->wherePivot('is_active', true)
+        ->exists();
+});

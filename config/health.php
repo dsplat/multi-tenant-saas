@@ -70,4 +70,33 @@ return [
         'slack_webhook_url' => env('HEALTH_SLACK_WEBHOOK_URL', ''),
         'mail_to' => env('HEALTH_MAIL_TO', ''),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | SLA 监控配置
+    |--------------------------------------------------------------------------
+    |
+    | 多级 SLA 目标值（按月/季/年统计）：
+    |  - standard:    99.9%  允许月度不可用约 43.2 分钟
+    |  - premium:     99.95% 允许月度不可用约 21.6 分钟
+    |  - enterprise:  99.99% 允许月度不可用约 4.3 分钟
+    |
+    */
+
+    'sla' => [
+        'enabled' => (bool) env('SLA_ENABLED', true),
+        'default_level' => env('SLA_DEFAULT_LEVEL', 'standard'),
+
+        'levels' => [
+            'standard' => 99.9,
+            'premium' => 99.95,
+            'enterprise' => 99.99,
+        ],
+
+        // 检查周期：monthly / quarterly / yearly
+        'check_period' => 'monthly',
+
+        // 触发违约告警的最低严重级别
+        'alert_min_severity' => 'critical',
+    ],
 ];

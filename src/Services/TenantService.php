@@ -177,24 +177,25 @@ class TenantService
             ->whereNull('user_id')
             ->first();
 
-        // 获取财务记录统计
-        $financialRecords = $tenant->financialRecords();
+        // 一次查询取出所需财务记录，PHP 侧聚合，避免多次 sum 查询。
+        // 直接走 financial_records 表（Tenant 模型未声明 financialRecords 关联）。
+        $financialRecords = DB::table('financial_records')
+            ->where('tenant_id', $tenantId)
+            ->whereIn('type', ['recharge', 'commission', 'refund'])
+            ->get();
         // 收入: 充值、佣金
         $totalRevenue = $financialRecords->whereIn('type', ['recharge', 'commission'])->sum('amount');
         // 支出: 退款
         $totalExpense = $financialRecords->where('type', 'refund')->sum('amount');
 
-        // 获取最近的交易（如果有transactions关联）
-        $recentTransactions = collect();
-        if (method_exists($tenant, 'creditAccounts')) {
-            $recentTransactions = $tenant->creditAccounts()
-                ->with('transactions')
-                ->get()
-                ->flatMap(fn ($account) => $account->transactions ?? collect())
-                ->sortByDesc('created_at')
-                ->take(10)
-                ->values();
-        }
+        // 预加载 transactions 关联，避免 flatMap 回查造成 N+1
+        $recentTransactions = $tenant->creditAccounts()
+            ->with('transactions')
+            ->get()
+            ->flatMap(fn ($account) => $account->transactions ?? collect())
+            ->sortByDesc('created_at')
+            ->take(10)
+            ->values();
 
         return [
             'tenant' => $tenant,

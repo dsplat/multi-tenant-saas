@@ -28,25 +28,32 @@ use MultiTenantSaas\Services\Agent\MemoryCompressor;
 use MultiTenantSaas\Services\Agent\ToolRegistry;
 use MultiTenantSaas\Services\AlipayOAuthService;
 use MultiTenantSaas\Services\AlertService;
+use MultiTenantSaas\Services\AlipayOAuthService;
 use MultiTenantSaas\Services\ApiVersionService;
 use MultiTenantSaas\Services\CacheService;
+use MultiTenantSaas\Services\CostService;
+use MultiTenantSaas\Services\DeveloperPortalService;
+use MultiTenantSaas\Services\EventBusService;
 use MultiTenantSaas\Services\ExportService;
-use MultiTenantSaas\Services\IdGenerator;
+use MultiTenantSaas\Services\MetricsService;
+use MultiTenantSaas\Services\FeatureFlagService;
 use MultiTenantSaas\Services\HealthService;
+use MultiTenantSaas\Services\IdGenerator;
 use MultiTenantSaas\Services\LoginLogService;
 use MultiTenantSaas\Services\PaymentSecurityService;
 use MultiTenantSaas\Services\PerformanceService;
 use MultiTenantSaas\Services\PluginService;
 use MultiTenantSaas\Services\QueueService;
 use MultiTenantSaas\Services\RateLimitService;
+use MultiTenantSaas\Services\ResourceService;
+use MultiTenantSaas\Services\SandboxService;
+use MultiTenantSaas\Services\SlaService;
 use MultiTenantSaas\Services\SocialiteService;
 use MultiTenantSaas\Services\StructuredLogService;
 use MultiTenantSaas\Services\SubscriptionService;
 use MultiTenantSaas\Services\TenantProfileService;
 use MultiTenantSaas\Services\UserPreferenceService;
 use MultiTenantSaas\Services\UserProfileService;
-use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Context\TenantConfigStore;
 
 class TenancyServiceProvider extends ServiceProvider
 {
@@ -54,18 +61,18 @@ class TenancyServiceProvider extends ServiceProvider
     {
         // 发布核心配置
         $this->publishes([
-            __DIR__ . '/../config/tenancy.php' => config_path('tenancy.php'),
+            __DIR__.'/../config/tenancy.php' => config_path('tenancy.php'),
         ], 'tenancy-config');
 
         // 发布迁移
         $this->publishes([
-            __DIR__ . '/../database/migrations' => database_path('migrations'),
+            __DIR__.'/../database/migrations' => database_path('migrations'),
         ], 'tenancy-migrations');
 
         // 发布模块配置
         $this->publishes([
-            __DIR__ . '/Modules/ApiToken/Config/apitoken.php' => config_path('apitoken.php'),
-            __DIR__ . '/Modules/Payment/Config/payment.php' => config_path('payment.php'),
+            __DIR__.'/Modules/ApiToken/Config/apitoken.php' => config_path('apitoken.php'),
+            __DIR__.'/Modules/Payment/Config/payment.php' => config_path('payment.php'),
         ], 'tenancy-modules-config');
 
         // 注册健康检查
@@ -82,6 +89,7 @@ class TenancyServiceProvider extends ServiceProvider
         // 按用户 ID 限流，每分钟 60 次
         RateLimiter::for('api', function ($request) {
             $user = $request->user();
+
             return Limit::perMinute(60)->by(
                 $user ? $user->getAuthIdentifier() : $request->ip()
             );
@@ -98,21 +106,21 @@ class TenancyServiceProvider extends ServiceProvider
     public function register(): void
     {
         // 合并核心配置
-        $this->mergeConfigFrom(__DIR__ . '/../config/tenancy.php', 'tenancy');
+        $this->mergeConfigFrom(__DIR__.'/../config/tenancy.php', 'tenancy');
 
         // 合并模块配置
-        $this->mergeConfigFrom(__DIR__ . '/Modules/ApiToken/Config/apitoken.php', 'apitoken');
-        $this->mergeConfigFrom(__DIR__ . '/Modules/Payment/Config/payment.php', 'payment');
+        $this->mergeConfigFrom(__DIR__.'/Modules/ApiToken/Config/apitoken.php', 'apitoken');
+        $this->mergeConfigFrom(__DIR__.'/Modules/Payment/Config/payment.php', 'payment');
 
         // 注册ID生成器（绑定接口契约 + 具体实现）
         $this->app->singleton(IdGeneratorContract::class, function () {
-            return new IdGenerator();
+            return new IdGenerator;
         });
         $this->app->alias(IdGeneratorContract::class, IdGenerator::class);
 
         // 注册租户上下文（绑定接口契约 + 具体实现）
         $this->app->singleton(TenantContextContract::class, function () {
-            return new TenantContext();
+            return new TenantContext;
         });
         $this->app->alias(TenantContextContract::class, TenantContext::class);
 
@@ -168,20 +176,20 @@ class TenancyServiceProvider extends ServiceProvider
 
         // 注册配置存储
         $this->app->singleton(TenantConfigStore::class, function () {
-            return new TenantConfigStore();
+            return new TenantConfigStore;
         });
 
         // 注册 ApiToken 模块服务（仅在启用时）
         if (config('apitoken.enabled', false)) {
             $this->app->singleton(
-                \MultiTenantSaas\Modules\ApiToken\Services\ApiTokenService::class
+                ApiTokenService::class
             );
         }
 
         // 注册 Payment 模块服务（仅在启用时）
         if (config('payment.enabled', false)) {
             $this->app->singleton(
-                \MultiTenantSaas\Modules\Payment\Services\PaymentService::class
+                PaymentService::class
             );
         }
 
@@ -202,8 +210,26 @@ class TenancyServiceProvider extends ServiceProvider
         $this->app->singleton(CacheService::class);
         $this->app->singleton(PaymentSecurityService::class);
         $this->app->singleton(SubscriptionService::class);
+        $this->app->singleton(EventBusService::class);
         $this->app->singleton(TenantProfileService::class);
         $this->app->singleton(QueueService::class);
         $this->app->singleton(SocialiteService::class);
+        $this->app->singleton(FeatureFlagService::class);
+        $this->app->singleton(CostService::class);
+        $this->app->singleton(ResourceService::class);
+
+        // 注册 AI 网关服务（模型路由、提供商注册、限流、重试与请求日志）
+        $this->app->singleton(AiGatewayService::class);
+
+        // 注册 AI 视频服务（视频生成、异步任务轮询、结果存储）
+        $this->app->singleton(AiVideoService::class);
+
+        // 注册开发者门户与沙箱服务
+        $this->app->singleton(DeveloperPortalService::class);
+        $this->app->singleton(SandboxService::class);
+
+        // 注册指标采集与 SLA 监控服务
+        $this->app->singleton(MetricsService::class);
+        $this->app->singleton(SlaService::class);
     }
 }

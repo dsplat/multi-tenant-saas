@@ -1,0 +1,15 @@
+{
+  "task_id": "TASK-050",
+  "git_diff_summary": ".ai/context/TASK-050.json      |  14 +++\n .ai/metrics.json               | 239 ++++++++++++++++++++++++++++++++++++-----\n .ai/review/TASK-050-review.md  |  55 ++++++++++\n .ai/state.json                 |   4 +-\n routes/api.php                 |  39 +++++++\n src/TenancyServiceProvider.php |   9 ++\n 6 files changed, 334 insertions(+), 26 deletions(-)",
+  "changed_files": [
+    ".ai/context/TASK-050.json",
+    ".ai/metrics.json",
+    ".ai/review/TASK-050-review.md",
+    ".ai/state.json",
+    "routes/api.php",
+    "src/TenancyServiceProvider.php"
+  ],
+  "review_notes": "## Review: TASK-050 路由注册与服务容器绑定 (v3)\n\n---\n\n## Architecture\n**评价：良好**\n\n- 同 v2，路由按 spec 章节分组，`TenancyServiceProvider` 绑定模式一致。无架构变化。\n\n---\n\n## Code Quality\n**评价：良好**\n\n- ✅ 路由顺序正确：`POST /agents/templates/{templateId}/clone` 在 `{agentId}` 动态路由之前，`GET /agents/templates` 在 `GET /agents/{agentId}` 之前。\n- 路由组织清晰，命名语义一致。\n- 代码与 v2 完全一致，无新增变更。\n\n---\n\n## Type Safety\n**评价：中上**\n\n- 同 v2，无变化。\n\n---\n\n## Security\n**评价：良好**\n\n- 同 v2，所有路由在 `auth:sanctum` 中间件下。\n\n---\n\n## Performance\n**评价：良好**\n\n- 同 v2，无变化。\n\n---\n\n## Potential",
+  "key_decisions": [],
+  "timestamp": ""
+}

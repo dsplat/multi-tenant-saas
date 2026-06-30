@@ -25,6 +25,7 @@ use MultiTenantSaas\Services\Agent\AgentMonitor;
 use MultiTenantSaas\Services\Agent\AgentRuntime;
 use MultiTenantSaas\Services\Agent\AgentService;
 use MultiTenantSaas\Services\Agent\MemoryCompressor;
+use MultiTenantSaas\Services\Agent\ToolRegistry;
 use MultiTenantSaas\Services\AlipayOAuthService;
 use MultiTenantSaas\Services\AlertService;
 use MultiTenantSaas\Services\ApiVersionService;
@@ -136,6 +137,14 @@ class TenancyServiceProvider extends ServiceProvider
             );
         });
         $this->app->alias(AgentMonitorContract::class, AgentMonitor::class);
+
+        // 注册工具注册表（绑定接口契约 + 具体实现）
+        $this->app->singleton(ToolRegistryContract::class, function ($app) {
+            return new ToolRegistry(
+                $app->make(\Illuminate\Contracts\Container\Container::class)
+            );
+        });
+        $this->app->alias(ToolRegistryContract::class, ToolRegistry::class);
 
         // 注册记忆压缩器
         $this->app->singleton(MemoryCompressor::class, function ($app) {

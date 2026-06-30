@@ -18,6 +18,10 @@ use App\Http\Controllers\Api\RbacController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\FileController;
+use App\Http\Controllers\Api\AgentController;
+use App\Http\Controllers\Api\AgentChatController;
+use App\Http\Controllers\Api\AgentStatsController;
+use App\Http\Controllers\Api\ToolController;
 
 // ========== 认证 API（无需认证） ==========
 Route::prefix('v1/auth')->group(function () {
@@ -158,4 +162,39 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
     Route::get('/files/{id}/download', [FileController::class, 'download']);
     Route::post('/files/{id}/share', [FileController::class, 'share']);
     Route::delete('/files/{id}', [FileController::class, 'destroy'])->middleware('rbac.permission:file.delete');
+
+    // ========== Agent 管理（§6.1） ==========
+    Route::get('/agents', [AgentController::class, 'index']);
+    Route::get('/agents/templates', [AgentController::class, 'templates']);
+    Route::post('/agents/templates/{templateId}/clone', [AgentController::class, 'cloneTemplate']);
+    Route::get('/agents/{agentId}', [AgentController::class, 'show']);
+    Route::post('/agents', [AgentController::class, 'store']);
+    Route::put('/agents/{agentId}', [AgentController::class, 'update']);
+    Route::delete('/agents/{agentId}', [AgentController::class, 'destroy']);
+    Route::post('/agents/{agentId}/enable', [AgentController::class, 'enable']);
+    Route::post('/agents/{agentId}/disable', [AgentController::class, 'disable']);
+    Route::put('/agents/{agentId}/model-config', [AgentController::class, 'updateModelConfig']);
+    Route::put('/agents/{agentId}/tools', [AgentController::class, 'updateTools']);
+    Route::put('/agents/{agentId}/knowledge-bases', [AgentController::class, 'updateKnowledgeBases']);
+
+    // ========== Agent 对话 + SSE 流式（§6.2） ==========
+    Route::post('/agents/{agentId}/chat', [AgentChatController::class, 'startChat']);
+    Route::post('/agents/{agentId}/chat/{conversationId}', [AgentChatController::class, 'sendMessage']);
+    Route::get('/agents/{agentId}/conversations', [AgentChatController::class, 'conversations']);
+    Route::get('/conversations/{conversationId}', [AgentChatController::class, 'showConversation']);
+    Route::get('/conversations/{conversationId}/messages', [AgentChatController::class, 'messages']);
+    Route::delete('/conversations/{conversationId}', [AgentChatController::class, 'deleteConversation']);
+
+    // ========== Agent 监控（§6.3） ==========
+    Route::get('/agents/{agentId}/stats', [AgentStatsController::class, 'stats']);
+    Route::get('/agents/{agentId}/token-usage', [AgentStatsController::class, 'tokenUsage']);
+    Route::get('/agents/{agentId}/cost', [AgentStatsController::class, 'cost']);
+    Route::get('/agents/{agentId}/tool-logs', [AgentStatsController::class, 'toolLogs']);
+
+    // ========== 工具管理（§6.4） ==========
+    Route::get('/tools', [ToolController::class, 'index']);
+    Route::get('/tools/{slug}', [ToolController::class, 'show']);
+    Route::post('/tools', [ToolController::class, 'store']);
+    Route::put('/tools/{slug}', [ToolController::class, 'update']);
+    Route::delete('/tools/{slug}', [ToolController::class, 'destroy']);
 });

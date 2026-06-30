@@ -123,8 +123,8 @@
     },
     {
       "id": "TASK-050",
-      "status": "READY",
-      "updated": "2026-06-30T00:09:25.705467",
+      "status": "DONE",
+      "updated": "2026-06-30T15:12:24.990499",
       "title": "路由注册与服务容器绑定",
       "sprint": "sprint-agent"
     },

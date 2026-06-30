@@ -1,0 +1,21 @@
+{
+  "task_id": "TASK-033",
+  "git_diff_summary": ".ai/metrics.json              | 70 ++++++++++++++++++++++++++++++++++---------\n .ai/review/TASK-033-review.md | 29 +++++++-----------\n .ai/state.json                |  4 +--\n .ai/tasks/TASK-033-fix.md     | 12 --------\n .ai/tasks/TASK-034-fix.md     | 12 --------\n .ai/tasks/TASK-035-fix.md     | 12 --------\n .ai/tasks/TASK-036-fix.md     | 12 --------\n .ai/tasks/TASK-037-fix.md     | 12 --------\n .ai/tasks/TASK-038-fix.md     | 12 --------\n .ai/tasks/TASK-039-fix.md     | 12 --------\n .ai/tasks/TASK-040-fix.md     | 12 --------\n .ai/tasks/TASK-041-fix.md     | 12 --------\n 12 files changed, 69 insertions(+), 142 deletions(-)",
+  "changed_files": [
+    ".ai/metrics.json",
+    ".ai/review/TASK-033-review.md",
+    ".ai/state.json",
+    ".ai/tasks/TASK-033-fix.md",
+    ".ai/tasks/TASK-034-fix.md",
+    ".ai/tasks/TASK-035-fix.md",
+    ".ai/tasks/TASK-036-fix.md",
+    ".ai/tasks/TASK-037-fix.md",
+    ".ai/tasks/TASK-038-fix.md",
+    ".ai/tasks/TASK-039-fix.md",
+    ".ai/tasks/TASK-040-fix.md",
+    ".ai/tasks/TASK-041-fix.md"
+  ],
+  "review_notes": "",
+  "key_decisions": [],
+  "timestamp": ""
+}

@@ -11,8 +11,8 @@
     },
     {
       "id": "TASK-034",
-      "status": "DONE",
-      "updated": "2026-06-30T07:00:00.000000",
+      "status": "READY",
+      "updated": "2026-06-30T08:00:00",
       "title": "AI 推理服务流式接口（streamChat + SSE）",
       "sprint": "sprint-agent"
     },

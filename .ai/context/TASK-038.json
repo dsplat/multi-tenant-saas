@@ -1,12 +1,14 @@
 {
   "task_id": "TASK-038",
-  "git_diff_summary": ".ai/context/TASK-037.json     | 15 ++++++++\n .ai/metrics.json              | 84 ++++++++++++++++++++++++++++++++-----------\n .ai/review/TASK-037-review.md | 55 ++++++++++++++++++++++++++++\n .ai/review/TASK-038-review.md | 48 +++++++++++--------------\n .ai/state.json                |  4 +--\n 5 files changed, 155 insertions(+), 51 deletions(-)",
+  "git_diff_summary": ".ai/metrics.json                         | 42 ++++++++++-----\n .ai/state.json                           |  6 +--\n src/Contracts/AgentMonitorContract.php   | 93 ++++++++++++++++++++++++++++++++\n src/Contracts/AgentRuntimeContract.php   | 72 +++++++++++++++++++++++++\n src/Contracts/ToolRegistryContract.php   | 71 ++++++++++++++++++++++++\n src/Services/Agent/Dto/AgentResponse.php | 85 +++++++++++++++++++++++++++++\n src/Services/Agent/Dto/Tool.php          | 89 ++++++++++++++++++++++++++++++\n 7 files changed, 441 insertions(+), 17 deletions(-)",
   "changed_files": [
-    ".ai/context/TASK-037.json",
     ".ai/metrics.json",
-    ".ai/review/TASK-037-review.md",
-    ".ai/review/TASK-038-review.md",
-    ".ai/state.json"
+    ".ai/state.json",
+    "src/Contracts/AgentMonitorContract.php",
+    "src/Contracts/AgentRuntimeContract.php",
+    "src/Contracts/ToolRegistryContract.php",
+    "src/Services/Agent/Dto/AgentResponse.php",
+    "src/Services/Agent/Dto/Tool.php"
   ],
   "review_notes": "",
   "key_decisions": [],

@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Services\Agent;
 
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Collection;
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Models\AgentTool;
 use MultiTenantSaas\Scopes\TenantScope;
@@ -32,11 +33,11 @@ class ToolRegistry implements ToolRegistryContract
     /**
      * 注册工具到运行时注册表
      *
-     * @param  string  $slug          工具唯一标识
+     * @param  string  $slug  工具唯一标识
      * @param  string  $handlerClass  工具处理器类名（FQCN，须实现 ToolHandlerContract）
-     * @param  array  $schema         JSON Schema 格式的参数定义
+     * @param  array  $schema  JSON Schema 格式的参数定义
      */
-    public function register(string $slug, string $handlerClass, array $schema): void
+    public function register(string $slug, string $handlerClass, array $schema, string $category = 'core'): void
     {
         $this->runtimeTools[$slug] = new Tool(
             slug: $slug,
@@ -44,6 +45,7 @@ class ToolRegistry implements ToolRegistryContract
             description: '',
             parametersSchema: $schema,
             handlerClass: $handlerClass,
+            category: $category,
         );
     }
 
@@ -112,9 +114,9 @@ class ToolRegistry implements ToolRegistryContract
      * 运行时处理器异常被捕获并封装为结构化错误数组（而非抛出），
      * 由调用方决定如何处理。仅基础设施错误（工具未注册/类不存在）抛出异常。
      *
-     * @param  string  $slug       工具标识
-     * @param  array  $arguments   工具参数
-     * @param  int  $tenantId      租户 ID
+     * @param  string  $slug  工具标识
+     * @param  array  $arguments  工具参数
+     * @param  int  $tenantId  租户 ID
      * @return mixed 工具执行结果；失败时返回 ['error' => true, 'message' => string, 'slug' => string]
      *
      * @throws \RuntimeException 工具未注册或 handler 类不存在时抛出
@@ -158,9 +160,8 @@ class ToolRegistry implements ToolRegistryContract
      *
      * 运行时注册的工具始终可用；数据库工具需在指定租户下启用且存在。
      *
-     * @param  string  $slug      工具标识
-     * @param  int  $tenantId     租户 ID
-     * @return bool
+     * @param  string  $slug  工具标识
+     * @param  int  $tenantId  租户 ID
      */
     public function isAvailable(string $slug, int $tenantId): bool
     {
@@ -193,7 +194,7 @@ class ToolRegistry implements ToolRegistryContract
             ->where('enabled', true)
             ->where(function ($query) {
                 // 包含全局工具（tenant_id=0）和当前租户上下文中的工具
-                $tenantId = \MultiTenantSaas\Context\TenantContext::getId();
+                $tenantId = TenantContext::getId();
                 if ($tenantId) {
                     $query->where('tenant_id', $tenantId)
                         ->orWhere('tenant_id', 0);
@@ -210,6 +211,7 @@ class ToolRegistry implements ToolRegistryContract
                 'description' => $model->description,
                 'parameters_schema' => $model->parameters_schema,
                 'handler_class' => $model->handler_class,
+                'category' => $model->category ?? 'core',
             ]);
         });
     }
@@ -223,7 +225,7 @@ class ToolRegistry implements ToolRegistryContract
             ->where('slug', $slug)
             ->where('enabled', true)
             ->where(function ($query) {
-                $tenantId = \MultiTenantSaas\Context\TenantContext::getId();
+                $tenantId = TenantContext::getId();
                 if ($tenantId) {
                     $query->where('tenant_id', $tenantId)
                         ->orWhere('tenant_id', 0);
@@ -243,6 +245,40 @@ class ToolRegistry implements ToolRegistryContract
             'description' => $model->description,
             'parameters_schema' => $model->parameters_schema,
             'handler_class' => $model->handler_class,
+            'category' => $model->category ?? 'core',
         ]);
+    }
+
+    public function getByCategory(string $category): Collection
+    {
+        return $this->all()->filter(fn (Tool $tool) => $tool->category === $category)->values();
+    }
+
+    public function getCategories(): array
+    {
+        return $this->all()->pluck('category')->unique()->sort()->values()->toArray();
+    }
+
+    public function getCategoryCounts(): array
+    {
+        return $this->all()->groupBy('category')->map(fn ($tools) => $tools->count())->toArray();
+    }
+
+    public function getFrameworkTools(): Collection
+    {
+        $frameworkCategories = ['core', 'ai', 'storage', 'kb', 'channel', 'workflow'];
+
+        return $this->all()->filter(
+            fn (Tool $tool) => in_array($tool->category, $frameworkCategories)
+        )->values();
+    }
+
+    public function getBusinessTools(): Collection
+    {
+        $frameworkCategories = ['core', 'ai', 'storage', 'kb', 'channel', 'workflow'];
+
+        return $this->all()->filter(
+            fn (Tool $tool) => ! in_array($tool->category, $frameworkCategories)
+        )->values();
     }
 }

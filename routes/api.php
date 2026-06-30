@@ -1,11 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\AdminSettingsController;
+use App\Http\Controllers\Api\AgentChatController;
+use App\Http\Controllers\Api\AgentController;
+use App\Http\Controllers\Api\AgentStatsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FileController;
-use App\Http\Controllers\Api\AgentController;
-use App\Http\Controllers\Api\AgentChatController;
-use App\Http\Controllers\Api\AgentStatsController;
 use App\Http\Controllers\Api\MfaController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\RbacController;
@@ -23,9 +23,14 @@ use App\Http\Controllers\Api\TenantSettingController;
 use App\Http\Controllers\Api\TenantSslController;
 use App\Http\Controllers\Api\TenantTokenController;
 use App\Http\Controllers\Api\ToolController;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use MultiTenantSaas\Http\Controllers\CapabilityController;
+use MultiTenantSaas\Http\Controllers\ConversationController;
+use MultiTenantSaas\Http\Controllers\WorkflowController;
 use MultiTenantSaas\Services\BroadcastingService;
+use MultiTenantSaas\Services\Channel\ChannelManager;
+use MultiTenantSaas\Services\Channel\MessageRouter;
 use MultiTenantSaas\Services\InAppNotificationService;
 
 // ========== 认证 API（无需认证） ==========
@@ -396,4 +401,79 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
     Route::post('/tools', [ToolController::class, 'store']);
     Route::put('/tools/{slug}', [ToolController::class, 'update']);
     Route::delete('/tools/{slug}', [ToolController::class, 'destroy']);
+
+    // ========== Conversation Center（v0.2.0） ==========
+    Route::prefix('/conversations-center')->group(function () {
+        Route::get('/', [ConversationController::class, 'index']);
+        Route::post('/', [ConversationController::class, 'store']);
+        Route::get('/{conversationId}', [ConversationController::class, 'show']);
+        Route::post('/{conversationId}/close', [ConversationController::class, 'close']);
+        Route::post('/{conversationId}/archive', [ConversationController::class, 'archive']);
+        Route::get('/{conversationId}/messages', [ConversationController::class, 'messages']);
+        Route::post('/{conversationId}/messages', [ConversationController::class, 'sendMessage']);
+        Route::post('/{conversationId}/participants', [ConversationController::class, 'addParticipant']);
+        Route::delete('/participants/{participantId}', [ConversationController::class, 'removeParticipant']);
+        Route::get('/{conversationId}/sessions', [ConversationController::class, 'sessions']);
+        Route::post('/{conversationId}/sessions', [ConversationController::class, 'openSession']);
+        Route::post('/sessions/{sessionId}/close', [ConversationController::class, 'closeSession']);
+        Route::get('/{conversationId}/tags', [ConversationController::class, 'tags']);
+        Route::post('/{conversationId}/tags', [ConversationController::class, 'addTag']);
+        Route::post('/messages/{messageId}/reactions', [ConversationController::class, 'addReaction']);
+        Route::delete('/messages/{messageId}/reactions/{emoji}', [ConversationController::class, 'removeReaction']);
+        Route::post('/messages/{messageId}/read', [ConversationController::class, 'markAsRead']);
+    });
+
+    // ========== Workflow Engine（v0.2.0） ==========
+    Route::prefix('/workflows')->group(function () {
+        Route::get('/', [WorkflowController::class, 'index']);
+        Route::post('/', [WorkflowController::class, 'store']);
+        Route::get('/{workflowId}', [WorkflowController::class, 'show']);
+        Route::put('/{workflowId}', [WorkflowController::class, 'update']);
+        Route::delete('/{workflowId}', [WorkflowController::class, 'destroy']);
+        Route::post('/{workflowId}/activate', [WorkflowController::class, 'activate']);
+        Route::post('/{workflowId}/pause', [WorkflowController::class, 'pause']);
+        Route::post('/{workflowId}/execute', [WorkflowController::class, 'execute']);
+        Route::get('/{workflowId}/executions', [WorkflowController::class, 'executions']);
+        Route::get('/executions/{executionId}', [WorkflowController::class, 'showExecution']);
+        Route::post('/executions/{executionId}/confirm', [WorkflowController::class, 'resumeExecution']);
+        Route::post('/executions/{executionId}/cancel', [WorkflowController::class, 'cancelExecution']);
+    });
+
+    // ========== AI Capability（v0.2.0） ==========
+    Route::prefix('/capabilities')->group(function () {
+        Route::get('/', [CapabilityController::class, 'index']);
+        Route::post('/execute', [CapabilityController::class, 'execute']);
+        Route::post('/batch', [CapabilityController::class, 'batch']);
+    });
+
+    // ========== Channel Webhooks（v0.2.0，无需认证） ==========
+});
+
+Route::prefix('v1/channels')->group(function () {
+    Route::post('/enterprise-wechat/webhook', function (Request $request) {
+        $manager = app(ChannelManager::class);
+        $provider = $manager->get('enterprise_wechat');
+        $router = app(MessageRouter::class);
+
+        if ($provider->verifyWebhook($request->all(), $request->headers->all())) {
+            $router->routeMessage('enterprise_wechat', $request->all());
+
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['success' => false], 403);
+    });
+    Route::post('/wechat-official/webhook', function (Request $request) {
+        $manager = app(ChannelManager::class);
+        $provider = $manager->get('wechat_official');
+        $router = app(MessageRouter::class);
+
+        if ($provider->verifyWebhook($request->all(), $request->headers->all())) {
+            $router->routeMessage('wechat_official', $request->all());
+
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['success' => false], 403);
+    });
 });

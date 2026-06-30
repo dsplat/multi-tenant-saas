@@ -2,20 +2,20 @@
 
 namespace MultiTenantSaas\Models;
 
-use MultiTenantSaas\Concerns\BelongsToTenant;
-use MultiTenantSaas\Concerns\HasGlobalId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use MultiTenantSaas\Concerns\BelongsToTenant;
+use MultiTenantSaas\Concerns\HasGlobalId;
 
 /**
  * Agent 模型（数字员工）
  */
 class Agent extends Model
 {
-    use BelongsToTenant, HasGlobalId, HasFactory;
+    use BelongsToTenant, HasFactory, HasGlobalId;
 
     protected $primaryKey = 'agent_id';
 
@@ -27,6 +27,8 @@ class Agent extends Model
         'system_prompt',
         'description',
         'tools',
+        'workflow_id',
+        'workflow_mode',
         'kb_ids',
         'feature_keys',
         'model_config',
@@ -40,6 +42,7 @@ class Agent extends Model
     {
         return [
             'tools' => 'array',
+            'workflow_id' => 'integer',
             'kb_ids' => 'array',
             'feature_keys' => 'array',
             'model_config' => 'array',
@@ -65,5 +68,10 @@ class Agent extends Model
             'agent_id',
             'conversation_id'
         );
+    }
+
+    public function workflow(): BelongsTo
+    {
+        return $this->belongsTo(Workflow::class, 'workflow_id', 'workflow_id');
     }
 }

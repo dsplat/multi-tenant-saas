@@ -23,6 +23,7 @@ final class Tool
         public readonly string $description,
         public readonly array $parametersSchema,
         public readonly string $handlerClass,
+        public readonly string $category = 'core',
     ) {}
 
     /**
@@ -44,6 +45,7 @@ final class Tool
             description: (string) ($data['description'] ?? ''),
             parametersSchema: (array) ($data['parameters_schema'] ?? []),
             handlerClass: (string) ($data['handler_class'] ?? ''),
+            category: (string) ($data['category'] ?? 'core'),
         );
     }
 
@@ -55,9 +57,9 @@ final class Tool
      * @return array {
      *               type: 'function',
      *               function: {
-     *                 name: string,
-     *                 description: string,
-     *                 parameters: array
+     *               name: string,
+     *               description: string,
+     *               parameters: array
      *               }
      *               }
      */
@@ -84,6 +86,7 @@ final class Tool
             'description' => $this->description,
             'parameters_schema' => $this->parametersSchema,
             'handler_class' => $this->handlerClass,
+            'category' => $this->category,
         ];
     }
 }

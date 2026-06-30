@@ -48,4 +48,8 @@ return [
     'unionpay_query_failed' => '银联订单查询失败',
     'unionpay_refund_failed' => '银联退款失败',
     'unionpay_signature_invalid' => '银联签名验证失败',
+    // 发票
+    'invoice_already_void' => '发票已作废',
+    'invoice_cannot_void' => '当前状态发票不可作废',
+    'invoice_cannot_void_paid' => '已付款发票不可直接作废，请先处理退款',
 ];

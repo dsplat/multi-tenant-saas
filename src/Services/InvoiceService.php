@@ -109,7 +109,7 @@ class InvoiceService
     }
 
     /**
-     * 作废发票 issued / paid → void（保留记录不删除）
+     * 作废发票 issued → void（保留记录不删除，paid 状态不可直接作废）
      */
     public static function voidInvoice(int $invoiceId): Invoice
     {
@@ -119,7 +119,11 @@ class InvoiceService
             throw new \RuntimeException(trans('payment.invoice_already_void'));
         }
 
-        if (! in_array($invoice->status, [Invoice::STATUS_ISSUED, Invoice::STATUS_PAID], true)) {
+        if ($invoice->status === Invoice::STATUS_PAID) {
+            throw new \RuntimeException(trans('payment.invoice_cannot_void_paid'));
+        }
+
+        if ($invoice->status !== Invoice::STATUS_ISSUED) {
             throw new \RuntimeException(trans('payment.invoice_cannot_void'));
         }
 

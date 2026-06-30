@@ -48,4 +48,8 @@ return [
     'unionpay_query_failed' => 'UnionPay order query failed',
     'unionpay_refund_failed' => 'UnionPay refund failed',
     'unionpay_signature_invalid' => 'UnionPay signature verification failed',
+    // Invoice
+    'invoice_already_void' => 'Invoice is already voided',
+    'invoice_cannot_void' => 'Invoice cannot be voided in current status',
+    'invoice_cannot_void_paid' => 'Paid invoice cannot be voided directly, please process refund first',
 ];

@@ -20,6 +20,7 @@ final class StreamChunk
         public readonly string $text = '',
         public readonly array $toolCalls = [],
         public readonly string $finishReason = '',
+        public readonly array $usage = [],
     ) {}
 
     /**

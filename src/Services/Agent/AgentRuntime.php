@@ -13,14 +13,18 @@ use MultiTenantSaas\Models\Agent;
 use MultiTenantSaas\Models\AgentConversation;
 use MultiTenantSaas\Models\AgentConversationMessage;
 use MultiTenantSaas\Services\Agent\Dto\AgentResponse;
+use MultiTenantSaas\Services\Ai\StreamChunk;
 
 /**
- * Agent 运行时 — ReAct 循环（非流式）
+ * Agent 运行时 — ReAct 循环（非流式 + 流式）
  *
  * 加载 Agent 配置 → 构建上下文（system_prompt+历史+新消息）→ 调用 AI 推理 →
  * 文本则返回 / tool_calls 则经 ToolRegistry 执行后追加结果 → 循环至 max_tool_calls。
  *
- * 流式（归 TASK-044）、记忆压缩（归 TASK-045）、降级（归 TASK-046）不在本类实现。
+ * 非流式通过 run() 返回 AgentResponse；流式通过 runStream() 逐 chunk 产出 StreamChunk，
+ * 遇 tool_calls 暂停流式 → 执行工具 → 结果入上下文 → 继续流式 → 末尾发送 [DONE]。
+ *
+ * 记忆压缩（归 TASK-045）、降级（归 TASK-046）不在本类实现。
  */
 class AgentRuntime implements AgentRuntimeContract
 {
@@ -375,13 +379,258 @@ class AgentRuntime implements AgentRuntimeContract
     /**
      * 流式执行 Agent 对话 (SSE)
      *
-     * 属于 TASK-044 实现范围。
+     * 基于 AiTextService.streamChat() 逐 chunk 产出 StreamChunk。
+     * 遇 tool_calls 暂停流式 → 执行工具 → 结果入上下文 → 继续流式。
+     * 末尾产出 finish_reason='stop' 的 StreamChunk（[DONE] 信号）。
      *
-     * @throws \BadMethodCallException 始终抛出，流式归 TASK-044
+     * @param  int  $agentId         Agent ID
+     * @param  int  $conversationId  会话 ID
+     * @param  string  $message      用户消息
+     * @param  array  $options       可选配置
+     * @return \Generator<int, StreamChunk, mixed, AgentResponse>
      */
     public function runStream(int $agentId, int $conversationId, string $message, array $options = []): Generator
     {
-        throw new \BadMethodCallException('流式执行归 TASK-044 实现');
+        $tenantId = $this->resolveTenantId();
+        $agent = $this->loadAgent($agentId, $tenantId);
+
+        if ($agent === null) {
+            yield new StreamChunk(text: "Agent [{$agentId}] 不存在", finishReason: 'error');
+            return AgentResponse::fromArray([
+                'message' => "Agent [{$agentId}] 不存在",
+                'finish_reason' => 'error',
+                'error' => "Agent [{$agentId}] 不存在",
+                'agent_id' => $agentId,
+                'conversation_id' => $conversationId,
+            ]);
+        }
+
+        $maxToolCalls = $options['max_tool_calls'] ?? ($agent->model_config['max_tool_calls'] ?? 5);
+
+        // 保存用户消息
+        $this->saveMessage($conversationId, 'user', $message);
+
+        // 构建上下文与工具定义
+        $context = $this->buildContext($agent, $conversationId, $message);
+        $toolDefinitions = [];
+        if (! empty($agent->tools)) {
+            $toolDefinitions = $this->toolRegistry->getToolDefinitions($agent->tools);
+        }
+
+        $totalUsage = ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
+
+        return yield from $this->streamInner(
+            $context, $agent, $agentId, $conversationId, $tenantId, $message,
+            $toolDefinitions, $options, $maxToolCalls, 0, $totalUsage,
+        );
+    }
+
+    /**
+     * 流式推理递归核心
+     *
+     * 每次调用执行一轮 AI 推理 + 工具执行。若有工具调用，递归继续。
+     *
+     * @param  array  $context          当前消息上下文
+     * @param  Agent  $agent            Agent 实例
+     * @param  int    $agentId          Agent ID
+     * @param  int    $conversationId   会话 ID
+     * @param  int    $tenantId         租户 ID
+     * @param  string $message          原始用户消息（仅用于日志）
+     * @param  array  $toolDefinitions  工具定义
+     * @param  array  $options          调用选项
+     * @param  int    $maxToolCalls     最大工具调用次数
+     * @param  int    $loopCount        当前循环计数
+     * @param  array  $totalUsage       累计 token 用量
+     * @return \Generator<int, StreamChunk, mixed, AgentResponse>
+     */
+    private function streamInner(
+        array $context,
+        Agent $agent,
+        int $agentId,
+        int $conversationId,
+        int $tenantId,
+        string $message,
+        array $toolDefinitions,
+        array $options,
+        int $maxToolCalls,
+        int $loopCount,
+        array $totalUsage,
+    ): Generator {
+        $chatOptions = $this->buildChatOptions($agent, $toolDefinitions, $options);
+
+        // 累积 assistant 文本（Generator 局部变量在 yield 间保持状态）
+        $assistantContent = '';
+
+        /** @var StreamChunk $chunk */
+        foreach ($this->aiService->streamChat($context, $chatOptions) as $chunk) {
+            // 累积文本（在 yield 之前，确保状态更新）
+            $assistantContent .= $chunk->text;
+
+            // NOTE: 流式场景下 token 统计不可行——AiTextService.streamChat() 驱动层
+            // 未从 SSE 结束块提取 usage 数据，StreamChunk.usage 始终为空数组。
+            // $totalUsage 在当前架构下保持零值，属于已知限制。
+            // 若要支持流式 token 统计，需修改 StreamChunk + 驱动层（超出 TASK-044 范围）。
+
+            yield $chunk;
+
+            // 有工具调用 → 暂停流式，执行工具后递归继续
+            if ($chunk->hasToolCalls()) {
+                // 保存 assistant 消息（含 tool_calls）
+                $this->saveMessage($conversationId, 'assistant', $assistantContent, [
+                    'model' => '',
+                ], $chunk->toolCalls);
+
+                // 执行工具并收集结果（传入累积的 assistant 文本以保留上下文）
+                [$context, $allToolCalls] = $this->executeToolCalls(
+                    $chunk->toolCalls, $context, $conversationId, $agentId, $tenantId, $assistantContent,
+                );
+
+                $loopCount++;
+
+                if ($loopCount >= $maxToolCalls) {
+                    // 超过最大工具调用次数
+                    $this->saveMessage($conversationId, 'assistant', '工具调用次数已达上限，对话自动结束。');
+
+                    $this->monitor->logConversationTurn($conversationId, $agentId, [
+                        'message' => $message,
+                        'response' => '工具调用次数已达上限',
+                        'token_usage' => $totalUsage,
+                        'tool_calls' => $allToolCalls,
+                        'loop_count' => $loopCount,
+                    ]);
+
+                    yield new StreamChunk(
+                        text: "\n\n[工具调用次数已达上限]",
+                        finishReason: 'max_tool_calls',
+                    );
+
+                    return AgentResponse::fromArray([
+                        'message' => '工具调用次数已达上限，对话自动结束。',
+                        'tool_calls' => $allToolCalls,
+                        'token_usage' => $totalUsage,
+                        'finish_reason' => 'max_tool_calls',
+                        'agent_id' => $agentId,
+                        'conversation_id' => $conversationId,
+                    ]);
+                }
+
+                // 递归继续流式
+                return yield from $this->streamInner(
+                    $context, $agent, $agentId, $conversationId, $tenantId, $message,
+                    $toolDefinitions, $options, $maxToolCalls, $loopCount, $totalUsage,
+                );
+            }
+        }
+
+        // 正常结束（无工具调用）
+
+        // 保存 assistant 消息
+        $this->saveMessage($conversationId, 'assistant', $assistantContent, [
+            'model' => '',
+        ]);
+
+        // 记录会话轮次
+        $this->monitor->logConversationTurn($conversationId, $agentId, [
+            'message' => $message,
+            'response' => $assistantContent,
+            'token_usage' => $totalUsage,
+            'tool_calls' => [],
+            'loop_count' => $loopCount,
+        ]);
+
+        return AgentResponse::fromArray([
+            'message' => $assistantContent,
+            'tool_calls' => [],
+            'token_usage' => $totalUsage,
+            'finish_reason' => 'stop',
+            'agent_id' => $agentId,
+            'conversation_id' => $conversationId,
+            'model' => '',
+        ]);
+    }
+
+    /**
+     * 执行工具调用并返回更新后的上下文
+     *
+     * @param  array  $toolCalls        工具调用列表（OpenAI 格式）
+     * @param  array  $context          当前消息上下文
+     * @param  int    $conversationId   会话 ID
+     * @param  int    $agentId          Agent ID
+     * @param  int    $tenantId         租户 ID
+     * @param  string $assistantContent 助手累积文本（工具调用前的文本内容）
+     * @return array{0: array, 1: array} 更新后的上下文 + 工具调用列表
+     */
+    private function executeToolCalls(
+        array $toolCalls,
+        array $context,
+        int $conversationId,
+        int $agentId,
+        int $tenantId,
+        string $assistantContent = '',
+    ): array {
+        $allToolCalls = [];
+
+        // 将 assistant 消息加入上下文（消息已由 streamInner 保存）
+        $context[] = ['role' => 'assistant', 'content' => $assistantContent, 'tool_calls' => $toolCalls];
+
+        foreach ($toolCalls as $toolCall) {
+            $allToolCalls[] = $toolCall;
+            $toolName = $toolCall['function']['name'] ?? $toolCall['name'] ?? '';
+            $toolArguments = $toolCall['function']['arguments'] ?? $toolCall['arguments'] ?? [];
+
+            if (is_string($toolArguments)) {
+                $toolArguments = json_decode($toolArguments, true) ?? [];
+            }
+
+            $startTime = microtime(true);
+            $toolOutput = null;
+            $toolError = null;
+
+            try {
+                $toolOutput = $this->toolRegistry->execute($toolName, $toolArguments, $tenantId);
+            } catch (\Throwable $e) {
+                $toolError = $e->getMessage();
+                Log::warning('AgentRuntime: 工具执行失败', [
+                    'tool' => $toolName,
+                    'agent_id' => $agentId,
+                    'conversation_id' => $conversationId,
+                    'error' => $toolError,
+                ]);
+            }
+
+            $durationMs = (int) ((microtime(true) - $startTime) * 1000);
+
+            $this->monitor->logToolCall(
+                $conversationId,
+                $agentId,
+                $toolName,
+                $toolArguments,
+                $toolOutput,
+                $durationMs,
+                $toolError,
+            );
+
+            $toolResult = $toolError !== null
+                ? json_encode(['error' => $toolError])
+                : (is_string($toolOutput) ? $toolOutput : json_encode($toolOutput));
+
+            $this->saveMessage($conversationId, 'tool', $toolResult, [
+                'tool_name' => $toolName,
+            ]);
+
+            $toolContextMsg = [
+                'role' => 'tool',
+                'content' => $toolResult,
+                'name' => $toolName,
+            ];
+            $toolCallId = $toolCall['id'] ?? $toolCall['tool_call_id'] ?? null;
+            if ($toolCallId !== null) {
+                $toolContextMsg['tool_call_id'] = $toolCallId;
+            }
+            $context[] = $toolContextMsg;
+        }
+
+        return [$context, $allToolCalls];
     }
 
     /**

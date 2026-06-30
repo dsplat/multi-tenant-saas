@@ -23,8 +23,8 @@
     },
     "reviewer": {
       "name": "代码审查",
-      "cli_tool": "claude",
-      "model": "qwen3.7-plus",
+      "cli_tool": "opencode",
+      "model": "alibaba-cn/deepseek-v4-pro",
       "prompt_file": "prompts/review-prompt.md",
       "description": "代码审查（只检查和建议）",
       "timeout": 180

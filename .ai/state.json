@@ -81,8 +81,8 @@
     },
     {
       "id": "TASK-044",
-      "status": "READY",
-      "updated": "2026-06-30T00:09:25.703370",
+      "status": "TEST_FAILED",
+      "updated": "2026-06-30T12:23:38.956501",
       "title": "AgentRuntime — SSE 流式执行",
       "sprint": "sprint-agent"
     },

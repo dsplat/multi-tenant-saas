@@ -9,14 +9,16 @@ use MultiTenantSaas\Contracts\AgentRuntimeContract;
 use MultiTenantSaas\Contracts\AiTextServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
+use MultiTenantSaas\Events\ToolCallFailed;
 use MultiTenantSaas\Models\Agent;
 use MultiTenantSaas\Models\AgentConversation;
 use MultiTenantSaas\Models\AgentConversationMessage;
 use MultiTenantSaas\Services\Agent\Dto\AgentResponse;
+use MultiTenantSaas\Services\Ai\AiResponse;
 use MultiTenantSaas\Services\Ai\StreamChunk;
 
 /**
- * Agent 运行时 — ReAct 循环（非流式 + 流式）+ 记忆压缩
+ * Agent 运行时 — ReAct 循环（非流式 + 流式）+ 记忆压缩 + 降级容错
  *
  * 加载 Agent 配置 → 构建上下文（system_prompt+历史+新消息）→ 调用 AI 推理 →
  * 文本则返回 / tool_calls 则经 ToolRegistry 执行后追加结果 → 循环至 max_tool_calls。
@@ -27,7 +29,8 @@ use MultiTenantSaas\Services\Ai\StreamChunk;
  * 记忆压缩：run()/runStream() 入口自动触发 MemoryCompressor.compressMemory()，
  * getConversationContext() 应用 token 预算截断策略。
  *
- * 降级（归 TASK-046）不在本类实现。
+ * 降级容错：AI 驱动异常时自动切换 model_config.fallback_provider 重试；
+ * 工具执行失败将错误信息以 role=tool 返回给 AI 决策；流式中断返回已生成内容。
  */
 class AgentRuntime implements AgentRuntimeContract
 {
@@ -94,9 +97,33 @@ class AgentRuntime implements AgentRuntimeContract
         while ($loopCount < $maxToolCalls) {
             $loopCount++;
 
-            // 调用 AI 推理
+            // 调用 AI 推理（含降级容错）
             $chatOptions = $this->buildChatOptions($agent, $toolDefinitions, $options);
-            $aiResponse = $this->aiService->chat($context, $chatOptions);
+            $aiResponse = $this->chatWithFallback($context, $chatOptions, $agent, $conversationId, $agentId);
+
+            // AI 调用完全失败（主驱动 + fallback 均失败）
+            if ($aiResponse === null) {
+                $errorMsg = 'AI 服务暂时不可用，请稍后重试。';
+                $this->saveMessage($conversationId, 'assistant', $errorMsg);
+
+                $this->monitor->logConversationTurn($conversationId, $agentId, [
+                    'message' => $message,
+                    'response' => $errorMsg,
+                    'token_usage' => $totalUsage,
+                    'tool_calls' => $allToolCalls,
+                    'loop_count' => $loopCount,
+                ]);
+
+                return AgentResponse::fromArray([
+                    'message' => $errorMsg,
+                    'tool_calls' => $allToolCalls,
+                    'token_usage' => $totalUsage,
+                    'finish_reason' => 'error',
+                    'error' => 'AI 服务异常：主驱动与 fallback 均失败',
+                    'agent_id' => $agentId,
+                    'conversation_id' => $conversationId,
+                ]);
+            }
 
             // 累加 token 用量
             $totalUsage = $this->accumulateUsage($totalUsage, $aiResponse->usage);
@@ -146,61 +173,11 @@ class AgentRuntime implements AgentRuntimeContract
 
             // 执行每个工具调用
             foreach ($aiResponse->toolCalls as $toolCall) {
-                $toolName = $toolCall['function']['name'] ?? $toolCall['name'] ?? '';
-                $toolArguments = $toolCall['function']['arguments'] ?? $toolCall['arguments'] ?? [];
+                $allToolCalls[] = $toolCall;
 
-                if (is_string($toolArguments)) {
-                    $toolArguments = json_decode($toolArguments, true) ?? [];
-                }
-
-                $startTime = microtime(true);
-                $toolOutput = null;
-                $toolError = null;
-
-                try {
-                    $toolOutput = $this->toolRegistry->execute($toolName, $toolArguments, $tenantId);
-                } catch (\Throwable $e) {
-                    $toolError = $e->getMessage();
-                    Log::warning('AgentRuntime: 工具执行失败', [
-                        'tool' => $toolName,
-                        'agent_id' => $agentId,
-                        'conversation_id' => $conversationId,
-                        'error' => $toolError,
-                    ]);
-                }
-
-                $durationMs = (int) ((microtime(true) - $startTime) * 1000);
-
-                // 记录工具调用
-                $this->monitor->logToolCall(
-                    $conversationId,
-                    $agentId,
-                    $toolName,
-                    $toolArguments,
-                    $toolOutput,
-                    $durationMs,
-                    $toolError,
+                [$toolContextMsg] = $this->executeSingleToolCall(
+                    $toolCall, $conversationId, $agentId, $tenantId,
                 );
-
-                // 保存 tool 消息
-                $toolResult = $toolError !== null
-                    ? json_encode(['error' => $toolError])
-                    : (is_string($toolOutput) ? $toolOutput : json_encode($toolOutput));
-
-                $this->saveMessage($conversationId, 'tool', $toolResult, [
-                    'tool_name' => $toolName,
-                ]);
-
-                // 将工具结果加入上下文
-                $toolCallId = $toolCall['id'] ?? $toolCall['tool_call_id'] ?? null;
-                $toolContextMsg = [
-                    'role' => 'tool',
-                    'content' => $toolResult,
-                    'name' => $toolName,
-                ];
-                if ($toolCallId !== null) {
-                    $toolContextMsg['tool_call_id'] = $toolCallId;
-                }
                 $context[] = $toolContextMsg;
             }
         }
@@ -284,7 +261,30 @@ class AgentRuntime implements AgentRuntimeContract
         }
 
         $chatOptions = $this->buildChatOptions($agent, $toolDefinitions);
-        $aiResponse = $this->aiService->chat($context, $chatOptions);
+        $aiResponse = $this->chatWithFallback($context, $chatOptions, $agent, $conversationId, $agentId);
+
+        // AI 调用完全失败
+        if ($aiResponse === null) {
+            $errorMsg = 'AI 服务暂时不可用，请稍后重试。';
+            $this->saveMessage($conversationId, 'assistant', $errorMsg);
+
+            $this->monitor->logConversationTurn($conversationId, $agentId, [
+                'message' => '',
+                'response' => $errorMsg,
+                'token_usage' => [],
+                'tool_calls' => [],
+            ]);
+
+            return AgentResponse::fromArray([
+                'message' => $errorMsg,
+                'tool_calls' => [],
+                'token_usage' => [],
+                'finish_reason' => 'error',
+                'error' => 'AI 服务异常：主驱动与 fallback 均失败',
+                'agent_id' => $agentId,
+                'conversation_id' => $conversationId,
+            ]);
+        }
 
         // 保存 assistant 消息
         $this->saveMessage($conversationId, 'assistant', $aiResponse->content, [
@@ -486,65 +486,105 @@ class AgentRuntime implements AgentRuntimeContract
         // 累积 assistant 文本（Generator 局部变量在 yield 间保持状态）
         $assistantContent = '';
 
-        /** @var StreamChunk $chunk */
-        foreach ($this->aiService->streamChat($context, $chatOptions) as $chunk) {
-            // 累积文本（在 yield 之前，确保状态更新）
-            $assistantContent .= $chunk->text;
+        try {
+            // NOTE: 流式场景不使用 chatWithFallback 进行 provider 降级。
+            // streamChat() 返回 Generator，惰性序列无法在中途切换底层驱动实现。
+            // 流式 AI 驱动异常将被外层 try/catch 捕获为"流式中断"，返回已生成内容。
+            // 若需流式降级，需在驱动层实现（超出当前 TASK-046 范围）。
+            /** @var StreamChunk $chunk */
+            foreach ($this->aiService->streamChat($context, $chatOptions) as $chunk) {
+                // 累积文本（在 yield 之前，确保状态更新）
+                $assistantContent .= $chunk->text;
 
-            // NOTE: 流式场景下 token 统计不可行——AiTextService.streamChat() 驱动层
-            // 未从 SSE 结束块提取 usage 数据，StreamChunk.usage 始终为空数组。
-            // $totalUsage 在当前架构下保持零值，属于已知限制。
-            // 若要支持流式 token 统计，需修改 StreamChunk + 驱动层（超出 TASK-044 范围）。
+                // NOTE: 流式场景下 token 统计不可行——AiTextService.streamChat() 驱动层
+                // 未从 SSE 结束块提取 usage 数据，StreamChunk.usage 始终为空数组。
+                // $totalUsage 在当前架构下保持零值，属于已知限制。
+                // 若要支持流式 token 统计，需修改 StreamChunk + 驱动层（超出 TASK-044 范围）。
 
-            yield $chunk;
+                yield $chunk;
 
-            // 有工具调用 → 暂停流式，执行工具后递归继续
-            if ($chunk->hasToolCalls()) {
-                // 保存 assistant 消息（含 tool_calls）
-                $this->saveMessage($conversationId, 'assistant', $assistantContent, [
-                    'model' => '',
-                ], $chunk->toolCalls);
+                // 有工具调用 → 暂停流式，执行工具后递归继续
+                if ($chunk->hasToolCalls()) {
+                    // 保存 assistant 消息（含 tool_calls）
+                    $this->saveMessage($conversationId, 'assistant', $assistantContent, [
+                        'model' => '',
+                    ], $chunk->toolCalls);
 
-                // 执行工具并收集结果（传入累积的 assistant 文本以保留上下文）
-                [$context, $allToolCalls] = $this->executeToolCalls(
-                    $chunk->toolCalls, $context, $conversationId, $agentId, $tenantId, $assistantContent,
-                );
-
-                $loopCount++;
-
-                if ($loopCount >= $maxToolCalls) {
-                    // 超过最大工具调用次数
-                    $this->saveMessage($conversationId, 'assistant', '工具调用次数已达上限，对话自动结束。');
-
-                    $this->monitor->logConversationTurn($conversationId, $agentId, [
-                        'message' => $message,
-                        'response' => '工具调用次数已达上限',
-                        'token_usage' => $totalUsage,
-                        'tool_calls' => $allToolCalls,
-                        'loop_count' => $loopCount,
-                    ]);
-
-                    yield new StreamChunk(
-                        text: "\n\n[工具调用次数已达上限]",
-                        finishReason: 'max_tool_calls',
+                    // 执行工具并收集结果（传入累积的 assistant 文本以保留上下文）
+                    [$context, $allToolCalls] = $this->executeToolCalls(
+                        $chunk->toolCalls, $context, $conversationId, $agentId, $tenantId, $assistantContent,
                     );
 
-                    return AgentResponse::fromArray([
-                        'message' => '工具调用次数已达上限，对话自动结束。',
-                        'tool_calls' => $allToolCalls,
-                        'token_usage' => $totalUsage,
-                        'finish_reason' => 'max_tool_calls',
-                        'agent_id' => $agentId,
-                        'conversation_id' => $conversationId,
-                    ]);
-                }
+                    $loopCount++;
 
-                // 递归继续流式
-                return yield from $this->streamInner(
-                    $context, $agent, $agentId, $conversationId, $tenantId, $message,
-                    $toolDefinitions, $options, $maxToolCalls, $loopCount, $totalUsage,
-                );
+                    if ($loopCount >= $maxToolCalls) {
+                        // 超过最大工具调用次数
+                        $this->saveMessage($conversationId, 'assistant', '工具调用次数已达上限，对话自动结束。');
+
+                        $this->monitor->logConversationTurn($conversationId, $agentId, [
+                            'message' => $message,
+                            'response' => '工具调用次数已达上限',
+                            'token_usage' => $totalUsage,
+                            'tool_calls' => $allToolCalls,
+                            'loop_count' => $loopCount,
+                        ]);
+
+                        yield new StreamChunk(
+                            text: "\n\n[工具调用次数已达上限]",
+                            finishReason: 'max_tool_calls',
+                        );
+
+                        return AgentResponse::fromArray([
+                            'message' => '工具调用次数已达上限，对话自动结束。',
+                            'tool_calls' => $allToolCalls,
+                            'token_usage' => $totalUsage,
+                            'finish_reason' => 'max_tool_calls',
+                            'agent_id' => $agentId,
+                            'conversation_id' => $conversationId,
+                        ]);
+                    }
+
+                    // 递归继续流式
+                    return yield from $this->streamInner(
+                        $context, $agent, $agentId, $conversationId, $tenantId, $message,
+                        $toolDefinitions, $options, $maxToolCalls, $loopCount, $totalUsage,
+                    );
+                }
             }
+        } catch (\Throwable $e) {
+            // 流式中断（超时/网络错误/驱动异常）
+            Log::warning('AgentRuntime: 流式推理中断', [
+                'agent_id' => $agentId,
+                'conversation_id' => $conversationId,
+                'error' => $e->getMessage(),
+                'partial_content' => mb_strimwidth($assistantContent, 0, 200, '...'),
+            ]);
+
+            // 保存已累积的部分内容
+            if ($assistantContent !== '') {
+                $this->saveMessage($conversationId, 'assistant', $assistantContent, [
+                    'model' => '',
+                ]);
+            }
+
+            $timeoutMsg = $assistantContent !== ''
+                ? "\n\n[对话因超时或网络异常中断]"
+                : 'AI 服务暂时不可用，请稍后重试。';
+
+            yield new StreamChunk(
+                text: $timeoutMsg,
+                finishReason: 'error',
+            );
+
+            return AgentResponse::fromArray([
+                'message' => $assistantContent . $timeoutMsg,
+                'tool_calls' => [],
+                'token_usage' => $totalUsage,
+                'finish_reason' => 'error',
+                'error' => $e->getMessage(),
+                'agent_id' => $agentId,
+                'conversation_id' => $conversationId,
+            ]);
         }
 
         // 正常结束（无工具调用）
@@ -600,62 +640,99 @@ class AgentRuntime implements AgentRuntimeContract
 
         foreach ($toolCalls as $toolCall) {
             $allToolCalls[] = $toolCall;
-            $toolName = $toolCall['function']['name'] ?? $toolCall['name'] ?? '';
-            $toolArguments = $toolCall['function']['arguments'] ?? $toolCall['arguments'] ?? [];
 
-            if (is_string($toolArguments)) {
-                $toolArguments = json_decode($toolArguments, true) ?? [];
-            }
-
-            $startTime = microtime(true);
-            $toolOutput = null;
-            $toolError = null;
-
-            try {
-                $toolOutput = $this->toolRegistry->execute($toolName, $toolArguments, $tenantId);
-            } catch (\Throwable $e) {
-                $toolError = $e->getMessage();
-                Log::warning('AgentRuntime: 工具执行失败', [
-                    'tool' => $toolName,
-                    'agent_id' => $agentId,
-                    'conversation_id' => $conversationId,
-                    'error' => $toolError,
-                ]);
-            }
-
-            $durationMs = (int) ((microtime(true) - $startTime) * 1000);
-
-            $this->monitor->logToolCall(
-                $conversationId,
-                $agentId,
-                $toolName,
-                $toolArguments,
-                $toolOutput,
-                $durationMs,
-                $toolError,
+            [$toolContextMsg, $toolError] = $this->executeSingleToolCall(
+                $toolCall, $conversationId, $agentId, $tenantId,
             );
-
-            $toolResult = $toolError !== null
-                ? json_encode(['error' => $toolError])
-                : (is_string($toolOutput) ? $toolOutput : json_encode($toolOutput));
-
-            $this->saveMessage($conversationId, 'tool', $toolResult, [
-                'tool_name' => $toolName,
-            ]);
-
-            $toolContextMsg = [
-                'role' => 'tool',
-                'content' => $toolResult,
-                'name' => $toolName,
-            ];
-            $toolCallId = $toolCall['id'] ?? $toolCall['tool_call_id'] ?? null;
-            if ($toolCallId !== null) {
-                $toolContextMsg['tool_call_id'] = $toolCallId;
-            }
             $context[] = $toolContextMsg;
         }
 
         return [$context, $allToolCalls];
+    }
+
+    /**
+     * 执行单个工具调用（含错误处理、日志、事件派发、消息保存）
+     *
+     * 统一处理工具执行的完整生命周期，供 run() 和 executeToolCalls() 复用。
+     *
+     * @param  array  $toolCall        单个工具调用（OpenAI 格式）
+     * @param  int    $conversationId  会话 ID
+     * @param  int    $agentId         Agent ID
+     * @param  int    $tenantId        租户 ID
+     * @return array{0: array, 1: string|null} 工具上下文消息 + 错误信息（null 表示无错误）
+     */
+    private function executeSingleToolCall(
+        array $toolCall,
+        int $conversationId,
+        int $agentId,
+        int $tenantId,
+    ): array {
+        $toolName = $toolCall['function']['name'] ?? $toolCall['name'] ?? '';
+        $toolArguments = $toolCall['function']['arguments'] ?? $toolCall['arguments'] ?? [];
+
+        if (is_string($toolArguments)) {
+            $toolArguments = json_decode($toolArguments, true) ?? [];
+        }
+
+        $startTime = microtime(true);
+        $toolOutput = null;
+        $toolError = null;
+
+        try {
+            $toolOutput = $this->toolRegistry->execute($toolName, $toolArguments, $tenantId);
+
+            // ToolRegistry 返回结构化错误（处理器运行时异常已封装）
+            if (is_array($toolOutput) && ($toolOutput['error'] ?? false)) {
+                $toolError = $toolOutput['message'] ?? '工具执行失败';
+                $toolOutput = null;
+            }
+        } catch (\Throwable $e) {
+            // 基础设施错误（工具未注册/类不存在）
+            $toolError = $e->getMessage();
+        }
+
+        if ($toolError !== null) {
+            Log::warning('AgentRuntime: 工具执行失败', [
+                'tool' => $toolName,
+                'agent_id' => $agentId,
+                'conversation_id' => $conversationId,
+                'error' => $toolError,
+            ]);
+
+            ToolCallFailed::dispatch($tenantId, $agentId, $conversationId, $toolName, $toolError, $toolArguments);
+        }
+
+        $durationMs = (int) ((microtime(true) - $startTime) * 1000);
+
+        $this->monitor->logToolCall(
+            $conversationId,
+            $agentId,
+            $toolName,
+            $toolArguments,
+            $toolOutput,
+            $durationMs,
+            $toolError,
+        );
+
+        $toolResult = $toolError !== null
+            ? json_encode(['error' => $toolError])
+            : (is_string($toolOutput) ? $toolOutput : json_encode($toolOutput));
+
+        $this->saveMessage($conversationId, 'tool', $toolResult, [
+            'tool_name' => $toolName,
+        ]);
+
+        $toolContextMsg = [
+            'role' => 'tool',
+            'content' => $toolResult,
+            'name' => $toolName,
+        ];
+        $toolCallId = $toolCall['id'] ?? $toolCall['tool_call_id'] ?? null;
+        if ($toolCallId !== null) {
+            $toolContextMsg['tool_call_id'] = $toolCallId;
+        }
+
+        return [$toolContextMsg, $toolError];
     }
 
     /**
@@ -770,5 +847,83 @@ class AgentRuntime implements AgentRuntimeContract
             'metadata' => $metadata,
             'created_at' => now(),
         ]);
+    }
+
+    /**
+     * AI 调用（含降级容错）
+     *
+     * 先尝试主驱动，失败后检查 agent.model_config 中的 fallback_provider/fallback_model，
+     * 若配置了 fallback 则切换重试。全部失败返回 null。
+     *
+     * @param  array       $context      消息上下文
+     * @param  array       $chatOptions  主驱动调用选项
+     * @param  Agent       $agent        Agent 实例（读取 fallback 配置）
+     * @param  int         $conversationId  会话 ID（用于日志）
+     * @param  int         $agentId      Agent ID（用于日志）
+     * @return AiResponse|null  成功返回响应，全部失败返回 null
+     */
+    private function chatWithFallback(
+        array $context,
+        array $chatOptions,
+        Agent $agent,
+        int $conversationId,
+        int $agentId,
+    ): ?AiResponse {
+        // 尝试主驱动
+        try {
+            return $this->aiService->chat($context, $chatOptions);
+        } catch (\Throwable $primaryError) {
+            Log::warning('AgentRuntime: 主驱动 AI 调用失败', [
+                'agent_id' => $agentId,
+                'conversation_id' => $conversationId,
+                'provider' => $chatOptions['provider'] ?? 'unknown',
+                'model' => $chatOptions['model'] ?? 'unknown',
+                'error' => $primaryError->getMessage(),
+            ]);
+        }
+
+        // 检查 fallback 配置
+        $modelConfig = $agent->model_config ?? [];
+        $fallbackProvider = $modelConfig['fallback_provider'] ?? null;
+        $fallbackModel = $modelConfig['fallback_model'] ?? null;
+
+        if ($fallbackProvider === null && $fallbackModel === null) {
+            Log::warning('AgentRuntime: 无 fallback 配置，AI 调用完全失败', [
+                'agent_id' => $agentId,
+                'conversation_id' => $conversationId,
+            ]);
+            return null;
+        }
+
+        // 构建 fallback 选项
+        $fallbackOptions = $chatOptions;
+        if ($fallbackProvider !== null) {
+            $fallbackOptions['provider'] = $fallbackProvider;
+        }
+        if ($fallbackModel !== null) {
+            $fallbackOptions['model'] = $fallbackModel;
+        }
+
+        // 尝试 fallback 驱动
+        try {
+            Log::info('AgentRuntime: 切换 fallback 驱动', [
+                'agent_id' => $agentId,
+                'conversation_id' => $conversationId,
+                'fallback_provider' => $fallbackOptions['provider'] ?? 'unknown',
+                'fallback_model' => $fallbackOptions['model'] ?? 'unknown',
+            ]);
+
+            return $this->aiService->chat($context, $fallbackOptions);
+        } catch (\Throwable $fallbackError) {
+            Log::error('AgentRuntime: fallback 驱动也失败', [
+                'agent_id' => $agentId,
+                'conversation_id' => $conversationId,
+                'fallback_provider' => $fallbackOptions['provider'] ?? 'unknown',
+                'fallback_model' => $fallbackOptions['model'] ?? 'unknown',
+                'error' => $fallbackError->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 }

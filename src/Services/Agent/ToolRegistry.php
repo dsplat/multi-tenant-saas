@@ -109,12 +109,15 @@ class ToolRegistry implements ToolRegistryContract
      * 通过容器实例化 handler_class，校验 ToolHandlerContract 后调用 __invoke。
      * tenantId 显式传入，不依赖 TenantContext。
      *
+     * 运行时处理器异常被捕获并封装为结构化错误数组（而非抛出），
+     * 由调用方决定如何处理。仅基础设施错误（工具未注册/类不存在）抛出异常。
+     *
      * @param  string  $slug       工具标识
      * @param  array  $arguments   工具参数
      * @param  int  $tenantId      租户 ID
-     * @return mixed 工具执行结果
+     * @return mixed 工具执行结果；失败时返回 ['error' => true, 'message' => string, 'slug' => string]
      *
-     * @throws \RuntimeException 工具未注册或 handler 类不合法时抛出
+     * @throws \RuntimeException 工具未注册或 handler 类不存在时抛出
      */
     public function execute(string $slug, array $arguments, int $tenantId): mixed
     {
@@ -138,7 +141,16 @@ class ToolRegistry implements ToolRegistryContract
             );
         }
 
-        return $handler($arguments, $tenantId);
+        try {
+            return $handler($arguments, $tenantId);
+        } catch (\Throwable $e) {
+            // 运行时处理器异常封装为结构化错误，不中断 ReAct 循环
+            return [
+                'error' => true,
+                'message' => $e->getMessage(),
+                'slug' => $slug,
+            ];
+        }
     }
 
     /**

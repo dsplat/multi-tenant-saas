@@ -1,0 +1,15 @@
+{
+  "task_id": "TASK-046",
+  "git_diff_summary": ".ai/metrics.json                    | 178 +++++++++++++-\n .ai/review/TASK-046-review.md       |  60 +++++\n .ai/state.json                      |   4 +-\n src/Events/ToolCallFailed.php       |   4 +-\n src/Services/Agent/AgentRuntime.php | 465 ++++++++++++++++++++++++------------\n src/Services/Agent/ToolRegistry.php |  18 +-\n 6 files changed, 559 insertions(+), 170 deletions(-)",
+  "changed_files": [
+    ".ai/metrics.json",
+    ".ai/review/TASK-046-review.md",
+    ".ai/state.json",
+    "src/Events/ToolCallFailed.php",
+    "src/Services/Agent/AgentRuntime.php",
+    "src/Services/Agent/ToolRegistry.php"
+  ],
+  "review_notes": "## Review: TASK-046 错误处理与降级容错 (v3)\n\n---\n\n## Architecture\n**评价：良好**\n\n- 同 v2，架构清晰：`executeSingleToolCall()` 消除重复，`chatWithFallback()` 封装降级，`ToolRegistry::execute()` 封装运行时异常，分层合理。\n- 流式 fallback 缺失已通过注释明确说明技术限制，不阻塞。\n\n---\n\n## Code Quality\n**评价：良好**\n\n- ✅ v2 的【必须修复】1 — `$allToolCalls[] = $toolCall;` 已在 `run()` 方法中恢复，工具调用记录不再丢失。\n- ✅ v2 的【建议改进】1 — `run()` 中解构改为 `[$toolContextMsg]`，不再解构未使用的 `$toolError`。\n- ⚠️ `executeToolCalls()` 仍解构了 `$toolError` 但未使用，轻微代码异味（不影响功能）。\n\n---\n\n## Type Safety\n**评价：中上**\n\n- `exe",
+  "key_decisions": [],
+  "timestamp": ""
+}

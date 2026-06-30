@@ -95,15 +95,15 @@
     },
     {
       "id": "TASK-046",
-      "status": "READY",
-      "updated": "2026-06-30T00:09:25.704100",
+      "status": "DONE",
+      "updated": "2026-06-30T13:59:00.983160",
       "title": "错误处理与降级容错",
       "sprint": "sprint-agent"
     },
     {
       "id": "TASK-047",
-      "status": "READY",
-      "updated": "2026-06-30T00:09:25.704460",
+      "status": "DONE",
+      "updated": "2026-06-30T14:14:41.132626",
       "title": "AgentController（管理 API）",
       "sprint": "sprint-agent"
     },

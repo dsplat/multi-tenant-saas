@@ -1,0 +1,25 @@
+{
+  "task_id": "TASK-047",
+  "git_diff_summary": ".ai/context/TASK-046.json                          |  15 +\n .ai/metrics.json                                   | 341 ++++++++++++++-\n .ai/review/TASK-046-review.md                      |  60 +++\n .ai/review/TASK-047-review.md                      |  66 +++\n .ai/state.json                                     |   8 +-\n app/Http/Controllers/Api/AgentController.php       | 287 +++++++++++++\n app/Http/Requests/Agent/CloneTemplateRequest.php   |  30 ++\n app/Http/Requests/Agent/CreateAgentRequest.php     |  41 ++\n app/Http/Requests/Agent/UpdateAgentRequest.php     |  33 ++\n .../Requests/Agent/UpdateKnowledgeBasesRequest.php |  21 +\n .../Requests/Agent/UpdateModelConfigRequest.php    |  28 ++\n app/Http/Requests/Agent/UpdateToolsRequest.php     |  21 +\n app/Http/Resources/AgentResource.php               |  31 ++\n src/Events/ToolCallFailed.php                      |   4 +-\n src/Services/Agent/AgentRuntime.php                | 465 ++++++++++++++-------\n src/Services/Agent/ToolRegistry.php                |  18 +-\n 16 files changed, 1293 insertions(+), 176 deletions(-)",
+  "changed_files": [
+    ".ai/context/TASK-046.json",
+    ".ai/metrics.json",
+    ".ai/review/TASK-046-review.md",
+    ".ai/review/TASK-047-review.md",
+    ".ai/state.json",
+    "app/Http/Controllers/Api/AgentController.php",
+    "app/Http/Requests/Agent/CloneTemplateRequest.php",
+    "app/Http/Requests/Agent/CreateAgentRequest.php",
+    "app/Http/Requests/Agent/UpdateAgentRequest.php",
+    "app/Http/Requests/Agent/UpdateKnowledgeBasesRequest.php",
+    "app/Http/Requests/Agent/UpdateModelConfigRequest.php",
+    "app/Http/Requests/Agent/UpdateToolsRequest.php",
+    "app/Http/Resources/AgentResource.php",
+    "src/Events/ToolCallFailed.php",
+    "src/Services/Agent/AgentRuntime.php",
+    "src/Services/Agent/ToolRegistry.php"
+  ],
+  "review_notes": "## Review: TASK-047 AgentController（管理 API）(v3)\n\n---\n\n## Architecture\n**评价：良好**\n\n- ✅ v2 的 3 个【必须修复】全部解决：`show()` 显式校验 `tenant_id`，`tenant_id` 从 API 响应移除，`UpdateModelConfigRequest` 使用嵌套结构。\n- ✅ `handleServiceException()` 抽取了 6 个方法中重复的异常处理，控制器精简。\n- ✅ `CloneTemplateRequest` 取代内联校验，所有方法统一使用 FormRequest。\n- 租户隔离模式统一：所有方法要么显式传入 `tenantId`，要么在控制器层校验，不再依赖服务层隐性隔离。\n\n---\n\n## Code Quality\n**评价：良好**\n\n- ✅ `handleServiceException()` 消除了所有重复的 `ModelNotFoundException` catch 块。\n- ✅ `CloneTemplateRequest` 新建，校验逻辑从控制",
+  "key_decisions": [],
+  "timestamp": ""
+}

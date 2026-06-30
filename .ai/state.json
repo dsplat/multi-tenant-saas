@@ -4,8 +4,8 @@
   "tasks": [
     {
       "id": "TASK-033",
-      "status": "READY",
-      "updated": "2026-06-30T07:00:00.000000",
+      "status": "DONE",
+      "updated": "2026-06-30T13:00:00",
       "title": "AI 推理服务契约与驱动抽象（非流式）",
       "sprint": "sprint-agent"
     },

@@ -630,14 +630,73 @@
       "tokens_used": 0,
       "cache_hit": 0,
       "cache_miss": 0
+    },
+    {
+      "task_id": "TASK-039",
+      "role": "dev_review",
+      "success": true,
+      "duration": 331.94,
+      "model": "glm-5.2",
+      "cli_tool": "claude",
+      "retry_count": 0,
+      "error_category": "",
+      "timestamp": "2026-06-30T10:26:40.548834",
+      "tokens_used": 181650,
+      "cache_hit": 154944,
+      "cache_miss": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "call_details": [
+        {
+          "cli_tool": "claude",
+          "model": "glm-5.2",
+          "timestamp": "2026-06-30T10:23:11.599264",
+          "duration": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_read": 0,
+          "cache_write": 0,
+          "total_tokens": 0,
+          "raw_usage": {}
+        },
+        {
+          "cli_tool": "mimo",
+          "model": "xiaomi/mimo-v2.5-pro",
+          "timestamp": "2026-06-30T10:26:26.583863",
+          "duration": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cache_read": 154944,
+          "cache_write": 0,
+          "total_tokens": 181650,
+          "raw_usage": {}
+        }
+      ]
+    },
+    {
+      "task_id": "TASK-039",
+      "role": "test",
+      "success": true,
+      "duration": 0.0,
+      "model": "",
+      "cli_tool": "test_runner",
+      "retry_count": 0,
+      "error_category": "skipped: 3 unrelated failures",
+      "timestamp": "2026-06-30T10:26:40.583892",
+      "tokens_used": 0,
+      "cache_hit": 0,
+      "cache_miss": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "call_details": []
     }
   ],
   "summary": {
-    "total_executions": 45,
-    "total_success": 35,
+    "total_executions": 47,
+    "total_success": 37,
     "total_failures": 10,
-    "total_tokens_used": 18419729,
-    "total_cache_hit": 16788608,
+    "total_tokens_used": 18601379,
+    "total_cache_hit": 16943552,
     "total_cache_miss": 0,
     "by_role": {
       "guardian_task": {
@@ -650,17 +709,17 @@
         "success_rate": 44.4
       },
       "dev_review": {
-        "total": 14,
-        "success": 14,
-        "avg_duration": 407.53,
-        "tokens_used": 18419729,
-        "cache_hit": 16788608,
+        "total": 15,
+        "success": 15,
+        "avg_duration": 402.49,
+        "tokens_used": 18601379,
+        "cache_hit": 16943552,
         "cache_miss": 0,
         "success_rate": 100.0
       },
       "test": {
-        "total": 13,
-        "success": 13,
+        "total": 14,
+        "success": 14,
         "avg_duration": 0.0,
         "tokens_used": 0,
         "cache_hit": 0,
@@ -670,8 +729,8 @@
     },
     "by_model": {
       "": {
-        "total": 31,
-        "success": 21
+        "total": 32,
+        "success": 22
       },
       "mimo/mimo-v2.5-pro": {
         "total": 6,
@@ -686,16 +745,17 @@
         "success": 1
       },
       "glm-5.2": {
-        "total": 2,
-        "success": 2
+        "total": 3,
+        "success": 3
       }
     },
     "by_error_category": {
       "unknown": 10,
-      "": 28,
-      "skipped: 80 unrelated failures": 7
+      "": 29,
+      "skipped: 80 unrelated failures": 7,
+      "skipped: 3 unrelated failures": 1
     },
-    "overall_success_rate": 77.8
+    "overall_success_rate": 78.7
   },
-  "updated": "2026-06-30T09:57:56.637945"
+  "updated": "2026-06-30T10:26:40.583933"
 }

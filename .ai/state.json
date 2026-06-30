@@ -46,8 +46,8 @@
     },
     {
       "id": "TASK-039",
-      "status": "READY",
-      "updated": "2026-06-30T14:00:00",
+      "status": "DONE",
+      "updated": "2026-06-30T10:26:40.550525",
       "title": "ToolRegistry 实现",
       "sprint": "sprint-agent"
     },

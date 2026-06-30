@@ -700,7 +700,6 @@ abstract class TestCase extends BaseTestCase
         });
     }
 
-
     protected function tearDown(): void
     {
         \MultiTenantSaas\Context\TenantContext::clear();

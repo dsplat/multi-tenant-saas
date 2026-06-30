@@ -1,0 +1,26 @@
+{
+  "task_id": "TASK-054",
+  "git_diff_summary": ".ai/context/TASK-052.json                         |  17 +\n .ai/context/TASK-053.json                         |  27 +\n .ai/context/TASK-055.json                         |  26 +\n .ai/metrics.json                                  | 604 ++++++++++++-\n .ai/review/TASK-052-review.md                     |  79 ++\n .ai/review/TASK-053-review.md                     |  83 ++\n .ai/review/TASK-055-review.md                     |  84 ++\n .ai/state.json                                    |  17 +-\n .ai/tasks/TASK-055.md                             |  35 +\n CHANGELOG.md                                      |  38 +\n README.md                                         |  78 +-\n app/Http/Controllers/Api/AgentChatController.php  | 136 ++-\n app/Http/Controllers/Api/AgentController.php      | 257 +++++-\n app/Http/Controllers/Api/AgentStatsController.php | 110 ++-\n app/Http/Controllers/Api/ToolController.php       | 118 ++-\n src/TenancyServiceProvider.php                    |   2 +-\n tests/TestCase.php                                | 989 +++++++++++++++++-----\n 17 files changed, 2364 insertions(+), 336 deletions(-)",
+  "changed_files": [
+    ".ai/context/TASK-052.json",
+    ".ai/context/TASK-053.json",
+    ".ai/context/TASK-055.json",
+    ".ai/metrics.json",
+    ".ai/review/TASK-052-review.md",
+    ".ai/review/TASK-053-review.md",
+    ".ai/review/TASK-055-review.md",
+    ".ai/state.json",
+    ".ai/tasks/TASK-055.md",
+    "CHANGELOG.md",
+    "README.md",
+    "app/Http/Controllers/Api/AgentChatController.php",
+    "app/Http/Controllers/Api/AgentController.php",
+    "app/Http/Controllers/Api/AgentStatsController.php",
+    "app/Http/Controllers/Api/ToolController.php",
+    "src/TenancyServiceProvider.php",
+    "tests/TestCase.php"
+  ],
+  "review_notes": "",
+  "key_decisions": [],
+  "timestamp": ""
+}

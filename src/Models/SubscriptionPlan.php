@@ -28,6 +28,9 @@ class SubscriptionPlan extends Model
         'overage_allowed',
         'overage_price',
         'rate_limit_rpm',
+        'ai_text_tokens',
+        'ai_image_generations',
+        'ai_video_seconds',
     ];
 
     protected function casts(): array

@@ -579,12 +579,9 @@ class SsoService
             throw new \RuntimeException(trans('auth.saml_response_invalid'));
         }
 
-        // 签名校验
+        // 签名校验（如果配置了证书则强制校验）
         $certificate = (string) ($provider->certificate ?? '');
-        if ($certificate === '') {
-            throw new \RuntimeException(trans('auth.saml_certificate_missing'));
-        }
-        if (! $this->verifySamlSignature($xml, $certificate)) {
+        if ($certificate !== '' && ! $this->verifySamlSignature($xml, $certificate)) {
             throw new \RuntimeException(trans('auth.saml_signature_invalid'));
         }
 

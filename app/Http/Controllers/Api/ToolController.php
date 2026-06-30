@@ -14,17 +14,10 @@ use MultiTenantSaas\Models\AgentTool;
 use MultiTenantSaas\Scopes\TenantScope;
 
 /**
- * 工具管理 API（§6.4）
- *
- * 提供工具的列表、详情、注册、更新、删除端点。
- * 工具分两级：全局工具（tenant_id=0）和租户私有工具。
- *
- * 端点：
- *  GET    /api/v1/tools          所有可用工具
- *  GET    /api/v1/tools/{slug}   工具详情
- *  POST   /api/v1/tools          注册新工具
- *  PUT    /api/v1/tools/{slug}   更新工具
- *  DELETE /api/v1/tools/{slug}   删除工具
+ * @OA\Tag(
+ *     name="工具管理",
+ *     description="工具的列表、详情、注册、更新、删除。工具分两级：全局工具（tenant_id=0）和租户私有工具（§6.4）"
+ * )
  */
 class ToolController extends Controller
 {
@@ -34,9 +27,18 @@ class ToolController extends Controller
     ) {}
 
     /**
-     * 获取当前租户可用的所有工具（§6.4）
-     *
-     * 包含全局工具（tenant_id=0）和当前租户私有工具。
+     * @OA\Get(
+     *     path="/v1/tools",
+     *     summary="获取当前租户可用的所有工具",
+     *     description="包含全局工具（tenant_id=0）和当前租户私有工具。",
+     *     tags={"工具管理"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(response=200, description="工具列表", @OA\JsonContent(
+     *         @OA\Property(property="success", type="boolean", example=true),
+     *         @OA\Property(property="data", type="array", @OA\Items(type="object"))
+     *     )),
+     *     @OA\Response(response=401, description="未认证")
+     * )
      */
     public function index(Request $request): JsonResponse
     {
@@ -58,9 +60,20 @@ class ToolController extends Controller
     }
 
     /**
-     * 获取指定工具详情（§6.4）
-     *
-     * 按 slug 查询，返回当前租户可见的工具（全局或私有）。
+     * @OA\Get(
+     *     path="/v1/tools/{slug}",
+     *     summary="获取指定工具详情",
+     *     description="按 slug 查询，返回当前租户可见的工具（全局或私有）。",
+     *     tags={"工具管理"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="slug", in="path", required=true, description="工具 slug", @OA\Schema(type="string")),
+     *     @OA\Response(response=200, description="工具详情", @OA\JsonContent(
+     *         @OA\Property(property="success", type="boolean", example=true),
+     *         @OA\Property(property="data", type="object")
+     *     )),
+     *     @OA\Response(response=401, description="未认证"),
+     *     @OA\Response(response=404, description="工具不存在或不属于当前租户")
+     * )
      */
     public function show(Request $request, string $slug): JsonResponse
     {
@@ -88,9 +101,30 @@ class ToolController extends Controller
     }
 
     /**
-     * 注册新工具（§6.4）
-     *
-     * 同时写入数据库（持久化）和注册表（运行时可用）。
+     * @OA\Post(
+     *     path="/v1/tools",
+     *     summary="注册新工具",
+     *     description="同时写入数据库（持久化）和注册表（运行时可用）。",
+     *     tags={"工具管理"},
+     *     security={{"sanctum":{}}},
+     *     @OA\RequestBody(required=true, @OA\JsonContent(
+     *         required={"name","slug","description","parameters_schema","handler_class"},
+     *         @OA\Property(property="name", type="string", maxLength=100, example="订单查询工具"),
+     *         @OA\Property(property="slug", type="string", maxLength=100, example="order-search"),
+     *         @OA\Property(property="description", type="string", example="根据条件查询订单"),
+     *         @OA\Property(property="category", type="string", maxLength=50, nullable=true, example="ecommerce"),
+     *         @OA\Property(property="parameters_schema", type="object", description="JSON Schema 格式的参数定义"),
+     *         @OA\Property(property="handler_class", type="string", maxLength=255, example="App\\Handlers\\OrderSearchHandler"),
+     *         @OA\Property(property="enabled", type="boolean", nullable=true, default=true)
+     *     )),
+     *     @OA\Response(response=201, description="注册成功", @OA\JsonContent(
+     *         @OA\Property(property="success", type="boolean", example=true),
+     *         @OA\Property(property="message", type="string", example="工具注册成功"),
+     *         @OA\Property(property="data", type="object")
+     *     )),
+     *     @OA\Response(response=401, description="未认证"),
+     *     @OA\Response(response=422, description="参数校验失败")
+     * )
      */
     public function store(RegisterToolRequest $request): JsonResponse
     {
@@ -122,9 +156,30 @@ class ToolController extends Controller
     }
 
     /**
-     * 更新工具（§6.4）
-     *
-     * 仅允许更新当前租户私有的工具，全局工具不可修改。
+     * @OA\Put(
+     *     path="/v1/tools/{slug}",
+     *     summary="更新工具",
+     *     description="仅允许更新当前租户私有的工具，全局工具不可修改。",
+     *     tags={"工具管理"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="slug", in="path", required=true, description="工具 slug", @OA\Schema(type="string")),
+     *     @OA\RequestBody(@OA\JsonContent(
+     *         @OA\Property(property="name", type="string", maxLength=100),
+     *         @OA\Property(property="description", type="string"),
+     *         @OA\Property(property="category", type="string", maxLength=50, nullable=true),
+     *         @OA\Property(property="parameters_schema", type="object", nullable=true),
+     *         @OA\Property(property="handler_class", type="string", maxLength=255, nullable=true),
+     *         @OA\Property(property="enabled", type="boolean", nullable=true)
+     *     )),
+     *     @OA\Response(response=200, description="更新成功", @OA\JsonContent(
+     *         @OA\Property(property="success", type="boolean", example=true),
+     *         @OA\Property(property="message", type="string", example="工具更新成功"),
+     *         @OA\Property(property="data", type="object")
+     *     )),
+     *     @OA\Response(response=401, description="未认证"),
+     *     @OA\Response(response=404, description="工具不存在或不属于当前租户"),
+     *     @OA\Response(response=422, description="参数校验失败")
+     * )
      */
     public function update(UpdateToolRequest $request, string $slug): JsonResponse
     {
@@ -159,9 +214,20 @@ class ToolController extends Controller
     }
 
     /**
-     * 删除工具（§6.4）
-     *
-     * 仅允许删除当前租户私有的工具，全局工具不可删除。
+     * @OA\Delete(
+     *     path="/v1/tools/{slug}",
+     *     summary="删除工具",
+     *     description="仅允许删除当前租户私有的工具，全局工具不可删除。",
+     *     tags={"工具管理"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="slug", in="path", required=true, description="工具 slug", @OA\Schema(type="string")),
+     *     @OA\Response(response=200, description="删除成功", @OA\JsonContent(
+     *         @OA\Property(property="success", type="boolean", example=true),
+     *         @OA\Property(property="message", type="string", example="工具已删除")
+     *     )),
+     *     @OA\Response(response=401, description="未认证"),
+     *     @OA\Response(response=404, description="工具不存在或不属于当前租户")
+     * )
      */
     public function destroy(Request $request, string $slug): JsonResponse
     {

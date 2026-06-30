@@ -470,13 +470,30 @@ class AiUsageService
         try {
             $service = app($usageServiceClass);
             $tenantId = $this->tenantContext->resolveId();
-            $payload = array_merge([
-                'tenant_id' => $tenantId !== null ? (int) $tenantId : null,
-                'occurred_at' => now()->toDateTimeString(),
-            ], $record);
+            if ($tenantId === null) {
+                return;
+            }
+
+            $metric = match ($record['category'] ?? '') {
+                AiTenantConfig::CATEGORY_TEXT => 'ai_text_tokens',
+                AiTenantConfig::CATEGORY_IMAGE => 'ai_image_generations',
+                AiTenantConfig::CATEGORY_VIDEO => 'ai_video_seconds',
+                default => null,
+            };
+
+            if ($metric === null) {
+                return;
+            }
+
+            $value = match ($record['category'] ?? '') {
+                AiTenantConfig::CATEGORY_TEXT => (float) (($record['input_tokens'] ?? 0) + ($record['output_tokens'] ?? 0)),
+                AiTenantConfig::CATEGORY_IMAGE => (float) ($record['image_count'] ?? 0),
+                AiTenantConfig::CATEGORY_VIDEO => (float) ($record['video_seconds'] ?? 0),
+                default => 0.0,
+            };
 
             if (method_exists($service, 'record')) {
-                $service->record($payload);
+                $service->record((int) $tenantId, $metric, $value);
             }
         } catch (Throwable $e) {
             Log::warning('[AiUsageService] push to UsageService failed', [

@@ -12,16 +12,10 @@ use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Models\AgentToolLog;
 
 /**
- * Agent 监控 API（§6.3）
- *
- * 提供 Agent 的使用统计、Token 用量、成本估算、工具调用日志端点。
- * 所有操作强制租户隔离，tenant_id 从 TenantContext 解析（认证中间件设置）。
- *
- * 端点：
- *  GET  /api/v1/agents/{id}/stats       使用统计
- *  GET  /api/v1/agents/{id}/token-usage  Token 用量
- *  GET  /api/v1/agents/{id}/cost         成本估算
- *  GET  /api/v1/agents/{id}/tool-logs    工具调用日志
+ * @OA\Tag(
+ *     name="Agent 监控",
+ *     description="Agent 的使用统计、Token 用量、成本估算、工具调用日志（§6.3）"
+ * )
  */
 class AgentStatsController extends Controller
 {
@@ -32,12 +26,22 @@ class AgentStatsController extends Controller
     ) {}
 
     /**
-     * 获取 Agent 使用统计（§6.3）
-     *
-     * 返回指定时间范围内的会话数、工具调用数、平均响应时间、成功率等指标。
-     *
-     * @queryParam start_date string 开始日期（Y-m-d）
-     * @queryParam end_date   string 结束日期（Y-m-d）
+     * @OA\Get(
+     *     path="/v1/agents/{agentId}/stats",
+     *     summary="获取 Agent 使用统计",
+     *     description="返回指定时间范围内的会话数、工具调用数、平均响应时间、成功率等指标。",
+     *     tags={"Agent 监控"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="agentId", in="path", required=true, description="Agent ID", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="start_date", in="query", description="开始日期（Y-m-d）", @OA\Schema(type="string", format="date")),
+     *     @OA\Parameter(name="end_date", in="query", description="结束日期（Y-m-d）", @OA\Schema(type="string", format="date")),
+     *     @OA\Response(response=200, description="使用统计", @OA\JsonContent(
+     *         @OA\Property(property="success", type="boolean", example=true),
+     *         @OA\Property(property="data", type="object")
+     *     )),
+     *     @OA\Response(response=401, description="未认证"),
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
+     * )
      */
     public function stats(Request $request, int $agentId): JsonResponse
     {
@@ -55,12 +59,22 @@ class AgentStatsController extends Controller
     }
 
     /**
-     * 获取 Agent Token 用量统计（§6.3）
-     *
-     * 返回指定时间范围内的 prompt_tokens、completion_tokens、total_tokens 汇总。
-     *
-     * @queryParam start_date string 开始日期（Y-m-d）
-     * @queryParam end_date   string 结束日期（Y-m-d）
+     * @OA\Get(
+     *     path="/v1/agents/{agentId}/token-usage",
+     *     summary="获取 Agent Token 用量统计",
+     *     description="返回指定时间范围内的 prompt_tokens、completion_tokens、total_tokens 汇总。",
+     *     tags={"Agent 监控"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="agentId", in="path", required=true, description="Agent ID", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="start_date", in="query", description="开始日期（Y-m-d）", @OA\Schema(type="string", format="date")),
+     *     @OA\Parameter(name="end_date", in="query", description="结束日期（Y-m-d）", @OA\Schema(type="string", format="date")),
+     *     @OA\Response(response=200, description="Token 用量", @OA\JsonContent(
+     *         @OA\Property(property="success", type="boolean", example=true),
+     *         @OA\Property(property="data", type="object")
+     *     )),
+     *     @OA\Response(response=401, description="未认证"),
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
+     * )
      */
     public function tokenUsage(Request $request, int $agentId): JsonResponse
     {
@@ -78,12 +92,27 @@ class AgentStatsController extends Controller
     }
 
     /**
-     * 获取 Agent 成本估算（§6.3）
-     *
-     * 根据 Token 用量和模型定价估算指定时间范围内的成本。
-     *
-     * @queryParam start_date string 开始日期（Y-m-d）
-     * @queryParam end_date   string 结束日期（Y-m-d）
+     * @OA\Get(
+     *     path="/v1/agents/{agentId}/cost",
+     *     summary="获取 Agent 成本估算",
+     *     description="根据 Token 用量和模型定价估算指定时间范围内的成本。",
+     *     tags={"Agent 监控"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="agentId", in="path", required=true, description="Agent ID", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="start_date", in="query", description="开始日期（Y-m-d）", @OA\Schema(type="string", format="date")),
+     *     @OA\Parameter(name="end_date", in="query", description="结束日期（Y-m-d）", @OA\Schema(type="string", format="date")),
+     *     @OA\Response(response=200, description="成本估算", @OA\JsonContent(
+     *         @OA\Property(property="success", type="boolean", example=true),
+     *         @OA\Property(property="data", type="object",
+     *             @OA\Property(property="agent_id", type="integer"),
+     *             @OA\Property(property="start_date", type="string", format="date"),
+     *             @OA\Property(property="end_date", type="string", format="date"),
+     *             @OA\Property(property="estimated_cost", type="number")
+     *         )
+     *     )),
+     *     @OA\Response(response=401, description="未认证"),
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
+     * )
      */
     public function cost(Request $request, int $agentId): JsonResponse
     {
@@ -106,9 +135,28 @@ class AgentStatsController extends Controller
     }
 
     /**
-     * 获取 Agent 工具调用日志（§6.3）
-     *
-     * 返回分页的工具调用日志列表，按创建时间倒序排列。
+     * @OA\Get(
+     *     path="/v1/agents/{agentId}/tool-logs",
+     *     summary="获取 Agent 工具调用日志",
+     *     description="返回分页的工具调用日志列表，按创建时间倒序排列。",
+     *     tags={"Agent 监控"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="agentId", in="path", required=true, description="Agent ID", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="page", in="query", description="页码", @OA\Schema(type="integer", default=1)),
+     *     @OA\Parameter(name="per_page", in="query", description="每页数量（最大 100）", @OA\Schema(type="integer", default=20)),
+     *     @OA\Response(response=200, description="工具调用日志（分页）", @OA\JsonContent(
+     *         @OA\Property(property="success", type="boolean", example=true),
+     *         @OA\Property(property="data", type="array", @OA\Items(type="object")),
+     *         @OA\Property(property="meta", type="object",
+     *             @OA\Property(property="current_page", type="integer"),
+     *             @OA\Property(property="last_page", type="integer"),
+     *             @OA\Property(property="per_page", type="integer"),
+     *             @OA\Property(property="total", type="integer")
+     *         )
+     *     )),
+     *     @OA\Response(response=401, description="未认证"),
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
+     * )
      */
     public function toolLogs(Request $request, int $agentId): JsonResponse
     {

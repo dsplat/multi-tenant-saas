@@ -7,7 +7,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP Version](https://img.shields.io/badge/PHP-%5E8.2-777BB4)](https://php.net)
 [![Laravel Version](https://img.shields.io/badge/Laravel-%5E12.0-FF2D20)](https://laravel.com)
-[![Version](https://img.shields.io/badge/version-v1.1.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v1.2.0-blue)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-1495%20passed-brightgreen)](#)
 
 ---
 
@@ -155,6 +156,72 @@ Order::create(['name' => '新订单']);
 - **流式输出**：`streamChat` 支持 SSE 风格逐 chunk 输出
 - **Prompt 模板**：模板管理 + 变量渲染
 - **PHP SDK**：`AiResource` 一行调用文本/图像/视频/用量
+
+### 🤖 Agent Framework（智能体框架）
+
+- **Agent CRUD**：创建、更新、删除、启用/禁用，支持 8 种预置角色模板（客服/销售/营销/数据分析等）一键克隆
+- **工具注册与 Function Calling**：全局/租户私有工具双级管理，JSON Schema 定义参数，运行时动态注册与执行
+- **ReAct 运行时**：非流式 `run()` + SSE 流式 `runStream()`，支持多轮工具调用（受 `max_tool_calls` 限制自动总结）
+- **多轮对话记忆**：会话上下文自动管理，超阈值旧消息分批摘要压缩为单条 system 消息
+- **降级容错**：AI 驱动异常自动切换 `fallback_provider` 重试；工具执行失败以 `role=tool` 返回 AI 决策
+- **用量监控**：Token 用量统计、成本估算（按模型定价）、工具调用日志、性能指标
+- **多租户隔离**：所有 Agent/对话/工具/日志强制 `tenant_id` 隔离
+
+**快速开始：**
+
+```php
+use MultiTenantSaas\Contracts\AgentServiceContract;
+use MultiTenantSaas\Contracts\AgentRuntimeContract;
+
+// 创建 Agent
+$agentService = app(AgentServiceContract::class);
+$agent = $agentService->create([
+    'name' => '客服助手',
+    'role' => 'customer_service',
+    'system_prompt' => '你是一个专业的客服助手',
+    'model_config' => ['preferred_model' => 'gpt-4o-mini'],
+]);
+
+// 发起对话（非流式）
+$runtime = app(AgentRuntimeContract::class);
+$response = $runtime->run($agent->agent_id, $conversationId, '你好');
+echo $response->message;
+
+// 流式对话（SSE）
+foreach ($runtime->runStream($agent->agent_id, $conversationId, '你好') as $chunk) {
+    echo $chunk->text;
+}
+```
+
+**API 概览（27 个端点）：**
+
+| 分类 | 端点 | 说明 |
+|------|------|------|
+| Agent 管理（§6.1） | `GET/POST/PUT/DELETE /v1/agents` | CRUD + 启用/禁用/模板/克隆/配置 |
+| 对话 + SSE（§6.2） | `POST /v1/agents/{id}/chat` | 发起对话（SSE 流式） |
+| | `POST /v1/agents/{id}/chat/{cid}` | 追加消息（SSE 流式） |
+| | `GET /v1/agents/{id}/conversations` | 对话列表 |
+| | `GET/DELETE /v1/conversations/{id}` | 详情/删除 |
+| | `GET /v1/conversations/{id}/messages` | 消息列表 |
+| 监控（§6.3） | `GET /v1/agents/{id}/stats` | 使用统计 |
+| | `GET /v1/agents/{id}/token-usage` | Token 用量 |
+| | `GET /v1/agents/{id}/cost` | 成本估算 |
+| | `GET /v1/agents/{id}/tool-logs` | 工具调用日志 |
+| 工具管理（§6.4） | `GET/POST/PUT/DELETE /v1/tools` | 工具 CRUD |
+
+**配置项（`config/ai.php`）：**
+
+| 配置 | 说明 | 默认值 |
+|------|------|--------|
+| `ai.default_provider` | 默认 AI 提供商 | `openai` |
+| `ai.default_model` | 默认模型 | `gpt-4o-mini` |
+| `ai.providers.{name}.base_url` | 提供商 API 地址 | — |
+| `ai.providers.{name}.api_key` | API Key | — |
+| `ai.providers.{name}.models` | 可用模型列表 | — |
+| `model_config.temperature` | 采样温度 | `0.7` |
+| `model_config.max_tokens` | 最大输出 token | `4096` |
+| `model_config.max_tool_calls` | 单次对话最大工具调用次数 | `5` |
+| `model_config.fallback_provider` | 降级提供商 | — |
 
 ### 💲 计费体系
 
@@ -377,6 +444,11 @@ multi-tenant-saas/
 | | `SystemSettingService` | 系统配置 |
 | | `ExportService` | 导出任务 |
 | | `HealthService` | 健康检查 |
+| **Agent** | `AgentService` | Agent CRUD + 配置管理 |
+| | `AgentRuntime` | ReAct 运行时（非流式 + SSE 流式） |
+| | `AgentMonitor` | Agent 用量监控与成本估算 |
+| | `ToolRegistry` | 工具注册表（运行时 + 数据库双源） |
+| | `MemoryCompressor` | 会话记忆压缩 |
 | **高级** | `ApiVersionService` | API版本管理 |
 | | `PluginService` | 插件系统 |
 | | `RateLimitService` | 速率限制 |
@@ -407,6 +479,11 @@ multi-tenant-saas/
 | `NotificationPreference` | 通知偏好 |
 | `UserApiToken` | 用户API Token |
 | `SystemSetting` | 系统配置 |
+| `Agent` | AI 智能体 |
+| `AgentTool` | Agent 工具 |
+| `AgentConversation` | Agent 对话 |
+| `AgentConversationMessage` | 对话消息 |
+| `AgentToolLog` | 工具调用日志 |
 
 ### 模块
 

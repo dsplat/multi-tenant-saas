@@ -6,7 +6,27 @@ use App\Http\Controllers\Api\FileController;
 use App\Http\Controllers\Api\AgentController;
 use App\Http\Controllers\Api\AgentChatController;
 use App\Http\Controllers\Api\AgentStatsController;
+use App\Http\Controllers\Api\MfaController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\RbacController;
+use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\TenantAuditController;
+use App\Http\Controllers\Api\TenantController;
+use App\Http\Controllers\Api\TenantCreditController;
+use App\Http\Controllers\Api\TenantDomainController;
+use App\Http\Controllers\Api\TenantMemberController;
+use App\Http\Controllers\Api\TenantOAuthController;
+use App\Http\Controllers\Api\TenantOnboardingController;
+use App\Http\Controllers\Api\TenantPaymentController;
+use App\Http\Controllers\Api\TenantQuotaController;
+use App\Http\Controllers\Api\TenantSettingController;
+use App\Http\Controllers\Api\TenantSslController;
+use App\Http\Controllers\Api\TenantTokenController;
 use App\Http\Controllers\Api\ToolController;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
+use MultiTenantSaas\Services\BroadcastingService;
+use MultiTenantSaas\Services\InAppNotificationService;
 
 // ========== 认证 API（无需认证） ==========
 Route::prefix('v1/auth')->group(function () {
@@ -16,6 +36,14 @@ Route::prefix('v1/auth')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:3,1');
     Route::post('/verify-email', [AuthController::class, 'verifyEmail'])->middleware('throttle:5,1');
     Route::post('/resend-verification', [AuthController::class, 'resendVerification'])->middleware('throttle:3,1');
+});
+
+// ========== 租户引导注册 API（无需认证） ==========
+Route::prefix('v1/tenants')->group(function () {
+    Route::post('/register', [TenantOnboardingController::class, 'register'])->middleware('throttle:5,1');
+    Route::post('/onboarding/status', [TenantOnboardingController::class, 'status'])->middleware('throttle:10,1');
+    Route::post('/onboarding/complete', [TenantOnboardingController::class, 'complete'])->middleware('throttle:5,1');
+    Route::post('/onboarding/{step}', [TenantOnboardingController::class, 'saveStep'])->middleware('throttle:10,1');
 });
 
 // ========== 支付回调（无需认证，带 tenant_id 验签） ==========

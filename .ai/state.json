@@ -137,24 +137,29 @@
     },
     {
       "id": "TASK-052",
-      "status": "READY",
-      "updated": "2026-06-30T00:09:25.706182",
+      "status": "DONE",
+      "updated": "2026-06-30T17:25:21.309866",
       "title": "单元/集成测试 — AgentRuntime",
       "sprint": "sprint-agent"
     },
     {
       "id": "TASK-053",
-      "status": "READY",
-      "updated": "2026-06-30T00:09:25.706574",
+      "status": "DONE",
+      "updated": "2026-06-30T19:24:07.938536",
       "title": "Feature 测试 — HTTP API",
       "sprint": "sprint-agent"
     },
     {
       "id": "TASK-054",
-      "status": "READY",
-      "updated": "2026-06-30T00:09:25.707079",
+      "status": "DONE",
+      "updated": "2026-06-30T19:44:08.499759",
       "title": "文档与 Swagger 注解",
       "sprint": "sprint-agent"
+    },
+    {
+      "id": "TASK-055",
+      "status": "DONE",
+      "updated": "2026-06-30T18:53:34.128120"
     }
   ]
 }

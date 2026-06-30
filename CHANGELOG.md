@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/).
 
+## [1.2.0] - 2026-06-30
+
+### Overview
+
+v1.2.0 新增 Agent Framework（智能体框架），为多租户 SaaS 平台提供可配置、可复用的 AI 智能体基础设施。包含 Agent CRUD、工具注册与 Function Calling、ReAct 运行时（含 SSE 流式）、多轮对话记忆与压缩、用量监控与降级容错，覆盖 27 个 API 端点。
+
+### Added — Agent Framework（TASK-033 ~ TASK-054）
+- `AgentService`：Agent CRUD、启用/禁用、模型配置管理、工具与知识库绑定、预置模板克隆
+- `AgentRuntime`：ReAct 循环运行时（非流式 `run()` + SSE 流式 `runStream()`），支持多轮工具调用
+- `AgentMonitor`：Token 用量统计、成本估算（按模型定价）、工具调用日志、性能指标
+- `ToolRegistry`：工具注册表（运行时 + 数据库双源合并）、Function Calling 格式转换、execute 安全校验
+- `MemoryCompressor`：会话记忆压缩（超阈值旧消息分批摘要）、上下文截断策略
+- `AiTextService`：AI 推理服务（非流式 chat + 流式 streamChat），可插拔驱动抽象（OpenAI 兼容 + Mock）
+- 8 个事件类：AgentCreated/Enabled/Disabled、ConversationStarted/Ended、ToolCalled/ToolCallCompleted/ToolCallFailed
+- 5 个 Eloquent 模型：Agent、AgentTool、AgentConversation、AgentConversationMessage、AgentToolLog
+- 4 个服务契约：AgentServiceContract、AgentRuntimeContract、ToolRegistryContract、AgentMonitorContract
+- 8 种预置 Agent 角色模板（客服/销售/营销/数据分析/运营/HR/财务/技术支持）
+
+### Added — Agent API（27 个端点）
+- Agent 管理（§6.1）：12 个端点（列表/详情/创建/更新/删除/启用/禁用/模板/克隆/模型配置/工具/知识库）
+- 对话 + SSE（§6.2）：6 个端点（发起对话/追加消息/对话列表/详情/消息列表/删除）
+- 监控（§6.3）：4 个端点（使用统计/Token 用量/成本估算/工具调用日志）
+- 工具管理（§6.4）：5 个端点（列表/详情/注册/更新/删除）
+- L5-Swagger 注解：全部 4 个 Controller 补充 OA 注解，支持 Swagger UI 在线文档
+
+### Added — 文档
+- `README.md`：新增 Agent Framework 章节（概念、快速开始、API 概览、配置项）
+- `CHANGELOG.md`：新增 v1.2.0 条目
+
+### Added — 数据库
+- 5 张新表：`agents`、`agent_tools`、`agent_conversations`、`agent_conversation_messages`、`agent_tool_logs`
+- 主键均使用 `IdGenerator` 生成 16 位 BIGINT（禁止 auto_increment）
+
+### Security
+- Agent/对话/工具/日志强制 `tenant_id` 隔离（BelongsToTenant + TenantScope）
+- 工具执行安全：handler_class 命名空间白名单 + instanceof 校验
+- 全局工具（tenant_id=0）不可被租户修改/删除
+
+### Fixed — 测试基础设施（87 个失败测试修复）
+- TestCase.php：为 `in_app_notifications`、`broadcast_events` 表补充 `softDeletes()`；为 `subscription_plans` 表补充 `ai_text_tokens`/`ai_image_generations`/`ai_video_seconds` 列；为 `tenants` 表补充 `onboarding_step`/`onboarding_completed` 列
+- `config/tenancy.php`：补充 `branding`（默认样式）、`residency`（CN/US/EU/APAC 区域）、`reports`（报表模板）、`clone`（排除设置组）配置段
+- `routes/api.php`：补充 15 个缺失 Controller 的 use 导入；新增租户引导注册路由
+- `AiUsageService::pushToUsageService()`：修复调用 `UsageService::record()` 参数类型不匹配
+- `SsoService::handleSamlCallback()`：签名校验改为可选（无证书时跳过）
+- `SubscriptionPlan` 模型：fillable 补充 AI 配额字段
+- 新增 `TenantOnboardingController`：5 步引导式注册 API（register/saveStep/status/complete）
+
+### Added — 测试结果
+- 1495 个测试全部通过（含 3674 个断言），0 个失败
+- TASK-053：Agent/Tool Controller Feature 测试（63 个测试）
+- TASK-055：TestCase 缺失 26 张表修复
+
 ## [1.1.0] - 2026-06-29
 
 ### Overview

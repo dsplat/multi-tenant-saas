@@ -1,0 +1,27 @@
+{
+  "task_id": "TASK-053",
+  "git_diff_summary": ".ai/context/TASK-052.json          |  17 +\n .ai/context/TASK-055.json          |  26 +\n .ai/metrics.json                   | 517 ++++++++++++++++++-\n .ai/review/TASK-052-review.md      |  79 +++\n .ai/review/TASK-053-review.md      |  83 ++++\n .ai/review/TASK-055-review.md      |  84 ++++\n .ai/state.json                     |  13 +-\n .ai/tasks/TASK-055.md              |  35 ++\n src/TenancyServiceProvider.php     |   2 +-\n tests/AgentChatControllerTest.php  | 310 ++++++++++++\n tests/AgentControllerTest.php      | 250 ++++++++++\n tests/AgentFallbackTest.php        | 183 +++++++\n tests/AgentRuntimeStreamTest.php   | 179 +++++++\n tests/AgentRuntimeTest.php         | 225 +++++++++\n tests/AgentStatsControllerTest.php | 220 +++++++++\n tests/MemoryCompressorTest.php     | 153 ++++++\n tests/TestCase.php                 | 989 +++++++++++++++++++++++++++++--------\n tests/ToolControllerTest.php       | 244 +++++++++\n 18 files changed, 3383 insertions(+), 226 deletions(-)",
+  "changed_files": [
+    ".ai/context/TASK-052.json",
+    ".ai/context/TASK-055.json",
+    ".ai/metrics.json",
+    ".ai/review/TASK-052-review.md",
+    ".ai/review/TASK-053-review.md",
+    ".ai/review/TASK-055-review.md",
+    ".ai/state.json",
+    ".ai/tasks/TASK-055.md",
+    "src/TenancyServiceProvider.php",
+    "tests/AgentChatControllerTest.php",
+    "tests/AgentControllerTest.php",
+    "tests/AgentFallbackTest.php",
+    "tests/AgentRuntimeStreamTest.php",
+    "tests/AgentRuntimeTest.php",
+    "tests/AgentStatsControllerTest.php",
+    "tests/MemoryCompressorTest.php",
+    "tests/TestCase.php",
+    "tests/ToolControllerTest.php"
+  ],
+  "review_notes": "",
+  "key_decisions": [],
+  "timestamp": ""
+}

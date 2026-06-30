@@ -155,4 +155,63 @@ return [
         'default_from_name' => env('MAIL_FROM_NAME', 'Tenant SaaS'),
         'cache_ttl' => 3600,
     ],
+
+    // 品牌配置
+    'branding' => [
+        'default_primary_color' => env('BRANDING_PRIMARY_COLOR', '#1890ff'),
+        'default_secondary_color' => env('BRANDING_SECONDARY_COLOR', '#666666'),
+        'default_login_page_style' => env('BRANDING_LOGIN_STYLE', 'default'),
+        'default_email_template' => env('BRANDING_EMAIL_TEMPLATE', 'default'),
+        'custom_domain_enabled' => (bool) env('BRANDING_CUSTOM_DOMAIN_ENABLED', true),
+        'logo_mime_types' => ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'],
+        'logo_max_size' => (int) env('BRANDING_LOGO_MAX_SIZE', 2097152),
+    ],
+
+    // 数据驻留配置
+    'residency' => [
+        // 默认区域
+        'default_region' => env('RESIDENCY_DEFAULT_REGION', 'CN'),
+        // 合规强制开关
+        'compliance_enforced' => (bool) env('RESIDENCY_COMPLIANCE_ENFORCED', true),
+        // 跨区域迁移开关
+        'cross_region_migration_enabled' => (bool) env('RESIDENCY_CROSS_REGION_MIGRATION', true),
+        // 驻留配置 TenantSetting group 名
+        'settings_group' => env('RESIDENCY_SETTINGS_GROUP', 'residency'),
+        // 可用区域
+        'regions' => [
+            'CN' => ['name' => '中国大陆', 'storage_disk' => 'local'],
+            'US' => ['name' => '美国', 'storage_disk' => 's3-us'],
+            'EU' => ['name' => '欧盟', 'storage_disk' => 's3-eu'],
+            'APAC' => ['name' => '亚太', 'storage_disk' => 's3-apac'],
+        ],
+        // 套餐允许的区域
+        'plan_allowed_regions' => [
+            'free' => ['CN'],
+            'basic' => ['CN', 'US'],
+            'pro' => ['CN', 'US', 'EU', 'APAC'],
+            'enterprise' => ['CN', 'US', 'EU', 'APAC'],
+        ],
+    ],
+
+    // 租户克隆配置
+    'clone' => [
+        // 排除的设置组（敏感信息不复制）
+        'excluded_setting_groups' => ['secrets'],
+    ],
+
+    // 报表模板配置
+    'reports' => [
+        'templates' => [
+            'errors_summary' => [
+                'metrics_config' => ['error_count', 'error_rate'],
+                'dimensions' => ['date', 'error_type'],
+                'format' => 'csv',
+            ],
+            'usage_summary' => [
+                'metrics_config' => ['api_calls', 'tokens_used'],
+                'dimensions' => ['date', 'tenant_id'],
+                'format' => 'csv',
+            ],
+        ],
+    ],
 ];

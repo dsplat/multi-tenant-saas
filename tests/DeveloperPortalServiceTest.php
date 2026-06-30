@@ -2,9 +2,9 @@
 
 namespace MultiTenantSaas\Tests;
 
-use Illuminate\Queue\CallQueuedClosure;
 use Illuminate\Support\Facades\Queue;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Jobs\CleanupSandboxJob;
 use MultiTenantSaas\Models\SandboxEnvironment;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
@@ -414,7 +414,7 @@ class DeveloperPortalServiceTest extends TestCase
 
         $this->sandboxService->scheduleCleanup($result['sandbox']->sandbox_environment_id, 60);
 
-        Queue::assertPushed(CallQueuedClosure::class);
+        Queue::assertPushed(CleanupSandboxJob::class);
     }
 
     public function test_sandbox_create_writes_audit_log(): void

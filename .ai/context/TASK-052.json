@@ -1,0 +1,17 @@
+{
+  "task_id": "TASK-052",
+  "git_diff_summary": ".ai/metrics.json                 | 110 +++++++++++++++----\n .ai/state.json                   |   4 +-\n src/TenancyServiceProvider.php   |   2 +-\n tests/AgentFallbackTest.php      | 183 +++++++++++++++++++++++++++++++\n tests/AgentRuntimeStreamTest.php | 179 +++++++++++++++++++++++++++++++\n tests/AgentRuntimeTest.php       | 225 +++++++++++++++++++++++++++++++++++++++\n tests/MemoryCompressorTest.php   | 153 ++++++++++++++++++++++++++\n tests/TestCase.php               |  52 +++++++++\n 8 files changed, 885 insertions(+), 23 deletions(-)",
+  "changed_files": [
+    ".ai/metrics.json",
+    ".ai/state.json",
+    "src/TenancyServiceProvider.php",
+    "tests/AgentFallbackTest.php",
+    "tests/AgentRuntimeStreamTest.php",
+    "tests/AgentRuntimeTest.php",
+    "tests/MemoryCompressorTest.php",
+    "tests/TestCase.php"
+  ],
+  "review_notes": "",
+  "key_decisions": [],
+  "timestamp": ""
+}

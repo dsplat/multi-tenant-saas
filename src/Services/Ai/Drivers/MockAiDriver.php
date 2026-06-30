@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Services\Ai\Drivers;
 
 use MultiTenantSaas\Services\Ai\AiResponse;
+use MultiTenantSaas\Services\Ai\StreamChunk;
 
 /**
  * Mock AI 驱动（供本地 / 测试使用）
@@ -19,6 +20,8 @@ use MultiTenantSaas\Services\Ai\AiResponse;
  *
  * 脚本耗尽后重复返回最后一条响应；脚本为空时返回空响应
  * （finish_reason 为 'stop'），保证调用链不中断。
+ *
+ * streamChat 同样消费脚本队列，将响应拆解为字符级文本块与结束块。
  */
 class MockAiDriver implements AiDriverContract
 {
@@ -79,6 +82,29 @@ class MockAiDriver implements AiDriverContract
     public function complete(string $prompt, array $options = []): AiResponse
     {
         return $this->nextResponse();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * 将脚本中下一条 AiResponse 拆解为流式块：
+     *  - content 按字符（多字节安全）逐块 yield 为 text
+     *  - 随后 yield 结束块，携带 toolCalls 与 finishReason
+     */
+    public function streamChat(array $messages, array $options = []): \Generator
+    {
+        $response = $this->nextResponse();
+
+        if ($response->content !== '') {
+            foreach (mb_str_split($response->content, 1, 'UTF-8') as $char) {
+                yield new StreamChunk(text: $char);
+            }
+        }
+
+        yield new StreamChunk(
+            toolCalls: $response->toolCalls,
+            finishReason: $response->finishReason !== '' ? $response->finishReason : 'stop',
+        );
     }
 
     /**

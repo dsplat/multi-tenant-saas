@@ -11,7 +11,7 @@ use MultiTenantSaas\Services\Ai\Drivers\AiDriverContract;
  * 编排层：根据 config/ai.php 选择驱动并委托执行，封装失败重试。
  * 通过 AiDriverContract 与具体后端解耦；支持运行时注入驱动实例（供测试注入 Mock 驱动）。
  *
- * 仅实现非流式接口；流式接口归 TASK-034。
+ * 实现非流式接口（chat / complete）与流式接口（streamChat）；流式委托驱动产出 StreamChunk。
  */
 class AiTextService implements AiTextServiceContract
 {
@@ -54,6 +54,25 @@ class AiTextService implements AiTextServiceContract
         unset($options['driver']);
 
         return $this->retry(fn () => $driver->complete($prompt, $options));
+    }
+
+    /**
+     * 流式对话补全
+     *
+     * 解析驱动后委托 driver->streamChat，逐块产出 StreamChunk。
+     * 流式调用不走重试：Generator 为惰性序列，HTTP 请求在迭代时才发起，
+     * 且中途失败重试会导致重复输出，故直接委托。
+     *
+     * @param  array  $messages  OpenAI 消息结构
+     * @param  array  $options  同 chat() 的 $options
+     * @return \Generator<int, StreamChunk, mixed, void>
+     */
+    public function streamChat(array $messages, array $options = []): \Generator
+    {
+        $driver = $this->driver($options['driver'] ?? null);
+        unset($options['driver']);
+
+        yield from $driver->streamChat($messages, $options);
     }
 
     /**

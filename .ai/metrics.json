@@ -490,14 +490,42 @@
       "tokens_used": 0,
       "cache_hit": 0,
       "cache_miss": 0
+    },
+    {
+      "task_id": "TASK-034",
+      "role": "dev_review",
+      "success": true,
+      "duration": 645.37,
+      "model": "bailian/glm-5.2",
+      "cli_tool": "opencode",
+      "retry_count": 0,
+      "error_category": "",
+      "timestamp": "2026-06-30T08:20:41.801563",
+      "tokens_used": 741570,
+      "cache_hit": 575488,
+      "cache_miss": 0
+    },
+    {
+      "task_id": "TASK-034",
+      "role": "test",
+      "success": true,
+      "duration": 0.0,
+      "model": "",
+      "cli_tool": "test_runner",
+      "retry_count": 0,
+      "error_category": "skipped: 80 unrelated failures",
+      "timestamp": "2026-06-30T08:20:41.842110",
+      "tokens_used": 0,
+      "cache_hit": 0,
+      "cache_miss": 0
     }
   ],
   "summary": {
-    "total_executions": 35,
-    "total_success": 25,
+    "total_executions": 37,
+    "total_success": 27,
     "total_failures": 10,
-    "total_tokens_used": 14328594,
-    "total_cache_hit": 13255616,
+    "total_tokens_used": 15070164,
+    "total_cache_hit": 13831104,
     "total_cache_miss": 0,
     "by_role": {
       "guardian_task": {
@@ -510,17 +538,17 @@
         "success_rate": 44.4
       },
       "dev_review": {
-        "total": 9,
-        "success": 9,
-        "avg_duration": 351.97,
-        "tokens_used": 14328594,
-        "cache_hit": 13255616,
+        "total": 10,
+        "success": 10,
+        "avg_duration": 381.31,
+        "tokens_used": 15070164,
+        "cache_hit": 13831104,
         "cache_miss": 0,
         "success_rate": 100.0
       },
       "test": {
-        "total": 8,
-        "success": 8,
+        "total": 9,
+        "success": 9,
         "avg_duration": 0.0,
         "tokens_used": 0,
         "cache_hit": 0,
@@ -530,24 +558,24 @@
     },
     "by_model": {
       "": {
-        "total": 26,
-        "success": 16
+        "total": 27,
+        "success": 17
       },
       "mimo/mimo-v2.5-pro": {
         "total": 6,
         "success": 6
       },
       "bailian/glm-5.2": {
-        "total": 3,
-        "success": 3
+        "total": 4,
+        "success": 4
       }
     },
     "by_error_category": {
       "unknown": 10,
-      "": 23,
-      "skipped: 80 unrelated failures": 2
+      "": 24,
+      "skipped: 80 unrelated failures": 3
     },
-    "overall_success_rate": 71.4
+    "overall_success_rate": 73.0
   },
-  "updated": "2026-06-30T08:03:15.856329"
+  "updated": "2026-06-30T08:20:41.842142"
 }

@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Contracts;
 
 use MultiTenantSaas\Services\Ai\AiResponse;
 use MultiTenantSaas\Services\Ai\Drivers\AiDriverContract;
+use MultiTenantSaas\Services\Ai\StreamChunk;
 
 /**
  * AI 文本推理服务接口契约
@@ -12,7 +13,7 @@ use MultiTenantSaas\Services\Ai\Drivers\AiDriverContract;
  * 实现类 AiTextService 负责驱动选择、重试编排，并通过 AiDriverContract
  * 委托具体后端执行。
  *
- * 仅定义非流式接口；流式接口归 TASK-034。
+ * 含非流式接口（chat / complete）与流式接口（streamChat）；流式产出 StreamChunk。
  */
 interface AiTextServiceContract
 {
@@ -39,6 +40,18 @@ interface AiTextServiceContract
      * @param  array  $options  同 chat() 的 $options（不含 messages）
      */
     public function complete(string $prompt, array $options = []): AiResponse;
+
+    /**
+     * 对话补全（流式）
+     *
+     * 逐块产出 StreamChunk，供上层流式消费。驱动选择与 options 处理同 chat()。
+     * 流式调用不走重试（避免中途重试产生重复输出）。
+     *
+     * @param  array  $messages  OpenAI 消息结构
+     * @param  array  $options  同 chat() 的 $options
+     * @return \Generator<int, StreamChunk, mixed, void>
+     */
+    public function streamChat(array $messages, array $options = []): \Generator;
 
     /**
      * 解析 / 获取驱动实例

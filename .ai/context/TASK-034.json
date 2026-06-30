@@ -1,9 +1,15 @@
 {
   "task_id": "TASK-034",
-  "git_diff_summary": ".ai/metrics.json | 42 ++++++++++++++++++++++++++++--------------\n .ai/state.json   |  6 +++---\n 2 files changed, 31 insertions(+), 17 deletions(-)",
+  "git_diff_summary": ".ai/metrics.json                                   |  42 +++--\n .ai/state.json                                     |   6 +-\n src/Contracts/AiTextServiceContract.php            |  15 +-\n src/Services/Ai/AiTextService.php                  |  21 ++-\n src/Services/Ai/Drivers/AiDriverContract.php       |  17 +-\n src/Services/Ai/Drivers/MockAiDriver.php           |  26 +++\n src/Services/Ai/Drivers/OpenAiCompatibleDriver.php | 208 ++++++++++++++++++++-\n src/Services/Ai/StreamChunk.php                    |  40 ++++\n 8 files changed, 354 insertions(+), 21 deletions(-)",
   "changed_files": [
     ".ai/metrics.json",
-    ".ai/state.json"
+    ".ai/state.json",
+    "src/Contracts/AiTextServiceContract.php",
+    "src/Services/Ai/AiTextService.php",
+    "src/Services/Ai/Drivers/AiDriverContract.php",
+    "src/Services/Ai/Drivers/MockAiDriver.php",
+    "src/Services/Ai/Drivers/OpenAiCompatibleDriver.php",
+    "src/Services/Ai/StreamChunk.php"
   ],
   "review_notes": "",
   "key_decisions": [],

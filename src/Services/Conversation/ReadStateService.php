@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Services\Conversation;
 
 use Illuminate\Support\Collection;
-use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Concerns\EnsuresTenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Models\Participant;
 use MultiTenantSaas\Models\ReadState;
@@ -17,6 +17,8 @@ use MultiTenantSaas\Models\ReadState;
  */
 class ReadStateService
 {
+    use EnsuresTenantContext;
+
     public function __construct(
         protected IdGeneratorContract $idGenerator,
     ) {}
@@ -26,7 +28,7 @@ class ReadStateService
      */
     public function markRead(int $tenantId, string $conversationId, int $userId, string $messageId): ReadState
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         return ReadState::updateOrCreate(
             [
@@ -47,7 +49,7 @@ class ReadStateService
      */
     public function getReadState(int $tenantId, string $conversationId, int $userId): ?ReadState
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         /** @var ReadState|null $state */
         $state = ReadState::where('conversation_id', $conversationId)
@@ -63,6 +65,8 @@ class ReadStateService
      */
     public function getUnreadCount(int $tenantId, string $conversationId, int $userId): int
     {
+        $this->ensureTenantContext($tenantId);
+
         $state = $this->getReadState($tenantId, $conversationId, $userId);
 
         return $state?->unread_count ?? 0;
@@ -76,7 +80,7 @@ class ReadStateService
      */
     public function incrementUnreadForOthers(int $tenantId, string $conversationId, int $senderId): int
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         $participantUserIds = Participant::where('conversation_id', $conversationId)
             ->where('tenant_id', $tenantId)
@@ -122,7 +126,7 @@ class ReadStateService
      */
     public function getUnreadCountsForUser(int $tenantId, int $userId): Collection
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         return ReadState::where('user_id', $userId)
             ->where('tenant_id', $tenantId)
@@ -136,7 +140,7 @@ class ReadStateService
      */
     public function resetUnreadForConversation(int $tenantId, string $conversationId): int
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         return ReadState::where('conversation_id', $conversationId)
             ->where('tenant_id', $tenantId)

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Tests\Conversation;
 
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Exceptions\PermissionDeniedException;
 use MultiTenantSaas\Models\Conversation;
 use MultiTenantSaas\Models\Mention;
 use MultiTenantSaas\Models\Message;
@@ -196,5 +197,14 @@ class MentionServiceTest extends TestCase
 
         $this->assertSame(2, $affected);
         $this->assertSame(0, Mention::where('user_id', $this->userA)->where('is_notified', false)->count());
+    }
+
+    public function test_cross_tenant_access_is_blocked_by_context_guard(): void
+    {
+        // setUp 已将上下文设为当前已认证租户（1001）
+        $this->expectException(PermissionDeniedException::class);
+
+        // 以另一个租户ID调用应被守卫拦截（fail-closed），不触达任何跨租户数据
+        $this->service->createMentions(99999, $this->messageId, [$this->userA]);
     }
 }

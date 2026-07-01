@@ -5,21 +5,24 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Services\Conversation;
 
 use Illuminate\Support\Collection;
-use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Concerns\EnsuresTenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Models\ConversationSession;
 
 /**
- * 会话会话服务
+ * 会话连接服务
  *
- * 管理用户在会话中的连接会话（conversation_sessions 表）：
+ * 管理用户在会话中的实时连接会话（conversation_sessions 表）：
  * 连接、断开、活跃心跳更新、空闲清理。
  *
  * 注意：本服务操作的是「会话内的实时连接会话」，与
- * MultiTenantSaas\Services\SessionService（用户登录会话 user_sessions）职责不同。
+ * MultiTenantSaas\Services\SessionService（用户登录会话 user_sessions）职责不同，
+ * 两者操作不同的数据表，不存在功能重叠。
  */
 class SessionService
 {
+    use EnsuresTenantContext;
+
     /** 会话状态：活跃 */
     public const STATUS_ACTIVE = 'active';
 
@@ -41,7 +44,7 @@ class SessionService
      */
     public function connect(int $tenantId, string $conversationId, int $userId): ConversationSession
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         $existing = ConversationSession::where('conversation_id', $conversationId)
             ->where('user_id', $userId)
@@ -80,7 +83,7 @@ class SessionService
      */
     public function disconnect(int $tenantId, string $sessionId): bool
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         return ConversationSession::where('session_id', $sessionId)
             ->where('tenant_id', $tenantId)
@@ -96,7 +99,7 @@ class SessionService
      */
     public function updateActivity(int $tenantId, string $sessionId): bool
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         return ConversationSession::where('session_id', $sessionId)
             ->where('tenant_id', $tenantId)
@@ -111,7 +114,7 @@ class SessionService
      */
     public function getActiveSessions(int $tenantId, string $conversationId): Collection
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         return ConversationSession::where('conversation_id', $conversationId)
             ->where('tenant_id', $tenantId)
@@ -125,7 +128,7 @@ class SessionService
      */
     public function getUserSession(int $tenantId, string $conversationId, int $userId): ?ConversationSession
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         /** @var ConversationSession|null $session */
         $session = ConversationSession::where('conversation_id', $conversationId)
@@ -144,7 +147,7 @@ class SessionService
      */
     public function markIdleSessions(int $tenantId, string $conversationId, int $idleMinutes = 5): int
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         $threshold = now()->subMinutes($idleMinutes);
 

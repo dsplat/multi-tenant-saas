@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Services\Conversation;
 
 use Illuminate\Support\Collection;
-use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Concerns\EnsuresTenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Models\Mention;
 use MultiTenantSaas\Models\User;
@@ -17,6 +17,8 @@ use MultiTenantSaas\Models\User;
  */
 class MentionService
 {
+    use EnsuresTenantContext;
+
     public function __construct(
         protected IdGeneratorContract $idGenerator,
     ) {}
@@ -36,7 +38,7 @@ class MentionService
      */
     public function createMentions(int $tenantId, string $messageId, array $userIds): int
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         $userIds = array_values(array_unique(
             array_filter(array_map('intval', $userIds), fn (int $id) => $id > 0)
@@ -91,6 +93,8 @@ class MentionService
      */
     public function createMentionsFromContent(int $tenantId, string $messageId, int $senderId, ?string $content): int
     {
+        $this->ensureTenantContext($tenantId);
+
         if ($content === null || $content === '') {
             return 0;
         }
@@ -115,7 +119,7 @@ class MentionService
      */
     public function getMentionsForMessage(int $tenantId, string $messageId): Collection
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         return Mention::where('message_id', $messageId)
             ->where('tenant_id', $tenantId)
@@ -130,7 +134,7 @@ class MentionService
      */
     public function getMentionsForUser(int $tenantId, int $userId, int $limit = 100): Collection
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         return Mention::where('user_id', $userId)
             ->where('tenant_id', $tenantId)
@@ -145,7 +149,7 @@ class MentionService
      */
     public function markNotified(int $tenantId, string $messageId, int $userId): bool
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         return Mention::where('message_id', $messageId)
             ->where('user_id', $userId)
@@ -160,7 +164,7 @@ class MentionService
      */
     public function markAllNotifiedForUser(int $tenantId, int $userId): int
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         return Mention::where('user_id', $userId)
             ->where('tenant_id', $tenantId)

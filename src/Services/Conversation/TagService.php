@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Services\Conversation;
 
 use Illuminate\Support\Collection;
-use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Concerns\EnsuresTenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Models\Conversation;
 use MultiTenantSaas\Models\ConversationTag;
@@ -17,6 +17,8 @@ use MultiTenantSaas\Models\ConversationTag;
  */
 class TagService
 {
+    use EnsuresTenantContext;
+
     public function __construct(
         protected IdGeneratorContract $idGenerator,
     ) {}
@@ -26,7 +28,7 @@ class TagService
      */
     public function addTag(int $tenantId, string $conversationId, string $tag): ConversationTag
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         $tag = trim($tag);
         if ($tag === '') {
@@ -62,7 +64,7 @@ class TagService
      */
     public function removeTag(int $tenantId, string $conversationId, string $tag): bool
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         return ConversationTag::where('conversation_id', $conversationId)
             ->where('tenant_id', $tenantId)
@@ -80,7 +82,7 @@ class TagService
      */
     public function syncTags(int $tenantId, string $conversationId, array $tags): array
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         $tags = array_values(array_unique(array_filter(
             array_map(fn (mixed $t) => is_string($t) ? trim($t) : '', $tags),
@@ -127,7 +129,7 @@ class TagService
      */
     public function listTags(int $tenantId, string $conversationId): Collection
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         return ConversationTag::where('conversation_id', $conversationId)
             ->where('tenant_id', $tenantId)
@@ -142,7 +144,7 @@ class TagService
      */
     public function findConversationsByTag(int $tenantId, string $tag): Collection
     {
-        TenantContext::setTenantId((string) $tenantId);
+        $this->ensureTenantContext($tenantId);
 
         $conversationIds = ConversationTag::where('tenant_id', $tenantId)
             ->where('tag', trim($tag))

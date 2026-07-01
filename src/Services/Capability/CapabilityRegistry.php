@@ -1,16 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MultiTenantSaas\Services\Capability;
 
 use MultiTenantSaas\Contracts\CapabilityContract;
+use MultiTenantSaas\Models\Capability\CapabilityResult;
 
 class CapabilityRegistry
 {
     protected array $capabilities = [];
 
-    public function register(CapabilityContract $capability): void
+    public function register(string $name, CapabilityContract $capability): void
     {
-        $this->capabilities[$capability->name()] = $capability;
+        $this->capabilities[$name] = $capability;
     }
 
     public function get(string $name): ?CapabilityContract
@@ -26,5 +29,35 @@ class CapabilityRegistry
     public function has(string $name): bool
     {
         return isset($this->capabilities[$name]);
+    }
+
+    /**
+     * 执行指定能力
+     */
+    public function execute(string $name, array $input): CapabilityResult
+    {
+        $capability = $this->get($name);
+
+        if (!$capability) {
+            return new CapabilityResult(
+                capability: $name,
+                output: null,
+                confidence: 0.0,
+                tokenUsage: 0,
+                durationMs: 0,
+            );
+        }
+
+        $start = hrtime(true);
+        $result = $capability->execute($input);
+        $durationMs = (int) ((hrtime(true) - $start) / 1_000_000);
+
+        return new CapabilityResult(
+            capability: $name,
+            output: $result->output,
+            confidence: $result->confidence,
+            tokenUsage: $result->tokenUsage,
+            durationMs: $durationMs,
+        );
     }
 }

@@ -34,3 +34,10 @@ Thumbs.db
 *.swo
 *~
 .ai/
+
+# Database files
+*.sqlite
+*.sqlite-journal
+
+# Console Commands (only framework)
+src/Console/Commands/

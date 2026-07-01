@@ -30,7 +30,7 @@ return new class extends Migration
 
             $table->index(['tenant_id', 'name'], 'idx_tenant_name');
             $table->index('category', 'idx_category');
-            $table->index('status', 'idx_status');
+            $table->index('status', 'idx_ai_prompts_status');
         });
 
         $this->seedSystemPrompts();

@@ -28,9 +28,9 @@ return new class extends Migration
             $table->index(['agent_id']);
             $table->index(['last_message_at']);
 
-            $table->foreign('agent_id')->references('agent_id')->on('agents');
-            $table->foreign('tenant_id')->references('tenant_id')->on('tenants');
-            $table->foreign('created_by')->references('user_id')->on('users');
+            $table->foreign('agent_id')->references('agent_id')->on('agents')->onDelete('set null');
+            $table->foreign('tenant_id')->references('tenant_id')->on('tenants')->onDelete('cascade');
+            $table->foreign('created_by')->references('user_id')->on('users')->onDelete('set null');
         });
     }
 

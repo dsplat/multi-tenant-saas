@@ -15,8 +15,16 @@ class Mention extends Model
     protected $primaryKey = 'mention_id';
 
     protected $fillable = [
-        'tenant_id', 'message_id', 'user_id', 'type',
+        'tenant_id', 'message_id', 'user_id', 'is_notified', 'metadata',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_notified' => 'boolean',
+            'metadata' => 'array',
+        ];
+    }
 
     public function message(): BelongsTo
     {

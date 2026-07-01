@@ -15,12 +15,17 @@ class ConversationSession extends Model
     protected $primaryKey = 'session_id';
 
     protected $fillable = [
-        'tenant_id', 'conversation_id', 'user_id', 'token', 'expires_at',
+        'tenant_id', 'conversation_id', 'user_id',
+        'status', 'connected_at', 'last_active_at', 'metadata',
     ];
 
     protected function casts(): array
     {
-        return ['expires_at' => 'datetime'];
+        return [
+            'connected_at' => 'datetime',
+            'last_active_at' => 'datetime',
+            'metadata' => 'array',
+        ];
     }
 
     public function conversation(): BelongsTo

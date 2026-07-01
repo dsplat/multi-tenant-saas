@@ -15,12 +15,17 @@ class ReadState extends Model
     protected $primaryKey = 'read_state_id';
 
     protected $fillable = [
-        'tenant_id', 'conversation_id', 'user_id', 'last_read_message_id', 'last_read_at',
+        'tenant_id', 'conversation_id', 'user_id',
+        'last_read_message_id', 'unread_count', 'last_read_at', 'metadata',
     ];
 
     protected function casts(): array
     {
-        return ['last_read_at' => 'datetime'];
+        return [
+            'last_read_at' => 'datetime',
+            'unread_count' => 'integer',
+            'metadata' => 'array',
+        ];
     }
 
     public function conversation(): BelongsTo

@@ -12,11 +12,16 @@ class ConversationTag extends Model
 {
     use BelongsToTenant, HasFactory, HasGlobalId;
 
-    protected $primaryKey = 'tag_id';
+    protected $primaryKey = 'conversation_tag_id';
 
     protected $fillable = [
-        'tenant_id', 'conversation_id', 'name', 'color',
+        'tenant_id', 'conversation_id', 'tag', 'metadata',
     ];
+
+    protected function casts(): array
+    {
+        return ['metadata' => 'array'];
+    }
 
     public function conversation(): BelongsTo
     {

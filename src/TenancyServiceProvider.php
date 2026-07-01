@@ -43,6 +43,7 @@ use MultiTenantSaas\Services\AlipayOAuthService;
 use MultiTenantSaas\Services\ApiVersionService;
 use MultiTenantSaas\Services\CacheService;
 use MultiTenantSaas\Services\Capability\CapabilityRegistry;
+use MultiTenantSaas\Services\Capability\CapabilityService;
 use MultiTenantSaas\Services\Capability\ClassifyCapability;
 use MultiTenantSaas\Services\Capability\EmbeddingCapability;
 use MultiTenantSaas\Services\Capability\ExtractCapability;
@@ -58,10 +59,12 @@ use MultiTenantSaas\Services\Capability\TranslateCapability;
 use MultiTenantSaas\Services\Capability\VisionCapability;
 use MultiTenantSaas\Services\Channel\ChannelManager;
 use MultiTenantSaas\Services\Channel\MessageRouter;
-use MultiTenantSaas\Services\Capability\CapabilityService;
 use MultiTenantSaas\Services\Conversation\ConversationService;
+use MultiTenantSaas\Services\Conversation\MentionService;
 use MultiTenantSaas\Services\Conversation\MessageService;
+use MultiTenantSaas\Services\Conversation\ReadStateService;
 use MultiTenantSaas\Services\Conversation\SessionService;
+use MultiTenantSaas\Services\Conversation\TagService;
 use MultiTenantSaas\Services\CostService;
 use MultiTenantSaas\Services\DeveloperPortalService;
 use MultiTenantSaas\Services\EventBusService;
@@ -288,7 +291,7 @@ class TenancyServiceProvider extends ServiceProvider
 
         $this->app->singleton(ConversationServiceContract::class, function ($app) {
             return new ConversationService(
-                $app->make(TenantContextContract::class),
+                $app->make(IdGeneratorContract::class),
             );
         });
         $this->app->alias(ConversationServiceContract::class, ConversationService::class);
@@ -324,14 +327,32 @@ class TenancyServiceProvider extends ServiceProvider
 
         $this->app->singleton(MessageServiceContract::class, function ($app) {
             return new MessageService(
-                $app->make(TenantContextContract::class),
+                $app->make(IdGeneratorContract::class),
             );
         });
         $this->app->alias(MessageServiceContract::class, MessageService::class);
 
         $this->app->singleton(SessionService::class, function ($app) {
             return new SessionService(
-                $app->make(TenantContextContract::class),
+                $app->make(IdGeneratorContract::class),
+            );
+        });
+
+        $this->app->singleton(MentionService::class, function ($app) {
+            return new MentionService(
+                $app->make(IdGeneratorContract::class),
+            );
+        });
+
+        $this->app->singleton(ReadStateService::class, function ($app) {
+            return new ReadStateService(
+                $app->make(IdGeneratorContract::class),
+            );
+        });
+
+        $this->app->singleton(TagService::class, function ($app) {
+            return new TagService(
+                $app->make(IdGeneratorContract::class),
             );
         });
 

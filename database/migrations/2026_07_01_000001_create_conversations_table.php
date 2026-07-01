@@ -29,6 +29,8 @@ return new class extends Migration
             $table->index(['last_message_at']);
 
             $table->foreign('agent_id')->references('agent_id')->on('agents');
+            $table->foreign('tenant_id')->references('tenant_id')->on('tenants');
+            $table->foreign('created_by')->references('user_id')->on('users');
         });
     }
 

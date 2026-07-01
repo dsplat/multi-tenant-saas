@@ -24,7 +24,9 @@ return new class extends Migration
             $table->index(['user_id']);
             $table->index(['tenant_id']);
 
-            $table->foreign('conversation_id')->references('conversation_id')->on('conversations');
+            $table->foreign('conversation_id')->references('conversation_id')->on('conversations')->onDelete('cascade');
+            $table->foreign('user_id')->references('user_id')->on('users');
+            $table->foreign('tenant_id')->references('tenant_id')->on('tenants');
         });
     }
 

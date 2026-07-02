@@ -49,7 +49,7 @@ class MessageService
             ]);
 
         // 触发事件
-        event(new MessageReceived($tenantId, $conversationId, $message->message_id, $senderId, $content));
+        event(new MessageReceived($message, 'web'));
 
         return $message;
     }

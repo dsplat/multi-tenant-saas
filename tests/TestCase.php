@@ -325,7 +325,7 @@ abstract class TestCase extends BaseTestCase
             $table->bigInteger('amount');
             $table->unsignedBigInteger('balance_after')->default(0);
             $table->string('related_type', 100)->nullable();
-            $table->unsignedBigInteger('related_id')->nullable();
+            $table->string('related_id', 100)->nullable();
             $table->string('description', 255)->nullable();
             $table->json('metadata')->nullable();
             $table->timestamp('expires_at')->nullable();

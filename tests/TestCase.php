@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Tests;
 
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\SanctumServiceProvider;
@@ -17,6 +18,7 @@ use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
+    use DatabaseTransactions;  // MySQL 模式下每个测试在事务中执行，自动回滚，无需每次重建表
     protected function setUp(): void
     {
         parent::setUp();
@@ -90,35 +92,54 @@ abstract class TestCase extends BaseTestCase
         $app['config']->set('broadcasting.default', 'log');
     }
 
+    /**
+     * MySQL 模式下，整个进程只建一次表（static 标志）。
+     * SQLite :memory: 每个测试独立连接，不需要此优化。
+     */
+    private static bool $schemaInitialized = false;
+
     protected function setUpDatabase(): void
     {
         $isMysql = DB::connection()->getDriverName() !== 'sqlite';
 
-        // 清理残留表（MySQL 持久化测试库每个 test method 都需要先 drop 再 create，
-        // SQLite :memory: 每个 test 自动获得新连接无残留）
         if ($isMysql) {
-            $this->dropAllTables();
-            // 禁用外键约束，使建表顺序无关（与 SQLite 默认行为一致）
-            DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        }
-
-        $this->createCoreTables();
-        $this->createRbacAndNotificationTables();
-        $this->createPaymentAndBillingTables();
-        $this->createPluginAndUtilityTables();
-        $this->createAgentTables();
-        $this->createWebhookTables();
-        $this->createMfaAndSecurityTables();
-        $this->createAiTables();
-        $this->createEventAndMonitoringTables();
-        $this->createMiscTables();
-        $this->createConversationTables();
-        $this->createArchiveTables();
-        $this->createWorkflowTables();
-        $this->createMemoryTables();
-
-        if ($isMysql) {
-            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            // MySQL：检查表是否已存在，已存在则跳过建表（由 DatabaseTransactions 高级隔离）
+            if (!static::$schemaInitialized && !Schema::hasTable('tenants')) {
+                $this->dropAllTables();
+                DB::statement('SET FOREIGN_KEY_CHECKS=0');
+                $this->createCoreTables();
+                $this->createRbacAndNotificationTables();
+                $this->createPaymentAndBillingTables();
+                $this->createPluginAndUtilityTables();
+                $this->createAgentTables();
+                $this->createWebhookTables();
+                $this->createMfaAndSecurityTables();
+                $this->createAiTables();
+                $this->createEventAndMonitoringTables();
+                $this->createMiscTables();
+                $this->createConversationTables();
+                $this->createArchiveTables();
+                $this->createWorkflowTables();
+                $this->createMemoryTables();
+                DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            }
+            static::$schemaInitialized = true;
+        } else {
+            // SQLite :memory:：每次测试都是全新连接，直接建表
+            $this->createCoreTables();
+            $this->createRbacAndNotificationTables();
+            $this->createPaymentAndBillingTables();
+            $this->createPluginAndUtilityTables();
+            $this->createAgentTables();
+            $this->createWebhookTables();
+            $this->createMfaAndSecurityTables();
+            $this->createAiTables();
+            $this->createEventAndMonitoringTables();
+            $this->createMiscTables();
+            $this->createConversationTables();
+            $this->createArchiveTables();
+            $this->createWorkflowTables();
+            $this->createMemoryTables();
         }
     }
 

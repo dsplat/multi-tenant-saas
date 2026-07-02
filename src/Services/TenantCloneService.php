@@ -386,6 +386,13 @@ class TenantCloneService
             $result[$setting->group][$setting->key] = $setting->getRawOriginal('value');
         }
 
+        // 排序确保一致性（避免数据库行顺序不同导致对比失败）
+        ksort($result);
+        foreach ($result as &$group) {
+            ksort($group);
+        }
+        unset($group);
+
         return $result;
     }
 

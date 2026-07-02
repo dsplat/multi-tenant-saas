@@ -320,8 +320,11 @@ class TenantCloneServiceTest extends TestCase
 
         $result = $this->service->validateClone($this->sourceTenantId, $target->tenant_id);
 
+        $this->assertEmpty(
+            $result['differences'],
+            'Expected no differences but got: ' . json_encode($result['differences'], JSON_UNESCAPED_UNICODE)
+        );
         $this->assertTrue($result['is_consistent']);
-        $this->assertEmpty($result['differences']);
     }
 
     public function test_validate_clone_reports_inconsistent_after_modification(): void

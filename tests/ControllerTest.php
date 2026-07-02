@@ -2,14 +2,14 @@
 
 namespace MultiTenantSaas\Tests;
 
-use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
 
 class ControllerTest extends TestCase
 {
-    use DatabaseMigrations;
+    use DatabaseTransactions;
     protected User $superAdmin;
     protected User $tenantAdmin;
     protected User $endUser;

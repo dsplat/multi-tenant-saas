@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Tests;
 
 use App\Http\Resources\UserResource;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use MultiTenantSaas\Context\TenantContext;
@@ -19,7 +19,7 @@ use MultiTenantSaas\Models\User;
  */
 class SecurityTest extends TestCase
 {
-    use DatabaseMigrations;
+    use DatabaseTransactions;
 
     protected Tenant $tenant;
 

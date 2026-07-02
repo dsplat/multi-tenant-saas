@@ -24,7 +24,9 @@ abstract class TestCase extends BaseTestCase
         $this->setUpDatabase();
 
         // SQLite 无 NOW() 函数，注册自定义函数以兼容源码中 DB::raw('NOW()') 的用法
-        DB::connection()->getPdo()->sqliteCreateFunction('NOW', fn () => date('Y-m-d H:i:s'), 0);
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            DB::connection()->getPdo()->sqliteCreateFunction('NOW', fn () => date('Y-m-d H:i:s'), 0);
+        }
 
         // 加载项目 lang 目录，使 trans()/__() 在测试中可解析翻译 key
         $langPath = realpath(__DIR__.'/../lang');
@@ -90,6 +92,16 @@ abstract class TestCase extends BaseTestCase
 
     protected function setUpDatabase(): void
     {
+        $isMysql = DB::connection()->getDriverName() !== 'sqlite';
+
+        // 清理残留表（MySQL 持久化测试库每个 test method 都需要先 drop 再 create，
+        // SQLite :memory: 每个 test 自动获得新连接无残留）
+        if ($isMysql) {
+            $this->dropAllTables();
+            // 禁用外键约束，使建表顺序无关（与 SQLite 默认行为一致）
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        }
+
         $this->createCoreTables();
         $this->createRbacAndNotificationTables();
         $this->createPaymentAndBillingTables();
@@ -104,12 +116,30 @@ abstract class TestCase extends BaseTestCase
         $this->createArchiveTables();
         $this->createWorkflowTables();
         $this->createMemoryTables();
+
+        if ($isMysql) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        }
     }
 
     protected function tearDown(): void
     {
         TenantContext::clear();
         parent::tearDown();
+    }
+
+    /**
+     * 清空测试库所有表（MySQL 持久化场景专用）
+     */
+    private function dropAllTables(): void
+    {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        $tables = DB::select('SHOW TABLES');
+        foreach ($tables as $table) {
+            $tableName = array_values((array) $table)[0];
+            Schema::dropIfExists($tableName);
+        }
+        // 注意：FOREIGN_KEY_CHECKS 由 setUpDatabase() 统一管理，此处不复位
     }
 
     private function createCoreTables(): void
@@ -364,7 +394,7 @@ abstract class TestCase extends BaseTestCase
         Schema::create('notification_preferences', function (Blueprint $table) {
             $table->unsignedBigInteger('notification_preference_id')->primary();
             $table->bigInteger('user_id')->unsigned();
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('user_id')->references('user_id')->on('users')->onDelete('cascade');
             $table->string('channel', 30);
             $table->string('type', 100)->nullable();
             $table->boolean('enabled')->default(true);
@@ -725,7 +755,7 @@ abstract class TestCase extends BaseTestCase
             $table->json('preferences')->nullable();
             $table->timestamps();
 
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('user_id')->references('user_id')->on('users')->onDelete('cascade');
         });
 
         Schema::create('api_versions', function (Blueprint $table) {

@@ -1,0 +1,15 @@
+<?php
+
+namespace MultiTenantSaas\Contracts;
+
+use MultiTenantSaas\Models\Workflow;
+use MultiTenantSaas\Models\WorkflowExecution;
+
+interface WorkflowEngineContract
+{
+    public function execute(Workflow $workflow, array $context = []): WorkflowExecution;
+    public function executeNode(array $node, array $context): array;
+    public function getNextNode(array $nodes, array $currentNode): ?array;
+    public function cancel(WorkflowExecution $execution): bool;
+    public function retry(WorkflowExecution $execution, array $context = []): WorkflowExecution;
+}

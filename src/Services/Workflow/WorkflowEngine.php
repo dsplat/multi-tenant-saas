@@ -10,13 +10,21 @@ use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Contracts\WorkflowEngineContract;
 use MultiTenantSaas\Models\Workflow;
 use MultiTenantSaas\Models\WorkflowExecution;
+use MultiTenantSaas\Services\Workflow\Nodes\ActionNode;
+use MultiTenantSaas\Services\Workflow\Nodes\ConditionNode;
 
 class WorkflowEngine implements WorkflowEngineContract
 {
+    protected ActionNode $actionNode;
+    protected ConditionNode $conditionNode;
+
     public function __construct(
         protected TenantContextContract $tenantContext,
         protected ToolRegistryContract $toolRegistry,
-    ) {}
+    ) {
+        $this->actionNode = new ActionNode($toolRegistry);
+        $this->conditionNode = new ConditionNode();
+    }
 
     public function execute(Workflow $workflow, array $context = []): WorkflowExecution
     {
@@ -80,8 +88,8 @@ class WorkflowEngine implements WorkflowEngineContract
         return match ($type) {
             'start' => $this->executeStartNode($node, $context),
             'end' => $this->executeEndNode($node, $context),
-            'action' => $this->executeActionNode($node, $context),
-            'condition' => $this->executeConditionNode($node, $context),
+            'action' => $this->actionNode->execute($node, $context, (int) $this->tenantContext->getId()),
+            'condition' => $this->conditionNode->execute($node, $context),
             'wait' => $this->executeWaitNode($node, $context),
             default => $context,
         };
@@ -141,6 +149,16 @@ class WorkflowEngine implements WorkflowEngineContract
         return $this->execute($workflow, !empty($context) ? $context : ($execution->context ?? []));
     }
 
+    public function getActionNode(): ActionNode
+    {
+        return $this->actionNode;
+    }
+
+    public function getConditionNode(): ConditionNode
+    {
+        return $this->conditionNode;
+    }
+
     protected function findStartNode(array $nodes): ?array
     {
         foreach ($nodes as $node) {
@@ -172,79 +190,8 @@ class WorkflowEngine implements WorkflowEngineContract
         return $context;
     }
 
-    protected function executeActionNode(array $node, array $context): array
-    {
-        $config = $node['config'] ?? [];
-        $toolSlug = $config['tool'] ?? '';
-
-        if ($toolSlug === '') {
-            return $context;
-        }
-
-        $arguments = $this->resolveArguments($config['arguments'] ?? [], $context);
-        $tenantId = (int) $this->tenantContext->getId();
-
-        try {
-            $result = $this->toolRegistry->execute($toolSlug, $arguments, $tenantId);
-            $outputKey = $config['output'] ?? 'result';
-            $context[$outputKey] = $result;
-        } catch (\Throwable $e) {
-            Log::error('WorkflowEngine: action node failed', [
-                'node' => $node['name'] ?? '',
-                'tool' => $toolSlug,
-                'error' => $e->getMessage(),
-            ]);
-
-            $errorKey = $config['error_output'] ?? 'error';
-            $context[$errorKey] = $e->getMessage();
-        }
-
-        return $context;
-    }
-
-    protected function executeConditionNode(array $node, array $context): array
-    {
-        $config = $node['config'] ?? [];
-        $field = $config['field'] ?? '';
-        $operator = $config['operator'] ?? 'eq';
-        $value = $config['value'] ?? null;
-
-        $actual = $context[$field] ?? null;
-        $met = match ($operator) {
-            'eq' => $actual == $value,
-            'neq' => $actual != $value,
-            'gt' => $actual > $value,
-            'gte' => $actual >= $value,
-            'lt' => $actual < $value,
-            'lte' => $actual <= $value,
-            'in' => is_array($value) && in_array($actual, $value),
-            'not_empty' => !empty($actual),
-            default => false,
-        };
-
-        $context['_condition_result'] = $met;
-
-        return $context;
-    }
-
     protected function executeWaitNode(array $node, array $context): array
     {
         return $context;
-    }
-
-    protected function resolveArguments(array $argumentDefs, array $context): array
-    {
-        $resolved = [];
-
-        foreach ($argumentDefs as $key => $value) {
-            if (is_string($value) && str_starts_with($value, '$.')) {
-                $contextKey = substr($value, 2);
-                $resolved[$key] = $context[$contextKey] ?? null;
-            } else {
-                $resolved[$key] = $value;
-            }
-        }
-
-        return $resolved;
     }
 }

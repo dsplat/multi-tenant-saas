@@ -45,6 +45,10 @@
 ### 安全
 - [安全审计报告（OWASP Top 10）](security/安全审计报告.md)
 
+### 需求规划
+- [框架层升级规划](Requirement/框架层升级规划.md)
+- [框架层升级规划 - 工作量评估](Requirement/框架层升级规划_task-eff.md)
+
 ### 示例代码
 - [PHP SDK 使用示例](examples/php-sdk-quickstart.md)
 - [REST API 调用示例](examples/rest-api-examples.md)
@@ -52,5 +56,5 @@
 
 ---
 
-**框架版本**: v1.0.0  
-**最后更新**: 2026-06-29
+**框架版本**: v1.2.0
+**最后更新**: 2026-07-03

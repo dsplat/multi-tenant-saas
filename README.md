@@ -8,7 +8,7 @@
 [![PHP Version](https://img.shields.io/badge/PHP-%5E8.2-777BB4)](https://php.net)
 [![Laravel Version](https://img.shields.io/badge/Laravel-%5E12.0-FF2D20)](https://laravel.com)
 [![Version](https://img.shields.io/badge/version-v1.2.0-blue)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-1495%20passed-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-1874%20passed%20(4559%20assertions)-brightgreen)](#)
 
 ---
 
@@ -127,7 +127,7 @@ Order::create(['name' => '新订单']);
 ### 🌍 国际化
 
 - 支持 `zh_CN` 和 `en` 双语
-- 13 个语言文件覆盖所有业务模块
+- 14 个语言文件覆盖所有业务模块
 - `SetLocale` 中间件自动设置语言
 
 ### 📊 监控与运维
@@ -237,6 +237,73 @@ foreach ($runtime->runStream($agent->agent_id, $conversationId, '你好') as $ch
 | `model_config.max_tokens` | 最大输出 token | `4096` |
 | `model_config.max_tool_calls` | 单次对话最大工具调用次数 | `5` |
 | `model_config.fallback_provider` | 降级提供商 | — |
+
+### 🔄 工作流引擎
+
+可视化的业务流程编排引擎，支持复杂的多步骤自动化流程：
+
+- **节点类型**：Task（任务）、Condition（条件分支）、Parallel（并行执行）、Delay（延迟等待）、SubWorkflow（子流程）
+- **执行引擎**：`WorkflowEngine` 驱动节点按序执行，自动处理条件判断与分支选择
+- **重试与回滚**：`RetryService` 支持指数退避重试，`RollbackService` 提供事务级回滚
+- **注册表**：`WorkflowRegistry` 管理流程定义，支持版本化
+- **监控**：`WorkflowExecution` 模型记录每次执行的完整轨迹与节点状态
+
+### 💬 对话中心
+
+通用的会话与消息管理系统，为 Agent 对话和团队协作提供基础设施：
+
+- **会话管理**：创建/归档会话，支持一对一和群组模式
+- **消息系统**：富文本消息、附件上传、表情回应（Reaction）、@提及（Mention）
+- **参与者**：邀请/移除参与者，角色权限管理
+- **已读追踪**：`ReadStateService` 管理每条消息的已读状态
+- **标签系统**：`TagService` 支持会话分类与筛选
+- **会话隔离**：`SessionService` 管理独立对话上下文
+
+### 🧠 记忆系统
+
+为 AI 智能体提供长期记忆能力，支持租户级和实体级记忆：
+
+- **MemoryService**：记忆的存储、检索与衰减管理
+- **MemoryPipeline**：记忆处理流水线（提取 → 存储 → 检索 → 注入）
+- **TenantMemory**：租户级知识积累（业务偏好、历史决策、常见问题）
+- **EntityMemory**：实体级记忆（特定客户/项目的上下文信息）
+- **记忆压缩**：`MemoryCompressor` 将旧对话摘要化，控制上下文窗口大小
+
+### 📡 渠道抽象
+
+统一的消息渠道管理，支持多渠道接入与路由：
+
+- **ChannelManager**：渠道注册与管理（企业微信、微信公众号、小程序等）
+- **MessageRouter**：消息路由规则引擎，按条件分发到不同渠道
+- **微信生态**：内置企业微信（4 个文件）、微信公众号（2 个）、小程序（2 个）集成
+
+### 🎯 AI 能力系统（14 种能力）
+
+细粒度的 AI 能力注册与计费中间件：
+
+| 类别 | 能力 |
+|------|------|
+| **文本** | TextCompletion / TextGeneration / TextSummarization / TextClassification / TextTranslation / Conversation / CodeGeneration / CodeReview / Embedding |
+| **图像** | ImageGeneration / ImageEditing / ImageVariation |
+| **视频** | VideoGeneration |
+
+- `CapabilityRegistry`：能力注册与发现
+- `CapabilityBillingService`：按能力维度计费
+
+### 🏗 企业级扩展
+
+- **Webhook**：事件驱动的 HTTP 回调，支持签名验证、重试、死信队列
+- **事件总线**：`EventBusService` 解耦模块间通信
+- **功能开关**：`FeatureFlagService` 灰度发布与 A/B 测试
+- **SLA 管理**：`SlaService` + `SlaEvent` 模型追踪服务水平协议
+- **成本分摊**：`CostService` 支持基础设施/AI/第三方成本归因与损益分析
+- **数据驻留**：`DataResidencyService` 满足合规要求
+- **GDPR 合规**：`GdprService` 支持数据导出与删除权
+- **租户克隆**：`TenantCloneService` 一键复制租户配置与数据
+- **沙箱环境**：`SandboxService` 为租户提供隔离测试环境
+- **品牌定制**：`BrandingService` 租户级 UI 品牌配置
+- **BYOK 加密**：`TenantKeyService` 支持租户自带密钥加密
+- **数据保留**：`RetentionService` + `DataRetentionPolicy` 自动清理过期数据
 
 ### 💲 计费体系
 
@@ -360,16 +427,15 @@ server {
 multi-tenant-saas/
 ├── app/
 │   ├── Http/
-│   │   ├── Controllers/    # 控制器（18 个）
+│   │   ├── Controllers/    # 控制器（26 个）
 │   │   ├── Middleware/     # 自定义中间件
-│   │   └── Resources/      # API Resource（5 个）
+│   │   └── Resources/      # API Resource（10 个）
 │   ├── Models/             # 业务模型
 │   └── Notifications/      # 通知类（5 种）
 ├── config/
 │   ├── tenancy.php         # 框架核心配置
+│   ├── ai.php              # AI 网关 & Agent 配置
 │   ├── id.php              # ID生成器配置
-│   ├── domain.php          # 域名配置
-│   ├── ssl.php             # SSL配置
 │   ├── pay.php             # 支付配置
 │   ├── socialite.php       # 第三方登录配置
 │   ├── queue.php           # 队列配置
@@ -377,37 +443,50 @@ multi-tenant-saas/
 │   ├── sanctum.php         # API认证配置
 │   ├── cors.php            # CORS配置
 │   ├── l5-swagger.php      # Swagger配置
+│   ├── channel.php         # 渠道配置
+│   ├── cache.php           # 缓存配置
 │   └── database.php        # 数据库配置
 ├── database/
-│   ├── factories/          # 模型工厂
-│   ├── migrations/         # 数据库迁移（37 张表）
-│   └── seeders/            # 数据填充
+│   ├── factories/          # 模型工厂（3 个）
+│   ├── migrations/         # 数据库迁移（98 张表）
+│   └── seeders/            # 数据填充（4 个）
 ├── docs/                   # 文档
 ├── lang/                   # 国际化
-│   ├── zh_CN/              # 中文（13 个文件）
-│   └── en/                 # 英文（13 个文件）
+│   ├── zh_CN/              # 中文（14 个文件）
+│   └── en/                 # 英文（14 个文件）
+├── resources/js/
+│   ├── admin/              # 系统后台 SPA（15 个组件）
+│   └── console/            # 租户控制台 SPA（16 个组件）
+├── routes/
+│   ├── api.php             # API 路由（190+ 端点）
+│   └── web.php             # Web 路由
 ├── src/                    # 框架核心代码
-│   ├── Concerns/           # Traits（BelongsToTenant / HasGlobalId）
+│   ├── Concerns/           # Traits（3 个：BelongsToTenant / EnsuresTenantContext / HasGlobalId）
 │   ├── Context/            # 上下文管理（TenantContext）
-│   ├── Contracts/          # 接口定义（IdGeneratorContract / TenantContextContract）
+│   ├── Contracts/          # 接口定义（17 个）
 │   ├── Enums/              # 枚举（ErrorCode）
-│   ├── Events/             # 领域事件（5 个）
-│   ├── Exceptions/         # 业务异常（4 个）
+│   ├── Events/             # 领域事件（14 个）
+│   ├── Exceptions/         # 业务异常（6 个）
 │   ├── Helpers/            # 辅助函数
-│   ├── Jobs/               # 队列任务（2 个）
+│   ├── Isolation/          # 数据隔离策略（3 种：SharedDatabase / SchemaPerTenant / DatabasePerTenant）
+│   ├── Jobs/               # 队列任务（5 个）
 │   ├── Listeners/          # 事件监听器
-│   ├── Mail/               # 邮件类（2 个）
-│   ├── Middleware/          # 中间件（6 个）
-│   ├── Models/             # 框架模型（17 个）
+│   ├── Mail/               # 邮件类
+│   ├── Middleware/          # 中间件（8 个）
+│   ├── Models/             # 框架模型（76 个）
 │   ├── Modules/            # 可选模块（4 个）
 │   │   ├── ApiToken/       # API Token 模块
 │   │   ├── Domain/         # 域名管理模块
 │   │   ├── Payment/        # 支付模块
 │   │   └── SSL/            # SSL证书模块
+│   ├── SDK/                # PHP SDK 客户端（5 个）
 │   ├── Scopes/             # 全局作用域（TenantScope）
-│   ├── Services/           # 服务层（39 个）
+│   ├── Services/           # 服务层（159 个，含 AI/Agent/Workflow 等子系统）
+│   ├── EnterpriseWechat/   # 企业微信集成
+│   ├── WechatOfficial/     # 微信公众号集成
+│   ├── WechatMiniProgram/  # 微信小程序集成
 │   └── TenancyServiceProvider.php
-├── tests/                  # 测试（25 个文件）
+├── tests/                  # 测试（127 个文件，1874 个测试，4559 个断言）
 └── composer.json
 ```
 
@@ -425,80 +504,105 @@ multi-tenant-saas/
 | `CheckRbacPermission` | `rbac.permission` | RBAC 细粒度权限控制 |
 | `EnsureTenantContext` | `tenant.ensure` | 确保租户上下文有效 |
 | `SetLocale` | `locale.set` | 自动设置请求语言 |
+| `CheckFeatureFlag` | `feature.flag` | 功能开关检查 |
+| `CheckIpWhitelist` | `ip.whitelist` | IP 白名单校验 |
 
-### 服务
+### 服务（159 个）
 
-| 分类 | 服务 | 说明 |
+| 分类 | 代表服务 | 说明 |
 |------|------|------|
 | **基础** | `IdGenerator` | 16位随机ID生成器 |
 | | `TenantService` | 租户CRUD管理 |
 | | `TenantSettingService` | 租户配置管理 |
 | | `TenantMemberService` | 成员管理 |
 | | `TenantProfileService` | 租户档案管理 |
+| | `UserService` / `UserProfileService` | 用户管理 |
 | **权限** | `RbacService` | RBAC权限管理 |
-| **积分** | `TenantCreditService` | 积分/配额管理 |
-| | `RefundService` | 退款服务 |
-| **订阅** | `SubscriptionService` | 订阅管理 |
-| **支付** | `PaymentService` | 支付统一入口 |
-| | `PayPalService` | PayPal支付 |
-| | `StripeService` | Stripe支付 |
-| | `UnionPayService` | 银联支付 |
+| | `MfaService` | 多因素认证（TOTP/邮箱/短信） |
+| | `SsoService` | SSO 单点登录 |
+| | `IpWhitelistService` | IP 白名单管理 |
+| | `ConsentService` | 用户授权同意管理 |
+| | `SessionService` / `TrustedDeviceService` | 会话与设备管理 |
+| **积分/计费** | `TenantCreditService` | 积分/配额管理 |
+| | `QuotaService` / `UsageService` | 配额检查与用量追踪 |
+| | `SubscriptionService` / `PlanChangeService` / `TrialService` | 订阅全生命周期 |
+| | `InvoiceService` / `TaxService` / `CouponService` | 发票、税率、优惠券 |
+| | `CostService` | 成本分摊与损益分析 |
+| | `RefundService` / `DunningService` | 退款与催收 |
+| **支付** | `PayService` | 支付统一入口（微信/支付宝） |
+| | `PayPalService` / `StripeService` / `UnionPayService` | 独立支付网关 |
 | | `PaymentSecurityService` | 支付安全 |
-| **OAuth** | `SocialiteService` | 第三方登录 |
+| **OAuth** | `SocialiteService` | 第三方登录（微信/钉钉/飞书） |
 | | `AlipayOAuthService` | 支付宝OAuth |
-| **文件** | `FileService` | 文件存储管理 |
-| **通知** | `NotificationPreferenceService` | 通知偏好 |
-| **审计** | `AuditService` | 审计日志 |
-| | `StructuredLogService` | 结构化日志 |
-| | `LoginLogService` | 登录日志 |
-| **运维** | `CacheService` | 缓存管理 |
-| | `QueueService` | 队列管理 |
-| | `HorizonService` | Horizon管理 |
-| | `PerformanceService` | 性能监控 |
-| | `AlertService` | 告警系统 |
-| | `SystemSettingService` | 系统配置 |
-| | `ExportService` | 导出任务 |
-| | `HealthService` | 健康检查 |
+| **文件** | `FileService` / `ExcelService` / `PdfService` | 文件存储与导出 |
+| **通知** | `NotificationService` / `InAppNotificationService` | 通知中心 |
+| | `MailTemplateService` / `SmsService` | 邮件模板与短信 |
+| | `BroadcastingService` | 实时广播 |
+| **审计** | `AuditService` / `StructuredLogService` / `LoginLogService` | 审计日志 |
+| **运维** | `CacheService` / `QueueService` / `HorizonService` | 缓存/队列 |
+| | `PerformanceService` / `AlertService` / `HealthService` | 性能/告警/健康检查 |
+| | `SystemSettingService` / `MetricsService` / `SlaService` | 系统配置/指标/SLA |
+| | `ExportService` / `ReportService` | 导出与报表 |
+| | `ErrorTrackingService` | 错误追踪（Sentry） |
+| **AI 网关** | `AiGatewayService` / `AiConfigService` | AI 统一网关与配置 |
+| | `AiTextService` / `AiImageService` / `AiVideoService` | 文本/图像/视频生成 |
+| | `AiUsageService` | AI 用量统计 |
 | **Agent** | `AgentService` | Agent CRUD + 配置管理 |
 | | `AgentRuntime` | ReAct 运行时（非流式 + SSE 流式） |
 | | `AgentMonitor` | Agent 用量监控与成本估算 |
 | | `ToolRegistry` | 工具注册表（运行时 + 数据库双源） |
 | | `MemoryCompressor` | 会话记忆压缩 |
-| **高级** | `ApiVersionService` | API版本管理 |
-| | `PluginService` | 插件系统 |
-| | `RateLimitService` | 速率限制 |
-| | `UserPreferenceService` | 用户偏好 |
-| | `SmsService` | 短信服务 |
-| | `DomainService` | 域名管理 |
-| | `SslService` | SSL证书管理 |
-| | `NginxConfigService` | Nginx配置管理 |
+| **对话中心** | `ConversationService` / `MessageService` | 会话与消息管理 |
+| | `SessionService` / `ParticipantService` | 会话参与者管理 |
+| | `ReadStateService` / `TagService` | 已读状态与标签 |
+| **工作流** | `WorkflowEngine` / `WorkflowService` | 工作流引擎 |
+| | `WorkflowRegistry` | 工作流注册表 |
+| | `RetryService` / `RollbackService` | 重试与回滚 |
+| **渠道** | `ChannelManager` / `MessageRouter` | 消息渠道抽象与路由 |
+| **记忆** | `MemoryService` / `MemoryPipeline` | 记忆系统 |
+| | `TenantMemory` / `EntityMemory` | 租户/实体记忆 |
+| **能力** | `CapabilityRegistry` / `CapabilityBillingService` | AI 能力注册与计费（14 种能力） |
+| **企业扩展** | `WebhookService` / `EventBusService` | Webhook 与事件总线 |
+| | `FeatureFlagService` | 功能开关 |
+| | `DataResidencyService` / `GdprService` / `RetentionService` | 数据驻留/GDPR/保留策略 |
+| | `TenantCloneService` / `SandboxService` | 租户克隆与沙箱 |
+| | `BrandingService` / `TenantKeyService` | 品牌定制与 BYOK 加密 |
+| | `DeveloperPortalService` / `ResourceService` | 开发者门户 |
+| **高级** | `ApiVersionService` / `PluginService` / `RateLimitService` | API版本/插件/限流 |
+| | `DomainService` / `SslService` / `NginxConfigService` | 域名/SSL/Nginx |
+| | `UserPreferenceService` / `CrossTenantService` | 用户偏好/跨租户 |
 
-### 模型
+### 模型（76 个）
 
-| 模型 | 说明 |
-|------|------|
-| `Tenant` | 租户 |
-| `User` | 用户 |
-| `TenantUser` | 租户用户关系 |
-| `TenantSetting` | 租户配置 |
-| `CreditAccount` | 积分账户 |
-| `CreditTransaction` | 积分交易记录 |
-| `FinancialRecord` | 财务记录 |
-| `AuditLog` | 审计日志 |
-| `Permission` | 权限节点 |
-| `Role` | 角色 |
-| `RolePermission` | 角色-权限关系 |
-| `SubscriptionPlan` | 订阅计划 |
-| `SubscriptionHistory` | 订阅历史 |
-| `FileUpload` | 文件上传 |
-| `NotificationPreference` | 通知偏好 |
-| `UserApiToken` | 用户API Token |
-| `SystemSetting` | 系统配置 |
-| `Agent` | AI 智能体 |
-| `AgentTool` | Agent 工具 |
-| `AgentConversation` | Agent 对话 |
-| `AgentConversationMessage` | 对话消息 |
-| `AgentToolLog` | 工具调用日志 |
+| 分类 | 模型 | 说明 |
+|------|------|------|
+| **核心** | `Tenant` / `User` / `TenantUser` | 租户、用户、关系 |
+| | `TenantSetting` / `SystemSetting` | 租户/系统配置 |
+| | `Role` / `Permission` / `RolePermission` | RBAC 权限 |
+| **计费** | `CreditAccount` / `CreditTransaction` | 积分账户与交易 |
+| | `FinancialRecord` / `PaymentOrder` | 财务记录与支付订单 |
+| | `Invoice` / `Coupon` / `TaxRule` | 发票/优惠券/税率 |
+| | `SubscriptionPlan` / `SubscriptionHistory` | 订阅计划与历史 |
+| | `UsageRecord` / `CostAllocation` | 用量记录与成本分摊 |
+| **安全** | `MfaDevice` / `MfaRecoveryCode` | 多因素认证设备与恢复码 |
+| | `UserSession` / `TrustedDevice` | 会话与可信设备 |
+| | `PasswordHistory` / `SsoProvider` | 密码历史与 SSO |
+| | `IpWhitelist` / `Consent` | IP白名单与授权同意 |
+| **AI** | `AiProvider` / `AiPrompt` / `AiModelAlias` | AI 提供商/提示词/模型别名 |
+| | `AiUsageQuota` / `AiRequest` | AI 用量配额与请求记录 |
+| **Agent** | `Agent` / `AgentTool` | 智能体与工具 |
+| | `AgentConversation` / `AgentConversationMessage` | 对话与消息 |
+| | `AgentToolLog` | 工具调用日志 |
+| **对话中心** | `Conversation` / `Message` / `Participant` | 会话/消息/参与者 |
+| | `Attachment` / `Reaction` / `Mention` | 附件/表情回应/@提及 |
+| | `ReadState` / `ConversationSession` / `ConversationTag` | 已读/会话/标签 |
+| **工作流** | `Workflow` / `WorkflowNode` / `WorkflowExecution` | 工作流定义与执行 |
+| **企业** | `Webhook` / `WebhookDelivery` / `EventSubscription` | Webhook 与事件订阅 |
+| | `FeatureFlag` / `MetricsSnapshot` / `SlaEvent` | 功能开关/指标快照/SLA |
+| | `BrandingConfig` / `TenantHierarchy` / `SandboxEnvironment` | 品牌/层级/沙箱 |
+| | `DataRetentionPolicy` / `CustomReport` / `InAppNotification` | 保留策略/报表/站内通知 |
+| **文件** | `FileUpload` | 文件上传 |
+| **其他** | `AuditLog` / `NotificationPreference` / `UserApiToken` | 审计/通知偏好/API Token |
 
 ### 模块
 
@@ -616,6 +720,8 @@ $allOrders = Order::forAllTenants()->get();
 - [服务层API](docs/api/服务层API.md)
 - [OpenAPI规范](docs/api/openapi.yaml)
 - [安全审计报告（OWASP Top 10）](docs/security/安全审计报告.md)
+- [框架层升级规划](docs/Requirement/框架层升级规划.md)
+- [框架层升级规划 - 工作量评估](docs/Requirement/框架层升级规划_task-eff.md)
 - [PHP SDK 使用示例](docs/examples/php-sdk-quickstart.md)
 - [REST API 调用示例](docs/examples/rest-api-examples.md)
 
@@ -628,6 +734,8 @@ $allOrders = Order::forAllTenants()->get();
 - **数据库**: MySQL 8.0+
 - **缓存**: Redis (推荐) / Database
 - **Web服务器**: Nginx + PHP-FPM
+- **前端**: Vue.js 3 + TypeScript + Vite（系统后台 15 组件 / 租户控制台 16 组件）
+- **CSS**: Bootstrap（管理后台 UI）
 
 ## 集成库
 

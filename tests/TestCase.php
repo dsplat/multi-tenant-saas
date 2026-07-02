@@ -1405,6 +1405,8 @@ abstract class TestCase extends BaseTestCase
             $table->unsignedBigInteger('agent_id')->nullable();
             $table->timestamp('last_message_at')->nullable();
             $table->integer('message_count')->default(0);
+            $table->text('summary')->nullable();
+            $table->timestamp('summary_updated_at')->nullable();
             $table->json('metadata')->nullable();
             $table->timestamps();
 

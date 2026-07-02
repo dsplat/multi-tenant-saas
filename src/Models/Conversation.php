@@ -18,6 +18,7 @@ class Conversation extends Model
     protected $fillable = [
         'tenant_id', 'created_by', 'type', 'status', 'title',
         'channel', 'agent_id', 'last_message_at', 'message_count', 'metadata',
+        'summary', 'summary_updated_at',
     ];
 
     protected function casts(): array
@@ -26,6 +27,7 @@ class Conversation extends Model
             'metadata' => 'array',
             'message_count' => 'integer',
             'last_message_at' => 'datetime',
+            'summary_updated_at' => 'datetime',
         ];
     }
 

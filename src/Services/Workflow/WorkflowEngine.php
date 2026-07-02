@@ -12,11 +12,17 @@ use MultiTenantSaas\Models\Workflow;
 use MultiTenantSaas\Models\WorkflowExecution;
 use MultiTenantSaas\Services\Workflow\Nodes\ActionNode;
 use MultiTenantSaas\Services\Workflow\Nodes\ConditionNode;
+use MultiTenantSaas\Services\Workflow\Nodes\ConfirmNode;
+use MultiTenantSaas\Services\Workflow\Nodes\DelayNode;
+use MultiTenantSaas\Services\Workflow\Nodes\ParallelNode;
 
 class WorkflowEngine implements WorkflowEngineContract
 {
     protected ActionNode $actionNode;
     protected ConditionNode $conditionNode;
+    protected ConfirmNode $confirmNode;
+    protected DelayNode $delayNode;
+    protected ParallelNode $parallelNode;
 
     public function __construct(
         protected TenantContextContract $tenantContext,
@@ -24,6 +30,9 @@ class WorkflowEngine implements WorkflowEngineContract
     ) {
         $this->actionNode = new ActionNode($toolRegistry);
         $this->conditionNode = new ConditionNode();
+        $this->confirmNode = new ConfirmNode();
+        $this->delayNode = new DelayNode();
+        $this->parallelNode = new ParallelNode();
     }
 
     public function execute(Workflow $workflow, array $context = []): WorkflowExecution
@@ -90,9 +99,27 @@ class WorkflowEngine implements WorkflowEngineContract
             'end' => $this->executeEndNode($node, $context),
             'action' => $this->actionNode->execute($node, $context, (int) $this->tenantContext->getId()),
             'condition' => $this->conditionNode->execute($node, $context),
+            'confirm' => $this->confirmNode->execute($node, $context),
+            'delay' => $this->delayNode->execute($node, $context),
+            'parallel' => $this->parallelNode->execute($node, $context),
             'wait' => $this->executeWaitNode($node, $context),
             default => $context,
         };
+    }
+
+    public function getConfirmNode(): ConfirmNode
+    {
+        return $this->confirmNode;
+    }
+
+    public function getDelayNode(): DelayNode
+    {
+        return $this->delayNode;
+    }
+
+    public function getParallelNode(): ParallelNode
+    {
+        return $this->parallelNode;
     }
 
     public function getNextNode(array $nodes, array $currentNode): ?array

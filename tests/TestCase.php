@@ -3,7 +3,6 @@
 namespace MultiTenantSaas\Tests;
 
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\SanctumServiceProvider;
@@ -18,12 +17,21 @@ use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
-    use DatabaseTransactions;  // MySQL 模式下每个测试在事务中执行，自动回滚，无需每次重建表
+    // Orchestra Testbench 明确忽略 DatabaseTransactions trait（见 setUpTheTestEnvironmentTraitToBeIgnored），
+    // 且 Laravel Eloquent 内部也会启动事务，手动事务会冲突。
+    // 方案：每个测试前 TRUNCATE 所有有数据的表（快速，仅首次建表）。
+    private static bool $schemaInitialized = false;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->setUpDatabase();
+
+        // MySQL: 每个测试前清空有数据的表
+        if (DB::connection()->getDriverName() !== 'sqlite' && static::$schemaInitialized) {
+            $this->truncateDataTables();
+        }
 
         // SQLite 无 NOW() 函数，注册自定义函数以兼容源码中 DB::raw('NOW()') 的用法
         if (DB::connection()->getDriverName() === 'sqlite') {
@@ -92,21 +100,19 @@ abstract class TestCase extends BaseTestCase
         $app['config']->set('broadcasting.default', 'log');
     }
 
-    /**
-     * MySQL 模式下，整个进程只建一次表（static 标志）。
-     * SQLite :memory: 每个测试独立连接，不需要此优化。
-     */
-    private static bool $schemaInitialized = false;
-
     protected function setUpDatabase(): void
     {
         $isMysql = DB::connection()->getDriverName() !== 'sqlite';
 
         if ($isMysql) {
-            // MySQL：检查表是否已存在，已存在则跳过建表（由 DatabaseTransactions 高级隔离）
-            if (!static::$schemaInitialized && !Schema::hasTable('tenants')) {
-                $this->dropAllTables();
-                DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            // MySQL：首次运行时建表（或清空残留数据）
+            if (!static::$schemaInitialized) {
+                if (Schema::hasTable('tenants')) {
+                    // 表已存在（上次运行残留），清空数据但不重建表
+                    $this->truncateAllTables();
+                } else {
+                    // 全新数据库，建表
+                    DB::statement('SET FOREIGN_KEY_CHECKS=0');
                 $this->createCoreTables();
                 $this->createRbacAndNotificationTables();
                 $this->createPaymentAndBillingTables();
@@ -121,7 +127,8 @@ abstract class TestCase extends BaseTestCase
                 $this->createArchiveTables();
                 $this->createWorkflowTables();
                 $this->createMemoryTables();
-                DB::statement('SET FOREIGN_KEY_CHECKS=1');
+                    DB::statement('SET FOREIGN_KEY_CHECKS=1');
+                }
             }
             static::$schemaInitialized = true;
         } else {
@@ -161,6 +168,38 @@ abstract class TestCase extends BaseTestCase
             Schema::dropIfExists($tableName);
         }
         // 注意：FOREIGN_KEY_CHECKS 由 setUpDatabase() 统一管理，此处不复位
+    }
+
+    /**
+     * TRUNCATE 所有表（保留表结构，只清数据）
+     * 用于 phpunit 进程首次运行时清除上次残留数据
+     */
+    private function truncateAllTables(): void
+    {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        $tables = DB::select('SHOW TABLES');
+        foreach ($tables as $table) {
+            $tableName = array_values((array) $table)[0];
+            DB::statement("TRUNCATE TABLE `{$tableName}`");
+        }
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+    }
+
+    /**
+     * 快速清空有数据的表（仅 TRUNCATE 非空表，跳过空表节省时间）
+     */
+    private function truncateDataTables(): void
+    {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        $tables = DB::select('SHOW TABLES');
+        foreach ($tables as $table) {
+            $tableName = array_values((array) $table)[0];
+            $count = (int) DB::selectOne("SELECT COUNT(*) AS c FROM `{$tableName}`")->c;
+            if ($count > 0) {
+                DB::statement("TRUNCATE TABLE `{$tableName}`");
+            }
+        }
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
     }
 
     private function createCoreTables(): void

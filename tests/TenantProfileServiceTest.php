@@ -10,6 +10,9 @@ use MultiTenantSaas\Models\FinancialRecord;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantSetting;
 use MultiTenantSaas\Services\TenantProfileService;
+use MultiTenantSaas\Tests\Schema\PluginModule;
+use MultiTenantSaas\Tests\Schema\EventModule;
+use MultiTenantSaas\Tests\Schema\BillingModule;
 
 /**
  * TenantProfileService 单元测试
@@ -18,6 +21,8 @@ use MultiTenantSaas\Services\TenantProfileService;
  */
 class TenantProfileServiceTest extends TestCase
 {
+    protected array $uses = [BillingModule::class, EventModule::class, PluginModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

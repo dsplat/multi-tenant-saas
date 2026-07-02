@@ -10,6 +10,9 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\DeveloperPortalService;
 use MultiTenantSaas\Services\SandboxService;
+use MultiTenantSaas\Tests\Schema\EventModule;
+use MultiTenantSaas\Tests\Schema\MiscModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
 
 /**
  * TASK-021 DeveloperPortalService 单元测试
@@ -20,6 +23,8 @@ use MultiTenantSaas\Services\SandboxService;
  */
 class DeveloperPortalServiceTest extends TestCase
 {
+    protected array $uses = [EventModule::class, MiscModule::class, PluginModule::class];
+
     private DeveloperPortalService $service;
 
     private SandboxService $sandboxService;

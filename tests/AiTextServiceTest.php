@@ -9,6 +9,7 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Scopes\TenantScope;
 use MultiTenantSaas\Services\AiGatewayService;
 use MultiTenantSaas\Services\AiTextService;
+use MultiTenantSaas\Tests\Schema\AiModule;
 
 /**
  * AiTextService 测试套件
@@ -19,6 +20,8 @@ use MultiTenantSaas\Services\AiTextService;
  */
 class AiTextServiceTest extends TestCase
 {
+    protected array $uses = [AiModule::class];
+
     protected ?AiTextService $service = null;
 
     /** @var Mockery\MockInterface&Mockery\LegacyMockInterface */

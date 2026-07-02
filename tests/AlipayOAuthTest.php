@@ -6,6 +6,7 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\AlipayOAuthService;
 use MultiTenantSaas\Services\SocialiteService;
+use MultiTenantSaas\Tests\Schema\PluginModule;
 
 /**
  * 支付宝 OAuth 认证模块测试（TASK-004 T3.3）
@@ -19,6 +20,8 @@ use MultiTenantSaas\Services\SocialiteService;
  */
 class AlipayOAuthTest extends TestCase
 {
+    protected array $uses = [PluginModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

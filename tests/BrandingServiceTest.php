@@ -8,9 +8,13 @@ use Illuminate\Support\Facades\Storage;
 use MultiTenantSaas\Models\BrandingConfig;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\BrandingService;
+use MultiTenantSaas\Tests\Schema\AiModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
 
 class BrandingServiceTest extends TestCase
 {
+    protected array $uses = [AiModule::class, PluginModule::class];
+
     use DatabaseTransactions;
 
     private BrandingService $service;

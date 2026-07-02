@@ -6,6 +6,7 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\AiTenantConfig;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\AiConfigService;
+use MultiTenantSaas\Tests\Schema\AiModule;
 
 /**
  * AiConfigService 测试套件
@@ -15,6 +16,8 @@ use MultiTenantSaas\Services\AiConfigService;
  */
 class AiConfigServiceTest extends TestCase
 {
+    protected array $uses = [AiModule::class];
+
     protected ?AiConfigService $service = null;
 
     protected function setUp(): void

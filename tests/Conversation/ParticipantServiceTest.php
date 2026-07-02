@@ -11,9 +11,12 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\Conversation\ParticipantService;
 use MultiTenantSaas\Tests\TestCase;
+use MultiTenantSaas\Tests\Schema\ChannelModule;
 
 class ParticipantServiceTest extends TestCase
 {
+    protected array $uses = [ChannelModule::class];
+
     private ParticipantService $service;
     private int $tenantId = 1001;
     private int $userA = 2001;

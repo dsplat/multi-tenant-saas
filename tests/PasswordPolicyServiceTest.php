@@ -8,6 +8,7 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\PasswordPolicyService;
+use MultiTenantSaas\Tests\Schema\SecurityModule;
 
 /**
  * TASK-016 PasswordPolicyService 单元测试
@@ -16,6 +17,8 @@ use MultiTenantSaas\Services\PasswordPolicyService;
  */
 class PasswordPolicyServiceTest extends TestCase
 {
+    protected array $uses = [SecurityModule::class];
+
     private PasswordPolicyService $service;
 
     private int $userId = 3001;

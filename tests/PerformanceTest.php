@@ -8,6 +8,9 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\CacheService;
 use MultiTenantSaas\Services\PerformanceService;
 use MultiTenantSaas\Services\StructuredLogService;
+use MultiTenantSaas\Tests\Schema\RbacModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
+use MultiTenantSaas\Tests\Schema\EventModule;
 
 /**
  * 性能基线测试
@@ -24,6 +27,8 @@ use MultiTenantSaas\Services\StructuredLogService;
  */
 class PerformanceTest extends TestCase
 {
+    protected array $uses = [EventModule::class, PluginModule::class, RbacModule::class];
+
     /** 性能基线：P95（毫秒） */
     private const BASELINE_P95_MS = 200.0;
 

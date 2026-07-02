@@ -7,6 +7,7 @@ use MultiTenantSaas\SDK\Exceptions\SdkException;
 use MultiTenantSaas\SDK\Resources\AiResource;
 use MultiTenantSaas\SDK\Resources\PaymentResource;
 use MultiTenantSaas\SDK\Resources\TenantResource;
+use MultiTenantSaas\Tests\Schema\AgentModule;
 
 /**
  * 可控的 HTTP 处理器（用于注入 SDK Client，避免真实网络调用）
@@ -57,6 +58,8 @@ class FakeHttpHandler
  */
 class SdkTest extends TestCase
 {
+    protected array $uses = [AgentModule::class];
+
     private string $apiBaseUrl = 'https://api.example.com';
 
     private string $apiKeyValue = 'sk_test_abc123';

@@ -7,6 +7,7 @@ use MultiTenantSaas\Models\SubscriptionHistory;
 use MultiTenantSaas\Models\SubscriptionPlan;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\SubscriptionService;
+use MultiTenantSaas\Tests\Schema\BillingModule;
 
 /**
  * SubscriptionService 单元测试
@@ -15,6 +16,8 @@ use MultiTenantSaas\Services\SubscriptionService;
  */
 class SubscriptionServiceTest extends TestCase
 {
+    protected array $uses = [BillingModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

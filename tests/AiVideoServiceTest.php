@@ -15,6 +15,9 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\AiVideoService;
 use MultiTenantSaas\Services\FileService;
 use RuntimeException;
+use MultiTenantSaas\Tests\Schema\AiModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
+use MultiTenantSaas\Tests\Schema\BillingModule;
 
 /**
  * AiVideoService 测试套件
@@ -29,6 +32,8 @@ use RuntimeException;
  */
 class AiVideoServiceTest extends TestCase
 {
+    protected array $uses = [AiModule::class, BillingModule::class, PluginModule::class];
+
     protected ?AiVideoService $service = null;
 
     /**

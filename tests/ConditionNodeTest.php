@@ -6,9 +6,12 @@ namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Services\Workflow\Nodes\ConditionNode;
 use MultiTenantSaas\Tests\TestCase;
+use MultiTenantSaas\Tests\Schema\WorkflowModule;
 
 class ConditionNodeTest extends TestCase
 {
+    protected array $uses = [WorkflowModule::class];
+
     private ConditionNode $conditionNode;
 
     protected function setUp(): void

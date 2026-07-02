@@ -6,9 +6,12 @@ use MultiTenantSaas\Middleware\IdentifyTenant;
 use MultiTenantSaas\Models\AgentTool;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Tests\Schema\AgentModule;
 
 class ToolControllerTest extends TestCase
 {
+    protected array $uses = [AgentModule::class];
+
     protected Tenant $tenant;
     protected Tenant $otherTenant;
     protected User $user;

@@ -12,9 +12,13 @@ use MultiTenantSaas\Models\AgentConversationMessage;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\Agent\MemoryCompressor;
 use MultiTenantSaas\Services\Ai\AiResponse;
+use MultiTenantSaas\Tests\Schema\AgentModule;
+use MultiTenantSaas\Tests\Schema\AiModule;
 
 class MemoryCompressorTest extends TestCase
 {
+    protected array $uses = [AgentModule::class, AiModule::class];
+
     protected ?MemoryCompressor $compressor = null;
 
     /** @var Mockery\MockInterface */

@@ -9,6 +9,9 @@ use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Models\CostAllocation;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\CostService;
+use MultiTenantSaas\Tests\Schema\AiModule;
+use MultiTenantSaas\Tests\Schema\BillingModule;
+use MultiTenantSaas\Tests\Schema\MiscModule;
 
 /**
  * CostService 单元测试
@@ -18,6 +21,8 @@ use MultiTenantSaas\Services\CostService;
  */
 class CostServiceTest extends TestCase
 {
+    protected array $uses = [AiModule::class, BillingModule::class, MiscModule::class];
+
     protected ?CostService $service = null;
 
     protected function setUp(): void

@@ -13,6 +13,7 @@ use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\Ai\OpenAiProvider;
 use MultiTenantSaas\Services\Ai\ZhipuProvider;
 use MultiTenantSaas\Services\AiGatewayService;
+use MultiTenantSaas\Tests\Schema\AiModule;
 
 /**
  * AiGatewayService 完整测试套件
@@ -23,6 +24,8 @@ use MultiTenantSaas\Services\AiGatewayService;
  */
 class AiGatewayServiceTest extends TestCase
 {
+    protected array $uses = [AiModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

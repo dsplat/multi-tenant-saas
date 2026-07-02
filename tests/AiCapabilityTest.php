@@ -14,9 +14,13 @@ use MultiTenantSaas\Services\Ai\Capabilities\CodeReview;
 use MultiTenantSaas\Services\Ai\Capabilities\Conversation;
 use MultiTenantSaas\Services\Ai\Capabilities\Embedding;
 use MultiTenantSaas\Services\Ai\AiResponse;
+use MultiTenantSaas\Tests\Schema\ChannelModule;
+use MultiTenantSaas\Tests\Schema\AiModule;
 
 class AiCapabilityTest extends TestCase
 {
+    protected array $uses = [AiModule::class, ChannelModule::class];
+
     private function createMockTextService(): \MultiTenantSaas\Services\Ai\AiTextService
     {
         $mock = $this->createMock(\MultiTenantSaas\Services\Ai\AiTextService::class);

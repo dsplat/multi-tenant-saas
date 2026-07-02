@@ -9,6 +9,9 @@ use MultiTenantSaas\Models\SubscriptionPlan;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\AiConfigService;
 use MultiTenantSaas\Services\AiUsageService;
+use MultiTenantSaas\Tests\Schema\AiModule;
+use MultiTenantSaas\Tests\Schema\BillingModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
 
 /**
  * AiUsageService 测试套件
@@ -19,6 +22,8 @@ use MultiTenantSaas\Services\AiUsageService;
  */
 class AiUsageServiceTest extends TestCase
 {
+    protected array $uses = [AiModule::class, BillingModule::class, PluginModule::class];
+
     protected ?AiUsageService $service = null;
 
     protected ?AiConfigService $configService = null;

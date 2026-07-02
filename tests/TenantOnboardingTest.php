@@ -9,6 +9,8 @@ use MultiTenantSaas\Models\Role;
 use MultiTenantSaas\Models\SubscriptionPlan;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Tests\Schema\BillingModule;
+use MultiTenantSaas\Tests\Schema\RbacModule;
 
 /**
  * 租户引导式注册（Onboarding）验收测试
@@ -18,6 +20,8 @@ use MultiTenantSaas\Models\User;
  */
 class TenantOnboardingTest extends TestCase
 {
+    protected array $uses = [BillingModule::class, RbacModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

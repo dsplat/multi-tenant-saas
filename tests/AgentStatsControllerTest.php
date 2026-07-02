@@ -8,9 +8,12 @@ use MultiTenantSaas\Models\AgentConversation;
 use MultiTenantSaas\Models\AgentToolLog;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Tests\Schema\AgentModule;
 
 class AgentStatsControllerTest extends TestCase
 {
+    protected array $uses = [AgentModule::class];
+
     protected Tenant $tenant;
     protected Tenant $otherTenant;
     protected User $user;

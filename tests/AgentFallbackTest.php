@@ -13,9 +13,13 @@ use MultiTenantSaas\Models\AgentConversation;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\Agent\AgentRuntime;
 use MultiTenantSaas\Services\Ai\AiResponse;
+use MultiTenantSaas\Tests\Schema\AgentModule;
+use MultiTenantSaas\Tests\Schema\AiModule;
 
 class AgentFallbackTest extends TestCase
 {
+    protected array $uses = [AgentModule::class, AiModule::class];
+
     protected ?AgentRuntime $runtime = null;
 
     /** @var Mockery\MockInterface */

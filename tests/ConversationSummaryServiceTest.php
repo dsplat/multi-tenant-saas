@@ -10,9 +10,12 @@ use MultiTenantSaas\Models\Message;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\Conversation\ConversationSummaryService;
+use MultiTenantSaas\Tests\Schema\ChannelModule;
 
 class ConversationSummaryServiceTest extends TestCase
 {
+    protected array $uses = [ChannelModule::class];
+
     private ConversationSummaryService $service;
     private Tenant $tenant;
     private User $user;

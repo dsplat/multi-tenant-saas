@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\RateLimitService;
+use MultiTenantSaas\Tests\Schema\PluginModule;
+use MultiTenantSaas\Tests\Schema\EventModule;
 
 /**
  * RateLimitService 单元测试
@@ -14,6 +16,8 @@ use MultiTenantSaas\Services\RateLimitService;
  */
 class RateLimitServiceTest extends TestCase
 {
+    protected array $uses = [EventModule::class, PluginModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

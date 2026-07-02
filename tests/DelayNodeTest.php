@@ -6,9 +6,12 @@ namespace MultiTenantSaas\Tests;
 
 use Carbon\Carbon;
 use MultiTenantSaas\Services\Workflow\Nodes\DelayNode;
+use MultiTenantSaas\Tests\Schema\WorkflowModule;
 
 class DelayNodeTest extends TestCase
 {
+    protected array $uses = [WorkflowModule::class];
+
     private DelayNode $delayNode;
 
     protected function setUp(): void

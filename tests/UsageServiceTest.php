@@ -6,6 +6,8 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\SubscriptionPlan;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\UsageService;
+use MultiTenantSaas\Tests\Schema\BillingModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
 
 /**
  * UsageService 单元测试
@@ -14,6 +16,8 @@ use MultiTenantSaas\Services\UsageService;
  */
 class UsageServiceTest extends TestCase
 {
+    protected array $uses = [BillingModule::class, PluginModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

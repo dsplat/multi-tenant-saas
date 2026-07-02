@@ -6,6 +6,7 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\AgentTool;
 use MultiTenantSaas\Tests\Handlers\DummyHandler;
 use MultiTenantSaas\Services\Agent\ToolRegistry;
+use MultiTenantSaas\Tests\Schema\AgentModule;
 
 /**
  * ToolRegistry 单元测试
@@ -14,6 +15,8 @@ use MultiTenantSaas\Services\Agent\ToolRegistry;
  */
 class ToolRegistryTest extends TestCase
 {
+    protected array $uses = [AgentModule::class];
+
     private ToolRegistry $registry;
 
     protected function setUp(): void

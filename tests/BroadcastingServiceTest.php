@@ -6,6 +6,7 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\BroadcastEvent;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\BroadcastingService;
+use MultiTenantSaas\Tests\Schema\EventModule;
 
 /**
  * TASK-026 BroadcastingService 单元测试
@@ -15,6 +16,8 @@ use MultiTenantSaas\Services\BroadcastingService;
  */
 class BroadcastingServiceTest extends TestCase
 {
+    protected array $uses = [EventModule::class];
+
     private BroadcastingService $service;
     private int $tenantId = 1001;
     private int $userId = 5001;

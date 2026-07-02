@@ -7,6 +7,7 @@ use MultiTenantSaas\Models\InAppNotification;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\InAppNotificationService;
+use MultiTenantSaas\Tests\Schema\NotificationModule;
 
 /**
  * TASK-026 InAppNotificationService 单元测试
@@ -15,6 +16,8 @@ use MultiTenantSaas\Services\InAppNotificationService;
  */
 class InAppNotificationServiceTest extends TestCase
 {
+    protected array $uses = [NotificationModule::class];
+
     private InAppNotificationService $service;
     private int $userId = 5001;
     private int $tenantId = 1001;

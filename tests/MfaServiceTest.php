@@ -8,6 +8,7 @@ use MultiTenantSaas\Models\MfaRecoveryCode;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\MfaService;
+use MultiTenantSaas\Tests\Schema\SecurityModule;
 
 /**
  * TASK-015 MfaService 单元测试
@@ -16,6 +17,8 @@ use MultiTenantSaas\Services\MfaService;
  */
 class MfaServiceTest extends TestCase
 {
+    protected array $uses = [SecurityModule::class];
+
     private MfaService $service;
 
     private int $userId = 2001;

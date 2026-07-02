@@ -11,9 +11,12 @@ use MultiTenantSaas\Models\AgentConversationMessage;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\Ai\StreamChunk;
+use MultiTenantSaas\Tests\Schema\AgentModule;
 
 class AgentChatControllerTest extends TestCase
 {
+    protected array $uses = [AgentModule::class];
+
     protected Tenant $tenant;
     protected Tenant $otherTenant;
     protected User $user;

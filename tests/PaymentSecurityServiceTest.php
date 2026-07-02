@@ -8,6 +8,7 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\PaymentSecurityService;
+use MultiTenantSaas\Tests\Schema\BillingModule;
 
 /**
  * PaymentSecurityService 单元测试
@@ -16,6 +17,8 @@ use MultiTenantSaas\Services\PaymentSecurityService;
  */
 class PaymentSecurityServiceTest extends TestCase
 {
+    protected array $uses = [BillingModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

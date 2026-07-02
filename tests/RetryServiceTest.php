@@ -13,9 +13,13 @@ use MultiTenantSaas\Models\WorkflowNode;
 use MultiTenantSaas\Services\Workflow\RetryService;
 use MultiTenantSaas\Services\Workflow\WorkflowEngine;
 use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
+use MultiTenantSaas\Tests\Schema\WorkflowModule;
+use MultiTenantSaas\Tests\Schema\AgentModule;
 
 class RetryServiceTest extends TestCase
 {
+    protected array $uses = [AgentModule::class, WorkflowModule::class];
+
     private Tenant $tenant;
     private FakeToolRegistry $toolRegistry;
     private TenantContextContract $tenantContext;

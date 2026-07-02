@@ -9,6 +9,7 @@ use MultiTenantSaas\Events\AgentDisabled;
 use MultiTenantSaas\Events\AgentEnabled;
 use MultiTenantSaas\Models\Agent;
 use MultiTenantSaas\Services\Agent\AgentService;
+use MultiTenantSaas\Tests\Schema\AgentModule;
 
 /**
  * AgentService 单元测试
@@ -17,6 +18,8 @@ use MultiTenantSaas\Services\Agent\AgentService;
  */
 class AgentServiceTest extends TestCase
 {
+    protected array $uses = [AgentModule::class];
+
     private AgentService $service;
 
     protected function setUp(): void

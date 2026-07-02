@@ -17,9 +17,12 @@ use MultiTenantSaas\Services\Agent\Tools\ValidationTool;
 use MultiTenantSaas\Services\Agent\Tools\EncryptionTool;
 use MultiTenantSaas\Services\Agent\Tools\LoggingTool;
 use MultiTenantSaas\Services\Agent\Tools\QueueTool;
+use MultiTenantSaas\Tests\Schema\AgentModule;
 
 class FrameworkToolsTest extends TestCase
 {
+    protected array $uses = [AgentModule::class];
+
     public function test_search_tool(): void
     {
         $tool = new SearchTool();

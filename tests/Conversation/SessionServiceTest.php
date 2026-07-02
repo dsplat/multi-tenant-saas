@@ -11,6 +11,7 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\Conversation\SessionService;
 use MultiTenantSaas\Tests\TestCase;
+use MultiTenantSaas\Tests\Schema\ChannelModule;
 
 /**
  * IMPL-004 会话会话服务（SessionService）单元测试
@@ -20,6 +21,8 @@ use MultiTenantSaas\Tests\TestCase;
  */
 class SessionServiceTest extends TestCase
 {
+    protected array $uses = [ChannelModule::class];
+
     private SessionService $service;
 
     private int $tenantId = 1001;

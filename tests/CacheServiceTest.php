@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Cache;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\CacheService;
+use MultiTenantSaas\Tests\Schema\MiscModule;
+use MultiTenantSaas\Tests\Schema\RbacModule;
+use MultiTenantSaas\Tests\Schema\EventModule;
 
 /**
  * CacheService 单元测试
@@ -14,6 +17,8 @@ use MultiTenantSaas\Services\CacheService;
  */
 class CacheServiceTest extends TestCase
 {
+    protected array $uses = [EventModule::class, MiscModule::class, RbacModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

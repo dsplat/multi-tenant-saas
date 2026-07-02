@@ -9,9 +9,12 @@ use Illuminate\Database\Schema\Blueprint;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantKey;
 use MultiTenantSaas\Services\TenantKeyService;
+use MultiTenantSaas\Tests\Schema\MiscModule;
 
 class TenantKeyServiceTest extends TestCase
 {
+    protected array $uses = [MiscModule::class];
+
     use DatabaseTransactions;
 
     private TenantKeyService $service;

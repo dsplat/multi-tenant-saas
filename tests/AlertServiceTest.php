@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\AlertService;
+use MultiTenantSaas\Tests\Schema\PluginModule;
+use MultiTenantSaas\Tests\Schema\EventModule;
 
 /**
  * AlertService 单元测试
@@ -14,6 +16,8 @@ use MultiTenantSaas\Services\AlertService;
  */
 class AlertServiceTest extends TestCase
 {
+    protected array $uses = [EventModule::class, PluginModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

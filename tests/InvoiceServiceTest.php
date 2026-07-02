@@ -7,9 +7,12 @@ use MultiTenantSaas\Models\Invoice;
 use MultiTenantSaas\Models\InvoiceItem;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\InvoiceService;
+use MultiTenantSaas\Tests\Schema\BillingModule;
 
 class InvoiceServiceTest extends TestCase
 {
+    protected array $uses = [BillingModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

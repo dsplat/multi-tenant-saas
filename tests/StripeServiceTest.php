@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantSetting;
 use MultiTenantSaas\Services\StripeService;
+use MultiTenantSaas\Tests\Schema\WebhookModule;
 
 /**
  * StripeService 单元测试
@@ -14,6 +15,8 @@ use MultiTenantSaas\Services\StripeService;
  */
 class StripeServiceTest extends TestCase
 {
+    protected array $uses = [WebhookModule::class];
+
     private const TENANT_ID = 1001;
     private const STRIPE_SECRET = 'sk_test_secret_key';
     private const WEBHOOK_SECRET = 'whsec_test_secret';

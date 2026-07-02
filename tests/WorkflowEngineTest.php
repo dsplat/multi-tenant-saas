@@ -14,9 +14,13 @@ use MultiTenantSaas\Services\Workflow\WorkflowEngine;
 use MultiTenantSaas\Services\Workflow\WorkflowRegistry;
 use MultiTenantSaas\Services\Workflow\WorkflowService;
 use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
+use MultiTenantSaas\Tests\Schema\WorkflowModule;
+use MultiTenantSaas\Tests\Schema\AgentModule;
 
 class WorkflowEngineTest extends TestCase
 {
+    protected array $uses = [AgentModule::class, WorkflowModule::class];
+
     private Tenant $tenant;
     private FakeToolRegistry $toolRegistry;
     private TenantContextContract $tenantContext;

@@ -7,9 +7,13 @@ namespace MultiTenantSaas\Tests;
 use MultiTenantSaas\Services\Workflow\Nodes\ActionNode;
 use MultiTenantSaas\Services\Workflow\Nodes\ConditionNode;
 use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
+use MultiTenantSaas\Tests\Schema\AgentModule;
+use MultiTenantSaas\Tests\Schema\WorkflowModule;
 
 class ActionNodeTest extends TestCase
 {
+    protected array $uses = [AgentModule::class, WorkflowModule::class];
+
     private FakeToolRegistry $toolRegistry;
     private ActionNode $actionNode;
 

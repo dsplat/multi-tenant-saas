@@ -23,9 +23,16 @@ use MultiTenantSaas\Services\Memory\MemoryService;
 use MultiTenantSaas\Services\Workflow\WorkflowEngine;
 use MultiTenantSaas\Services\Workflow\WorkflowService;
 use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
+use MultiTenantSaas\Tests\Schema\AgentModule;
+use MultiTenantSaas\Tests\Schema\BillingModule;
+use MultiTenantSaas\Tests\Schema\ChannelModule;
+use MultiTenantSaas\Tests\Schema\WorkflowModule;
+use MultiTenantSaas\Tests\Schema\MemoryModule;
 
 class EndToEndIntegrationTest extends TestCase
 {
+    protected array $uses = [AgentModule::class, BillingModule::class, ChannelModule::class, MemoryModule::class, WorkflowModule::class];
+
     private Tenant $tenant;
     private User $user;
     private int $tenantId = 1001;

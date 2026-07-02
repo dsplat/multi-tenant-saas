@@ -9,6 +9,7 @@ use MultiTenantSaas\Mail\TenantMail;
 use MultiTenantSaas\Models\MailTemplate;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\MailTemplateService;
+use MultiTenantSaas\Tests\Schema\NotificationModule;
 
 /**
  * MailTemplateService 测试
@@ -18,6 +19,8 @@ use MultiTenantSaas\Services\MailTemplateService;
  */
 class MailTemplateServiceTest extends TestCase
 {
+    protected array $uses = [NotificationModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

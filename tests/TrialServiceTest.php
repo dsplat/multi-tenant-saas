@@ -7,9 +7,12 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\SubscriptionPlan;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\TrialService;
+use MultiTenantSaas\Tests\Schema\BillingModule;
 
 class TrialServiceTest extends TestCase
 {
+    protected array $uses = [BillingModule::class];
+
     private TrialService $service;
 
     protected function setUp(): void

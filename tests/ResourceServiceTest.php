@@ -9,6 +9,8 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\ResourceService;
+use MultiTenantSaas\Tests\Schema\MiscModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
 
 /**
  * ResourceService 单元测试
@@ -18,6 +20,8 @@ use MultiTenantSaas\Services\ResourceService;
  */
 class ResourceServiceTest extends TestCase
 {
+    protected array $uses = [MiscModule::class, PluginModule::class];
+
     protected ?ResourceService $service = null;
 
     protected function setUp(): void

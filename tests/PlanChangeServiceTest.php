@@ -8,6 +8,7 @@ use MultiTenantSaas\Models\SubscriptionHistory;
 use MultiTenantSaas\Models\SubscriptionPlan;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\PlanChangeService;
+use MultiTenantSaas\Tests\Schema\BillingModule;
 
 /**
  * PlanChangeService 单元测试
@@ -16,6 +17,8 @@ use MultiTenantSaas\Services\PlanChangeService;
  */
 class PlanChangeServiceTest extends TestCase
 {
+    protected array $uses = [BillingModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

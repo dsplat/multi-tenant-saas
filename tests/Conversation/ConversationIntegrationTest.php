@@ -16,6 +16,7 @@ use MultiTenantSaas\Services\Conversation\ReadStateService;
 use MultiTenantSaas\Services\Conversation\SessionService;
 use MultiTenantSaas\Services\Conversation\TagService;
 use MultiTenantSaas\Tests\TestCase;
+use MultiTenantSaas\Tests\Schema\ChannelModule;
 
 /**
  * IMPL-004 集成测试：验证 Mention / ReadState / Session / Tag 四个服务
@@ -25,6 +26,8 @@ use MultiTenantSaas\Tests\TestCase;
  */
 class ConversationIntegrationTest extends TestCase
 {
+    protected array $uses = [ChannelModule::class];
+
     private int $tenantId = 1001;
 
     private int $senderId = 2001;

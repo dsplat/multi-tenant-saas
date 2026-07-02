@@ -13,6 +13,10 @@ use MultiTenantSaas\Scopes\TenantScope;
 use MultiTenantSaas\Services\CrossTenantService;
 use MultiTenantSaas\Services\TenantCloneService;
 use RuntimeException;
+use MultiTenantSaas\Tests\Schema\RbacModule;
+use MultiTenantSaas\Tests\Schema\MiscModule;
+use MultiTenantSaas\Tests\Schema\BillingModule;
+use MultiTenantSaas\Tests\Schema\AiModule;
 
 /**
  * TASK-029 TenantCloneService 单元测试
@@ -23,6 +27,8 @@ use RuntimeException;
  */
 class TenantCloneServiceTest extends TestCase
 {
+    protected array $uses = [AiModule::class, BillingModule::class, MiscModule::class, RbacModule::class];
+
     private TenantCloneService $service;
 
     /** 源（模板）租户 ID */

@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Storage;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\ExportService;
+use MultiTenantSaas\Tests\Schema\PluginModule;
+use MultiTenantSaas\Tests\Schema\EventModule;
 
 /**
  * ExportService 单元测试
@@ -15,6 +17,8 @@ use MultiTenantSaas\Services\ExportService;
  */
 class ExportServiceTest extends TestCase
 {
+    protected array $uses = [EventModule::class, PluginModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

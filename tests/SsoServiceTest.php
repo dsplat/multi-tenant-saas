@@ -8,6 +8,8 @@ use MultiTenantSaas\Models\SsoProvider;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\SsoService;
+use MultiTenantSaas\Tests\Schema\PluginModule;
+use MultiTenantSaas\Tests\Schema\SecurityModule;
 
 /**
  * TASK-016 SsoService 单元测试
@@ -17,6 +19,8 @@ use MultiTenantSaas\Services\SsoService;
  */
 class SsoServiceTest extends TestCase
 {
+    protected array $uses = [PluginModule::class, SecurityModule::class];
+
     private SsoService $service;
 
     /** 测试用 IdP 自签证书（仅用于签名校验测试） */

@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantSetting;
 use MultiTenantSaas\Services\PayPalService;
+use MultiTenantSaas\Tests\Schema\WebhookModule;
 
 /**
  * PayPalService 单元测试
@@ -17,6 +18,8 @@ use MultiTenantSaas\Services\PayPalService;
  */
 class PayPalServiceTest extends TestCase
 {
+    protected array $uses = [WebhookModule::class];
+
     private const TENANT_ID = 1001;
     private const ACCESS_TOKEN = 'pp_access_token_mock';
 

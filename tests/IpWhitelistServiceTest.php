@@ -10,6 +10,8 @@ use MultiTenantSaas\Models\IpWhitelist;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\IpWhitelistService;
 use Symfony\Component\HttpFoundation\Response;
+use MultiTenantSaas\Tests\Schema\EventModule;
+use MultiTenantSaas\Tests\Schema\SecurityModule;
 
 /**
  * TASK-017 IpWhitelistService 单元测试
@@ -18,6 +20,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class IpWhitelistServiceTest extends TestCase
 {
+    protected array $uses = [EventModule::class, SecurityModule::class];
+
     private IpWhitelistService $service;
 
     protected function setUp(): void

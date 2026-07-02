@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Schema;
 use MultiTenantSaas\Models\Permission;
 use MultiTenantSaas\Models\Role;
 use MultiTenantSaas\Services\RbacService;
+use MultiTenantSaas\Tests\Schema\RbacModule;
 
 /**
  * RbacService 单元测试
@@ -15,6 +16,8 @@ use MultiTenantSaas\Services\RbacService;
  */
 class RbacServiceTest extends TestCase
 {
+    protected array $uses = [RbacModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

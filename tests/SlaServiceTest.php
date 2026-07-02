@@ -8,6 +8,8 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\SlaEvent;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\SlaService;
+use MultiTenantSaas\Tests\Schema\EventModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
 
 /**
  * SlaService 单元测试
@@ -16,6 +18,8 @@ use MultiTenantSaas\Services\SlaService;
  */
 class SlaServiceTest extends TestCase
 {
+    protected array $uses = [EventModule::class, PluginModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

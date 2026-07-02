@@ -12,6 +12,9 @@ use MultiTenantSaas\Models\WebhookDelivery;
 use MultiTenantSaas\Services\CacheService;
 use MultiTenantSaas\Services\PerformanceService;
 use MultiTenantSaas\Services\WebhookService;
+use MultiTenantSaas\Tests\Schema\WebhookModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
+use MultiTenantSaas\Tests\Schema\EventModule;
 
 /**
  * 负载测试
@@ -28,6 +31,8 @@ use MultiTenantSaas\Services\WebhookService;
  */
 class LoadTest extends TestCase
 {
+    protected array $uses = [EventModule::class, PluginModule::class, WebhookModule::class];
+
     /** 负载测试租户规模 */
     private const TENANT_COUNT = 1000;
 

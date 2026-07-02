@@ -8,9 +8,12 @@ use MultiTenantSaas\Models\Coupon;
 use MultiTenantSaas\Models\CouponUsage;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\CouponService;
+use MultiTenantSaas\Tests\Schema\BillingModule;
 
 class CouponServiceTest extends TestCase
 {
+    protected array $uses = [BillingModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

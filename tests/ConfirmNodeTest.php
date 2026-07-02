@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Services\Workflow\Nodes\ConfirmNode;
+use MultiTenantSaas\Tests\Schema\WorkflowModule;
 
 class ConfirmNodeTest extends TestCase
 {
+    protected array $uses = [WorkflowModule::class];
+
     private ConfirmNode $confirmNode;
 
     protected function setUp(): void

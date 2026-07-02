@@ -9,6 +9,9 @@ use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Models\CustomReport;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\ReportService;
+use MultiTenantSaas\Tests\Schema\MiscModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
+use MultiTenantSaas\Tests\Schema\AiModule;
 
 /**
  * ReportService 单元测试
@@ -18,6 +21,8 @@ use MultiTenantSaas\Services\ReportService;
  */
 class ReportServiceTest extends TestCase
 {
+    protected array $uses = [AiModule::class, MiscModule::class, PluginModule::class];
+
     protected ?ReportService $service = null;
 
     protected function setUp(): void

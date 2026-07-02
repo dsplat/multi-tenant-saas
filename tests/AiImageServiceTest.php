@@ -11,6 +11,9 @@ use MultiTenantSaas\Models\FileUpload;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\AiImageService;
 use RuntimeException;
+use MultiTenantSaas\Tests\Schema\AiModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
+use MultiTenantSaas\Tests\Schema\BillingModule;
 
 /**
  * AiImageService 测试套件
@@ -23,6 +26,8 @@ use RuntimeException;
  */
 class AiImageServiceTest extends TestCase
 {
+    protected array $uses = [AiModule::class, BillingModule::class, PluginModule::class];
+
     protected ?AiImageService $service = null;
 
     /**

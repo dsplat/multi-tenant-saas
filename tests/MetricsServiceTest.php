@@ -9,6 +9,8 @@ use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Models\MetricsSnapshot;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\MetricsService;
+use MultiTenantSaas\Tests\Schema\EventModule;
+use MultiTenantSaas\Tests\Schema\SecurityModule;
 
 /**
  * MetricsService 单元测试
@@ -17,6 +19,8 @@ use MultiTenantSaas\Services\MetricsService;
  */
 class MetricsServiceTest extends TestCase
 {
+    protected array $uses = [EventModule::class, SecurityModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

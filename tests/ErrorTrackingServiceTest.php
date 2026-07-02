@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\ErrorTrackingService;
+use MultiTenantSaas\Tests\Schema\PluginModule;
 
 /**
  * ErrorTrackingService 单元测试
@@ -15,6 +16,8 @@ use MultiTenantSaas\Services\ErrorTrackingService;
  */
 class ErrorTrackingServiceTest extends TestCase
 {
+    protected array $uses = [PluginModule::class];
+
     protected ?ErrorTrackingService $service = null;
 
     protected function setUp(): void

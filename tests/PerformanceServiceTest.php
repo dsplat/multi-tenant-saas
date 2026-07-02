@@ -7,6 +7,7 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\PerformanceService;
 use MultiTenantSaas\Services\StructuredLogService;
+use MultiTenantSaas\Tests\Schema\PluginModule;
 
 /**
  * PerformanceService 单元测试
@@ -15,6 +16,8 @@ use MultiTenantSaas\Services\StructuredLogService;
  */
 class PerformanceServiceTest extends TestCase
 {
+    protected array $uses = [PluginModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

@@ -8,9 +8,12 @@ use MultiTenantSaas\Models\Agent;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\Agent\BuiltinAgentTemplates;
+use MultiTenantSaas\Tests\Schema\AgentModule;
 
 class AgentControllerTest extends TestCase
 {
+    protected array $uses = [AgentModule::class];
+
     protected Tenant $tenant;
     protected Tenant $otherTenant;
     protected User $user;

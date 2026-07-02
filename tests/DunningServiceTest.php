@@ -8,6 +8,8 @@ use MultiTenantSaas\Models\AuditLog;
 use MultiTenantSaas\Models\PaymentOrder;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\DunningService;
+use MultiTenantSaas\Tests\Schema\BillingModule;
+use MultiTenantSaas\Tests\Schema\EventModule;
 
 /**
  * DunningService 单元测试
@@ -16,6 +18,8 @@ use MultiTenantSaas\Services\DunningService;
  */
 class DunningServiceTest extends TestCase
 {
+    protected array $uses = [BillingModule::class, EventModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

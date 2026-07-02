@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Services\Agent\BuiltinAgentTemplates;
+use MultiTenantSaas\Tests\Schema\AgentModule;
 
 /**
  * BuiltinAgentTemplates 单元测试
@@ -11,6 +12,8 @@ use MultiTenantSaas\Services\Agent\BuiltinAgentTemplates;
  */
 class BuiltinAgentTemplatesTest extends TestCase
 {
+    protected array $uses = [AgentModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

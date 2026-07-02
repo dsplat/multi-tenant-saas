@@ -6,9 +6,12 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TaxRule;
 use MultiTenantSaas\Services\TaxService;
+use MultiTenantSaas\Tests\Schema\BillingModule;
 
 class TaxServiceTest extends TestCase
 {
+    protected array $uses = [BillingModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

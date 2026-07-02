@@ -11,6 +11,7 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\Conversation\TagService;
 use MultiTenantSaas\Tests\TestCase;
+use MultiTenantSaas\Tests\Schema\ChannelModule;
 
 /**
  * IMPL-004 TagService 单元测试
@@ -19,6 +20,8 @@ use MultiTenantSaas\Tests\TestCase;
  */
 class TagServiceTest extends TestCase
 {
+    protected array $uses = [ChannelModule::class];
+
     private TagService $service;
 
     private int $tenantId = 1001;

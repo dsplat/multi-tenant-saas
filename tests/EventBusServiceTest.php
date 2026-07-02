@@ -13,6 +13,8 @@ use MultiTenantSaas\Models\EventSubscription;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\EventBusService;
 use MultiTenantSaas\Services\WebhookService;
+use MultiTenantSaas\Tests\Schema\EventModule;
+use MultiTenantSaas\Tests\Schema\WebhookModule;
 
 /**
  * 内部测试用事件处理器（成功）
@@ -76,6 +78,8 @@ class TestEventHandlerB implements EventHandler
  */
 class EventBusServiceTest extends TestCase
 {
+    protected array $uses = [EventModule::class, WebhookModule::class];
+
     private EventBusService $service;
 
     protected function setUp(): void

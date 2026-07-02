@@ -11,6 +11,8 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\Webhook;
 use MultiTenantSaas\Models\WebhookDelivery;
 use MultiTenantSaas\Services\WebhookService;
+use MultiTenantSaas\Tests\Schema\EventModule;
+use MultiTenantSaas\Tests\Schema\WebhookModule;
 
 /**
  * TASK-019 WebhookService 单元测试
@@ -19,6 +21,8 @@ use MultiTenantSaas\Services\WebhookService;
  */
 class WebhookServiceTest extends TestCase
 {
+    protected array $uses = [EventModule::class, WebhookModule::class];
+
     private WebhookService $service;
 
     protected function setUp(): void

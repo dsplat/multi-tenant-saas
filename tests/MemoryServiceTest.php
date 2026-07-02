@@ -9,9 +9,12 @@ use MultiTenantSaas\Models\Memory\EntityMemory;
 use MultiTenantSaas\Models\Memory\TenantMemory;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\Memory\MemoryService;
+use MultiTenantSaas\Tests\Schema\MemoryModule;
 
 class MemoryServiceTest extends TestCase
 {
+    protected array $uses = [MemoryModule::class];
+
     private MemoryService $memoryService;
     private Tenant $tenant;
 

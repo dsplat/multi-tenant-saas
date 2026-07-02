@@ -7,9 +7,13 @@ namespace MultiTenantSaas\Tests;
 use MultiTenantSaas\Models\WorkflowExecution;
 use MultiTenantSaas\Services\Workflow\RollbackService;
 use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
+use MultiTenantSaas\Tests\Schema\WorkflowModule;
+use MultiTenantSaas\Tests\Schema\AgentModule;
 
 class RollbackServiceTest extends TestCase
 {
+    protected array $uses = [AgentModule::class, WorkflowModule::class];
+
     private FakeToolRegistry $toolRegistry;
     private RollbackService $rollbackService;
 

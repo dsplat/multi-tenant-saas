@@ -10,9 +10,12 @@ use MultiTenantSaas\Models\Capability\CapabilityResult;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\Capability\CapabilityBillingService;
+use MultiTenantSaas\Tests\Schema\BillingModule;
 
 class CapabilityBillingServiceTest extends TestCase
 {
+    protected array $uses = [BillingModule::class];
+
     private CapabilityBillingService $billingService;
     private Tenant $tenant;
     private User $user;

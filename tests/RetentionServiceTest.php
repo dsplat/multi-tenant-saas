@@ -9,6 +9,9 @@ use MultiTenantSaas\Models\DataRetentionPolicy;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\RetentionService;
+use MultiTenantSaas\Tests\Schema\EventModule;
+use MultiTenantSaas\Tests\Schema\MiscModule;
+use MultiTenantSaas\Tests\Schema\SecurityModule;
 
 /**
  * TASK-018 RetentionService 单元测试
@@ -17,6 +20,8 @@ use MultiTenantSaas\Services\RetentionService;
  */
 class RetentionServiceTest extends TestCase
 {
+    protected array $uses = [EventModule::class, MiscModule::class, SecurityModule::class];
+
     private RetentionService $service;
     private int $tenantId = 1001;
     private int $userId = 1;

@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\File;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\PluginService;
+use MultiTenantSaas\Tests\Schema\PluginModule;
+use MultiTenantSaas\Tests\Schema\EventModule;
 
 /**
  * PluginService 单元测试
@@ -15,6 +17,8 @@ use MultiTenantSaas\Services\PluginService;
  */
 class PluginServiceTest extends TestCase
 {
+    protected array $uses = [EventModule::class, PluginModule::class];
+
     private string $pluginsDir;
 
     protected function setUp(): void

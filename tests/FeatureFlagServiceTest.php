@@ -10,6 +10,8 @@ use MultiTenantSaas\Models\FeatureFlag;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\FeatureFlagService;
 use Symfony\Component\HttpFoundation\Response;
+use MultiTenantSaas\Tests\Schema\EventModule;
+use MultiTenantSaas\Tests\Schema\SecurityModule;
 
 /**
  * TASK-022 FeatureFlagService 单元测试
@@ -19,6 +21,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class FeatureFlagServiceTest extends TestCase
 {
+    protected array $uses = [EventModule::class, SecurityModule::class];
+
     private FeatureFlagService $service;
 
     protected function setUp(): void

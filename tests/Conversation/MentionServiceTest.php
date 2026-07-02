@@ -13,6 +13,7 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\Conversation\MentionService;
 use MultiTenantSaas\Tests\TestCase;
+use MultiTenantSaas\Tests\Schema\ChannelModule;
 
 /**
  * IMPL-004 MentionService 单元测试
@@ -21,6 +22,8 @@ use MultiTenantSaas\Tests\TestCase;
  */
 class MentionServiceTest extends TestCase
 {
+    protected array $uses = [ChannelModule::class];
+
     private MentionService $service;
 
     private int $tenantId = 1001;

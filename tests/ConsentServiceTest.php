@@ -7,6 +7,7 @@ use MultiTenantSaas\Models\Consent;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\ConsentService;
+use MultiTenantSaas\Tests\Schema\MiscModule;
 
 /**
  * TASK-018 ConsentService 单元测试
@@ -15,6 +16,8 @@ use MultiTenantSaas\Services\ConsentService;
  */
 class ConsentServiceTest extends TestCase
 {
+    protected array $uses = [MiscModule::class];
+
     private ConsentService $service;
     private int $userId = 1;
     private int $tenantId = 1001;

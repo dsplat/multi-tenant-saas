@@ -8,6 +8,7 @@ use MultiTenantSaas\Models\CreditTransaction;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\TenantCreditService;
+use MultiTenantSaas\Tests\Schema\BillingModule;
 
 /**
  * TenantCreditService 单元测试
@@ -16,6 +17,8 @@ use MultiTenantSaas\Services\TenantCreditService;
  */
 class TenantCreditServiceTest extends TestCase
 {
+    protected array $uses = [BillingModule::class];
+
     protected function setUp(): void
     {
         parent::setUp();

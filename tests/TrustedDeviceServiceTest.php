@@ -9,6 +9,7 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TrustedDevice;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\TrustedDeviceService;
+use MultiTenantSaas\Tests\Schema\SecurityModule;
 
 /**
  * TASK-017 TrustedDeviceService 单元测试
@@ -17,6 +18,8 @@ use MultiTenantSaas\Services\TrustedDeviceService;
  */
 class TrustedDeviceServiceTest extends TestCase
 {
+    protected array $uses = [SecurityModule::class];
+
     private TrustedDeviceService $service;
     private int $userId = 1;
 

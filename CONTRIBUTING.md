@@ -119,7 +119,7 @@ php artisan test --coverage
 │   ├── Scopes/             # 查询作用域
 │   ├── Services/           # 服务层
 │   └── ...
-├── tests/                  # 浔试
+├── tests/                  # 测试
 └── docs/                   # 文档
 ```
 

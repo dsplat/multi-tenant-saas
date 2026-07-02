@@ -34,6 +34,9 @@ Thumbs.db
 *.swo
 *~
 .ai/
+.mimocode/
+*.bak
+runner.db
 
 # Database files
 *.sqlite

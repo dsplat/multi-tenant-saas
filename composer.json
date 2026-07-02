@@ -43,11 +43,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "MultiTenantSaas\\Tests\\": "tests/",
-            "App\\\\": "app/",
-            "Database\\\\Factories\\\\": "database/factories/",
-            "Database\\\\Seeders\\\\": "database/seeders/",
-            "MultiTenantSaas\\\\Tests\\\\": "tests/"
+            "MultiTenantSaas\\Tests\\": "tests/"
         }
     },
     "scripts": {

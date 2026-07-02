@@ -55,7 +55,7 @@ class NotificationService
     ): void {
         $users = User::whereHas('tenants', function ($q) use ($tenantId) {
             $q->where('tenants.tenant_id', $tenantId)
-              ->wherePivot('is_active', true);
+              ->where('tenant_users.is_active', true);
         })->get();
 
         $users = static::filterByPreference($users, 'database', 'general');
@@ -78,8 +78,8 @@ class NotificationService
     ): void {
         $users = User::whereHas('tenants', function ($q) use ($tenantId) {
             $q->where('tenants.tenant_id', $tenantId)
-              ->wherePivot('is_active', true)
-              ->wherePivotIn('role', ['tenant_admin']);
+              ->where('tenant_users.is_active', true)
+              ->whereIn('tenant_users.role', ['tenant_admin']);
         })->get();
 
         $users = static::filterByPreference($users, 'database', 'general');
@@ -96,7 +96,7 @@ class NotificationService
     {
         $users = User::whereHas('tenants', function ($q) use ($tenant) {
             $q->where('tenants.tenant_id', $tenant->tenant_id)
-              ->wherePivot('is_active', true);
+              ->where('tenant_users.is_active', true);
         })->get();
 
         $users = static::filterByPreference($users, 'database', 'tenant_suspended');
@@ -113,8 +113,8 @@ class NotificationService
     {
         $admins = User::whereHas('tenants', function ($q) use ($tenant) {
             $q->where('tenants.tenant_id', $tenant->tenant_id)
-              ->wherePivot('is_active', true)
-              ->wherePivotIn('role', ['tenant_admin']);
+              ->where('tenant_users.is_active', true)
+              ->whereIn('tenant_users.role', ['tenant_admin']);
         })->get();
 
         $admins = static::filterByPreference($admins, 'database', 'credit_low');

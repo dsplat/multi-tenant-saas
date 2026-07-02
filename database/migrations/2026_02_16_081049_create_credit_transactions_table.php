@@ -17,7 +17,7 @@ return new class extends Migration
             $table->bigInteger('amount')->comment('金额（正数=收入，负数=支出）');
             $table->unsignedBigInteger('balance_after')->comment('交易后余额');
             $table->string('related_type', 100)->nullable()->comment('关联模型类型');
-            $table->unsignedBigInteger('related_id')->nullable()->comment('关联模型ID');
+            $table->string('related_id', 100)->nullable()->comment('关联模型ID');
             $table->string('description', 255)->nullable()->comment('交易描述');
             $table->json('metadata')->nullable()->comment('元数据');
             $table->timestamp('created_at')->nullable();

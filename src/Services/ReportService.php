@@ -714,10 +714,14 @@ class ReportService
             }
         };
 
-        $response = \Maatwebsite\Excel\Facades\Excel::download($export, 'report.xlsx');
-        $file = $response->getFile();
+        try {
+            $response = \Maatwebsite\Excel\Facades\Excel::download($export, 'report.xlsx');
+            $file = $response->getFile();
 
-        return (string) file_get_contents($file->getPathname());
+            return (string) file_get_contents($file->getPathname());
+        } catch (\Throwable $e) {
+            throw new \RuntimeException(trans('common.report_export_unavailable'), 0, $e);
+        }
     }
 
     /**
@@ -735,7 +739,11 @@ class ReportService
 
         $view = (string) config('tenancy.reports.pdf_view', 'pdf.report');
 
-        return (string) PdfService::generate($view, $data);
+        try {
+            return (string) PdfService::generate($view, $data);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException(trans('common.report_export_unavailable'), 0, $e);
+        }
     }
 
     /**

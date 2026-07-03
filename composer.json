@@ -10,15 +10,16 @@
     ],
     "license": "MIT",
     "require": {
-        "php": "^8.2",
-        "laravel/framework": "^12.0",
+        "php": "^8.3",
+        "barryvdh/laravel-dompdf": "^3.0",
+        "laravel/ai": "^0.8.1",
+        "laravel/framework": "^13.0",
         "laravel/sanctum": "^4.3",
         "laravel/socialite": "^5.0",
-        "yansongda/pay": "^3.7",
-        "spatie/laravel-health": "^1.0",
         "maatwebsite/excel": "^3.1",
-        "barryvdh/laravel-dompdf": "^3.0",
-        "orchestra/testbench": "^10.0"
+        "orchestra/testbench": "^11.0",
+        "spatie/laravel-health": "^1.0",
+        "yansongda/pay": "^3.7"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

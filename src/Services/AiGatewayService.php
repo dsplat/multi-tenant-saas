@@ -11,7 +11,7 @@ use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Enums\AiModelEnum;
 use MultiTenantSaas\Models\AiModelAlias;
 use MultiTenantSaas\Models\AiRequest;
-use MultiTenantSaas\Services\Ai\OpenAiProvider;
+use MultiTenantSaas\Services\Ai\Providers\LaravelAiProviderAdapter;
 use MultiTenantSaas\Services\Ai\ZhipuProvider;
 use Throwable;
 
@@ -39,7 +39,13 @@ class AiGatewayService
      * ai.provider_not_implemented 异常，便于后续按需扩展。
      */
     protected const PROVIDER_CLASS_MAP = [
-        'openai' => OpenAiProvider::class,
+        // laravel/ai 原生 provider（支持 OpenAI、Anthropic、Gemini、DeepSeek、Groq）
+        'openai' => LaravelAiProviderAdapter::class,
+        'anthropic' => LaravelAiProviderAdapter::class,
+        'gemini' => LaravelAiProviderAdapter::class,
+        'deepseek' => LaravelAiProviderAdapter::class,
+        'groq' => LaravelAiProviderAdapter::class,
+        // OpenAI 兼容模式 provider（智谱等自定义 base_url）
         'zhipu' => ZhipuProvider::class,
     ];
 
@@ -349,6 +355,19 @@ class AiGatewayService
 
         if ($class === null) {
             throw new \RuntimeException(trans('ai.provider_not_implemented', ['provider' => $providerCode]));
+        }
+
+        // laravel/ai 适配器需要传入 provider 配置
+        if ($class === LaravelAiProviderAdapter::class) {
+            // 检查容器是否已绑定（测试注入 mock）
+            if (app()->bound($class)) {
+                return $this->providerCache[$providerCode] = app($class);
+            }
+
+            $config = config("ai.providers.{$providerCode}", []);
+            $config['driver'] = $providerCode;
+
+            return $this->providerCache[$providerCode] = new $class($config);
         }
 
         return $this->providerCache[$providerCode] = app($class);

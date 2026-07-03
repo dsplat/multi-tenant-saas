@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Models\AiRequest;
 use MultiTenantSaas\Models\FileUpload;
-use MultiTenantSaas\Services\Ai\DalleProvider;
+use MultiTenantSaas\Services\Ai\Providers\DalleImageProvider;
 use MultiTenantSaas\Services\Ai\StableDiffusionProvider;
 use RuntimeException;
 use Throwable;
@@ -18,7 +18,7 @@ use Throwable;
 /**
  * 图片 AI 服务
  *
- * 面向上层提供图片生成 AI 能力，统一调度 DalleProvider 与 StableDiffusionProvider，
+ * 面向上层提供图片生成 AI 能力，统一调度 laravel/ai Image API 与 StableDiffusionProvider，
  * 屏蔽提供商差异。职责：
  *  - 文生图（text-to-image）
  *  - 图生图（image-to-image）
@@ -38,7 +38,7 @@ class AiImageService
      * 提供商标识与实现类的映射表
      */
     protected const PROVIDER_CLASS_MAP = [
-        'dalle' => DalleProvider::class,
+        'dalle' => DalleImageProvider::class,
         'stability' => StableDiffusionProvider::class,
     ];
 

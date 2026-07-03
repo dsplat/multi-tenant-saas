@@ -83,7 +83,7 @@ class AiTextService implements AiTextServiceContract
      * - null：使用 config(ai.default)，缺省回退 'mock'
      *
      * 各驱动自行在构造时读取 config('ai')，故此处统一以无参方式实例化，
-     * 兼容 MockAiDriver(script) 与 OpenAiCompatibleDriver(config) 两种构造签名。
+     * 兼容 MockAiDriver(script) 与 LaravelAiDriverAdapter(config) 两种构造签名。
      */
     public function driver(AiDriverContract|string|null $name = null): AiDriverContract
     {

@@ -20,7 +20,11 @@ class PdfService
      */
     public static function generate(string $view, array $data = [], ?string $outputPath = null): string
     {
-        $pdf = Pdf::loadView($view, $data);
+        try {
+            $pdf = Pdf::loadView($view, $data);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('PDF service unavailable: ' . $e->getMessage(), 0, $e);
+        }
 
         if ($outputPath) {
             $pdf->save($outputPath);

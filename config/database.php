@@ -70,7 +70,7 @@ return [
                 PDO::ATTR_PERSISTENT => env('DB_PERSISTENT', false),
                 // 超时控制：连接 3s、读写 30s，避免长事务拖垮连接池
                 PDO::ATTR_TIMEOUT => env('DB_TIMEOUT', 3),
-                PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci',
+                \Pdo\Mysql::ATTR_INIT_COMMAND => 'SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci',
                 defined('Pdo\Mysql::ATTR_SSL_CA') ? \Pdo\Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
         ],

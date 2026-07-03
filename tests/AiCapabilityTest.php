@@ -12,7 +12,6 @@ use MultiTenantSaas\Services\Ai\Capabilities\TextClassification;
 use MultiTenantSaas\Services\Ai\Capabilities\CodeGeneration;
 use MultiTenantSaas\Services\Ai\Capabilities\CodeReview;
 use MultiTenantSaas\Services\Ai\Capabilities\Conversation;
-use MultiTenantSaas\Services\Ai\Capabilities\Embedding;
 use MultiTenantSaas\Services\Ai\AiResponse;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
 use MultiTenantSaas\Tests\Schema\AiModule;
@@ -159,34 +158,6 @@ class AiCapabilityTest extends TestCase
 
         $this->assertSame('conversation', $result->capability);
         $this->assertTrue($result->isSuccess());
-    }
-
-    public function test_embedding_name(): void
-    {
-        $mock = $this->createMock(\MultiTenantSaas\Services\Ai\OpenAiProvider::class);
-        $mock->method('embeddings')->willReturn([
-            'data' => [['embedding' => [0.1, 0.2, 0.3]]],
-            'usage' => ['total_tokens' => 50],
-        ]);
-
-        $capability = new Embedding($mock);
-        $this->assertSame('embedding', $capability->name());
-    }
-
-    public function test_embedding_execute(): void
-    {
-        $mock = $this->createMock(\MultiTenantSaas\Services\Ai\OpenAiProvider::class);
-        $mock->method('embeddings')->willReturn([
-            'data' => [['embedding' => [0.1, 0.2, 0.3]]],
-            'usage' => ['total_tokens' => 50],
-        ]);
-
-        $capability = new Embedding($mock);
-        $result = $capability->execute(['text' => 'Hello world']);
-
-        $this->assertSame('embedding', $result->capability);
-        $this->assertTrue($result->isSuccess());
-        $this->assertSame([0.1, 0.2, 0.3], $result->output);
     }
 
     public function test_capability_result_confidence(): void

@@ -38,6 +38,8 @@ use MultiTenantSaas\Services\Agent\AgentService;
 use MultiTenantSaas\Services\Agent\MemoryCompressor;
 use MultiTenantSaas\Services\Agent\ToolRegistry;
 use MultiTenantSaas\Services\Ai\AiTextService;
+use MultiTenantSaas\Services\Ai\Storage\TenantConversationStore;
+use Laravel\Ai\Contracts\ConversationStore;
 use MultiTenantSaas\Services\AlertService;
 use MultiTenantSaas\Services\AlipayOAuthService;
 use MultiTenantSaas\Services\ApiVersionService;
@@ -186,6 +188,14 @@ class TenancyServiceProvider extends ServiceProvider
             return new AiTextService;
         });
         $this->app->alias(AiTextServiceContract::class, AiTextService::class);
+
+        // 覆盖 laravel/ai 的 ConversationStore 绑定
+        // 使用项目 IdGenerator（16位数字ID）替代 UUID7，并支持租户隔离
+        $this->app->singleton(ConversationStore::class, function () {
+            return new TenantConversationStore(
+                config('ai.conversations.connection'),
+            );
+        });
 
         // 注册 Agent 服务（绑定接口契约 + 具体实现）
         $this->app->singleton(AgentServiceContract::class, function ($app) {

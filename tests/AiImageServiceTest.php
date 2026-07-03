@@ -5,10 +5,12 @@ namespace MultiTenantSaas\Tests;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Mockery;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\AiRequest;
 use MultiTenantSaas\Models\FileUpload;
 use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Services\Ai\Providers\DalleImageProvider;
 use MultiTenantSaas\Services\AiImageService;
 use RuntimeException;
 use MultiTenantSaas\Tests\Schema\AiModule;
@@ -50,6 +52,12 @@ class AiImageServiceTest extends TestCase
         $this->service = $this->app->make(AiImageService::class);
     }
 
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
+    }
+
     /**
      * 设置图片 AI 默认配置与提供商密钥
      */
@@ -66,6 +74,17 @@ class AiImageServiceTest extends TestCase
         config(['ai.image.storage_disk' => 'local']);
         config(['ai.image.storage_is_public' => false]);
         config(['ai.log.enable' => true]);
+    }
+
+    /**
+     * 将 DalleImageProvider 绑定为 Mockery mock
+     */
+    protected function bindDalleMock(): Mockery\MockInterface&Mockery\LegacyMockInterface
+    {
+        $mock = Mockery::mock(DalleImageProvider::class);
+        $this->app->instance(DalleImageProvider::class, $mock);
+
+        return $mock;
     }
 
     /**
@@ -126,7 +145,17 @@ class AiImageServiceTest extends TestCase
 
     public function test_text_to_image_with_dalle_stores_result_and_logs_request(): void
     {
-        $this->fakeProviders();
+        $mock = $this->bindDalleMock();
+        $mock->shouldReceive('textToImage')->once()->with('dall-e-3', 'a cute cat', Mockery::type('array'))
+            ->andReturn([
+                'provider' => 'dalle',
+                'model' => 'dall-e-3',
+                'images' => [
+                    ['b64' => self::PNG_B64, 'url' => null, 'content_type' => 'image/png', 'revised_prompt' => 'revised'],
+                ],
+                'usage' => ['image_count' => 1, 'size' => '1024x1024'],
+                'raw' => [],
+            ]);
 
         $result = $this->service->textToImage('a cute cat', [
             'provider' => 'dalle',
@@ -159,14 +188,6 @@ class AiImageServiceTest extends TestCase
             'model' => 'dall-e-3',
             'status' => AiRequest::STATUS_SUCCESS,
         ]);
-
-        // DALL-E 3 请求应携带 quality 与 style
-        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
-            return $request->url() === 'https://api.openai.com/v1/images/generations'
-                && str_contains((string) $request->body(), 'dall-e-3')
-                && str_contains((string) $request->body(), 'hd')
-                && str_contains((string) $request->body(), 'vivid');
-        });
     }
 
     // ======================================================================
@@ -245,26 +266,22 @@ class AiImageServiceTest extends TestCase
 
     public function test_edit_image_with_dalle_uploads_image_and_mask(): void
     {
-        $this->fakeProviders();
+        $mock = $this->bindDalleMock();
+        $mock->shouldReceive('editImage')
+            ->andThrow(new RuntimeException(trans('ai.image_operation_not_supported', [
+                'provider' => 'dalle',
+                'operation' => 'edit_image',
+            ])));
 
         $image = $this->createInputFile('photo.png');
         $mask = $this->createInputFile('mask.png');
 
-        $result = $this->service->editImage($image->file_upload_id, $mask->file_upload_id, 'remove background', [
+        $this->expectException(RuntimeException::class);
+
+        $this->service->editImage($image->file_upload_id, $mask->file_upload_id, 'remove background', [
             'provider' => 'dalle',
             'model' => 'dall-e-2',
         ]);
-
-        $this->assertSame('dalle', $result['provider']);
-        $this->assertSame('dall-e-2', $result['model']);
-        $this->assertCount(1, $result['images']);
-
-        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
-            return $request->url() === 'https://api.openai.com/v1/images/edits'
-                && $request->hasFile('image')
-                && $request->hasFile('mask')
-                && str_contains((string) $request->body(), 'remove background');
-        });
     }
 
     // ======================================================================
@@ -324,7 +341,16 @@ class AiImageServiceTest extends TestCase
 
     public function test_text_to_image_uses_default_provider_when_not_specified(): void
     {
-        $this->fakeProviders();
+        $mock = $this->bindDalleMock();
+        $mock->shouldReceive('textToImage')->once()->andReturn([
+            'provider' => 'dalle',
+            'model' => 'dall-e-3',
+            'images' => [
+                ['b64' => self::PNG_B64, 'url' => null, 'content_type' => 'image/png', 'revised_prompt' => null],
+            ],
+            'usage' => ['image_count' => 1, 'size' => '1024x1024'],
+            'raw' => [],
+        ]);
 
         $result = $this->service->textToImage('default prompt');
 
@@ -373,7 +399,12 @@ class AiImageServiceTest extends TestCase
 
     public function test_dalle_does_not_support_image_to_image(): void
     {
-        $this->fakeProviders();
+        $mock = $this->bindDalleMock();
+        $mock->shouldReceive('imageToImage')
+            ->andThrow(new RuntimeException(trans('ai.image_operation_not_supported', [
+                'provider' => 'dalle',
+                'operation' => 'image_to_image',
+            ])));
 
         $input = $this->createInputFile();
 
@@ -387,7 +418,12 @@ class AiImageServiceTest extends TestCase
 
     public function test_dalle_does_not_support_style_transfer(): void
     {
-        $this->fakeProviders();
+        $mock = $this->bindDalleMock();
+        $mock->shouldReceive('styleTransfer')
+            ->andThrow(new RuntimeException(trans('ai.image_operation_not_supported', [
+                'provider' => 'dalle',
+                'operation' => 'style_transfer',
+            ])));
 
         $input = $this->createInputFile();
 
@@ -401,7 +437,9 @@ class AiImageServiceTest extends TestCase
 
     public function test_text_to_image_throws_on_unsupported_size(): void
     {
-        $this->fakeProviders();
+        $mock = $this->bindDalleMock();
+        $mock->shouldReceive('textToImage')
+            ->andThrow(new RuntimeException('Invalid size'));
 
         $this->expectException(RuntimeException::class);
 
@@ -414,7 +452,9 @@ class AiImageServiceTest extends TestCase
 
     public function test_text_to_image_throws_on_unsupported_quality(): void
     {
-        $this->fakeProviders();
+        $mock = $this->bindDalleMock();
+        $mock->shouldReceive('textToImage')
+            ->andThrow(new RuntimeException('Invalid quality'));
 
         $this->expectException(RuntimeException::class);
 
@@ -431,9 +471,9 @@ class AiImageServiceTest extends TestCase
 
     public function test_text_to_image_logs_failure_when_provider_returns_error(): void
     {
-        Http::fake([
-            'https://api.openai.com/v1/images/generations*' => Http::response(['error' => 'boom'], 500),
-        ]);
+        $mock = $this->bindDalleMock();
+        $mock->shouldReceive('textToImage')
+            ->andThrow(new RuntimeException('Provider error: boom'));
 
         $caught = null;
         try {

@@ -304,6 +304,10 @@ class InvoiceServiceTest extends TestCase
             $this->markTestSkipped('barryvdh/laravel-dompdf not installed');
         }
 
+        if (! app()->bound('dompdf.wrapper')) {
+            $this->markTestSkipped('dompdf.wrapper binding not registered in test environment');
+        }
+
         $invoice = InvoiceService::createInvoice([
             'tenant_id' => 1001,
             'items' => [

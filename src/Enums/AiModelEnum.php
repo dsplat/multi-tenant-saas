@@ -17,9 +17,14 @@ enum AiModelEnum: string
     case Gpt4oMini = 'gpt-4o-mini';
     case Gpt4Turbo = 'gpt-4-turbo';
     case Claude35Sonnet = 'claude-3-5-sonnet';
+    case ClaudeHaiku45 = 'claude-haiku-4-5-20251001';
     case Glm4 = 'glm-4';
     case Glm4Flash = 'glm-4-flash';
     case DeepSeekV3 = 'deepseek-chat';
+    case Gemini20Flash = 'gemini-2.0-flash';
+    case Gemini15Pro = 'gemini-1.5-pro';
+    case GroqLlama3370b = 'llama-3.3-70b-versatile';
+    case GroqLlama318b = 'llama-3.1-8b-instant';
 
     // ---- 图片模型 ----
     case DallE3 = 'dall-e-3';
@@ -38,8 +43,11 @@ enum AiModelEnum: string
     {
         return match ($this) {
             self::Gpt4o, self::Gpt4oMini, self::Gpt4Turbo,
-            self::Claude35Sonnet, self::Glm4, self::Glm4Flash,
-            self::DeepSeekV3 => 'text',
+            self::Claude35Sonnet, self::ClaudeHaiku45,
+            self::Glm4, self::Glm4Flash,
+            self::DeepSeekV3,
+            self::Gemini20Flash, self::Gemini15Pro,
+            self::GroqLlama3370b, self::GroqLlama318b => 'text',
             self::DallE3, self::Sdxl => 'image',
             self::RunwayGen3, self::Kling => 'video',
         };
@@ -54,9 +62,11 @@ enum AiModelEnum: string
     {
         return match ($this) {
             self::Gpt4o, self::Gpt4oMini, self::Gpt4Turbo, self::DallE3 => 'openai',
-            self::Claude35Sonnet => 'anthropic',
+            self::Claude35Sonnet, self::ClaudeHaiku45 => 'anthropic',
             self::Glm4, self::Glm4Flash => 'zhipu',
             self::DeepSeekV3 => 'deepseek',
+            self::Gemini20Flash, self::Gemini15Pro => 'gemini',
+            self::GroqLlama3370b, self::GroqLlama318b => 'groq',
             self::Sdxl => 'stability',
             self::RunwayGen3 => 'runway',
             self::Kling => 'kuaishou',
@@ -75,9 +85,14 @@ enum AiModelEnum: string
             self::Gpt4oMini => 16384,
             self::Gpt4Turbo => 4096,
             self::Claude35Sonnet => 8192,
+            self::ClaudeHaiku45 => 8192,
             self::Glm4 => 8192,
             self::Glm4Flash => 8192,
             self::DeepSeekV3 => 8192,
+            self::Gemini20Flash => 8192,
+            self::Gemini15Pro => 8192,
+            self::GroqLlama3370b => 8192,
+            self::GroqLlama318b => 8192,
             self::DallE3, self::Sdxl, self::RunwayGen3, self::Kling => 0,
         };
     }

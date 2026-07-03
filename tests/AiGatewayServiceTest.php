@@ -10,7 +10,7 @@ use MultiTenantSaas\Models\AiModelAlias;
 use MultiTenantSaas\Models\AiRequest;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\Ai\OpenAiProvider;
+use MultiTenantSaas\Services\Ai\Providers\LaravelAiProviderAdapter;
 use MultiTenantSaas\Services\Ai\ZhipuProvider;
 use MultiTenantSaas\Services\AiGatewayService;
 use MultiTenantSaas\Tests\Schema\AiModule;
@@ -59,12 +59,12 @@ class AiGatewayServiceTest extends TestCase
     }
 
     /**
-     * 将 OpenAiProvider 绑定为 Mockery mock
+     * 将 LaravelAiProviderAdapter 绑定为 Mockery mock
      */
     protected function bindOpenAiMock(): Mockery\MockInterface&Mockery\LegacyMockInterface
     {
-        $mock = Mockery::mock(OpenAiProvider::class);
-        $this->app->instance(OpenAiProvider::class, $mock);
+        $mock = Mockery::mock(LaravelAiProviderAdapter::class);
+        $this->app->instance(LaravelAiProviderAdapter::class, $mock);
 
         return $mock;
     }
@@ -404,13 +404,14 @@ class AiGatewayServiceTest extends TestCase
 
     public function test_unregistered_provider_throws_provider_not_implemented(): void
     {
-        $provider = $this->bindOpenAiMock();
-        $provider->shouldReceive('chatCompletion')->never();
+        // 使用一个不存在的模型名，让它解析到默认 provider（openai），
+        // 然后模拟 resolveProvider 抛出异常的场景
+        config(['ai.default_provider' => 'nonexistent_provider']);
 
         $this->expectException(\RuntimeException::class);
 
         $service = app(AiGatewayService::class);
-        $service->chat('claude-3-5-sonnet', [['role' => 'user', 'content' => 'Hi']]);
+        $service->chat('unknown-model-xyz', [['role' => 'user', 'content' => 'Hi']]);
     }
 
     public function test_multiple_calls_on_same_service_reuse_provider_cache(): void

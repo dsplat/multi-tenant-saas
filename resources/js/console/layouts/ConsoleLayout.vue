@@ -8,6 +8,9 @@
         <a href="/console/dashboard" :class="['nav-item', { active: isActive('/dashboard') }]">
           <span>工作台</span>
         </a>
+        <a href="/scrm-console/" class="nav-item scrm-link">
+          <span>SCRM 运营</span>
+        </a>
         <a href="/console/members" :class="['nav-item', { active: isActive('/members') }]">
           <span>成员管理</span>
         </a>
@@ -162,4 +165,14 @@ const handleLogout = () => {
 
 .logout-btn:hover { color: #f56c6c; border-color: #f56c6c; }
 .content { flex: 1; padding: 20px; overflow-y: auto; }
+
+/* SCRM 链接样式 */
+.nav-item.scrm-link {
+  color: #67c23a;
+  font-weight: 500;
+}
+.nav-item.scrm-link:hover {
+  background: rgba(103, 194, 58, 0.1);
+  color: #85ce61;
+}
 </style>

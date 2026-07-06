@@ -118,6 +118,15 @@ return [
             ['name' => 'ai_video', 'description' => 'AI 视频生成', 'scope' => 'global', 'status' => 'active', 'rollout_percentage' => 100],
             ['name' => 'beta_features', 'description' => 'Beta 功能集合', 'scope' => 'tenant', 'status' => 'inactive', 'rollout_percentage' => 0],
             ['name' => 'new_dashboard', 'description' => '新版控制台', 'scope' => 'tenant', 'status' => 'inactive', 'rollout_percentage' => 0],
+            // SCRM 模块功能开关
+            ['name' => 'scrm_customers', 'description' => 'SCRM 客户管理', 'scope' => 'tenant', 'status' => 'active', 'rollout_percentage' => 100],
+            ['name' => 'scrm_agents', 'description' => 'SCRM AI Agent', 'scope' => 'tenant', 'status' => 'active', 'rollout_percentage' => 100],
+            ['name' => 'scrm_automation', 'description' => 'SCRM 自动化规则', 'scope' => 'tenant', 'status' => 'inactive', 'rollout_percentage' => 0],
+            ['name' => 'scrm_channels', 'description' => 'SCRM 渠道管理', 'scope' => 'tenant', 'status' => 'active', 'rollout_percentage' => 100],
+            ['name' => 'scrm_communities', 'description' => 'SCRM 社群管理', 'scope' => 'tenant', 'status' => 'active', 'rollout_percentage' => 100],
+            ['name' => 'scrm_live_codes', 'description' => 'SCRM 活码管理', 'scope' => 'tenant', 'status' => 'active', 'rollout_percentage' => 100],
+            ['name' => 'scrm_knowledge', 'description' => 'SCRM 知识库', 'scope' => 'tenant', 'status' => 'active', 'rollout_percentage' => 100],
+            ['name' => 'scrm_campaigns', 'description' => 'SCRM 营销活动', 'scope' => 'tenant', 'status' => 'inactive', 'rollout_percentage' => 0],
         ],
     ],
 

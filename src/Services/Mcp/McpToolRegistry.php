@@ -1,28 +1,36 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MultiTenantSaas\Services\Mcp;
 
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Collection;
 use MultiTenantSaas\Contracts\McpToolRegistryContract;
-use MultiTenantSaas\Exceptions\McpException;
+use MultiTenantSaas\Mcp\Tools\McpTool;
 
 class McpToolRegistry implements McpToolRegistryContract
 {
-    private array $tools = [];
+    /** @var array<string, array{name: string, handlerClass: string, schema: array, description: string}> */
+    protected array $tools = [];
+
+    /** @var array<string, McpTool> */
+    protected array $instances = [];
 
     public function __construct(
-        private Container $container
+        protected Container $container,
     ) {}
 
     public function register(string $name, string $handlerClass, array $schema, string $description = ''): void
     {
         $this->tools[$name] = [
             'name' => $name,
-            'description' => $description,
-            'inputSchema' => $schema,
             'handlerClass' => $handlerClass,
+            'schema' => $schema,
+            'description' => $description,
         ];
+
+        unset($this->instances[$name]);
     }
 
     public function all(): Collection
@@ -37,77 +45,34 @@ class McpToolRegistry implements McpToolRegistryContract
 
     public function listTools(): array
     {
-        return array_map(function ($tool) {
+        return array_values(array_map(function (array $tool) {
             return [
                 'name' => $tool['name'],
                 'description' => $tool['description'],
-                'inputSchema' => $tool['inputSchema'],
+                'inputSchema' => $tool['schema'],
             ];
-        }, array_values($this->tools));
+        }, $this->tools));
     }
 
     public function callTool(string $name, array $arguments, ?int $tenantId = null): array
     {
-        $tool = $this->get($name);
+        $tool = $this->resolve($name);
 
         if ($tool === null) {
-            throw new McpException(
-                "Tool not found: {$name}",
-                McpException::TOOL_NOT_FOUND
-            );
-        }
-
-        $handlerClass = $tool['handlerClass'];
-
-        if (!class_exists($handlerClass)) {
-            throw new McpException(
-                "Handler class not found: {$handlerClass}",
-                McpException::TOOL_EXECUTION_FAILED
-            );
-        }
-
-        try {
-            $handler = $this->container->make($handlerClass);
-
-            if (method_exists($handler, '__invoke')) {
-                $result = $handler($arguments, $tenantId);
-            } elseif (method_exists($handler, 'execute')) {
-                $result = $handler->execute($arguments, $tenantId);
-            } else {
-                throw new McpException(
-                    "Handler must implement __invoke or execute method",
-                    McpException::TOOL_EXECUTION_FAILED
-                );
-            }
-
             return [
                 'content' => [
-                    [
-                        'type' => 'text',
-                        'text' => is_string($result) ? $result : json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
-                    ],
-                ],
-            ];
-        } catch (McpException $e) {
-            throw $e;
-        } catch (\Throwable $e) {
-            return [
-                'content' => [
-                    [
-                        'type' => 'text',
-                        'text' => "Tool execution error: {$e->getMessage()}",
-                    ],
+                    ['type' => 'text', 'text' => "Tool not found: {$name}"],
                 ],
                 'isError' => true,
             ];
         }
+
+        return $tool->executeForResult($arguments);
     }
 
     public function getSchema(string $name): ?array
     {
-        $tool = $this->get($name);
-
-        return $tool ? $tool['inputSchema'] : null;
+        return $this->tools[$name]['schema'] ?? null;
     }
 
     public function has(string $name): bool
@@ -117,6 +82,45 @@ class McpToolRegistry implements McpToolRegistryContract
 
     public function unregister(string $name): void
     {
-        unset($this->tools[$name]);
+        unset($this->tools[$name], $this->instances[$name]);
+    }
+
+    protected function resolve(string $name): ?McpTool
+    {
+        if (isset($this->instances[$name])) {
+            return $this->instances[$name];
+        }
+
+        $toolDef = $this->tools[$name] ?? null;
+
+        if ($toolDef === null) {
+            return null;
+        }
+
+        $handlerClass = $toolDef['handlerClass'];
+
+        if (!class_exists($handlerClass)) {
+            return null;
+        }
+
+        try {
+            $instance = $this->container->make($handlerClass);
+
+            if ($instance instanceof McpTool) {
+                $this->instances[$name] = $instance;
+
+                return $instance;
+            }
+
+            return null;
+        } catch (\Throwable $e) {
+            Log::error('McpToolRegistry: failed to resolve tool', [
+                'name' => $name,
+                'handler' => $handlerClass,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 }

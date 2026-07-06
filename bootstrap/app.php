@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.ensure' => \MultiTenantSaas\Middleware\EnsureTenantContext::class,
             'tenant.permission' => \MultiTenantSaas\Middleware\CheckPermission::class,
             'rbac.permission' => \MultiTenantSaas\Middleware\CheckRbacPermission::class,
+            'mcp.auth' => \MultiTenantSaas\Middleware\McpMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

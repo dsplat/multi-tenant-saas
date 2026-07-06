@@ -21,6 +21,7 @@ use MultiTenantSaas\Contracts\ConversationServiceContract;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Contracts\MemoryContract;
 use MultiTenantSaas\Contracts\MessageServiceContract;
+use MultiTenantSaas\Contracts\McpToolRegistryContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Contracts\WorkflowEngineContract;
@@ -72,9 +73,15 @@ use MultiTenantSaas\Services\DeveloperPortalService;
 use MultiTenantSaas\Services\EventBusService;
 use MultiTenantSaas\Services\ExportService;
 use MultiTenantSaas\Services\FeatureFlagService;
+use MultiTenantSaas\Services\FormBuilderService;
 use MultiTenantSaas\Services\HealthService;
 use MultiTenantSaas\Services\IdGenerator;
 use MultiTenantSaas\Services\LoginLogService;
+use MultiTenantSaas\Services\LotteryService;
+use MultiTenantSaas\Services\Mcp\McpClientRegistry;
+use MultiTenantSaas\Services\Mcp\McpRouteMacro;
+use MultiTenantSaas\Services\Mcp\McpSkillGenerator;
+use MultiTenantSaas\Services\Mcp\McpToolRegistry;
 use MultiTenantSaas\Services\Memory\EntityMemory;
 use MultiTenantSaas\Services\Memory\MemoryPipeline;
 use MultiTenantSaas\Services\Memory\TenantMemory;
@@ -91,6 +98,7 @@ use MultiTenantSaas\Services\SocialiteService;
 use MultiTenantSaas\Services\StructuredLogService;
 use MultiTenantSaas\Services\SubscriptionService;
 use MultiTenantSaas\Services\TenantProfileService;
+use MultiTenantSaas\Services\VotingService;
 use MultiTenantSaas\Services\Tool\CacheGetTool;
 use MultiTenantSaas\Services\Tool\CacheSetTool;
 use MultiTenantSaas\Services\Tool\DocumentParseTool;
@@ -152,6 +160,16 @@ class TenancyServiceProvider extends ServiceProvider
                 $user ? $user->getAuthIdentifier() : $request->ip()
             );
         });
+
+        // 注册 MCP 端点限流策略
+        RateLimiter::for('mcp', function ($request) {
+            return Limit::perMinute(120)->by(
+                $request->header('X-Tenant-ID', $request->ip())
+            );
+        });
+
+        // 注册 MCP Route 宏
+        McpRouteMacro::register();
 
         // 注册事件监听器（事件系统）
         Event::listen(TenantCreated::class, [LogEventListener::class, 'handleTenantCreated']);
@@ -298,6 +316,30 @@ class TenancyServiceProvider extends ServiceProvider
         // 注册指标采集与 SLA 监控服务
         $this->app->singleton(MetricsService::class);
         $this->app->singleton(SlaService::class);
+
+        // 注册 MCP 工具注册表（绑定接口契约 + 具体实现）
+        $this->app->singleton(McpToolRegistryContract::class, function ($app) {
+            return new McpToolRegistry(
+                $app->make(Container::class)
+            );
+        });
+        $this->app->alias(McpToolRegistryContract::class, McpToolRegistry::class);
+
+        // 注册 MCP 客户端注册表
+        $this->app->singleton(McpClientRegistry::class);
+
+        // 注册 MCP Skill 生成器
+        $this->app->singleton(McpSkillGenerator::class, function ($app) {
+            return new McpSkillGenerator(
+                $app->make(McpToolRegistryContract::class),
+                $app->make(McpClientRegistry::class)
+            );
+        });
+
+        // 注册能力引擎服务
+        $this->app->singleton(FormBuilderService::class);
+        $this->app->singleton(LotteryService::class);
+        $this->app->singleton(VotingService::class);
 
         $this->app->singleton(ConversationServiceContract::class, function ($app) {
             return new ConversationService(

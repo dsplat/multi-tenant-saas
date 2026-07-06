@@ -19,6 +19,11 @@ class McpSkillGenerator
         private McpClientRegistry $clientRegistry
     ) {}
 
+    public function getClientRegistry(): McpClientRegistry
+    {
+        return $this->clientRegistry;
+    }
+
     /**
      * 生成 Markdown Skill 格式
      */
@@ -102,7 +107,7 @@ class McpSkillGenerator
     /**
      * 根据客户端类型生成对应格式
      */
-    public function generate(string $clientSlug, string $format = null): string|array
+    public function generate(string $clientSlug, ?string $format = null): string|array
     {
         $format = $format ?? $this->clientRegistry->getOutputFormat($clientSlug);
 

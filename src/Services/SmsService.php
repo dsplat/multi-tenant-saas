@@ -2,8 +2,12 @@
 
 namespace MultiTenantSaas\Services;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Models\SmsBatchTask;
+use MultiTenantSaas\Models\SmsSendLog;
+use MultiTenantSaas\Models\SmsTemplate;
 
 /**
  * 短信发送服务
@@ -200,5 +204,320 @@ class SmsService
         }
 
         return substr($phone, 0, 3).'****'.substr($phone, -4);
+    }
+
+    // ========================================================================
+    // 扩展: 营销短信模板、批量发送、定时发送、到达率统计
+    // ========================================================================
+
+    /**
+     * 创建短信模板
+     */
+    public static function createTemplate(array $data, ?int $tenantId = null): SmsTemplate
+    {
+        return SmsTemplate::create([
+            'tenant_id' => $tenantId,
+            'name' => $data['name'],
+            'code' => $data['code'],
+            'content' => $data['content'],
+            'type' => $data['type'] ?? 'marketing',
+            'sign_name' => $data['sign_name'] ?? null,
+            'params' => $data['params'] ?? null,
+            'status' => $data['status'] ?? 'active',
+            'metadata' => $data['metadata'] ?? null,
+        ]);
+    }
+
+    /**
+     * 获取模板列表
+     */
+    public static function getTemplates(?int $tenantId = null, array $filters = [])
+    {
+        $query = SmsTemplate::query();
+
+        if ($tenantId !== null) {
+            $query->where('tenant_id', $tenantId);
+        }
+        if (!empty($filters['type'])) {
+            $query->where('type', $filters['type']);
+        }
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        return $query->orderByDesc('created_at')->get();
+    }
+
+    /**
+     * 发送营销短信（使用模板）
+     *
+     * @param  string  $phone  手机号
+     * @param  int  $templateId  模板ID
+     * @param  array  $params  模板参数
+     * @param  int|null  $tenantId  租户ID
+     */
+    public static function sendMarketing(string $phone, int $templateId, array $params = [], ?int $tenantId = null): string|false
+    {
+        $template = SmsTemplate::findOrFail($templateId);
+
+        $content = $template->content;
+        foreach ($params as $key => $value) {
+            $content = str_replace('{' . $key . '}', $value, $content);
+        }
+
+        $driver = config('services.sms.driver', 'log');
+        $result = static::sendRaw($driver, $phone, $content, $template->sign_name);
+
+        SmsSendLog::create([
+            'tenant_id' => $tenantId,
+            'phone' => $phone,
+            'content' => $content,
+            'template_id' => $templateId,
+            'status' => $result !== false ? 'sent' : 'failed',
+            'provider' => $driver,
+            'sent_at' => $result !== false ? now() : null,
+        ]);
+
+        return $result;
+    }
+
+    /**
+     * 批量发送短信
+     *
+     * @param  array  $recipients  [{phone, params}, ...]
+     * @param  int  $templateId  模板ID
+     * @param  int|null  $tenantId  租户ID
+     * @return SmsBatchTask
+     */
+    public static function sendBatch(array $recipients, int $templateId, ?int $tenantId = null): SmsBatchTask
+    {
+        $template = SmsTemplate::findOrFail($templateId);
+
+        $task = SmsBatchTask::create([
+            'tenant_id' => $tenantId,
+            'template_id' => $templateId,
+            'name' => '批量发送_' . date('YmdHis'),
+            'status' => 'sending',
+            'total_count' => count($recipients),
+            'started_at' => now(),
+        ]);
+
+        $successCount = 0;
+        $failCount = 0;
+        $driver = config('services.sms.driver', 'log');
+
+        foreach ($recipients as $recipient) {
+            $phone = $recipient['phone'];
+            $params = $recipient['params'] ?? [];
+
+            $content = $template->content;
+            foreach ($params as $key => $value) {
+                $content = str_replace('{' . $key . '}', $value, $content);
+            }
+
+            $result = static::sendRaw($driver, $phone, $content, $template->sign_name);
+
+            $status = $result !== false ? 'sent' : 'failed';
+            if ($result !== false) {
+                $successCount++;
+            } else {
+                $failCount++;
+            }
+
+            SmsSendLog::create([
+                'task_id' => $task->getKey(),
+                'tenant_id' => $tenantId,
+                'phone' => $phone,
+                'content' => $content,
+                'template_id' => $templateId,
+                'status' => $status,
+                'provider' => $driver,
+                'sent_at' => $status === 'sent' ? now() : null,
+            ]);
+        }
+
+        $task->update([
+            'status' => 'completed',
+            'sent_count' => $successCount + $failCount,
+            'success_count' => $successCount,
+            'fail_count' => $failCount,
+            'completed_at' => now(),
+        ]);
+
+        return $task;
+    }
+
+    /**
+     * 定时发送短信
+     *
+     * 创建定时任务，实际发送由队列作业处理。
+     *
+     * @param  array  $recipients  接收者列表
+     * @param  int  $templateId  模板ID
+     * @param  string|\DateTimeInterface  $scheduledAt  计划发送时间
+     * @param  int|null  $tenantId  租户ID
+     * @return SmsBatchTask
+     */
+    public static function sendScheduled(array $recipients, int $templateId, $scheduledAt, ?int $tenantId = null): SmsBatchTask
+    {
+        $template = SmsTemplate::findOrFail($templateId);
+
+        if ($template->status !== 'active') {
+            throw new \RuntimeException('短信模板未启用');
+        }
+
+        $task = SmsBatchTask::create([
+            'tenant_id' => $tenantId,
+            'template_id' => $templateId,
+            'name' => '定时发送_' . date('YmdHis'),
+            'status' => 'pending',
+            'total_count' => count($recipients),
+            'scheduled_at' => $scheduledAt,
+            'metadata' => ['recipients' => $recipients],
+        ]);
+
+        return $task;
+    }
+
+    /**
+     * 到达率统计
+     *
+     * @param  int|null  $tenantId  租户ID
+     * @param  array  $filters  筛选条件: start_date, end_date, task_id
+     * @return array
+     */
+    public static function getDeliveryStats(?int $tenantId = null, array $filters = []): array
+    {
+        $query = SmsSendLog::query();
+
+        if ($tenantId !== null) {
+            $query->where('tenant_id', $tenantId);
+        }
+        if (!empty($filters['task_id'])) {
+            $query->where('task_id', $filters['task_id']);
+        }
+        if (!empty($filters['start_date'])) {
+            $query->where('created_at', '>=', $filters['start_date']);
+        }
+        if (!empty($filters['end_date'])) {
+            $query->where('created_at', '<=', $filters['end_date']);
+        }
+
+        $total = (clone $query)->count();
+        $sent = (clone $query)->where('status', 'sent')->count();
+        $delivered = (clone $query)->where('status', 'delivered')->count();
+        $failed = (clone $query)->where('status', 'failed')->count();
+        $pending = (clone $query)->where('status', 'pending')->count();
+
+        $byProvider = (clone $query)
+            ->selectRaw('provider, COUNT(*) as total, SUM(CASE WHEN status = "sent" THEN 1 ELSE 0 END) as sent_count')
+            ->groupBy('provider')
+            ->get();
+
+        $dailyStats = (clone $query)
+            ->where('created_at', '>=', now()->subDays(30))
+            ->selectRaw('DATE(created_at) as date, COUNT(*) as total, SUM(CASE WHEN status = "sent" THEN 1 ELSE 0 END) as sent, SUM(CASE WHEN status = "failed" THEN 1 ELSE 0 END) as failed')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        return [
+            'total' => $total,
+            'sent' => $sent,
+            'delivered' => $delivered,
+            'failed' => $failed,
+            'pending' => $pending,
+            'delivery_rate' => $total > 0 ? round($sent / $total * 100, 2) : 0,
+            'by_provider' => $byProvider->toArray(),
+            'daily_stats' => $dailyStats->toArray(),
+        ];
+    }
+
+    /**
+     * 发送原始内容（不经过模板）
+     */
+    private static function sendRaw(string $driver, string $phone, string $content, ?string $sign = null): string|false
+    {
+        $sign = $sign ?? config('services.sms.ww_sign', 'YourApp');
+        $message = '【' . $sign . '】' . $content;
+
+        return match ($driver) {
+            'ww' => static::sendRawViaWw($phone, $message),
+            'http' => static::sendRawViaHttp($phone, $message),
+            default => static::sendRawViaLog($phone, $message),
+        };
+    }
+
+    private static function sendRawViaWw(string $phone, string $message): string|false
+    {
+        $endpoint = (string) config('services.sms.ww_endpoint');
+        $account = (string) config('services.sms.ww_account');
+        $password = (string) config('services.sms.ww_password');
+        $corpid = (string) config('services.sms.ww_corpid');
+        $productId = (string) config('services.sms.ww_product_id');
+
+        if ($endpoint === '' || $account === '' || $password === '' || $productId === '') {
+            Log::error('SmsService ww config missing');
+            return false;
+        }
+
+        try {
+            $response = Http::asForm()->timeout((int) config('services.sms.ww_timeout', 10))->post($endpoint, [
+                'sname' => $account,
+                'spwd' => $password,
+                'scorpid' => $corpid,
+                'sprdid' => $productId,
+                'sdst' => $phone,
+                'smsg' => $message,
+            ]);
+
+            if (!$response->successful()) {
+                return false;
+            }
+
+            $state = static::extractXmlValue($response->body(), 'State');
+
+            return $state === '0' ? 'ok' : false;
+        } catch (\Throwable $e) {
+            Log::error('SmsService sendRaw ww exception', ['message' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    private static function sendRawViaHttp(string $phone, string $message): string|false
+    {
+        $endpoint = config('services.sms.http_endpoint');
+
+        if (empty($endpoint)) {
+            return false;
+        }
+
+        try {
+            $response = Http::asJson()->timeout((int) config('services.sms.http_timeout', 5))->post($endpoint, [
+                'phone' => $phone,
+                'message' => $message,
+            ]);
+
+            $body = $response->json();
+
+            if ($response->successful() && isset($body['status']) && (int) $body['status'] === 1) {
+                return 'ok';
+            }
+
+            return false;
+        } catch (\Throwable $e) {
+            Log::error('SmsService sendRaw http exception', ['message' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    private static function sendRawViaLog(string $phone, string $message): string
+    {
+        Log::info('SmsService [log driver] send message', [
+            'phone' => static::maskPhone($phone),
+            'message' => $message,
+        ]);
+
+        return 'ok';
     }
 }

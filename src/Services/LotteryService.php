@@ -86,7 +86,7 @@ class LotteryService
     /**
      * 执行抽奖
      */
-    public function draw(int $lotteryId, int $userId, int $tenantId, string $ipAddress = null, string $userAgent = null): LotteryRecord
+    public function draw(int $lotteryId, int $userId, int $tenantId, ?string $ipAddress = null, ?string $userAgent = null): LotteryRecord
     {
         return DB::transaction(function () use ($lotteryId, $userId, $tenantId, $ipAddress, $userAgent) {
             $lottery = Lottery::with('prizes')->findOrFail($lotteryId);

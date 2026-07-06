@@ -13,6 +13,8 @@ class VoteOption extends Model
 
     protected $primaryKey = 'vote_option_id';
 
+    protected $appends = ['percentage'];
+
     protected $fillable = [
         'vote_id',
         'title',

@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MultiTenantSaas\Contracts;
 
 use Illuminate\Support\Collection;
+use MultiTenantSaas\Mcp\Tools\McpTool;
 
 /**
  * MCP 工具注册表契约
@@ -20,8 +23,22 @@ interface McpToolRegistryContract
      * @param  string  $handlerClass  处理器类名（FQCN）
      * @param  array  $schema  JSON Schema 格式的 inputSchema
      * @param  string  $description  工具描述
+     * @param  string  $category  工具分类
      */
-    public function register(string $name, string $handlerClass, array $schema, string $description = ''): void;
+    public function register(string $name, string $handlerClass, array $schema, string $description = '', string $category = 'general'): void;
+
+    /**
+     * 便捷注册方法：通过 McpTool 实例注册
+     *
+     * @param  McpTool  $tool  MCP 工具实例
+     * @param  string  $category  工具分类
+     */
+    public function tool(McpTool $tool, string $category = 'general'): void;
+
+    /**
+     * 注册业务工具（抽象方法模式：业务层继承并实现）
+     */
+    public function registerTools(): void;
 
     /**
      * 获取所有已注册工具

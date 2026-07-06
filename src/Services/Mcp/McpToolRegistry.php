@@ -6,12 +6,14 @@ namespace MultiTenantSaas\Services\Mcp;
 
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\McpToolRegistryContract;
+use MultiTenantSaas\Mcp\Exceptions\McpException;
 use MultiTenantSaas\Mcp\Tools\McpTool;
 
 class McpToolRegistry implements McpToolRegistryContract
 {
-    /** @var array<string, array{name: string, handlerClass: string, schema: array, description: string}> */
+    /** @var array<string, array{name: string, handlerClass: string, schema: array, description: string, category: string}> */
     protected array $tools = [];
 
     /** @var array<string, McpTool> */
@@ -21,16 +23,46 @@ class McpToolRegistry implements McpToolRegistryContract
         protected Container $container,
     ) {}
 
-    public function register(string $name, string $handlerClass, array $schema, string $description = ''): void
+    public function register(string $name, string $handlerClass, array $schema, string $description = '', string $category = 'general'): void
     {
         $this->tools[$name] = [
             'name' => $name,
             'handlerClass' => $handlerClass,
             'schema' => $schema,
             'description' => $description,
+            'category' => $category,
         ];
 
         unset($this->instances[$name]);
+    }
+
+    /**
+     * 便捷注册方法：通过 McpTool 实例注册
+     *
+     * @param  McpTool  $tool  MCP 工具实例
+     * @param  string  $category  工具分类
+     */
+    public function tool(McpTool $tool, string $category = 'general'): void
+    {
+        $this->tools[$tool->name()] = [
+            'name' => $tool->name(),
+            'handlerClass' => get_class($tool),
+            'schema' => $tool->inputSchema(),
+            'description' => $tool->description(),
+            'category' => $category,
+        ];
+
+        $this->instances[$tool->name()] = $tool;
+    }
+
+    /**
+     * 注册业务工具（抽象方法模式：业务层继承并实现）
+     *
+     * 子类应在此方法中调用 $this->tool() 注册工具。
+     */
+    public function registerTools(): void
+    {
+        //
     }
 
     public function all(): Collection
@@ -67,7 +99,16 @@ class McpToolRegistry implements McpToolRegistryContract
             ];
         }
 
-        return $tool->executeForResult($arguments);
+        try {
+            return $tool->executeForResult($arguments);
+        } catch (McpException $e) {
+            return [
+                'content' => [
+                    ['type' => 'text', 'text' => $e->getMessage()],
+                ],
+                'isError' => true,
+            ];
+        }
     }
 
     public function getSchema(string $name): ?array

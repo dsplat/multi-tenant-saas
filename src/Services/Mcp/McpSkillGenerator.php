@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MultiTenantSaas\Services\Mcp;
 
 use MultiTenantSaas\Contracts\McpToolRegistryContract;

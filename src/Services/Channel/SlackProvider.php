@@ -9,12 +9,27 @@ use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\ChannelContract;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
+use MultiTenantSaas\Models\TenantSetting;
 
 class SlackProvider implements ChannelContract
 {
+    protected string $botToken;
+    protected SlackSignatureValidator $signatureValidator;
+
     public function __construct(
         protected IdGeneratorContract $idGenerator,
-    ) {}
+    ) {
+        $config = config('channel.providers.slack', []);
+        $this->botToken = $config['bot_token'] ?? '';
+        $this->signatureValidator = new SlackSignatureValidator(
+            $config['signing_secret'] ?? '',
+        );
+    }
+
+    public function verifyWebhook(array $headers, string $rawBody): bool
+    {
+        return $this->signatureValidator->validate($headers, $rawBody);
+    }
 
     public function onMessage(array $rawMessage): array
     {
@@ -59,11 +74,7 @@ class SlackProvider implements ChannelContract
         $tenantId = TenantContext::getId();
         $token = $this->resolveBotToken($tenantId);
 
-        if (empty($token)) {
-            Log::warning('SlackProvider: bot token not configured', [
-                'tenant_id' => $tenantId,
-            ]);
-
+        if (!$this->ensureTokenAvailable($token, $tenantId)) {
             return false;
         }
 
@@ -96,37 +107,44 @@ class SlackProvider implements ChannelContract
         $tenantId = TenantContext::getId();
         $token = $this->resolveBotToken($tenantId);
 
-        if (empty($token)) {
-            Log::warning('SlackProvider: bot token not configured', [
-                'tenant_id' => $tenantId,
-            ]);
-
+        if (!$this->ensureTokenAvailable($token, $tenantId)) {
             return [];
         }
 
-        $response = Http::withToken($token)
-            ->get('https://slack.com/api/conversations.members', [
-                'channel' => $conversationId,
-            ]);
+        $allMembers = [];
+        $cursor = '';
 
-        if (!$response->successful() || !($response->json('ok') ?? false)) {
-            Log::error('SlackProvider: failed to get participants', [
-                'tenant_id' => $tenantId,
-                'conversation_id' => $conversationId,
-                'error' => $response->json('error') ?? 'unknown',
-            ]);
+        do {
+            $params = ['channel' => $conversationId, 'limit' => 200];
+            if ($cursor !== '') {
+                $params['cursor'] = $cursor;
+            }
 
-            return [];
-        }
+            $response = Http::withToken($token)
+                ->get('https://slack.com/api/conversations.members', $params);
 
-        $members = $response->json('members') ?? [];
+            if (!$response->successful() || !($response->json('ok') ?? false)) {
+                Log::error('SlackProvider: failed to get participants', [
+                    'tenant_id' => $tenantId,
+                    'conversation_id' => $conversationId,
+                    'error' => $response->json('error') ?? 'unknown',
+                ]);
 
-        return array_map(function (string $memberId) use ($tenantId): array {
-            return [
-                'user_id' => $memberId,
-                'tenant_id' => $tenantId,
-            ];
-        }, $members);
+                return [];
+            }
+
+            $members = $response->json('members') ?? [];
+            foreach ($members as $memberId) {
+                $allMembers[] = [
+                    'user_id' => $memberId,
+                    'tenant_id' => $tenantId,
+                ];
+            }
+
+            $cursor = $response->json('response_metadata')['next_cursor'] ?? '';
+        } while ($cursor !== '');
+
+        return $allMembers;
     }
 
     public function getConversationInfo(string $conversationId): array
@@ -134,21 +152,19 @@ class SlackProvider implements ChannelContract
         $tenantId = TenantContext::getId();
         $token = $this->resolveBotToken($tenantId);
 
-        if (empty($token)) {
-            Log::warning('SlackProvider: bot token not configured', [
-                'tenant_id' => $tenantId,
-            ]);
+        $emptyInfo = [
+            'conversation_id' => $conversationId,
+            'tenant_id' => $tenantId,
+            'name' => '',
+            'is_channel' => false,
+            'is_im' => false,
+            'topic' => '',
+            'purpose' => '',
+            'num_members' => 0,
+        ];
 
-            return [
-                'conversation_id' => $conversationId,
-                'tenant_id' => $tenantId,
-                'name' => '',
-                'is_channel' => false,
-                'is_im' => false,
-                'topic' => '',
-                'purpose' => '',
-                'num_members' => 0,
-            ];
+        if (!$this->ensureTokenAvailable($token, $tenantId)) {
+            return $emptyInfo;
         }
 
         $response = Http::withToken($token)
@@ -163,16 +179,7 @@ class SlackProvider implements ChannelContract
                 'error' => $response->json('error') ?? 'unknown',
             ]);
 
-            return [
-                'conversation_id' => $conversationId,
-                'tenant_id' => $tenantId,
-                'name' => '',
-                'is_channel' => false,
-                'is_im' => false,
-                'topic' => '',
-                'purpose' => '',
-                'num_members' => 0,
-            ];
+            return $emptyInfo;
         }
 
         $channel = $response->json('channel') ?? [];
@@ -189,8 +196,34 @@ class SlackProvider implements ChannelContract
         ];
     }
 
+    protected function ensureTokenAvailable(string $token, ?string $tenantId): bool
+    {
+        if (empty($token)) {
+            Log::warning('SlackProvider: bot token not configured', [
+                'tenant_id' => $tenantId,
+            ]);
+
+            return false;
+        }
+
+        return true;
+    }
+
     protected function resolveBotToken(?string $tenantId): string
     {
-        return config('services.slack.bot_token', '');
+        if ($tenantId !== null) {
+            $tenantToken = TenantSetting::get(
+                (int) $tenantId,
+                'channel',
+                'slack_bot_token',
+                '',
+            );
+
+            if ($tenantToken !== '') {
+                return $tenantToken;
+            }
+        }
+
+        return $this->botToken;
     }
 }

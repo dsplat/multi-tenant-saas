@@ -24,6 +24,12 @@ return [
             'app_id' => env('WECHAT_MINI_APP_ID', ''),
             'app_secret' => env('WECHAT_MINI_APP_SECRET', ''),
         ],
+
+        'slack' => [
+            'enabled' => false,
+            'bot_token' => env('SLACK_BOT_TOKEN', ''),
+            'signing_secret' => env('SLACK_SIGNING_SECRET', ''),
+        ],
     ],
 
     'cache' => [

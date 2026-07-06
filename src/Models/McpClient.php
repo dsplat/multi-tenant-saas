@@ -5,25 +5,33 @@ namespace MultiTenantSaas\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 
+/**
+ * MCP 客户端模型
+ *
+ * 管理接入 MCP 服务的 AI 客户端（WorkBuddy/Hermers/OpenClaw）。
+ */
 class McpClient extends Model
 {
-    use BelongsToTenant, HasFactory, HasGlobalId;
+    use HasFactory, HasGlobalId;
 
     protected $primaryKey = 'mcp_client_id';
 
     protected $fillable = [
-        'tenant_id', 'name', 'slug', 'type', 'config',
-        'status', 'rate_limit',
+        'slug',
+        'name',
+        'output_format',
+        'description',
+        'is_enabled',
+        'config',
     ];
 
     protected function casts(): array
     {
         return [
+            'is_enabled' => 'boolean',
             'config' => 'array',
-            'rate_limit' => 'integer',
         ];
     }
 
@@ -32,13 +40,18 @@ class McpClient extends Model
         return $this->hasMany(McpClientToken::class, 'mcp_client_id', 'mcp_client_id');
     }
 
-    public function accessLogs(): HasMany
+    public function activeTokens(): HasMany
     {
-        return $this->hasMany(McpToolAccessLog::class, 'mcp_client_id', 'mcp_client_id');
+        return $this->tokens()->where('is_active', true);
     }
 
-    public function scopeActive($query)
+    public function scopeEnabled($query)
     {
-        return $query->where('status', 'active');
+        return $query->where('is_enabled', true);
+    }
+
+    public function scopeBySlug($query, string $slug)
+    {
+        return $query->where('slug', $slug);
     }
 }

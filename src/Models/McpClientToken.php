@@ -5,26 +5,44 @@ namespace MultiTenantSaas\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use MultiTenantSaas\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use MultiTenantSaas\Concerns\HasGlobalId;
 
+/**
+ * MCP 客户端 Token 模型
+ *
+ * 管理 AI 客户端与服务端的认证 Token。
+ */
 class McpClientToken extends Model
 {
-    use BelongsToTenant, HasFactory, HasGlobalId;
+    use HasFactory, HasGlobalId;
 
     protected $primaryKey = 'mcp_client_token_id';
 
     protected $fillable = [
-        'tenant_id', 'mcp_client_id', 'token', 'name',
-        'abilities', 'last_used_at', 'expires_at',
+        'mcp_client_id',
+        'tenant_id',
+        'token',
+        'token_plain',
+        'abilities',
+        'expires_at',
+        'is_active',
+        'last_used_at',
+        'last_used_count',
+    ];
+
+    protected $hidden = [
+        'token',
     ];
 
     protected function casts(): array
     {
         return [
             'abilities' => 'array',
-            'last_used_at' => 'datetime',
             'expires_at' => 'datetime',
+            'last_used_at' => 'datetime',
+            'is_active' => 'boolean',
+            'last_used_count' => 'integer',
         ];
     }
 
@@ -33,8 +51,13 @@ class McpClientToken extends Model
         return $this->belongsTo(McpClient::class, 'mcp_client_id', 'mcp_client_id');
     }
 
-    public function isExpired(): bool
+    public function accessLogs(): HasMany
     {
-        return $this->expires_at !== null && $this->expires_at->isPast();
+        return $this->hasMany(McpToolAccessLog::class, 'mcp_client_token_id', 'mcp_client_token_id');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
     }
 }

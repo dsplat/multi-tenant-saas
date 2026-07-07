@@ -11,7 +11,7 @@ class CouponShare extends Model
 {
     use HasFactory, HasGlobalId;
 
-    protected $primaryKey = 'coupon_share_id';
+    protected $primaryKey = 'share_id';
 
     protected $fillable = [
         'tenant_id',

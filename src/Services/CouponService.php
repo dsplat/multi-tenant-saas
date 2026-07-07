@@ -716,7 +716,7 @@ class CouponService
                 'template_id' => $share->coupon_template_id,
                 'is_template' => false,
                 'metadata' => [
-                    'fission_share' => $share->coupon_share_id,
+                    'fission_share' => $share->share_id,
                     'role' => 'receiver',
                 ],
             ]));
@@ -730,7 +730,7 @@ class CouponService
                 'template_id' => $share->coupon_template_id,
                 'is_template' => false,
                 'metadata' => [
-                    'fission_share' => $share->coupon_share_id,
+                    'fission_share' => $share->share_id,
                     'role' => 'sharer',
                 ],
             ]));

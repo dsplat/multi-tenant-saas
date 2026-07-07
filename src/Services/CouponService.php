@@ -577,6 +577,223 @@ class CouponService
         return $template;
     }
 
+    // ========================================
+    // 批量发券
+    // ========================================
+
+    /**
+     * 批量发放优惠券给指定用户列表
+     *
+     * @param  int    $templateId  模板ID
+     * @param  array  $userIds     用户ID列表（int[]）
+     * @param  int    $tenantId    租户ID
+     * @return array  ['issued' => int, 'codes' => array]
+     */
+    public static function bulkDistribute(int $templateId, array $userIds, int $tenantId): array
+    {
+        if (empty($userIds)) {
+            return ['issued' => 0, 'codes' => []];
+        }
+
+        $template = static::findCoupon($templateId);
+
+        if (!$template->isTemplate()) {
+            throw new \RuntimeException('指定优惠券不是模板');
+        }
+
+        if (!$template->isActive()) {
+            throw new \RuntimeException('模板已停用，无法发券');
+        }
+
+        // 去重并校验
+        $userIds = array_values(array_unique(array_map('intval', $userIds)));
+        $userIds = array_filter($userIds, fn ($id) => $id > 0);
+
+        $issued = 0;
+        $codes = [];
+
+        return DB::transaction(function () use ($template, $userIds, $tenantId, $templateId, &$issued, &$codes) {
+            foreach ($userIds as $userId) {
+                try {
+                    $code = static::generateCode('BD-');
+                    Coupon::create(static::buildCouponFromTemplate($template, [
+                        'code' => $code,
+                        'max_uses' => 1,
+                        'max_uses_per_tenant' => 1,
+                        'template_id' => $templateId,
+                        'is_template' => false,
+                        'metadata' => [
+                            'distributed_to' => $userId,
+                            'tenant_id' => $tenantId,
+                            'template_id' => $templateId,
+                        ],
+                    ]));
+                    $codes[] = $code;
+                    $issued++;
+                } catch (QueryException $e) {
+                    if (!static::isDuplicateException($e)) {
+                        throw $e;
+                    }
+                }
+            }
+
+            return ['issued' => $issued, 'codes' => $codes];
+        });
+    }
+
+    // ========================================
+    // 裂变发券
+    // ========================================
+
+    /**
+     * 生成分享链接并记录分享关系
+     */
+    public static function shareCoupon(int $sharerId, int $couponTemplateId, int $tenantId): CouponShare
+    {
+        $template = static::findCoupon($couponTemplateId);
+
+        if (!$template->isTemplate()) {
+            throw new \RuntimeException('指定优惠券不是模板');
+        }
+
+        if (!$template->isActive()) {
+            throw new \RuntimeException('模板已停用，无法分享');
+        }
+
+        $shareCode = strtoupper(Str::random(16));
+
+        return CouponShare::create([
+            'tenant_id' => $tenantId,
+            'sharer_id' => $sharerId,
+            'coupon_template_id' => $couponTemplateId,
+            'share_code' => $shareCode,
+            'status' => 'pending',
+        ]);
+    }
+
+    /**
+     * 裂变发券：分享链接被点击后向分享人和被分享人发券
+     *
+     * @param  string  $shareCode   分享码
+     * @param  int     $receiverId  被分享人用户ID
+     * @param  int     $tenantId    租户ID
+     * @return array  ['sharer_coupon' => Coupon, 'receiver_coupon' => Coupon, 'share' => CouponShare]
+     */
+    public static function acceptShare(string $shareCode, int $receiverId, int $tenantId): array
+    {
+        return DB::transaction(function () use ($shareCode, $receiverId, $tenantId) {
+            // 事务内加行锁，防止并发竞态
+            $share = CouponShare::where('share_code', $shareCode)
+                ->where('status', 'pending')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$share) {
+                throw new \RuntimeException('分享链接无效或已使用');
+            }
+
+            // 租户隔离校验
+            if ((int) $share->tenant_id !== $tenantId) {
+                throw new \RuntimeException('无权接受此分享');
+            }
+
+            if ((int) $share->sharer_id === $receiverId) {
+                throw new \RuntimeException('不能接受自己的分享');
+            }
+
+            $template = static::findCoupon($share->coupon_template_id);
+
+            if (!$template->isActive()) {
+                throw new \RuntimeException('优惠券模板已停用');
+            }
+
+            // 向被分享人发券
+            $receiverCoupon = Coupon::create(static::buildCouponFromTemplate($template, [
+                'code' => static::generateCode('FS-'),
+                'description' => $template->description . '（裂变分享）',
+                'max_uses' => 1,
+                'max_uses_per_tenant' => 1,
+                'template_id' => $share->coupon_template_id,
+                'is_template' => false,
+                'metadata' => [
+                    'fission_share' => $share->coupon_share_id,
+                    'role' => 'receiver',
+                ],
+            ]));
+
+            // 向分享人发券
+            $sharerCoupon = Coupon::create(static::buildCouponFromTemplate($template, [
+                'code' => static::generateCode('FS-'),
+                'description' => $template->description . '（裂变奖励）',
+                'max_uses' => 1,
+                'max_uses_per_tenant' => 1,
+                'template_id' => $share->coupon_template_id,
+                'is_template' => false,
+                'metadata' => [
+                    'fission_share' => $share->coupon_share_id,
+                    'role' => 'sharer',
+                ],
+            ]));
+
+            // 更新分享状态
+            $share->update([
+                'receiver_id' => $receiverId,
+                'status' => 'accepted',
+                'accepted_at' => now(),
+            ]);
+
+            return [
+                'sharer_coupon' => $sharerCoupon,
+                'receiver_coupon' => $receiverCoupon,
+                'share' => $share->fresh(),
+            ];
+        });
+    }
+
+    /**
+     * 查询分享记录
+     */
+    public static function getShareRecords(int $tenantId, array $filters = [], ?int $perPage = null): Collection|LengthAwarePaginator
+    {
+        $query = CouponShare::where('tenant_id', $tenantId);
+
+        if (!empty($filters['sharer_id'])) {
+            $query->where('sharer_id', (int) $filters['sharer_id']);
+        }
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        $query->orderByDesc('created_at');
+
+        if ($perPage !== null) {
+            return $query->paginate($perPage);
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * 从模板构建优惠券属性（提取公共逻辑，避免重复）
+     */
+    protected static function buildCouponFromTemplate(Coupon $template, array $overrides = []): array
+    {
+        return array_merge([
+            'description' => $template->description,
+            'type' => $template->type,
+            'value' => $template->value,
+            'currency' => $template->currency,
+            'min_amount' => $template->min_amount,
+            'max_discount' => $template->max_discount,
+            'applies_to' => $template->applies_to,
+            'subscription_plan_id' => $template->subscription_plan_id,
+            'duration_months' => $template->duration_months,
+            'starts_at' => $template->starts_at,
+            'expires_at' => $template->expires_at,
+            'is_active' => true,
+        ], $overrides);
+    }
+
     /**
      * 构造优惠券属性
      */

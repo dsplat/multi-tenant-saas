@@ -13,10 +13,10 @@ class EntityMemory extends Model
 
     protected $primaryKey = 'memory_id';
 
-    protected $fillable = ['tenant_id', 'entity_type', 'entity_id', 'type', 'content', 'weight', 'last_accessed_at'];
+    protected $fillable = ['tenant_id', 'entity_type', 'entity_id', 'key', 'value', 'weight', 'last_accessed_at'];
 
     protected function casts(): array
     {
-        return ['content' => 'array', 'weight' => 'float', 'last_accessed_at' => 'datetime'];
+        return ['value' => 'array', 'weight' => 'float', 'last_accessed_at' => 'datetime'];
     }
 }

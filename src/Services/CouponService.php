@@ -9,6 +9,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Models\Coupon;
+use MultiTenantSaas\Models\CouponShare;
 use MultiTenantSaas\Models\CouponUsage;
 
 /**

@@ -148,8 +148,11 @@ abstract class TestCase extends BaseTestCase
             }
             static::$schemaInitialized = true;
         } else {
-            // SQLite :memory:：每次测试都是全新连接，直接建表
-            // 重置已加载模块状态，因为 SQLite 内存数据库每次都是全新的
+            // SQLite：如果是文件数据库且表已存在，先清除所有表再重建
+            if (Schema::hasTable('tenants')) {
+                $this->dropAllSqliteTables();
+            }
+            // 重置已加载模块状态，因为 SQLite 数据库每次都需要全新建表
             static::$loadedModules = [];
             static::$moduleInstances = [];
             $this->loadModules($moduleClasses);
@@ -257,5 +260,18 @@ abstract class TestCase extends BaseTestCase
         }
 
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
+    }
+
+    /**
+     * 删除 SQLite 数据库中的所有表（用于文件型 SQLite 测试库的重置）
+     */
+    private function dropAllSqliteTables(): void
+    {
+        $tables = DB::select("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+        DB::statement('PRAGMA foreign_keys = OFF');
+        foreach ($tables as $table) {
+            DB::statement("DROP TABLE IF EXISTS \"{$table->name}\"");
+        }
+        DB::statement('PRAGMA foreign_keys = ON');
     }
 }

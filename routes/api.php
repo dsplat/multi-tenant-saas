@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\TenantSettingController;
 use App\Http\Controllers\Api\TenantSslController;
 use App\Http\Controllers\Api\TenantTokenController;
 use App\Http\Controllers\Api\ToolController;
+use App\Http\Controllers\Api\SmsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Http\Controllers\CapabilityController;
@@ -444,6 +445,30 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
         Route::get('/', [CapabilityController::class, 'index']);
         Route::post('/execute', [CapabilityController::class, 'execute']);
         Route::post('/batch', [CapabilityController::class, 'batch']);
+    });
+
+    // ========== SMS 管理（SmsService） ==========
+    Route::prefix('/tenants/{tenantId}/sms')->group(function () {
+        // 模板管理
+        Route::get('/templates', [SmsController::class, 'indexTemplates'])->middleware('rbac.permission:setting.view');
+        Route::post('/templates', [SmsController::class, 'storeTemplate'])->middleware('rbac.permission:setting.update');
+        Route::get('/templates/{templateId}', [SmsController::class, 'showTemplate'])->middleware('rbac.permission:setting.view');
+        Route::put('/templates/{templateId}', [SmsController::class, 'updateTemplate'])->middleware('rbac.permission:setting.update');
+        Route::delete('/templates/{templateId}', [SmsController::class, 'destroyTemplate'])->middleware('rbac.permission:setting.update');
+        Route::post('/templates/{templateId}/submit-approval', [SmsController::class, 'submitForApproval'])->middleware('rbac.permission:setting.update');
+        Route::post('/templates/{templateId}/render', [SmsController::class, 'renderContent'])->middleware('rbac.permission:setting.view');
+        // 批量发送
+        Route::post('/batch-send', [SmsController::class, 'batchSend'])->middleware('rbac.permission:setting.update');
+        Route::post('/scheduled-send', [SmsController::class, 'scheduledSend'])->middleware('rbac.permission:setting.update');
+        Route::get('/batch-tasks/{taskId}', [SmsController::class, 'showBatchTask'])->middleware('rbac.permission:setting.view');
+        Route::post('/batch-tasks/{taskId}/cancel', [SmsController::class, 'cancelBatchTask'])->middleware('rbac.permission:setting.update');
+        // 到达率统计
+        Route::get('/batch-tasks/{taskId}/delivery-stats', [SmsController::class, 'deliveryStats'])->middleware('rbac.permission:setting.view');
+        Route::get('/overall-stats', [SmsController::class, 'overallStats'])->middleware('rbac.permission:setting.view');
+        // 退订管理
+        Route::get('/unsubscribes', [SmsController::class, 'indexUnsubscribes'])->middleware('rbac.permission:setting.view');
+        Route::post('/unsubscribes', [SmsController::class, 'storeUnsubscribe'])->middleware('rbac.permission:setting.update');
+        Route::post('/unsubscribes/check', [SmsController::class, 'checkUnsubscribed'])->middleware('rbac.permission:setting.view');
     });
 
     // ========== Channel Webhooks（v0.2.0，无需认证） ==========

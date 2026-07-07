@@ -151,12 +151,12 @@ class LotteryService
 
         // 检查黑名单
         if ($userId && static::isBlacklisted($activityId, 'user_id', (string) $userId)) {
-            $log = static::recordDraw($activityId, null, $userId, $userIp, $userAgent, 'blacklist');
+            $log = static::recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'blacklist');
 
             return ['result' => 'blacklist', 'prize' => null, 'log' => $log];
         }
         if ($userIp && static::isBlacklisted($activityId, 'ip', $userIp)) {
-            $log = static::recordDraw($activityId, null, $userId, $userIp, $userAgent, 'blacklist');
+            $log = static::recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'blacklist');
 
             return ['result' => 'blacklist', 'prize' => null, 'log' => $log];
         }
@@ -169,7 +169,7 @@ class LotteryService
                 ->where('user_id', $userId)
                 ->count();
             if ($drawCount >= $maxPerUser) {
-                $log = static::recordDraw($activityId, null, $userId, $userIp, $userAgent, 'miss');
+                $log = static::recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'miss');
 
                 return ['result' => 'miss', 'prize' => null, 'log' => $log];
             }
@@ -179,12 +179,12 @@ class LotteryService
         $prize = static::tryDrawPrize($activityId);
 
         if ($prize) {
-            $log = static::recordDraw($activityId, $prize->prize_id, $userId, $userIp, $userAgent, 'win');
+            $log = static::recordDraw($activity->tenant_id, $activityId, $prize->prize_id, $userId, $userIp, $userAgent, 'win');
 
             return ['result' => 'win', 'prize' => $prize, 'log' => $log];
         }
 
-        $log = static::recordDraw($activityId, null, $userId, $userIp, $userAgent, 'miss');
+        $log = static::recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'miss');
 
         return ['result' => 'miss', 'prize' => null, 'log' => $log];
     }
@@ -232,9 +232,10 @@ class LotteryService
     /**
      * 记录抽奖日志
      */
-    protected static function recordDraw(int $activityId, ?int $prizeId, ?int $userId, ?string $userIp, ?string $userAgent, string $result): LotteryDrawLog
+    protected static function recordDraw(int $tenantId, int $activityId, ?int $prizeId, ?int $userId, ?string $userIp, ?string $userAgent, string $result): LotteryDrawLog
     {
         return LotteryDrawLog::create([
+            'tenant_id' => $tenantId,
             'activity_id' => $activityId,
             'prize_id' => $prizeId,
             'user_id' => $userId,
@@ -252,9 +253,10 @@ class LotteryService
     /**
      * 添加黑名单
      */
-    public static function addToBlacklist(int $activityId, string $identifierType, string $identifier, ?string $reason = null): LotteryBlacklist
+    public static function addToBlacklist(int $tenantId, int $activityId, string $identifierType, string $identifier, ?string $reason = null): LotteryBlacklist
     {
         return LotteryBlacklist::create([
+            'tenant_id' => $tenantId,
             'activity_id' => $activityId,
             'identifier_type' => $identifierType,
             'identifier' => $identifier,

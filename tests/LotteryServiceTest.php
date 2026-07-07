@@ -345,7 +345,7 @@ class LotteryServiceTest extends TestCase
             'end_at' => now()->addDay(),
         ]);
 
-        LotteryService::addToBlacklist($activity->activity_id, 'user_id', '2001', '作弊');
+        LotteryService::addToBlacklist($activity->tenant_id, $activity->activity_id, 'user_id', '2001', '作弊');
 
         $result = LotteryService::draw($activity->activity_id, 2001, '127.0.0.1', 'TestAgent');
 
@@ -364,7 +364,7 @@ class LotteryServiceTest extends TestCase
             'end_at' => now()->addDay(),
         ]);
 
-        LotteryService::addToBlacklist($activity->activity_id, 'ip', '192.168.1.1', '恶意IP');
+        LotteryService::addToBlacklist($activity->tenant_id, $activity->activity_id, 'ip', '192.168.1.1', '恶意IP');
 
         $result = LotteryService::draw($activity->activity_id, null, '192.168.1.1', 'TestAgent');
 
@@ -427,7 +427,7 @@ class LotteryServiceTest extends TestCase
             'slug' => 'blacklist-add-test',
         ]);
 
-        $blacklist = LotteryService::addToBlacklist($activity->activity_id, 'user_id', '2001', '作弊');
+        $blacklist = LotteryService::addToBlacklist($activity->tenant_id, $activity->activity_id, 'user_id', '2001', '作弊');
 
         $this->assertNotNull($blacklist->blacklist_id);
         $this->assertEquals('2001', $blacklist->identifier);
@@ -441,7 +441,7 @@ class LotteryServiceTest extends TestCase
             'slug' => 'blacklist-remove-test',
         ]);
 
-        LotteryService::addToBlacklist($activity->activity_id, 'user_id', '2001', '作弊');
+        LotteryService::addToBlacklist($activity->tenant_id, $activity->activity_id, 'user_id', '2001', '作弊');
         $result = LotteryService::removeFromBlacklist($activity->activity_id, 'user_id', '2001');
 
         $this->assertTrue($result);
@@ -456,7 +456,7 @@ class LotteryServiceTest extends TestCase
             'slug' => 'blacklist-check-test',
         ]);
 
-        LotteryService::addToBlacklist($activity->activity_id, 'user_id', '2001', '作弊');
+        LotteryService::addToBlacklist($activity->tenant_id, $activity->activity_id, 'user_id', '2001', '作弊');
 
         $this->assertTrue(LotteryService::isBlacklisted($activity->activity_id, 'user_id', '2001'));
         $this->assertFalse(LotteryService::isBlacklisted($activity->activity_id, 'user_id', '2002'));
@@ -470,8 +470,8 @@ class LotteryServiceTest extends TestCase
             'slug' => 'blacklist-list-test',
         ]);
 
-        LotteryService::addToBlacklist($activity->activity_id, 'user_id', '2001', '原因1');
-        LotteryService::addToBlacklist($activity->activity_id, 'ip', '192.168.1.1', '原因2');
+        LotteryService::addToBlacklist($activity->tenant_id, $activity->activity_id, 'user_id', '2001', '原因1');
+        LotteryService::addToBlacklist($activity->tenant_id, $activity->activity_id, 'ip', '192.168.1.1', '原因2');
 
         $blacklist = LotteryService::getBlacklist($activity->activity_id);
         $this->assertCount(2, $blacklist);

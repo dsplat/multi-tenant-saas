@@ -4,6 +4,11 @@ namespace MultiTenantSaas\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use MultiTenantSaas\Models\Sms\SmsBatchTask;
+use MultiTenantSaas\Models\Sms\SmsDeliveryStat;
+use MultiTenantSaas\Models\Sms\SmsTemplate;
+use MultiTenantSaas\Models\Sms\SmsUnsubscribe;
 
 /**
  * 短信发送服务
@@ -11,6 +16,8 @@ use Illuminate\Support\Facades\Log;
  * driver=log → 仅写日志（本地/测试默认）
  * driver=ww  → 调用网建短信网关
  * driver=http→ 通用 HTTP 短信网关（自定义 endpoint）
+ *
+ * 扩展功能：模板管理、批量发送、到达率统计、退订管理
  */
 class SmsService
 {
@@ -200,5 +207,251 @@ class SmsService
         }
 
         return substr($phone, 0, 3).'****'.substr($phone, -4);
+    }
+
+    // ========================================
+    // 模板管理
+    // ========================================
+
+    /**
+     * 创建短信模板
+     */
+    public static function createTemplate(array $data): SmsTemplate
+    {
+        return SmsTemplate::create($data);
+    }
+
+    /**
+     * 更新短信模板
+     */
+    public static function updateTemplate(int $templateId, array $data): SmsTemplate
+    {
+        $template = SmsTemplate::findOrFail($templateId);
+        $template->update($data);
+
+        return $template->fresh();
+    }
+
+    /**
+     * 提交模板审核
+     */
+    public static function submitForApproval(int $templateId): SmsTemplate
+    {
+        $template = SmsTemplate::findOrFail($templateId);
+        $template->update(['status' => SmsTemplate::STATUS_PENDING_APPROVAL]);
+
+        return $template->fresh();
+    }
+
+    /**
+     * 渲染模板内容（变量替换）
+     */
+    public static function renderContent(int $templateId, array $variables = []): string
+    {
+        $template = SmsTemplate::findOrFail($templateId);
+        $content = $template->content;
+
+        foreach ($variables as $key => $value) {
+            $content = str_replace('{' . $key . '}', (string) $value, $content);
+        }
+
+        return $content;
+    }
+
+    /**
+     * 获取模板列表
+     */
+    public static function getTemplates(array $filters = []): \Illuminate\Database\Eloquent\Collection
+    {
+        $query = SmsTemplate::query();
+
+        if (!empty($filters['channel'])) {
+            $query->ofChannel($filters['channel']);
+        }
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        return $query->orderByDesc('created_at')->get();
+    }
+
+    // ========================================
+    // 批量发送
+    // ========================================
+
+    /**
+     * 批量发送短信
+     */
+    public static function batchSend(int $templateId, array $phones, array $globalVars = []): SmsBatchTask
+    {
+        $template = SmsTemplate::findOrFail($templateId);
+
+        $task = SmsBatchTask::create([
+            'tenant_id' => $template->tenant_id,
+            'sms_template_id' => $templateId,
+            'type' => SmsBatchTask::TYPE_BATCH_SEND,
+            'target_type' => 'user_list',
+            'target_ids' => $phones,
+            'total_count' => count($phones),
+            'status' => SmsBatchTask::STATUS_PENDING,
+        ]);
+
+        return $task;
+    }
+
+    /**
+     * 定时发送短信
+     */
+    public static function scheduledSend(int $templateId, array $phones, string $scheduledAt): SmsBatchTask
+    {
+        $template = SmsTemplate::findOrFail($templateId);
+
+        $task = SmsBatchTask::create([
+            'tenant_id' => $template->tenant_id,
+            'sms_template_id' => $templateId,
+            'type' => SmsBatchTask::TYPE_SCHEDULED,
+            'target_type' => 'user_list',
+            'target_ids' => $phones,
+            'total_count' => count($phones),
+            'status' => SmsBatchTask::STATUS_PENDING,
+            'scheduled_at' => $scheduledAt,
+        ]);
+
+        return $task;
+    }
+
+    /**
+     * 获取批量任务详情
+     */
+    public static function getBatchTask(int $taskId): SmsBatchTask
+    {
+        return SmsBatchTask::findOrFail($taskId);
+    }
+
+    /**
+     * 取消批量任务
+     */
+    public static function cancelBatchTask(int $taskId): SmsBatchTask
+    {
+        $task = SmsBatchTask::findOrFail($taskId);
+
+        if ($task->status === SmsBatchTask::STATUS_PENDING) {
+            $task->update(['status' => SmsBatchTask::STATUS_CANCELLED]);
+        }
+
+        return $task->fresh();
+    }
+
+    // ========================================
+    // 到达率统计
+    // ========================================
+
+    /**
+     * 记录到达率统计结果
+     */
+    public static function recordDeliveryResult(int $batchTaskId, array $result): SmsDeliveryStat
+    {
+        return SmsDeliveryStat::create([
+            'tenant_id' => $result['tenant_id'] ?? null,
+            'sms_batch_task_id' => $batchTaskId,
+            'sent_count' => $result['sent_count'] ?? 0,
+            'delivered_count' => $result['delivered_count'] ?? 0,
+            'failed_count' => $result['failed_count'] ?? 0,
+            'clicked_count' => $result['clicked_count'] ?? 0,
+            'unsubscribed_count' => $result['unsubscribed_count'] ?? 0,
+            'delivery_rate' => $result['delivery_rate'] ?? 0,
+            'recorded_at' => $result['recorded_at'] ?? now(),
+        ]);
+    }
+
+    /**
+     * 获取批量任务的到达率统计
+     */
+    public static function getDeliveryStats(int $batchTaskId): \Illuminate\Database\Eloquent\Collection
+    {
+        return SmsDeliveryStat::where('sms_batch_task_id', $batchTaskId)
+            ->orderByDesc('recorded_at')
+            ->get();
+    }
+
+    /**
+     * 获取租户整体到达率统计
+     */
+    public static function getOverallStats(int $tenantId, ?string $from = null, ?string $to = null): array
+    {
+        $query = SmsDeliveryStat::where('tenant_id', $tenantId);
+
+        if ($from) {
+            $query->where('recorded_at', '>=', $from);
+        }
+        if ($to) {
+            $query->where('recorded_at', '<=', $to);
+        }
+
+        $stats = $query->selectRaw('
+            SUM(sent_count) as total_sent,
+            SUM(delivered_count) as total_delivered,
+            SUM(failed_count) as total_failed,
+            SUM(clicked_count) as total_clicked,
+            SUM(unsubscribed_count) as total_unsubscribed,
+            AVG(delivery_rate) as avg_delivery_rate
+        ')->first();
+
+        return [
+            'total_sent' => (int) ($stats->total_sent ?? 0),
+            'total_delivered' => (int) ($stats->total_delivered ?? 0),
+            'total_failed' => (int) ($stats->total_failed ?? 0),
+            'total_clicked' => (int) ($stats->total_clicked ?? 0),
+            'total_unsubscribed' => (int) ($stats->total_unsubscribed ?? 0),
+            'avg_delivery_rate' => round((float) ($stats->avg_delivery_rate ?? 0), 2),
+        ];
+    }
+
+    // ========================================
+    // 退订管理
+    // ========================================
+
+    /**
+     * 退订短信
+     */
+    public static function unsubscribe(string $phone, ?int $tenantId = null, ?int $userId = null, ?string $reason = null): SmsUnsubscribe
+    {
+        return SmsUnsubscribe::create([
+            'tenant_id' => $tenantId,
+            'phone' => $phone,
+            'user_id' => $userId,
+            'reason' => $reason,
+            'unsubscribed_at' => now(),
+        ]);
+    }
+
+    /**
+     * 检查手机号是否已退订
+     */
+    public static function isUnsubscribed(string $phone, ?int $tenantId = null): bool
+    {
+        return SmsUnsubscribe::where('phone', $phone)
+            ->where(function ($query) use ($tenantId) {
+                if ($tenantId) {
+                    $query->where('tenant_id', $tenantId);
+                }
+            })
+            ->exists();
+    }
+
+    /**
+     * 获取退订列表
+     */
+    public static function getUnsubscribes(?int $tenantId = null): \Illuminate\Database\Eloquent\Collection
+    {
+        $query = SmsUnsubscribe::query();
+
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        } else {
+            $query->withoutGlobalScopes();
+        }
+
+        return $query->orderByDesc('unsubscribed_at')->get();
     }
 }

@@ -116,7 +116,7 @@ class EndToEndIntegrationTest extends TestCase
     public function test_workflow_execution_flow(): void
     {
         $toolRegistry = new FakeToolRegistry();
-        $toolRegistry->register('process_order', 'OrderHandler', []);
+        $toolRegistry->register('process_order', 'Process Order', 'Process an order', 'OrderHandler', []);
 
         $tenantContext = $this->app->make(\MultiTenantSaas\Contracts\TenantContextContract::class);
         $engine = new WorkflowEngine($tenantContext, $toolRegistry);

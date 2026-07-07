@@ -17,11 +17,13 @@ interface ToolRegistryContract
      * 注册工具
      *
      * @param  string  $slug  工具唯一标识（如 search_customer）
+     * @param  string  $name  工具显示名称
+     * @param  string  $description  工具功能描述（供 AI 理解工具用途）
      * @param  string  $handlerClass  工具处理器类名（FQCN）
      * @param  array  $schema  JSON Schema 格式的参数定义
      * @param  string  $category  工具分类（如 core, ai, storage, kb, customer, campaign, content, report, channel, workflow）
      */
-    public function register(string $slug, string $handlerClass, array $schema, string $category = 'core'): void;
+    public function register(string $slug, string $name, string $description, string $handlerClass, array $schema, string $category = 'core'): void;
 
     /**
      * 获取所有已注册工具

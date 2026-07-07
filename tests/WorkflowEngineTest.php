@@ -145,7 +145,7 @@ class WorkflowEngineTest extends TestCase
 
     public function test_execute_workflow_with_action_node(): void
     {
-        $this->toolRegistry->register('test_tool', 'TestHandler', []);
+        $this->toolRegistry->register('test_tool', 'Test Tool', 'A test tool', 'TestHandler', []);
 
         $workflow = $this->createWorkflow();
         $this->createNodes($workflow, [
@@ -165,7 +165,7 @@ class WorkflowEngineTest extends TestCase
 
     public function test_execute_workflow_with_context_variable_resolution(): void
     {
-        $this->toolRegistry->register('echo_tool', 'EchoHandler', []);
+        $this->toolRegistry->register('echo_tool', 'Echo Tool', 'An echo tool', 'EchoHandler', []);
 
         $workflow = $this->createWorkflow();
         $this->createNodes($workflow, [

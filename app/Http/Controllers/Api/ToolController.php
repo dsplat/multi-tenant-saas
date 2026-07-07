@@ -144,8 +144,11 @@ class ToolController extends Controller
         // 同步注册到运行时注册表
         $this->toolRegistry->register(
             $tool->slug,
+            $tool->name,
+            $tool->description,
             $tool->handler_class,
-            $tool->parameters_schema
+            $tool->parameters_schema,
+            $tool->category ?? 'core'
         );
 
         return response()->json([

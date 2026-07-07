@@ -27,7 +27,7 @@ class ActionNodeTest extends TestCase
 
     public function test_execute_with_valid_tool(): void
     {
-        $this->toolRegistry->register('test_tool', 'TestHandler', []);
+        $this->toolRegistry->register('test_tool', 'Test Tool', 'A test tool', 'TestHandler', []);
 
         $node = [
             'name' => 'Test Action',
@@ -70,7 +70,7 @@ class ActionNodeTest extends TestCase
 
     public function test_execute_with_context_variable_resolution(): void
     {
-        $this->toolRegistry->register('echo_tool', 'EchoHandler', []);
+        $this->toolRegistry->register('echo_tool', 'Echo Tool', 'An echo tool', 'EchoHandler', []);
 
         $node = [
             'name' => 'Echo Action',
@@ -90,7 +90,7 @@ class ActionNodeTest extends TestCase
 
     public function test_execute_with_missing_context_variable(): void
     {
-        $this->toolRegistry->register('test_tool', 'TestHandler', []);
+        $this->toolRegistry->register('test_tool', 'Test Tool', 'A test tool', 'TestHandler', []);
 
         $node = [
             'name' => 'Missing Var',
@@ -110,7 +110,7 @@ class ActionNodeTest extends TestCase
     public function test_execute_with_tool_error_stores_error(): void
     {
         $failingRegistry = new class implements \MultiTenantSaas\Contracts\ToolRegistryContract {
-            public function register(string $slug, string $handlerClass, array $schema, string $category = 'core'): void {}
+            public function register(string $slug, string $name, string $description, string $handlerClass, array $schema, string $category = 'core'): void {}
             public function all(): \Illuminate\Support\Collection { return collect(); }
             public function get(string $slug): ?\MultiTenantSaas\Services\Agent\Dto\Tool { return null; }
             public function getToolDefinitions(array $slugs): array { return []; }

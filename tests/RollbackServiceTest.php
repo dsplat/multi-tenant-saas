@@ -63,7 +63,7 @@ class RollbackServiceTest extends TestCase
 
     public function test_rollback_with_tool_handlers(): void
     {
-        $this->toolRegistry->register('undo_tool', 'UndoHandler', []);
+        $this->toolRegistry->register('undo_tool', 'Undo Tool', 'An undo tool', 'UndoHandler', []);
 
         $execution = WorkflowExecution::create([
             'tenant_id' => 1001,
@@ -91,7 +91,7 @@ class RollbackServiceTest extends TestCase
 
     public function test_rollback_reverse_order(): void
     {
-        $this->toolRegistry->register('undo_tool', 'UndoHandler', []);
+        $this->toolRegistry->register('undo_tool', 'Undo Tool', 'An undo tool', 'UndoHandler', []);
 
         $execution = WorkflowExecution::create([
             'tenant_id' => 1001,
@@ -200,7 +200,7 @@ class RollbackServiceTest extends TestCase
 
     public function test_execute_rollback_handler_tool(): void
     {
-        $this->toolRegistry->register('undo_tool', 'UndoHandler', []);
+        $this->toolRegistry->register('undo_tool', 'Undo Tool', 'An undo tool', 'UndoHandler', []);
 
         $handler = ['type' => 'tool', 'tool' => 'undo_tool', 'arguments' => ['action' => 'undo']];
         $context = ['_tenant_id' => 1001];

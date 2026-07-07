@@ -30,7 +30,7 @@ class ToolRegistryTest extends TestCase
 
     private function registerDummyTool(string $slug = 'dummy_tool', array $schema = []): void
     {
-        $this->registry->register($slug, DummyHandler::class, $schema ?: [
+        $this->registry->register($slug, 'Dummy Tool', 'A dummy tool for testing', DummyHandler::class, $schema ?: [
             'type' => 'object',
             'properties' => ['query' => ['type' => 'string']],
             'required' => ['query'],
@@ -80,7 +80,7 @@ class ToolRegistryTest extends TestCase
             'enabled' => true,
         ]);
 
-        $this->registry->register('shared_tool', DummyHandler::class, [
+        $this->registry->register('shared_tool', 'Shared Tool', 'A shared tool for testing', DummyHandler::class, [
             'type' => 'object',
             'properties' => [],
         ]);

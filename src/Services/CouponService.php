@@ -383,6 +383,199 @@ class CouponService
         return $coupon;
     }
 
+    // ========================================
+    // 模板管理
+    // ========================================
+
+    /**
+     * 创建优惠券模板
+     *
+     * @param  array  $data  模板属性，支持键:
+     *                       name, description, type, value, currency,
+     *                       min_amount, max_discount, applies_to,
+     *                       subscription_plan_id, duration_months,
+     *                       max_uses, max_uses_per_tenant, starts_at,
+     *                       expires_at, metadata
+     */
+    public static function createTemplate(array $data): Coupon
+    {
+        // 模板需要唯一 code，但模板码不用于实际兑换，使用 TPL- 前缀自动生成
+        $code = $data['code'] ?? static::generateCode('TPL-');
+
+        return Coupon::create(array_merge(
+            static::buildAttributes($data, $code),
+            [
+                'is_template' => true,
+                'is_active' => $data['is_active'] ?? true,
+            ]
+        ));
+    }
+
+    /**
+     * 更新优惠券模板
+     */
+    public static function updateTemplate(int $templateId, array $data): Coupon
+    {
+        $template = static::findCoupon($templateId);
+
+        if (!$template->isTemplate()) {
+            throw new \RuntimeException('指定优惠券不是模板');
+        }
+
+        $updatableFields = [
+            'description', 'type', 'value', 'currency', 'min_amount',
+            'max_discount', 'applies_to', 'subscription_plan_id',
+            'duration_months', 'max_uses', 'max_uses_per_tenant',
+            'starts_at', 'expires_at', 'metadata',
+        ];
+
+        $attributes = [];
+        foreach ($updatableFields as $field) {
+            if (array_key_exists($field, $data)) {
+                $attributes[$field] = $data[$field];
+            }
+        }
+
+        if (!empty($attributes)) {
+            $template->update($attributes);
+        }
+
+        return $template->fresh();
+    }
+
+    /**
+     * 删除优惠券模板
+     *
+     * 仅允许删除无关联优惠券的模板
+     */
+    public static function deleteTemplate(int $templateId): bool
+    {
+        $template = static::findCoupon($templateId);
+
+        if (!$template->isTemplate()) {
+            throw new \RuntimeException('指定优惠券不是模板');
+        }
+
+        $generatedCount = Coupon::where('template_id', $templateId)->count();
+        if ($generatedCount > 0) {
+            throw new \RuntimeException("该模板已生成 {$generatedCount} 张优惠券，无法删除");
+        }
+
+        return $template->delete();
+    }
+
+    /**
+     * 查询模板列表
+     *
+     * @param  array  $filters  支持键: type, applies_to, is_active, keyword
+     * @param  int|null  $perPage  每页数量，null=不分页返回全量
+     * @return Collection<int, Coupon>|LengthAwarePaginator
+     */
+    public static function getTemplates(array $filters = [], ?int $perPage = null): Collection|LengthAwarePaginator
+    {
+        $query = Coupon::templates();
+
+        if (!empty($filters['type'])) {
+            $query->where('type', $filters['type']);
+        }
+        if (!empty($filters['applies_to'])) {
+            $query->where('applies_to', $filters['applies_to']);
+        }
+        if (array_key_exists('is_active', $filters)) {
+            $query->where('is_active', $filters['is_active']);
+        }
+        if (!empty($filters['keyword'])) {
+            $keyword = Str::replace(['%', '_'], ['\\%', '\\_'], $filters['keyword']);
+            $query->where(function ($q) use ($keyword) {
+                $q->where('description', 'like', '%' . $keyword . '%');
+            });
+        }
+
+        $query->orderByDesc('created_at');
+
+        if ($perPage !== null) {
+            return $query->paginate($perPage);
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * 从模板生成优惠券
+     *
+     * @param  int  $templateId  模板ID
+     * @param  int  $quantity  生成数量
+     * @param  string  $prefix  优惠码前缀
+     * @return array<string> 生成的优惠码列表
+     */
+    public static function generateFromTemplate(int $templateId, int $quantity, string $prefix = ''): array
+    {
+        $template = static::findCoupon($templateId);
+
+        if (!$template->isTemplate()) {
+            throw new \RuntimeException('指定优惠券不是模板');
+        }
+
+        if (!$template->isActive()) {
+            throw new \RuntimeException('模板已停用，无法生成优惠券');
+        }
+
+        $attributes = [
+            'description' => $template->description,
+            'type' => $template->type,
+            'value' => $template->value,
+            'currency' => $template->currency,
+            'min_amount' => $template->min_amount,
+            'max_discount' => $template->max_discount,
+            'applies_to' => $template->applies_to,
+            'subscription_plan_id' => $template->subscription_plan_id,
+            'duration_months' => $template->duration_months,
+            'max_uses' => $template->max_uses,
+            'max_uses_per_tenant' => $template->max_uses_per_tenant,
+            'starts_at' => $template->starts_at,
+            'expires_at' => $template->expires_at,
+            'metadata' => $template->metadata,
+            'template_id' => $templateId,
+            'is_template' => false,
+        ];
+
+        return static::generateCodes($prefix, $quantity, $attributes);
+    }
+
+    /**
+     * 启用模板
+     */
+    public static function activateTemplate(int $templateId): Coupon
+    {
+        $template = static::findCoupon($templateId);
+
+        if (!$template->isTemplate()) {
+            throw new \RuntimeException('指定优惠券不是模板');
+        }
+
+        $template->is_active = true;
+        $template->save();
+
+        return $template;
+    }
+
+    /**
+     * 停用模板
+     */
+    public static function deactivateTemplate(int $templateId): Coupon
+    {
+        $template = static::findCoupon($templateId);
+
+        if (!$template->isTemplate()) {
+            throw new \RuntimeException('指定优惠券不是模板');
+        }
+
+        $template->is_active = false;
+        $template->save();
+
+        return $template;
+    }
+
     /**
      * 构造优惠券属性
      */

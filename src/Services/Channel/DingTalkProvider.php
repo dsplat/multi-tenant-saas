@@ -13,12 +13,30 @@ class DingTalkProvider implements ChannelContract
 {
     protected string $appKey;
     protected string $appSecret;
+    protected string $robotSecret;
 
     public function __construct()
     {
         $config = config('channel.providers.dingtalk', []);
         $this->appKey = $config['app_key'] ?? '';
         $this->appSecret = $config['app_secret'] ?? '';
+        $this->robotSecret = $config['robot_secret'] ?? '';
+    }
+
+    public function verifyWebhook(array $query, array $headers): bool
+    {
+        $timestamp = $query['timestamp'] ?? '';
+        $sign = $query['sign'] ?? '';
+
+        if ($timestamp === '' || $sign === '') {
+            return false;
+        }
+
+        $expected = base64_encode(
+            hash_hmac('sha256', $timestamp . "\n" . $this->robotSecret, $this->robotSecret, true),
+        );
+
+        return $expected === $sign;
     }
 
     /**
@@ -69,7 +87,10 @@ class DingTalkProvider implements ChannelContract
                 'title' => (string) ($rawMessage['markdown']['title'] ?? ''),
                 'text' => (string) ($rawMessage['markdown']['text'] ?? ''),
             ]),
-            default => [],
+            default => array_merge($base, [
+                'type' => $msgType,
+                'raw' => $rawMessage,
+            ]),
         };
     }
 

@@ -11,14 +11,21 @@ class WorkflowRegistry implements WorkflowRegistryContract
 {
     protected array $workflows = [];
 
-    public function register(Workflow $workflow): void
+    private function buildKey(string $name, int $tenantId): string
     {
-        $this->workflows[$workflow->name] = $workflow;
+        return "{$tenantId}:{$name}";
     }
 
-    public function getByName(string $name): ?Workflow
+    public function register(Workflow $workflow): void
     {
-        return $this->workflows[$name] ?? null;
+        $key = $this->buildKey($workflow->name, (int) $workflow->tenant_id);
+        $this->workflows[$key] = $workflow;
+    }
+
+    public function getByName(string $name, int $tenantId): ?Workflow
+    {
+        $key = $this->buildKey($name, $tenantId);
+        return $this->workflows[$key] ?? null;
     }
 
     public function getByTenant(int $tenantId): array
@@ -34,27 +41,50 @@ class WorkflowRegistry implements WorkflowRegistryContract
         return array_values($this->workflows);
     }
 
-    public function has(string $name): bool
+    public function has(string $name, int $tenantId): bool
     {
-        return isset($this->workflows[$name]);
+        $key = $this->buildKey($name, $tenantId);
+        return isset($this->workflows[$key]);
     }
 
-    public function names(): array
+    /**
+     * @return string[]
+     */
+    public function names(?int $tenantId = null): array
     {
-        return array_keys($this->workflows);
+        if ($tenantId === null) {
+            return array_keys($this->workflows);
+        }
+
+        return array_keys(array_filter(
+            $this->workflows,
+            fn (Workflow $workflow) => (int) $workflow->tenant_id === $tenantId,
+            ARRAY_FILTER_USE_BOTH
+        ));
     }
 
-    public function unregister(string $name): void
+    public function unregister(string $name, int $tenantId): bool
     {
-        unset($this->workflows[$name]);
+        $key = $this->buildKey($name, $tenantId);
+        if (!isset($this->workflows[$key])) {
+            return false;
+        }
+        unset($this->workflows[$key]);
+        return true;
     }
 
-    public function discover(): array
+    /**
+     * @return array<string, mixed>[]
+     */
+    public function discover(?int $tenantId = null): array
     {
         $result = [];
-        foreach ($this->workflows as $name => $workflow) {
+        foreach ($this->workflows as $key => $workflow) {
+            if ($tenantId !== null && (int) $workflow->tenant_id !== $tenantId) {
+                continue;
+            }
             $result[] = [
-                'name' => $name,
+                'name' => $workflow->name,
                 'workflow_id' => $workflow->workflow_id,
                 'tenant_id' => $workflow->tenant_id,
                 'type' => $workflow->type,

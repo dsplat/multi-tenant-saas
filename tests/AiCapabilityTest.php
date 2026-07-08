@@ -12,6 +12,8 @@ use MultiTenantSaas\Services\Ai\Capabilities\TextClassification;
 use MultiTenantSaas\Services\Ai\Capabilities\CodeGeneration;
 use MultiTenantSaas\Services\Ai\Capabilities\CodeReview;
 use MultiTenantSaas\Services\Ai\Capabilities\Conversation;
+use MultiTenantSaas\Services\Ai\Capabilities\ImageGeneration;
+use MultiTenantSaas\Services\Ai\Capabilities\VideoGeneration;
 use MultiTenantSaas\Services\Ai\AiResponse;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
 use MultiTenantSaas\Tests\Schema\AiModule;

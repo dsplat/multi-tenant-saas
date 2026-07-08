@@ -7,6 +7,18 @@ namespace MultiTenantSaas\Services\Workflow;
 use MultiTenantSaas\Models\Workflow;
 use MultiTenantSaas\Models\WorkflowNode;
 
+class WorkflowDefinition
+{
+    public function __construct(
+        public readonly string $name,
+        public readonly ?string $description = null,
+        public readonly string $type = 'sequential',
+        public readonly ?array $config = null,
+        public readonly array $nodes = [],
+        public readonly array $edges = [],
+    ) {}
+}
+
 class WorkflowDefinitionParser
 {
     protected array $schema = [
@@ -56,9 +68,9 @@ class WorkflowDefinitionParser
         ],
     ];
 
-    public function validate(array $definition): bool
+    public function validate(array $definition): array
     {
-        return empty($this->validateDetailed($definition));
+        return $this->validateDetailed($definition);
     }
 
     public function validateDetailed(array $definition): array
@@ -154,20 +166,35 @@ class WorkflowDefinitionParser
         return $this->jsonSchema;
     }
 
-    public function parse(array $definition): array
+    public function parse(string $json): WorkflowDefinition
     {
-        if (!$this->validate($definition)) {
+        $definition = json_decode($json, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
             throw new \InvalidArgumentException(
-                'Invalid workflow definition: ' . implode('; ', $this->validateDetailed($definition))
+                'Invalid JSON: ' . json_last_error_msg()
             );
         }
 
-        return [
-            'name' => $definition['name'],
-            'description' => $definition['description'] ?? null,
-            'type' => $definition['type'] ?? 'sequential',
-            'config' => $definition['config'] ?? null,
-            'nodes' => array_map(fn($n) => [
+        if (!is_array($definition)) {
+            throw new \InvalidArgumentException(
+                'Workflow definition must be a JSON object'
+            );
+        }
+
+        $errors = $this->validate($definition);
+        if (!empty($errors)) {
+            throw new \InvalidArgumentException(
+                'Invalid workflow definition: ' . implode('; ', $errors)
+            );
+        }
+
+        return new WorkflowDefinition(
+            name: $definition['name'],
+            description: $definition['description'] ?? null,
+            type: $definition['type'] ?? 'sequential',
+            config: $definition['config'] ?? null,
+            nodes: array_map(fn($n) => [
                 'id' => $n['id'],
                 'name' => $n['name'] ?? $n['id'],
                 'type' => $n['type'],
@@ -175,25 +202,23 @@ class WorkflowDefinitionParser
                 'order' => $n['order'] ?? 0,
                 'next' => $n['next'] ?? null,
             ], $definition['nodes']),
-            'edges' => $definition['edges'] ?? [],
-        ];
+            edges: $definition['edges'] ?? [],
+        );
     }
 
-    public function createFromDefinition(array $definition, int $tenantId): Workflow
+    public function createFromDefinition(int $tenantId, WorkflowDefinition $def): Workflow
     {
-        $parsed = $this->parse($definition);
-
         $workflow = Workflow::create([
             'tenant_id' => $tenantId,
-            'name' => $parsed['name'],
-            'description' => $parsed['description'],
-            'type' => $parsed['type'],
+            'name' => $def->name,
+            'description' => $def->description,
+            'type' => $def->type,
             'status' => 'draft',
-            'config' => $parsed['config'],
+            'config' => $def->config,
         ]);
 
         $nodeMap = [];
-        foreach ($parsed['nodes'] as $nodeData) {
+        foreach ($def->nodes as $nodeData) {
             $node = WorkflowNode::create([
                 'tenant_id' => $tenantId,
                 'workflow_id' => $workflow->workflow_id,
@@ -205,8 +230,8 @@ class WorkflowDefinitionParser
             $nodeMap[$nodeData['id']] = $node;
         }
 
-        if (!empty($parsed['edges'])) {
-            foreach ($parsed['edges'] as $edge) {
+        if (!empty($def->edges)) {
+            foreach ($def->edges as $edge) {
                 if (isset($nodeMap[$edge['from']])) {
                     $nodeMap[$edge['from']]->update([
                         'next_node_id' => $nodeMap[$edge['to']]->node_id,
@@ -214,7 +239,7 @@ class WorkflowDefinitionParser
                 }
             }
         } else {
-            $sortedNodes = $parsed['nodes'];
+            $sortedNodes = $def->nodes;
             usort($sortedNodes, fn($a, $b) => $a['order'] <=> $b['order']);
 
             for ($i = 0; $i < count($sortedNodes) - 1; $i++) {
@@ -229,5 +254,34 @@ class WorkflowDefinitionParser
         }
 
         return $workflow->fresh();
+    }
+
+    public function toJson(Workflow $workflow): string
+    {
+        $workflow->load('nodes');
+
+        $definition = [
+            'name' => $workflow->name,
+            'description' => $workflow->description,
+            'type' => $workflow->type,
+            'config' => $workflow->config,
+            'nodes' => $workflow->nodes->map(fn($node) => [
+                'id' => (string) $node->node_id,
+                'name' => $node->name,
+                'type' => $node->type,
+                'config' => $node->config,
+                'order' => $node->order,
+            ])->toArray(),
+            'edges' => $workflow->nodes
+                ->filter(fn($node) => $node->next_node_id !== null)
+                ->map(fn($node) => [
+                    'from' => (string) $node->node_id,
+                    'to' => (string) $node->next_node_id,
+                ])
+                ->values()
+                ->toArray(),
+        ];
+
+        return json_encode($definition, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
 }

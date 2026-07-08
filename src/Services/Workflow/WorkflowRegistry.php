@@ -23,6 +23,25 @@ class WorkflowRegistry
         return array_filter($this->workflows, fn($w) => $w->tenant_id == $tenantId);
     }
 
+    public function has(string $name): bool
+    {
+        return isset($this->workflows[$name]);
+    }
+
+    public function unregister(string $name): bool
+    {
+        if (!isset($this->workflows[$name])) {
+            return false;
+        }
+        unset($this->workflows[$name]);
+        return true;
+    }
+
+    public function names(): array
+    {
+        return array_keys($this->workflows);
+    }
+
     public function all(): array
     {
         return $this->workflows;

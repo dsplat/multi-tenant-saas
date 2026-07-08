@@ -7,6 +7,7 @@ namespace MultiTenantSaas\Mcp;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\McpClient;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,7 +31,7 @@ class McpMiddleware
         try {
             $apiKey = $this->extractApiKey($request);
 
-            if ($apiKey === null) {
+            if (empty($apiKey)) {
                 return $this->jsonRpcError(
                     'API key is required.',
                     McpException::CODE_INVALID_REQUEST,
@@ -59,7 +60,7 @@ class McpMiddleware
                 );
             }
 
-            TenantContext::setId((string) $client->tenant_id);
+            TenantContext::setTenantId((string) $client->tenant_id);
 
             $request->attributes->set('mcp_client', $client);
 
@@ -71,6 +72,11 @@ class McpMiddleware
                 $e->getErrorData(),
             );
         } catch (\Throwable $e) {
+            Log::error('McpMiddleware: unhandled exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return $this->jsonRpcError(
                 'Internal server error.',
                 McpException::CODE_INTERNAL_ERROR,
@@ -93,7 +99,8 @@ class McpMiddleware
         }
 
         if ($apiKey === null) {
-            $apiKey = $request->query('api_key');
+            $queryParam = $request->query('api_key');
+            $apiKey = is_string($queryParam) ? $queryParam : null;
         }
 
         return $apiKey !== null ? trim($apiKey) : null;

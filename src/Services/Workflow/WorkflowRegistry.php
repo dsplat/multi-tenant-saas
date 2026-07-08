@@ -33,4 +33,34 @@ class WorkflowRegistry implements WorkflowRegistryContract
     {
         return array_values($this->workflows);
     }
+
+    public function has(string $name): bool
+    {
+        return isset($this->workflows[$name]);
+    }
+
+    public function names(): array
+    {
+        return array_keys($this->workflows);
+    }
+
+    public function unregister(string $name): void
+    {
+        unset($this->workflows[$name]);
+    }
+
+    public function discover(): array
+    {
+        $result = [];
+        foreach ($this->workflows as $name => $workflow) {
+            $result[] = [
+                'name' => $name,
+                'workflow_id' => $workflow->workflow_id,
+                'tenant_id' => $workflow->tenant_id,
+                'type' => $workflow->type,
+                'status' => $workflow->status,
+            ];
+        }
+        return $result;
+    }
 }

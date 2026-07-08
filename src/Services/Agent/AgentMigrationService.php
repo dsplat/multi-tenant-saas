@@ -7,7 +7,6 @@ namespace MultiTenantSaas\Services\Agent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Concerns\EnsuresTenantContext;
-use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Models\Agent;
 
 class AgentMigrationService
@@ -16,9 +15,7 @@ class AgentMigrationService
 
     protected int $currentVersion = 2;
 
-    public function __construct(
-        protected IdGeneratorContract $idGenerator,
-    ) {}
+    public function __construct() {}
 
     public function migrateAgent(int $tenantId, int $agentId): bool
     {
@@ -51,7 +48,6 @@ class AgentMigrationService
             'total' => $agents->count(),
             'migrated' => 0,
             'failed' => 0,
-            'skipped' => 0,
         ];
 
         foreach ($agents as $agent) {

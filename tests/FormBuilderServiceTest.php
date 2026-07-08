@@ -264,6 +264,127 @@ class FormBuilderServiceTest extends TestCase
         $this->assertEquals('张三', $data['rows'][0]['name']);
     }
 
+    // ---------- 新增字段类型 ----------
+
+    public function test_submit_signature_field(): void
+    {
+        $form = $this->createForm([
+            'status' => 'published',
+            'fields' => [
+                [
+                    'field_key' => 'signature',
+                    'field_type' => 'signature',
+                    'label' => '签名',
+                    'is_required' => true,
+                ],
+            ],
+        ]);
+
+        $submission = $this->service->submitForm($form->form_id, [
+            'signature' => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        ], 1001);
+
+        $this->assertNotNull($submission->submission_id);
+    }
+
+    public function test_submit_location_field(): void
+    {
+        $form = $this->createForm([
+            'status' => 'published',
+            'fields' => [
+                [
+                    'field_key' => 'location',
+                    'field_type' => 'location',
+                    'label' => '位置',
+                    'is_required' => true,
+                ],
+            ],
+        ]);
+
+        $submission = $this->service->submitForm($form->form_id, [
+            'location' => ['lat' => 39.9042, 'lng' => 116.4074, 'address' => '北京市'],
+        ], 1001);
+
+        $this->assertEquals(39.9042, $submission->data['location']['lat']);
+    }
+
+    public function test_submit_location_invalid_lat_throws(): void
+    {
+        $form = $this->createForm([
+            'status' => 'published',
+            'fields' => [
+                [
+                    'field_key' => 'location',
+                    'field_type' => 'location',
+                    'label' => '位置',
+                    'is_required' => true,
+                ],
+            ],
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('纬度范围不正确');
+
+        $this->service->submitForm($form->form_id, [
+            'location' => ['lat' => 999, 'lng' => 116.4074],
+        ], 1001);
+    }
+
+    public function test_submit_cascader_field(): void
+    {
+        $form = $this->createForm([
+            'status' => 'published',
+            'fields' => [
+                [
+                    'field_key' => 'region',
+                    'field_type' => 'cascader',
+                    'label' => '地区',
+                    'is_required' => true,
+                    'options' => [
+                        ['value' => 'guangdong', 'label' => '广东', 'children' => [
+                            ['value' => 'shenzhen', 'label' => '深圳'],
+                            ['value' => 'guangzhou', 'label' => '广州'],
+                        ]],
+                        ['value' => 'zhejiang', 'label' => '浙江', 'children' => [
+                            ['value' => 'hangzhou', 'label' => '杭州'],
+                        ]],
+                    ],
+                ],
+            ],
+        ]);
+
+        $submission = $this->service->submitForm($form->form_id, [
+            'region' => ['guangdong', 'shenzhen'],
+        ], 1001);
+
+        $this->assertEquals(['guangdong', 'shenzhen'], $submission->data['region']);
+    }
+
+    public function test_submit_cascader_invalid_option_throws(): void
+    {
+        $form = $this->createForm([
+            'status' => 'published',
+            'fields' => [
+                [
+                    'field_key' => 'region',
+                    'field_type' => 'cascader',
+                    'label' => '地区',
+                    'is_required' => true,
+                    'options' => [
+                        ['value' => 'guangdong', 'label' => '广东'],
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('第 1 级选择值无效');
+
+        $this->service->submitForm($form->form_id, [
+            'region' => ['invalid'],
+        ], 1001);
+    }
+
     // ---------- 租户隔离 ----------
 
     public function test_forms_isolated_by_tenant(): void

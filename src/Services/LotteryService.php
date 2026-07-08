@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Models\Lottery\LotteryActivity;
@@ -25,7 +26,16 @@ class LotteryService
      */
     public static function createActivity(array $data): LotteryActivity
     {
-        return LotteryActivity::create($data);
+        $activity = LotteryActivity::create($data);
+
+        // 审计日志（如果表存在）
+        try {
+            AuditService::log('lottery.activity.create', 'lottery_activity', $activity->activity_id, null, $data);
+        } catch (\Throwable $e) {
+            // 忽略审计日志错误
+        }
+
+        return $activity;
     }
 
     /**
@@ -52,7 +62,8 @@ class LotteryService
      */
     public static function getActivities(int $tenantId, array $filters = []): \Illuminate\Database\Eloquent\Collection
     {
-        $query = LotteryActivity::where('tenant_id', $tenantId);
+        $query = LotteryActivity::where('tenant_id', $tenantId)
+            ->withCount(['prizes', 'drawLogs']);
 
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -181,10 +192,30 @@ class LotteryService
         if ($prize) {
             $log = static::recordDraw($activity->tenant_id, $activityId, $prize->prize_id, $userId, $userIp, $userAgent, 'win');
 
+            // 审计日志
+            try {
+                AuditService::log('lottery.draw.win', 'lottery_activity', $activityId, null, [
+                    'prize_id' => $prize->prize_id,
+                    'prize_name' => $prize->name,
+                    'user_id' => $userId,
+                ]);
+            } catch (\Throwable $e) {
+                // 忽略
+            }
+
             return ['result' => 'win', 'prize' => $prize, 'log' => $log];
         }
 
         $log = static::recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'miss');
+
+        // 审计日志
+        try {
+            AuditService::log('lottery.draw.miss', 'lottery_activity', $activityId, null, [
+                'user_id' => $userId,
+            ]);
+        } catch (\Throwable $e) {
+            // 忽略
+        }
 
         return ['result' => 'miss', 'prize' => null, 'log' => $log];
     }
@@ -234,7 +265,7 @@ class LotteryService
      */
     protected static function recordDraw(int $tenantId, int $activityId, ?int $prizeId, ?int $userId, ?string $userIp, ?string $userAgent, string $result): LotteryDrawLog
     {
-        return LotteryDrawLog::create([
+        $log = LotteryDrawLog::create([
             'tenant_id' => $tenantId,
             'activity_id' => $activityId,
             'prize_id' => $prizeId,
@@ -244,6 +275,11 @@ class LotteryService
             'result' => $result,
             'draw_at' => now(),
         ]);
+
+        // 清除统计缓存
+        static::clearStatsCache($activityId);
+
+        return $log;
     }
 
     // ========================================
@@ -299,22 +335,34 @@ class LotteryService
     // ========================================
 
     /**
-     * 获取活动抽奖统计
+     * 获取活动抽奖统计（带缓存）
      */
     public static function getDrawStats(int $activityId): array
     {
-        $total = LotteryDrawLog::where('activity_id', $activityId)->count();
-        $wins = LotteryDrawLog::where('activity_id', $activityId)->where('result', 'win')->count();
-        $misses = LotteryDrawLog::where('activity_id', $activityId)->where('result', 'miss')->count();
-        $blacklisted = LotteryDrawLog::where('activity_id', $activityId)->where('result', 'blacklist')->count();
+        $cacheKey = "lottery:stats:{$activityId}";
 
-        return [
-            'total_draws' => $total,
-            'wins' => $wins,
-            'misses' => $misses,
-            'blacklisted' => $blacklisted,
-            'win_rate' => $total > 0 ? round($wins / $total * 100, 2) : 0,
-        ];
+        return Cache::remember($cacheKey, 60, function () use ($activityId) {
+            $total = LotteryDrawLog::where('activity_id', $activityId)->count();
+            $wins = LotteryDrawLog::where('activity_id', $activityId)->where('result', 'win')->count();
+            $misses = LotteryDrawLog::where('activity_id', $activityId)->where('result', 'miss')->count();
+            $blacklisted = LotteryDrawLog::where('activity_id', $activityId)->where('result', 'blacklist')->count();
+
+            return [
+                'total_draws' => $total,
+                'wins' => $wins,
+                'misses' => $misses,
+                'blacklisted' => $blacklisted,
+                'win_rate' => $total > 0 ? round($wins / $total * 100, 2) : 0,
+            ];
+        });
+    }
+
+    /**
+     * 清除活动统计缓存
+     */
+    public static function clearStatsCache(int $activityId): void
+    {
+        Cache::forget("lottery:stats:{$activityId}");
     }
 
     /**
@@ -339,5 +387,57 @@ class LotteryService
             ->orderByDesc('draw_at')
             ->limit($limit)
             ->get();
+    }
+
+    /**
+     * 导出抽奖记录
+     *
+     * @return array{headers: array, rows: array, total: int}
+     */
+    public static function exportDrawLogs(int $activityId, array $filters = []): array
+    {
+        $query = LotteryDrawLog::where('activity_id', $activityId)
+            ->with(['prize']);
+
+        if (!empty($filters['user_id'])) {
+            $query->where('user_id', $filters['user_id']);
+        }
+        if (!empty($filters['result'])) {
+            $query->where('result', $filters['result']);
+        }
+        if (!empty($filters['start_date'])) {
+            $query->where('draw_at', '>=', $filters['start_date']);
+        }
+        if (!empty($filters['end_date'])) {
+            $query->where('draw_at', '<=', $filters['end_date']);
+        }
+
+        $logs = $query->orderByDesc('draw_at')->get();
+
+        $headers = [
+            'log_id' => '记录ID',
+            'user_id' => '用户ID',
+            'prize_name' => '奖品名称',
+            'result' => '结果',
+            'ip_address' => 'IP地址',
+            'draw_at' => '抽奖时间',
+        ];
+
+        $rows = $logs->map(function ($log) {
+            return [
+                'log_id' => $log->log_id,
+                'user_id' => $log->user_id,
+                'prize_name' => $log->prize?->name ?? '-',
+                'result' => $log->result,
+                'ip_address' => $log->user_ip,
+                'draw_at' => $log->draw_at?->toDateTimeString(),
+            ];
+        })->toArray();
+
+        return [
+            'headers' => $headers,
+            'rows' => $rows,
+            'total' => count($rows),
+        ];
     }
 }

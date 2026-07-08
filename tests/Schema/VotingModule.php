@@ -58,11 +58,13 @@ class VotingModule implements SchemaModuleInterface
             $table->unsignedBigInteger('tenant_id');
             $table->string('ip_address', 45)->nullable();
             $table->string('user_agent', 512)->nullable();
+            $table->string('fingerprint', 64)->nullable();
             $table->timestamps();
 
             $table->index(['vote_id', 'user_id']);
             $table->index(['vote_id', 'vote_option_id']);
             $table->index(['user_id', 'vote_id']);
+            $table->index(['vote_id', 'fingerprint']);
         });
     }
 

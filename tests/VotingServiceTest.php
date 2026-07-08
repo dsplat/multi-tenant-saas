@@ -305,6 +305,60 @@ class VotingServiceTest extends TestCase
         $this->assertCount(1, $records);
     }
 
+    // ---------- 设备指纹防刷 ----------
+
+    public function test_cast_vote_with_fingerprint(): void
+    {
+        $vote = $this->createActiveVote();
+        $optionId = $vote->options->first()->vote_option_id;
+
+        $records = $this->service->castVote(
+            $vote->vote_id,
+            [$optionId],
+            1001,
+            2001,
+            '127.0.0.1',
+            'Test Agent',
+            'abc123fingerprint'
+        );
+
+        $this->assertCount(1, $records);
+        $this->assertEquals('abc123fingerprint', $records->first()->fingerprint);
+    }
+
+    public function test_cast_vote_fingerprint_rate_limit(): void
+    {
+        $vote = $this->createActiveVote();
+        $optionId = $vote->options->first()->vote_option_id;
+
+        // 同一指纹短时间内投票5次
+        for ($i = 0; $i < 5; $i++) {
+            $this->service->castVote(
+                $vote->vote_id,
+                [$optionId],
+                1000 + $i,
+                2001,
+                '127.0.0.1',
+                'Test Agent',
+                'same_fingerprint'
+            );
+        }
+
+        // 第6次应该失败
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('检测到异常操作，请稍后再试');
+
+        $this->service->castVote(
+            $vote->vote_id,
+            [$optionId],
+            9999,
+            2001,
+            '127.0.0.1',
+            'Test Agent',
+            'same_fingerprint'
+        );
+    }
+
     // ---------- 租户隔离 ----------
 
     public function test_votes_isolated_by_tenant(): void

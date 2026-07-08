@@ -7,8 +7,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP Version](https://img.shields.io/badge/PHP-%5E8.2-777BB4)](https://php.net)
 [![Laravel Version](https://img.shields.io/badge/Laravel-%5E12.0-FF2D20)](https://laravel.com)
-[![Version](https://img.shields.io/badge/version-v1.3.0-blue)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-2100+%20passed%20(5000+%20assertions)-brightgreen)](#)
+[![Version](https://img.shields.io/badge/version-v1.4.0-blue)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-2200+%20passed%20(5500+%20assertions)-brightgreen)](#)
 
 ---
 
@@ -247,6 +247,8 @@ foreach ($runtime->runStream($agent->agent_id, $conversationId, '你好') as $ch
 - **抽奖执行**：加权随机抽取、用户次数限制、IP 防刷、黑名单过滤
 - **黑名单管理**：按用户 ID、IP 地址等维度封禁，支持租户级隔离
 - **统计查询**：中奖率统计、用户抽奖记录、中奖记录列表
+- **动画配置**：支持大转盘(wheel)、刮刮卡(scratch)、砸金蛋(egg)、盲盒(blindbox)
+- **数据导出**：抽奖记录导出，支持按用户/结果/时间筛选
 
 **数据模型：**
 
@@ -276,6 +278,40 @@ foreach ($runtime->runStream($agent->agent_id, $conversationId, '你好') as $ch
 | `SmsBatchTask` | 批量任务（定时发送、状态追踪） |
 | `SmsDeliveryStat` | 到达率统计（送达/失败/点击） |
 | `SmsUnsubscribe` | 退订记录（用户退订管理） |
+
+### 🗳️ 投票系统
+
+完整的投票活动管理引擎，支持防刷票机制：
+
+- **投票管理**：创建/更新/删除投票活动，支持单选/多选
+- **投票执行**：投票记录、计数统计、排行榜实时更新
+- **防刷机制**：IP 限制、用户限制、设备指纹防刷、每日/总次数限制
+- **统计分析**：投票统计、选项占比、每日趋势
+
+**数据模型：**
+
+| 模型 | 说明 |
+|------|------|
+| `Vote` | 投票活动（标题、类型、规则、状态） |
+| `VoteOption` | 投票选项（标题、图片、计数） |
+| `VoteRecord` | 投票记录（用户、选项、IP、指纹） |
+
+### 📋 表单系统
+
+通用的表单构建与数据收集引擎：
+
+- **表单设计**：拖拽式字段配置，支持 20+ 字段类型
+- **字段类型**：text/textarea/number/email/phone/date/select/radio/checkbox/file/rating/signature/location/cascader
+- **数据收集**：表单提交、数据验证、提交限制
+- **数据导出**：提交记录导出、统计分析
+
+**数据模型：**
+
+| 模型 | 说明 |
+|------|------|
+| `Form` | 表单（标题、状态、提交限制） |
+| `FormField` | 表单字段（类型、标签、验证规则） |
+| `FormSubmission` | 提交记录（数据、用户、时间） |
 
 ### 🎫 优惠券分享（裂变发券）
 
@@ -402,10 +438,14 @@ AI 工具调用协议实现，支持 JSON-RPC 2.0 标准：
 
 - **OWASP Top 10 合规**：0 高危（见 [安全审计报告](docs/security/安全审计报告.md)）
 - **租户数据隔离**：全局作用域 + 跨租户 403
-- **RBAC + Token abilities**：40+ 权限节点 + 14 种 API 权限
+- **RBAC + Token abilities**：60+ 权限节点 + 14 种 API 权限
 - **敏感数据保护**：密码哈希、敏感字段隐藏、手机号脱敏、API Key/Tokens 加密存储
 - **安全响应头**：`X-Content-Type-Options` / `X-Frame-Options` / HSTS
 - **限流与 MFA**：认证端点限流 + TOTP/邮箱/短信多因素认证
+- **防刷机制**：投票设备指纹防刷、抽奖 IP 防刷、表单提交限流
+- **统一异常处理**：全局异常处理器，统一 API 错误响应格式
+- **审计日志**：关键操作自动记录审计日志（抽奖/投票/优惠券核销）
+- **缓存策略**：统计查询 Redis 缓存，写操作自动清除
 
 ---
 
@@ -543,18 +583,18 @@ multi-tenant-saas/
 │   ├── admin/              # 系统后台 SPA（15 个组件）
 │   └── console/            # 租户控制台 SPA（16 个组件）
 ├── routes/
-│   ├── api.php             # API 路由（190+ 端点）
+│   ├── api.php             # API 路由（250+ 端点）
 │   └── web.php             # Web 路由
 ├── src/                    # 框架核心代码
 │   ├── Concerns/           # Traits（3 个：BelongsToTenant / EnsuresTenantContext / HasGlobalId）
 │   ├── Context/            # 上下文管理（TenantContext）
-│   ├── Contracts/          # 接口定义（17 个）
+│   ├── Contracts/          # 接口定义（18 个）
 │   ├── DTOs/               # 数据传输对象（MessageDTO / WorkflowDefinition）
 │   ├── Enums/              # 枚举（ErrorCode）
 │   ├── Events/             # 领域事件（14 个）
 │   ├── Exceptions/         # 业务异常（6 个）
 │   ├── Helpers/            # 辅助函数
-│   ├── Http/               # HTTP 层（Controllers / Middleware）
+│   ├── Http/               # HTTP 层（Controllers / Middleware / Requests）
 │   ├── Isolation/          # 数据隔离策略（3 种：SharedDatabase / SchemaPerTenant / DatabasePerTenant）
 │   ├── Jobs/               # 队列任务（5 个）
 │   ├── Listeners/          # 事件监听器
@@ -567,7 +607,7 @@ multi-tenant-saas/
 │   │   ├── McpSkillGenerator.php  # 技能描述文件生成器
 │   │   └── McpMiddleware.php      # MCP 请求认证中间件
 │   ├── Middleware/          # 中间件（8 个）
-│   ├── Models/             # 框架模型（85+ 个）
+│   ├── Models/             # 框架模型（90+ 个）
 │   │   ├── Lottery/        # 抽奖系统模型（6 个）
 │   │   ├── Sms/            # 短信服务模型（4 个）
 │   │   └── ...
@@ -578,7 +618,7 @@ multi-tenant-saas/
 │   │   └── SSL/            # SSL证书模块
 │   ├── SDK/                # PHP SDK 客户端（5 个）
 │   ├── Scopes/             # 全局作用域（TenantScope）
-│   ├── Services/           # 服务层（170+ 个，含 AI/Agent/Workflow/Lottery/SMS 等子系统）
+│   ├── Services/           # 服务层（180+ 个，含 AI/Agent/Workflow/Lottery/SMS/Voting/Form 等子系统）
 │   │   ├── Agent/          # 智能体服务
 │   │   ├── Ai/             # AI 服务
 │   │   ├── Capability/     # AI 能力服务
@@ -591,7 +631,7 @@ multi-tenant-saas/
 │   ├── WechatOfficial/     # 微信公众号集成
 │   ├── WechatMiniProgram/  # 微信小程序集成
 │   └── TenancyServiceProvider.php
-├── tests/                  # 测试（127 个文件，1874 个测试，4559 个断言）
+├── tests/                  # 测试（140+ 个文件，2200+ 个测试，5500+ 个断言）
 └── composer.json
 ```
 
@@ -686,7 +726,7 @@ multi-tenant-saas/
 | **入驻** | `TenantOnboardingService` | 租户引导式注册 |
 | **密码** | `PasswordPolicyService` | 密码策略管理 |
 
-### 模型（85+ 个）
+### 模型（90+ 个）
 
 | 分类 | 模型 | 说明 |
 |------|------|------|

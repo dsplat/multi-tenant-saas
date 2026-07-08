@@ -160,13 +160,112 @@ class FormBuilderService
             'number' => is_numeric($value) ? (float) $value : throw new \RuntimeException("{$field->label} 必须是数字"),
             'email' => filter_var($value, FILTER_VALIDATE_EMAIL) ? $value : throw new \RuntimeException("{$field->label} 格式不正确"),
             'phone' => preg_match('/^1[3-9]\d{9}$/', $value) ? $value : throw new \RuntimeException("{$field->label} 格式不正确"),
-            'select', 'radio' => in_array($value, $field->options ?? []) ? $value : (in_array($value, $field->options ?? []) ? $value : throw new \RuntimeException("{$field->label} 选项无效")),
+            'select', 'radio' => in_array($value, $field->options ?? []) ? $value : throw new \RuntimeException("{$field->label} 选项无效"),
             'multi_select', 'checkbox' => is_array($value) ? $value : [$value],
             'date' => Carbon::parse($value)->toDateString(),
             'datetime' => Carbon::parse($value)->toDateTimeString(),
+            'time' => preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $value) ? $value : throw new \RuntimeException("{$field->label} 时间格式不正确"),
             'rating' => max(1, min(5, (int) $value)),
+            'signature' => $this->validateSignature($field, $value),
+            'location' => $this->validateLocation($field, $value),
+            'cascader' => $this->validateCascader($field, $value),
             default => (string) $value,
         };
+    }
+
+    /**
+     * 校验签名字段
+     * 签名值应为 base64 编码的图片数据
+     */
+    protected function validateSignature(FormField $field, mixed $value): string
+    {
+        if (!is_string($value)) {
+            throw new \RuntimeException("{$field->label} 签名数据格式不正确");
+        }
+
+        // 验证 base64 格式（支持 data:image/png;base64,... 或纯 base64）
+        if (!preg_match('/^(data:image\/(png|jpeg|svg\+xml);base64,)?[A-Za-z0-9+\/=]+$/', $value)) {
+            throw new \RuntimeException("{$field->label} 签名数据格式不正确");
+        }
+
+        return $value;
+    }
+
+    /**
+     * 校验位置字段
+     * 位置值应为 {lat, lng, address} 结构
+     */
+    protected function validateLocation(FormField $field, mixed $value): array
+    {
+        if (!is_array($value)) {
+            throw new \RuntimeException("{$field->label} 位置数据格式不正确");
+        }
+
+        if (!isset($value['lat']) || !isset($value['lng'])) {
+            throw new \RuntimeException("{$field->label} 缺少经纬度信息");
+        }
+
+        if (!is_numeric($value['lat']) || !is_numeric($value['lng'])) {
+            throw new \RuntimeException("{$field->label} 经纬度必须是数字");
+        }
+
+        $lat = (float) $value['lat'];
+        $lng = (float) $value['lng'];
+
+        if ($lat < -90 || $lat > 90) {
+            throw new \RuntimeException("{$field->label} 纬度范围不正确");
+        }
+
+        if ($lng < -180 || $lng > 180) {
+            throw new \RuntimeException("{$field->label} 经度范围不正确");
+        }
+
+        return [
+            'lat' => $lat,
+            'lng' => $lng,
+            'address' => $value['address'] ?? null,
+            'name' => $value['name'] ?? null,
+        ];
+    }
+
+    /**
+     * 校验级联选择字段
+     * 级联值应为数组（路径选择）
+     */
+    protected function validateCascader(FormField $field, mixed $value): array
+    {
+        if (!is_array($value)) {
+            throw new \RuntimeException("{$field->label} 级联选择数据格式不正确");
+        }
+
+        // 验证每一级的值
+        $options = $field->options ?? [];
+        $currentOptions = $options;
+        $validated = [];
+
+        foreach ($value as $level => $item) {
+            if (!is_string($item) && !is_numeric($item)) {
+                throw new \RuntimeException("{$field->label} 第 " . ($level + 1) . " 级选择值格式不正确");
+            }
+
+            // 查找当前级别是否有该选项
+            $found = false;
+            foreach ($currentOptions as $option) {
+                $optionValue = $option['value'] ?? $option;
+                if ((string) $optionValue === (string) $item) {
+                    $validated[] = $item;
+                    $currentOptions = $option['children'] ?? [];
+                    $found = true;
+                    break;
+                }
+            }
+
+            if (!$found) {
+                throw new \RuntimeException("{$field->label} 第 " . ($level + 1) . " 级选择值无效");
+            }
+        }
+
+        return $validated;
     }
 
     /**
@@ -196,7 +295,8 @@ class FormBuilderService
      */
     public function getForms(int $tenantId, array $filters = [], ?int $perPage = null): Collection|LengthAwarePaginator
     {
-        $query = Form::where('tenant_id', $tenantId);
+        $query = Form::where('tenant_id', $tenantId)
+            ->withCount(['fields', 'submissions']);
 
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);

@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Services;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Models\Vote;
 use MultiTenantSaas\Models\VoteOption;
@@ -90,13 +91,21 @@ class VotingService
 
     /**
      * 投票
+     *
+     * @param  int     $voteId      投票ID
+     * @param  array   $optionIds   选项ID列表
+     * @param  int     $userId      用户ID
+     * @param  int     $tenantId    租户ID
+     * @param  string|null $ipAddress    IP地址
+     * @param  string|null $userAgent    用户代理
+     * @param  string|null $fingerprint  设备指纹（防刷票）
      */
-    public function castVote(int $voteId, array $optionIds, int $userId, int $tenantId, ?string $ipAddress = null, ?string $userAgent = null): Collection
+    public function castVote(int $voteId, array $optionIds, int $userId, int $tenantId, ?string $ipAddress = null, ?string $userAgent = null, ?string $fingerprint = null): Collection
     {
-        return DB::transaction(function () use ($voteId, $optionIds, $userId, $tenantId, $ipAddress, $userAgent) {
+        return DB::transaction(function () use ($voteId, $optionIds, $userId, $tenantId, $ipAddress, $userAgent, $fingerprint) {
             $vote = Vote::with('options')->findOrFail($voteId);
 
-            $this->validateVote($vote, $optionIds, $userId, $tenantId, $ipAddress);
+            $this->validateVote($vote, $optionIds, $userId, $tenantId, $ipAddress, $fingerprint);
 
             $records = collect();
             foreach ($optionIds as $optionId) {
@@ -109,12 +118,26 @@ class VotingService
                     'tenant_id' => $tenantId,
                     'ip_address' => $ipAddress,
                     'user_agent' => $userAgent,
+                    'fingerprint' => $fingerprint,
                 ]);
 
                 $option->increment('vote_count');
                 $vote->increment('total_votes');
 
                 $records->push($record);
+            }
+
+            // 清除统计缓存
+            $this->clearStatsCache($voteId);
+
+            // 记录审计日志
+            try {
+                AuditService::log('voting.cast', 'vote', $voteId, null, [
+                    'user_id' => $userId,
+                    'option_ids' => $optionIds,
+                ]);
+            } catch (\Throwable $e) {
+                // 忽略
             }
 
             return $records;
@@ -124,7 +147,7 @@ class VotingService
     /**
      * 校验投票资格
      */
-    protected function validateVote(Vote $vote, array $optionIds, int $userId, int $tenantId, ?string $ipAddress): void
+    protected function validateVote(Vote $vote, array $optionIds, int $userId, int $tenantId, ?string $ipAddress, ?string $fingerprint = null): void
     {
         if ($vote->status !== 'active') {
             throw new \RuntimeException('投票活动未开启');
@@ -193,6 +216,17 @@ class VotingService
             }
         }
 
+        // 设备指纹防刷票
+        if ($fingerprint) {
+            $fingerprintRecent = VoteRecord::where('vote_id', $vote->getKey())
+                ->where('fingerprint', $fingerprint)
+                ->where('created_at', '>=', now()->subSeconds(30))
+                ->count();
+            if ($fingerprintRecent >= 5) {
+                throw new \RuntimeException('检测到异常操作，请稍后再试');
+            }
+        }
+
         // 检查选项是否属于该投票
         $validOptionIds = $vote->options->pluck('vote_option_id')->toArray();
         foreach ($optionIds as $optionId) {
@@ -248,36 +282,48 @@ class VotingService
     }
 
     /**
-     * 获取投票统计
+     * 获取投票统计（带缓存）
      */
     public function getStatistics(int $voteId): array
     {
-        $vote = Vote::with('options')->findOrFail($voteId);
+        $cacheKey = "voting:stats:{$voteId}";
 
-        $dailyStats = VoteRecord::where('vote_id', $voteId)
-            ->where('created_at', '>=', now()->subDays(30))
-            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get();
+        return Cache::remember($cacheKey, 60, function () use ($voteId) {
+            $vote = Vote::with('options')->findOrFail($voteId);
 
-        $options = $vote->options->map(function ($option) {
+            $dailyStats = VoteRecord::where('vote_id', $voteId)
+                ->where('created_at', '>=', now()->subDays(30))
+                ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
+                ->groupBy('date')
+                ->orderBy('date')
+                ->get();
+
+            $options = $vote->options->map(function ($option) {
+                return [
+                    'option_id' => $option->getKey(),
+                    'title' => $option->title,
+                    'vote_count' => $option->vote_count,
+                    'percentage' => $option->percentage,
+                ];
+            });
+
             return [
-                'option_id' => $option->getKey(),
-                'title' => $option->title,
-                'vote_count' => $option->vote_count,
-                'percentage' => $option->percentage,
+                'vote_id' => $voteId,
+                'title' => $vote->title,
+                'total_votes' => $vote->total_votes,
+                'today_votes' => VoteRecord::where('vote_id', $voteId)->whereDate('created_at', today())->count(),
+                'options' => $options->toArray(),
+                'daily_stats' => $dailyStats->toArray(),
             ];
         });
+    }
 
-        return [
-            'vote_id' => $voteId,
-            'title' => $vote->title,
-            'total_votes' => $vote->total_votes,
-            'today_votes' => VoteRecord::where('vote_id', $voteId)->whereDate('created_at', today())->count(),
-            'options' => $options->toArray(),
-            'daily_stats' => $dailyStats->toArray(),
-        ];
+    /**
+     * 清除投票统计缓存
+     */
+    public function clearStatsCache(int $voteId): void
+    {
+        Cache::forget("voting:stats:{$voteId}");
     }
 
     /**

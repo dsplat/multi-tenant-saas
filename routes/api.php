@@ -526,9 +526,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
         Route::get('/{formId}/export', [FormController::class, 'export'])->middleware('rbac.permission:form.export');
     });
 
-    // 表单提交（公开接口，支持匿名）
+    // 表单提交（公开接口，支持匿名，限流：每分钟10次）
     Route::prefix('v1/forms')->group(function () {
-        Route::post('/{formId}/submit', [FormController::class, 'submit']);
+        Route::post('/{formId}/submit', [FormController::class, 'submit'])->middleware('throttle:10,1');
     });
 
     // ========== Voting 投票（VotingService） ==========
@@ -539,8 +539,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
         Route::get('/{voteId}', [VotingController::class, 'show'])->middleware('rbac.permission:voting.view');
         Route::put('/{voteId}', [VotingController::class, 'update'])->middleware('rbac.permission:voting.update');
         Route::delete('/{voteId}', [VotingController::class, 'destroy'])->middleware('rbac.permission:voting.delete');
-        // 投票执行
-        Route::post('/{voteId}/cast', [VotingController::class, 'castVote'])->middleware('rbac.permission:voting.vote');
+        // 投票执行（限流：每分钟5次）
+        Route::post('/{voteId}/cast', [VotingController::class, 'castVote'])->middleware(['rbac.permission:voting.vote', 'throttle:5,1']);
         // 排行榜与统计
         Route::get('/{voteId}/ranking', [VotingController::class, 'ranking'])->middleware('rbac.permission:voting.view');
         Route::get('/{voteId}/statistics', [VotingController::class, 'statistics'])->middleware('rbac.permission:voting.view');
@@ -561,8 +561,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
         Route::post('/{activityId}/prizes', [LotteryController::class, 'storePrize'])->middleware('rbac.permission:lottery.create');
         Route::put('/{activityId}/prizes/{prizeId}', [LotteryController::class, 'updatePrize'])->middleware('rbac.permission:lottery.update');
         Route::delete('/{activityId}/prizes/{prizeId}', [LotteryController::class, 'destroyPrize'])->middleware('rbac.permission:lottery.delete');
-        // 抽奖执行
-        Route::post('/{activityId}/draw', [LotteryController::class, 'draw'])->middleware('rbac.permission:lottery.draw');
+        // 抽奖执行（限流：每分钟10次）
+        Route::post('/{activityId}/draw', [LotteryController::class, 'draw'])->middleware(['rbac.permission:lottery.draw', 'throttle:10,1']);
         // 黑名单管理
         Route::get('/{activityId}/blacklist', [LotteryController::class, 'indexBlacklist'])->middleware('rbac.permission:lottery.view');
         Route::post('/{activityId}/blacklist', [LotteryController::class, 'storeBlacklist'])->middleware('rbac.permission:lottery.create');
@@ -571,6 +571,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
         Route::get('/{activityId}/statistics', [LotteryController::class, 'statistics'])->middleware('rbac.permission:lottery.view');
         Route::get('/{activityId}/my-logs', [LotteryController::class, 'userDrawLogs'])->middleware('rbac.permission:lottery.view');
         Route::get('/{activityId}/win-logs', [LotteryController::class, 'winLogs'])->middleware('rbac.permission:lottery.view');
+        // 数据导出
+        Route::get('/{activityId}/export', [LotteryController::class, 'export'])->middleware('rbac.permission:lottery.view');
     });
 
     // ========== Channel Webhooks（v0.2.0，无需认证） ==========

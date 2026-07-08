@@ -20,6 +20,7 @@ class VoteRecord extends Model
         'tenant_id',
         'ip_address',
         'user_agent',
+        'fingerprint',
     ];
 
     public function vote(): BelongsTo

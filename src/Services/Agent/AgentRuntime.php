@@ -1,14 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MultiTenantSaas\Services\Agent;
 
 use Generator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\AgentMonitorContract;
 use MultiTenantSaas\Contracts\AgentRuntimeContract;
 use MultiTenantSaas\Contracts\AiTextServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
+use MultiTenantSaas\Contracts\WorkflowEngineContract;
 use MultiTenantSaas\Events\ToolCallFailed;
 use MultiTenantSaas\Models\Agent;
 use MultiTenantSaas\Models\AgentConversation;
@@ -39,8 +43,121 @@ class AgentRuntime implements AgentRuntimeContract
         private ToolRegistryContract $toolRegistry,
         private AgentMonitorContract $monitor,
         private TenantContextContract $tenantContext,
+        private WorkflowEngineContract $workflowEngine,
         private ?MemoryCompressor $memoryCompressor = null,
     ) {}
+
+    /**
+     * 执行 Agent（含工作流链）
+     *
+     * 加载 Agent 配置 → 解析关联工作流 → 执行工作流链 → 处理对话。
+     * 若 input 中包含 conversation_id 和 message，则委托 run() 执行对话。
+     *
+     * @param  int    $tenantId  租户 ID
+     * @param  int    $agentId   Agent ID
+     * @param  array  $input     输入数据 {
+     *                            message?: string,
+     *                            conversation_id?: int,
+     *                            options?: array,
+     *                            ...
+     *                            }
+     * @return AgentResponse
+     */
+    public function execute(int $tenantId, int $agentId, array $input): AgentResponse
+    {
+        $this->tenantContext->storeTenantId((string) $tenantId);
+
+        $agent = $this->loadAgent($agentId, $tenantId);
+
+        if ($agent === null) {
+            return AgentResponse::fromArray([
+                'message' => '',
+                'tool_calls' => [],
+                'token_usage' => [],
+                'finish_reason' => 'error',
+                'error' => "Agent [{$agentId}] 不存在",
+                'agent_id' => $agentId,
+            ]);
+        }
+
+        $workflows = $this->resolveWorkflows($agentId);
+        $workflowResults = [];
+
+        if ($workflows->isNotEmpty()) {
+            $workflowResults = $this->executeWorkflowChain($tenantId, $workflows, $input);
+        }
+
+        $message = $input['message'] ?? '';
+        $conversationId = (int) ($input['conversation_id'] ?? 0);
+
+        if ($conversationId > 0 && $message !== '') {
+            return $this->run($agentId, $conversationId, $message, $input['options'] ?? []);
+        }
+
+        return AgentResponse::fromArray([
+            'message' => $workflowResults !== [] ? '工作流执行完成' : '',
+            'tool_calls' => [],
+            'token_usage' => [],
+            'finish_reason' => 'stop',
+            'agent_id' => $agentId,
+            'conversation_id' => $conversationId,
+            'raw' => ['workflow_results' => $workflowResults],
+        ]);
+    }
+
+    /**
+     * 解析 Agent 关联的工作流
+     *
+     * 通过 Agent 的 workflows() 关系获取已排序的工作流集合。
+     * 租户隔离由 BelongsToTenant 全局作用域自动处理。
+     *
+     * @param  int  $agentId  Agent ID
+     * @return Collection
+     */
+    public function resolveWorkflows(int $agentId): Collection
+    {
+        $agent = Agent::find($agentId);
+
+        if ($agent === null) {
+            return new Collection();
+        }
+
+        return $agent->workflows()->get();
+    }
+
+    /**
+     * 执行工作流链
+     *
+     * 按顺序执行工作流集合，每个工作流的输出上下文
+     * 会合并到输入中传递给下一个工作流。
+     *
+     * @param  int         $tenantId   租户 ID
+     * @param  Collection  $workflows  工作流集合
+     * @param  array       $input      初始输入上下文
+     * @return array  每个工作流的执行结果
+     */
+    public function executeWorkflowChain(int $tenantId, Collection $workflows, array $input): array
+    {
+        $results = [];
+        $context = $input;
+
+        foreach ($workflows as $workflow) {
+            $execution = $this->workflowEngine->execute($workflow, $context);
+
+            $results[] = [
+                'workflow_id' => $workflow->workflow_id,
+                'execution_id' => $execution->execution_id,
+                'status' => $execution->status,
+                'context' => $execution->context,
+            ];
+
+            if ($execution->status === 'completed') {
+                $context = array_merge($context, $execution->context ?? []);
+            }
+        }
+
+        return $results;
+    }
 
     /**
      * 执行 Agent 对话（ReAct 循环）

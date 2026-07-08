@@ -24,6 +24,10 @@ use App\Http\Controllers\Api\TenantSslController;
 use App\Http\Controllers\Api\TenantTokenController;
 use App\Http\Controllers\Api\ToolController;
 use App\Http\Controllers\Api\SmsController;
+use App\Http\Controllers\Api\LotteryController;
+use App\Http\Controllers\Api\VotingController;
+use App\Http\Controllers\Api\FormController;
+use App\Http\Controllers\Api\CouponController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Http\Controllers\CapabilityController;
@@ -469,6 +473,104 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
         Route::get('/unsubscribes', [SmsController::class, 'indexUnsubscribes'])->middleware('rbac.permission:setting.view');
         Route::post('/unsubscribes', [SmsController::class, 'storeUnsubscribe'])->middleware('rbac.permission:setting.update');
         Route::post('/unsubscribes/check', [SmsController::class, 'checkUnsubscribed'])->middleware('rbac.permission:setting.view');
+    });
+
+    // ========== Coupon 优惠券（CouponService） ==========
+    Route::prefix('/coupons')->group(function () {
+        // 优惠券管理
+        Route::get('/', [CouponController::class, 'index'])->middleware('rbac.permission:coupon.view');
+        Route::post('/', [CouponController::class, 'store'])->middleware('rbac.permission:coupon.create');
+        Route::get('/{couponId}', [CouponController::class, 'show'])->middleware('rbac.permission:coupon.view');
+        Route::put('/{couponId}/activate', [CouponController::class, 'activate'])->middleware('rbac.permission:coupon.update');
+        Route::put('/{couponId}/deactivate', [CouponController::class, 'deactivate'])->middleware('rbac.permission:coupon.update');
+        // 核销与统计
+        Route::post('/redeem', [CouponController::class, 'redeem'])->middleware('rbac.permission:coupon.redeem');
+        Route::post('/validate', [CouponController::class, 'validateCoupon']);
+        Route::get('/{couponId}/usages', [CouponController::class, 'usages'])->middleware('rbac.permission:coupon.view');
+        Route::get('/{couponId}/statistics', [CouponController::class, 'statistics'])->middleware('rbac.permission:coupon.view');
+    });
+
+    // 优惠券模板
+    Route::prefix('/coupon-templates')->group(function () {
+        Route::get('/', [CouponController::class, 'indexTemplates'])->middleware('rbac.permission:coupon.view');
+        Route::post('/', [CouponController::class, 'storeTemplate'])->middleware('rbac.permission:coupon.create');
+        Route::put('/{templateId}', [CouponController::class, 'updateTemplate'])->middleware('rbac.permission:coupon.update');
+        Route::delete('/{templateId}', [CouponController::class, 'deleteTemplate'])->middleware('rbac.permission:coupon.delete');
+        Route::put('/{templateId}/activate', [CouponController::class, 'activateTemplate'])->middleware('rbac.permission:coupon.update');
+        Route::put('/{templateId}/deactivate', [CouponController::class, 'deactivateTemplate'])->middleware('rbac.permission:coupon.update');
+        // 批量发券
+        Route::post('/{templateId}/generate', [CouponController::class, 'generateFromTemplate'])->middleware('rbac.permission:coupon.create');
+        Route::post('/{templateId}/distribute', [CouponController::class, 'bulkDistribute'])->middleware('rbac.permission:coupon.create');
+        // 裂变发券
+        Route::post('/{templateId}/share', [CouponController::class, 'share']);
+        Route::post('/accept-share', [CouponController::class, 'acceptShare']);
+    });
+
+    // 分享记录
+    Route::prefix('/tenants/{tenantId}/coupon-shares')->group(function () {
+        Route::get('/', [CouponController::class, 'shareRecords'])->middleware('rbac.permission:coupon.view');
+    });
+
+    // ========== Form 表单（FormBuilderService） ==========
+    Route::prefix('/tenants/{tenantId}/forms')->group(function () {
+        // 表单管理
+        Route::get('/', [FormController::class, 'index'])->middleware('rbac.permission:form.view');
+        Route::post('/', [FormController::class, 'store'])->middleware('rbac.permission:form.create');
+        Route::get('/{formId}', [FormController::class, 'show'])->middleware('rbac.permission:form.view');
+        Route::put('/{formId}', [FormController::class, 'update'])->middleware('rbac.permission:form.update');
+        Route::delete('/{formId}', [FormController::class, 'destroy'])->middleware('rbac.permission:form.delete');
+        // 提交记录
+        Route::get('/{formId}/submissions', [FormController::class, 'submissions'])->middleware('rbac.permission:form.view');
+        // 统计与导出
+        Route::get('/{formId}/statistics', [FormController::class, 'statistics'])->middleware('rbac.permission:form.view');
+        Route::get('/{formId}/export', [FormController::class, 'export'])->middleware('rbac.permission:form.export');
+    });
+
+    // 表单提交（公开接口，支持匿名）
+    Route::prefix('v1/forms')->group(function () {
+        Route::post('/{formId}/submit', [FormController::class, 'submit']);
+    });
+
+    // ========== Voting 投票（VotingService） ==========
+    Route::prefix('/tenants/{tenantId}/voting')->group(function () {
+        // 投票活动管理
+        Route::get('/', [VotingController::class, 'index'])->middleware('rbac.permission:voting.view');
+        Route::post('/', [VotingController::class, 'store'])->middleware('rbac.permission:voting.create');
+        Route::get('/{voteId}', [VotingController::class, 'show'])->middleware('rbac.permission:voting.view');
+        Route::put('/{voteId}', [VotingController::class, 'update'])->middleware('rbac.permission:voting.update');
+        Route::delete('/{voteId}', [VotingController::class, 'destroy'])->middleware('rbac.permission:voting.delete');
+        // 投票执行
+        Route::post('/{voteId}/cast', [VotingController::class, 'castVote'])->middleware('rbac.permission:voting.vote');
+        // 排行榜与统计
+        Route::get('/{voteId}/ranking', [VotingController::class, 'ranking'])->middleware('rbac.permission:voting.view');
+        Route::get('/{voteId}/statistics', [VotingController::class, 'statistics'])->middleware('rbac.permission:voting.view');
+        Route::get('/{voteId}/records', [VotingController::class, 'records'])->middleware('rbac.permission:voting.view');
+    });
+
+    // ========== Lottery 抽奖（LotteryService） ==========
+    Route::prefix('/tenants/{tenantId}/lottery')->group(function () {
+        // 活动管理
+        Route::get('/', [LotteryController::class, 'index'])->middleware('rbac.permission:lottery.view');
+        Route::post('/', [LotteryController::class, 'store'])->middleware('rbac.permission:lottery.create');
+        Route::get('/{activityId}', [LotteryController::class, 'show'])->middleware('rbac.permission:lottery.view');
+        Route::put('/{activityId}', [LotteryController::class, 'update'])->middleware('rbac.permission:lottery.update');
+        Route::delete('/{activityId}', [LotteryController::class, 'destroy'])->middleware('rbac.permission:lottery.delete');
+        Route::put('/{activityId}/status', [LotteryController::class, 'updateStatus'])->middleware('rbac.permission:lottery.update');
+        // 奖品管理
+        Route::get('/{activityId}/prizes', [LotteryController::class, 'indexPrizes'])->middleware('rbac.permission:lottery.view');
+        Route::post('/{activityId}/prizes', [LotteryController::class, 'storePrize'])->middleware('rbac.permission:lottery.create');
+        Route::put('/{activityId}/prizes/{prizeId}', [LotteryController::class, 'updatePrize'])->middleware('rbac.permission:lottery.update');
+        Route::delete('/{activityId}/prizes/{prizeId}', [LotteryController::class, 'destroyPrize'])->middleware('rbac.permission:lottery.delete');
+        // 抽奖执行
+        Route::post('/{activityId}/draw', [LotteryController::class, 'draw'])->middleware('rbac.permission:lottery.draw');
+        // 黑名单管理
+        Route::get('/{activityId}/blacklist', [LotteryController::class, 'indexBlacklist'])->middleware('rbac.permission:lottery.view');
+        Route::post('/{activityId}/blacklist', [LotteryController::class, 'storeBlacklist'])->middleware('rbac.permission:lottery.create');
+        Route::delete('/{activityId}/blacklist', [LotteryController::class, 'destroyBlacklist'])->middleware('rbac.permission:lottery.delete');
+        // 统计查询
+        Route::get('/{activityId}/statistics', [LotteryController::class, 'statistics'])->middleware('rbac.permission:lottery.view');
+        Route::get('/{activityId}/my-logs', [LotteryController::class, 'userDrawLogs'])->middleware('rbac.permission:lottery.view');
+        Route::get('/{activityId}/win-logs', [LotteryController::class, 'winLogs'])->middleware('rbac.permission:lottery.view');
     });
 
     // ========== Channel Webhooks（v0.2.0，无需认证） ==========

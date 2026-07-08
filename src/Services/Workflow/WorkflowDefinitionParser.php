@@ -251,7 +251,7 @@ class WorkflowDefinitionParser
                     'workflow_id' => $workflow->workflow_id,
                     'name' => $nodeData['name'],
                     'type' => $nodeData['type'],
-                    'config' => $nodeData['config'],
+                    'config' => $nodeData['config'] ?? null,
                     'order' => $nodeData['order'],
                 ]);
                 $nodeMap[$nodeData['id']] = $node;

@@ -518,4 +518,343 @@ class WorkflowEngineTest extends TestCase
 
         $this->assertSame('custom', $execution->context['greeting']);
     }
+
+    public function test_execute_workflow_with_no_start_node_fails(): void
+    {
+        $workflow = $this->createWorkflow();
+
+        WorkflowNode::create([
+            'workflow_id' => $workflow->workflow_id,
+            'tenant_id' => $this->tenant->tenant_id,
+            'name' => 'Action',
+            'type' => 'action',
+            'order' => 0,
+        ]);
+
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $execution = $engine->execute($workflow);
+
+        $this->assertSame('failed', $execution->status);
+        $this->assertStringContainsString('no start node', $execution->error);
+    }
+
+    public function test_execute_workflow_with_wait_node(): void
+    {
+        $workflow = $this->createWorkflow();
+        $this->createNodes($workflow, [
+            ['name' => 'Start', 'type' => 'start', 'order' => 0],
+            ['name' => 'Wait', 'type' => 'wait', 'order' => 1],
+            ['name' => 'End', 'type' => 'end', 'order' => 2],
+        ]);
+
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $execution = $engine->execute($workflow);
+
+        $this->assertSame('completed', $execution->status);
+    }
+
+    public function test_execute_workflow_with_unknown_node_type_passes_through(): void
+    {
+        $workflow = $this->createWorkflow();
+        $this->createNodes($workflow, [
+            ['name' => 'Start', 'type' => 'start', 'order' => 0],
+            ['name' => 'Unknown', 'type' => 'unknown_type', 'order' => 1],
+            ['name' => 'End', 'type' => 'end', 'order' => 2],
+        ]);
+
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $execution = $engine->execute($workflow);
+
+        $this->assertSame('completed', $execution->status);
+    }
+
+    public function test_cancel_pending_execution(): void
+    {
+        $workflow = $this->createWorkflow();
+        $execution = WorkflowExecution::create([
+            'tenant_id' => $this->tenant->tenant_id,
+            'workflow_id' => $workflow->workflow_id,
+            'status' => 'pending',
+        ]);
+
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $this->assertTrue($engine->cancel($execution));
+        $this->assertSame('cancelled', $execution->fresh()->status);
+    }
+
+    public function test_retry_with_custom_context(): void
+    {
+        $workflow = $this->createWorkflow();
+        $this->createNodes($workflow);
+
+        $execution = WorkflowExecution::create([
+            'tenant_id' => $this->tenant->tenant_id,
+            'workflow_id' => $workflow->workflow_id,
+            'status' => 'failed',
+            'error' => 'test error',
+            'context' => ['original' => 'data'],
+            'started_at' => now(),
+            'completed_at' => now(),
+        ]);
+
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $newExecution = $engine->retry($execution, ['new_key' => 'new_value']);
+
+        $this->assertSame('completed', $newExecution->status);
+        $this->assertSame('new_value', $newExecution->context['new_key']);
+    }
+
+    public function test_retry_workflow_not_found_throws(): void
+    {
+        $this->expectException(\RuntimeException::class);
+
+        $workflow = $this->createWorkflow();
+        $execution = WorkflowExecution::create([
+            'tenant_id' => $this->tenant->tenant_id,
+            'workflow_id' => 99999,
+            'status' => 'failed',
+            'error' => 'test error',
+            'started_at' => now(),
+            'completed_at' => now(),
+        ]);
+
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $engine->retry($execution);
+    }
+
+    public function test_get_next_node_by_next_node_id(): void
+    {
+        $nodes = [
+            ['node_id' => 1, 'type' => 'start', 'next_node_id' => 3],
+            ['node_id' => 2, 'type' => 'action', 'next_node_id' => null],
+            ['node_id' => 3, 'type' => 'end', 'next_node_id' => null],
+        ];
+
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+
+        $this->assertSame(3, $engine->getNextNode($nodes, $nodes[0])['node_id']);
+    }
+
+    public function test_get_next_node_fallback_to_order(): void
+    {
+        $nodes = [
+            ['node_id' => 1, 'type' => 'start', 'next_node_id' => 999],
+            ['node_id' => 2, 'type' => 'action', 'next_node_id' => null],
+            ['node_id' => 3, 'type' => 'end', 'next_node_id' => null],
+        ];
+
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+
+        $this->assertSame(2, $engine->getNextNode($nodes, $nodes[0])['node_id']);
+    }
+
+    public function test_get_next_node_last_node_returns_null(): void
+    {
+        $nodes = [
+            ['node_id' => 1, 'type' => 'start', 'next_node_id' => 2],
+            ['node_id' => 2, 'type' => 'end', 'next_node_id' => null],
+        ];
+
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+
+        $this->assertNull($engine->getNextNode($nodes, $nodes[1]));
+    }
+
+    public function test_get_next_node_node_not_in_array(): void
+    {
+        $nodes = [
+            ['node_id' => 1, 'type' => 'start', 'next_node_id' => 2],
+            ['node_id' => 2, 'type' => 'end', 'next_node_id' => null],
+        ];
+
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+
+        $this->assertNull($engine->getNextNode($nodes, ['node_id' => 999]));
+    }
+
+    public function test_get_action_node(): void
+    {
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $this->assertInstanceOf(\MultiTenantSaas\Services\Workflow\Nodes\ActionNode::class, $engine->getActionNode());
+    }
+
+    public function test_get_condition_node(): void
+    {
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $this->assertInstanceOf(\MultiTenantSaas\Services\Workflow\Nodes\ConditionNode::class, $engine->getConditionNode());
+    }
+
+    public function test_get_confirm_node(): void
+    {
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $this->assertInstanceOf(\MultiTenantSaas\Services\Workflow\Nodes\ConfirmNode::class, $engine->getConfirmNode());
+    }
+
+    public function test_get_delay_node(): void
+    {
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $this->assertInstanceOf(\MultiTenantSaas\Services\Workflow\Nodes\DelayNode::class, $engine->getDelayNode());
+    }
+
+    public function test_get_parallel_node(): void
+    {
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $this->assertInstanceOf(\MultiTenantSaas\Services\Workflow\Nodes\ParallelNode::class, $engine->getParallelNode());
+    }
+
+    public function test_registry_has(): void
+    {
+        $workflow = $this->createWorkflow();
+        $registry = new WorkflowRegistry();
+
+        $registry->register($workflow);
+
+        $this->assertTrue($registry->has('Test Workflow', 1001));
+        $this->assertFalse($registry->has('Nonexistent', 1001));
+    }
+
+    public function test_registry_names(): void
+    {
+        $registry = new WorkflowRegistry();
+
+        $registry->register($this->createWorkflow());
+        $registry->register(Workflow::create([
+            'tenant_id' => $this->tenant->tenant_id,
+            'name' => 'Second WF', 'type' => 'sequential', 'status' => 'active',
+        ]));
+
+        $this->assertCount(2, $registry->names());
+        $this->assertContains('Test Workflow', $registry->names());
+        $this->assertContains('Second WF', $registry->names());
+    }
+
+    public function test_registry_names_by_tenant(): void
+    {
+        $registry = new WorkflowRegistry();
+
+        $registry->register($this->createWorkflow());
+        $registry->register(Workflow::create([
+            'tenant_id' => 2002,
+            'name' => 'Other WF', 'type' => 'sequential', 'status' => 'active',
+        ]));
+
+        $this->assertCount(1, $registry->names(1001));
+        $this->assertCount(1, $registry->names(2002));
+        $this->assertCount(0, $registry->names(9999));
+    }
+
+    public function test_registry_unregister(): void
+    {
+        $workflow = $this->createWorkflow();
+        $registry = new WorkflowRegistry();
+
+        $registry->register($workflow);
+
+        $this->assertTrue($registry->unregister('Test Workflow', 1001));
+        $this->assertNull($registry->getByName('Test Workflow', 1001));
+    }
+
+    public function test_registry_unregister_nonexistent(): void
+    {
+        $registry = new WorkflowRegistry();
+
+        $this->assertFalse($registry->unregister('Nonexistent', 1001));
+    }
+
+    public function test_registry_discover(): void
+    {
+        $registry = new WorkflowRegistry();
+
+        $registry->register($this->createWorkflow());
+        $registry->register(Workflow::create([
+            'tenant_id' => $this->tenant->tenant_id,
+            'name' => 'Second WF', 'type' => 'parallel', 'status' => 'draft',
+        ]));
+
+        $result = $registry->discover();
+        $this->assertCount(2, $result);
+        $this->assertSame('Test Workflow', $result[0]['name']);
+        $this->assertSame('sequential', $result[0]['type']);
+    }
+
+    public function test_registry_discover_by_tenant(): void
+    {
+        $registry = new WorkflowRegistry();
+
+        $registry->register($this->createWorkflow());
+        $registry->register(Workflow::create([
+            'tenant_id' => 2002,
+            'name' => 'Other WF', 'type' => 'sequential', 'status' => 'active',
+        ]));
+
+        $this->assertCount(1, $registry->discover(1001));
+        $this->assertCount(1, $registry->discover(2002));
+        $this->assertEmpty($registry->discover(9999));
+    }
+
+    public function test_service_update_not_found_throws(): void
+    {
+        $this->expectException(\RuntimeException::class);
+
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $service = new WorkflowService($this->tenantContext, $engine);
+
+        $service->update('99999', ['name' => 'Updated']);
+    }
+
+    public function test_service_delete_not_found(): void
+    {
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $service = new WorkflowService($this->tenantContext, $engine);
+
+        $this->assertFalse($service->delete('99999'));
+    }
+
+    public function test_service_update_status_not_found(): void
+    {
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $service = new WorkflowService($this->tenantContext, $engine);
+
+        $this->assertFalse($service->updateStatus('99999', 'active'));
+    }
+
+    public function test_service_list_with_type_filter(): void
+    {
+        $this->createWorkflow('sequential');
+        Workflow::create([
+            'tenant_id' => $this->tenant->tenant_id,
+            'name' => 'Parallel WF', 'type' => 'parallel', 'status' => 'active',
+        ]);
+
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $service = new WorkflowService($this->tenantContext, $engine);
+
+        $this->assertCount(1, $service->listForTenant(['type' => 'sequential']));
+        $this->assertCount(1, $service->listForTenant(['type' => 'parallel']));
+    }
+
+    public function test_service_list_with_enabled_filter(): void
+    {
+        $this->createWorkflow();
+        Workflow::create([
+            'tenant_id' => $this->tenant->tenant_id,
+            'name' => 'Disabled WF', 'type' => 'sequential', 'status' => 'active', 'enabled' => false,
+        ]);
+
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $service = new WorkflowService($this->tenantContext, $engine);
+
+        $this->assertCount(1, $service->listForTenant(['enabled' => true]));
+        $this->assertCount(1, $service->listForTenant(['enabled' => false]));
+    }
+
+    public function test_service_start_execution_workflow_not_found_throws(): void
+    {
+        $this->expectException(\RuntimeException::class);
+
+        $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
+        $service = new WorkflowService($this->tenantContext, $engine);
+
+        $service->startExecution('99999');
+    }
 }

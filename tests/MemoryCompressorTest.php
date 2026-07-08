@@ -154,4 +154,65 @@ class MemoryCompressorTest extends TestCase
 
         $this->assertEquals([], $result);
     }
+
+    public function test_truncate_context_with_no_system_messages(): void
+    {
+        $context = [
+            ['role' => 'user', 'content' => 'message 1'],
+            ['role' => 'assistant', 'content' => 'message 2'],
+            ['role' => 'user', 'content' => 'latest message'],
+        ];
+
+        $result = $this->compressor->truncateContext($context, 500);
+
+        $this->assertNotEmpty($result);
+        $last = end($result);
+        $this->assertEquals('latest message', $last['content']);
+    }
+
+    public function test_truncate_context_with_insufficient_budget(): void
+    {
+        $context = [
+            ['role' => 'system', 'content' => str_repeat('x', 2000)],
+            ['role' => 'user', 'content' => 'a user message'],
+        ];
+
+        $result = $this->compressor->truncateContext($context, 10);
+
+        $this->assertCount(1, $result);
+        $this->assertEquals('system', $result[0]['role']);
+    }
+
+    public function test_compress_handles_ai_summarize_failure(): void
+    {
+        $this->createAgent();
+        $this->createConversation();
+        $this->createMessages(100);
+
+        $this->aiServiceMock->shouldReceive('chat')
+            ->once()
+            ->andThrow(new \RuntimeException('AI service down'));
+
+        $result = $this->compressor->compressMemory(2001, 1000);
+
+        $this->assertFalse($result);
+    }
+
+    public function test_compress_returns_false_when_agent_not_found(): void
+    {
+        $conversation = AgentConversation::forceCreate([
+            'conversation_id' => 3001,
+            'agent_id' => 9999,
+            'tenant_id' => 1001,
+            'channel' => 'web',
+            'status' => 'active',
+            'message_count' => 0,
+        ]);
+
+        $this->createMessages(100, 3001);
+
+        $result = $this->compressor->compressMemory(3001, 1000);
+
+        $this->assertFalse($result);
+    }
 }

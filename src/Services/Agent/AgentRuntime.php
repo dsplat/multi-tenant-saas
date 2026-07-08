@@ -43,7 +43,7 @@ class AgentRuntime implements AgentRuntimeContract
         private ToolRegistryContract $toolRegistry,
         private AgentMonitorContract $monitor,
         private TenantContextContract $tenantContext,
-        private WorkflowEngineContract $workflowEngine,
+        private ?WorkflowEngineContract $workflowEngine = null,
         private ?MemoryCompressor $memoryCompressor = null,
     ) {}
 

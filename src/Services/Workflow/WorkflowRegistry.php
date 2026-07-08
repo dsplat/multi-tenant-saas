@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MultiTenantSaas\Services\Workflow;
 
 use MultiTenantSaas\Models\Workflow;

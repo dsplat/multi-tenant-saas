@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Services\Workflow;
 
+use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Models\Workflow;
 use MultiTenantSaas\Models\WorkflowNode;
 
@@ -83,6 +84,22 @@ class WorkflowDefinitionParser
             }
         }
 
+        if (isset($definition['name']) && !is_string($definition['name'])) {
+            $errors[] = 'Field "name" must be a string';
+        }
+
+        if (isset($definition['description']) && !is_string($definition['description'])) {
+            $errors[] = 'Field "description" must be a string';
+        }
+
+        if (isset($definition['type']) && !is_string($definition['type'])) {
+            $errors[] = 'Field "type" must be a string';
+        }
+
+        if (isset($definition['config']) && !is_array($definition['config'])) {
+            $errors[] = 'Field "config" must be an object';
+        }
+
         if (!isset($definition['nodes'])) {
             return $errors;
         }
@@ -110,6 +127,18 @@ class WorkflowDefinitionParser
                 }
             }
 
+            if (isset($node['id']) && !is_string($node['id'])) {
+                $errors[] = "{$prefix}: Field \"id\" must be a string";
+            }
+
+            if (isset($node['name']) && !is_string($node['name'])) {
+                $errors[] = "{$prefix}: Field \"name\" must be a string";
+            }
+
+            if (isset($node['type']) && !is_string($node['type'])) {
+                $errors[] = "{$prefix}: Field \"type\" must be a string";
+            }
+
             if (isset($node['type']) && !in_array($node['type'], $this->schema['nodes']['types'])) {
                 $errors[] = "{$prefix}: Invalid node type: {$node['type']}";
             }
@@ -132,6 +161,10 @@ class WorkflowDefinitionParser
 
             if (isset($node['config']) && !is_array($node['config'])) {
                 $errors[] = "{$prefix}: Field \"config\" must be an object";
+            }
+
+            if (isset($node['order']) && !is_int($node['order'])) {
+                $errors[] = "{$prefix}: Field \"order\" must be an integer";
             }
         }
 
@@ -208,52 +241,54 @@ class WorkflowDefinitionParser
 
     public function createFromDefinition(int $tenantId, WorkflowDefinition $def): Workflow
     {
-        $workflow = Workflow::create([
-            'tenant_id' => $tenantId,
-            'name' => $def->name,
-            'description' => $def->description,
-            'type' => $def->type,
-            'status' => 'draft',
-            'config' => $def->config,
-        ]);
-
-        $nodeMap = [];
-        foreach ($def->nodes as $nodeData) {
-            $node = WorkflowNode::create([
+        return DB::transaction(function () use ($tenantId, $def) {
+            $workflow = Workflow::create([
                 'tenant_id' => $tenantId,
-                'workflow_id' => $workflow->workflow_id,
-                'name' => $nodeData['name'],
-                'type' => $nodeData['type'],
-                'config' => $nodeData['config'],
-                'order' => $nodeData['order'],
+                'name' => $def->name,
+                'description' => $def->description,
+                'type' => $def->type,
+                'status' => 'draft',
+                'config' => $def->config,
             ]);
-            $nodeMap[$nodeData['id']] = $node;
-        }
 
-        if (!empty($def->edges)) {
-            foreach ($def->edges as $edge) {
-                if (isset($nodeMap[$edge['from']])) {
-                    $nodeMap[$edge['from']]->update([
-                        'next_node_id' => $nodeMap[$edge['to']]->node_id,
-                    ]);
+            $nodeMap = [];
+            foreach ($def->nodes as $nodeData) {
+                $node = WorkflowNode::create([
+                    'tenant_id' => $tenantId,
+                    'workflow_id' => $workflow->workflow_id,
+                    'name' => $nodeData['name'],
+                    'type' => $nodeData['type'],
+                    'config' => $nodeData['config'],
+                    'order' => $nodeData['order'],
+                ]);
+                $nodeMap[$nodeData['id']] = $node;
+            }
+
+            if (!empty($def->edges)) {
+                foreach ($def->edges as $edge) {
+                    if (isset($nodeMap[$edge['from']], $nodeMap[$edge['to']])) {
+                        $nodeMap[$edge['from']]->update([
+                            'next_node_id' => $nodeMap[$edge['to']]->node_id,
+                        ]);
+                    }
+                }
+            } else {
+                $sortedNodes = $def->nodes;
+                usort($sortedNodes, fn($a, $b) => $a['order'] <=> $b['order']);
+
+                for ($i = 0; $i < count($sortedNodes) - 1; $i++) {
+                    $currentId = $sortedNodes[$i]['id'];
+                    $nextId = $sortedNodes[$i + 1]['id'];
+                    if (isset($nodeMap[$currentId], $nodeMap[$nextId])) {
+                        $nodeMap[$currentId]->update([
+                            'next_node_id' => $nodeMap[$nextId]->node_id,
+                        ]);
+                    }
                 }
             }
-        } else {
-            $sortedNodes = $def->nodes;
-            usort($sortedNodes, fn($a, $b) => $a['order'] <=> $b['order']);
 
-            for ($i = 0; $i < count($sortedNodes) - 1; $i++) {
-                $currentId = $sortedNodes[$i]['id'];
-                $nextId = $sortedNodes[$i + 1]['id'];
-                if (isset($nodeMap[$currentId])) {
-                    $nodeMap[$currentId]->update([
-                        'next_node_id' => $nodeMap[$nextId]->node_id,
-                    ]);
-                }
-            }
-        }
-
-        return $workflow->fresh();
+            return $workflow->fresh();
+        });
     }
 
     public function toJson(Workflow $workflow): string
@@ -282,6 +317,14 @@ class WorkflowDefinitionParser
                 ->toArray(),
         ];
 
-        return json_encode($definition, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        $json = json_encode($definition, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+        if ($json === false) {
+            throw new \RuntimeException(
+                'Failed to encode workflow to JSON: ' . json_last_error_msg()
+            );
+        }
+
+        return $json;
     }
 }

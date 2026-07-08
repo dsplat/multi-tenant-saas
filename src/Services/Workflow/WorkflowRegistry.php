@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Services\Workflow;
 
+use MultiTenantSaas\Contracts\WorkflowRegistryContract;
 use MultiTenantSaas\Models\Workflow;
 
-class WorkflowRegistry
+class WorkflowRegistry implements WorkflowRegistryContract
 {
     protected array $workflows = [];
 

@@ -33,7 +33,7 @@ class WorkflowRegistry implements WorkflowRegistryContract
 
     public function getByTenant(int $tenantId): array
     {
-        return array_filter($this->workflows, fn($w) => $w->tenant_id === $tenantId);
+        return array_filter($this->workflows, fn($w) => (int) $w->tenant_id === $tenantId);
     }
 
     public function has(string $name): bool

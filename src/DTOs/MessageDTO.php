@@ -1,13 +1,8 @@
 <?php
 
-declare(strict_types=1);
-
 namespace MultiTenantSaas\DTOs;
 
-use JsonSerializable;
-use MultiTenantSaas\Models\Message;
-
-class MessageDTO implements JsonSerializable
+class MessageDTO
 {
     public function __construct(
         public readonly string $messageId,
@@ -18,42 +13,19 @@ class MessageDTO implements JsonSerializable
         public readonly string $type = 'text',
         public readonly ?string $replyToId = null,
         public readonly array $metadata = [],
-        public readonly ?int $tenantId = null,
-        public readonly string $channel = 'web',
-        public readonly ?string $timestamp = null,
     ) {}
 
     public static function fromArray(array $data): self
     {
         return new self(
-            messageId: (string) ($data['message_id'] ?? ''),
-            conversationId: (string) ($data['conversation_id'] ?? ''),
-            senderId: (string) ($data['sender_id'] ?? ''),
-            senderType: (string) ($data['sender_type'] ?? 'user'),
-            content: (string) ($data['content'] ?? ''),
-            type: (string) ($data['type'] ?? 'text'),
-            replyToId: isset($data['reply_to_id']) ? (string) $data['reply_to_id'] : null,
-            metadata: (array) ($data['metadata'] ?? []),
-            tenantId: isset($data['tenant_id']) ? (int) $data['tenant_id'] : null,
-            channel: (string) ($data['channel'] ?? 'web'),
-            timestamp: isset($data['timestamp']) ? (string) $data['timestamp'] : null,
-        );
-    }
-
-    public static function fromModel(Message $message, string $channel = 'web'): self
-    {
-        return new self(
-            messageId: (string) $message->message_id,
-            conversationId: (string) $message->conversation_id,
-            senderId: (string) $message->sender_id,
-            senderType: (string) $message->sender_type,
-            content: (string) $message->content,
-            type: (string) ($message->type ?? 'text'),
-            replyToId: $message->reply_to_id ? (string) $message->reply_to_id : null,
-            metadata: (array) ($message->metadata ?? []),
-            tenantId: $message->tenant_id ? (int) $message->tenant_id : null,
-            channel: $channel,
-            timestamp: $message->created_at?->toIso8601String(),
+            messageId: $data['message_id'] ?? '',
+            conversationId: $data['conversation_id'] ?? '',
+            senderId: $data['sender_id'] ?? '',
+            senderType: $data['sender_type'] ?? 'user',
+            content: $data['content'] ?? '',
+            type: $data['type'] ?? 'text',
+            replyToId: $data['reply_to_id'] ?? null,
+            metadata: $data['metadata'] ?? [],
         );
     }
 
@@ -68,14 +40,6 @@ class MessageDTO implements JsonSerializable
             'type' => $this->type,
             'reply_to_id' => $this->replyToId,
             'metadata' => $this->metadata,
-            'tenant_id' => $this->tenantId,
-            'channel' => $this->channel,
-            'timestamp' => $this->timestamp,
         ];
-    }
-
-    public function jsonSerialize(): array
-    {
-        return $this->toArray();
     }
 }

@@ -47,11 +47,13 @@ interface MemoryContract
     public function compress(string $entityType, int $entityId): void;
 
     /**
-     * 衰减全局记忆权重
+     * 衰减实体记忆权重
      *
      * 删除权重低于阈值的记忆，对其余记忆执行权重衰减。
      *
-     * @param  float  $threshold  删除阈值，默认 0.1
+     * @param  string  $entityType  实体类型
+     * @param  int     $entityId    实体 ID
+     * @param  float   $threshold   删除阈值，默认 0.1
      */
-    public function decay(float $threshold = 0.1): void;
+    public function decay(string $entityType, int $entityId, float $threshold = 0.1): void;
 }

@@ -80,14 +80,14 @@ class AgentRuntime implements AgentRuntimeContract
             ]);
         }
 
-        $workflows = $this->resolveWorkflows($agent);
+        $workflows = $this->resolveWorkflows($agentId);
         $workflowResults = [];
         $workflowFailed = false;
 
         if ($workflows->isNotEmpty()) {
             $workflowResults = $this->executeWorkflowChain($tenantId, $workflows, $input);
-            $workflowFailed = !empty($workflowResults)
-                && end($workflowResults)['status'] === 'failed';
+            $workflowFailed = $workflowResults !== []
+                && $workflowResults[array_key_last($workflowResults)]['status'] === 'failed';
         }
 
         $message = $input['message'] ?? '';
@@ -141,13 +141,20 @@ class AgentRuntime implements AgentRuntimeContract
      * 解析 Agent 关联的工作流
      *
      * 通过 Agent 的 workflows() 关系获取已排序的工作流集合。
-     * 复用已加载的 Agent 实例，避免重复数据库查询。
+     * 内部加载 Agent 实例并验证租户隔离。
      *
-     * @param  Agent  $agent  Agent 实例（已通过租户隔离验证）
+     * @param  int  $agentId  Agent ID
      * @return Collection
      */
-    public function resolveWorkflows(Agent $agent): Collection
+    public function resolveWorkflows(int $agentId): Collection
     {
+        $tenantId = $this->resolveTenantId();
+        $agent = $this->loadAgent($agentId, $tenantId);
+
+        if ($agent === null) {
+            return collect();
+        }
+
         return $agent->workflows()->get();
     }
 
@@ -156,7 +163,7 @@ class AgentRuntime implements AgentRuntimeContract
      *
      * 按顺序执行工作流集合，每个工作流的输出上下文
      * 会合并到输入中传递给下一个工作流。
-     * 任一工作流失败则中断链式执行。
+     * 任一工作流失败或非 completed 状态则中断链式执行。
      *
      * @param  int         $tenantId   租户 ID
      * @param  Collection  $workflows  工作流集合
@@ -169,7 +176,23 @@ class AgentRuntime implements AgentRuntimeContract
         $context = $input;
 
         foreach ($workflows as $workflow) {
-            $execution = $this->workflowEngine->execute($workflow, $context);
+            try {
+                $execution = $this->workflowEngine->execute($workflow, $context);
+            } catch (\Throwable $e) {
+                Log::error('AgentRuntime: 工作流执行异常，中断工作流链', [
+                    'workflow_id' => $workflow->workflow_id,
+                    'tenant_id' => $tenantId,
+                    'error' => $e->getMessage(),
+                ]);
+                $results[] = [
+                    'workflow_id' => $workflow->workflow_id,
+                    'execution_id' => null,
+                    'status' => 'failed',
+                    'context' => [],
+                    'error' => $e->getMessage(),
+                ];
+                break;
+            }
 
             $results[] = [
                 'workflow_id' => $workflow->workflow_id,
@@ -178,18 +201,17 @@ class AgentRuntime implements AgentRuntimeContract
                 'context' => $execution->context ?? [],
             ];
 
-            if ($execution->status === 'failed') {
-                Log::error('AgentRuntime: 工作流执行失败，中断工作流链', [
+            if ($execution->status !== 'completed') {
+                Log::error('AgentRuntime: 工作流非正常结束，中断工作流链', [
                     'workflow_id' => $workflow->workflow_id,
                     'execution_id' => $execution->execution_id,
                     'tenant_id' => $tenantId,
+                    'status' => $execution->status,
                 ]);
                 break;
             }
 
-            if ($execution->status === 'completed') {
-                $context = array_merge($context, $execution->context ?? []);
-            }
+            $context = array_merge($context, $execution->context ?? []);
         }
 
         return $results;

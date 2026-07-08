@@ -5,20 +5,9 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Services\Workflow;
 
 use Illuminate\Support\Facades\DB;
+use MultiTenantSaas\DTOs\WorkflowDefinition;
 use MultiTenantSaas\Models\Workflow;
 use MultiTenantSaas\Models\WorkflowNode;
-
-class WorkflowDefinition
-{
-    public function __construct(
-        public readonly string $name,
-        public readonly ?string $description = null,
-        public readonly string $type = 'sequential',
-        public readonly ?array $config = null,
-        public readonly array $nodes = [],
-        public readonly array $edges = [],
-    ) {}
-}
 
 class WorkflowDefinitionParser
 {
@@ -86,6 +75,10 @@ class WorkflowDefinitionParser
 
         if (isset($definition['name']) && !is_string($definition['name'])) {
             $errors[] = 'Field "name" must be a string';
+        }
+
+        if (isset($definition['name']) && is_string($definition['name']) && strlen($definition['name']) < 1) {
+            $errors[] = 'Field "name" must not be empty';
         }
 
         if (isset($definition['description']) && !is_string($definition['description'])) {

@@ -10,6 +10,12 @@ use MultiTenantSaas\Models\Vote;
 use MultiTenantSaas\Models\VoteOption;
 use MultiTenantSaas\Services\VotingService;
 
+/**
+ * @OA\Tag(
+ *     name="Voting 投票",
+ *     description="投票活动管理、投票执行、排行榜、统计查询"
+ * )
+ */
 class VotingController extends Controller
 {
     use AuthorizesTenantAccess;
@@ -20,6 +26,19 @@ class VotingController extends Controller
 
     // ========== 投票活动管理 ==========
 
+    /**
+     * @OA\Get(
+     *     path="/v1/tenants/{tenantId}/voting",
+     *     summary="获取投票活动列表",
+     *     tags={"Voting 投票"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="tenantId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="status", in="query", @OA\Schema(type="string", enum={"draft","active","ended"})),
+     *     @OA\Response(response=200, description="投票列表"),
+     *     @OA\Response(response=401, description="未认证"),
+     *     @OA\Response(response=403, description="无权访问")
+     * )
+     */
     public function index(Request $request, int $tenantId): JsonResponse
     {
         $this->ensureTenantAccess($request, $tenantId);
@@ -36,6 +55,22 @@ class VotingController extends Controller
         return response()->json(['success' => true, 'data' => $votes]);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/v1/tenants/{tenantId}/voting",
+     *     summary="创建投票活动",
+     *     tags={"Voting 投票"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="tenantId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\RequestBody(required=true, @OA\JsonContent(
+     *         @OA\Property(property="title", type="string", description="投票标题"),
+     *         @OA\Property(property="vote_type", type="string", enum={"single","multiple"}, description="投票类型"),
+     *         @OA\Property(property="options", type="array", @OA\Items(type="object"), description="投票选项（至少2个）")
+     *     )),
+     *     @OA\Response(response=201, description="创建成功"),
+     *     @OA\Response(response=422, description="验证失败")
+     * )
+     */
     public function store(Request $request, int $tenantId): JsonResponse
     {
         $this->ensureTenantAccess($request, $tenantId);
@@ -137,6 +172,21 @@ class VotingController extends Controller
 
     // ========== 投票执行 ==========
 
+    /**
+     * @OA\Post(
+     *     path="/v1/tenants/{tenantId}/voting/{voteId}/cast",
+     *     summary="执行投票",
+     *     tags={"Voting 投票"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="tenantId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="voteId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\RequestBody(required=true, @OA\JsonContent(
+     *         @OA\Property(property="option_ids", type="array", @OA\Items(type="integer"), description="选项ID列表")
+     *     )),
+     *     @OA\Response(response=200, description="投票成功"),
+     *     @OA\Response(response=422, description="投票失败（活动未开始/已结束/次数限制等）")
+     * )
+     */
     public function castVote(Request $request, int $tenantId, int $voteId): JsonResponse
     {
         $this->ensureTenantAccess($request, $tenantId);
@@ -167,6 +217,17 @@ class VotingController extends Controller
 
     // ========== 排行榜与统计 ==========
 
+    /**
+     * @OA\Get(
+     *     path="/v1/tenants/{tenantId}/voting/{voteId}/ranking",
+     *     summary="获取投票排行榜",
+     *     tags={"Voting 投票"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="tenantId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="voteId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="排行榜数据")
+     * )
+     */
     public function ranking(Request $request, int $tenantId, int $voteId): JsonResponse
     {
         $this->ensureTenantAccess($request, $tenantId);
@@ -181,6 +242,24 @@ class VotingController extends Controller
         return response()->json(['success' => true, 'data' => $ranking]);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/v1/tenants/{tenantId}/voting/{voteId}/statistics",
+     *     summary="获取投票统计",
+     *     tags={"Voting 投票"},
+     *     security={{"sanctum":{}}},
+     *     @OA\Parameter(name="tenantId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="voteId", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="统计数据", @OA\JsonContent(
+     *         @OA\Property(property="data", type="object",
+     *             @OA\Property(property="total_votes", type="integer"),
+     *             @OA\Property(property="today_votes", type="integer"),
+     *             @OA\Property(property="options", type="array"),
+     *             @OA\Property(property="daily_stats", type="array")
+     *         )
+     *     ))
+     * )
+     */
     public function statistics(Request $request, int $tenantId, int $voteId): JsonResponse
     {
         $this->ensureTenantAccess($request, $tenantId);

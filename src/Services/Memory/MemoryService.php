@@ -87,7 +87,7 @@ class MemoryService implements MemoryServiceContract
         }
     }
 
-    public function decay(float $threshold = 0.1): void
+    public function decay(string $entityType, int $entityId, float $threshold = 0.1): void
     {
         EntityMemory::where('weight', '<=', $threshold)->delete();
 

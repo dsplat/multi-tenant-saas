@@ -32,6 +32,43 @@ class CapabilityRegistry
     }
 
     /**
+     * 获取所有已注册的能力名称
+     */
+    public function names(): array
+    {
+        return array_keys($this->capabilities);
+    }
+
+    /**
+     * 按前缀发现能力
+     */
+    public function findByPrefix(string $prefix): array
+    {
+        $result = [];
+        foreach ($this->capabilities as $name => $capability) {
+            if (str_starts_with($name, $prefix)) {
+                $result[$name] = $capability;
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * 发现所有已注册能力的元数据
+     */
+    public function discover(): array
+    {
+        $result = [];
+        foreach ($this->capabilities as $name => $capability) {
+            $result[] = [
+                'name' => $name,
+                'class' => get_class($capability),
+            ];
+        }
+        return $result;
+    }
+
+    /**
      * 执行指定能力
      */
     public function execute(string $name, array $input): CapabilityResult

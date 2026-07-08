@@ -131,7 +131,7 @@ class MemoryServiceTest extends TestCase
             'weight' => 0.05,
         ]);
 
-        $this->memoryService->decay(0.1);
+        $this->memoryService->decay('agent', 400, 0.1);
 
         $exists = EntityMemory::where('entity_type', 'agent')
             ->where('entity_id', 400)
@@ -152,7 +152,7 @@ class MemoryServiceTest extends TestCase
             'weight' => 1.0,
         ]);
 
-        $this->memoryService->decay(0.1);
+        $this->memoryService->decay('agent', 500, 0.1);
 
         $memory = EntityMemory::where('entity_type', 'agent')
             ->where('entity_id', 500)
@@ -209,5 +209,93 @@ class MemoryServiceTest extends TestCase
 
         $this->assertSame('agent_value', $agentValue);
         $this->assertSame('user_value', $userValue);
+    }
+
+    public function test_decay_affects_tenant_memory(): void
+    {
+        TenantMemory::create([
+            'tenant_id' => $this->tenant->tenant_id,
+            'type' => 'config',
+            'key' => 'low_weight_tenant',
+            'value' => 'data',
+            'weight' => 0.05,
+        ]);
+
+        TenantMemory::create([
+            'tenant_id' => $this->tenant->tenant_id,
+            'type' => 'config',
+            'key' => 'high_weight_tenant',
+            'value' => 'data',
+            'weight' => 1.0,
+        ]);
+
+        $this->memoryService->decay('config', 0, 0.1);
+
+        $this->assertFalse(
+            TenantMemory::where('key', 'low_weight_tenant')->exists()
+        );
+
+        $high = TenantMemory::where('key', 'high_weight_tenant')->first();
+        $this->assertLessThan(1.0, $high->weight);
+        $this->assertGreaterThan(0.0, $high->weight);
+    }
+
+    public function test_compress_at_exact_threshold(): void
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $this->memoryService->write('agent', 600, "key_{$i}", "value_{$i}");
+        }
+
+        $this->memoryService->compress('agent', 600);
+
+        $count = EntityMemory::where('entity_type', 'agent')
+            ->where('entity_id', 600)
+            ->count();
+
+        $this->assertSame(5, $count);
+    }
+
+    public function test_compress_empty_entity(): void
+    {
+        $this->memoryService->compress('agent', 9999);
+
+        $this->assertSame(0, EntityMemory::where('entity_type', 'agent')->where('entity_id', 9999)->count());
+    }
+
+    public function test_write_tenant_memory_increases_weight(): void
+    {
+        $this->memoryService->writeTenantMemory(1001, 'config', 'key', 'value1');
+        $this->memoryService->writeTenantMemory(1001, 'config', 'key', 'value2');
+
+        $memory = TenantMemory::where('tenant_id', 1001)
+            ->where('type', 'config')
+            ->where('key', 'key')
+            ->first();
+
+        $this->assertGreaterThan(1.0, $memory->weight);
+    }
+
+    public function test_read_tenant_memory_updates_last_accessed(): void
+    {
+        $this->memoryService->writeTenantMemory(1001, 'config', 'key', 'value');
+
+        $memory = TenantMemory::where('tenant_id', 1001)
+            ->where('type', 'config')
+            ->where('key', 'key')
+            ->first();
+        $memory->update(['last_accessed_at' => now()->subDay()]);
+
+        $this->memoryService->readTenantMemory(1001, 'config', 'key');
+
+        $memory->refresh();
+        $this->assertGreaterThan(now()->subHour(), $memory->last_accessed_at);
+    }
+
+    public function test_default_constructor_params(): void
+    {
+        $service = new MemoryService();
+
+        $this->assertSame(0.95, $service->getDecayRate());
+        $this->assertSame(100, $service->getCompressThreshold());
     }
 }

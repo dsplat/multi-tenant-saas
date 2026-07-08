@@ -255,4 +255,209 @@ class FrameworkToolsTest extends TestCase
             $this->assertNotEmpty($tool->category());
         }
     }
+
+    public function test_validation_tool_missing_data(): void
+    {
+        $tool = new ValidationTool();
+        $result = $tool->execute(['data' => [], 'rules' => []]);
+        $this->assertArrayHasKey('error', $result);
+        $this->assertSame('Data and rules required', $result['error']);
+    }
+
+    public function test_validation_tool_missing_rules(): void
+    {
+        $tool = new ValidationTool();
+        $result = $tool->execute(['data' => ['email' => 'test@example.com']]);
+        $this->assertArrayHasKey('error', $result);
+    }
+
+    public function test_json_tool_invalid_action(): void
+    {
+        $tool = new JsonTool();
+        $result = $tool->execute(['action' => 'compress', 'data' => '{}']);
+        $this->assertArrayHasKey('error', $result);
+        $this->assertSame('Unknown action', $result['error']);
+    }
+
+    public function test_json_tool_decode_invalid_json(): void
+    {
+        $tool = new JsonTool();
+        $result = $tool->execute(['action' => 'decode', 'data' => '{invalid}']);
+        $this->assertNull($result['result']);
+    }
+
+    public function test_datetime_tool_invalid_action(): void
+    {
+        $tool = new DateTimeTool();
+        $result = $tool->execute(['action' => 'unknown']);
+        $this->assertArrayHasKey('error', $result);
+        $this->assertSame('Unknown action', $result['error']);
+    }
+
+    public function test_datetime_tool_diff_action(): void
+    {
+        $tool = new DateTimeTool();
+        $result = $tool->execute(['action' => 'diff', 'date' => '2026-07-01']);
+        $this->assertNotEmpty($result['result']);
+    }
+
+    public function test_datetime_tool_add_action(): void
+    {
+        $tool = new DateTimeTool();
+        $result = $tool->execute(['action' => 'add', 'date' => '2026-07-01', 'unit' => 'days', 'value' => 5]);
+        $this->assertNotEmpty($result['result']);
+    }
+
+    public function test_encryption_tool_invalid_action(): void
+    {
+        $tool = new EncryptionTool();
+        $result = $tool->execute(['action' => 'sign', 'data' => 'test']);
+        $this->assertArrayHasKey('error', $result);
+        $this->assertSame('Unknown action', $result['error']);
+    }
+
+    public function test_cache_tool_invalid_action(): void
+    {
+        $tool = new CacheTool();
+        $result = $tool->execute(['action' => 'dump', 'key' => 'test']);
+        $this->assertArrayHasKey('error', $result);
+        $this->assertSame('Unknown action', $result['error']);
+    }
+
+    public function test_cache_tool_has_nonexistent_key(): void
+    {
+        $tool = new CacheTool();
+        $result = $tool->execute(['action' => 'has', 'key' => 'nonexistent_key_xyz']);
+        $this->assertFalse($result['exists']);
+    }
+
+    public function test_search_tool_default_params(): void
+    {
+        $tool = new SearchTool();
+        $result = $tool->execute([]);
+        $this->assertSame('', $result['query']);
+        $this->assertSame(10, $result['limit']);
+        $this->assertSame([], $result['results']);
+        $this->assertSame(0, $result['total']);
+    }
+
+    public function test_http_tool_blocks_10_network(): void
+    {
+        $tool = new HttpTool();
+        $result = $tool->execute(['url' => 'http://10.0.0.1/test']);
+        $this->assertArrayHasKey('error', $result);
+        $this->assertSame('Blocked host', $result['error']);
+    }
+
+    public function test_http_tool_blocks_172_network(): void
+    {
+        $tool = new HttpTool();
+        $result = $tool->execute(['url' => 'http://172.16.0.1/test']);
+        $this->assertArrayHasKey('error', $result);
+        $this->assertSame('Blocked host', $result['error']);
+    }
+
+    public function test_http_tool_blocks_ftp_scheme(): void
+    {
+        $tool = new HttpTool();
+        $result = $tool->execute(['url' => 'ftp://example.com/test']);
+        $this->assertArrayHasKey('error', $result);
+        $this->assertSame('Only HTTP/HTTPS allowed', $result['error']);
+    }
+
+    public function test_http_tool_invalid_url(): void
+    {
+        $tool = new HttpTool();
+        $result = $tool->execute(['url' => 'not-a-valid-url']);
+        $this->assertArrayHasKey('error', $result);
+        $this->assertSame('Invalid URL', $result['error']);
+    }
+
+    public function test_file_storage_tool_download_nonexistent(): void
+    {
+        $tool = new FileStorageTool();
+        $result = $tool->execute(['action' => 'download', 'path' => 'nonexistent.txt']);
+        $this->assertArrayHasKey('error', $result);
+        $this->assertSame('File not found', $result['error']);
+    }
+
+    public function test_file_storage_tool_delete_nonexistent(): void
+    {
+        $tool = new FileStorageTool();
+        $result = $tool->execute(['action' => 'delete', 'path' => 'nonexistent.txt']);
+        $this->assertArrayHasKey('error', $result);
+        $this->assertSame('File not found', $result['error']);
+    }
+
+    public function test_file_storage_tool_exists(): void
+    {
+        $tool = new FileStorageTool();
+        $result = $tool->execute(['action' => 'exists', 'path' => 'test.txt']);
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('exists', $result);
+        $this->assertArrayHasKey('path', $result);
+    }
+
+    public function test_file_storage_tool_size(): void
+    {
+        $tool = new FileStorageTool();
+        $result = $tool->execute(['action' => 'size', 'path' => 'test.txt']);
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('size', $result);
+        $this->assertArrayHasKey('path', $result);
+    }
+
+    public function test_email_tool_empty_params(): void
+    {
+        $tool = new EmailTool();
+        $result = $tool->execute([]);
+        $this->assertTrue($result['success']);
+        $this->assertSame('', $result['to']);
+        $this->assertSame('', $result['subject']);
+    }
+
+    public function test_logging_tool_with_context(): void
+    {
+        $tool = new LoggingTool();
+        $result = $tool->execute(['level' => 'warning', 'message' => 'Test warn', 'context' => ['key' => 'val']]);
+        $this->assertTrue($result['success']);
+        $this->assertSame('warning', $result['level']);
+        $this->assertSame('Test warn', $result['message']);
+    }
+
+    public function test_queue_tool_purge_action(): void
+    {
+        $tool = new QueueTool();
+        $result = $tool->execute(['action' => 'purge', 'queue' => 'custom']);
+        $this->assertTrue($result['success']);
+        $this->assertSame('custom', $result['queue']);
+    }
+
+    public function test_queue_tool_invalid_action(): void
+    {
+        $tool = new QueueTool();
+        $result = $tool->execute(['action' => 'dispatch']);
+        $this->assertArrayHasKey('error', $result);
+        $this->assertSame('Unknown action', $result['error']);
+    }
+
+    public function test_database_query_tool_allowed_table(): void
+    {
+        $tool = new DatabaseQueryTool();
+        $result = $tool->execute(['table' => 'tenants', 'columns' => ['*'], 'limit' => 5]);
+        $this->assertArrayHasKey('results', $result);
+        $this->assertArrayHasKey('count', $result);
+    }
+
+    public function test_database_query_tool_condition_filter(): void
+    {
+        $tool = new DatabaseQueryTool();
+        $result = $tool->execute([
+            'table' => 'tenants',
+            'columns' => ['*'],
+            'conditions' => ['tenant_id' => 1001],
+            'limit' => 5,
+        ]);
+        $this->assertArrayHasKey('results', $result);
+    }
 }

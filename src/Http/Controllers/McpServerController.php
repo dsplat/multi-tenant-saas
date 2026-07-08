@@ -7,175 +7,177 @@ namespace MultiTenantSaas\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Contracts\McpToolRegistryContract;
-use MultiTenantSaas\Mcp\Exceptions\McpException;
-use MultiTenantSaas\Models\McpToolAccessLog;
-use MultiTenantSaas\Services\Mcp\McpClientRegistry;
-use MultiTenantSaas\Services\Mcp\McpSkillGenerator;
+use MultiTenantSaas\Mcp\McpException;
+use MultiTenantSaas\Mcp\McpToolRegistry;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
+/**
+ * MCP JSON-RPC 2.0 服务器控制器
+ *
+ * 处理 MCP 协议请求，支持标准 JSON-RPC 响应和 SSE 流式响应。
+ */
 class McpServerController extends Controller
 {
+    /** MCP 协议版本 */
+    private const PROTOCOL_VERSION = '2024-11-05';
+
+    /** 服务器能力声明 */
+    private const SERVER_CAPABILITIES = [
+        'tools' => ['listChanged' => false],
+    ];
+
     public function __construct(
-        protected McpToolRegistryContract $toolRegistry,
-        protected McpSkillGenerator $skillGenerator,
-        protected McpClientRegistry $clientRegistry,
+        protected McpToolRegistry $registry,
     ) {}
 
+    /**
+     * 处理 MCP JSON-RPC 请求
+     *
+     * 支持的方法：
+     * - initialize: 返回服务器能力
+     * - tools/list: 列出可用工具
+     * - tools/call: 调用工具
+     * - notifications/initialized: 客户端初始化完成通知
+     */
     public function handle(Request $request): JsonResponse|StreamedResponse
     {
-        $body = $request->json()->all();
-
-        if (!$body || !isset($body['jsonrpc']) || $body['jsonrpc'] !== '2.0') {
-            return $this->errorResponse(null, McpException::INVALID_REQUEST, 'Invalid JSON-RPC 2.0 request');
-        }
-
-        if (isset($body['method']) && $body['method'] === 'tools/call') {
-            return $this->handleToolCall($body);
-        }
-
-        $method = $body['method'] ?? null;
-        $id = $body['id'] ?? null;
-        $params = $body['params'] ?? [];
-
         try {
-            $result = match ($method) {
-                'initialize' => $this->initialize($params),
-                'tools/list' => $this->toolsList(),
-                'resources/list' => $this->resourcesList(),
-                'resources/read' => $this->resourcesRead($params),
-                'notifications/initialized' => $this->handleNotificationsInitialized(),
-                'ping' => $this->handlePing(),
-                'skill' => $this->generateSkill($params),
-                default => throw McpException::methodNotFound($method),
-            };
+            // 解析 JSON-RPC 请求
+            $body = $request->getContent();
+            $payload = json_decode($body, true);
 
-            return $this->successResponse($id, $result);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return $this->jsonRpcError(null, McpException::CODE_PARSE_ERROR, 'Parse error: ' . json_last_error_msg());
+            }
+
+            // 验证 JSON-RPC 2.0 结构
+            if (!is_array($payload) || !isset($payload['method'])) {
+                return $this->jsonRpcError($payload['id'] ?? null, McpException::CODE_INVALID_REQUEST, 'Invalid Request');
+            }
+
+            // 校验 jsonrpc 版本
+            if (($payload['jsonrpc'] ?? '') !== '2.0') {
+                return $this->jsonRpcError($payload['id'] ?? null, McpException::CODE_INVALID_REQUEST, 'Invalid Request: missing or invalid jsonrpc version');
+            }
+
+            $id = $payload['id'] ?? null;
+            $method = $payload['method'];
+            $params = $payload['params'] ?? [];
+
+            // 类型校验：method 必须为 string，params 必须为 array
+            if (!is_string($method)) {
+                return $this->jsonRpcError($id, McpException::CODE_INVALID_REQUEST, 'Invalid Request: method must be a string');
+            }
+            if (!is_array($params)) {
+                return $this->jsonRpcError($id, McpException::CODE_INVALID_REQUEST, 'Invalid Request: params must be an object or array');
+            }
+
+            // SSE 流式响应
+            if (str_contains($request->header('Accept', ''), 'text/event-stream')) {
+                return $this->handleSse($id, $method, $params);
+            }
+
+            // 标准 JSON-RPC 响应
+            return $this->handleMethod($id, $method, $params);
+
         } catch (McpException $e) {
-            return $this->errorResponse($id, $e->getErrorCode(), $e->getMessage(), $e->getErrorData());
+            return $this->jsonRpcError($id ?? null, $e->getErrorCode(), $e->getMessage());
         } catch (\Throwable $e) {
-            return $this->errorResponse($id, McpException::INTERNAL_ERROR, $e->getMessage());
+            return $this->jsonRpcError($id ?? null, McpException::CODE_INTERNAL_ERROR, 'Internal error');
         }
     }
 
-    public function skill(Request $request, string $clientSlug): JsonResponse
+    /**
+     * 处理具体方法调用
+     */
+    protected function handleMethod(mixed $id, string $method, array $params): JsonResponse
     {
-        $format = $request->query('format');
-
-        $result = $this->skillGenerator->generate($clientSlug, $format);
-
-        return response()->json([
-            'client' => $clientSlug,
-            'format' => $format ?? $this->skillGenerator->getClientRegistry()->getOutputFormat($clientSlug),
-            'content' => $result,
-        ]);
+        return match ($method) {
+            'initialize' => $this->initialize($id, $params),
+            'tools/list' => $this->listTools($id),
+            'tools/call' => $this->callTool($id, $params),
+            'notifications/initialized' => $this->notificationsInitialized(),
+            default => $this->jsonRpcError($id, McpException::CODE_METHOD_NOT_FOUND, "Method not found: {$method}"),
+        };
     }
 
-    public function config(Request $request, string $clientSlug): JsonResponse
+    /**
+     * initialize: 返回服务器能力和协议版本
+     */
+    protected function initialize(mixed $id, array $params): JsonResponse
     {
-        $client = $this->clientRegistry->getClient($clientSlug);
-
-        if (!$client) {
-            return response()->json(['error' => 'Client not found'], 404);
-        }
-
-        $config = $this->skillGenerator->generateJsonConfig($clientSlug);
-
-        return response()->json($config);
-    }
-
-    public function clients(): JsonResponse
-    {
-        $clients = $this->clientRegistry->getClients();
-
-        $defaultClients = $this->clientRegistry->getDefaultClients();
-
-        return response()->json([
-            'registered' => $clients->toArray(),
-            'available' => $defaultClients,
-        ]);
-    }
-
-    protected function initialize(array $params): array
-    {
-        return [
-            'protocolVersion' => '2024-11-05',
-            'capabilities' => [
-                'tools' => ['listChanged' => true],
-                'resources' => ['subscribe' => false, 'listChanged' => false],
-                'logging' => [],
-            ],
+        return $this->jsonRpcResult($id, [
+            'protocolVersion' => self::PROTOCOL_VERSION,
+            'capabilities' => self::SERVER_CAPABILITIES,
             'serverInfo' => [
                 'name' => 'multi-tenant-saas-mcp',
                 'version' => '1.0.0',
             ],
-        ];
+        ]);
     }
 
-    protected function toolsList(): array
+    /**
+     * tools/list: 列出所有可用工具
+     */
+    protected function listTools(mixed $id): JsonResponse
     {
-        return [
-            'tools' => $this->toolRegistry->listTools(),
-        ];
+        $tools = $this->registry->listTools();
+
+        return $this->jsonRpcResult($id, [
+            'tools' => $tools,
+        ]);
     }
 
-    protected function handleToolCall(array $body): JsonResponse|StreamedResponse
+    /**
+     * tools/call: 调用指定工具
+     */
+    protected function callTool(mixed $id, array $params): JsonResponse
     {
-        $id = $body['id'] ?? null;
-        $params = $body['params'] ?? [];
-        $toolName = $params['name'] ?? null;
+        if (empty($params['name'])) {
+            return $this->jsonRpcError($id, McpException::CODE_INVALID_PARAMS, 'Missing required param: name');
+        }
+
         $arguments = $params['arguments'] ?? [];
-        $stream = $params['stream'] ?? false;
-
-        if (!$toolName) {
-            return $this->errorResponse($id, McpException::INVALID_PARAMS, 'Missing tool name');
+        if (!is_array($arguments)) {
+            return $this->jsonRpcError($id, McpException::CODE_INVALID_PARAMS, 'Invalid params: arguments must be an object or array');
         }
 
-        $tenantId = TenantContext::getId() ? (int) TenantContext::getId() : null;
+        $result = $this->registry->callTool($params['name'], $arguments);
 
-        $this->logToolAccess($toolName, $tenantId);
-
-        if ($stream) {
-            return $this->streamToolCall($id, $toolName, $arguments, $tenantId);
-        }
-
-        try {
-            $result = $this->toolRegistry->callTool($toolName, $arguments, $tenantId);
-
-            return $this->successResponse($id, $result);
-        } catch (McpException $e) {
-            return $this->errorResponse($id, $e->getErrorCode(), $e->getMessage(), $e->getErrorData());
-        } catch (\Throwable $e) {
-            return $this->errorResponse($id, McpException::TOOL_EXECUTION_FAILED, $e->getMessage());
-        }
+        return $this->jsonRpcResult($id, [
+            'content' => [
+                ['type' => 'text', 'text' => is_string($result) ? $result : json_encode($result, JSON_THROW_ON_ERROR)],
+            ],
+        ]);
     }
 
-    protected function streamToolCall(?string $id, string $toolName, array $arguments, ?int $tenantId): StreamedResponse
+    /**
+     * notifications/initialized: 客户端初始化完成（无响应）
+     *
+     * Notification 无 id，返回空 result 的 JSON-RPC 响应以保持类型一致。
+     */
+    protected function notificationsInitialized(): JsonResponse
     {
-        return response()->stream(function () use ($id, $toolName, $arguments, $tenantId) {
-            header('Content-Type: text/event-stream');
-            header('Cache-Control: no-cache');
-            header('Connection: keep-alive');
-            header('X-Accel-Buffering: no');
+        return $this->jsonRpcResult(null, new \stdClass());
+    }
 
-            $this->sendSseEvent('start', ['id' => $id, 'tool' => $toolName]);
-
+    /**
+     * SSE 流式响应
+     */
+    protected function handleSse(mixed $id, string $method, array $params): StreamedResponse
+    {
+        return response()->stream(function () use ($id, $method, $params) {
             try {
-                $result = $this->toolRegistry->callTool($toolName, $arguments, $tenantId);
-
-                $this->sendSseEvent('data', $result);
-                $this->sendSseEvent('done', ['id' => $id]);
+                $response = $this->handleMethod($id, $method, $params);
+                $data = $response->getData(true);
+                echo "data: " . json_encode($data, JSON_THROW_ON_ERROR) . "\n\n";
+                ob_flush();
+                flush();
             } catch (\Throwable $e) {
-                $this->sendSseEvent('error', [
-                    'id' => $id,
-                    'code' => $e instanceof McpException ? $e->getErrorCode() : McpException::TOOL_EXECUTION_FAILED,
-                    'message' => $e->getMessage(),
-                ]);
-            }
-
-            if (function_exists('fastcgi_finish_request')) {
-                fastcgi_finish_request();
+                $error = ['jsonrpc' => '2.0', 'id' => $id, 'error' => ['code' => McpException::CODE_INTERNAL_ERROR, 'message' => 'Internal error']];
+                echo "data: " . json_encode($error) . "\n\n";
+                ob_flush();
+                flush();
             }
         }, 200, [
             'Content-Type' => 'text/event-stream',
@@ -185,115 +187,32 @@ class McpServerController extends Controller
         ]);
     }
 
-    protected function sendSseEvent(string $event, array $data): void
-    {
-        echo "event: {$event}\n";
-        echo 'data: ' . json_encode($data, JSON_UNESCAPED_UNICODE) . "\n\n";
-        ob_flush();
-        flush();
-    }
-
-    protected function resourcesList(): array
-    {
-        return [
-            'resources' => [
-                [
-                    'uri' => 'mcp://tools',
-                    'name' => 'Available Tools',
-                    'description' => 'List of all registered MCP tools',
-                    'mimeType' => 'application/json',
-                ],
-            ],
-        ];
-    }
-
-    protected function resourcesRead(array $params): array
-    {
-        $uri = $params['uri'] ?? '';
-
-        return match ($uri) {
-            'mcp://tools' => [
-                'contents' => [
-                    [
-                        'uri' => $uri,
-                        'mimeType' => 'application/json',
-                        'text' => json_encode($this->toolRegistry->listTools(), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
-                    ],
-                ],
-            ],
-            default => [
-                'contents' => [],
-            ],
-        };
-    }
-
-    protected function handleNotificationsInitialized(): array
-    {
-        return ['status' => 'ok'];
-    }
-
-    protected function handlePing(): array
-    {
-        return ['pong' => true, 'timestamp' => now()->toIso8601String()];
-    }
-
-    protected function generateSkill(array $params): array
-    {
-        $clientSlug = $params['client'] ?? 'workbuddy';
-        $format = $params['format'] ?? null;
-
-        $result = $this->skillGenerator->generate($clientSlug, $format);
-
-        return [
-            'client' => $clientSlug,
-            'format' => $format ?? $this->skillGenerator->getClientRegistry()->getOutputFormat($clientSlug),
-            'content' => $result,
-        ];
-    }
-
-    protected function logToolAccess(string $toolName, ?int $tenantId): void
-    {
-        try {
-            $clientId = request()->attributes->get('mcp_client_id');
-            $tokenId = request()->attributes->get('mcp_token_id');
-
-            McpToolAccessLog::create([
-                'mcp_client_id' => $clientId,
-                'mcp_client_token_id' => $tokenId,
-                'tenant_id' => $tenantId,
-                'tool_name' => $toolName,
-                'ip_address' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-            ]);
-        } catch (\Throwable $e) {
-            // 日志记录失败不影响主流程
-        }
-    }
-
-    protected function successResponse(?string $id, array $result): JsonResponse
+    /**
+     * JSON-RPC 2.0 成功响应
+     */
+    protected function jsonRpcResult(mixed $id, mixed $result): JsonResponse
     {
         return response()->json([
             'jsonrpc' => '2.0',
-            'result' => $result,
             'id' => $id,
+            'result' => $result,
         ]);
     }
 
-    protected function errorResponse(?string $id, int $code, string $message, mixed $data = null): JsonResponse
+    /**
+     * JSON-RPC 2.0 错误响应
+     */
+    protected function jsonRpcError(mixed $id, int $code, string $message, mixed $data = null): JsonResponse
     {
-        $error = [
-            'jsonrpc' => '2.0',
-            'error' => [
-                'code' => $code,
-                'message' => $message,
-            ],
-            'id' => $id,
-        ];
-
+        $error = ['code' => $code, 'message' => $message];
         if ($data !== null) {
-            $error['error']['data'] = $data;
+            $error['data'] = $data;
         }
 
-        return response()->json($error);
+        return response()->json([
+            'jsonrpc' => '2.0',
+            'id' => $id,
+            'error' => $error,
+        ]);
     }
 }

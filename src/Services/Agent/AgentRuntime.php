@@ -1,14 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MultiTenantSaas\Services\Agent;
 
 use Generator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\AgentMonitorContract;
 use MultiTenantSaas\Contracts\AgentRuntimeContract;
 use MultiTenantSaas\Contracts\AiTextServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
+use MultiTenantSaas\Contracts\WorkflowEngineContract;
 use MultiTenantSaas\Events\ToolCallFailed;
 use MultiTenantSaas\Models\Agent;
 use MultiTenantSaas\Models\AgentConversation;
@@ -39,8 +43,179 @@ class AgentRuntime implements AgentRuntimeContract
         private ToolRegistryContract $toolRegistry,
         private AgentMonitorContract $monitor,
         private TenantContextContract $tenantContext,
+        private ?WorkflowEngineContract $workflowEngine = null,
         private ?MemoryCompressor $memoryCompressor = null,
     ) {}
+
+    /**
+     * 执行 Agent（含工作流链）
+     *
+     * 加载 Agent 配置 → 解析关联工作流 → 执行工作流链 → 处理对话。
+     * 若 input 中包含 conversation_id 和 message，则委托 run() 执行对话。
+     *
+     * @param  int    $tenantId  租户 ID
+     * @param  int    $agentId   Agent ID
+     * @param  array  $input     输入数据 {
+     *                            message?: string,
+     *                            conversation_id?: int,
+     *                            options?: array,
+     *                            ...
+     *                            }
+     * @return AgentResponse
+     */
+    public function execute(int $tenantId, int $agentId, array $input): AgentResponse
+    {
+        $this->tenantContext->storeTenantId((string) $tenantId);
+
+        $agent = $this->loadAgent($agentId, $tenantId);
+
+        if ($agent === null) {
+            return AgentResponse::fromArray([
+                'message' => '',
+                'tool_calls' => [],
+                'token_usage' => [],
+                'finish_reason' => 'error',
+                'error' => "Agent [{$agentId}] 不存在",
+                'agent_id' => $agentId,
+            ]);
+        }
+
+        $workflows = $this->resolveWorkflows($agentId);
+        $workflowResults = [];
+        $workflowFailed = false;
+
+        if ($workflows->isNotEmpty()) {
+            $workflowResults = $this->executeWorkflowChain($tenantId, $workflows, $input);
+            $workflowFailed = $workflowResults !== []
+                && $workflowResults[array_key_last($workflowResults)]['status'] === 'failed';
+        }
+
+        $message = $input['message'] ?? '';
+        $conversationId = (int) ($input['conversation_id'] ?? 0);
+
+        if ($conversationId > 0 && $message !== '') {
+            $response = $this->run($agentId, $conversationId, $message, $input['options'] ?? []);
+            if ($workflowResults !== []) {
+                $raw = $response->raw;
+                $raw['workflow_results'] = $workflowResults;
+                $response = new AgentResponse(
+                    message: $response->message,
+                    toolCalls: $response->toolCalls,
+                    tokenUsage: $response->tokenUsage,
+                    finishReason: $response->finishReason,
+                    agentId: $response->agentId,
+                    conversationId: $response->conversationId,
+                    model: $response->model,
+                    error: $response->error,
+                    raw: $raw,
+                );
+            }
+            return $response;
+        }
+
+        if ($workflowFailed) {
+            return AgentResponse::fromArray([
+                'message' => '工作流执行失败',
+                'tool_calls' => [],
+                'token_usage' => [],
+                'finish_reason' => 'error',
+                'error' => '工作流链执行失败',
+                'agent_id' => $agentId,
+                'conversation_id' => $conversationId,
+                'raw' => ['workflow_results' => $workflowResults],
+            ]);
+        }
+
+        return AgentResponse::fromArray([
+            'message' => $workflowResults !== [] ? '工作流执行完成' : '',
+            'tool_calls' => [],
+            'token_usage' => [],
+            'finish_reason' => 'stop',
+            'agent_id' => $agentId,
+            'conversation_id' => $conversationId,
+            'raw' => ['workflow_results' => $workflowResults],
+        ]);
+    }
+
+    /**
+     * 解析 Agent 关联的工作流
+     *
+     * 通过 Agent 的 workflows() 关系获取已排序的工作流集合。
+     * 内部加载 Agent 实例并验证租户隔离。
+     *
+     * @param  int  $agentId  Agent ID
+     * @return Collection
+     */
+    public function resolveWorkflows(int $agentId): Collection
+    {
+        $tenantId = $this->resolveTenantId();
+        $agent = $this->loadAgent($agentId, $tenantId);
+
+        if ($agent === null) {
+            return collect();
+        }
+
+        return $agent->workflows()->get();
+    }
+
+    /**
+     * 执行工作流链
+     *
+     * 按顺序执行工作流集合，每个工作流的输出上下文
+     * 会合并到输入中传递给下一个工作流。
+     * 任一工作流失败或非 completed 状态则中断链式执行。
+     *
+     * @param  int         $tenantId   租户 ID
+     * @param  Collection  $workflows  工作流集合
+     * @param  array       $input      初始输入上下文
+     * @return array  每个工作流的执行结果
+     */
+    public function executeWorkflowChain(int $tenantId, Collection $workflows, array $input): array
+    {
+        $results = [];
+        $context = $input;
+
+        foreach ($workflows as $workflow) {
+            try {
+                $execution = $this->workflowEngine->execute($workflow, $context);
+            } catch (\Throwable $e) {
+                Log::error('AgentRuntime: 工作流执行异常，中断工作流链', [
+                    'workflow_id' => $workflow->workflow_id,
+                    'tenant_id' => $tenantId,
+                    'error' => $e->getMessage(),
+                ]);
+                $results[] = [
+                    'workflow_id' => $workflow->workflow_id,
+                    'execution_id' => null,
+                    'status' => 'failed',
+                    'context' => [],
+                    'error' => $e->getMessage(),
+                ];
+                break;
+            }
+
+            $results[] = [
+                'workflow_id' => $workflow->workflow_id,
+                'execution_id' => $execution->execution_id,
+                'status' => $execution->status,
+                'context' => $execution->context ?? [],
+            ];
+
+            if ($execution->status !== 'completed') {
+                Log::error('AgentRuntime: 工作流非正常结束，中断工作流链', [
+                    'workflow_id' => $workflow->workflow_id,
+                    'execution_id' => $execution->execution_id,
+                    'tenant_id' => $tenantId,
+                    'status' => $execution->status,
+                ]);
+                break;
+            }
+
+            $context = array_merge($context, $execution->context ?? []);
+        }
+
+        return $results;
+    }
 
     /**
      * 执行 Agent 对话（ReAct 循环）

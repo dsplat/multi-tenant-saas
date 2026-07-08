@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Models\Tenant;
 
 class LotteryBlacklist extends Model
 {
@@ -15,17 +16,16 @@ class LotteryBlacklist extends Model
     protected $primaryKey = 'blacklist_id';
 
     protected $fillable = [
-        'tenant_id', 'lottery_id', 'identifier_type', 'identifier', 'reason',
+        'tenant_id', 'activity_id', 'identifier_type', 'identifier', 'reason',
     ];
 
     public function activity(): BelongsTo
     {
-        return $this->belongsTo(LotteryActivity::class, 'lottery_id', 'lottery_id');
+        return $this->belongsTo(LotteryActivity::class, 'activity_id', 'activity_id');
     }
 
-    public function scopeForIdentifier($query, string $type, string $identifier)
+    public function tenant(): BelongsTo
     {
-        return $query->where('identifier_type', $type)
-            ->where('identifier', $identifier);
+        return $this->belongsTo(Tenant::class, 'tenant_id', 'tenant_id');
     }
 }

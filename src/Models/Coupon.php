@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use MultiTenantSaas\Concerns\HasGlobalId;
 
@@ -28,9 +29,15 @@ class Coupon extends Model
 
     public const TYPE_PERCENTAGE = 'percentage';
 
+    public const TYPE_EXCHANGE = 'exchange';
+
+    public const TYPE_CASH = 'cash';
+
     public const TYPES = [
         self::TYPE_FIXED,
         self::TYPE_PERCENTAGE,
+        self::TYPE_EXCHANGE,
+        self::TYPE_CASH,
     ];
 
     public const APPLIES_TO_SUBSCRIPTION = 'subscription';
@@ -63,6 +70,8 @@ class Coupon extends Model
         'expires_at',
         'is_active',
         'metadata',
+        'is_template',
+        'template_id',
     ];
 
     protected function casts(): array
@@ -78,6 +87,7 @@ class Coupon extends Model
             'starts_at' => 'datetime',
             'expires_at' => 'datetime',
             'is_active' => 'boolean',
+            'is_template' => 'boolean',
             'metadata' => 'array',
         ];
     }
@@ -98,6 +108,16 @@ class Coupon extends Model
     public function isPercentage(): bool
     {
         return $this->type === self::TYPE_PERCENTAGE;
+    }
+
+    public function isExchange(): bool
+    {
+        return $this->type === self::TYPE_EXCHANGE;
+    }
+
+    public function isCash(): bool
+    {
+        return $this->type === self::TYPE_CASH;
     }
 
     public function isActive(): bool
@@ -134,5 +154,47 @@ class Coupon extends Model
     public function scopeByCode($query, string $code)
     {
         return $query->where('code', $code);
+    }
+
+    /**
+     * 作用域：仅模板
+     */
+    public function scopeTemplates($query)
+    {
+        return $query->where('is_template', true);
+    }
+
+    /**
+     * 作用域：非模板（实际优惠券）
+     */
+    public function scopeNotTemplates($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('is_template', false)->orWhereNull('is_template');
+        });
+    }
+
+    /**
+     * 是否为模板
+     */
+    public function isTemplate(): bool
+    {
+        return (bool) $this->is_template;
+    }
+
+    /**
+     * 获取模板生成的优惠券
+     */
+    public function generatedCoupons(): HasMany
+    {
+        return $this->hasMany(Coupon::class, 'template_id', 'coupon_id');
+    }
+
+    /**
+     * 获取优惠券所属模板
+     */
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class, 'template_id', 'coupon_id');
     }
 }

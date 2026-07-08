@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MultiTenantSaas\Contracts;
 
 use MultiTenantSaas\Models\Capability\CapabilityResult;

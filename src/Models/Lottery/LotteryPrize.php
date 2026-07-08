@@ -7,43 +7,35 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\HasGlobalId;
 
+/**
+ * 抽奖奖品模型
+ *
+ * 映射到已有的 lottery_prizes 表。
+ * 注意：当前表结构缺少 tenant_id、activity_id 等字段，
+ * 需后续迁移补充完整字段后方可用于多租户场景。
+ */
 class LotteryPrize extends Model
 {
     use HasFactory, HasGlobalId;
 
-    protected $primaryKey = 'prize_id';
+    protected $primaryKey = 'id';
+
+    public $incrementing = true;
 
     protected $fillable = [
-        'lottery_id', 'name', 'image', 'prize_type', 'probability',
-        'stock', 'sort_order', 'metadata',
+        'pool_id', 'name', 'type', 'quantity', 'probability',
     ];
 
     protected function casts(): array
     {
         return [
-            'metadata' => 'array',
-            'probability' => 'integer',
-            'stock' => 'integer',
-            'sort_order' => 'integer',
+            'quantity' => 'integer',
+            'probability' => 'decimal:4',
         ];
     }
 
-    public function activity(): BelongsTo
+    public function pool(): BelongsTo
     {
-        return $this->belongsTo(LotteryActivity::class, 'lottery_id', 'lottery_id');
-    }
-
-    public function hasStock(): bool
-    {
-        return $this->stock > 0;
-    }
-
-    public function decrementStock(): bool
-    {
-        if (!$this->hasStock()) {
-            return false;
-        }
-
-        return $this->decrement('stock') > 0;
+        return $this->belongsTo(LotteryPool::class, 'pool_id', 'id');
     }
 }

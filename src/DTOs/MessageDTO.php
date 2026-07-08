@@ -1,6 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MultiTenantSaas\DTOs;
+
+use MultiTenantSaas\Models\Message;
 
 class MessageDTO
 {
@@ -14,6 +18,23 @@ class MessageDTO
         public readonly ?string $replyToId = null,
         public readonly array $metadata = [],
     ) {}
+
+    public static function fromModel(Message $message, string $channel = 'web'): self
+    {
+        $metadata = $message->metadata ?? [];
+        $metadata['channel'] = $channel;
+
+        return new self(
+            messageId: (string) $message->message_id,
+            conversationId: (string) $message->conversation_id,
+            senderId: (string) $message->sender_id,
+            senderType: $message->sender_type ?? 'user',
+            content: $message->content ?? '',
+            type: $message->type ?? 'text',
+            replyToId: $message->reply_to_id ? (string) $message->reply_to_id : null,
+            metadata: $metadata,
+        );
+    }
 
     public static function fromArray(array $data): self
     {

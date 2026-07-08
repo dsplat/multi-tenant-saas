@@ -7,39 +7,48 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Models\Tenant;
 
 class LotteryDrawLog extends Model
 {
     use BelongsToTenant, HasFactory, HasGlobalId;
 
-    protected $table = 'lottery_records';
-
-    protected $primaryKey = 'record_id';
+    protected $primaryKey = 'log_id';
 
     protected $fillable = [
-        'lottery_id', 'prize_id', 'user_id', 'tenant_id',
-        'is_winner', 'prize_name', 'ip_address', 'user_agent',
+        'tenant_id', 'activity_id', 'prize_id', 'user_id',
+        'user_ip', 'user_agent', 'result', 'draw_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'is_winner' => 'boolean',
+            'draw_at' => 'datetime',
         ];
     }
 
     public function activity(): BelongsTo
     {
-        return $this->belongsTo(LotteryActivity::class, 'lottery_id', 'lottery_id');
+        return $this->belongsTo(LotteryActivity::class, 'activity_id', 'activity_id');
     }
 
     public function prize(): BelongsTo
     {
-        return $this->belongsTo(LotteryPrize::class, 'prize_id', 'prize_id');
+        return $this->belongsTo(LotteryActivityPrize::class, 'prize_id', 'prize_id');
     }
 
-    public function scopeWinners($query)
+    public function tenant(): BelongsTo
     {
-        return $query->where('is_winner', true);
+        return $this->belongsTo(Tenant::class, 'tenant_id', 'tenant_id');
+    }
+
+    public function scopeWin($query)
+    {
+        return $query->where('result', 'win');
+    }
+
+    public function scopeMiss($query)
+    {
+        return $query->where('result', 'miss');
     }
 }

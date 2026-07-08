@@ -30,7 +30,7 @@ class ToolRegistryTest extends TestCase
 
     private function registerDummyTool(string $slug = 'dummy_tool', array $schema = []): void
     {
-        $this->registry->register($slug, DummyHandler::class, $schema ?: [
+        $this->registry->register($slug, 'Dummy Tool', 'A dummy tool for testing', DummyHandler::class, $schema ?: [
             'type' => 'object',
             'properties' => ['query' => ['type' => 'string']],
             'required' => ['query'],
@@ -80,7 +80,7 @@ class ToolRegistryTest extends TestCase
             'enabled' => true,
         ]);
 
-        $this->registry->register('shared_tool', DummyHandler::class, [
+        $this->registry->register('shared_tool', 'Shared Tool', 'A shared tool for testing', DummyHandler::class, [
             'type' => 'object',
             'properties' => [],
         ]);
@@ -393,5 +393,147 @@ class ToolRegistryTest extends TestCase
         // 切换到其他租户不可见
         TenantContext::setTenantId('9999');
         $this->assertNull($this->registry->get('tenant_isolated'));
+    }
+
+    // ---------- 分类筛选 ----------
+
+    public function test_get_by_category(): void
+    {
+        $this->registry->register('core_tool', 'Core Tool', 'desc', DummyHandler::class, [], 'core');
+        $this->registry->register('ai_tool', 'AI Tool', 'desc', DummyHandler::class, [], 'ai');
+        $this->registry->register('core_tool2', 'Core Tool 2', 'desc', DummyHandler::class, [], 'core');
+
+        $coreTools = $this->registry->getByCategory('core');
+
+        $slugs = $coreTools->pluck('slug')->toArray();
+        $this->assertContains('core_tool', $slugs);
+        $this->assertContains('core_tool2', $slugs);
+        $this->assertNotContains('ai_tool', $slugs);
+    }
+
+    public function test_get_by_category_returns_empty_for_unknown(): void
+    {
+        $result = $this->registry->getByCategory('nonexistent');
+
+        $this->assertCount(0, $result);
+    }
+
+    public function test_get_categories(): void
+    {
+        $this->registry->register('t1', 'T1', 'desc', DummyHandler::class, [], 'core');
+        $this->registry->register('t2', 'T2', 'desc', DummyHandler::class, [], 'ai');
+        $this->registry->register('t3', 'T3', 'desc', DummyHandler::class, [], 'core');
+
+        $categories = $this->registry->getCategories();
+
+        $this->assertContains('ai', $categories);
+        $this->assertContains('core', $categories);
+    }
+
+    public function test_get_category_counts(): void
+    {
+        $this->registry->register('t1', 'T1', 'desc', DummyHandler::class, [], 'core');
+        $this->registry->register('t2', 'T2', 'desc', DummyHandler::class, [], 'ai');
+        $this->registry->register('t3', 'T3', 'desc', DummyHandler::class, [], 'core');
+
+        $counts = $this->registry->getCategoryCounts();
+
+        $this->assertArrayHasKey('core', $counts);
+        $this->assertArrayHasKey('ai', $counts);
+        $this->assertGreaterThanOrEqual(2, $counts['core']);
+        $this->assertGreaterThanOrEqual(1, $counts['ai']);
+    }
+
+    public function test_get_framework_tools(): void
+    {
+        $this->registry->register('core_tool', 'Core Tool', 'desc', DummyHandler::class, [], 'core');
+        $this->registry->register('ai_tool', 'AI Tool', 'desc', DummyHandler::class, [], 'ai');
+        $this->registry->register('business_tool', 'Business Tool', 'desc', DummyHandler::class, [], 'business');
+
+        $framework = $this->registry->getFrameworkTools();
+
+        $slugs = $framework->pluck('slug')->toArray();
+        $this->assertContains('core_tool', $slugs);
+        $this->assertContains('ai_tool', $slugs);
+        $this->assertNotContains('business_tool', $slugs);
+    }
+
+    public function test_get_business_tools(): void
+    {
+        $this->registry->register('core_tool', 'Core Tool', 'desc', DummyHandler::class, [], 'core');
+        $this->registry->register('ai_tool', 'AI Tool', 'desc', DummyHandler::class, [], 'ai');
+        $this->registry->register('business_tool', 'Business Tool', 'desc', DummyHandler::class, [], 'business');
+
+        $business = $this->registry->getBusinessTools();
+
+        $slugs = $business->pluck('slug')->toArray();
+        $this->assertNotContains('core_tool', $slugs);
+        $this->assertNotContains('ai_tool', $slugs);
+        $this->assertContains('business_tool', $slugs);
+    }
+
+    // ---------- Tool DTO Function Calling ----------
+
+    public function test_tool_to_function_calling(): void
+    {
+        $this->registerDummyTool('fc_tool', [
+            'type' => 'object',
+            'properties' => ['query' => ['type' => 'string']],
+            'required' => ['query'],
+        ]);
+
+        $tool = $this->registry->get('fc_tool');
+        $fc = $tool->toFunctionCalling();
+
+        $this->assertEquals('function', $fc['type']);
+        $this->assertEquals('fc_tool', $fc['function']['name']);
+        $this->assertArrayHasKey('description', $fc['function']);
+        $this->assertArrayHasKey('parameters', $fc['function']);
+    }
+
+    // ---------- 分类包含数据库工具 ----------
+
+    public function test_get_categories_includes_db_tools(): void
+    {
+        AgentTool::create([
+            'tool_id' => 900012,
+            'tenant_id' => 1001,
+            'name' => 'DB Cat Tool',
+            'slug' => 'db_cat_tool',
+            'description' => '测试',
+            'parameters_schema' => ['type' => 'object', 'properties' => []],
+            'handler_class' => DummyHandler::class,
+            'category' => 'business',
+            'enabled' => true,
+        ]);
+
+        $this->registry->register('runtime_tool', 'RT', 'desc', DummyHandler::class, [], 'core');
+
+        $categories = $this->registry->getCategories();
+
+        $this->assertContains('business', $categories);
+        $this->assertContains('core', $categories);
+    }
+
+    public function test_get_category_counts_includes_db_tools(): void
+    {
+        AgentTool::create([
+            'tool_id' => 900013,
+            'tenant_id' => 1001,
+            'name' => 'DB Count Tool',
+            'slug' => 'db_count_tool',
+            'description' => '测试',
+            'parameters_schema' => ['type' => 'object', 'properties' => []],
+            'handler_class' => DummyHandler::class,
+            'category' => 'business',
+            'enabled' => true,
+        ]);
+
+        $this->registry->register('rt1', 'RT1', 'desc', DummyHandler::class, [], 'core');
+
+        $counts = $this->registry->getCategoryCounts();
+
+        $this->assertArrayHasKey('business', $counts);
+        $this->assertArrayHasKey('core', $counts);
     }
 }

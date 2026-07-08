@@ -6,43 +6,68 @@ namespace MultiTenantSaas\Services\Channel;
 
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\ChannelContract;
-use MultiTenantSaas\Services\Conversation\ConversationService;
-use MultiTenantSaas\Services\Conversation\MessageService;
+use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\DTOs\MessageDTO;
+use MultiTenantSaas\Services\IdGenerator;
 
 class MessageRouter
 {
+    protected array $channels = [];
+
     public function __construct(
-        protected ChannelManager $channelManager,
-        protected ConversationService $conversationService,
+        protected IdGenerator $idGenerator,
+        protected EventBusBridge $eventBusBridge,
     ) {}
 
     /**
-     * 路由来自渠道的消息到会话系统.
+     * 注册渠道处理器.
      */
-    public function routeMessage(string $channelName, array $rawMessage): void
+    public function registerChannel(string $type, ChannelContract $provider): void
     {
-        $channel = $this->channelManager->get($channelName);
+        $this->channels[$type] = $provider;
+    }
 
-        if (! $channel instanceof ChannelContract) {
-            Log::warning('MessageRouter: channel not found', ['channel' => $channelName]);
+    /**
+     * 路由原始消息，通过渠道处理器转换为 MessageDTO.
+     */
+    public function route(string $channelType, array $rawMessage): MessageDTO
+    {
+        $provider = $this->channels[$channelType] ?? null;
 
-            return;
+        if (!$provider instanceof ChannelContract) {
+            throw new \InvalidArgumentException("Channel provider not found: {$channelType}");
         }
 
-        try {
-            $messageData = $channel->onMessage($rawMessage);
+        $messageData = $provider->onMessage($rawMessage);
 
-            if (empty($messageData)) {
-                return;
-            }
-
-            // 消息数据已由 channel 的 onMessage 处理完成
-            // 具体的会话/消息持久化由 channel 自行决定
-        } catch (\Throwable $e) {
-            Log::error('MessageRouter: failed to route message', [
-                'channel' => $channelName,
-                'error' => $e->getMessage(),
-            ]);
+        if (empty($messageData['message_id'])) {
+            $messageData['message_id'] = (string) $this->idGenerator->generate();
         }
+
+        return MessageDTO::fromArray($messageData);
+    }
+
+    /**
+     * 分发消息到事件总线.
+     */
+    public function dispatch(MessageDTO $message): void
+    {
+        $this->eventBusBridge->dispatch($message);
+    }
+
+    /**
+     * 获取已注册的渠道类型列表.
+     */
+    public function getRegisteredChannels(): array
+    {
+        return array_keys($this->channels);
+    }
+
+    /**
+     * 检查渠道是否已注册.
+     */
+    public function hasChannel(string $type): bool
+    {
+        return isset($this->channels[$type]);
     }
 }

@@ -116,7 +116,7 @@ class EndToEndIntegrationTest extends TestCase
     public function test_workflow_execution_flow(): void
     {
         $toolRegistry = new FakeToolRegistry();
-        $toolRegistry->register('process_order', 'OrderHandler', []);
+        $toolRegistry->register('process_order', 'Process Order', 'Process an order', 'OrderHandler', []);
 
         $tenantContext = $this->app->make(\MultiTenantSaas\Contracts\TenantContextContract::class);
         $engine = new WorkflowEngine($tenantContext, $toolRegistry);
@@ -198,7 +198,7 @@ class EndToEndIntegrationTest extends TestCase
         $this->assertSame(10, $memoryService->readTenantMemory($this->tenantId, 'config', 'max_agents'));
 
         // Decay
-        $memoryService->decay(0.1);
+        $memoryService->decay('agent', 100, 0.1);
 
         // Memories with weight > 0.1 should still exist
         $this->assertNotNull($memoryService->read('agent', 100, 'user_preference'));

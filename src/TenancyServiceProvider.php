@@ -254,6 +254,7 @@ class TenancyServiceProvider extends ServiceProvider
                 $app->make(ToolRegistryContract::class),
                 $app->make(AgentMonitorContract::class),
                 $app->make(TenantContextContract::class),
+                $app->make(WorkflowEngineContract::class),
                 $app->make(MemoryCompressor::class),
             );
         });
@@ -463,7 +464,7 @@ class TenancyServiceProvider extends ServiceProvider
     {
         $registry = $this->app->make(ToolRegistryContract::class);
 
-        $registry->register('llm_call', LlmCallTool::class, [
+        $registry->register('llm_call', 'LLM Call', 'Send a prompt to an AI language model and receive a completion', LlmCallTool::class, [
             'type' => 'object',
             'properties' => [
                 'prompt' => ['type' => 'string', 'description' => 'The prompt to send to the AI model'],
@@ -475,7 +476,7 @@ class TenancyServiceProvider extends ServiceProvider
             'required' => ['prompt'],
         ], 'ai');
 
-        $registry->register('http_request', HttpRequestTool::class, [
+        $registry->register('http_request', 'HTTP Request', 'Make an HTTP request to an external URL', HttpRequestTool::class, [
             'type' => 'object',
             'properties' => [
                 'url' => ['type' => 'string', 'description' => 'Request URL'],
@@ -487,7 +488,7 @@ class TenancyServiceProvider extends ServiceProvider
             'required' => ['url'],
         ], 'core');
 
-        $registry->register('webhook_trigger', WebhookTriggerTool::class, [
+        $registry->register('webhook_trigger', 'Webhook Trigger', 'Send a webhook notification to an external URL', WebhookTriggerTool::class, [
             'type' => 'object',
             'properties' => [
                 'url' => ['type' => 'string', 'description' => 'Webhook URL'],
@@ -498,7 +499,7 @@ class TenancyServiceProvider extends ServiceProvider
             'required' => ['url'],
         ], 'channel');
 
-        $registry->register('email_send', EmailSendTool::class, [
+        $registry->register('email_send', 'Send Email', 'Send an email message to recipients', EmailSendTool::class, [
             'type' => 'object',
             'properties' => [
                 'to' => ['type' => 'string', 'description' => 'Recipient email'],
@@ -511,7 +512,7 @@ class TenancyServiceProvider extends ServiceProvider
             'required' => ['to', 'subject', 'body'],
         ], 'core');
 
-        $registry->register('file_read', FileReadTool::class, [
+        $registry->register('file_read', 'Read File', 'Read a file from tenant storage', FileReadTool::class, [
             'type' => 'object',
             'properties' => [
                 'path' => ['type' => 'string', 'description' => 'File path relative to tenant storage'],
@@ -521,7 +522,7 @@ class TenancyServiceProvider extends ServiceProvider
             'required' => ['path'],
         ], 'storage');
 
-        $registry->register('file_write', FileWriteTool::class, [
+        $registry->register('file_write', 'Write File', 'Write content to a file in tenant storage', FileWriteTool::class, [
             'type' => 'object',
             'properties' => [
                 'path' => ['type' => 'string', 'description' => 'File path relative to tenant storage'],
@@ -532,7 +533,7 @@ class TenancyServiceProvider extends ServiceProvider
             'required' => ['path', 'content'],
         ], 'storage');
 
-        $registry->register('cache_get', CacheGetTool::class, [
+        $registry->register('cache_get', 'Get Cache', 'Retrieve a value from the cache by key', CacheGetTool::class, [
             'type' => 'object',
             'properties' => [
                 'key' => ['type' => 'string', 'description' => 'Cache key'],
@@ -541,7 +542,7 @@ class TenancyServiceProvider extends ServiceProvider
             'required' => ['key'],
         ], 'core');
 
-        $registry->register('cache_set', CacheSetTool::class, [
+        $registry->register('cache_set', 'Set Cache', 'Store a value in the cache with optional TTL', CacheSetTool::class, [
             'type' => 'object',
             'properties' => [
                 'key' => ['type' => 'string', 'description' => 'Cache key'],
@@ -551,7 +552,7 @@ class TenancyServiceProvider extends ServiceProvider
             'required' => ['key', 'value'],
         ], 'core');
 
-        $registry->register('ocr_recognize', OcrRecognizeTool::class, [
+        $registry->register('ocr_recognize', 'OCR Recognize', 'Extract text from an image using OCR', OcrRecognizeTool::class, [
             'type' => 'object',
             'properties' => [
                 'image_url' => ['type' => 'string', 'description' => 'Image URL'],
@@ -560,7 +561,7 @@ class TenancyServiceProvider extends ServiceProvider
             ],
         ], 'ai');
 
-        $registry->register('vector_search', VectorSearchTool::class, [
+        $registry->register('vector_search', 'Vector Search', 'Search for similar content using vector embeddings', VectorSearchTool::class, [
             'type' => 'object',
             'properties' => [
                 'query' => ['type' => 'string', 'description' => 'Search query'],
@@ -571,7 +572,7 @@ class TenancyServiceProvider extends ServiceProvider
             'required' => ['query'],
         ], 'kb');
 
-        $registry->register('embedding_generate', EmbeddingGenerateTool::class, [
+        $registry->register('embedding_generate', 'Generate Embedding', 'Generate vector embeddings for text', EmbeddingGenerateTool::class, [
             'type' => 'object',
             'properties' => [
                 'text' => ['type' => 'string', 'description' => 'Text to embed'],
@@ -580,7 +581,7 @@ class TenancyServiceProvider extends ServiceProvider
             'required' => ['text'],
         ], 'ai');
 
-        $registry->register('knowledge_search', KnowledgeSearchTool::class, [
+        $registry->register('knowledge_search', 'Knowledge Search', 'Search knowledge bases for relevant information', KnowledgeSearchTool::class, [
             'type' => 'object',
             'properties' => [
                 'query' => ['type' => 'string', 'description' => 'Search query'],
@@ -590,7 +591,7 @@ class TenancyServiceProvider extends ServiceProvider
             'required' => ['query'],
         ], 'kb');
 
-        $registry->register('document_parse', DocumentParseTool::class, [
+        $registry->register('document_parse', 'Parse Document', 'Parse and extract content from a document', DocumentParseTool::class, [
             'type' => 'object',
             'properties' => [
                 'file_id' => ['type' => 'string', 'description' => 'File ID'],

@@ -2,217 +2,227 @@
 
 namespace MultiTenantSaas\Services;
 
-use Carbon\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use MultiTenantSaas\Models\Lottery;
-use MultiTenantSaas\Models\LotteryPrize;
-use MultiTenantSaas\Models\LotteryRecord;
+use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Models\Lottery\LotteryActivity;
+use MultiTenantSaas\Models\Lottery\LotteryActivityPrize;
+use MultiTenantSaas\Models\Lottery\LotteryBlacklist;
+use MultiTenantSaas\Models\Lottery\LotteryDrawLog;
 
 /**
- * 抽奖系统服务
+ * 抽奖服务
  *
- * 概率控制、防刷、奖品池管理。
- *
- * 特性:
- * - 多奖品池管理
- * - 概率权重控制（千分比）
- * - 每日/总参与次数限制
- * - 防刷机制（IP/用户/租户维度）
- * - 奖品库存自动扣减
- * - 中奖记录查询
- * - 租户隔离
+ * 功能：活动管理、奖品管理、抽奖执行、黑名单管理、统计查询
  */
 class LotteryService
 {
+    // ========================================
+    // 活动管理
+    // ========================================
+
     /**
      * 创建抽奖活动
      */
-    public function createLottery(array $data, int $tenantId): Lottery
+    public static function createActivity(array $data): LotteryActivity
     {
-        return DB::transaction(function () use ($data, $tenantId) {
-            $lottery = Lottery::create([
-                'tenant_id' => $tenantId,
-                'title' => $data['title'],
-                'description' => $data['description'] ?? null,
-                'status' => $data['status'] ?? 'draft',
-                'start_at' => $data['start_at'],
-                'end_at' => $data['end_at'],
-                'daily_limit' => $data['daily_limit'] ?? 0,
-                'total_limit' => $data['total_limit'] ?? 0,
-                'daily_limit_per_user' => $data['daily_limit_per_user'] ?? 0,
-                'total_limit_per_user' => $data['total_limit_per_user'] ?? 0,
-                'anti_cheat_ip' => $data['anti_cheat_ip'] ?? true,
-                'prize_show_count' => $data['prize_show_count'] ?? 8,
-                'metadata' => $data['metadata'] ?? null,
-            ]);
-
-            if (!empty($data['prizes'])) {
-                $this->savePrizes($lottery->getKey(), $data['prizes']);
-            }
-
-            return $lottery;
-        });
+        return LotteryActivity::create($data);
     }
 
     /**
      * 更新抽奖活动
      */
-    public function updateLottery(Lottery $lottery, array $data): Lottery
+    public static function updateActivity(int $activityId, array $data): LotteryActivity
     {
-        $lottery->update([
-            'title' => $data['title'] ?? $lottery->title,
-            'description' => $data['description'] ?? $lottery->description,
-            'status' => $data['status'] ?? $lottery->status,
-            'start_at' => $data['start_at'] ?? $lottery->start_at,
-            'end_at' => $data['end_at'] ?? $lottery->end_at,
-            'daily_limit' => $data['daily_limit'] ?? $lottery->daily_limit,
-            'total_limit' => $data['total_limit'] ?? $lottery->total_limit,
-            'daily_limit_per_user' => $data['daily_limit_per_user'] ?? $lottery->daily_limit_per_user,
-            'total_limit_per_user' => $data['total_limit_per_user'] ?? $lottery->total_limit_per_user,
-            'anti_cheat_ip' => $data['anti_cheat_ip'] ?? $lottery->anti_cheat_ip,
-            'prize_show_count' => $data['prize_show_count'] ?? $lottery->prize_show_count,
-            'metadata' => $data['metadata'] ?? $lottery->metadata,
-        ]);
+        $activity = LotteryActivity::findOrFail($activityId);
+        $activity->update($data);
 
-        if (isset($data['prizes'])) {
-            LotteryPrize::where('lottery_id', $lottery->getKey())->delete();
-            $this->savePrizes($lottery->getKey(), $data['prizes']);
+        return $activity->fresh();
+    }
+
+    /**
+     * 获取活动详情（含奖品列表）
+     */
+    public static function getActivity(int $activityId): LotteryActivity
+    {
+        return LotteryActivity::with('prizes')->findOrFail($activityId);
+    }
+
+    /**
+     * 获取租户活动列表
+     */
+    public static function getActivities(int $tenantId, array $filters = []): \Illuminate\Database\Eloquent\Collection
+    {
+        $query = LotteryActivity::where('tenant_id', $tenantId);
+
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
         }
 
-        return $lottery->fresh(['prizes']);
+        return $query->orderByDesc('created_at')->get();
     }
+
+    /**
+     * 更新活动状态
+     */
+    public static function updateActivityStatus(int $activityId, string $status): LotteryActivity
+    {
+        $activity = LotteryActivity::findOrFail($activityId);
+        $activity->update(['status' => $status]);
+
+        return $activity->fresh();
+    }
+
+    // ========================================
+    // 奖品管理
+    // ========================================
+
+    /**
+     * 添加奖品
+     */
+    public static function addPrize(int $activityId, array $data): LotteryActivityPrize
+    {
+        $activity = LotteryActivity::findOrFail($activityId);
+
+        $data['tenant_id'] = $activity->tenant_id;
+        $data['activity_id'] = $activityId;
+        $data['remaining_count'] = $data['remaining_count'] ?? ($data['total_count'] ?? 0);
+
+        return LotteryActivityPrize::create($data);
+    }
+
+    /**
+     * 更新奖品
+     */
+    public static function updatePrize(int $prizeId, array $data): LotteryActivityPrize
+    {
+        $prize = LotteryActivityPrize::findOrFail($prizeId);
+        $prize->update($data);
+
+        return $prize->fresh();
+    }
+
+    /**
+     * 删除奖品
+     */
+    public static function deletePrize(int $prizeId): bool
+    {
+        $prize = LotteryActivityPrize::findOrFail($prizeId);
+
+        return $prize->delete();
+    }
+
+    /**
+     * 获取活动奖品列表
+     */
+    public static function getPrizes(int $activityId): \Illuminate\Database\Eloquent\Collection
+    {
+        return LotteryActivityPrize::where('activity_id', $activityId)
+            ->orderBy('sort_order')
+            ->orderBy('prize_id')
+            ->get();
+    }
+
+    // ========================================
+    // 抽奖执行
+    // ========================================
 
     /**
      * 执行抽奖
+     *
+     * @return array{result: string, prize: ?LotteryActivityPrize, log: LotteryDrawLog}
      */
-    public function draw(int $lotteryId, int $userId, int $tenantId, ?string $ipAddress = null, ?string $userAgent = null): LotteryRecord
+    public static function draw(int $activityId, ?int $userId = null, ?string $userIp = null, ?string $userAgent = null): array
     {
-        return DB::transaction(function () use ($lotteryId, $userId, $tenantId, $ipAddress, $userAgent) {
-            $lottery = Lottery::with('prizes')->findOrFail($lotteryId);
+        $activity = LotteryActivity::findOrFail($activityId);
 
-            $this->validateLottery($lottery, $userId, $tenantId, $ipAddress);
+        // 检查活动状态
+        if ($activity->status !== 'active') {
+            throw new \RuntimeException('活动未开始或已结束');
+        }
 
-            $prize = $this->rollPrize($lottery);
+        // 检查时间范围
+        $now = now();
+        if ($activity->start_at && $now->lt($activity->start_at)) {
+            throw new \RuntimeException('活动尚未开始');
+        }
+        if ($activity->end_at && $now->gt($activity->end_at)) {
+            throw new \RuntimeException('活动已结束');
+        }
 
-            $record = LotteryRecord::create([
-                'lottery_id' => $lotteryId,
-                'prize_id' => $prize ? $prize->getKey() : null,
-                'user_id' => $userId,
-                'tenant_id' => $tenantId,
-                'is_winner' => $prize !== null,
-                'prize_name' => $prize ? $prize->name : '谢谢参与',
-                'ip_address' => $ipAddress,
-                'user_agent' => $userAgent,
-            ]);
+        // 检查黑名单
+        if ($userId && static::isBlacklisted($activityId, 'user_id', (string) $userId)) {
+            $log = static::recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'blacklist');
 
-            if ($prize) {
-                $prize->decrement('stock');
-                $lottery->increment('total_draws');
-                $lottery->increment('total_wins');
-            } else {
-                $lottery->increment('total_draws');
+            return ['result' => 'blacklist', 'prize' => null, 'log' => $log];
+        }
+        if ($userIp && static::isBlacklisted($activityId, 'ip', $userIp)) {
+            $log = static::recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'blacklist');
+
+            return ['result' => 'blacklist', 'prize' => null, 'log' => $log];
+        }
+
+        // 检查用户抽奖次数限制
+        $rules = $activity->rules ?? [];
+        $maxPerUser = $rules['max_per_user'] ?? 0;
+        if ($maxPerUser > 0 && $userId) {
+            $drawCount = LotteryDrawLog::where('activity_id', $activityId)
+                ->where('user_id', $userId)
+                ->count();
+            if ($drawCount >= $maxPerUser) {
+                $log = static::recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'miss');
+
+                return ['result' => 'miss', 'prize' => null, 'log' => $log];
             }
+        }
 
-            return $record;
-        });
+        // 尝试抽奖
+        $prize = static::tryDrawPrize($activityId);
+
+        if ($prize) {
+            $log = static::recordDraw($activity->tenant_id, $activityId, $prize->prize_id, $userId, $userIp, $userAgent, 'win');
+
+            return ['result' => 'win', 'prize' => $prize, 'log' => $log];
+        }
+
+        $log = static::recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'miss');
+
+        return ['result' => 'miss', 'prize' => null, 'log' => $log];
     }
 
     /**
-     * 校验抽奖资格
+     * 尝试抽取奖品（加权随机 + 乐观锁）
      */
-    protected function validateLottery(Lottery $lottery, int $userId, int $tenantId, ?string $ipAddress): void
+    protected static function tryDrawPrize(int $activityId): ?LotteryActivityPrize
     {
-        if ($lottery->status !== 'active') {
-            throw new \RuntimeException('抽奖活动未开启');
-        }
-
-        if (Carbon::parse($lottery->start_at)->isFuture()) {
-            throw new \RuntimeException('抽奖活动尚未开始');
-        }
-
-        if (Carbon::parse($lottery->end_at)->isPast()) {
-            throw new \RuntimeException('抽奖活动已结束');
-        }
-
-        // 总参与次数限制
-        if ($lottery->total_limit > 0) {
-            $totalDraws = LotteryRecord::where('lottery_id', $lottery->getKey())->count();
-            if ($totalDraws >= $lottery->total_limit) {
-                throw new \RuntimeException('活动总参与次数已达上限');
-            }
-        }
-
-        // 每日参与次数限制
-        if ($lottery->daily_limit > 0) {
-            $todayDraws = LotteryRecord::where('lottery_id', $lottery->getKey())
-                ->whereDate('created_at', today())
-                ->count();
-            if ($todayDraws >= $lottery->daily_limit) {
-                throw new \RuntimeException('今日参与次数已达上限');
-            }
-        }
-
-        // 用户每日限制
-        if ($lottery->daily_limit_per_user > 0) {
-            $userTodayDraws = LotteryRecord::where('lottery_id', $lottery->getKey())
-                ->where('user_id', $userId)
-                ->whereDate('created_at', today())
-                ->count();
-            if ($userTodayDraws >= $lottery->daily_limit_per_user) {
-                throw new \RuntimeException('您今日参与次数已达上限');
-            }
-        }
-
-        // 用户总限制
-        if ($lottery->total_limit_per_user > 0) {
-            $userTotalDraws = LotteryRecord::where('lottery_id', $lottery->getKey())
-                ->where('user_id', $userId)
-                ->count();
-            if ($userTotalDraws >= $lottery->total_limit_per_user) {
-                throw new \RuntimeException('您的参与次数已达上限');
-            }
-        }
-
-        // IP 防刷
-        if ($lottery->anti_cheat_ip && $ipAddress) {
-            $ipRecent = LotteryRecord::where('lottery_id', $lottery->getKey())
-                ->where('ip_address', $ipAddress)
-                ->where('created_at', '>=', now()->subSeconds(5))
-                ->count();
-            if ($ipRecent >= 5) {
-                throw new \RuntimeException('操作过于频繁，请稍后再试');
-            }
-        }
-    }
-
-    /**
-     * 按概率权重抽取奖品
-     */
-    protected function rollPrize(Lottery $lottery): ?LotteryPrize
-    {
-        $prizes = $lottery->prizes->filter(function ($prize) {
-            return $prize->stock > 0;
-        });
+        $prizes = LotteryActivityPrize::where('activity_id', $activityId)
+            ->where('remaining_count', '>', 0)
+            ->where('weight', '>', 0)
+            ->orderBy('sort_order')
+            ->get();
 
         if ($prizes->isEmpty()) {
             return null;
         }
 
-        $totalWeight = $prizes->sum('probability');
-        $totalWeight += $lottery->no_prize_probability ?? 0;
-
-        if ($totalWeight <= 0) {
-            return null;
-        }
-
-        $rand = random_int(1, $totalWeight);
-        $current = 0;
+        // 加权随机选择
+        $totalWeight = $prizes->sum('weight');
+        $random = random_int(1, $totalWeight);
+        $cumulative = 0;
 
         foreach ($prizes as $prize) {
-            $current += $prize->probability;
-            if ($rand <= $current) {
-                return $prize;
+            $cumulative += $prize->weight;
+            if ($random <= $cumulative) {
+                // 乐观锁扣减库存
+                $affected = LotteryActivityPrize::where('prize_id', $prize->prize_id)
+                    ->where('remaining_count', '>', 0)
+                    ->decrement('remaining_count', 1);
+
+                if ($affected > 0) {
+                    return $prize->fresh();
+                }
+
+                // 库存不足，重新尝试
+                return static::tryDrawPrize($activityId);
             }
         }
 
@@ -220,73 +230,114 @@ class LotteryService
     }
 
     /**
-     * 保存奖品配置
+     * 记录抽奖日志
      */
-    protected function savePrizes(int $lotteryId, array $prizes): void
+    protected static function recordDraw(int $tenantId, int $activityId, ?int $prizeId, ?int $userId, ?string $userIp, ?string $userAgent, string $result): LotteryDrawLog
     {
-        foreach ($prizes as $index => $prize) {
-            LotteryPrize::create([
-                'lottery_id' => $lotteryId,
-                'name' => $prize['name'],
-                'image' => $prize['image'] ?? null,
-                'prize_type' => $prize['prize_type'] ?? 'physical',
-                'probability' => $prize['probability'] ?? 0,
-                'stock' => $prize['stock'] ?? 0,
-                'sort_order' => $prize['sort_order'] ?? $index,
-                'metadata' => $prize['metadata'] ?? null,
-            ]);
-        }
+        return LotteryDrawLog::create([
+            'tenant_id' => $tenantId,
+            'activity_id' => $activityId,
+            'prize_id' => $prizeId,
+            'user_id' => $userId,
+            'user_ip' => $userIp,
+            'user_agent' => $userAgent,
+            'result' => $result,
+            'draw_at' => now(),
+        ]);
+    }
+
+    // ========================================
+    // 黑名单管理
+    // ========================================
+
+    /**
+     * 添加黑名单
+     */
+    public static function addToBlacklist(int $tenantId, int $activityId, string $identifierType, string $identifier, ?string $reason = null): LotteryBlacklist
+    {
+        return LotteryBlacklist::create([
+            'tenant_id' => $tenantId,
+            'activity_id' => $activityId,
+            'identifier_type' => $identifierType,
+            'identifier' => $identifier,
+            'reason' => $reason,
+        ]);
     }
 
     /**
-     * 查询抽奖记录
+     * 移除黑名单
      */
-    public function getRecords(int $lotteryId, array $filters = [], ?int $perPage = null)
+    public static function removeFromBlacklist(int $activityId, string $identifierType, string $identifier): bool
     {
-        $query = LotteryRecord::where('lottery_id', $lotteryId)->with('prize');
-
-        if (!empty($filters['user_id'])) {
-            $query->where('user_id', $filters['user_id']);
-        }
-        if (isset($filters['is_winner'])) {
-            $query->where('is_winner', $filters['is_winner']);
-        }
-
-        $query->orderByDesc('created_at');
-
-        return $perPage !== null ? $query->paginate($perPage) : $query->get();
+        return LotteryBlacklist::where('activity_id', $activityId)
+            ->where('identifier_type', $identifierType)
+            ->where('identifier', $identifier)
+            ->delete() > 0;
     }
 
     /**
-     * 中奖统计
+     * 检查是否在黑名单中
      */
-    public function getStatistics(int $lotteryId): array
+    public static function isBlacklisted(int $activityId, string $identifierType, string $identifier): bool
     {
-        $lottery = Lottery::with('prizes')->findOrFail($lotteryId);
+        return LotteryBlacklist::where('activity_id', $activityId)
+            ->where('identifier_type', $identifierType)
+            ->where('identifier', $identifier)
+            ->exists();
+    }
 
-        $totalDraws = $lottery->total_draws;
-        $totalWins = $lottery->total_wins;
-        $winRate = $totalDraws > 0 ? round($totalWins / $totalDraws * 100, 2) : 0;
+    /**
+     * 获取活动黑名单
+     */
+    public static function getBlacklist(int $activityId): \Illuminate\Database\Eloquent\Collection
+    {
+        return LotteryBlacklist::where('activity_id', $activityId)->get();
+    }
 
-        $prizeStats = LotteryRecord::where('lottery_id', $lotteryId)
-            ->where('is_winner', true)
-            ->selectRaw('prize_id, COUNT(*) as count')
-            ->groupBy('prize_id')
-            ->get()
-            ->keyBy('prize_id');
+    // ========================================
+    // 统计查询
+    // ========================================
 
-        $prizes = $lottery->prizes->map(function ($prize) use ($prizeStats) {
-            $prizeData = $prize->toArray();
-            $prizeData['won_count'] = $prizeStats[$prize->getKey()]->count ?? 0;
-
-            return $prizeData;
-        });
+    /**
+     * 获取活动抽奖统计
+     */
+    public static function getDrawStats(int $activityId): array
+    {
+        $total = LotteryDrawLog::where('activity_id', $activityId)->count();
+        $wins = LotteryDrawLog::where('activity_id', $activityId)->where('result', 'win')->count();
+        $misses = LotteryDrawLog::where('activity_id', $activityId)->where('result', 'miss')->count();
+        $blacklisted = LotteryDrawLog::where('activity_id', $activityId)->where('result', 'blacklist')->count();
 
         return [
-            'total_draws' => $totalDraws,
-            'total_wins' => $totalWins,
-            'win_rate' => $winRate,
-            'prizes' => $prizes->toArray(),
+            'total_draws' => $total,
+            'wins' => $wins,
+            'misses' => $misses,
+            'blacklisted' => $blacklisted,
+            'win_rate' => $total > 0 ? round($wins / $total * 100, 2) : 0,
         ];
+    }
+
+    /**
+     * 获取用户抽奖记录
+     */
+    public static function getUserDrawLogs(int $activityId, int $userId): \Illuminate\Database\Eloquent\Collection
+    {
+        return LotteryDrawLog::where('activity_id', $activityId)
+            ->where('user_id', $userId)
+            ->orderByDesc('draw_at')
+            ->get();
+    }
+
+    /**
+     * 获取中奖记录列表
+     */
+    public static function getWinLogs(int $activityId, int $limit = 50): \Illuminate\Database\Eloquent\Collection
+    {
+        return LotteryDrawLog::where('activity_id', $activityId)
+            ->where('result', 'win')
+            ->with('prize')
+            ->orderByDesc('draw_at')
+            ->limit($limit)
+            ->get();
     }
 }

@@ -22,9 +22,19 @@ use MultiTenantSaas\Services\Agent\Dto\Tool;
 class ToolRegistry implements ToolRegistryContract
 {
     /**
+     * 框架层工具分类（平台内置）
+     */
+    private const FRAMEWORK_CATEGORIES = ['core', 'ai', 'storage', 'kb', 'channel', 'workflow'];
+
+    /**
      * 运行时注册的工具 [slug => Tool]
      */
     private array $runtimeTools = [];
+
+    /**
+     * 请求级工具缓存，避免重复查询数据库
+     */
+    private ?Collection $cachedDbTools = null;
 
     public function __construct(
         private Container $container
@@ -34,15 +44,18 @@ class ToolRegistry implements ToolRegistryContract
      * 注册工具到运行时注册表
      *
      * @param  string  $slug  工具唯一标识
+     * @param  string  $name  工具显示名称
+     * @param  string  $description  工具功能描述（供 AI 理解工具用途）
      * @param  string  $handlerClass  工具处理器类名（FQCN，须实现 ToolHandlerContract）
      * @param  array  $schema  JSON Schema 格式的参数定义
+     * @param  string  $category  工具分类
      */
-    public function register(string $slug, string $handlerClass, array $schema, string $category = 'core'): void
+    public function register(string $slug, string $name, string $description, string $handlerClass, array $schema, string $category = 'core'): void
     {
         $this->runtimeTools[$slug] = new Tool(
             slug: $slug,
-            name: $slug,
-            description: '',
+            name: $name,
+            description: $description,
             parametersSchema: $schema,
             handlerClass: $handlerClass,
             category: $category,
@@ -51,6 +64,8 @@ class ToolRegistry implements ToolRegistryContract
 
     /**
      * 获取所有工具（运行时 + 数据库，运行时优先）
+     *
+     * @return Collection<Tool>
      */
     public function all(): Collection
     {
@@ -186,25 +201,21 @@ class ToolRegistry implements ToolRegistryContract
     /**
      * 从数据库加载当前租户可用的所有工具（含全局工具 tenant_id=0）
      *
+     * 使用请求级缓存，避免同一次请求内重复查询数据库。
+     *
      * @return Collection<Tool>
      */
     private function loadDbTools(): Collection
     {
-        $models = AgentTool::withoutGlobalScope(TenantScope::class)
+        if ($this->cachedDbTools !== null) {
+            return $this->cachedDbTools;
+        }
+
+        $models = $this->buildTenantQuery()
             ->where('enabled', true)
-            ->where(function ($query) {
-                // 包含全局工具（tenant_id=0）和当前租户上下文中的工具
-                $tenantId = TenantContext::getId();
-                if ($tenantId) {
-                    $query->where('tenant_id', $tenantId)
-                        ->orWhere('tenant_id', 0);
-                } else {
-                    $query->where('tenant_id', 0);
-                }
-            })
             ->get();
 
-        return $models->map(function (AgentTool $model) {
+        $this->cachedDbTools = $models->map(function (AgentTool $model) {
             return Tool::fromArray([
                 'slug' => $model->slug,
                 'name' => $model->name,
@@ -214,6 +225,8 @@ class ToolRegistry implements ToolRegistryContract
                 'category' => $model->category ?? 'core',
             ]);
         });
+
+        return $this->cachedDbTools;
     }
 
     /**
@@ -221,18 +234,9 @@ class ToolRegistry implements ToolRegistryContract
      */
     private function findDbTool(string $slug): ?Tool
     {
-        $model = AgentTool::withoutGlobalScope(TenantScope::class)
+        $model = $this->buildTenantQuery()
             ->where('slug', $slug)
             ->where('enabled', true)
-            ->where(function ($query) {
-                $tenantId = TenantContext::getId();
-                if ($tenantId) {
-                    $query->where('tenant_id', $tenantId)
-                        ->orWhere('tenant_id', 0);
-                } else {
-                    $query->where('tenant_id', 0);
-                }
-            })
             ->first();
 
         if ($model === null) {
@@ -247,6 +251,27 @@ class ToolRegistry implements ToolRegistryContract
             'handler_class' => $model->handler_class,
             'category' => $model->category ?? 'core',
         ]);
+    }
+
+    /**
+     * 构建租户过滤查询（含全局工具 tenant_id=0）
+     *
+     * 提取公共查询逻辑，避免 loadDbTools() 和 findDbTool() 重复代码。
+     *
+     * @return \Illuminate\Database\Eloquent\Builder<AgentTool>
+     */
+    private function buildTenantQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return AgentTool::withoutGlobalScope(TenantScope::class)
+            ->where(function ($query) {
+                $tenantId = TenantContext::getId();
+                if ($tenantId) {
+                    $query->where('tenant_id', $tenantId)
+                        ->orWhere('tenant_id', 0);
+                } else {
+                    $query->where('tenant_id', 0);
+                }
+            });
     }
 
     public function getByCategory(string $category): Collection
@@ -264,21 +289,32 @@ class ToolRegistry implements ToolRegistryContract
         return $this->all()->groupBy('category')->map(fn ($tools) => $tools->count())->toArray();
     }
 
+    /**
+     * 获取框架层工具（平台内置分类）
+     *
+     * 框架层工具属于 core/ai/storage/kb/channel/workflow 分类，
+     * 由平台预置，租户不可删除。
+     *
+     * @return Collection<Tool>
+     */
     public function getFrameworkTools(): Collection
     {
-        $frameworkCategories = ['core', 'ai', 'storage', 'kb', 'channel', 'workflow'];
-
         return $this->all()->filter(
-            fn (Tool $tool) => in_array($tool->category, $frameworkCategories)
+            fn (Tool $tool) => in_array($tool->category, self::FRAMEWORK_CATEGORIES)
         )->values();
     }
 
+    /**
+     * 获取业务层工具（租户自定义分类）
+     *
+     * 业务层工具不属于框架层分类，由租户自行创建和管理。
+     *
+     * @return Collection<Tool>
+     */
     public function getBusinessTools(): Collection
     {
-        $frameworkCategories = ['core', 'ai', 'storage', 'kb', 'channel', 'workflow'];
-
         return $this->all()->filter(
-            fn (Tool $tool) => ! in_array($tool->category, $frameworkCategories)
+            fn (Tool $tool) => ! in_array($tool->category, self::FRAMEWORK_CATEGORIES)
         )->values();
     }
 }

@@ -296,7 +296,7 @@ class LotteryServiceTest extends TestCase
         ]);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('活动未开始或已结束');
+        $this->expectExceptionMessage(trans('lottery.activity_not_active'));
 
         LotteryService::draw($activity->activity_id, 2001, '127.0.0.1', 'TestAgent');
     }
@@ -313,7 +313,7 @@ class LotteryServiceTest extends TestCase
         ]);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('活动已结束');
+        $this->expectExceptionMessage(trans('lottery.activity_ended'));
 
         LotteryService::draw($activity->activity_id, 2001, '127.0.0.1', 'TestAgent');
     }
@@ -329,7 +329,7 @@ class LotteryServiceTest extends TestCase
         ]);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('活动尚未开始');
+        $this->expectExceptionMessage(trans('lottery.activity_not_started'));
 
         LotteryService::draw($activity->activity_id, 2001, '127.0.0.1', 'TestAgent');
     }

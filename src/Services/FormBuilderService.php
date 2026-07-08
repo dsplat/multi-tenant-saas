@@ -96,21 +96,21 @@ class FormBuilderService
         $form = Form::findOrFail($formId);
 
         if ($form->status !== 'published') {
-            throw new \RuntimeException('表单未发布');
+            throw new \RuntimeException(trans('form.form_not_published'));
         }
 
         if ($form->start_at && Carbon::parse($form->start_at)->isFuture()) {
-            throw new \RuntimeException('表单尚未开始');
+            throw new \RuntimeException(trans('form.form_not_started'));
         }
 
         if ($form->end_at && Carbon::parse($form->end_at)->isPast()) {
-            throw new \RuntimeException('表单已结束');
+            throw new \RuntimeException(trans('form.form_ended'));
         }
 
         if ($form->submit_limit > 0) {
             $count = FormSubmission::where('form_id', $formId)->count();
             if ($count >= $form->submit_limit) {
-                throw new \RuntimeException('已达提交上限');
+                throw new \RuntimeException(trans('form.form_submit_limit'));
             }
         }
 
@@ -138,7 +138,7 @@ class FormBuilderService
             $value = $formData[$field->field_key] ?? null;
 
             if ($field->is_required && empty($value) && $value !== '0' && $value !== 0) {
-                throw new \RuntimeException("字段 {$field->label} 是必填的");
+                throw new \RuntimeException(trans('form.field_required', ['field' => $field->label]));
             }
 
             if ($value !== null && $value !== '') {

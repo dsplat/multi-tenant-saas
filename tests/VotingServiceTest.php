@@ -160,7 +160,7 @@ class VotingServiceTest extends TestCase
         ], 2001);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('投票活动未开启');
+        $this->expectExceptionMessage(trans('voting.vote_not_active'));
 
         $this->service->castVote($vote->vote_id, [1], 1001, 2001);
     }
@@ -179,7 +179,7 @@ class VotingServiceTest extends TestCase
         ], 2001);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('投票已结束');
+        $this->expectExceptionMessage(trans('voting.vote_ended'));
 
         $this->service->castVote($vote->vote_id, [1], 1001, 2001);
     }
@@ -198,7 +198,7 @@ class VotingServiceTest extends TestCase
         ], 2001);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('投票尚未开始');
+        $this->expectExceptionMessage(trans('voting.vote_not_started'));
 
         $this->service->castVote($vote->vote_id, [1], 1001, 2001);
     }
@@ -212,7 +212,7 @@ class VotingServiceTest extends TestCase
         $optionIds = $vote->options->pluck('vote_option_id')->toArray();
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('单选投票只能选择一个选项');
+        $this->expectExceptionMessage(trans('voting.vote_single_only'));
 
         $this->service->castVote($vote->vote_id, $optionIds, 1001, 2001);
     }
@@ -230,7 +230,7 @@ class VotingServiceTest extends TestCase
 
         // 第二次投票失败
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('您今日投票次数已达上限');
+        $this->expectExceptionMessage(trans('voting.vote_user_daily_limit'));
 
         $this->service->castVote($vote->vote_id, [$optionId], 1001, 2001);
     }
@@ -240,7 +240,7 @@ class VotingServiceTest extends TestCase
         $vote = $this->createActiveVote();
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('无效的投票选项');
+        $this->expectExceptionMessage(trans('voting.vote_invalid_option'));
 
         $this->service->castVote($vote->vote_id, [999999], 1001, 2001);
     }
@@ -346,7 +346,7 @@ class VotingServiceTest extends TestCase
 
         // 第6次应该失败
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('检测到异常操作，请稍后再试');
+        $this->expectExceptionMessage(trans('voting.vote_fingerprint_limit'));
 
         $this->service->castVote(
             $vote->vote_id,

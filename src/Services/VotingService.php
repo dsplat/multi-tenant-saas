@@ -150,27 +150,27 @@ class VotingService
     protected function validateVote(Vote $vote, array $optionIds, int $userId, int $tenantId, ?string $ipAddress, ?string $fingerprint = null): void
     {
         if ($vote->status !== 'active') {
-            throw new \RuntimeException('投票活动未开启');
+            throw new \RuntimeException(trans('voting.vote_not_active'));
         }
 
         if (Carbon::parse($vote->start_at)->isFuture()) {
-            throw new \RuntimeException('投票尚未开始');
+            throw new \RuntimeException(trans('voting.vote_not_started'));
         }
 
         if (Carbon::parse($vote->end_at)->isPast()) {
-            throw new \RuntimeException('投票已结束');
+            throw new \RuntimeException(trans('voting.vote_ended'));
         }
 
         // 单选校验
         if ($vote->vote_type === 'single' && count($optionIds) > 1) {
-            throw new \RuntimeException('单选投票只能选择一个选项');
+            throw new \RuntimeException(trans('voting.vote_single_only'));
         }
 
         // 总投票次数限制
         if ($vote->total_limit > 0) {
             $totalVotes = VoteRecord::where('vote_id', $vote->getKey())->count();
             if ($totalVotes >= $vote->total_limit) {
-                throw new \RuntimeException('投票总次数已达上限');
+                throw new \RuntimeException(trans('voting.vote_total_limit'));
             }
         }
 
@@ -180,7 +180,7 @@ class VotingService
                 ->whereDate('created_at', today())
                 ->count();
             if ($todayVotes >= $vote->daily_limit) {
-                throw new \RuntimeException('今日投票次数已达上限');
+                throw new \RuntimeException(trans('voting.vote_daily_limit'));
             }
         }
 
@@ -191,7 +191,7 @@ class VotingService
                 ->whereDate('created_at', today())
                 ->count();
             if ($userTodayVotes >= $vote->daily_limit_per_user) {
-                throw new \RuntimeException('您今日投票次数已达上限');
+                throw new \RuntimeException(trans('voting.vote_user_daily_limit'));
             }
         }
 
@@ -201,7 +201,7 @@ class VotingService
                 ->where('user_id', $userId)
                 ->count();
             if ($userTotalVotes >= $vote->total_limit_per_user) {
-                throw new \RuntimeException('您的投票次数已达上限');
+                throw new \RuntimeException(trans('voting.vote_user_total_limit'));
             }
         }
 
@@ -212,7 +212,7 @@ class VotingService
                 ->where('created_at', '>=', now()->subSeconds(10))
                 ->count();
             if ($ipRecent >= 10) {
-                throw new \RuntimeException('操作过于频繁，请稍后再试');
+                throw new \RuntimeException(trans('voting.vote_ip_limit'));
             }
         }
 
@@ -223,7 +223,7 @@ class VotingService
                 ->where('created_at', '>=', now()->subSeconds(30))
                 ->count();
             if ($fingerprintRecent >= 5) {
-                throw new \RuntimeException('检测到异常操作，请稍后再试');
+                throw new \RuntimeException(trans('voting.vote_fingerprint_limit'));
             }
         }
 
@@ -231,7 +231,7 @@ class VotingService
         $validOptionIds = $vote->options->pluck('vote_option_id')->toArray();
         foreach ($optionIds as $optionId) {
             if (!in_array((int) $optionId, $validOptionIds)) {
-                throw new \RuntimeException('无效的投票选项');
+                throw new \RuntimeException(trans('voting.vote_invalid_option'));
             }
         }
     }

@@ -143,7 +143,7 @@ class FormBuilderServiceTest extends TestCase
         $form = $this->createForm(['status' => 'draft']);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('表单未发布');
+        $this->expectExceptionMessage(trans('form.form_not_published'));
 
         $this->service->submitForm($form->form_id, ['name' => 'test'], 1001);
     }
@@ -157,7 +157,7 @@ class FormBuilderServiceTest extends TestCase
         ]);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('表单已结束');
+        $this->expectExceptionMessage(trans('form.form_ended'));
 
         $this->service->submitForm($form->form_id, ['name' => 'test'], 1001);
     }
@@ -171,7 +171,7 @@ class FormBuilderServiceTest extends TestCase
         ]);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('表单尚未开始');
+        $this->expectExceptionMessage(trans('form.form_not_started'));
 
         $this->service->submitForm($form->form_id, ['name' => 'test'], 1001);
     }
@@ -181,7 +181,7 @@ class FormBuilderServiceTest extends TestCase
         $form = $this->createForm(['status' => 'published']);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('姓名 是必填的');
+        $this->expectExceptionMessage(trans('form.field_required', ['field' => '姓名']));
 
         $this->service->submitForm($form->form_id, [
             'email' => 'test@example.com',
@@ -203,7 +203,7 @@ class FormBuilderServiceTest extends TestCase
 
         // 第二次提交失败
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('已达提交上限');
+        $this->expectExceptionMessage(trans('form.form_submit_limit'));
 
         $this->service->submitForm($form->form_id, [
             'name' => '用户2',

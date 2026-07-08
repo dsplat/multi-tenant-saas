@@ -148,16 +148,16 @@ class LotteryService
 
         // 检查活动状态
         if ($activity->status !== 'active') {
-            throw new \RuntimeException('活动未开始或已结束');
+            throw new \RuntimeException(trans('lottery.activity_not_active'));
         }
 
         // 检查时间范围
         $now = now();
         if ($activity->start_at && $now->lt($activity->start_at)) {
-            throw new \RuntimeException('活动尚未开始');
+            throw new \RuntimeException(trans('lottery.activity_not_started'));
         }
         if ($activity->end_at && $now->gt($activity->end_at)) {
-            throw new \RuntimeException('活动已结束');
+            throw new \RuntimeException(trans('lottery.activity_ended'));
         }
 
         // 检查黑名单

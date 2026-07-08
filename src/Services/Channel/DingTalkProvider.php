@@ -8,16 +8,14 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\ChannelContract;
-use MultiTenantSaas\Contracts\IdGeneratorContract;
 
 class DingTalkProvider implements ChannelContract
 {
     protected string $appKey;
     protected string $appSecret;
 
-    public function __construct(
-        protected IdGeneratorContract $idGenerator,
-    ) {
+    public function __construct()
+    {
         $config = config('channel.providers.dingtalk', []);
         $this->appKey = $config['app_key'] ?? '';
         $this->appSecret = $config['app_secret'] ?? '';

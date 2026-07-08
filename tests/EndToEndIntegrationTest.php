@@ -198,7 +198,7 @@ class EndToEndIntegrationTest extends TestCase
         $this->assertSame(10, $memoryService->readTenantMemory($this->tenantId, 'config', 'max_agents'));
 
         // Decay
-        $memoryService->decay(0.1);
+        $memoryService->decay('agent', 100, 0.1);
 
         // Memories with weight > 0.1 should still exist
         $this->assertNotNull($memoryService->read('agent', 100, 'user_preference'));

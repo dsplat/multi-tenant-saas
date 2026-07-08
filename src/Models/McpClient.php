@@ -22,6 +22,10 @@ class McpClient extends Model
         'status',
     ];
 
+    protected $hidden = [
+        'api_key',
+    ];
+
     public function tools(): HasMany
     {
         return $this->hasMany(McpTool::class, 'client_id', 'mcp_client_id');

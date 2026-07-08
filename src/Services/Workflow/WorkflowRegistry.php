@@ -53,13 +53,18 @@ class WorkflowRegistry implements WorkflowRegistryContract
     public function names(?int $tenantId = null): array
     {
         if ($tenantId === null) {
-            return array_keys($this->workflows);
+            return array_values(array_map(
+                fn (Workflow $workflow) => $workflow->name,
+                $this->workflows
+            ));
         }
 
-        return array_keys(array_filter(
-            $this->workflows,
-            fn (Workflow $workflow) => (int) $workflow->tenant_id === $tenantId,
-            ARRAY_FILTER_USE_BOTH
+        return array_values(array_map(
+            fn (Workflow $workflow) => $workflow->name,
+            array_filter(
+                $this->workflows,
+                fn (Workflow $workflow) => (int) $workflow->tenant_id === $tenantId
+            )
         ));
     }
 

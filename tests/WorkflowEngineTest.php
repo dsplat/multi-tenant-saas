@@ -390,8 +390,8 @@ class WorkflowEngineTest extends TestCase
 
         $registry->register($workflow);
 
-        $this->assertSame($workflow, $registry->getByName('Test Workflow'));
-        $this->assertNull($registry->getByName('Nonexistent'));
+        $this->assertSame($workflow, $registry->getByName('Test Workflow', (int) $workflow->tenant_id));
+        $this->assertNull($registry->getByName('Nonexistent', (int) $workflow->tenant_id));
     }
 
     public function test_registry_get_by_tenant(): void

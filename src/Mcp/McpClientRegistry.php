@@ -65,6 +65,10 @@ class McpClientRegistry
     {
         $tenantId = TenantContext::getId();
 
+        if ($tenantId === null) {
+            return collect();
+        }
+
         $dbClients = McpClient::withoutGlobalScope(TenantScope::class)
             ->where('tenant_id', $tenantId)
             ->get();
@@ -89,6 +93,10 @@ class McpClientRegistry
     {
         $tenantId = TenantContext::getId();
 
+        if ($tenantId === null) {
+            return collect();
+        }
+
         $dbClients = McpClient::withoutGlobalScope(TenantScope::class)
             ->where('tenant_id', $tenantId)
             ->where('status', McpClient::STATUS_ACTIVE)
@@ -106,7 +114,9 @@ class McpClientRegistry
             return true;
         }
 
-        return McpClient::where('name', $name)->exists();
+        return McpClient::withoutGlobalScope(TenantScope::class)
+            ->where('name', $name)
+            ->exists();
     }
 
     /**
@@ -160,7 +170,7 @@ class McpClientRegistry
         $merged = $dbClients->keyBy('name')->toArray();
 
         foreach ($this->runtimeClients as $name => $client) {
-            if ($tenantId !== null && $client->tenant_id !== $tenantId) {
+            if ($tenantId !== null && (string) $client->tenant_id !== $tenantId) {
                 continue;
             }
             if ($activeOnly === true && !$client->isActive()) {

@@ -15,9 +15,11 @@ class McpClientController extends Controller
     /**
      * 列出当前租户的所有 MCP 客户端
      */
-    public function index(Request $request): JsonResponse
+    public function index(): JsonResponse
     {
-        RbacService::check('mcp_client.view');
+        if (!RbacService::check('mcp_client.view')) {
+            abort(403);
+        }
 
         $clients = McpClient::query()
             ->orderBy('mcp_client_id', 'desc')
@@ -32,9 +34,11 @@ class McpClientController extends Controller
     /**
      * 查看单个 MCP 客户端详情
      */
-    public function show(Request $request, int $id): JsonResponse
+    public function show(int $id): JsonResponse
     {
-        RbacService::check('mcp_client.view');
+        if (!RbacService::check('mcp_client.view')) {
+            abort(403);
+        }
 
         $client = McpClient::findOrFail($id);
 
@@ -49,7 +53,9 @@ class McpClientController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        RbacService::check('mcp_client.create');
+        if (!RbacService::check('mcp_client.create')) {
+            abort(403);
+        }
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -71,7 +77,9 @@ class McpClientController extends Controller
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        RbacService::check('mcp_client.update');
+        if (!RbacService::check('mcp_client.update')) {
+            abort(403);
+        }
 
         $client = McpClient::findOrFail($id);
 
@@ -93,9 +101,11 @@ class McpClientController extends Controller
     /**
      * 删除 MCP 客户端
      */
-    public function destroy(Request $request, int $id): JsonResponse
+    public function destroy(int $id): JsonResponse
     {
-        RbacService::check('mcp_client.delete');
+        if (!RbacService::check('mcp_client.delete')) {
+            abort(403);
+        }
 
         $client = McpClient::findOrFail($id);
         $client->delete();

@@ -60,6 +60,15 @@ class McpMiddleware
                 );
             }
 
+            if ($client->tenant_id === null) {
+                return $this->jsonRpcError(
+                    'MCP client has no tenant.',
+                    McpException::CODE_INTERNAL_ERROR,
+                    null,
+                    500,
+                );
+            }
+
             TenantContext::setTenantId((string) $client->tenant_id);
 
             $request->attributes->set('mcp_client', $client);
@@ -91,11 +100,18 @@ class McpMiddleware
      */
     protected function extractApiKey(Request $request): ?string
     {
-        $apiKey = $request->header('X-MCP-API-Key')
-            ?? $request->header('Authorization');
+        $apiKey = $request->header('X-MCP-API-Key');
 
-        if ($apiKey !== null && str_starts_with($apiKey, 'Bearer ')) {
-            $apiKey = substr($apiKey, 7);
+        if ($apiKey === null) {
+            $authHeader = $request->header('Authorization');
+
+            if ($authHeader !== null) {
+                if (!str_starts_with($authHeader, 'Bearer ')) {
+                    return null;
+                }
+
+                $apiKey = substr($authHeader, 7);
+            }
         }
 
         if ($apiKey === null) {
@@ -108,12 +124,15 @@ class McpMiddleware
 
     /**
      * 根据 API Key 查找 McpClient
+     *
+     * api_key 使用 Crypt::encryptString 加密存储（随机 IV），
+     * 无法通过 where 直接比较，需遍历解密后比对明文。
      */
     protected function resolveClient(string $apiKey): ?McpClient
     {
         return McpClient::query()
-            ->where('api_key', $apiKey)
-            ->first();
+            ->get()
+            ->first(fn(McpClient $client) => $client->api_key === $apiKey);
     }
 
     /**

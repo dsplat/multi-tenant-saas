@@ -7,8 +7,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP Version](https://img.shields.io/badge/PHP-%5E8.2-777BB4)](https://php.net)
 [![Laravel Version](https://img.shields.io/badge/Laravel-%5E12.0-FF2D20)](https://laravel.com)
-[![Version](https://img.shields.io/badge/version-v1.2.0-blue)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-1874%20passed%20(4559%20assertions)-brightgreen)](#)
+[![Version](https://img.shields.io/badge/version-v1.3.0-blue)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-2100+%20passed%20(5000+%20assertions)-brightgreen)](#)
 
 ---
 
@@ -238,6 +238,90 @@ foreach ($runtime->runStream($agent->agent_id, $conversationId, '你好') as $ch
 | `model_config.max_tool_calls` | 单次对话最大工具调用次数 | `5` |
 | `model_config.fallback_provider` | 降级提供商 | — |
 
+### 🎲 抽奖系统
+
+完整的抽奖活动管理引擎，支持多奖品池、概率控制、防刷机制：
+
+- **活动管理**：创建/更新/启用/禁用抽奖活动，支持时间范围、参与次数限制
+- **奖品管理**：奖品池配置、库存管理、权重概率控制、乐观锁扣减
+- **抽奖执行**：加权随机抽取、用户次数限制、IP 防刷、黑名单过滤
+- **黑名单管理**：按用户 ID、IP 地址等维度封禁，支持租户级隔离
+- **统计查询**：中奖率统计、用户抽奖记录、中奖记录列表
+
+**数据模型：**
+
+| 模型 | 说明 |
+|------|------|
+| `LotteryActivity` | 抽奖活动（时间范围、规则、状态） |
+| `LotteryActivityPrize` | 活动奖品（库存、权重、概率） |
+| `LotteryDrawLog` | 抽奖日志（结果、用户、时间） |
+| `LotteryBlacklist` | 黑名单（用户/IP 封禁） |
+| `LotteryPool` | 奖品池（全局奖品管理） |
+
+### 📱 短信服务增强
+
+完整的短信营销与管理平台：
+
+- **模板管理**：创建/更新/审核短信模板，支持变量渲染
+- **批量发送**：批量任务创建、定时发送、任务取消
+- **到达率统计**：发送量/送达量/失败量/点击量/退订量统计
+- **退订管理**：用户退订记录、退订检查、退订列表查询
+- **多驱动支持**：log（日志）、ww（网建短信）、http（通用 HTTP 网关）
+
+**数据模型：**
+
+| 模型 | 说明 |
+|------|------|
+| `SmsTemplate` | 短信模板（内容、状态、审核） |
+| `SmsBatchTask` | 批量任务（定时发送、状态追踪） |
+| `SmsDeliveryStat` | 到达率统计（送达/失败/点击） |
+| `SmsUnsubscribe` | 退订记录（用户退订管理） |
+
+### 🎫 优惠券分享（裂变发券）
+
+基于分享链接的裂变营销能力：
+
+- **分享链接生成**：生成唯一分享码，记录分享关系
+- **裂变发券**：分享人和被分享人各得一张优惠券
+- **防滥用**：分享人不能接受自己的分享、租户隔离校验、行锁防并发
+- **分享记录**：查询分享状态、接收时间、关联优惠券
+
+**数据模型：**
+
+| 模型 | 说明 |
+|------|------|
+| `CouponShare` | 分享记录（分享码、状态、接收人） |
+
+### 🔌 MCP 服务器（Model Context Protocol）
+
+AI 工具调用协议实现，支持 JSON-RPC 2.0 标准：
+
+- **工具注册**：抽象基类 `McpToolRegistry`，子类实现 `registerTools()` 注册业务工具
+- **JSON-RPC 2.0**：支持 `initialize`、`tools/list`、`tools/call`、`notifications/initialized` 方法
+- **SSE 流式响应**：支持 `text/event-stream` Accept 头的流式工具调用
+- **客户端管理**：`McpClientRegistry` 管理多个 MCP 客户端配置
+- **技能生成**：`McpSkillGenerator` 生成客户端技能描述文件
+- **访问日志**：`McpToolAccessLog` 记录工具调用详情
+
+**核心组件：**
+
+| 组件 | 说明 |
+|------|------|
+| `McpToolRegistry` | 工具注册表抽象基类 |
+| `McpClientRegistry` | 客户端配置注册表 |
+| `McpSkillGenerator` | 技能描述文件生成器 |
+| `McpMiddleware` | MCP 请求认证中间件 |
+| `McpServerController` | JSON-RPC 2.0 服务器控制器 |
+
+### 📡 渠道扩展
+
+新增多个消息渠道支持：
+
+- **钉钉**：`DingTalkProvider` 钉钉机器人消息推送
+- **Slack**：`SlackProvider` + `SlackSignatureValidator` Slack 消息与签名验证
+- **微信公众号**：`WechatOfficialProvider` 微信公众号消息与事件处理
+- **事件总线桥接**：`EventBusBridge` 渠道消息与事件总线集成
+
 ### 🔄 工作流引擎
 
 可视化的业务流程编排引擎，支持复杂的多步骤自动化流程：
@@ -246,6 +330,7 @@ foreach ($runtime->runStream($agent->agent_id, $conversationId, '你好') as $ch
 - **执行引擎**：`WorkflowEngine` 驱动节点按序执行，自动处理条件判断与分支选择
 - **重试与回滚**：`RetryService` 支持指数退避重试，`RollbackService` 提供事务级回滚
 - **注册表**：`WorkflowRegistry` 管理流程定义，支持版本化
+- **定义解析**：`WorkflowDefinitionParser` 解析工作流定义 DSL
 - **监控**：`WorkflowExecution` 模型记录每次执行的完整轨迹与节点状态
 
 ### 💬 对话中心
@@ -464,16 +549,28 @@ multi-tenant-saas/
 │   ├── Concerns/           # Traits（3 个：BelongsToTenant / EnsuresTenantContext / HasGlobalId）
 │   ├── Context/            # 上下文管理（TenantContext）
 │   ├── Contracts/          # 接口定义（17 个）
+│   ├── DTOs/               # 数据传输对象（MessageDTO / WorkflowDefinition）
 │   ├── Enums/              # 枚举（ErrorCode）
 │   ├── Events/             # 领域事件（14 个）
 │   ├── Exceptions/         # 业务异常（6 个）
 │   ├── Helpers/            # 辅助函数
+│   ├── Http/               # HTTP 层（Controllers / Middleware）
 │   ├── Isolation/          # 数据隔离策略（3 种：SharedDatabase / SchemaPerTenant / DatabasePerTenant）
 │   ├── Jobs/               # 队列任务（5 个）
 │   ├── Listeners/          # 事件监听器
 │   ├── Mail/               # 邮件类
+│   ├── Mcp/                # MCP 服务器（Model Context Protocol）
+│   │   ├── Exceptions/     # MCP 异常类
+│   │   ├── Tools/          # 内置工具集
+│   │   ├── McpToolRegistry.php    # 工具注册表抽象基类
+│   │   ├── McpClientRegistry.php  # 客户端配置注册表
+│   │   ├── McpSkillGenerator.php  # 技能描述文件生成器
+│   │   └── McpMiddleware.php      # MCP 请求认证中间件
 │   ├── Middleware/          # 中间件（8 个）
-│   ├── Models/             # 框架模型（76 个）
+│   ├── Models/             # 框架模型（85+ 个）
+│   │   ├── Lottery/        # 抽奖系统模型（6 个）
+│   │   ├── Sms/            # 短信服务模型（4 个）
+│   │   └── ...
 │   ├── Modules/            # 可选模块（4 个）
 │   │   ├── ApiToken/       # API Token 模块
 │   │   ├── Domain/         # 域名管理模块
@@ -481,7 +578,15 @@ multi-tenant-saas/
 │   │   └── SSL/            # SSL证书模块
 │   ├── SDK/                # PHP SDK 客户端（5 个）
 │   ├── Scopes/             # 全局作用域（TenantScope）
-│   ├── Services/           # 服务层（159 个，含 AI/Agent/Workflow 等子系统）
+│   ├── Services/           # 服务层（170+ 个，含 AI/Agent/Workflow/Lottery/SMS 等子系统）
+│   │   ├── Agent/          # 智能体服务
+│   │   ├── Ai/             # AI 服务
+│   │   ├── Capability/     # AI 能力服务
+│   │   ├── Channel/        # 渠道服务（含钉钉/Slack/微信公众号）
+│   │   ├── Conversation/   # 对话中心服务
+│   │   ├── Memory/         # 记忆系统服务
+│   │   ├── Tool/           # 工具服务
+│   │   └── Workflow/       # 工作流服务
 │   ├── EnterpriseWechat/   # 企业微信集成
 │   ├── WechatOfficial/     # 微信公众号集成
 │   ├── WechatMiniProgram/  # 微信小程序集成
@@ -571,8 +676,17 @@ multi-tenant-saas/
 | **高级** | `ApiVersionService` / `PluginService` / `RateLimitService` | API版本/插件/限流 |
 | | `DomainService` / `SslService` / `NginxConfigService` | 域名/SSL/Nginx |
 | | `UserPreferenceService` / `CrossTenantService` | 用户偏好/跨租户 |
+| **抽奖** | `LotteryService` | 抽奖活动/奖品/执行/黑名单/统计 |
+| **短信** | `SmsService` | 短信模板/批量发送/到达率/退订 |
+| **优惠券** | `CouponService` | 优惠券/模板/批量发券/裂变发券/规则 |
+| **MCP** | `McpToolRegistry` / `McpClientRegistry` | MCP 工具注册/客户端管理 |
+| | `McpSkillGenerator` | MCP 技能描述文件生成 |
+| **投票** | `VotingService` | 投票活动管理 |
+| **表单** | `FormBuilderService` | 动态表单构建 |
+| **入驻** | `TenantOnboardingService` | 租户引导式注册 |
+| **密码** | `PasswordPolicyService` | 密码策略管理 |
 
-### 模型（76 个）
+### 模型（85+ 个）
 
 | 分类 | 模型 | 说明 |
 |------|------|------|
@@ -581,7 +695,8 @@ multi-tenant-saas/
 | | `Role` / `Permission` / `RolePermission` | RBAC 权限 |
 | **计费** | `CreditAccount` / `CreditTransaction` | 积分账户与交易 |
 | | `FinancialRecord` / `PaymentOrder` | 财务记录与支付订单 |
-| | `Invoice` / `Coupon` / `TaxRule` | 发票/优惠券/税率 |
+| | `Invoice` / `Coupon` / `CouponShare` | 发票/优惠券/优惠券分享 |
+| | `TaxRule` | 税率规则 |
 | | `SubscriptionPlan` / `SubscriptionHistory` | 订阅计划与历史 |
 | | `UsageRecord` / `CostAllocation` | 用量记录与成本分摊 |
 | **安全** | `MfaDevice` / `MfaRecoveryCode` | 多因素认证设备与恢复码 |
@@ -597,6 +712,13 @@ multi-tenant-saas/
 | | `Attachment` / `Reaction` / `Mention` | 附件/表情回应/@提及 |
 | | `ReadState` / `ConversationSession` / `ConversationTag` | 已读/会话/标签 |
 | **工作流** | `Workflow` / `WorkflowNode` / `WorkflowExecution` | 工作流定义与执行 |
+| **抽奖系统** | `LotteryActivity` / `LotteryActivityPrize` | 抽奖活动与活动奖品 |
+| | `LotteryDrawLog` / `LotteryBlacklist` | 抽奖日志与黑名单 |
+| | `LotteryPool` / `LotteryPrize` | 奖品池与全局奖品 |
+| **短信服务** | `SmsTemplate` / `SmsBatchTask` | 短信模板与批量任务 |
+| | `SmsDeliveryStat` / `SmsUnsubscribe` | 到达率统计与退订记录 |
+| **MCP** | `McpClient` / `McpTool` | MCP 客户端与工具 |
+| | `McpToolAccessLog` | MCP 工具访问日志 |
 | **企业** | `Webhook` / `WebhookDelivery` / `EventSubscription` | Webhook 与事件订阅 |
 | | `FeatureFlag` / `MetricsSnapshot` / `SlaEvent` | 功能开关/指标快照/SLA |
 | | `BrandingConfig` / `TenantHierarchy` / `SandboxEnvironment` | 品牌/层级/沙箱 |
@@ -724,6 +846,7 @@ $allOrders = Order::forAllTenants()->get();
 - [框架层升级规划 - 工作量评估](docs/Requirement/框架层升级规划_task-eff.md)
 - [PHP SDK 使用示例](docs/examples/php-sdk-quickstart.md)
 - [REST API 调用示例](docs/examples/rest-api-examples.md)
+- [需求文档](docs/requirement.md)
 
 ---
 
@@ -750,6 +873,7 @@ $allOrders = Order::forAllTenants()->get();
 | `barryvdh/laravel-dompdf` | PDF 生成 | 内置 |
 | `laravel/horizon` | 队列监控 (dev) | `/horizon` |
 | `sentry/sentry-laravel` | 错误追踪 (dev) | `.env` |
+| `guzzlehttp/guzzle` | HTTP 客户端（短信/渠道） | 内置 |
 
 ## 更新框架
 

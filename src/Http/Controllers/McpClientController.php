@@ -7,7 +7,6 @@ namespace MultiTenantSaas\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\McpClient;
 use MultiTenantSaas\Services\RbacService;
 
@@ -22,10 +21,7 @@ class McpClientController extends Controller
             abort(403);
         }
 
-        $tenantId = TenantContext::getId();
-
         $clients = McpClient::query()
-            ->where('tenant_id', $tenantId)
             ->orderBy('mcp_client_id', 'desc')
             ->get();
 

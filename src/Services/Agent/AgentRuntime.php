@@ -80,18 +80,50 @@ class AgentRuntime implements AgentRuntimeContract
             ]);
         }
 
-        $workflows = $this->resolveWorkflows($agentId);
+        $workflows = $this->resolveWorkflows($agent);
         $workflowResults = [];
+        $workflowFailed = false;
 
         if ($workflows->isNotEmpty()) {
             $workflowResults = $this->executeWorkflowChain($tenantId, $workflows, $input);
+            $workflowFailed = !empty($workflowResults)
+                && end($workflowResults)['status'] === 'failed';
         }
 
         $message = $input['message'] ?? '';
         $conversationId = (int) ($input['conversation_id'] ?? 0);
 
         if ($conversationId > 0 && $message !== '') {
-            return $this->run($agentId, $conversationId, $message, $input['options'] ?? []);
+            $response = $this->run($agentId, $conversationId, $message, $input['options'] ?? []);
+            if ($workflowResults !== []) {
+                $raw = $response->raw;
+                $raw['workflow_results'] = $workflowResults;
+                $response = new AgentResponse(
+                    message: $response->message,
+                    toolCalls: $response->toolCalls,
+                    tokenUsage: $response->tokenUsage,
+                    finishReason: $response->finishReason,
+                    agentId: $response->agentId,
+                    conversationId: $response->conversationId,
+                    model: $response->model,
+                    error: $response->error,
+                    raw: $raw,
+                );
+            }
+            return $response;
+        }
+
+        if ($workflowFailed) {
+            return AgentResponse::fromArray([
+                'message' => '工作流执行失败',
+                'tool_calls' => [],
+                'token_usage' => [],
+                'finish_reason' => 'error',
+                'error' => '工作流链执行失败',
+                'agent_id' => $agentId,
+                'conversation_id' => $conversationId,
+                'raw' => ['workflow_results' => $workflowResults],
+            ]);
         }
 
         return AgentResponse::fromArray([
@@ -109,19 +141,13 @@ class AgentRuntime implements AgentRuntimeContract
      * 解析 Agent 关联的工作流
      *
      * 通过 Agent 的 workflows() 关系获取已排序的工作流集合。
-     * 租户隔离由 BelongsToTenant 全局作用域自动处理。
+     * 复用已加载的 Agent 实例，避免重复数据库查询。
      *
-     * @param  int  $agentId  Agent ID
+     * @param  Agent  $agent  Agent 实例（已通过租户隔离验证）
      * @return Collection
      */
-    public function resolveWorkflows(int $agentId): Collection
+    public function resolveWorkflows(Agent $agent): Collection
     {
-        $agent = Agent::find($agentId);
-
-        if ($agent === null) {
-            return new Collection();
-        }
-
         return $agent->workflows()->get();
     }
 
@@ -130,6 +156,7 @@ class AgentRuntime implements AgentRuntimeContract
      *
      * 按顺序执行工作流集合，每个工作流的输出上下文
      * 会合并到输入中传递给下一个工作流。
+     * 任一工作流失败则中断链式执行。
      *
      * @param  int         $tenantId   租户 ID
      * @param  Collection  $workflows  工作流集合
@@ -148,8 +175,17 @@ class AgentRuntime implements AgentRuntimeContract
                 'workflow_id' => $workflow->workflow_id,
                 'execution_id' => $execution->execution_id,
                 'status' => $execution->status,
-                'context' => $execution->context,
+                'context' => $execution->context ?? [],
             ];
+
+            if ($execution->status === 'failed') {
+                Log::error('AgentRuntime: 工作流执行失败，中断工作流链', [
+                    'workflow_id' => $workflow->workflow_id,
+                    'execution_id' => $execution->execution_id,
+                    'tenant_id' => $tenantId,
+                ]);
+                break;
+            }
 
             if ($execution->status === 'completed') {
                 $context = array_merge($context, $execution->context ?? []);

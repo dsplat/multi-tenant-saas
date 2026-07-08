@@ -13,16 +13,6 @@ class WorkflowRegistry implements WorkflowRegistryContract
 
     public function register(Workflow $workflow): void
     {
-        if ($workflow->name === null) {
-            throw new \InvalidArgumentException('Workflow name must not be null.');
-        }
-
-        if (isset($this->workflows[$workflow->name])) {
-            throw new \RuntimeException(
-                sprintf('Workflow "%s" is already registered.', $workflow->name)
-            );
-        }
-
         $this->workflows[$workflow->name] = $workflow;
     }
 
@@ -33,30 +23,14 @@ class WorkflowRegistry implements WorkflowRegistryContract
 
     public function getByTenant(int $tenantId): array
     {
-        return array_filter($this->workflows, fn($w) => (int) $w->tenant_id === $tenantId);
-    }
-
-    public function has(string $name): bool
-    {
-        return isset($this->workflows[$name]);
-    }
-
-    public function unregister(string $name): bool
-    {
-        if (!isset($this->workflows[$name])) {
-            return false;
-        }
-        unset($this->workflows[$name]);
-        return true;
-    }
-
-    public function names(): array
-    {
-        return array_keys($this->workflows);
+        return array_values(array_filter(
+            $this->workflows,
+            fn (Workflow $workflow) => (int) $workflow->tenant_id === $tenantId
+        ));
     }
 
     public function all(): array
     {
-        return $this->workflows;
+        return array_values($this->workflows);
     }
 }

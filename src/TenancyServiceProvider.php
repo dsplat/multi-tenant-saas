@@ -236,6 +236,7 @@ class TenancyServiceProvider extends ServiceProvider
                 $app->make(ToolRegistryContract::class),
                 $app->make(AgentMonitorContract::class),
                 $app->make(TenantContextContract::class),
+                $app->make(WorkflowEngineContract::class),
                 $app->make(MemoryCompressor::class),
             );
         });

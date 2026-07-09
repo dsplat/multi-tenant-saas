@@ -1,5 +1,5 @@
 {
-    "name": "multi-tenant-saas/module-coupon",
+    "name": "dsplat/module-coupon",
     "version": "1.0.0",
     "description": "优惠券系统 - 券模板、批量发券、核销统计、裂变分享",
     "type": "library",

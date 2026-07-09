@@ -1,5 +1,5 @@
 {
-    "name": "multi-tenant-saas/module-platform",
+    "name": "dsplat/module-platform",
     "version": "1.0.0",
     "description": "平台工具 - 数据导出、API 版本管理、租户资料、成本管理、事件总线",
     "type": "library",

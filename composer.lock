@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9a8a95065af1811668e486521d23beb9",
+    "content-hash": "be22c7f005fbabaf1ab1f914549a4a48",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -975,6 +975,490 @@
                 }
             ],
             "time": "2025-10-31T18:51:33+00:00"
+        },
+        {
+            "name": "dsplat/module-ai",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Ai",
+                "reference": "0eb6230298164d50a5fc6f289d687dfb8624da99"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Ai\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "AI 推理引擎 - Agent、能力引擎、MCP、工具注册表、记忆系统、AI 网关",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-api-token",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/ApiToken",
+                "reference": "bb51c27d380f3aa60620c4afad8c49decb9a2c41"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\ApiToken\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "API Token 管理 - 对接 new-api 后端, 提供 Token 创建/查询/轮换、Quota 充值",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-auth",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Auth",
+                "reference": "be396453a7ba8ca81f8e4c84e91844e716e6db2d"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Auth\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "第三方认证 - 社交登录、支付宝 OAuth、SSO 集成",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-billing",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Billing",
+                "reference": "482372b093ab578dd5fec3178f23a1897fb1b75e"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Billing\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "计费核心 - 订阅管理、套餐变更、续费处理",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-conversation",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Conversation",
+                "reference": "ceb400640272a6bfcc3271be67fa5aa947d6e2c7"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Conversation\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "会话中心 - 多渠道会话、消息路由、频道管理",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-coupon",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Coupon",
+                "reference": "a5a2cf2a5e3c23157e49303db78aa98bf4f86fab"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Coupon\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "优惠券系统 - 券模板、批量发券、核销统计、裂变分享",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-developer-portal",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/DeveloperPortal",
+                "reference": "a6e36df1669fc6edc3344aee36e64094199ec753"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\DeveloperPortal\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "开发者门户 - API 文档、沙箱环境、SDK 管理",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-domain",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Domain",
+                "reference": "82c9220dade0b7b15d5a48e3b6286200a378dbb9"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Domain\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "自定义域名管理 - 租户域名绑定、ICP 备案检查、Nginx 白名单生成",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-event",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Event",
+                "reference": "59b5ae185d8cd7a3af707ba582c6d5e1a4b37673"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Event\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "事件总线 - 异步事件分发、外部订阅、Webhook 投递",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-form",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Form",
+                "reference": "26a486abe717aa6378b2f294a5b98ed00249f5f6"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Form\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "表单构建器 - 拖拽式表单设计、数据收集、提交管理、统计导出",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-infrastructure",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Infrastructure",
+                "reference": "d6f48b8616697eb2905d2c5e0243d55bd5576646"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Infrastructure\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "基础设施 - 缓存、队列、限流、资源管理、功能开关",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-logging",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Logging",
+                "reference": "e54fa36624bc2213405e363cfc9539b9ca4108c0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Logging\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "结构化日志 - 操作日志、安全日志、审计日志、日志查询与导出",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-lottery",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Lottery",
+                "reference": "360bd3bcb28d0b0927a7a9c2c5f621fe56e9d2c0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Lottery\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "抽奖系统 - 活动管理、奖品池、抽奖执行、黑名单、统计查询",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-monitoring",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Monitoring",
+                "reference": "8a8a90367c617fb97043788e968889bcbb6ece39"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Monitoring\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "监控与告警 - 指标采集、SLA 监控、告警规则、性能追踪",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-payment",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Payment",
+                "reference": "1aa4a08451ec83673dba6939c463df308fa28032"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Payment\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "第三方支付网关 - 对接馒头支付等独立支付平台",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-platform",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Platform",
+                "reference": "2cc3b39fcb238c9ee438ef857d82fcc9a12350c7"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Platform\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "平台工具 - 数据导出、API 版本管理、租户资料、成本管理、事件总线",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-plugin",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Plugin",
+                "reference": "035951f9b0a41a618f478107e10b643daaec61cc"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Plugin\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "插件管理 - 插件安装/卸载、启用/禁用、生命周期钩子",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-sms",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Sms",
+                "reference": "4732004b17e87638be7e239d1f10abe6297c5a16"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Sms\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "短信服务 - 模板管理、批量发送、到达率统计、退订管理",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-ssl",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/SSL",
+                "reference": "250c312cfed688069b3f36dd89781d7b4ce87724"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\SSL\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "SSL 证书管理 - 租户自定义域名的 SSL 证书上传、续期、Nginx 配置",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-user",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/User",
+                "reference": "17e0bcbed8593b6b9a306a051f576c1f3e1c6f28"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\User\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "用户管理 - 用户资料、偏好设置、登录日志",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-voting",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Voting",
+                "reference": "7327eb4afcd82e80e66f9e1686141cd4a43a0611"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Voting\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "投票系统 - 排行榜、防刷票、多类型投票、统计查询",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "dsplat/module-workflow",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Workflow",
+                "reference": "5bcb149bac03920b794533508fcb923c9c5d8234"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Workflow\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "工作流引擎 - 流程编排、节点执行、条件分支、并行处理",
+            "transport-options": {
+                "relative": true
+            }
         },
         {
             "name": "egulias/email-validator",
@@ -3409,490 +3893,6 @@
                 "source": "https://github.com/jmespath/jmespath.php/tree/2.9.2"
             },
             "time": "2026-07-06T18:56:19+00:00"
-        },
-        {
-            "name": "multi-tenant-saas/module-ai",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Ai",
-                "reference": "993ae1ddb8097be27ecd495eb77f226d46337f36"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Ai\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "AI 推理引擎 - Agent、能力引擎、MCP、工具注册表、记忆系统、AI 网关",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-api-token",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/ApiToken",
-                "reference": "553578bed491445f1c668f07a45b49ce6575b163"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\ApiToken\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "API Token 管理 - 对接 new-api 后端, 提供 Token 创建/查询/轮换、Quota 充值",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-auth",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Auth",
-                "reference": "b934e1f6161c8fddc03097eb79fa7ea54a1ca789"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Auth\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "第三方认证 - 社交登录、支付宝 OAuth、SSO 集成",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-billing",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Billing",
-                "reference": "2b409bc0a4096a2c9e0c92c865eb97077e8b7501"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Billing\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "计费核心 - 订阅管理、套餐变更、续费处理",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-conversation",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Conversation",
-                "reference": "ee6e3f6ad35bdf731507173819b9673f5cd4585b"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Conversation\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "会话中心 - 多渠道会话、消息路由、频道管理",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-coupon",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Coupon",
-                "reference": "efb75ca67dd4dec5235e8950b0a830b26bed7516"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Coupon\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "优惠券系统 - 券模板、批量发券、核销统计、裂变分享",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-developer-portal",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/DeveloperPortal",
-                "reference": "6f943f2aa8d6b18f250f1fcf21432155f6c97901"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\DeveloperPortal\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "开发者门户 - API 文档、沙箱环境、SDK 管理",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-domain",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Domain",
-                "reference": "915f1353452ef4acb1e4cdf55d8ca37c8415260a"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Domain\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "自定义域名管理 - 租户域名绑定、ICP 备案检查、Nginx 白名单生成",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-event",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Event",
-                "reference": "12a54ce5599c7cc4dce69c5e2c8835b976047de0"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Event\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "事件总线 - 异步事件分发、外部订阅、Webhook 投递",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-form",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Form",
-                "reference": "d84713ecf204ec34ffaf2a90a21658b274f7c9ce"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Form\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "表单构建器 - 拖拽式表单设计、数据收集、提交管理、统计导出",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-infrastructure",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Infrastructure",
-                "reference": "b6e0d3a5522d721097e394a48c679c7cdf7bb2f9"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Infrastructure\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "基础设施 - 缓存、队列、限流、资源管理、功能开关",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-logging",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Logging",
-                "reference": "e81dfeaf3804217a076b746d222a0d7b6af7411f"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Logging\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "结构化日志 - 操作日志、安全日志、审计日志、日志查询与导出",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-lottery",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Lottery",
-                "reference": "aa7bfc7b107bafe98dfc7fcf75d73f1f67bf73cc"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Lottery\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "抽奖系统 - 活动管理、奖品池、抽奖执行、黑名单、统计查询",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-monitoring",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Monitoring",
-                "reference": "b7a2bc9c0a8678ab08d822d142c29aac490c454a"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Monitoring\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "监控与告警 - 指标采集、SLA 监控、告警规则、性能追踪",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-payment",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Payment",
-                "reference": "4be319f4588332eefec5e5f59d4be07a7381c17a"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Payment\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "第三方支付网关 - 对接馒头支付等独立支付平台",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-platform",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Platform",
-                "reference": "50114ea2b2ef57ff3f28dd3837a200922d594d75"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Platform\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "平台工具 - 数据导出、API 版本管理、租户资料、成本管理、事件总线",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-plugin",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Plugin",
-                "reference": "69580ad3a2f2f53f33e9f1a506df88da4318cecc"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Plugin\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "插件管理 - 插件安装/卸载、启用/禁用、生命周期钩子",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-sms",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Sms",
-                "reference": "085b51349d222865b96e6077f472c5feb9f2c86b"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Sms\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "短信服务 - 模板管理、批量发送、到达率统计、退订管理",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-ssl",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/SSL",
-                "reference": "87a3143ed58ff854bab0cffc4841e8acc3dd091d"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\SSL\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "SSL 证书管理 - 租户自定义域名的 SSL 证书上传、续期、Nginx 配置",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-user",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/User",
-                "reference": "be1e1446fdea778efa42170249adcd0368f47f54"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\User\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "用户管理 - 用户资料、偏好设置、登录日志",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-voting",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Voting",
-                "reference": "014266e2c650ef0b3cc10cbc9e1bca838ccdc1e5"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Voting\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "投票系统 - 排行榜、防刷票、多类型投票、统计查询",
-            "transport-options": {
-                "relative": true
-            }
-        },
-        {
-            "name": "multi-tenant-saas/module-workflow",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "src/Modules/Workflow",
-                "reference": "07f286de3d45c7cfd6863d3de454ea4ccfd81f3e"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "MultiTenantSaas\\Modules\\Workflow\\": ""
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "工作流引擎 - 流程编排、节点执行、条件分支、并行处理",
-            "transport-options": {
-                "relative": true
-            }
         },
         {
             "name": "nesbot/carbon",

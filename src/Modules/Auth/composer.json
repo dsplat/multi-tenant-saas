@@ -1,5 +1,5 @@
 {
-    "name": "multi-tenant-saas/module-auth",
+    "name": "dsplat/module-auth",
     "version": "1.0.0",
     "description": "第三方认证 - 社交登录、支付宝 OAuth、SSO 集成",
     "type": "library",

@@ -1,5 +1,5 @@
 {
-    "name": "multi-tenant-saas/module-event",
+    "name": "dsplat/module-event",
     "version": "1.0.0",
     "description": "事件总线 - 异步事件分发、外部订阅、Webhook 投递",
     "type": "library",

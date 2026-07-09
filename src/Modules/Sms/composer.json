@@ -1,5 +1,5 @@
 {
-    "name": "multi-tenant-saas/module-sms",
+    "name": "dsplat/module-sms",
     "version": "1.0.0",
     "description": "短信服务 - 模板管理、批量发送、到达率统计、退订管理",
     "type": "library",

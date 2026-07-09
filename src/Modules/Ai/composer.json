@@ -1,5 +1,5 @@
 {
-    "name": "multi-tenant-saas/module-ai",
+    "name": "dsplat/module-ai",
     "version": "1.0.0",
     "description": "AI 推理引擎 - Agent、能力引擎、MCP、工具注册表、记忆系统、AI 网关",
     "type": "library",

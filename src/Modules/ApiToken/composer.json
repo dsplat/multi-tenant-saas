@@ -1,5 +1,5 @@
 {
-    "name": "multi-tenant-saas/module-api-token",
+    "name": "dsplat/module-api-token",
     "version": "1.0.0",
     "description": "API Token 管理 - 对接 new-api 后端, 提供 Token 创建/查询/轮换、Quota 充值",
     "type": "library",

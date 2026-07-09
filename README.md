@@ -454,7 +454,7 @@ AI 工具调用协议实现，支持 JSON-RPC 2.0 标准：
 ### 安装
 
 ```bash
-composer create-project luoyueliang/multi-tenant-saas my-saas-app
+composer create-project dsplat/multi-tenant-saas my-saas-app
 cd my-saas-app
 ```
 
@@ -1049,7 +1049,7 @@ composer test:filter -- SomeTest
 ## 更新框架
 
 ```bash
-composer update luoyueliang/multi-tenant-saas
+composer update dsplat/multi-tenant-saas
 ```
 
 ---

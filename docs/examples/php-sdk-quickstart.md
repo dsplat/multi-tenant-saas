@@ -9,7 +9,7 @@
 PHP SDK 随框架包发布，独立于 Laravel，仅依赖 PHP 8.2+ 与 ext-curl。
 
 ```bash
-composer require luoyueliang/multi-tenant-saas
+composer require dsplat/multi-tenant-saas
 ```
 
 ## 2. 初始化客户端

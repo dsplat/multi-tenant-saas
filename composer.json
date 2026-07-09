@@ -104,6 +104,14 @@
             ]
         }
     },
+    "archive": {
+        "exclude": [
+            "/docs", "/tests", "/.ai", "/vendor", "/storage",
+            "/public", "/bootstrap", "/.env*", "/*.md",
+            "/phpunit.xml.dist", "/artisan", "/compose.json",
+            "/requirements.md", "/ai-runner", "/*.sh"
+        ]
+    },
     "config": {
         "optimize-autoloader": true,
         "preferred-install": "dist",

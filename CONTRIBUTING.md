@@ -6,7 +6,7 @@
 
 ### 报告问题
 
-1. 使用 [GitHub Issues](https://github.com/luoyueliang/multi-tenant-saas/issues) 报告问题
+1. 使用 [GitHub Issues](https://github.com/dsplat/multi-tenant-saas/issues) 报告问题
 2. 使用问题模板，包含：
    - 问题描述
    - 复现步骤
@@ -62,7 +62,7 @@ docs(api): 更新 API 文档
 
 ```bash
 # 克隆仓库
-git clone https://github.com/luoyueliang/multi-tenant-saas.git
+git clone https://github.com/dsplat/multi-tenant-saas.git
 cd multi-tenant-saas
 
 # 安装依赖

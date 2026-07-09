@@ -1,6 +1,6 @@
 # Agent Framework 框架层需求描述
 
-> **目标仓库**: `https://github.com/luoyueliang/multi-tenant-saas`
+> **目标仓库**: `https://github.com/dsplat/multi-tenant-saas`
 > **用途**: 为 SCRM 平台及其他业务系统提供统一的 AI 智能体（数字员工）基础设施
 > **版本**: v1.0
 

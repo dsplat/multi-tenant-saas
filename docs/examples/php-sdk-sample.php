@@ -4,7 +4,7 @@
  * Multi-Tenant SaaS PHP SDK 可运行示例
  *
  * 用法：
- *   1. composer require luoyueliang/multi-tenant-saas
+ *   1. composer require dsplat/multi-tenant-saas
  *   2. 填入 BASE_URL 与 API_KEY
  *   3. php docs/examples/php-sdk-sample.php
  *

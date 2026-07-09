@@ -558,13 +558,13 @@ server {
 
 ```
 multi-tenant-saas/
-├── app/Http/Controllers/Api/  # 核心 API 控制器
+├── app/Http/Controllers/Api/  # 核心 API 控制器 (22 个)
 ├── config/
 │   ├── tenancy.php            # 框架核心配置 (部署模式、模块默认值)
 │   └── ...
 ├── database/migrations/       # 核心迁移
 ├── routes/
-│   ├── api.php                # 核心路由 (auth, tenant, file, notification)
+│   ├── api.php                # 核心路由 (142 端点: auth, tenant, file, notification)
 │   └── web.php
 ├── src/
 │   ├── Concerns/              # Traits (BelongsToTenant, HasGlobalId)
@@ -581,11 +581,12 @@ multi-tenant-saas/
 │   │   ├── Coupon/            # 优惠券模块
 │   │   ├── Workflow/          # 工作流模块
 │   │   ├── Conversation/      # 会话模块
-│   │   └── ...                # 其他模块
+│   │   └── ...                # 其他模块 (共 22 个)
 │   ├── Services/
 │   │   ├── ModuleRegistry.php # 模块注册表 (纯读取: 发现、元数据、校验)
 │   │   ├── ModuleManager.php  # 模块管理器 (业务: 启停、租户级、部署模式)
-│   │   └── ModuleBootstrapper.php # 模块启动器 (注册 + boot 已启用模块)
+│   │   ├── ModuleBootstrapper.php # 模块启动器 (注册 + boot 已启用模块)
+│   │   └── ...                # 核心服务 (94 个)
 │   └── TenancyServiceProvider.php # 核心 Provider (框架根基)
 ├── compose.json               # 部署配置 (模式、模块开关)
 ├── tests/
@@ -593,6 +594,38 @@ multi-tenant-saas/
 │   └── Schema/                # 测试 Schema 模块
 └── composer.json              # Composer 包定义 (path 仓库)
 ```
+
+### ServiceProvider 架构
+
+框架采用 ServiceProvider 分离设计, 核心 Provider 极简 (~80 行), 业务 Provider 按模块加载:
+
+| ServiceProvider | 职责 | 注册方式 |
+|---|---|---|
+| `TenancyServiceProvider` | IdGenerator, TenantContext, TenantConfigStore | `bootstrap/app.php` 手动注册 |
+| `AiServiceProvider` | AI 文本/图像/视频、Agent、MCP、能力引擎、记忆系统 | ModuleBootstrapper 动态加载 |
+| `ConversationServiceProvider` | 会话/消息/标签、频道管理、消息路由 | ModuleBootstrapper 动态加载 |
+| `WorkflowServiceProvider` | 工作流引擎、服务、注册表 | ModuleBootstrapper 动态加载 |
+| 各模块 ServiceProvider | 模块业务逻辑 | ModuleBootstrapper 按 module.json 加载 |
+
+**启动流程:** `TenancyServiceProvider::boot()` → `ModuleBootstrapper::bootstrap()` → 扫描 `module.json` → 拓扑排序 → 注册并 boot 已启用模块的 ServiceProvider。
+
+### Composer 管理模块
+
+每个模块是独立的 Composer 包, 通过 `path` 仓库引入:
+
+```json
+// 根 composer.json
+"repositories": {
+    "modules": {
+        "type": "path",
+        "url": "src/Modules/*"
+    }
+}
+```
+
+- 模块 `composer.json` 无 `extra.laravel.providers` — 防止禁用模块加载路由/迁移
+- 模块注册由 `ModuleBootstrapper` 独家控制, Composer 仅负责安装
+- `module.json` 保留运行时元数据 (priority, dependencies, conflicts, tenant_toggleable)
 
 ### 模块标准目录结构
 
@@ -629,8 +662,9 @@ src/Modules/{ModuleName}/
 | `SetLocale` | `locale.set` | 自动设置请求语言 |
 | `CheckFeatureFlag` | `feature.flag` | 功能开关检查 |
 | `CheckIpWhitelist` | `ip.whitelist` | IP 白名单校验 |
+| `McpMiddleware` | `mcp.auth` | MCP 请求认证 |
 
-### 服务（159 个）
+### 服务（174 个）
 
 | 分类 | 代表服务 | 说明 |
 |------|------|------|
@@ -704,7 +738,7 @@ src/Modules/{ModuleName}/
 | **入驻** | `TenantOnboardingService` | 租户引导式注册 |
 | **密码** | `PasswordPolicyService` | 密码策略管理 |
 
-### 模型（90+ 个）
+### 模型（120+ 个）
 
 | 分类 | 模型 | 说明 |
 |------|------|------|
@@ -925,6 +959,30 @@ php artisan module:disable ssl
 
 新租户创建时自动按套餐开通模块, 配置见 `config/tenancy.php` 的 `plan_modules` 和 `tenant_module_defaults`。
 
+**初始化预设:**
+
+```bash
+php artisan tenancy:init mini    # 6 个核心模块
+php artisan tenancy:init normal  # 14 个模块 (默认)
+php artisan tenancy:init full    # 22 个模块 (全部)
+```
+
+**module.json 示例:**
+
+```json
+{
+    "name": "lottery",
+    "version": "1.0.0",
+    "description": "抽奖活动管理模块",
+    "priority": 50,
+    "dependencies": ["billing"],
+    "conflicts": [],
+    "provider": "MultiTenantSaas\\Modules\\Lottery\\LotteryServiceProvider",
+    "tenant_toggleable": true,
+    "default_enabled": true
+}
+```
+
 ---
 
 ## 技术栈
@@ -972,6 +1030,19 @@ composer test:filter -- SomeTest
 - 数据重置用 DELETE 代替 DROP/CREATE (首次建表后不再重建)
 - bcrypt rounds=4 (测试环境)
 - `brianium/paratest` 并行执行
+
+**派生项目自动继承:**
+
+所有测试优化配置均通过 Git 跟踪的文件管理, `composer create-project` 或 fork 后自动生效:
+
+| 文件 | 作用 |
+|---|---|
+| `phpunit.xml.dist` | SQLite 内存数据库、环境变量、`cacheResult=false` |
+| `composer.json` 的 `test` scripts | `composer test` 默认并行 |
+| `tests/TestCase.php` | PRAGMA 优化、DELETE 重置、bcrypt rounds |
+| `brianium/paratest` (require-dev) | 并行执行引擎 |
+
+派生项目可创建本地 `phpunit.xml` 覆盖 `.dist` 配置 (如需连接真实 MySQL)。
 
 ---
 

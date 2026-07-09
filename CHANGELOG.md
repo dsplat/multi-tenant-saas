@@ -5,6 +5,88 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/).
 
+## [2.0.0] - 2026-07-09
+
+### Overview
+
+v2.0.0 是一次架构级重构, 将单体 ServiceProvider 拆分为 Core + Modules + Plugins 三层架构。22 个模块全部自包含 (Models/Services/Controllers/Routes), 通过 Composer path 仓库管理, 支持 `artisan module:require` 动态添加/移除。测试从 2200+ 提升到 2269, 并行执行 ~7 秒。
+
+### Architecture — Core + Modules + Plugins
+
+- **ModuleRegistry** (`src/Services/ModuleRegistry.php`): 纯读取层 — 扫描磁盘, 读取 `module.json`, 提供元数据查询, 依赖/冲突/核心版本校验, 拓扑排序
+- **ModuleManager** (`src/Services/ModuleManager.php`): 业务层 — 系统级启停 (`modules` 表), 租户级启停 (`tenant_modules` 表), 部署模式, 租户模块自动开通
+- **ModuleBootstrapper** (`src/Services/ModuleBootstrapper.php`): 启动器 — `TenancyServiceProvider::boot()` 调用, 按 priority + 依赖拓扑排序注册并 boot 已启用模块
+- **ModuleServiceProvider** (`src/Modules/Contracts/ModuleServiceProvider.php`): 模块基类 — 自动加载迁移/路由/视图/翻译/命令, 路由前缀 `api/v1`
+- **module.json**: 模块声明 — name, version, description, priority, dependencies, conflicts, requires_core, provider, tenant_toggleable, default_enabled
+- **composer.json** (每个模块): Composer 包定义, path 仓库引入, 无 `extra.laravel.providers` (防止禁用模块加载)
+
+### Architecture — ServiceProvider Split
+
+- **TenancyServiceProvider** (~90 行): IdGenerator, TenantContext, TenantConfigStore, ModuleManager, 限流, 事件监听
+- **AiServiceProvider**: AI 文本/图像/视频, Agent, MCP, 能力引擎 (14 种), 记忆系统, AI 网关
+- **ConversationServiceProvider**: 会话/消息/标签, 频道管理, 消息路由
+- **WorkflowServiceProvider**: 工作流引擎, 服务, 注册表 (Contract 绑定)
+
+### Architecture — Module Inventory (22 modules)
+
+**System (always enabled):** infrastructure, plugin, event, billing, logging, auth, user, monitoring, platform, developer-portal, ai, conversation, workflow
+
+**Feature (tenant_toggleable):** domain, ssl, api-token, payment, form, lottery, voting, sms, coupon
+
+### Architecture — Business Code Migration
+
+- 8 模块业务代码归位: Form, Lottery, Voting, Sms, Coupon, Ai, Conversation, Workflow
+- Models/Services/Controllers 从 `src/Models/`, `src/Services/`, `app/Http/Controllers/` 迁入 `src/Modules/{Name}/`
+- 命名空间更新: `MultiTenantSaas\Models\*` → `MultiTenantSaas\Modules\{Name}\Models\*`
+- 薄包装模型恢复为完整模型 (git show HEAD)
+- AgentMonitor FQN 修复, WorkflowServiceProvider Contract 绑定, McpRouteMacro 位置修正
+
+### Architecture — Tenant Module Provisioning
+
+- `ModuleManager::provisionTenantModules()`: 新租户创建时自动按套餐开通模块
+- 配置: `config/tenancy.php` 的 `plan_modules` (按套餐) 和 `tenant_module_defaults` (全局默认)
+- 套餐预设: free (禁用 coupon/lottery/sms), basic, pro (全部), enterprise (全部+payment+api-token+ssl)
+- 接入点: `TenantOnboardingService::complete()` 和 `TenantController::store()`
+
+### Architecture — Module Management API
+
+- 系统级: `GET /admin/modules`, `POST /admin/modules/{name}/enable|disable`
+- 租户级: `GET /tenants/{id}/modules`, `POST /tenants/{id}/modules/{name}/enable|disable`
+- `ModuleController` (`app/Http/Controllers/Api/ModuleController.php`)
+
+### Architecture — Standalone Mode
+
+- `deployment_mode: "standalone"` in `config/tenancy.php` = 关闭 SaaS 注册 + 默认租户
+- `saas_registration` 配置项独立控制注册开关
+
+### CLI Commands
+
+- `module:list`: 列出所有模块及状态 (名称/版本/优先级/依赖/互斥)
+- `module:enable {name}` / `module:disable {name}`: 系统级启停
+- `module:require {name}` / `module:require --remove {name}`: 通过 Composer 添加/移除模块
+- `tenancy:init mini|normal|full`: 初始化项目 (6/14/22 模块)
+
+### Testing
+
+- **2269 tests, 5648 assertions, 0 failures, 0 skipped**
+- `composer test` 默认 `--parallel` (~7 秒, 12 核 680% CPU)
+- `composer test:sequential` 串行调试 (~34 秒)
+- SQLite PRAGMA 优化: journal_mode=OFF, synchronous=OFF, locking_mode=EXCLUSIVE, temp_store=MEMORY, cache_size=200MB, foreign_keys=OFF
+- 数据重置: DELETE FROM (反向表序) + DELETE FROM sqlite_sequence, 非 DROP/CREATE
+- bcrypt rounds=4
+- `brianium/paratest` 并行执行
+- `phpunit.xml.dist`: `cacheResult=false`, `DB_FOREIGN_KEYS=false`, `HASHING_BCRYPT_ROUNDS=4`
+- 修复 InvoiceServiceTest (DomPDF ServiceProvider + 视图路径) 和 TenantControllerTest (schema 字段补全)
+- `orchestra/testbench` 移至 `require-dev`
+
+### README
+
+- 架构说明更新: Core + Modules + Plugins, ServiceProvider 分离, Composer 管理模块
+- 模块清单: 22 个模块完整列表 (系统 13 + 业务 9)
+- 项目结构: 模块标准目录结构, ServiceProvider 架构表
+- 测试优化说明: 并行 + PRAGMA + DELETE 重置
+- 数据修正: 中间件 9 个, 服务 174 个, 模型 120+, 核心路由 142 端点
+
 ## [1.2.0] - 2026-06-30
 
 ### Overview

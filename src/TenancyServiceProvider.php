@@ -90,6 +90,7 @@ class TenancyServiceProvider extends ServiceProvider
                 \MultiTenantSaas\Console\Commands\ModuleDisableCommand::class,
                 \MultiTenantSaas\Console\Commands\TenancyInitCommand::class,
                 \MultiTenantSaas\Console\Commands\ModuleRequireCommand::class,
+                \MultiTenantSaas\Console\Commands\ModuleCreateCommand::class,
             ]);
         }
 

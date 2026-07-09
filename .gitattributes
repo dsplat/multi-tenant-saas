@@ -1,0 +1,17 @@
+# Exclude non-essential directories from package distribution
+/docs export-ignore
+/tests export-ignore
+/.ai export-ignore
+/vendor export-ignore
+/storage export-ignore
+/public export-ignore
+/bootstrap export-ignore
+/ai-runner export-ignore
+/*.md export-ignore
+/phpunit.xml.dist export-ignore
+/artisan export-ignore
+/compose.json export-ignore
+/requirements.md export-ignore
+/*.sh export-ignore
+/.env export-ignore
+/.env.* export-ignore

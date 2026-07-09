@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\Workflow\Nodes\ParallelNode;
+use MultiTenantSaas\Modules\Workflow\Services\Nodes\ParallelNode;
 use MultiTenantSaas\Tests\Schema\WorkflowModule;
 
 class ParallelNodeTest extends TestCase

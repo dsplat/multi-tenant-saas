@@ -1,0 +1,12 @@
+{
+    "name": "multi-tenant-saas/module-billing",
+    "version": "1.0.0",
+    "description": "计费核心 - 订阅管理、套餐变更、续费处理",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\Billing\\": ""
+        }
+    }
+}

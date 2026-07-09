@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\Workflow\Nodes\ConditionNode;
+use MultiTenantSaas\Modules\Workflow\Services\Nodes\ConditionNode;
 use MultiTenantSaas\Tests\TestCase;
 use MultiTenantSaas\Tests\Schema\WorkflowModule;
 

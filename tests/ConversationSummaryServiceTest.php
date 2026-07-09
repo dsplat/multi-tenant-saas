@@ -9,7 +9,7 @@ use MultiTenantSaas\Models\Conversation;
 use MultiTenantSaas\Models\Message;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\Conversation\ConversationSummaryService;
+use MultiTenantSaas\Modules\Conversation\Services\ConversationSummaryService;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
 
 class ConversationSummaryServiceTest extends TestCase

@@ -1,0 +1,12 @@
+{
+    "name": "multi-tenant-saas/module-voting",
+    "version": "1.0.0",
+    "description": "投票系统 - 排行榜、防刷票、多类型投票、统计查询",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\Voting\\": ""
+        }
+    }
+}

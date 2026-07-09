@@ -1,0 +1,12 @@
+{
+    "name": "multi-tenant-saas/module-workflow",
+    "version": "1.0.0",
+    "description": "工作流引擎 - 流程编排、节点执行、条件分支、并行处理",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\Workflow\\": ""
+        }
+    }
+}

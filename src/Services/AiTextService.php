@@ -4,7 +4,7 @@ namespace MultiTenantSaas\Services;
 
 use Illuminate\Support\Collection;
 use MultiTenantSaas\Contracts\TenantContextContract;
-use MultiTenantSaas\Models\AiPrompt;
+use MultiTenantSaas\Modules\Ai\Models\AiPrompt;
 use MultiTenantSaas\Scopes\TenantScope;
 use RuntimeException;
 

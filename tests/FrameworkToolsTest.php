@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\Agent\Tools\SearchTool;
-use MultiTenantSaas\Services\Agent\Tools\FileStorageTool;
-use MultiTenantSaas\Services\Agent\Tools\EmailTool;
-use MultiTenantSaas\Services\Agent\Tools\NotificationTool;
-use MultiTenantSaas\Services\Agent\Tools\CacheTool;
-use MultiTenantSaas\Services\Agent\Tools\DatabaseQueryTool;
-use MultiTenantSaas\Services\Agent\Tools\HttpTool;
-use MultiTenantSaas\Services\Agent\Tools\JsonTool;
-use MultiTenantSaas\Services\Agent\Tools\DateTimeTool;
-use MultiTenantSaas\Services\Agent\Tools\ValidationTool;
-use MultiTenantSaas\Services\Agent\Tools\EncryptionTool;
-use MultiTenantSaas\Services\Agent\Tools\LoggingTool;
-use MultiTenantSaas\Services\Agent\Tools\QueueTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\SearchTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\FileStorageTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\EmailTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\NotificationTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\CacheTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\DatabaseQueryTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\HttpTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\JsonTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\DateTimeTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\ValidationTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\EncryptionTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\LoggingTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\QueueTool;
 use MultiTenantSaas\Tests\Schema\AgentModule;
 
 class FrameworkToolsTest extends TestCase

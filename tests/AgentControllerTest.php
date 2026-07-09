@@ -4,10 +4,10 @@ namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Middleware\IdentifyTenant;
-use MultiTenantSaas\Models\Agent;
+use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\Agent\BuiltinAgentTemplates;
+use MultiTenantSaas\Modules\Ai\Services\Agent\BuiltinAgentTemplates;
 use MultiTenantSaas\Tests\Schema\AgentModule;
 
 class AgentControllerTest extends TestCase

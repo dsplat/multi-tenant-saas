@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "267c70888254f4435ff598971087b656",
+    "content-hash": "a11c0dc5c5b46e61a29480b3950bbbab",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -62,16 +62,16 @@
         },
         {
             "name": "aws/aws-sdk-php",
-            "version": "3.387.2",
+            "version": "3.388.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/aws/aws-sdk-php.git",
-                "reference": "dac6a19ffc71e6d100f06098e7df58f2e27103f9"
+                "reference": "d48fe5eabeda0cf58025636f78ac8dcd8e60a724"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/dac6a19ffc71e6d100f06098e7df58f2e27103f9",
-                "reference": "dac6a19ffc71e6d100f06098e7df58f2e27103f9",
+                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/d48fe5eabeda0cf58025636f78ac8dcd8e60a724",
+                "reference": "d48fe5eabeda0cf58025636f78ac8dcd8e60a724",
                 "shasum": ""
             },
             "require": {
@@ -153,9 +153,9 @@
             "support": {
                 "forum": "https://github.com/aws/aws-sdk-php/discussions",
                 "issues": "https://github.com/aws/aws-sdk-php/issues",
-                "source": "https://github.com/aws/aws-sdk-php/tree/3.387.2"
+                "source": "https://github.com/aws/aws-sdk-php/tree/3.388.2"
             },
-            "time": "2026-07-02T18:06:18+00:00"
+            "time": "2026-07-08T23:12:50+00:00"
         },
         {
             "name": "barryvdh/laravel-dompdf",
@@ -1439,22 +1439,22 @@
         },
         {
             "name": "guzzlehttp/guzzle",
-            "version": "7.13.1",
+            "version": "7.14.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/guzzle.git",
-                "reference": "55901a76dfd2006a0cc012b9e3c5b487f796478d"
+                "reference": "aef242412e13128b5049864867bb49fc37dd39de"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/55901a76dfd2006a0cc012b9e3c5b487f796478d",
-                "reference": "55901a76dfd2006a0cc012b9e3c5b487f796478d",
+                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/aef242412e13128b5049864867bb49fc37dd39de",
+                "reference": "aef242412e13128b5049864867bb49fc37dd39de",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
-                "guzzlehttp/promises": "^2.5",
-                "guzzlehttp/psr7": "^2.12.3",
+                "guzzlehttp/promises": "^2.5.1",
+                "guzzlehttp/psr7": "^2.12.4",
                 "php": "^7.2.5 || ^8.0",
                 "psr/http-client": "^1.0",
                 "symfony/deprecation-contracts": "^2.5 || ^3.0",
@@ -1466,7 +1466,7 @@
             "require-dev": {
                 "bamarni/composer-bin-plugin": "^1.8.2",
                 "ext-curl": "*",
-                "guzzle/client-integration-tests": "3.0.2",
+                "guzzle/client-integration-tests": "3.0.3",
                 "guzzlehttp/test-server": "^0.6",
                 "php-http/message-factory": "^1.1",
                 "phpunit/phpunit": "^8.5.52 || ^9.6.34",
@@ -1547,7 +1547,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/guzzle/issues",
-                "source": "https://github.com/guzzle/guzzle/tree/7.13.1"
+                "source": "https://github.com/guzzle/guzzle/tree/7.14.0"
             },
             "funding": [
                 {
@@ -1563,20 +1563,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-29T20:14:18+00:00"
+            "time": "2026-07-08T22:54:09+00:00"
         },
         {
             "name": "guzzlehttp/promises",
-            "version": "2.5.0",
+            "version": "2.5.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/promises.git",
-                "reference": "4360e982f87f5f258bf872d094647791db2f4c8e"
+                "reference": "9ad1e4fc607446a055b95870c7f668e93b5cff29"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/promises/zipball/4360e982f87f5f258bf872d094647791db2f4c8e",
-                "reference": "4360e982f87f5f258bf872d094647791db2f4c8e",
+                "url": "https://api.github.com/repos/guzzle/promises/zipball/9ad1e4fc607446a055b95870c7f668e93b5cff29",
+                "reference": "9ad1e4fc607446a055b95870c7f668e93b5cff29",
                 "shasum": ""
             },
             "require": {
@@ -1631,7 +1631,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/promises/issues",
-                "source": "https://github.com/guzzle/promises/tree/2.5.0"
+                "source": "https://github.com/guzzle/promises/tree/2.5.1"
             },
             "funding": [
                 {
@@ -1647,20 +1647,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-02T12:23:43+00:00"
+            "time": "2026-07-08T15:48:39+00:00"
         },
         {
             "name": "guzzlehttp/psr7",
-            "version": "2.12.3",
+            "version": "2.12.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/psr7.git",
-                "reference": "7ec62dc3f44aa218487dbed81a9bf9bc647be55d"
+                "reference": "51e27f9e2b332ab3e72f4520d5ff4f3c68c3577c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/psr7/zipball/7ec62dc3f44aa218487dbed81a9bf9bc647be55d",
-                "reference": "7ec62dc3f44aa218487dbed81a9bf9bc647be55d",
+                "url": "https://api.github.com/repos/guzzle/psr7/zipball/51e27f9e2b332ab3e72f4520d5ff4f3c68c3577c",
+                "reference": "51e27f9e2b332ab3e72f4520d5ff4f3c68c3577c",
                 "shasum": ""
             },
             "require": {
@@ -1750,7 +1750,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/psr7/issues",
-                "source": "https://github.com/guzzle/psr7/tree/2.12.3"
+                "source": "https://github.com/guzzle/psr7/tree/2.12.4"
             },
             "funding": [
                 {
@@ -1766,20 +1766,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-23T15:21:08+00:00"
+            "time": "2026-07-08T15:56:20+00:00"
         },
         {
             "name": "guzzlehttp/uri-template",
-            "version": "v1.0.8",
+            "version": "v1.0.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/uri-template.git",
-                "reference": "9c19128923b05a5d7355e5d2318d7808b7e33bbd"
+                "reference": "d7580af6d3f8384325d9cd3e99b21c3ed1848176"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/uri-template/zipball/9c19128923b05a5d7355e5d2318d7808b7e33bbd",
-                "reference": "9c19128923b05a5d7355e5d2318d7808b7e33bbd",
+                "url": "https://api.github.com/repos/guzzle/uri-template/zipball/d7580af6d3f8384325d9cd3e99b21c3ed1848176",
+                "reference": "d7580af6d3f8384325d9cd3e99b21c3ed1848176",
                 "shasum": ""
             },
             "require": {
@@ -1836,7 +1836,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/uri-template/issues",
-                "source": "https://github.com/guzzle/uri-template/tree/v1.0.8"
+                "source": "https://github.com/guzzle/uri-template/tree/v1.0.9"
             },
             "funding": [
                 {
@@ -1852,7 +1852,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-23T13:02:23+00:00"
+            "time": "2026-07-08T16:19:22+00:00"
         },
         {
             "name": "hamcrest/hamcrest-php",
@@ -1981,16 +1981,16 @@
         },
         {
             "name": "laravel/framework",
-            "version": "v13.18.1",
+            "version": "v13.19.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/framework.git",
-                "reference": "7d66044819e269f05924793a6800022dc181d850"
+                "reference": "514502b38e11bd676ecf83b271c9452cc7500f16"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/framework/zipball/7d66044819e269f05924793a6800022dc181d850",
-                "reference": "7d66044819e269f05924793a6800022dc181d850",
+                "url": "https://api.github.com/repos/laravel/framework/zipball/514502b38e11bd676ecf83b271c9452cc7500f16",
+                "reference": "514502b38e11bd676ecf83b271c9452cc7500f16",
                 "shasum": ""
             },
             "require": {
@@ -2201,7 +2201,7 @@
                 "issues": "https://github.com/laravel/framework/issues",
                 "source": "https://github.com/laravel/framework"
             },
-            "time": "2026-07-02T18:35:20+00:00"
+            "time": "2026-07-07T14:13:33+00:00"
         },
         {
             "name": "laravel/pail",
@@ -2798,16 +2798,16 @@
         },
         {
             "name": "league/flysystem",
-            "version": "3.35.1",
+            "version": "3.35.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/thephpleague/flysystem.git",
-                "reference": "f23af6c5aafd958a7593029a271d77baf5ed793c"
+                "reference": "b277b5dc3d56650b68904117124e79c851e12376"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/thephpleague/flysystem/zipball/f23af6c5aafd958a7593029a271d77baf5ed793c",
-                "reference": "f23af6c5aafd958a7593029a271d77baf5ed793c",
+                "url": "https://api.github.com/repos/thephpleague/flysystem/zipball/b277b5dc3d56650b68904117124e79c851e12376",
+                "reference": "b277b5dc3d56650b68904117124e79c851e12376",
                 "shasum": ""
             },
             "require": {
@@ -2875,9 +2875,9 @@
             ],
             "support": {
                 "issues": "https://github.com/thephpleague/flysystem/issues",
-                "source": "https://github.com/thephpleague/flysystem/tree/3.35.1"
+                "source": "https://github.com/thephpleague/flysystem/tree/3.35.2"
             },
-            "time": "2026-06-25T06:52:23+00:00"
+            "time": "2026-07-06T14:42:07+00:00"
         },
         {
             "name": "league/flysystem-local",
@@ -3244,16 +3244,16 @@
         },
         {
             "name": "maatwebsite/excel",
-            "version": "3.1.69",
+            "version": "3.1.68",
             "source": {
                 "type": "git",
                 "url": "https://github.com/SpartnerNL/Laravel-Excel.git",
-                "reference": "ae5d65b7c9a2fac43bff4d44f796ac95d7a8e760"
+                "reference": "1854739267d81d38eae7d8c623caf523f30f256b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/SpartnerNL/Laravel-Excel/zipball/ae5d65b7c9a2fac43bff4d44f796ac95d7a8e760",
-                "reference": "ae5d65b7c9a2fac43bff4d44f796ac95d7a8e760",
+                "url": "https://api.github.com/repos/SpartnerNL/Laravel-Excel/zipball/1854739267d81d38eae7d8c623caf523f30f256b",
+                "reference": "1854739267d81d38eae7d8c623caf523f30f256b",
                 "shasum": ""
             },
             "require": {
@@ -3261,7 +3261,7 @@
                 "ext-json": "*",
                 "illuminate/support": "5.8.*||^6.0||^7.0||^8.0||^9.0||^10.0||^11.0||^12.0||^13.0",
                 "php": "^7.0||^8.0",
-                "phpoffice/phpspreadsheet": "^1.30.4",
+                "phpoffice/phpspreadsheet": "^1.30.0",
                 "psr/simple-cache": "^1.0||^2.0||^3.0"
             },
             "require-dev": {
@@ -3309,7 +3309,7 @@
             ],
             "support": {
                 "issues": "https://github.com/SpartnerNL/Laravel-Excel/issues",
-                "source": "https://github.com/SpartnerNL/Laravel-Excel/tree/3.1.69"
+                "source": "https://github.com/SpartnerNL/Laravel-Excel/tree/3.1.68"
             },
             "funding": [
                 {
@@ -3321,7 +3321,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-04-30T20:03:58+00:00"
+            "time": "2026-03-17T20:51:10+00:00"
         },
         {
             "name": "maennchen/zipstream-php",
@@ -3763,16 +3763,16 @@
         },
         {
             "name": "mtdowling/jmespath.php",
-            "version": "2.9.1",
+            "version": "2.9.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jmespath/jmespath.php.git",
-                "reference": "9c208ba27ae7d90853c288b3795d6702eb251d34"
+                "reference": "2157c5e50e813ec6a96c1eed3be7f64a20fb32a8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jmespath/jmespath.php/zipball/9c208ba27ae7d90853c288b3795d6702eb251d34",
-                "reference": "9c208ba27ae7d90853c288b3795d6702eb251d34",
+                "url": "https://api.github.com/repos/jmespath/jmespath.php/zipball/2157c5e50e813ec6a96c1eed3be7f64a20fb32a8",
+                "reference": "2157c5e50e813ec6a96c1eed3be7f64a20fb32a8",
                 "shasum": ""
             },
             "require": {
@@ -3823,9 +3823,493 @@
             ],
             "support": {
                 "issues": "https://github.com/jmespath/jmespath.php/issues",
-                "source": "https://github.com/jmespath/jmespath.php/tree/2.9.1"
+                "source": "https://github.com/jmespath/jmespath.php/tree/2.9.2"
             },
-            "time": "2026-06-11T10:43:56+00:00"
+            "time": "2026-07-06T18:56:19+00:00"
+        },
+        {
+            "name": "multi-tenant-saas/module-ai",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Ai",
+                "reference": "993ae1ddb8097be27ecd495eb77f226d46337f36"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Ai\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "AI 推理引擎 - Agent、能力引擎、MCP、工具注册表、记忆系统、AI 网关",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-api-token",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/ApiToken",
+                "reference": "553578bed491445f1c668f07a45b49ce6575b163"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\ApiToken\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "API Token 管理 - 对接 new-api 后端, 提供 Token 创建/查询/轮换、Quota 充值",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-auth",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Auth",
+                "reference": "b934e1f6161c8fddc03097eb79fa7ea54a1ca789"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Auth\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "第三方认证 - 社交登录、支付宝 OAuth、SSO 集成",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-billing",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Billing",
+                "reference": "2b409bc0a4096a2c9e0c92c865eb97077e8b7501"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Billing\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "计费核心 - 订阅管理、套餐变更、续费处理",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-conversation",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Conversation",
+                "reference": "ee6e3f6ad35bdf731507173819b9673f5cd4585b"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Conversation\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "会话中心 - 多渠道会话、消息路由、频道管理",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-coupon",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Coupon",
+                "reference": "efb75ca67dd4dec5235e8950b0a830b26bed7516"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Coupon\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "优惠券系统 - 券模板、批量发券、核销统计、裂变分享",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-developer-portal",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/DeveloperPortal",
+                "reference": "6f943f2aa8d6b18f250f1fcf21432155f6c97901"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\DeveloperPortal\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "开发者门户 - API 文档、沙箱环境、SDK 管理",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-domain",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Domain",
+                "reference": "915f1353452ef4acb1e4cdf55d8ca37c8415260a"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Domain\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "自定义域名管理 - 租户域名绑定、ICP 备案检查、Nginx 白名单生成",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-event",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Event",
+                "reference": "12a54ce5599c7cc4dce69c5e2c8835b976047de0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Event\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "事件总线 - 异步事件分发、外部订阅、Webhook 投递",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-form",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Form",
+                "reference": "d84713ecf204ec34ffaf2a90a21658b274f7c9ce"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Form\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "表单构建器 - 拖拽式表单设计、数据收集、提交管理、统计导出",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-infrastructure",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Infrastructure",
+                "reference": "b6e0d3a5522d721097e394a48c679c7cdf7bb2f9"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Infrastructure\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "基础设施 - 缓存、队列、限流、资源管理、功能开关",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-logging",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Logging",
+                "reference": "e81dfeaf3804217a076b746d222a0d7b6af7411f"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Logging\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "结构化日志 - 操作日志、安全日志、审计日志、日志查询与导出",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-lottery",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Lottery",
+                "reference": "aa7bfc7b107bafe98dfc7fcf75d73f1f67bf73cc"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Lottery\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "抽奖系统 - 活动管理、奖品池、抽奖执行、黑名单、统计查询",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-monitoring",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Monitoring",
+                "reference": "b7a2bc9c0a8678ab08d822d142c29aac490c454a"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Monitoring\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "监控与告警 - 指标采集、SLA 监控、告警规则、性能追踪",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-payment",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Payment",
+                "reference": "4be319f4588332eefec5e5f59d4be07a7381c17a"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Payment\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "第三方支付网关 - 对接馒头支付等独立支付平台",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-platform",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Platform",
+                "reference": "50114ea2b2ef57ff3f28dd3837a200922d594d75"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Platform\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "平台工具 - 数据导出、API 版本管理、租户资料、成本管理、事件总线",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-plugin",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Plugin",
+                "reference": "69580ad3a2f2f53f33e9f1a506df88da4318cecc"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Plugin\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "插件管理 - 插件安装/卸载、启用/禁用、生命周期钩子",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-sms",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Sms",
+                "reference": "085b51349d222865b96e6077f472c5feb9f2c86b"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Sms\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "短信服务 - 模板管理、批量发送、到达率统计、退订管理",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-ssl",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/SSL",
+                "reference": "87a3143ed58ff854bab0cffc4841e8acc3dd091d"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\SSL\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "SSL 证书管理 - 租户自定义域名的 SSL 证书上传、续期、Nginx 配置",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-user",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/User",
+                "reference": "be1e1446fdea778efa42170249adcd0368f47f54"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\User\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "用户管理 - 用户资料、偏好设置、登录日志",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-voting",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Voting",
+                "reference": "014266e2c650ef0b3cc10cbc9e1bca838ccdc1e5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Voting\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "投票系统 - 排行榜、防刷票、多类型投票、统计查询",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "multi-tenant-saas/module-workflow",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "src/Modules/Workflow",
+                "reference": "07f286de3d45c7cfd6863d3de454ea4ccfd81f3e"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MultiTenantSaas\\Modules\\Workflow\\": ""
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "工作流引擎 - 流程编排、节点执行、条件分支、并行处理",
+            "transport-options": {
+                "relative": true
+            }
         },
         {
             "name": "myclabs/deep-copy",
@@ -4152,20 +4636,19 @@
         },
         {
             "name": "nikic/php-parser",
-            "version": "v5.7.0",
+            "version": "v5.8.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nikic/PHP-Parser.git",
-                "reference": "dca41cd15c2ac9d055ad70dbfd011130757d1f82"
+                "reference": "044a6a392ff8ad0d61f14370a5fbbd0a0107152f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/dca41cd15c2ac9d055ad70dbfd011130757d1f82",
-                "reference": "dca41cd15c2ac9d055ad70dbfd011130757d1f82",
+                "url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/044a6a392ff8ad0d61f14370a5fbbd0a0107152f",
+                "reference": "044a6a392ff8ad0d61f14370a5fbbd0a0107152f",
                 "shasum": ""
             },
             "require": {
-                "ext-ctype": "*",
                 "ext-json": "*",
                 "ext-tokenizer": "*",
                 "php": ">=7.4"
@@ -4204,9 +4687,9 @@
             ],
             "support": {
                 "issues": "https://github.com/nikic/PHP-Parser/issues",
-                "source": "https://github.com/nikic/PHP-Parser/tree/v5.7.0"
+                "source": "https://github.com/nikic/PHP-Parser/tree/v5.8.0"
             },
-            "time": "2025-12-06T11:56:16+00:00"
+            "time": "2026-07-04T14:30:18+00:00"
         },
         {
             "name": "nunomaduro/collision",
@@ -5040,16 +5523,16 @@
         },
         {
             "name": "phpoffice/phpspreadsheet",
-            "version": "1.30.5",
+            "version": "1.30.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PHPOffice/PhpSpreadsheet.git",
-                "reference": "97bcabd32a64924688487dcd64aceaf158affb5c"
+                "reference": "2f39286e0136673778b7a142b3f0d141e43d1714"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PHPOffice/PhpSpreadsheet/zipball/97bcabd32a64924688487dcd64aceaf158affb5c",
-                "reference": "97bcabd32a64924688487dcd64aceaf158affb5c",
+                "url": "https://api.github.com/repos/PHPOffice/PhpSpreadsheet/zipball/2f39286e0136673778b7a142b3f0d141e43d1714",
+                "reference": "2f39286e0136673778b7a142b3f0d141e43d1714",
                 "shasum": ""
             },
             "require": {
@@ -5071,12 +5554,13 @@
                 "maennchen/zipstream-php": "^2.1 || ^3.0",
                 "markbaker/complex": "^3.0",
                 "markbaker/matrix": "^3.0",
-                "php": ">=7.4.0 <8.5.0",
+                "php": "^7.4 || ^8.0",
+                "psr/http-client": "^1.0",
+                "psr/http-factory": "^1.0",
                 "psr/simple-cache": "^1.0 || ^2.0 || ^3.0"
             },
             "require-dev": {
                 "dealerdirect/phpcodesniffer-composer-installer": "dev-main",
-                "doctrine/instantiator": "^1.5",
                 "dompdf/dompdf": "^1.0 || ^2.0 || ^3.0",
                 "friendsofphp/php-cs-fixer": "^3.2",
                 "mitoteam/jpgraph": "^10.3",
@@ -5123,9 +5607,6 @@
                 },
                 {
                     "name": "Adrien Crivelli"
-                },
-                {
-                    "name": "Owen Leibman"
                 }
             ],
             "description": "PHPSpreadsheet - Read, Create and Write Spreadsheet documents in PHP - Spreadsheet engine",
@@ -5142,9 +5623,9 @@
             ],
             "support": {
                 "issues": "https://github.com/PHPOffice/PhpSpreadsheet/issues",
-                "source": "https://github.com/PHPOffice/PhpSpreadsheet/tree/1.30.5"
+                "source": "https://github.com/PHPOffice/PhpSpreadsheet/tree/1.30.0"
             },
-            "time": "2026-05-31T05:13:11+00:00"
+            "time": "2025-08-10T06:28:02+00:00"
         },
         {
             "name": "phpoption/phpoption",
@@ -5680,24 +6161,24 @@
         },
         {
             "name": "phpunit/phpunit",
-            "version": "11.5.55",
+            "version": "11.5.56",
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/phpunit.git",
-                "reference": "adc7262fccc12de2b30f12a8aa0b33775d814f00"
+                "reference": "5f83edffa6967c3db468d48a695ec7bcb02e9256"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/adc7262fccc12de2b30f12a8aa0b33775d814f00",
-                "reference": "adc7262fccc12de2b30f12a8aa0b33775d814f00",
+                "url": "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/5f83edffa6967c3db468d48a695ec7bcb02e9256",
+                "reference": "5f83edffa6967c3db468d48a695ec7bcb02e9256",
                 "shasum": ""
             },
             "require": {
                 "ext-dom": "*",
+                "ext-filter": "*",
                 "ext-json": "*",
                 "ext-libxml": "*",
                 "ext-mbstring": "*",
-                "ext-xml": "*",
                 "ext-xmlwriter": "*",
                 "myclabs/deep-copy": "^1.13.4",
                 "phar-io/manifest": "^2.0.4",
@@ -5762,31 +6243,15 @@
             "support": {
                 "issues": "https://github.com/sebastianbergmann/phpunit/issues",
                 "security": "https://github.com/sebastianbergmann/phpunit/security/policy",
-                "source": "https://github.com/sebastianbergmann/phpunit/tree/11.5.55"
+                "source": "https://github.com/sebastianbergmann/phpunit/tree/11.5.56"
             },
             "funding": [
                 {
-                    "url": "https://phpunit.de/sponsors.html",
-                    "type": "custom"
-                },
-                {
-                    "url": "https://github.com/sebastianbergmann",
-                    "type": "github"
-                },
-                {
-                    "url": "https://liberapay.com/sebastianbergmann",
-                    "type": "liberapay"
-                },
-                {
-                    "url": "https://thanks.dev/u/gh/sebastianbergmann",
-                    "type": "thanks_dev"
-                },
-                {
-                    "url": "https://tidelift.com/funding/github/packagist/phpunit/phpunit",
-                    "type": "tidelift"
+                    "url": "https://phpunit.de/sponsoring.html",
+                    "type": "other"
                 }
             ],
-            "time": "2026-02-18T12:37:06+00:00"
+            "time": "2026-07-06T14:52:39+00:00"
         },
         {
             "name": "psr/clock",
@@ -10844,16 +11309,16 @@
         },
         {
             "name": "vlucas/phpdotenv",
-            "version": "v5.6.3",
+            "version": "v5.6.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/vlucas/phpdotenv.git",
-                "reference": "955e7815d677a3eaa7075231212f2110983adecc"
+                "reference": "416df702837983f8d5ff48c9c3fee4f5f57b980b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/vlucas/phpdotenv/zipball/955e7815d677a3eaa7075231212f2110983adecc",
-                "reference": "955e7815d677a3eaa7075231212f2110983adecc",
+                "url": "https://api.github.com/repos/vlucas/phpdotenv/zipball/416df702837983f8d5ff48c9c3fee4f5f57b980b",
+                "reference": "416df702837983f8d5ff48c9c3fee4f5f57b980b",
                 "shasum": ""
             },
             "require": {
@@ -10912,7 +11377,7 @@
             ],
             "support": {
                 "issues": "https://github.com/vlucas/phpdotenv/issues",
-                "source": "https://github.com/vlucas/phpdotenv/tree/v5.6.3"
+                "source": "https://github.com/vlucas/phpdotenv/tree/v5.6.4"
             },
             "funding": [
                 {
@@ -10924,7 +11389,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2025-12-27T19:49:13+00:00"
+            "time": "2026-07-06T19:11:50+00:00"
         },
         {
             "name": "voku/portable-ascii",
@@ -11211,6 +11676,99 @@
     ],
     "packages-dev": [
         {
+            "name": "brianium/paratest",
+            "version": "v7.8.5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/paratestphp/paratest.git",
+                "reference": "9b324c8fc319cf9728b581c7a90e1c8f6361c5e5"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/paratestphp/paratest/zipball/9b324c8fc319cf9728b581c7a90e1c8f6361c5e5",
+                "reference": "9b324c8fc319cf9728b581c7a90e1c8f6361c5e5",
+                "shasum": ""
+            },
+            "require": {
+                "ext-dom": "*",
+                "ext-pcre": "*",
+                "ext-reflection": "*",
+                "ext-simplexml": "*",
+                "fidry/cpu-core-counter": "^1.3.0",
+                "jean85/pretty-package-versions": "^2.1.1",
+                "php": "~8.2.0 || ~8.3.0 || ~8.4.0 || ~8.5.0",
+                "phpunit/php-code-coverage": "^11.0.12",
+                "phpunit/php-file-iterator": "^5.1.0",
+                "phpunit/php-timer": "^7.0.1",
+                "phpunit/phpunit": "^11.5.46",
+                "sebastian/environment": "^7.2.1",
+                "symfony/console": "^6.4.22 || ^7.3.4 || ^8.0.3",
+                "symfony/process": "^6.4.20 || ^7.3.4 || ^8.0.3"
+            },
+            "require-dev": {
+                "doctrine/coding-standard": "^12.0.0",
+                "ext-pcov": "*",
+                "ext-posix": "*",
+                "phpstan/phpstan": "^2.1.33",
+                "phpstan/phpstan-deprecation-rules": "^2.0.3",
+                "phpstan/phpstan-phpunit": "^2.0.11",
+                "phpstan/phpstan-strict-rules": "^2.0.7",
+                "squizlabs/php_codesniffer": "^3.13.5",
+                "symfony/filesystem": "^6.4.13 || ^7.3.2 || ^8.0.1"
+            },
+            "bin": [
+                "bin/paratest",
+                "bin/paratest_for_phpstorm"
+            ],
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "ParaTest\\": [
+                        "src/"
+                    ]
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Brian Scaturro",
+                    "email": "scaturrob@gmail.com",
+                    "role": "Developer"
+                },
+                {
+                    "name": "Filippo Tessarotto",
+                    "email": "zoeslam@gmail.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Parallel testing for PHP",
+            "homepage": "https://github.com/paratestphp/paratest",
+            "keywords": [
+                "concurrent",
+                "parallel",
+                "phpunit",
+                "testing"
+            ],
+            "support": {
+                "issues": "https://github.com/paratestphp/paratest/issues",
+                "source": "https://github.com/paratestphp/paratest/tree/v7.8.5"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/sponsors/Slamdunk",
+                    "type": "github"
+                },
+                {
+                    "url": "https://paypal.me/filippotessarotto",
+                    "type": "paypal"
+                }
+            ],
+            "time": "2026-01-08T08:02:38+00:00"
+        },
+        {
             "name": "darkaonline/l5-swagger",
             "version": "8.6.5",
             "source": {
@@ -11366,6 +11924,67 @@
             },
             "abandoned": true,
             "time": "2024-09-05T10:17:24+00:00"
+        },
+        {
+            "name": "fidry/cpu-core-counter",
+            "version": "1.3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/theofidry/cpu-core-counter.git",
+                "reference": "db9508f7b1474469d9d3c53b86f817e344732678"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/theofidry/cpu-core-counter/zipball/db9508f7b1474469d9d3c53b86f817e344732678",
+                "reference": "db9508f7b1474469d9d3c53b86f817e344732678",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.2 || ^8.0"
+            },
+            "require-dev": {
+                "fidry/makefile": "^0.2.0",
+                "fidry/php-cs-fixer-config": "^1.1.2",
+                "phpstan/extension-installer": "^1.2.0",
+                "phpstan/phpstan": "^2.0",
+                "phpstan/phpstan-deprecation-rules": "^2.0.0",
+                "phpstan/phpstan-phpunit": "^2.0",
+                "phpstan/phpstan-strict-rules": "^2.0",
+                "phpunit/phpunit": "^8.5.31 || ^9.5.26",
+                "webmozarts/strict-phpunit": "^7.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Fidry\\CpuCoreCounter\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Théo FIDRY",
+                    "email": "theo.fidry@gmail.com"
+                }
+            ],
+            "description": "Tiny utility to get the number of CPU cores.",
+            "keywords": [
+                "CPU",
+                "core"
+            ],
+            "support": {
+                "issues": "https://github.com/theofidry/cpu-core-counter/issues",
+                "source": "https://github.com/theofidry/cpu-core-counter/tree/1.3.0"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/theofidry",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-08-14T07:29:31+00:00"
         },
         {
             "name": "jean85/pretty-package-versions",
@@ -12253,5 +12872,5 @@
         "php": "^8.3"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.6.0"
 }

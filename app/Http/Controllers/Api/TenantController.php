@@ -152,6 +152,12 @@ class TenantController extends Controller
         // 开通流程：初始化默认配置
         $this->provisionTenant($tenant, $request->welcome_credits ?? 0);
 
+        // 为新租户开通默认模块
+        app(\MultiTenantSaas\Services\ModuleManager::class)->provisionTenantModules(
+            $tenant->tenant_id,
+            $request->subscription_plan ?? 'free'
+        );
+
         Event::dispatch(new TenantCreated($tenant));
         AuditService::log('create', 'tenant', $tenant->tenant_id, null, [
             'name' => $tenant->name,

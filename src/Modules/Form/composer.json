@@ -1,0 +1,12 @@
+{
+    "name": "multi-tenant-saas/module-form",
+    "version": "1.0.0",
+    "description": "表单构建器 - 拖拽式表单设计、数据收集、提交管理、统计导出",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\Form\\": ""
+        }
+    }
+}

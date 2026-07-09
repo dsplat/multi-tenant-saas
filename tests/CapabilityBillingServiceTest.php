@@ -9,7 +9,7 @@ use MultiTenantSaas\Models\CreditAccount;
 use MultiTenantSaas\Models\Capability\CapabilityResult;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\Capability\CapabilityBillingService;
+use MultiTenantSaas\Modules\Ai\Services\Capability\CapabilityBillingService;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 
 class CapabilityBillingServiceTest extends TestCase

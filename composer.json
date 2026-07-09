@@ -1,7 +1,7 @@
 {
     "name": "luoyueliang/multi-tenant-saas",
     "type": "project",
-    "description": "Laravel \u591a\u79df\u6237 SaaS \u57fa\u7840\u6846\u67b6 - \u5f00\u7bb1\u5373\u7528\u7684\u9879\u76ee\u9aa8\u67b6",
+    "description": "Laravel 多租户 SaaS 基础框架 - 开箱即用的项目骨架",
     "keywords": [
         "laravel",
         "multi-tenant",
@@ -9,6 +9,12 @@
         "framework"
     ],
     "license": "MIT",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "src/Modules/*"
+        }
+    ],
     "require": {
         "php": "^8.3",
         "barryvdh/laravel-dompdf": "^3.0",
@@ -19,17 +25,40 @@
         "maatwebsite/excel": "^3.1",
         "orchestra/testbench": "^11.0",
         "spatie/laravel-health": "^1.0",
-        "yansongda/pay": "^3.7"
+        "yansongda/pay": "^3.7",
+        "multi-tenant-saas/module-infrastructure": "*",
+        "multi-tenant-saas/module-plugin": "*",
+        "multi-tenant-saas/module-event": "*",
+        "multi-tenant-saas/module-billing": "*",
+        "multi-tenant-saas/module-logging": "*",
+        "multi-tenant-saas/module-auth": "*",
+        "multi-tenant-saas/module-user": "*",
+        "multi-tenant-saas/module-monitoring": "*",
+        "multi-tenant-saas/module-platform": "*",
+        "multi-tenant-saas/module-developer-portal": "*",
+        "multi-tenant-saas/module-conversation": "*",
+        "multi-tenant-saas/module-workflow": "*",
+        "multi-tenant-saas/module-ai": "*",
+        "multi-tenant-saas/module-domain": "*",
+        "multi-tenant-saas/module-ssl": "*",
+        "multi-tenant-saas/module-payment": "*",
+        "multi-tenant-saas/module-api-token": "*",
+        "multi-tenant-saas/module-form": "*",
+        "multi-tenant-saas/module-lottery": "*",
+        "multi-tenant-saas/module-voting": "*",
+        "multi-tenant-saas/module-sms": "*",
+        "multi-tenant-saas/module-coupon": "*"
     },
     "require-dev": {
+        "brianium/paratest": "^7.8",
+        "darkaonline/l5-swagger": "^8.0",
         "fakerphp/faker": "^1.23",
         "laravel/horizon": "^5.0",
         "laravel/pint": "^1.0",
-        "sentry/sentry-laravel": "^4.0",
-        "darkaonline/l5-swagger": "^8.0",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.0",
-        "phpunit/phpunit": "^10.5|^11.0"
+        "phpunit/phpunit": "^10.5|^11.0",
+        "sentry/sentry-laravel": "^4.0"
     },
     "autoload": {
         "psr-4": {
@@ -57,6 +86,15 @@
         ],
         "post-create-project-cmd": [
             "@php artisan key:generate --ansi"
+        ],
+        "test": [
+            "@php -d memory_limit=2G artisan test --parallel"
+        ],
+        "test:sequential": [
+            "@php -d memory_limit=2G artisan test"
+        ],
+        "test:filter": [
+            "@php -d memory_limit=2G artisan test --parallel --filter"
         ]
     },
     "extra": {

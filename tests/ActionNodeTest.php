@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\Workflow\Nodes\ActionNode;
-use MultiTenantSaas\Services\Workflow\Nodes\ConditionNode;
+use MultiTenantSaas\Modules\Workflow\Services\Nodes\ActionNode;
+use MultiTenantSaas\Modules\Workflow\Services\Nodes\ConditionNode;
 use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
 use MultiTenantSaas\Tests\Schema\AgentModule;
 use MultiTenantSaas\Tests\Schema\WorkflowModule;
@@ -112,7 +112,7 @@ class ActionNodeTest extends TestCase
         $failingRegistry = new class implements \MultiTenantSaas\Contracts\ToolRegistryContract {
             public function register(string $slug, string $name, string $description, string $handlerClass, array $schema, string $category = 'core'): void {}
             public function all(): \Illuminate\Support\Collection { return collect(); }
-            public function get(string $slug): ?\MultiTenantSaas\Services\Agent\Dto\Tool { return null; }
+            public function get(string $slug): ?\MultiTenantSaas\Modules\Ai\Services\Agent\Dto\Tool { return null; }
             public function getToolDefinitions(array $slugs): array { return []; }
             public function execute(string $slug, array $arguments, int $tenantId): mixed
             {

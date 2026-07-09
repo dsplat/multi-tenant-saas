@@ -6,12 +6,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Mockery;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\AiModelAlias;
-use MultiTenantSaas\Models\AiRequest;
+use MultiTenantSaas\Modules\Ai\Models\AiModelAlias;
+use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\Ai\Providers\LaravelAiProviderAdapter;
-use MultiTenantSaas\Services\Ai\ZhipuProvider;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Providers\LaravelAiProviderAdapter;
+use MultiTenantSaas\Modules\Ai\Services\Ai\ZhipuProvider;
 use MultiTenantSaas\Services\AiGatewayService;
 use MultiTenantSaas\Tests\Schema\AiModule;
 

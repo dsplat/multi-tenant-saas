@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Contracts;
 
 use Illuminate\Support\Collection;
-use MultiTenantSaas\Mcp\Tools\McpTool;
+use MultiTenantSaas\Modules\Ai\Mcp\Tools\McpTool;
 
 /**
  * MCP 工具注册表契约

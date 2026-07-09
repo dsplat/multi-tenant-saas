@@ -7,12 +7,12 @@ namespace MultiTenantSaas\Tests;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\Workflow;
-use MultiTenantSaas\Models\WorkflowExecution;
-use MultiTenantSaas\Models\WorkflowNode;
-use MultiTenantSaas\Services\Workflow\WorkflowEngine;
-use MultiTenantSaas\Services\Workflow\WorkflowRegistry;
-use MultiTenantSaas\Services\Workflow\WorkflowService;
+use MultiTenantSaas\Modules\Workflow\Models\Workflow;
+use MultiTenantSaas\Modules\Workflow\Models\WorkflowExecution;
+use MultiTenantSaas\Modules\Workflow\Models\WorkflowNode;
+use MultiTenantSaas\Modules\Workflow\Services\WorkflowEngine;
+use MultiTenantSaas\Modules\Workflow\Services\WorkflowRegistry;
+use MultiTenantSaas\Modules\Workflow\Services\WorkflowService;
 use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
 use MultiTenantSaas\Tests\Schema\WorkflowModule;
 use MultiTenantSaas\Tests\Schema\AgentModule;
@@ -675,31 +675,31 @@ class WorkflowEngineTest extends TestCase
     public function test_get_action_node(): void
     {
         $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
-        $this->assertInstanceOf(\MultiTenantSaas\Services\Workflow\Nodes\ActionNode::class, $engine->getActionNode());
+        $this->assertInstanceOf(\MultiTenantSaas\Modules\Workflow\Services\Nodes\ActionNode::class, $engine->getActionNode());
     }
 
     public function test_get_condition_node(): void
     {
         $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
-        $this->assertInstanceOf(\MultiTenantSaas\Services\Workflow\Nodes\ConditionNode::class, $engine->getConditionNode());
+        $this->assertInstanceOf(\MultiTenantSaas\Modules\Workflow\Services\Nodes\ConditionNode::class, $engine->getConditionNode());
     }
 
     public function test_get_confirm_node(): void
     {
         $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
-        $this->assertInstanceOf(\MultiTenantSaas\Services\Workflow\Nodes\ConfirmNode::class, $engine->getConfirmNode());
+        $this->assertInstanceOf(\MultiTenantSaas\Modules\Workflow\Services\Nodes\ConfirmNode::class, $engine->getConfirmNode());
     }
 
     public function test_get_delay_node(): void
     {
         $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
-        $this->assertInstanceOf(\MultiTenantSaas\Services\Workflow\Nodes\DelayNode::class, $engine->getDelayNode());
+        $this->assertInstanceOf(\MultiTenantSaas\Modules\Workflow\Services\Nodes\DelayNode::class, $engine->getDelayNode());
     }
 
     public function test_get_parallel_node(): void
     {
         $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
-        $this->assertInstanceOf(\MultiTenantSaas\Services\Workflow\Nodes\ParallelNode::class, $engine->getParallelNode());
+        $this->assertInstanceOf(\MultiTenantSaas\Modules\Workflow\Services\Nodes\ParallelNode::class, $engine->getParallelNode());
     }
 
     public function test_registry_has(): void

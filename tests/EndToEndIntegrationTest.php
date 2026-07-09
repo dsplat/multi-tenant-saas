@@ -13,15 +13,15 @@ use MultiTenantSaas\Models\Memory\EntityMemory;
 use MultiTenantSaas\Models\Message;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Models\Workflow;
-use MultiTenantSaas\Models\WorkflowExecution;
-use MultiTenantSaas\Models\WorkflowNode;
-use MultiTenantSaas\Services\Capability\CapabilityBillingService;
-use MultiTenantSaas\Services\Conversation\ConversationService;
-use MultiTenantSaas\Services\Conversation\MessageService;
+use MultiTenantSaas\Modules\Workflow\Models\Workflow;
+use MultiTenantSaas\Modules\Workflow\Models\WorkflowExecution;
+use MultiTenantSaas\Modules\Workflow\Models\WorkflowNode;
+use MultiTenantSaas\Modules\Ai\Services\Capability\CapabilityBillingService;
+use MultiTenantSaas\Modules\Conversation\Services\ConversationService;
+use MultiTenantSaas\Modules\Conversation\Services\MessageService;
 use MultiTenantSaas\Services\Memory\MemoryService;
-use MultiTenantSaas\Services\Workflow\WorkflowEngine;
-use MultiTenantSaas\Services\Workflow\WorkflowService;
+use MultiTenantSaas\Modules\Workflow\Services\WorkflowEngine;
+use MultiTenantSaas\Modules\Workflow\Services\WorkflowService;
 use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
 use MultiTenantSaas\Tests\Schema\AgentModule;
 use MultiTenantSaas\Tests\Schema\BillingModule;
@@ -253,7 +253,7 @@ class EndToEndIntegrationTest extends TestCase
 
     public function test_cache_tool_flow(): void
     {
-        $tool = new \MultiTenantSaas\Services\Agent\Tools\CacheTool();
+        $tool = new \MultiTenantSaas\Modules\Ai\Services\Agent\Tools\CacheTool();
 
         // Set
         $setResult = $tool->execute(['action' => 'set', 'key' => 'e2e_key', 'value' => 'e2e_value']);
@@ -280,7 +280,7 @@ class EndToEndIntegrationTest extends TestCase
 
     public function test_encryption_tool_flow(): void
     {
-        $tool = new \MultiTenantSaas\Services\Agent\Tools\EncryptionTool();
+        $tool = new \MultiTenantSaas\Modules\Ai\Services\Agent\Tools\EncryptionTool();
 
         $original = 'Sensitive data: API_KEY=sk-12345';
 
@@ -303,7 +303,7 @@ class EndToEndIntegrationTest extends TestCase
 
     public function test_validation_tool_flow(): void
     {
-        $tool = new \MultiTenantSaas\Services\Agent\Tools\ValidationTool();
+        $tool = new \MultiTenantSaas\Modules\Ai\Services\Agent\Tools\ValidationTool();
 
         // Valid data
         $validResult = $tool->execute([
@@ -333,7 +333,7 @@ class EndToEndIntegrationTest extends TestCase
 
     public function test_json_tool_flow(): void
     {
-        $tool = new \MultiTenantSaas\Services\Agent\Tools\JsonTool();
+        $tool = new \MultiTenantSaas\Modules\Ai\Services\Agent\Tools\JsonTool();
 
         $data = ['users' => [['id' => 1, 'name' => 'Alice'], ['id' => 2, 'name' => 'Bob']]];
 
@@ -354,7 +354,7 @@ class EndToEndIntegrationTest extends TestCase
 
     public function test_datetime_tool_flow(): void
     {
-        $tool = new \MultiTenantSaas\Services\Agent\Tools\DateTimeTool();
+        $tool = new \MultiTenantSaas\Modules\Ai\Services\Agent\Tools\DateTimeTool();
 
         // Now
         $nowResult = $tool->execute(['action' => 'now']);

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Models\WorkflowExecution;
-use MultiTenantSaas\Services\Workflow\RollbackService;
+use MultiTenantSaas\Modules\Workflow\Models\WorkflowExecution;
+use MultiTenantSaas\Modules\Workflow\Services\RollbackService;
 use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
 use MultiTenantSaas\Tests\Schema\WorkflowModule;
 use MultiTenantSaas\Tests\Schema\AgentModule;

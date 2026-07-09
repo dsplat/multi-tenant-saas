@@ -1,0 +1,12 @@
+{
+    "name": "multi-tenant-saas/module-logging",
+    "version": "1.0.0",
+    "description": "结构化日志 - 操作日志、安全日志、审计日志、日志查询与导出",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\Logging\\": ""
+        }
+    }
+}

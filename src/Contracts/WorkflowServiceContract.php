@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Contracts;
 
 use Illuminate\Support\Collection;
-use MultiTenantSaas\Models\Workflow;
+use MultiTenantSaas\Modules\Workflow\Models\Workflow;
 
 interface WorkflowServiceContract
 {
@@ -12,6 +12,6 @@ interface WorkflowServiceContract
     public function delete(string $workflowId): bool;
     public function find(string $workflowId): ?Workflow;
     public function listForTenant(array $filters = []): Collection;
-    public function startExecution(string $workflowId, array $context = []): \MultiTenantSaas\Models\WorkflowExecution;
+    public function startExecution(string $workflowId, array $context = []): \MultiTenantSaas\Modules\Workflow\Models\WorkflowExecution;
     public function updateStatus(string $workflowId, string $status): bool;
 }

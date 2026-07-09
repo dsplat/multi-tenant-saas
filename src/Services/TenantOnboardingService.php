@@ -15,6 +15,7 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantSetting;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Services\ModuleManager;
 
 /**
  * 租户引导式注册服务
@@ -281,6 +282,12 @@ class TenantOnboardingService
             $this->attachAdminMember($tenant, $adminUser, $adminRole);
 
             $this->provisionTenantSettings($tenant);
+
+            // 为新租户开通默认模块
+            app(ModuleManager::class)->provisionTenantModules(
+                $tenant->tenant_id,
+                $subscriptionPlan->name
+            );
 
             if ($startTrial) {
                 TrialService::startTrial($tenant->tenant_id, $subscriptionPlan->subscription_plan_id);

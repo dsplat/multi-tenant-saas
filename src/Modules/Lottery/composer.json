@@ -1,0 +1,12 @@
+{
+    "name": "multi-tenant-saas/module-lottery",
+    "version": "1.0.0",
+    "description": "抽奖系统 - 活动管理、奖品池、抽奖执行、黑名单、统计查询",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\Lottery\\": ""
+        }
+    }
+}

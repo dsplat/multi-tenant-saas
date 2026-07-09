@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests\Handlers;
 
-use MultiTenantSaas\Services\Agent\Contracts\ToolHandlerContract;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
 
 /**
  * 测试用虚拟工具处理器

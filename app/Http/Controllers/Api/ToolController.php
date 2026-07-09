@@ -10,7 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
-use MultiTenantSaas\Models\AgentTool;
+use MultiTenantSaas\Modules\Ai\Models\AgentTool;
 use MultiTenantSaas\Scopes\TenantScope;
 
 /**

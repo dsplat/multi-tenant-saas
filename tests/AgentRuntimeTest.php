@@ -8,12 +8,12 @@ use MultiTenantSaas\Contracts\AgentMonitorContract;
 use MultiTenantSaas\Contracts\AiTextServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
-use MultiTenantSaas\Models\Agent;
-use MultiTenantSaas\Models\AgentConversation;
+use MultiTenantSaas\Modules\Ai\Models\Agent;
+use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\Agent\AgentRuntime;
-use MultiTenantSaas\Services\Ai\AiResponse;
-use MultiTenantSaas\Services\Agent\Dto\AgentResponse;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentRuntime;
+use MultiTenantSaas\Modules\Ai\Services\Ai\AiResponse;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Dto\AgentResponse;
 use MultiTenantSaas\Tests\Schema\AgentModule;
 use MultiTenantSaas\Tests\Schema\AiModule;
 

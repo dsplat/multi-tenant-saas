@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\Ai\Capabilities\TextGeneration;
-use MultiTenantSaas\Services\Ai\Capabilities\TextCompletion;
-use MultiTenantSaas\Services\Ai\Capabilities\TextSummarization;
-use MultiTenantSaas\Services\Ai\Capabilities\TextTranslation;
-use MultiTenantSaas\Services\Ai\Capabilities\TextClassification;
-use MultiTenantSaas\Services\Ai\Capabilities\CodeGeneration;
-use MultiTenantSaas\Services\Ai\Capabilities\CodeReview;
-use MultiTenantSaas\Services\Ai\Capabilities\Conversation;
-use MultiTenantSaas\Services\Ai\Capabilities\ImageGeneration;
-use MultiTenantSaas\Services\Ai\Capabilities\VideoGeneration;
-use MultiTenantSaas\Services\Ai\AiResponse;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Capabilities\TextGeneration;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Capabilities\TextCompletion;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Capabilities\TextSummarization;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Capabilities\TextTranslation;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Capabilities\TextClassification;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Capabilities\CodeGeneration;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Capabilities\CodeReview;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Capabilities\Conversation;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Capabilities\ImageGeneration;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Capabilities\VideoGeneration;
+use MultiTenantSaas\Modules\Ai\Services\Ai\AiResponse;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
 use MultiTenantSaas\Tests\Schema\AiModule;
 
@@ -22,9 +22,9 @@ class AiCapabilityTest extends TestCase
 {
     protected array $uses = [AiModule::class, ChannelModule::class];
 
-    private function createMockTextService(): \MultiTenantSaas\Services\Ai\AiTextService
+    private function createMockTextService(): \MultiTenantSaas\Modules\Ai\Services\Ai\AiTextService
     {
-        $mock = $this->createMock(\MultiTenantSaas\Services\Ai\AiTextService::class);
+        $mock = $this->createMock(\MultiTenantSaas\Modules\Ai\Services\Ai\AiTextService::class);
         $mock->method('chat')->willReturn(new AiResponse(
             content: 'Test response',
             usage: ['total_tokens' => 100],

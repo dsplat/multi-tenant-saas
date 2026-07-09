@@ -7,8 +7,8 @@ namespace MultiTenantSaas\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use MultiTenantSaas\Mcp\McpException;
-use MultiTenantSaas\Mcp\McpToolRegistry;
+use MultiTenantSaas\Modules\Ai\Mcp\McpException;
+use MultiTenantSaas\Modules\Ai\Mcp\McpToolRegistry;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**

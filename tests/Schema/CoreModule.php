@@ -17,7 +17,10 @@ class CoreModule implements SchemaModuleInterface
             $table->bigInteger('tenant_id')->unsigned()->primary();
             $table->string('name', 100);
             $table->string('slug', 100)->nullable()->unique();
+            $table->string('domain', 255)->nullable();
             $table->string('custom_domain', 200)->nullable()->unique();
+            $table->string('logo', 500)->nullable();
+            $table->text('description')->nullable();
             $table->string('status', 20)->default('active');
             $table->string('isolation_type', 20)->default('shared');
             $table->string('database_name', 100)->nullable();
@@ -32,6 +35,16 @@ class CoreModule implements SchemaModuleInterface
             $table->timestamp('trial_notification_sent_at')->nullable();
             $table->unsignedSmallInteger('onboarding_step')->default(0);
             $table->boolean('onboarding_completed')->default(false);
+            $table->integer('total_credits')->default(0);
+            $table->integer('used_credits')->default(0);
+            $table->string('contact_name', 255)->nullable();
+            $table->string('contact_email', 255)->nullable();
+            $table->string('contact_phone', 20)->nullable();
+            $table->json('settings')->nullable();
+            $table->json('branding')->nullable();
+            $table->boolean('is_platform_default')->default(false);
+            $table->timestamp('ssl_uploaded_at')->nullable();
+            $table->timestamp('ssl_cert_expires_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
@@ -102,10 +115,33 @@ class CoreModule implements SchemaModuleInterface
             $table->unique(['tenant_id', 'group', 'key']);
             $table->index('tenant_id');
         });
+
+        Schema::create('modules', function (Blueprint $table) {
+            $table->string('name', 50)->primary();
+            $table->string('version', 20)->default('0.0.0');
+            $table->enum('status', ['installed', 'enabled', 'disabled'])->default('installed');
+            $table->json('config')->nullable();
+            $table->timestamp('installed_at')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('tenant_modules', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('tenant_id');
+            $table->string('module_name', 50);
+            $table->enum('status', ['enabled', 'disabled'])->default('enabled');
+            $table->json('config')->nullable();
+            $table->timestamp('enabled_at')->nullable();
+            $table->timestamps();
+
+            $table->unique(['tenant_id', 'module_name']);
+            $table->index('tenant_id');
+            $table->index('module_name');
+        });
     }
 
     public function getTableNames(): array
     {
-        return ['tenants', 'users', 'tenant_users', 'personal_access_tokens', 'customers', 'tenant_settings'];
+        return ['tenants', 'users', 'tenant_users', 'personal_access_tokens', 'customers', 'tenant_settings', 'modules', 'tenant_modules'];
     }
 }

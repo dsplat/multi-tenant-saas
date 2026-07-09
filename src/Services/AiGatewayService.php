@@ -9,10 +9,10 @@ use Illuminate\Support\Str;
 use MultiTenantSaas\Contracts\AiProviderContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Enums\AiModelEnum;
-use MultiTenantSaas\Models\AiModelAlias;
-use MultiTenantSaas\Models\AiRequest;
-use MultiTenantSaas\Services\Ai\Providers\LaravelAiProviderAdapter;
-use MultiTenantSaas\Services\Ai\ZhipuProvider;
+use MultiTenantSaas\Modules\Ai\Models\AiModelAlias;
+use MultiTenantSaas\Modules\Ai\Models\AiRequest;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Providers\LaravelAiProviderAdapter;
+use MultiTenantSaas\Modules\Ai\Services\Ai\ZhipuProvider;
 use Throwable;
 
 /**

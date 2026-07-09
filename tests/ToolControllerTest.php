@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Middleware\IdentifyTenant;
-use MultiTenantSaas\Models\AgentTool;
+use MultiTenantSaas\Modules\Ai\Models\AgentTool;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Tests\Schema\AgentModule;

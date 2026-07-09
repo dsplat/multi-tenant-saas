@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Contracts;
 
 use Generator;
-use MultiTenantSaas\Services\Agent\Dto\AgentResponse;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Dto\AgentResponse;
 
 /**
  * Agent 运行时契约

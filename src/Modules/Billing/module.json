@@ -1,0 +1,16 @@
+{
+    "name": "billing",
+    "version": "1.0.0",
+    "description": "计费核心 - 订阅管理、套餐变更、续费处理",
+    "priority": 5,
+    "dependencies": [],
+    "conflicts": [],
+    "requires_core": ">=1.0.0",
+    "provider": "MultiTenantSaas\\Modules\\Billing\\BillingServiceProvider",
+    "config": null,
+    "migrations": null,
+    "routes": {},
+    "commands": [],
+    "tenant_toggleable": false,
+    "default_enabled": true
+}

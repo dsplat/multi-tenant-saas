@@ -6,8 +6,8 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Models\Vote;
-use MultiTenantSaas\Services\VotingService;
+use MultiTenantSaas\Modules\Voting\Models\Vote;
+use MultiTenantSaas\Modules\Voting\Services\VotingService;
 use MultiTenantSaas\Tests\Schema\VotingModule;
 
 class VotingControllerTest extends TestCase

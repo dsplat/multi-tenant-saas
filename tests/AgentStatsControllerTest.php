@@ -3,9 +3,9 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Middleware\IdentifyTenant;
-use MultiTenantSaas\Models\Agent;
-use MultiTenantSaas\Models\AgentConversation;
-use MultiTenantSaas\Models\AgentToolLog;
+use MultiTenantSaas\Modules\Ai\Models\Agent;
+use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
+use MultiTenantSaas\Modules\Ai\Models\AgentToolLog;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Tests\Schema\AgentModule;

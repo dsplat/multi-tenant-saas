@@ -3,8 +3,8 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Http\Controllers\McpServerController;
-use MultiTenantSaas\Mcp\McpToolRegistry;
-use MultiTenantSaas\Mcp\McpException;
+use MultiTenantSaas\Modules\Ai\Mcp\McpToolRegistry;
+use MultiTenantSaas\Modules\Ai\Mcp\McpException;
 
 class McpServerControllerTest extends TestCase
 {

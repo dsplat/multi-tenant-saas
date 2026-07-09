@@ -2,9 +2,9 @@
 
 namespace MultiTenantSaas\Contracts;
 
-use MultiTenantSaas\Services\Ai\AiResponse;
-use MultiTenantSaas\Services\Ai\Drivers\AiDriverContract;
-use MultiTenantSaas\Services\Ai\StreamChunk;
+use MultiTenantSaas\Modules\Ai\Services\Ai\AiResponse;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Drivers\AiDriverContract;
+use MultiTenantSaas\Modules\Ai\Services\Ai\StreamChunk;
 
 /**
  * AI 文本推理服务接口契约

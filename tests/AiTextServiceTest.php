@@ -4,7 +4,7 @@ namespace MultiTenantSaas\Tests;
 
 use Mockery;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\AiPrompt;
+use MultiTenantSaas\Modules\Ai\Models\AiPrompt;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Scopes\TenantScope;
 use MultiTenantSaas\Services\AiGatewayService;

@@ -5,9 +5,9 @@ namespace MultiTenantSaas\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\TenantContextContract;
-use MultiTenantSaas\Models\AiRequest;
-use MultiTenantSaas\Models\AiTenantConfig;
-use MultiTenantSaas\Models\AiUsageQuota;
+use MultiTenantSaas\Modules\Ai\Models\AiRequest;
+use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
+use MultiTenantSaas\Modules\Ai\Models\AiUsageQuota;
 use MultiTenantSaas\Models\SubscriptionPlan;
 use Throwable;
 

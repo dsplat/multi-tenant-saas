@@ -8,10 +8,10 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Contracts\TenantContextContract;
-use MultiTenantSaas\Models\AiRequest;
+use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Models\FileUpload;
-use MultiTenantSaas\Services\Ai\Providers\DalleImageProvider;
-use MultiTenantSaas\Services\Ai\StableDiffusionProvider;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Providers\DalleImageProvider;
+use MultiTenantSaas\Modules\Ai\Services\Ai\StableDiffusionProvider;
 use RuntimeException;
 use Throwable;
 

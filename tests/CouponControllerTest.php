@@ -2,11 +2,11 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Models\Coupon;
+use MultiTenantSaas\Modules\Coupon\Models\Coupon;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\CouponService;
+use MultiTenantSaas\Modules\Coupon\Services\CouponService;
 use MultiTenantSaas\Tests\Schema\CouponModule;
 
 class CouponControllerTest extends TestCase

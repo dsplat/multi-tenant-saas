@@ -3,11 +3,11 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Sms\SmsBatchTask;
-use MultiTenantSaas\Models\Sms\SmsTemplate;
+use MultiTenantSaas\Modules\Sms\Models\SmsBatchTask;
+use MultiTenantSaas\Modules\Sms\Models\SmsTemplate;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\SmsService;
+use MultiTenantSaas\Modules\Sms\Services\SmsService;
 use MultiTenantSaas\Tests\Schema\SmsModule;
 
 class SmsControllerTest extends TestCase

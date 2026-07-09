@@ -1,0 +1,12 @@
+{
+    "name": "multi-tenant-saas/module-user",
+    "version": "1.0.0",
+    "description": "用户管理 - 用户资料、偏好设置、登录日志",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\User\\": ""
+        }
+    }
+}

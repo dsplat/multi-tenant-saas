@@ -1,0 +1,12 @@
+{
+    "name": "multi-tenant-saas/module-ssl",
+    "version": "1.0.0",
+    "description": "SSL 证书管理 - 租户自定义域名的 SSL 证书上传、续期、Nginx 配置",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\SSL\\": ""
+        }
+    }
+}

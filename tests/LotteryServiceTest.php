@@ -3,12 +3,12 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Lottery\LotteryActivity;
-use MultiTenantSaas\Models\Lottery\LotteryActivityPrize;
-use MultiTenantSaas\Models\Lottery\LotteryBlacklist;
-use MultiTenantSaas\Models\Lottery\LotteryDrawLog;
+use MultiTenantSaas\Modules\Lottery\Models\LotteryActivity;
+use MultiTenantSaas\Modules\Lottery\Models\LotteryActivityPrize;
+use MultiTenantSaas\Modules\Lottery\Models\LotteryBlacklist;
+use MultiTenantSaas\Modules\Lottery\Models\LotteryDrawLog;
 use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\LotteryService;
+use MultiTenantSaas\Modules\Lottery\Services\LotteryService;
 use MultiTenantSaas\Tests\Schema\LotteryModule;
 
 class LotteryServiceTest extends TestCase

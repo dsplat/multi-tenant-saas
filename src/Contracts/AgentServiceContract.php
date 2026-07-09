@@ -4,7 +4,7 @@ namespace MultiTenantSaas\Contracts;
 
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection as SupportCollection;
-use MultiTenantSaas\Models\Agent;
+use MultiTenantSaas\Modules\Ai\Models\Agent;
 
 /**
  * Agent 服务契约

@@ -3,11 +3,11 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Form;
+use MultiTenantSaas\Modules\Form\Models\Form;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\FormBuilderService;
+use MultiTenantSaas\Modules\Form\Services\FormBuilderService;
 use MultiTenantSaas\Tests\Schema\FormModule;
 
 class FormControllerTest extends TestCase

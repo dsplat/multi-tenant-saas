@@ -1,0 +1,12 @@
+{
+    "name": "multi-tenant-saas/module-infrastructure",
+    "version": "1.0.0",
+    "description": "基础设施 - 缓存、队列、限流、资源管理、功能开关",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\Infrastructure\\": ""
+        }
+    }
+}

@@ -1,0 +1,12 @@
+{
+    "name": "multi-tenant-saas/module-payment",
+    "version": "1.0.0",
+    "description": "第三方支付网关 - 对接馒头支付等独立支付平台",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\Payment\\": ""
+        }
+    }
+}

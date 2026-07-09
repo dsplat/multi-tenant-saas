@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Models\AiTenantConfig;
+use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
 use MultiTenantSaas\Models\BrandingConfig;
 use MultiTenantSaas\Models\Permission;
 use MultiTenantSaas\Models\Role;

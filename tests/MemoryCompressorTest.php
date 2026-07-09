@@ -6,12 +6,12 @@ use Mockery;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\AiTextServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
-use MultiTenantSaas\Models\Agent;
-use MultiTenantSaas\Models\AgentConversation;
-use MultiTenantSaas\Models\AgentConversationMessage;
+use MultiTenantSaas\Modules\Ai\Models\Agent;
+use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
+use MultiTenantSaas\Modules\Ai\Models\AgentConversationMessage;
 use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\Agent\MemoryCompressor;
-use MultiTenantSaas\Services\Ai\AiResponse;
+use MultiTenantSaas\Modules\Ai\Services\Agent\MemoryCompressor;
+use MultiTenantSaas\Modules\Ai\Services\Ai\AiResponse;
 use MultiTenantSaas\Tests\Schema\AgentModule;
 use MultiTenantSaas\Tests\Schema\AiModule;
 

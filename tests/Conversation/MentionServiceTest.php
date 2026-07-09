@@ -11,7 +11,7 @@ use MultiTenantSaas\Models\Mention;
 use MultiTenantSaas\Models\Message;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\Conversation\MentionService;
+use MultiTenantSaas\Modules\Conversation\Services\MentionService;
 use MultiTenantSaas\Tests\TestCase;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
 

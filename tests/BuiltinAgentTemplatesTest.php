@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\Agent\BuiltinAgentTemplates;
+use MultiTenantSaas\Modules\Ai\Services\Agent\BuiltinAgentTemplates;
 use MultiTenantSaas\Tests\Schema\AgentModule;
 
 /**

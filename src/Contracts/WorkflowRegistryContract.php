@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Contracts;
 
-use MultiTenantSaas\Models\Workflow;
+use MultiTenantSaas\Modules\Workflow\Models\Workflow;
 
 interface WorkflowRegistryContract
 {

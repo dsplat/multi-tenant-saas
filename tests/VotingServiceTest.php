@@ -4,10 +4,10 @@ namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\Vote;
-use MultiTenantSaas\Models\VoteOption;
-use MultiTenantSaas\Models\VoteRecord;
-use MultiTenantSaas\Services\VotingService;
+use MultiTenantSaas\Modules\Voting\Models\Vote;
+use MultiTenantSaas\Modules\Voting\Models\VoteOption;
+use MultiTenantSaas\Modules\Voting\Models\VoteRecord;
+use MultiTenantSaas\Modules\Voting\Services\VotingService;
 use MultiTenantSaas\Tests\Schema\VotingModule;
 
 class VotingServiceTest extends TestCase

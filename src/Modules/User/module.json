@@ -1,0 +1,16 @@
+{
+    "name": "user",
+    "version": "1.0.0",
+    "description": "用户管理 - 用户资料、偏好设置、登录日志",
+    "priority": 70,
+    "dependencies": [],
+    "conflicts": [],
+    "requires_core": ">=1.0.0",
+    "provider": "MultiTenantSaas\\Modules\\User\\UserServiceProvider",
+    "config": null,
+    "migrations": null,
+    "routes": {},
+    "commands": [],
+    "tenant_toggleable": false,
+    "default_enabled": true
+}

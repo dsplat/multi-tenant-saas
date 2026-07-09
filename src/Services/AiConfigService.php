@@ -4,7 +4,7 @@ namespace MultiTenantSaas\Services;
 
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\TenantContextContract;
-use MultiTenantSaas\Models\AiTenantConfig;
+use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
 
 /**
  * 租户 AI 配置服务

@@ -1,0 +1,12 @@
+{
+    "name": "multi-tenant-saas/module-auth",
+    "version": "1.0.0",
+    "description": "第三方认证 - 社交登录、支付宝 OAuth、SSO 集成",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\Auth\\": ""
+        }
+    }
+}

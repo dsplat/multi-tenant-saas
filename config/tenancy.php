@@ -2,7 +2,16 @@
 
 return [
     'default_tenant_id' => null,
-    
+
+    // 框架核心版本 (供模块 requires_core 校验)
+    'core_version' => env('TENANCY_CORE_VERSION', '1.0.0'),
+
+    // 部署模式: saas (完整多租户) | standalone (独立部署, 等同于关闭注册的单租户)
+    'deployment_mode' => env('DEPLOYMENT_MODE', 'saas'),
+
+    // SaaS 注册开关 (standalone 模式下自动关闭)
+    'saas_registration' => (bool) env('SAAS_REGISTRATION', true),
+
     'admin_domain' => env('ADMIN_DOMAIN', 'admin.example.com'),
     
     'platform_domains' => [
@@ -155,6 +164,48 @@ return [
                 'max_users' => PHP_INT_MAX,
                 'max_storage_mb' => PHP_INT_MAX,
             ],
+        ],
+    ],
+
+    // 租户模块默认开通配置 (tenant_toggleable 模块)
+    // key = 模块名 (module.json 的 name), value = 新租户默认是否开通
+    'tenant_module_defaults' => [
+        'domain' => true,
+        'ssl' => false,
+        'payment' => false,
+        'api-token' => false,
+        'coupon' => true,
+        'form' => true,
+        'lottery' => true,
+        'sms' => true,
+        'voting' => true,
+    ],
+
+    // 按套餐差异化模块开通 (覆盖 tenant_module_defaults)
+    'plan_modules' => [
+        'free' => [
+            'coupon' => false,
+            'lottery' => false,
+            'sms' => false,
+        ],
+        'basic' => [
+            'coupon' => true,
+            'lottery' => false,
+            'sms' => true,
+        ],
+        'pro' => [
+            'coupon' => true,
+            'lottery' => true,
+            'sms' => true,
+        ],
+        'enterprise' => [
+            'coupon' => true,
+            'lottery' => true,
+            'sms' => true,
+            'payment' => true,
+            'api-token' => true,
+            'ssl' => true,
+            'domain' => true,
         ],
     ],
 

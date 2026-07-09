@@ -10,6 +10,7 @@ use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Models\MfaDevice;
 use MultiTenantSaas\Models\MfaRecoveryCode;
 use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\Sms\Services\SmsService;
 
 /**
  * 多因素认证服务

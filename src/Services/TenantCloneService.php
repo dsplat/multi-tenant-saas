@@ -4,7 +4,7 @@ namespace MultiTenantSaas\Services;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use MultiTenantSaas\Models\AiTenantConfig;
+use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
 use MultiTenantSaas\Models\BrandingConfig;
 use MultiTenantSaas\Models\Role;
 use MultiTenantSaas\Models\Tenant;

@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use MultiTenantSaas\Models\SystemSetting;
 use MultiTenantSaas\Models\TenantSetting;
 use MultiTenantSaas\Services\AuditService;
-use MultiTenantSaas\Services\SmsService;
+use MultiTenantSaas\Modules\Sms\Services\SmsService;
 
 class TenantSettingController extends Controller
 {

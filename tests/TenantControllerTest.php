@@ -48,11 +48,74 @@ class TenantControllerTest extends TestCase
             ->assertJson(['success' => true]);
     }
 
-    // ========== 创建租户（跳过，表结构不匹配） ==========
+    // ========== 创建租户 ==========
 
-    public function test_store_tenant_skipped(): void
+    public function test_store_tenant(): void
     {
-        $this->markTestSkipped('Tenant store requires fields not in test schema');
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/tenants', [
+                'name' => 'New Tenant',
+                'slug' => 'new-tenant',
+                'subscription_plan' => 'free',
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJson(['success' => true])
+            ->assertJsonPath('data.name', 'New Tenant');
+
+        $this->assertDatabaseHas('tenants', [
+            'slug' => 'new-tenant',
+            'subscription_plan' => 'free',
+            'status' => 'active',
+        ]);
+    }
+
+    public function test_store_tenant_with_contact_info(): void
+    {
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/tenants', [
+                'name' => 'Contact Tenant',
+                'slug' => 'contact-tenant',
+                'contact_name' => 'John Doe',
+                'contact_email' => 'john@example.com',
+                'contact_phone' => '+1234567890',
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJson(['success' => true]);
+
+        $this->assertDatabaseHas('tenants', [
+            'slug' => 'contact-tenant',
+            'contact_name' => 'John Doe',
+            'contact_email' => 'john@example.com',
+        ]);
+    }
+
+    public function test_store_tenant_requires_name(): void
+    {
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/tenants', [
+                'slug' => 'no-name',
+            ]);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_store_tenant_requires_unique_slug(): void
+    {
+        Tenant::create([
+            'name' => 'Existing',
+            'slug' => 'existing-slug',
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/tenants', [
+                'name' => 'Duplicate',
+                'slug' => 'existing-slug',
+            ]);
+
+        $response->assertStatus(422);
     }
 
     // ========== 租户详情 ==========

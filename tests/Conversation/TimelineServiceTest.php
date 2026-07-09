@@ -10,7 +10,7 @@ use MultiTenantSaas\Models\Message;
 use MultiTenantSaas\Models\ReadState;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\Conversation\TimelineService;
+use MultiTenantSaas\Modules\Conversation\Services\TimelineService;
 use MultiTenantSaas\Tests\TestCase;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
 

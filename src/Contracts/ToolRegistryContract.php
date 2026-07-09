@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Contracts;
 
 use Illuminate\Support\Collection;
-use MultiTenantSaas\Services\Agent\Dto\Tool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Dto\Tool;
 
 /**
  * 工具注册表契约

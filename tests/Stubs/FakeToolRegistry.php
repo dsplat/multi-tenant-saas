@@ -6,7 +6,7 @@ namespace MultiTenantSaas\Tests\Stubs;
 
 use Illuminate\Support\Collection;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
-use MultiTenantSaas\Services\Agent\Dto\Tool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Dto\Tool;
 
 class FakeToolRegistry implements ToolRegistryContract
 {

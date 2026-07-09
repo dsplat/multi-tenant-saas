@@ -1,0 +1,12 @@
+{
+    "name": "multi-tenant-saas/module-monitoring",
+    "version": "1.0.0",
+    "description": "监控与告警 - 指标采集、SLA 监控、告警规则、性能追踪",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\Monitoring\\": ""
+        }
+    }
+}

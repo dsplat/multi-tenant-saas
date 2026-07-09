@@ -5,10 +5,10 @@
 📖 **完整文档**：[docs/README.md](docs/README.md) ｜ 🛡 [安全审计报告](docs/security/安全审计报告.md) ｜ 🚀 [5 分钟快速开始](docs/guides/快速开始.md) ｜ 🤖 [AI 模块](docs/guides/AI模块使用指南.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PHP Version](https://img.shields.io/badge/PHP-%5E8.2-777BB4)](https://php.net)
-[![Laravel Version](https://img.shields.io/badge/Laravel-%5E12.0-FF2D20)](https://laravel.com)
-[![Version](https://img.shields.io/badge/version-v1.4.0-blue)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-2200+%20passed%20(5500+%20assertions)-brightgreen)](#)
+[![PHP Version](https://img.shields.io/badge/PHP-%5E8.3-777BB4)](https://php.net)
+[![Laravel Version](https://img.shields.io/badge/Laravel-%5E13.0-FF2D20)](https://laravel.com)
+[![Version](https://img.shields.io/badge/version-v2.0.0-blue)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-2269%20passed%20(5648%20assertions)-brightgreen)](#)
 
 ---
 
@@ -458,6 +458,14 @@ composer create-project luoyueliang/multi-tenant-saas my-saas-app
 cd my-saas-app
 ```
 
+### 初始化模块
+
+```bash
+# 选择初始化模式: mini (核心6模块) / normal (14模块) / full (全部22模块)
+php artisan tenancy:init normal
+composer update
+```
+
 ### 环境配置
 
 ```bash
@@ -550,89 +558,59 @@ server {
 
 ```
 multi-tenant-saas/
-├── app/
-│   ├── Http/
-│   │   ├── Controllers/    # 控制器（26 个）
-│   │   ├── Middleware/     # 自定义中间件
-│   │   └── Resources/      # API Resource（10 个）
-│   ├── Models/             # 业务模型
-│   └── Notifications/      # 通知类（5 种）
+├── app/Http/Controllers/Api/  # 核心 API 控制器
 ├── config/
-│   ├── tenancy.php         # 框架核心配置
-│   ├── ai.php              # AI 网关 & Agent 配置
-│   ├── id.php              # ID生成器配置
-│   ├── pay.php             # 支付配置
-│   ├── socialite.php       # 第三方登录配置
-│   ├── queue.php           # 队列配置
-│   ├── health.php          # 健康检查配置
-│   ├── sanctum.php         # API认证配置
-│   ├── cors.php            # CORS配置
-│   ├── l5-swagger.php      # Swagger配置
-│   ├── channel.php         # 渠道配置
-│   ├── cache.php           # 缓存配置
-│   └── database.php        # 数据库配置
-├── database/
-│   ├── factories/          # 模型工厂（3 个）
-│   ├── migrations/         # 数据库迁移（98 张表）
-│   └── seeders/            # 数据填充（4 个）
-├── docs/                   # 文档
-├── lang/                   # 国际化
-│   ├── zh_CN/              # 中文（14 个文件）
-│   └── en/                 # 英文（14 个文件）
-├── resources/js/
-│   ├── admin/              # 系统后台 SPA（15 个组件）
-│   └── console/            # 租户控制台 SPA（16 个组件）
+│   ├── tenancy.php            # 框架核心配置 (部署模式、模块默认值)
+│   └── ...
+├── database/migrations/       # 核心迁移
 ├── routes/
-│   ├── api.php             # API 路由（250+ 端点）
-│   └── web.php             # Web 路由
-├── src/                    # 框架核心代码
-│   ├── Concerns/           # Traits（3 个：BelongsToTenant / EnsuresTenantContext / HasGlobalId）
-│   ├── Context/            # 上下文管理（TenantContext）
-│   ├── Contracts/          # 接口定义（18 个）
-│   ├── DTOs/               # 数据传输对象（MessageDTO / WorkflowDefinition）
-│   ├── Enums/              # 枚举（ErrorCode）
-│   ├── Events/             # 领域事件（14 个）
-│   ├── Exceptions/         # 业务异常（6 个）
-│   ├── Helpers/            # 辅助函数
-│   ├── Http/               # HTTP 层（Controllers / Middleware / Requests）
-│   ├── Isolation/          # 数据隔离策略（3 种：SharedDatabase / SchemaPerTenant / DatabasePerTenant）
-│   ├── Jobs/               # 队列任务（5 个）
-│   ├── Listeners/          # 事件监听器
-│   ├── Mail/               # 邮件类
-│   ├── Mcp/                # MCP 服务器（Model Context Protocol）
-│   │   ├── Exceptions/     # MCP 异常类
-│   │   ├── Tools/          # 内置工具集
-│   │   ├── McpToolRegistry.php    # 工具注册表抽象基类
-│   │   ├── McpClientRegistry.php  # 客户端配置注册表
-│   │   ├── McpSkillGenerator.php  # 技能描述文件生成器
-│   │   └── McpMiddleware.php      # MCP 请求认证中间件
-│   ├── Middleware/          # 中间件（8 个）
-│   ├── Models/             # 框架模型（90+ 个）
-│   │   ├── Lottery/        # 抽奖系统模型（6 个）
-│   │   ├── Sms/            # 短信服务模型（4 个）
-│   │   └── ...
-│   ├── Modules/            # 可选模块（4 个）
-│   │   ├── ApiToken/       # API Token 模块
-│   │   ├── Domain/         # 域名管理模块
-│   │   ├── Payment/        # 支付模块
-│   │   └── SSL/            # SSL证书模块
-│   ├── SDK/                # PHP SDK 客户端（5 个）
-│   ├── Scopes/             # 全局作用域（TenantScope）
-│   ├── Services/           # 服务层（180+ 个，含 AI/Agent/Workflow/Lottery/SMS/Voting/Form 等子系统）
-│   │   ├── Agent/          # 智能体服务
-│   │   ├── Ai/             # AI 服务
-│   │   ├── Capability/     # AI 能力服务
-│   │   ├── Channel/        # 渠道服务（含钉钉/Slack/微信公众号）
-│   │   ├── Conversation/   # 对话中心服务
-│   │   ├── Memory/         # 记忆系统服务
-│   │   ├── Tool/           # 工具服务
-│   │   └── Workflow/       # 工作流服务
-│   ├── EnterpriseWechat/   # 企业微信集成
-│   ├── WechatOfficial/     # 微信公众号集成
-│   ├── WechatMiniProgram/  # 微信小程序集成
-│   └── TenancyServiceProvider.php
-├── tests/                  # 测试（140+ 个文件，2200+ 个测试，5500+ 个断言）
-└── composer.json
+│   ├── api.php                # 核心路由 (auth, tenant, file, notification)
+│   └── web.php
+├── src/
+│   ├── Concerns/              # Traits (BelongsToTenant, HasGlobalId)
+│   ├── Context/               # TenantContext 租户上下文
+│   ├── Contracts/             # 接口定义 (18 个)
+│   ├── Modules/               # 可选模块 (22 个)
+│   │   ├── Contracts/
+│   │   │   └── ModuleServiceProvider.php  # 模块基类
+│   │   ├── Ai/                # AI 模块 (Models, Services, Controllers, Routes)
+│   │   ├── Form/              # 表单模块
+│   │   ├── Lottery/           # 抽奖模块
+│   │   ├── Voting/            # 投票模块
+│   │   ├── Sms/               # 短信模块
+│   │   ├── Coupon/            # 优惠券模块
+│   │   ├── Workflow/          # 工作流模块
+│   │   ├── Conversation/      # 会话模块
+│   │   └── ...                # 其他模块
+│   ├── Services/
+│   │   ├── ModuleRegistry.php # 模块注册表 (纯读取: 发现、元数据、校验)
+│   │   ├── ModuleManager.php  # 模块管理器 (业务: 启停、租户级、部署模式)
+│   │   └── ModuleBootstrapper.php # 模块启动器 (注册 + boot 已启用模块)
+│   └── TenancyServiceProvider.php # 核心 Provider (框架根基)
+├── compose.json               # 部署配置 (模式、模块开关)
+├── tests/
+│   ├── TestCase.php           # 测试基类 (SQLite PRAGMA 优化)
+│   └── Schema/                # 测试 Schema 模块
+└── composer.json              # Composer 包定义 (path 仓库)
+```
+
+### 模块标准目录结构
+
+```
+src/Modules/{ModuleName}/
+├── module.json                # 框架元数据 (priority, dependencies, tenant_toggleable)
+├── composer.json              # Composer 包定义
+├── {Name}ServiceProvider.php  # 模块 ServiceProvider
+├── Models/                    # 数据模型
+├── Services/                  # 业务服务
+├── Http/Controllers/          # 控制器
+├── Config/                    # 配置文件
+├── Routes/                    # 路由 (api.php, admin.php, tenant.php, public.php)
+├── Database/migrations/       # 迁移
+├── Console/Commands/          # Artisan 命令
+├── Events/                    # 事件
+├── Listeners/                 # 监听器
+└── Policies/                  # 授权策略
 ```
 
 ---
@@ -768,12 +746,41 @@ multi-tenant-saas/
 
 ### 模块
 
+框架采用 **Core + Modules + Plugins** 架构, 22 个模块按 Composer 包管理:
+
+**系统基础模块 (始终启用):**
+
 | 模块 | 说明 |
 |------|------|
-| `ApiToken` | API Token 管理（用户级 Token + abilities） |
-| `Domain` | 域名管理（白名单/自定义域名） |
-| `Payment` | 支付模块（多网关统一接口） |
-| `SSL` | SSL 证书管理（申请/续期/部署） |
+| `infrastructure` | 缓存、队列、限流、资源管理、功能开关 |
+| `plugin` | 插件安装/卸载、生命周期钩子 |
+| `event` | 事件总线、异步分发、Webhook 投递 |
+| `billing` | 订阅管理、套餐变更、续费 |
+| `logging` | 结构化日志、安全日志、审计 |
+| `auth` | 社交登录、支付宝 OAuth |
+| `user` | 用户资料、偏好设置、登录日志 |
+| `monitoring` | 指标采集、SLA 监控、告警、性能追踪 |
+| `platform` | 数据导出、API 版本、租户资料、成本管理 |
+| `developer-portal` | API 文档、沙箱环境、SDK |
+| `ai` | Agent、能力引擎、MCP、工具注册表、记忆系统、AI 网关 |
+| `conversation` | 多渠道会话、消息路由、频道管理 |
+| `workflow` | 流程编排、节点执行、条件分支 |
+
+**业务功能模块 (可租户切换):**
+
+| 模块 | 说明 | 默认启用 |
+|------|------|----------|
+| `domain` | 自定义域名绑定、ICP 备案、Nginx 白名单 | 是 |
+| `ssl` | SSL 证书上传、续期、Nginx 配置 (依赖 domain) | 否 |
+| `api-token` | API Token 管理、Quota 同步 | 否 |
+| `payment` | 第三方支付网关 (馒头支付等) | 否 |
+| `form` | 拖拽式表单、数据收集、统计导出 | 是 |
+| `lottery` | 抽奖活动、奖品池、防刷机制 | 是 |
+| `voting` | 投票系统、排行榜、防刷票 | 是 |
+| `sms` | 短信模板、批量发送、到达率统计 | 是 |
+| `coupon` | 优惠券、批量发券、裂变分享 | 是 |
+
+**插件机制** (独立于模块): `plugins/{name}/manifest.json`, 运行时安装/卸载, 租户隔离。
 
 ---
 
@@ -890,10 +897,40 @@ $allOrders = Order::forAllTenants()->get();
 
 ---
 
+## 模块管理
+
+```bash
+# 查看所有模块
+php artisan module:list
+
+# 添加/移除模块 (通过 Composer)
+php artisan module:require sms coupon
+php artisan module:require --remove lottery
+
+# 系统级启用/禁用
+php artisan module:enable payment
+php artisan module:disable ssl
+```
+
+**API 管理:**
+
+| 方法 | 路由 | 说明 |
+|------|------|------|
+| `GET` | `/api/v1/admin/modules` | 列出所有模块 |
+| `POST` | `/api/v1/admin/modules/{name}/enable` | 系统级启用 |
+| `POST` | `/api/v1/admin/modules/{name}/disable` | 系统级禁用 |
+| `GET` | `/api/v1/tenants/{id}/modules` | 租户可用模块 |
+| `POST` | `/api/v1/tenants/{id}/modules/{name}/enable` | 租户级启用 |
+| `POST` | `/api/v1/tenants/{id}/modules/{name}/disable` | 租户级禁用 |
+
+新租户创建时自动按套餐开通模块, 配置见 `config/tenancy.php` 的 `plan_modules` 和 `tenant_module_defaults`。
+
+---
+
 ## 技术栈
 
-- **PHP**: ^8.2
-- **Laravel**: ^12.0
+- **PHP**: ^8.3
+- **Laravel**: ^13.0
 - **数据库**: MySQL 8.0+
 - **缓存**: Redis (推荐) / Database
 - **Web服务器**: Nginx + PHP-FPM
@@ -914,6 +951,29 @@ $allOrders = Order::forAllTenants()->get();
 | `laravel/horizon` | 队列监控 (dev) | `/horizon` |
 | `sentry/sentry-laravel` | 错误追踪 (dev) | `.env` |
 | `guzzlehttp/guzzle` | HTTP 客户端（短信/渠道） | 内置 |
+
+## 测试
+
+```bash
+# 并行测试 (默认, ~7秒, 12核)
+composer test
+
+# 串行测试 (调试用)
+composer test:sequential
+
+# 过滤测试
+composer test:filter -- SomeTest
+```
+
+**测试基线:** 2269 tests, 5648 assertions, 0 failures, 0 skipped
+
+**优化配置:**
+- SQLite `:memory:` + PRAGMA 优化 (journal_mode=OFF, synchronous=OFF, foreign_keys=OFF)
+- 数据重置用 DELETE 代替 DROP/CREATE (首次建表后不再重建)
+- bcrypt rounds=4 (测试环境)
+- `brianium/paratest` 并行执行
+
+---
 
 ## 更新框架
 

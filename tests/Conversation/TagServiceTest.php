@@ -9,7 +9,7 @@ use MultiTenantSaas\Models\Conversation;
 use MultiTenantSaas\Models\ConversationTag;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\Conversation\TagService;
+use MultiTenantSaas\Modules\Conversation\Services\TagService;
 use MultiTenantSaas\Tests\TestCase;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
 

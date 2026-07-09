@@ -1,0 +1,12 @@
+{
+    "name": "multi-tenant-saas/module-developer-portal",
+    "version": "1.0.0",
+    "description": "开发者门户 - API 文档、沙箱环境、SDK 管理",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\DeveloperPortal\\": ""
+        }
+    }
+}

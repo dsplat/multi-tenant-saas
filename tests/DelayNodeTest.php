@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Tests;
 
 use Carbon\Carbon;
-use MultiTenantSaas\Services\Workflow\Nodes\DelayNode;
+use MultiTenantSaas\Modules\Workflow\Services\Nodes\DelayNode;
 use MultiTenantSaas\Tests\Schema\WorkflowModule;
 
 class DelayNodeTest extends TestCase

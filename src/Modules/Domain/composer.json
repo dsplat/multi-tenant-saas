@@ -1,0 +1,12 @@
+{
+    "name": "multi-tenant-saas/module-domain",
+    "version": "1.0.0",
+    "description": "自定义域名管理 - 租户域名绑定、ICP 备案检查、Nginx 白名单生成",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\Domain\\": ""
+        }
+    }
+}

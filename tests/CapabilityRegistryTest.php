@@ -6,7 +6,7 @@ namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Contracts\CapabilityContract;
 use MultiTenantSaas\Models\Capability\CapabilityResult;
-use MultiTenantSaas\Services\Capability\CapabilityRegistry;
+use MultiTenantSaas\Modules\Ai\Services\Capability\CapabilityRegistry;
 
 class CapabilityRegistryTest extends TestCase
 {

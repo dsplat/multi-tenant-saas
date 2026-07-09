@@ -10,11 +10,11 @@ use MultiTenantSaas\Models\Message;
 use MultiTenantSaas\Models\ReadState;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\Conversation\ConversationService;
-use MultiTenantSaas\Services\Conversation\MentionService;
-use MultiTenantSaas\Services\Conversation\ReadStateService;
-use MultiTenantSaas\Services\Conversation\SessionService;
-use MultiTenantSaas\Services\Conversation\TagService;
+use MultiTenantSaas\Modules\Conversation\Services\ConversationService;
+use MultiTenantSaas\Modules\Conversation\Services\MentionService;
+use MultiTenantSaas\Modules\Conversation\Services\ReadStateService;
+use MultiTenantSaas\Modules\Conversation\Services\SessionService;
+use MultiTenantSaas\Modules\Conversation\Services\TagService;
 use MultiTenantSaas\Tests\TestCase;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
 

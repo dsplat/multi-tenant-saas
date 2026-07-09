@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\Workflow\Nodes\ConfirmNode;
+use MultiTenantSaas\Modules\Workflow\Services\Nodes\ConfirmNode;
 use MultiTenantSaas\Tests\Schema\WorkflowModule;
 
 class ConfirmNodeTest extends TestCase

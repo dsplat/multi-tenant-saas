@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\AiRequest;
+use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Models\FileUpload;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\AiVideoService;

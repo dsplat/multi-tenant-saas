@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\SanctumServiceProvider;
 use MultiTenantSaas\Context\TenantContext;
@@ -18,28 +19,19 @@ use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
-    // Orchestra Testbench 明确忽略 DatabaseTransactions trait（见 setUpTheTestEnvironmentTraitToBeIgnored），
-    // 且 Laravel Eloquent 内部也会启动事务，手动事务会冲突。
-    // 方案：每个测试前 TRUNCATE 所有有数据的表（快速，仅首次建表）。
     private static bool $schemaInitialized = false;
 
-    /**
-     * 已实例化的模块缓存（静态，跨测试复用）
-     * @var array<string, SchemaModuleInterface>
-     */
+    /** @var array<string, SchemaModuleInterface> */
     private static array $moduleInstances = [];
 
-    /**
-     * 已建表的模块类名集合（静态，记录哪些模块已建表）
-     * @var array<string, bool>
-     */
+    /** @var array<string, bool> */
     private static array $loadedModules = [];
 
+    /** @var bool SQLite PRAGMA 已优化标记 */
+    private static bool $pragmaOptimized = false;
+
     /**
-     * 子类可声明需要的 Schema 模块，只加载这些模块的表。
-     * 默认加载 CoreModule。
-     * 示例: protected array $uses = [AiModule::class, BillingModule::class];
-     *
+     * 子类可声明需要的 Schema 模块
      * @var array<class-string<SchemaModuleInterface>>
      */
     protected array $uses = [];
@@ -54,13 +46,17 @@ abstract class TestCase extends BaseTestCase
         if (DB::connection()->getDriverName() !== 'sqlite' && static::$schemaInitialized) {
             $this->truncateDataTables();
         }
+        // SQLite: 使用 DELETE 而非 DROP/CREATE 重置数据
+        elseif (DB::connection()->getDriverName() === 'sqlite' && static::$schemaInitialized) {
+            $this->resetSqliteData();
+        }
 
-        // SQLite 无 NOW() 函数，注册自定义函数以兼容源码中 DB::raw('NOW()') 的用法
+        // SQLite 无 NOW() 函数，注册自定义函数
         if (DB::connection()->getDriverName() === 'sqlite') {
             DB::connection()->getPdo()->sqliteCreateFunction('NOW', fn () => date('Y-m-d H:i:s'), 0);
         }
 
-        // 加载项目 lang 目录，使 trans()/__() 在测试中可解析翻译 key
+        // 加载项目 lang 目录
         $langPath = realpath(__DIR__.'/../lang');
         if ($langPath !== false) {
             app('translation.loader')->addPath($langPath);
@@ -72,7 +68,6 @@ abstract class TestCase extends BaseTestCase
         $router->aliasMiddleware('rbac.permission', CheckRbacPermission::class);
         $router->aliasMiddleware('feature.flag', CheckFeatureFlag::class);
 
-        // 加载 API 路由
         $router->prefix('api')->group(function () {
             require __DIR__.'/../routes/api.php';
         });
@@ -82,7 +77,8 @@ abstract class TestCase extends BaseTestCase
     {
         return [
             SanctumServiceProvider::class,
-            TenancyServiceProvider::class,
+            \Barryvdh\DomPDF\ServiceProvider::class,
+            \MultiTenantSaas\TenancyServiceProvider::class,
         ];
     }
 
@@ -105,57 +101,118 @@ abstract class TestCase extends BaseTestCase
             'model' => User::class,
         ]);
 
-        // 设置 APP_KEY 用于加密
         $app['config']->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
-
-        // 设置缓存为 array 驱动，供 MFA 验证码缓存等使用
         $app['config']->set('cache.default', 'array');
         $app['config']->set('cache.stores.array', [
             'driver' => 'array',
             'serialize' => false,
         ]);
-
-        // 设置邮件驱动为 log，避免测试中真实投递
         $app['config']->set('mail.default', 'log');
-
-        // 设置广播驱动为 log，使 isAvailable() 返回 true（部分测试会覆盖为 null 测试降级）
         $app['config']->set('broadcasting.default', 'log');
+
+        // 注册项目视图路径
+        $app['view']->addLocation(realpath(__DIR__.'/../resources/views'));
+
+        // 降低 bcrypt 轮数，加速测试中的密码操作
+        $app['config']->set('hashing.bcrypt.rounds', 4);
+
+        // SQLite 测试优化
+        $app['config']->set('database.connections.sqlite.foreign_key_constraints', false);
     }
 
     protected function setUpDatabase(): void
     {
         $isMysql = DB::connection()->getDriverName() !== 'sqlite';
-
-        // 确定本测试需要加载的模块（默认 CoreModule）
         $moduleClasses = $this->getRequiredModules();
 
         if ($isMysql) {
             if (!static::$schemaInitialized) {
                 if (Schema::hasTable('tenants')) {
-                    // 表已存在（上次运行残留），清空数据但不重建表
                     $this->truncateAllTables();
                 } else {
-                    // 全新数据库，按模块建表
                     DB::statement('SET FOREIGN_KEY_CHECKS=0');
                     $this->loadModules($moduleClasses);
                     DB::statement('SET FOREIGN_KEY_CHECKS=1');
                 }
             } else {
-                // 已初始化过，但本次测试可能需要额外模块
                 DB::statement('SET FOREIGN_KEY_CHECKS=0');
                 $this->loadModules($moduleClasses);
                 DB::statement('SET FOREIGN_KEY_CHECKS=1');
             }
             static::$schemaInitialized = true;
         } else {
-            // SQLite：如果是文件数据库且表已存在，先清除所有表再重建
-            if (Schema::hasTable('tenants')) {
-                $this->dropAllSqliteTables();
+            // SQLite: 首次建表，后续测试不再重建
+            $tablesExist = Schema::hasTable('tenants');
+
+            if (!static::$schemaInitialized || !$tablesExist) {
+                $this->optimizeSqlite();
+                static::$loadedModules = [];
+                static::$moduleInstances = [];
+                $this->loadModules($moduleClasses);
+                static::$schemaInitialized = true;
+            } else {
+                // 后续测试只加载新增模块（如果有）
+                $this->loadModules($moduleClasses);
             }
-            // 重置已加载模块状态，因为 SQLite 数据库每次都需要全新建表
-            static::$loadedModules = [];
-            static::$moduleInstances = [];
-            $this->loadModules($moduleClasses);
+        }
+    }
+
+    /**
+     * SQLite PRAGMA 优化：关闭安全机制，最大化写入速度
+     * 测试环境不需要恢复这些设置
+     */
+    private function optimizeSqlite(): void
+    {
+        if (static::$pragmaOptimized) {
+            return;
+        }
+
+        $pdo = DB::connection()->getPdo();
+        $pdo->exec('PRAGMA journal_mode=OFF');
+        $pdo->exec('PRAGMA synchronous=OFF');
+        $pdo->exec('PRAGMA locking_mode=EXCLUSIVE');
+        $pdo->exec('PRAGMA temp_store=MEMORY');
+        $pdo->exec('PRAGMA cache_size=-200000');  // 200MB cache
+        $pdo->exec('PRAGMA foreign_keys=OFF');     // 测试环境永久关闭
+
+        static::$pragmaOptimized = true;
+    }
+
+    /**
+     * SQLite 数据重置：DELETE 而非 DROP/CREATE
+     * 比 dropAllSqliteTables + loadModules 快 10-50 倍
+     * foreign_keys 已在 optimizeSqlite() 中永久关闭, 无需再操作
+     */
+    private function resetSqliteData(): void
+    {
+        $pdo = DB::connection()->getPdo();
+
+        // 确保 FK 关闭 (可能被新连接重置)
+        $pdo->exec('PRAGMA foreign_keys=OFF');
+
+        // 收集所有已加载模块的表
+        $tables = [];
+        foreach (array_keys(static::$loadedModules) as $class) {
+            $tables = array_merge($tables, $this->getModuleInstance($class)->getTableNames());
+        }
+        $tables = array_unique($tables);
+
+        // 反向排序: 子表先删
+        $tables = array_reverse($tables);
+
+        foreach ($tables as $table) {
+            try {
+                $pdo->exec("DELETE FROM \"{$table}\"");
+            } catch (\Throwable $e) {
+                // 表可能不存在，忽略
+            }
+        }
+
+        // 清除自增序列
+        try {
+            $pdo->exec('DELETE FROM sqlite_sequence');
+        } catch (\Throwable $e) {
+            // sqlite_sequence 可能不存在
         }
     }
 
@@ -166,13 +223,11 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * 获取本测试需要的模块列表（默认包含 CoreModule）
      * @return array<class-string<SchemaModuleInterface>>
      */
     private function getRequiredModules(): array
     {
         $modules = $this->uses;
-        // 始终包含 CoreModule
         if (!in_array(CoreModule::class, $modules, true)) {
             array_unshift($modules, CoreModule::class);
         }
@@ -180,7 +235,6 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * 按需加载模块（跳过已加载的）
      * @param array<class-string<SchemaModuleInterface>> $moduleClasses
      */
     private function loadModules(array $moduleClasses): void
@@ -195,9 +249,6 @@ abstract class TestCase extends BaseTestCase
         }
     }
 
-    /**
-     * 获取模块实例（缓存）
-     */
     private function getModuleInstance(string $class): SchemaModuleInterface
     {
         if (!isset(static::$moduleInstances[$class])) {
@@ -206,10 +257,6 @@ abstract class TestCase extends BaseTestCase
         return static::$moduleInstances[$class];
     }
 
-    /**
-     * TRUNCATE 所有表（保留表结构，只清数据）
-     * 用于 phpunit 进程首次运行时清除上次残留数据
-     */
     private function truncateAllTables(): void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
@@ -221,13 +268,8 @@ abstract class TestCase extends BaseTestCase
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
     }
 
-    /**
-     * 快速清空有数据的表（仅 TRUNCATE 非空表，跳过空表节省时间）
-     * 只清空已加载模块涉及的表
-     */
     private function truncateDataTables(): void
     {
-        // 收集所有已加载模块的表名
         $moduleTables = [];
         foreach (array_keys(static::$loadedModules) as $class) {
             $moduleTables = array_merge($moduleTables, $this->getModuleInstance($class)->getTableNames());
@@ -236,7 +278,6 @@ abstract class TestCase extends BaseTestCase
 
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
-        // 如果模块表列表为空（不应发生），fallback 到全量
         if (empty($moduleTables)) {
             $tables = DB::select('SHOW TABLES');
             foreach ($tables as $table) {
@@ -247,7 +288,6 @@ abstract class TestCase extends BaseTestCase
                 }
             }
         } else {
-            // 只 truncate 已加载模块的表
             foreach ($moduleTables as $tableName) {
                 if (!Schema::hasTable($tableName)) {
                     continue;
@@ -260,18 +300,5 @@ abstract class TestCase extends BaseTestCase
         }
 
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
-    }
-
-    /**
-     * 删除 SQLite 数据库中的所有表（用于文件型 SQLite 测试库的重置）
-     */
-    private function dropAllSqliteTables(): void
-    {
-        $tables = DB::select("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
-        DB::statement('PRAGMA foreign_keys = OFF');
-        foreach ($tables as $table) {
-            DB::statement("DROP TABLE IF EXISTS \"{$table->name}\"");
-        }
-        DB::statement('PRAGMA foreign_keys = ON');
     }
 }

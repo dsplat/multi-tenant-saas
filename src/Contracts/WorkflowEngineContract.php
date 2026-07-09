@@ -2,8 +2,8 @@
 
 namespace MultiTenantSaas\Contracts;
 
-use MultiTenantSaas\Models\Workflow;
-use MultiTenantSaas\Models\WorkflowExecution;
+use MultiTenantSaas\Modules\Workflow\Models\Workflow;
+use MultiTenantSaas\Modules\Workflow\Models\WorkflowExecution;
 
 interface WorkflowEngineContract
 {

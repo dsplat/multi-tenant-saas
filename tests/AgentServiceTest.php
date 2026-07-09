@@ -7,8 +7,8 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Events\AgentCreated;
 use MultiTenantSaas\Events\AgentDisabled;
 use MultiTenantSaas\Events\AgentEnabled;
-use MultiTenantSaas\Models\Agent;
-use MultiTenantSaas\Services\Agent\AgentService;
+use MultiTenantSaas\Modules\Ai\Models\Agent;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentService;
 use MultiTenantSaas\Tests\Schema\AgentModule;
 
 /**

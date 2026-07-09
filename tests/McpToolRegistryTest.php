@@ -2,8 +2,8 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Mcp\McpException;
-use MultiTenantSaas\Mcp\McpToolRegistry;
+use MultiTenantSaas\Modules\Ai\Mcp\McpException;
+use MultiTenantSaas\Modules\Ai\Mcp\McpToolRegistry;
 
 /**
  * 测试用的工具注册表实现

@@ -9,7 +9,7 @@ use MultiTenantSaas\Models\Conversation;
 use MultiTenantSaas\Models\ConversationSession;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\Conversation\SessionService;
+use MultiTenantSaas\Modules\Conversation\Services\SessionService;
 use MultiTenantSaas\Tests\TestCase;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
 

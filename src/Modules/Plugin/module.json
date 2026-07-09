@@ -1,0 +1,16 @@
+{
+    "name": "plugin",
+    "version": "1.0.0",
+    "description": "插件管理 - 插件安装/卸载、启用/禁用、生命周期钩子",
+    "priority": 2,
+    "dependencies": [],
+    "conflicts": [],
+    "requires_core": ">=1.0.0",
+    "provider": "MultiTenantSaas\\Modules\\Plugin\\PluginModuleServiceProvider",
+    "config": null,
+    "migrations": null,
+    "routes": {},
+    "commands": [],
+    "tenant_toggleable": false,
+    "default_enabled": true
+}

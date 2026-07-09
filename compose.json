@@ -1,0 +1,25 @@
+{
+    "deployment_mode": "saas",
+    "saas_registration": true,
+    "default_tenant_id": 1,
+    "modules": {
+        "infrastructure": { "enabled": true },
+        "plugin": { "enabled": true },
+        "event": { "enabled": true },
+        "billing": { "enabled": true },
+        "logging": { "enabled": true },
+        "auth": { "enabled": true },
+        "user": { "enabled": true },
+        "monitoring": { "enabled": true },
+        "developer-portal": { "enabled": true },
+        "platform": { "enabled": true },
+        "domain": { "enabled": true },
+        "ssl": { "enabled": false },
+        "api-token": { "enabled": false },
+        "payment": { "enabled": false },
+        "form": { "enabled": true },
+        "lottery": { "enabled": true },
+        "voting": { "enabled": true }
+    },
+    "plugins": {}
+}

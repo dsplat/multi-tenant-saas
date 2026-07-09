@@ -1,0 +1,12 @@
+{
+    "name": "multi-tenant-saas/module-plugin",
+    "version": "1.0.0",
+    "description": "插件管理 - 插件安装/卸载、启用/禁用、生命周期钩子",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\Plugin\\": ""
+        }
+    }
+}

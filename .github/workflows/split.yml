@@ -8,6 +8,19 @@ env:
   GH_TOKEN: ${{ secrets.SPLIT_TOKEN }}
 
 jobs:
+  # 核心包 Packagist 更新
+  update-core-packagist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Packagist update for core package
+        run: |
+          RESPONSE=$(curl -s -X POST \
+            "https://packagist.org/api/update-package?username=${{ secrets.PACKAGIST_USER }}&apiToken=${{ secrets.PACKAGIST_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"repository":{"url":"https://github.com/dsplat/multi-tenant-saas"}}')
+          echo "Core Packagist: $RESPONSE"
+
+  # 模块分包
   split:
     runs-on: ubuntu-latest
     strategy:

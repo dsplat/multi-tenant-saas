@@ -239,12 +239,12 @@ class ModuleCreateCommand extends Command
 
         $packageName = "dsplat/multi-tenant-saas-module-{$name}";
 
-        if (isset($composer['require'][$packageName])) {
+        if (isset($composer['require-dev'][$packageName]) || isset($composer['require'][$packageName])) {
             return;
         }
 
-        // 在模块 require 区域末尾添加
-        $composer['require'][$packageName] = '*';
+        // 模块加到 require-dev (本地开发用, Packagist 分发时不包含)
+        $composer['require-dev'][$packageName] = '*';
 
         File::put($composerPath, json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)."\n");
     }

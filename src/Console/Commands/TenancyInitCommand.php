@@ -102,12 +102,12 @@ class TenancyInitCommand extends Command
         $composerPath = base_path('composer.json');
         $composer = json_decode((string) File::get($composerPath), true);
 
-        // 保留非模块依赖
-        $existing = $composer['require'] ?? [];
-        $nonModule = array_filter($existing, fn ($key) => ! str_starts_with($key, 'multi-tenant-saas/module-'), ARRAY_FILTER_USE_KEY);
+        // 模块在 require-dev 中 (Packagist 分发时不包含)
+        $existing = $composer['require-dev'] ?? [];
+        $nonModule = array_filter($existing, fn ($key) => ! str_starts_with($key, 'dsplat/multi-tenant-saas-module-'), ARRAY_FILTER_USE_KEY);
 
         // 合并模块依赖
-        $composer['require'] = array_merge($nonModule, array_fill_keys($packages, '*'));
+        $composer['require-dev'] = array_merge($nonModule, array_fill_keys($packages, '*'));
 
         // 确保 path 仓库存在
         $repos = $composer['repositories'] ?? [];

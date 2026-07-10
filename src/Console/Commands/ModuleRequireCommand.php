@@ -37,7 +37,8 @@ class ModuleRequireCommand extends Command
 
         $composerPath = base_path('composer.json');
         $composer = json_decode((string) File::get($composerPath), true);
-        $require = $composer['require'] ?? [];
+        // 模块在 require-dev 中 (Packagist 分发时不包含)
+        $require = $composer['require-dev'] ?? [];
         $changed = [];
         $errors = [];
 
@@ -140,8 +141,8 @@ class ModuleRequireCommand extends Command
         // 确保 path 仓库存在
         $this->ensurePathRepository($composer);
 
-        // 写入 composer.json
-        $composer['require'] = $require;
+        // 写入 composer.json (模块在 require-dev 中)
+        $composer['require-dev'] = $require;
         File::put($composerPath, json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
         $this->newLine();
@@ -157,7 +158,7 @@ class ModuleRequireCommand extends Command
     {
         $composerPath = base_path('composer.json');
         $composer = json_decode((string) File::get($composerPath), true);
-        $require = $composer['require'] ?? [];
+        $require = $composer['require-dev'] ?? [];
 
         $headers = ['名称', '版本', '描述', 'Composer 状态', '优先级', '依赖'];
         $rows = [];

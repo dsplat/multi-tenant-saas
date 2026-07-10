@@ -54,7 +54,7 @@ class PayService
         $config = self::getConfig($tenantId, $driver);
 
         // 过滤空值
-        $config = array_filter($config, fn($v) => $v !== '' && $v !== null);
+        $config = array_filter($config, fn ($v) => $v !== '' && $v !== null);
 
         if (empty($config)) {
             throw new \RuntimeException("租户 {$tenantId} 未配置 {$driver} 支付");
@@ -140,8 +140,8 @@ class PayService
         // 从 URL 参数获取 tenant_id
         $tenantId = $request->query('tenant_id');
 
-        if (!$tenantId) {
-            throw new \RuntimeException(trans("payment.missing_tenant_callback"));
+        if (! $tenantId) {
+            throw new \RuntimeException(trans('payment.missing_tenant_callback'));
         }
 
         // 使用租户配置创建 Pay 实例（包含验签）
@@ -163,7 +163,8 @@ class PayService
     public static function isConfigured(int $tenantId, string $driver): bool
     {
         $config = self::getConfig($tenantId, $driver);
-        return !empty(array_filter($config, fn($v) => $v !== '' && $v !== null));
+
+        return ! empty(array_filter($config, fn ($v) => $v !== '' && $v !== null));
     }
 
     /**

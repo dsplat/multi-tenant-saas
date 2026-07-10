@@ -41,7 +41,7 @@ class DatabaseQueryTool implements ToolContract
             return ['error' => 'Table name required'];
         }
 
-        if (!in_array($table, self::ALLOWED_TABLES, true)) {
+        if (! in_array($table, self::ALLOWED_TABLES, true)) {
             return ['error' => 'Table not allowed'];
         }
 

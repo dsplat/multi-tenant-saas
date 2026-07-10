@@ -51,7 +51,7 @@ class McpServerController extends Controller
             }
 
             // 验证 JSON-RPC 2.0 结构
-            if (!is_array($payload) || !isset($payload['method'])) {
+            if (! is_array($payload) || ! isset($payload['method'])) {
                 return $this->jsonRpcError($payload['id'] ?? null, McpException::CODE_INVALID_REQUEST, 'Invalid Request');
             }
 
@@ -65,10 +65,10 @@ class McpServerController extends Controller
             $params = $payload['params'] ?? [];
 
             // 类型校验：method 必须为 string，params 必须为 array
-            if (!is_string($method)) {
+            if (! is_string($method)) {
                 return $this->jsonRpcError($id, McpException::CODE_INVALID_REQUEST, 'Invalid Request: method must be a string');
             }
-            if (!is_array($params)) {
+            if (! is_array($params)) {
                 return $this->jsonRpcError($id, McpException::CODE_INVALID_REQUEST, 'Invalid Request: params must be an object or array');
             }
 
@@ -138,7 +138,7 @@ class McpServerController extends Controller
         }
 
         $arguments = $params['arguments'] ?? [];
-        if (!is_array($arguments)) {
+        if (! is_array($arguments)) {
             return $this->jsonRpcError($id, McpException::CODE_INVALID_PARAMS, 'Invalid params: arguments must be an object or array');
         }
 
@@ -158,7 +158,7 @@ class McpServerController extends Controller
      */
     protected function notificationsInitialized(): JsonResponse
     {
-        return $this->jsonRpcResult(null, new \stdClass());
+        return $this->jsonRpcResult(null, new \stdClass);
     }
 
     /**
@@ -170,12 +170,12 @@ class McpServerController extends Controller
             try {
                 $response = $this->handleMethod($id, $method, $params);
                 $data = $response->getData(true);
-                echo "data: " . json_encode($data, JSON_THROW_ON_ERROR) . "\n\n";
+                echo 'data: ' . json_encode($data, JSON_THROW_ON_ERROR) . "\n\n";
                 ob_flush();
                 flush();
             } catch (\Throwable $e) {
                 $error = ['jsonrpc' => '2.0', 'id' => $id, 'error' => ['code' => McpException::CODE_INTERNAL_ERROR, 'message' => 'Internal error']];
-                echo "data: " . json_encode($error) . "\n\n";
+                echo 'data: ' . json_encode($error) . "\n\n";
                 ob_flush();
                 flush();
             }

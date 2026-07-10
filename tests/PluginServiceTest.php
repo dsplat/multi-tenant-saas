@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\File;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\PluginService;
-use MultiTenantSaas\Tests\Schema\PluginModule;
 use MultiTenantSaas\Tests\Schema\EventModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
 
 /**
  * PluginService 单元测试
@@ -34,7 +34,7 @@ class PluginServiceTest extends TestCase
         $this->pluginsDir = base_path('plugins');
         if (is_dir($this->pluginsDir)) {
             // 仅清理目录内容，保留目录本身以避免影响 testbench 运行时
-            foreach (glob($this->pluginsDir.'/*') as $entry) {
+            foreach (glob($this->pluginsDir . '/*') as $entry) {
                 is_dir($entry) ? File::deleteDirectory($entry) : unlink($entry);
             }
         } else {
@@ -57,7 +57,7 @@ class PluginServiceTest extends TestCase
      */
     private function createTestPlugin(string $name, array $manifest = []): void
     {
-        $dir = $this->pluginsDir.'/'.$name;
+        $dir = $this->pluginsDir . '/' . $name;
         if (! is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
@@ -65,11 +65,11 @@ class PluginServiceTest extends TestCase
         $manifest = array_merge([
             'name' => $name,
             'version' => '1.0.0',
-            'description' => 'Test plugin '.$name,
+            'description' => 'Test plugin ' . $name,
             'dependencies' => [],
         ], $manifest);
 
-        file_put_contents($dir.'/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT));
+        file_put_contents($dir . '/manifest.json', json_encode($manifest, JSON_PRETTY_PRINT));
     }
 
     // ---------- 插件扫描 ----------
@@ -103,7 +103,7 @@ class PluginServiceTest extends TestCase
 
     public function test_scan_available_skips_dirs_without_manifest(): void
     {
-        mkdir($this->pluginsDir.'/no-manifest', 0755, true);
+        mkdir($this->pluginsDir . '/no-manifest', 0755, true);
         $this->createTestPlugin('has-manifest');
 
         $service = app(PluginService::class);

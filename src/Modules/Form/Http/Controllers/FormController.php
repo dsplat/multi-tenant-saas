@@ -2,12 +2,11 @@
 
 namespace MultiTenantSaas\Modules\Form\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Modules\Form\Models\Form;
-use MultiTenantSaas\Modules\Form\Models\FormSubmission;
 use MultiTenantSaas\Modules\Form\Services\FormBuilderService;
 
 /**
@@ -32,9 +31,11 @@ class FormController extends Controller
      *     summary="获取表单列表",
      *     tags={"Form 表单"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="tenantId", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="status", in="query", @OA\Schema(type="string", enum={"draft","published","closed"})),
      *     @OA\Parameter(name="keyword", in="query", @OA\Schema(type="string")),
+     *
      *     @OA\Response(response=200, description="表单列表")
      * )
      */
@@ -58,12 +59,16 @@ class FormController extends Controller
      *     summary="创建表单",
      *     tags={"Form 表单"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="tenantId", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
+     *
      *         @OA\Property(property="title", type="string", description="表单标题"),
      *         @OA\Property(property="description", type="string", description="表单描述"),
      *         @OA\Property(property="fields", type="array", @OA\Items(type="object"), description="表单字段列表")
      *     )),
+     *
      *     @OA\Response(response=201, description="创建成功"),
      *     @OA\Response(response=422, description="验证失败")
      * )
@@ -178,10 +183,14 @@ class FormController extends Controller
      *     path="/v1/forms/{formId}/submit",
      *     summary="提交表单数据",
      *     tags={"Form 表单"},
+     *
      *     @OA\Parameter(name="formId", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
+     *
      *         @OA\Property(property="data", type="object", description="表单数据（key-value）")
      *     )),
+     *
      *     @OA\Response(response=201, description="提交成功"),
      *     @OA\Response(response=422, description="提交失败（表单未发布/已结束/达到上限等）")
      * )

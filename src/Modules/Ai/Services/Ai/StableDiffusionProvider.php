@@ -146,13 +146,13 @@ class StableDiffusionProvider
             default => 'ai.provider_api_error',
         };
 
-        Log::error('[StableDiffusionProvider] '.$operation.' HTTP error', [
+        Log::error('[StableDiffusionProvider] ' . $operation . ' HTTP error', [
             'model' => $model,
             'status' => $status,
             'body' => $body,
         ]);
 
-        throw new \RuntimeException(trans($errorKey, ['provider' => 'stability']).' ['.$status.']');
+        throw new \RuntimeException(trans($errorKey, ['provider' => 'stability']) . ' [' . $status . ']');
     }
 
     /**
@@ -277,13 +277,13 @@ class StableDiffusionProvider
         ], $this->optionalParams($options));
 
         try {
-            $response = $request->post($this->getBaseUrl().self::INPAINT_ENDPOINT, $formData);
+            $response = $request->post($this->getBaseUrl() . self::INPAINT_ENDPOINT, $formData);
         } catch (ConnectionException $e) {
             Log::error('[StableDiffusionProvider] editImage connection error', [
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'stability']).': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, 'editImage', $model);
         } catch (Throwable $e) {
@@ -291,7 +291,7 @@ class StableDiffusionProvider
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'stability']).': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {
@@ -358,24 +358,24 @@ class StableDiffusionProvider
      */
     protected function sendGenerate(string $slug, array $formData, string $operation, string $model): Response
     {
-        $url = $this->getBaseUrl().self::GENERATE_ENDPOINT.$slug;
+        $url = $this->getBaseUrl() . self::GENERATE_ENDPOINT . $slug;
 
         try {
             return $this->http()->post($url, $formData);
         } catch (ConnectionException $e) {
-            Log::error('[StableDiffusionProvider] '.$operation.' connection error', [
+            Log::error('[StableDiffusionProvider] ' . $operation . ' connection error', [
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'stability']).': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, $operation, $model);
         } catch (Throwable $e) {
-            Log::error('[StableDiffusionProvider] '.$operation.' exception', [
+            Log::error('[StableDiffusionProvider] ' . $operation . ' exception', [
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'stability']).': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -391,26 +391,26 @@ class StableDiffusionProvider
         string $operation,
         string $model
     ): Response {
-        $url = $this->getBaseUrl().self::GENERATE_ENDPOINT.$slug;
+        $url = $this->getBaseUrl() . self::GENERATE_ENDPOINT . $slug;
 
         try {
             $response = $this->http()
                 ->attach('image', (string) file_get_contents($imagePath), basename($imagePath))
                 ->post($url, $formData);
         } catch (ConnectionException $e) {
-            Log::error('[StableDiffusionProvider] '.$operation.' connection error', [
+            Log::error('[StableDiffusionProvider] ' . $operation . ' connection error', [
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'stability']).': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, $operation, $model);
         } catch (Throwable $e) {
-            Log::error('[StableDiffusionProvider] '.$operation.' exception', [
+            Log::error('[StableDiffusionProvider] ' . $operation . ' exception', [
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'stability']).': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {

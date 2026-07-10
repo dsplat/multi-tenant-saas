@@ -15,7 +15,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class BroadcastEvent extends Model
 {
-    use HasGlobalId, BelongsToTenant, SoftDeletes;
+    use BelongsToTenant, HasGlobalId, SoftDeletes;
 
     /** 事件类型：AI 视频生成完成 */
     public const EVENT_AI_VIDEO_COMPLETED = 'ai_video_completed';

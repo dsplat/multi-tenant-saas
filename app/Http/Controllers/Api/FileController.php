@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use MultiTenantSaas\Services\FileService;
-use MultiTenantSaas\Services\AuditService;
-use MultiTenantSaas\Models\FileUpload;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Models\FileUpload;
+use MultiTenantSaas\Services\AuditService;
+use MultiTenantSaas\Services\FileService;
 
 /**
  * @OA\Tag(
@@ -49,6 +49,7 @@ class FileController extends Controller
     private function findFileForCurrentTenant(int $id): FileUpload
     {
         $tenantId = TenantContext::getId();
+
         return FileUpload::where('tenant_id', $tenantId)->findOrFail($id);
     }
 
@@ -74,7 +75,7 @@ class FileController extends Controller
     {
         $file = $this->findFileForCurrentTenant($id);
 
-        if (!$file->isImage()) {
+        if (! $file->isImage()) {
             return response()->json(['success' => false, 'message' => trans('file.type_not_supported')], 422);
         }
 
@@ -96,11 +97,15 @@ class FileController extends Controller
      *     summary="上传文件",
      *     tags={"文件存储"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\MediaType(
      *             mediaType="multipart/form-data",
+     *
      *             @OA\Schema(
+     *
      *                 @OA\Property(property="file", type="string", format="binary", description="文件"),
      *                 @OA\Property(property="category", type="string", description="文件分类"),
      *                 @OA\Property(property="is_public", type="boolean", description="是否公开"),
@@ -108,6 +113,7 @@ class FileController extends Controller
      *             )
      *         )
      *     ),
+     *
      *     @OA\Response(response=201, description="上传成功"),
      *     @OA\Response(response=422, description="文件大小/类型不符")
      * )
@@ -138,7 +144,7 @@ class FileController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => trans("file.upload_success"),
+                'message' => trans('file.upload_success'),
                 'data' => $file,
                 'url' => FileService::getUrl($file),
             ], 201);
@@ -175,7 +181,7 @@ class FileController extends Controller
 
         FileService::delete($file);
 
-        return response()->json(['success' => true, 'message' => trans("file.deleted")]);
+        return response()->json(['success' => true, 'message' => trans('file.deleted')]);
     }
 
     /**
@@ -213,7 +219,7 @@ class FileController extends Controller
         $token = $request->query('token', '');
         $signature = $request->query('sig', '');
 
-        if (!FileService::verifyShareUrl($id, $token, $signature)) {
+        if (! FileService::verifyShareUrl($id, $token, $signature)) {
             return response()->json(['success' => false, 'message' => trans('common.token_invalid')], 403);
         }
 
@@ -234,7 +240,7 @@ class FileController extends Controller
         $tenantId = TenantContext::getId();
 
         $quotaInfo = FileService::getStorageQuotaInfo($tenantId);
-        $fileCount = FileUpload::when($tenantId, fn($q) => $q->where('tenant_id', $tenantId))->count();
+        $fileCount = FileUpload::when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))->count();
 
         return response()->json([
             'success' => true,

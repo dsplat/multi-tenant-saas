@@ -16,6 +16,7 @@ class MemoryServiceTest extends TestCase
     protected array $uses = [MemoryModule::class];
 
     private MemoryService $memoryService;
+
     private Tenant $tenant;
 
     protected function setUp(): void
@@ -293,7 +294,7 @@ class MemoryServiceTest extends TestCase
 
     public function test_default_constructor_params(): void
     {
-        $service = new MemoryService();
+        $service = new MemoryService;
 
         $this->assertSame(0.95, $service->getDecayRate());
         $this->assertSame(100, $service->getCompressThreshold());

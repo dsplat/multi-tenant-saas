@@ -2,16 +2,17 @@
 
 namespace MultiTenantSaas\Services;
 
-use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Role;
-use MultiTenantSaas\Models\Permission;
-use MultiTenantSaas\Models\TenantUser;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Models\Permission;
+use MultiTenantSaas\Models\Role;
 
 class RbacService
 {
     private const CACHE_PREFIX = 'rbac:permissions:';
+
     private const CACHE_TTL = 3600;
 
     /**
@@ -20,7 +21,7 @@ class RbacService
     public static function check(string $permission): bool
     {
         $user = auth()->user();
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
@@ -30,7 +31,7 @@ class RbacService
         }
 
         $tenantId = TenantContext::getId() ?? request()->route('tenantId');
-        if (!$tenantId) {
+        if (! $tenantId) {
             return false;
         }
 
@@ -40,7 +41,7 @@ class RbacService
             ->wherePivot('is_active', true)
             ->first();
 
-        if (!$tenantUser) {
+        if (! $tenantUser) {
             return false;
         }
 
@@ -55,6 +56,7 @@ class RbacService
         // 如果有 role_id，走动态权限检查
         if ($roleId) {
             $permissions = static::getRolePermissions($roleId);
+
             return in_array($permission, $permissions);
         }
 
@@ -83,19 +85,21 @@ class RbacService
      */
     protected static function checkByRoleName(?string $roleName, string $permission): bool
     {
-        if (!$roleName) {
+        if (! $roleName) {
             return false;
         }
 
         // tenant_admin 默认拥有除平台级之外的所有权限
         if ($roleName === 'tenant_admin') {
             $denied = ['tenant.create', 'tenant.delete', 'tenant.suspend'];
-            return !in_array($permission, $denied);
+
+            return ! in_array($permission, $denied);
         }
 
         // end_user 默认只有查看权限
         if ($roleName === 'end_user') {
             $allowed = ['tenant.view', 'member.view', 'credit.view', 'setting.view', 'payment.view', 'audit.view', 'file.upload'];
+
             return in_array($permission, $allowed);
         }
 
@@ -123,7 +127,7 @@ class RbacService
             'is_system' => false,
         ]);
 
-        if (!empty($permissionIds)) {
+        if (! empty($permissionIds)) {
             $role->permissions()->sync($permissionIds);
         }
 
@@ -136,9 +140,9 @@ class RbacService
     public static function updateRolePermissions(int $roleId, array $permissionIds): void
     {
         $role = Role::findOrFail($roleId);
-        
+
         if ($role->is_system) {
-            throw new \RuntimeException(trans("tenant.system_role_protected"));
+            throw new \RuntimeException(trans('tenant.system_role_protected'));
         }
 
         $role->permissions()->sync($permissionIds);
@@ -153,7 +157,7 @@ class RbacService
         $role = Role::findOrFail($roleId);
 
         if ($role->is_system) {
-            throw new \RuntimeException(trans("tenant.system_role_no_delete"));
+            throw new \RuntimeException(trans('tenant.system_role_no_delete'));
         }
 
         // 解除该角色关联的成员
@@ -178,7 +182,7 @@ class RbacService
     /**
      * 获取租户可用角色（系统级 + 租户级）
      */
-    public static function getTenantRoles(int $tenantId): \Illuminate\Support\Collection
+    public static function getTenantRoles(int $tenantId): Collection
     {
         return Role::where(function ($q) use ($tenantId) {
             $q->whereNull('tenant_id')->orWhere('tenant_id', $tenantId);

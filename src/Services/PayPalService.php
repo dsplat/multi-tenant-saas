@@ -57,12 +57,12 @@ class PayPalService
         return Cache::remember($cacheKey, 3000, function () use ($clientId, $clientSecret, $mode) {
             $resp = Http::withBasicAuth($clientId, $clientSecret)
                 ->asForm()
-                ->post($this->baseUrl($mode).'/v1/oauth2/token', [
+                ->post($this->baseUrl($mode) . '/v1/oauth2/token', [
                     'grant_type' => 'client_credentials',
                 ]);
 
             if (! $resp->successful()) {
-                throw new \RuntimeException(trans('payment.paypal_token_failed').': '.$resp->body());
+                throw new \RuntimeException(trans('payment.paypal_token_failed') . ': ' . $resp->body());
             }
 
             return $resp->json('access_token');
@@ -99,18 +99,18 @@ class PayPalService
                 ],
             ]],
             'application_context' => [
-                'return_url' => $returnUrl.'?order_no='.$orderNo.'&tenant_id='.$tenantId,
-                'cancel_url' => $cancelUrl.'?order_no='.$orderNo,
+                'return_url' => $returnUrl . '?order_no=' . $orderNo . '&tenant_id=' . $tenantId,
+                'cancel_url' => $cancelUrl . '?order_no=' . $orderNo,
                 'user_action' => 'PAY_NOW',
             ],
         ];
 
         $resp = Http::withToken($token)
-            ->post($this->baseUrl($mode).'/v2/checkout/orders', $payload);
+            ->post($this->baseUrl($mode) . '/v2/checkout/orders', $payload);
 
         if (! $resp->successful()) {
             Log::error('[PayPalService] createOrder failed', ['order_no' => $orderNo, 'resp' => $resp->body()]);
-            throw new \RuntimeException(trans('payment.paypal_create_failed').': '.$resp->body());
+            throw new \RuntimeException(trans('payment.paypal_create_failed') . ': ' . $resp->body());
         }
 
         $data = $resp->json();
@@ -137,10 +137,10 @@ class PayPalService
 
         $resp = Http::withToken($token)
             ->withHeaders(['Content-Type' => 'application/json'])
-            ->post($this->baseUrl($mode).'/v2/checkout/orders/'.$paypalOrderId.'/capture');
+            ->post($this->baseUrl($mode) . '/v2/checkout/orders/' . $paypalOrderId . '/capture');
 
         if (! $resp->successful()) {
-            throw new \RuntimeException(trans('payment.paypal_capture_failed').': '.$resp->body());
+            throw new \RuntimeException(trans('payment.paypal_capture_failed') . ': ' . $resp->body());
         }
 
         $data = $resp->json();
@@ -174,10 +174,10 @@ class PayPalService
         ] : [];
 
         $resp = Http::withToken($token)
-            ->post($this->baseUrl($mode).'/v2/payments/captures/'.$captureId.'/refund', $payload);
+            ->post($this->baseUrl($mode) . '/v2/payments/captures/' . $captureId . '/refund', $payload);
 
         if (! $resp->successful()) {
-            throw new \RuntimeException(trans('payment.paypal_refund_failed').': '.$resp->body());
+            throw new \RuntimeException(trans('payment.paypal_refund_failed') . ': ' . $resp->body());
         }
 
         $data = $resp->json();
@@ -251,11 +251,11 @@ class PayPalService
 
         try {
             $resp = Http::withToken($token)
-                ->post($this->baseUrl($mode).'/v1/notifications/verify-webhook-signature', $verifyPayload);
+                ->post($this->baseUrl($mode) . '/v1/notifications/verify-webhook-signature', $verifyPayload);
 
             return $resp->successful() && ($resp->json('verification_status') === 'SUCCESS');
         } catch (\Throwable $e) {
-            Log::warning('[PayPalService] webhook verification failed: '.$e->getMessage());
+            Log::warning('[PayPalService] webhook verification failed: ' . $e->getMessage());
 
             return false;
         }

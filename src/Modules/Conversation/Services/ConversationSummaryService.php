@@ -143,7 +143,7 @@ class ConversationSummaryService
                 continue;
             }
 
-            if (!in_array($senderType, $participants, true)) {
+            if (! in_array($senderType, $participants, true)) {
                 $participants[] = $senderType;
             }
 
@@ -191,11 +191,11 @@ class ConversationSummaryService
 
         $parts[] = "会话共 {$data['message_count']} 条消息";
 
-        if (!empty($data['participants'])) {
+        if (! empty($data['participants'])) {
             $parts[] = '参与者: ' . implode(', ', $data['participants']);
         }
 
-        if (!empty($data['key_points'])) {
+        if (! empty($data['key_points'])) {
             $parts[] = '关键内容: ' . implode('；', $data['key_points']);
         }
 

@@ -14,7 +14,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class BrandingConfig extends Model
 {
-    use HasGlobalId, BelongsToTenant;
+    use BelongsToTenant, HasGlobalId;
 
     protected $primaryKey = 'branding_config_id';
 

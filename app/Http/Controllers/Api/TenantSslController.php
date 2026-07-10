@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Modules\SSL\Services\TenantSslService;
@@ -11,12 +11,14 @@ use MultiTenantSaas\Modules\SSL\Services\TenantSslService;
 class TenantSslController extends Controller
 {
     use AuthorizesTenantAccess;
+
     public function index(Request $request, int $tenantId)
     {
         $this->ensureTenantAccess($request, $tenantId);
 
         $tenant = Tenant::findOrFail($tenantId);
-        $service = new TenantSslService();
+        $service = new TenantSslService;
+
         return response()->json(['success' => true, 'data' => $service->getCertInfo($tenant)]);
     }
 
@@ -30,10 +32,10 @@ class TenantSslController extends Controller
         ]);
 
         $tenant = Tenant::findOrFail($tenantId);
-        $service = new TenantSslService();
+        $service = new TenantSslService;
         $service->storeCertificate($tenant, $request->certificate, $request->private_key);
 
-        return response()->json(['success' => true, 'message' => trans("common.created")]);
+        return response()->json(['success' => true, 'message' => trans('common.created')]);
     }
 
     public function destroy(Request $request, int $tenantId)
@@ -41,10 +43,9 @@ class TenantSslController extends Controller
         $this->ensureTenantAccess($request, $tenantId);
 
         $tenant = Tenant::findOrFail($tenantId);
-        $service = new TenantSslService();
+        $service = new TenantSslService;
         $service->removeCertificate($tenant);
 
-        return response()->json(['success' => true, 'message' => trans("common.deleted")]);
+        return response()->json(['success' => true, 'message' => trans('common.deleted')]);
     }
-
 }

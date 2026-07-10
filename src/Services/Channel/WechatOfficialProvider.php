@@ -13,8 +13,11 @@ use MultiTenantSaas\Contracts\IdGeneratorContract;
 class WechatOfficialProvider implements ChannelContract
 {
     protected string $appId;
+
     protected string $appSecret;
+
     protected string $token;
+
     protected string $encodingAesKey;
 
     public function __construct(

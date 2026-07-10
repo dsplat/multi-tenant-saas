@@ -3,17 +3,16 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use MultiTenantSaas\Services\SubscriptionService;
-use MultiTenantSaas\Services\CreditService;
-use MultiTenantSaas\Services\NotificationService;
+use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Models\CreditAccount;
 use MultiTenantSaas\Models\CreditTransaction;
 use MultiTenantSaas\Models\FinancialRecord;
-use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Services\NotificationService;
 
 class ProcessCreditExpiry extends Command
 {
     protected $signature = 'credits:process-expiry';
+
     protected $description = '处理积分过期、低余额预警和自动充值';
 
     public function handle(): int
@@ -89,7 +88,7 @@ class ProcessCreditExpiry extends Command
 
         foreach ($grouped as $tenantId => $txns) {
             $account = CreditAccount::where('tenant_id', $tenantId)->first();
-            if (!$account) {
+            if (! $account) {
                 continue;
             }
 
@@ -215,7 +214,7 @@ class ProcessCreditExpiry extends Command
             ->where('balance', '<=', $threshold)
             ->where(function ($q) {
                 $q->whereNull('last_warning_at')
-                  ->orWhere('last_warning_at', '<', now()->subDays(3));
+                    ->orWhere('last_warning_at', '<', now()->subDays(3));
             })
             ->get();
 

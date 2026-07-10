@@ -4,22 +4,26 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Tests\Conversation;
 
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Conversation;
 use MultiTenantSaas\Models\Participant;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Modules\Conversation\Services\ConversationService;
-use MultiTenantSaas\Tests\TestCase;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
+use MultiTenantSaas\Tests\TestCase;
 
 class ConversationServiceTest extends TestCase
 {
     protected array $uses = [ChannelModule::class];
 
     private ConversationService $service;
+
     private int $tenantId = 1001;
+
     private int $userA = 2001;
+
     private int $userB = 2002;
 
     protected function setUp(): void
@@ -67,7 +71,7 @@ class ConversationServiceTest extends TestCase
 
     public function test_get_conversation_not_found_throws(): void
     {
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
 
         $this->service->getConversation($this->tenantId, '99999999');
     }

@@ -124,10 +124,10 @@ class ZhipuProvider implements AiProviderContract
 
         $headerEncoded = $this->base64UrlEncode(self::jsonEncode($header));
         $payloadEncoded = $this->base64UrlEncode(self::jsonEncode($payload));
-        $signingInput = $headerEncoded.'.'.$payloadEncoded;
+        $signingInput = $headerEncoded . '.' . $payloadEncoded;
         $signature = $this->base64UrlEncode(hash_hmac('sha256', $signingInput, $secret, true));
 
-        return $signingInput.'.'.$signature;
+        return $signingInput . '.' . $signature;
     }
 
     /**
@@ -195,13 +195,13 @@ class ZhipuProvider implements AiProviderContract
             default => 'ai.provider_api_error',
         };
 
-        Log::error('[ZhipuProvider] '.$operation.' HTTP error', [
+        Log::error('[ZhipuProvider] ' . $operation . ' HTTP error', [
             'model' => $model,
             'status' => $status,
             'body' => $body,
         ]);
 
-        throw new \RuntimeException(trans($errorKey, ['provider' => 'zhipu']).' ['.$status.']');
+        throw new \RuntimeException(trans($errorKey, ['provider' => 'zhipu']) . ' [' . $status . ']');
     }
 
     /**
@@ -217,13 +217,13 @@ class ZhipuProvider implements AiProviderContract
         ], $options);
 
         try {
-            $response = $this->http()->post($this->getBaseUrl().self::CHAT_ENDPOINT, $payload);
+            $response = $this->http()->post($this->getBaseUrl() . self::CHAT_ENDPOINT, $payload);
         } catch (ConnectionException $e) {
             Log::error('[ZhipuProvider] chatCompletion connection error', [
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'zhipu']).': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, 'chatCompletion', $model);
         } catch (Throwable $e) {
@@ -231,7 +231,7 @@ class ZhipuProvider implements AiProviderContract
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'zhipu']).': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {
@@ -292,13 +292,13 @@ class ZhipuProvider implements AiProviderContract
         ], $options);
 
         try {
-            $response = $this->http()->post($this->getBaseUrl().self::EMBEDDINGS_ENDPOINT, $payload);
+            $response = $this->http()->post($this->getBaseUrl() . self::EMBEDDINGS_ENDPOINT, $payload);
         } catch (ConnectionException $e) {
             Log::error('[ZhipuProvider] embeddings connection error', [
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'zhipu']).': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, 'embeddings', $model);
         } catch (Throwable $e) {
@@ -306,7 +306,7 @@ class ZhipuProvider implements AiProviderContract
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'zhipu']).': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {
@@ -352,13 +352,13 @@ class ZhipuProvider implements AiProviderContract
                     'stream' => true,
                     'read_timeout' => $this->getTimeout(),
                 ])
-                ->post($this->getBaseUrl().self::CHAT_ENDPOINT, $payload);
+                ->post($this->getBaseUrl() . self::CHAT_ENDPOINT, $payload);
         } catch (ConnectionException $e) {
             Log::error('[ZhipuProvider] streamChatCompletion connection error', [
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'zhipu']).': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, 'streamChatCompletion', $model);
         } catch (Throwable $e) {
@@ -366,7 +366,7 @@ class ZhipuProvider implements AiProviderContract
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'zhipu']).': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {

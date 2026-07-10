@@ -113,13 +113,13 @@ class MessageService
             ->where('type', '!=', 'revoked')
             ->where('content', 'like', '%' . $keyword . '%');
 
-        if (!empty($filters['conversation_id'])) {
+        if (! empty($filters['conversation_id'])) {
             $query->where('conversation_id', $filters['conversation_id']);
         }
-        if (!empty($filters['sender_id'])) {
+        if (! empty($filters['sender_id'])) {
             $query->where('sender_id', $filters['sender_id']);
         }
-        if (!empty($filters['since'])) {
+        if (! empty($filters['since'])) {
             $query->where('created_at', '>=', $filters['since']);
         }
 

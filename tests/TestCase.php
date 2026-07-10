@@ -2,8 +2,8 @@
 
 namespace MultiTenantSaas\Tests;
 
+use Barryvdh\DomPDF\ServiceProvider;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\SanctumServiceProvider;
 use MultiTenantSaas\Context\TenantContext;
@@ -32,6 +32,7 @@ abstract class TestCase extends BaseTestCase
 
     /**
      * 子类可声明需要的 Schema 模块
+     *
      * @var array<class-string<SchemaModuleInterface>>
      */
     protected array $uses = [];
@@ -57,7 +58,7 @@ abstract class TestCase extends BaseTestCase
         }
 
         // 加载项目 lang 目录
-        $langPath = realpath(__DIR__.'/../lang');
+        $langPath = realpath(__DIR__ . '/../lang');
         if ($langPath !== false) {
             app('translation.loader')->addPath($langPath);
         }
@@ -69,7 +70,7 @@ abstract class TestCase extends BaseTestCase
         $router->aliasMiddleware('feature.flag', CheckFeatureFlag::class);
 
         $router->prefix('api')->group(function () {
-            require __DIR__.'/../routes/api.php';
+            require __DIR__ . '/../routes/api.php';
         });
     }
 
@@ -77,8 +78,8 @@ abstract class TestCase extends BaseTestCase
     {
         return [
             SanctumServiceProvider::class,
-            \Barryvdh\DomPDF\ServiceProvider::class,
-            \MultiTenantSaas\TenancyServiceProvider::class,
+            ServiceProvider::class,
+            TenancyServiceProvider::class,
         ];
     }
 
@@ -101,7 +102,7 @@ abstract class TestCase extends BaseTestCase
             'model' => User::class,
         ]);
 
-        $app['config']->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
+        $app['config']->set('app.key', 'base64:' . base64_encode(random_bytes(32)));
         $app['config']->set('cache.default', 'array');
         $app['config']->set('cache.stores.array', [
             'driver' => 'array',
@@ -111,7 +112,7 @@ abstract class TestCase extends BaseTestCase
         $app['config']->set('broadcasting.default', 'log');
 
         // 注册项目视图路径
-        $app['view']->addLocation(realpath(__DIR__.'/../resources/views'));
+        $app['view']->addLocation(realpath(__DIR__ . '/../resources/views'));
 
         // 降低 bcrypt 轮数，加速测试中的密码操作
         $app['config']->set('hashing.bcrypt.rounds', 4);
@@ -126,7 +127,7 @@ abstract class TestCase extends BaseTestCase
         $moduleClasses = $this->getRequiredModules();
 
         if ($isMysql) {
-            if (!static::$schemaInitialized) {
+            if (! static::$schemaInitialized) {
                 if (Schema::hasTable('tenants')) {
                     $this->truncateAllTables();
                 } else {
@@ -144,7 +145,7 @@ abstract class TestCase extends BaseTestCase
             // SQLite: 首次建表，后续测试不再重建
             $tablesExist = Schema::hasTable('tenants');
 
-            if (!static::$schemaInitialized || !$tablesExist) {
+            if (! static::$schemaInitialized || ! $tablesExist) {
                 $this->optimizeSqlite();
                 static::$loadedModules = [];
                 static::$moduleInstances = [];
@@ -228,14 +229,15 @@ abstract class TestCase extends BaseTestCase
     private function getRequiredModules(): array
     {
         $modules = $this->uses;
-        if (!in_array(CoreModule::class, $modules, true)) {
+        if (! in_array(CoreModule::class, $modules, true)) {
             array_unshift($modules, CoreModule::class);
         }
+
         return $modules;
     }
 
     /**
-     * @param array<class-string<SchemaModuleInterface>> $moduleClasses
+     * @param  array<class-string<SchemaModuleInterface>>  $moduleClasses
      */
     private function loadModules(array $moduleClasses): void
     {
@@ -251,9 +253,10 @@ abstract class TestCase extends BaseTestCase
 
     private function getModuleInstance(string $class): SchemaModuleInterface
     {
-        if (!isset(static::$moduleInstances[$class])) {
-            static::$moduleInstances[$class] = new $class();
+        if (! isset(static::$moduleInstances[$class])) {
+            static::$moduleInstances[$class] = new $class;
         }
+
         return static::$moduleInstances[$class];
     }
 
@@ -289,7 +292,7 @@ abstract class TestCase extends BaseTestCase
             }
         } else {
             foreach ($moduleTables as $tableName) {
-                if (!Schema::hasTable($tableName)) {
+                if (! Schema::hasTable($tableName)) {
                     continue;
                 }
                 $count = (int) DB::selectOne("SELECT COUNT(*) AS c FROM `{$tableName}`")->c;

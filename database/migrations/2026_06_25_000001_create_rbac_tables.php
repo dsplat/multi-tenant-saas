@@ -71,7 +71,7 @@ return new class extends Migration
     {
         $now = now();
         $idGenerator = app(IdGeneratorContract::class);
-        \DB::table('roles')->insert([
+        DB::table('roles')->insert([
             ['role_id' => $idGenerator->generate(), 'tenant_id' => null, 'name' => 'super_admin', 'display_name' => '超级管理员', 'description' => '系统级管理角色', 'is_system' => true, 'created_at' => $now, 'updated_at' => $now],
             ['role_id' => $idGenerator->generate(), 'tenant_id' => null, 'name' => 'platform_user', 'display_name' => '平台用户', 'description' => '平台运营角色', 'is_system' => true, 'created_at' => $now, 'updated_at' => $now],
             ['role_id' => $idGenerator->generate(), 'tenant_id' => null, 'name' => 'tenant_admin', 'display_name' => '租户管理员', 'description' => '租户管理角色', 'is_system' => true, 'created_at' => $now, 'updated_at' => $now],
@@ -126,46 +126,46 @@ return new class extends Migration
             $p['created_at'] = $now;
             $p['updated_at'] = $now;
         }
-        \DB::table('permissions')->insert($permissions);
+        DB::table('permissions')->insert($permissions);
 
         // 为 tenant_admin 分配除 tenant.create/delete/suspend 外的所有权限
-        $adminPerms = \DB::table('permissions')
+        $adminPerms = DB::table('permissions')
             ->whereNotIn('name', ['tenant.create', 'tenant.delete', 'tenant.suspend'])
             ->pluck('permission_id');
-        $adminRoleId = \DB::table('roles')->where('name', 'tenant_admin')->whereNull('tenant_id')->value('role_id');
+        $adminRoleId = DB::table('roles')->where('name', 'tenant_admin')->whereNull('tenant_id')->value('role_id');
 
-        $insert = $adminPerms->map(fn($pid) => [
+        $insert = $adminPerms->map(fn ($pid) => [
             'role_id' => $adminRoleId,
             'permission_id' => $pid,
             'created_at' => $now,
             'updated_at' => $now,
         ])->all();
-        \DB::table('role_permissions')->insert($insert);
+        DB::table('role_permissions')->insert($insert);
 
         // end_user 只给查看权限
-        $userPerms = \DB::table('permissions')
+        $userPerms = DB::table('permissions')
             ->whereIn('name', ['tenant.view', 'member.view', 'credit.view', 'setting.view', 'payment.view', 'audit.view', 'file.upload'])
             ->pluck('permission_id');
-        $userRoleId = \DB::table('roles')->where('name', 'end_user')->whereNull('tenant_id')->value('role_id');
+        $userRoleId = DB::table('roles')->where('name', 'end_user')->whereNull('tenant_id')->value('role_id');
 
-        $insert2 = $userPerms->map(fn($pid) => [
+        $insert2 = $userPerms->map(fn ($pid) => [
             'role_id' => $userRoleId,
             'permission_id' => $pid,
             'created_at' => $now,
             'updated_at' => $now,
         ])->all();
-        \DB::table('role_permissions')->insert($insert2);
+        DB::table('role_permissions')->insert($insert2);
 
         // super_admin 获得所有权限
-        $allPerms = \DB::table('permissions')->pluck('permission_id');
-        $superRoleId = \DB::table('roles')->where('name', 'super_admin')->whereNull('tenant_id')->value('role_id');
+        $allPerms = DB::table('permissions')->pluck('permission_id');
+        $superRoleId = DB::table('roles')->where('name', 'super_admin')->whereNull('tenant_id')->value('role_id');
 
-        $insert3 = $allPerms->map(fn($pid) => [
+        $insert3 = $allPerms->map(fn ($pid) => [
             'role_id' => $superRoleId,
             'permission_id' => $pid,
             'created_at' => $now,
             'updated_at' => $now,
         ])->all();
-        \DB::table('role_permissions')->insert($insert3);
+        DB::table('role_permissions')->insert($insert3);
     }
 };

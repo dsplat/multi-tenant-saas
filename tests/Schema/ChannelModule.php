@@ -169,7 +169,7 @@ class ChannelModule implements SchemaModuleInterface
     {
         return [
             'conversations', 'participants', 'messages', 'reactions', 'mentions',
-            'read_states', 'conversation_sessions', 'conversation_tags', 'archived_messages'
+            'read_states', 'conversation_sessions', 'conversation_tags', 'archived_messages',
         ];
     }
 }

@@ -2,11 +2,11 @@
 
 namespace MultiTenantSaas\Services;
 
-use MultiTenantSaas\Models\SystemSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use MultiTenantSaas\Models\SystemSetting;
 
 /**
  * SystemSettingService
@@ -72,7 +72,7 @@ class SystemSettingService
         if (empty($apiKey)) {
             return [
                 'success' => false,
-                'message' => trans("common.api_key_required"),
+                'message' => trans('common.api_key_required'),
             ];
         }
 
@@ -87,7 +87,7 @@ class SystemSettingService
             if ($response->successful()) {
                 return [
                     'success' => true,
-                    'message' => trans("common.connection_success"),
+                    'message' => trans('common.connection_success'),
                     'data' => $response->json(),
                 ];
             }
@@ -100,7 +100,7 @@ class SystemSettingService
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => trans("common.connection_failed") . ': ' . $e->getMessage(),
+                'message' => trans('common.connection_failed') . ': ' . $e->getMessage(),
             ];
         }
     }
@@ -116,7 +116,7 @@ class SystemSettingService
             'default_language' => SystemSetting::get(self::GROUP_SYSTEM, 'default_language', 'zh-CN'),
             'default_timezone' => SystemSetting::get(self::GROUP_SYSTEM, 'default_timezone', 'Asia/Shanghai'),
             'maintenance_mode' => SystemSetting::get(self::GROUP_SYSTEM, 'maintenance_mode', false),
-            'maintenance_message' => SystemSetting::get(self::GROUP_SYSTEM, 'maintenance_message', trans("common.maintenance_message")),
+            'maintenance_message' => SystemSetting::get(self::GROUP_SYSTEM, 'maintenance_message', trans('common.maintenance_message')),
         ];
     }
 
@@ -230,12 +230,12 @@ class SystemSettingService
 
             return [
                 'success' => true,
-                'message' => trans("common.test_email_sent"),
+                'message' => trans('common.test_email_sent'),
             ];
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => trans("common.email_send_failed") . ': ' . $e->getMessage(),
+                'message' => trans('common.email_send_failed') . ': ' . $e->getMessage(),
             ];
         }
     }

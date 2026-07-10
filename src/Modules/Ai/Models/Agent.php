@@ -77,7 +77,7 @@ class Agent extends Model
             'agent_id',
             'workflow_id'
         )->using(AgentWorkflow::class)
-         ->withPivot(['is_primary', 'sort_order'])
-         ->orderByPivot('sort_order');
+            ->withPivot(['is_primary', 'sort_order'])
+            ->orderByPivot('sort_order');
     }
 }

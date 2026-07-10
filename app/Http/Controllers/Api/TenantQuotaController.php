@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use MultiTenantSaas\Models\FileUpload;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantUser;
-use MultiTenantSaas\Models\FileUpload;
 use MultiTenantSaas\Services\SubscriptionService;
 
 class TenantQuotaController extends Controller

@@ -350,7 +350,7 @@ class DeveloperPortalService
                 throw new \InvalidArgumentException(trans('common.api_key_scope_invalid'));
             }
             if (! in_array($ability, self::AVAILABLE_SCOPES, true)) {
-                throw new \InvalidArgumentException(trans('common.api_key_scope_invalid').': '.$ability);
+                throw new \InvalidArgumentException(trans('common.api_key_scope_invalid') . ': ' . $ability);
             }
         }
     }

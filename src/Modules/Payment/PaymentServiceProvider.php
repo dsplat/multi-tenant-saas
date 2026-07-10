@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\Payment;
 
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
+use MultiTenantSaas\Modules\Payment\Services\PaymentService;
 use MultiTenantSaas\Services\PaymentSecurityService;
 
 class PaymentServiceProvider extends ModuleServiceProvider
@@ -16,7 +17,7 @@ class PaymentServiceProvider extends ModuleServiceProvider
         }
 
         $this->app->singleton(
-            \MultiTenantSaas\Modules\Payment\Services\PaymentService::class
+            PaymentService::class
         );
 
         // 支付安全服务（风控、反欺诈）

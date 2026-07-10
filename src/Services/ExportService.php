@@ -62,7 +62,7 @@ class ExportService
     {
         $callback = function () use ($data, $headings) {
             $fh = fopen('php://output', 'w');
-            fprintf($fh, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM（Excel 友好）
+            fprintf($fh, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM（Excel 友好）
             fputcsv($fh, $headings);
             foreach ($data as $row) {
                 fputcsv($fh, array_values($row));
@@ -192,7 +192,7 @@ class ExportService
         }
 
         $tenantId = TenantContext::getId();
-        if (!$tenantId || (int) ($task->tenant_id ?? 0) !== (int) $tenantId) {
+        if (! $tenantId || (int) ($task->tenant_id ?? 0) !== (int) $tenantId) {
             abort(403, trans('common.cross_tenant_forbidden'));
         }
 
@@ -247,6 +247,6 @@ class ExportService
     {
         $tenantId = TenantContext::getId() ?? 'global';
 
-        return "exports/{$tenantId}/".now()->format('Y/m/d').'/'.uniqid('export_', true).'.'.ltrim($extension, '.');
+        return "exports/{$tenantId}/" . now()->format('Y/m/d') . '/' . uniqid('export_', true) . '.' . ltrim($extension, '.');
     }
 }

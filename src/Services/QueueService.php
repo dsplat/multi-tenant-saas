@@ -5,6 +5,8 @@ namespace MultiTenantSaas\Services;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
+use Laravel\Horizon\Contracts\JobRepository;
+use Laravel\Horizon\Horizon;
 use MultiTenantSaas\Context\TenantContext;
 
 /**
@@ -30,7 +32,7 @@ class QueueService
      */
     public function isHorizonAvailable(): bool
     {
-        return class_exists(\Laravel\Horizon\Horizon::class);
+        return class_exists(Horizon::class);
     }
 
     /**
@@ -58,7 +60,7 @@ class QueueService
             ];
         }
 
-        $stats = \Laravel\Horizon\Horizon::stats();
+        $stats = Horizon::stats();
 
         return [
             'horizon' => true,
@@ -86,8 +88,8 @@ class QueueService
 
         foreach ($queues as $queue) {
             try {
-                $pending = class_exists(\Laravel\Horizon\Contracts\JobRepository::class)
-                    ? app(\Laravel\Horizon\Contracts\JobRepository::class)->total($queue) : 0;
+                $pending = class_exists(JobRepository::class)
+                    ? app(JobRepository::class)->total($queue) : 0;
             } catch (\Throwable $e) {
                 $pending = 0;
             }
@@ -115,11 +117,11 @@ class QueueService
         }
 
         try {
-            $repo = app(\Laravel\Horizon\Contracts\JobRepository::class);
+            $repo = app(JobRepository::class);
 
             return collect($repo->failed()->take($limit));
         } catch (\Throwable $e) {
-            Log::warning('[QueueService] getFailedJobs failed: '.$e->getMessage());
+            Log::warning('[QueueService] getFailedJobs failed: ' . $e->getMessage());
 
             return collect();
         }
@@ -151,7 +153,7 @@ class QueueService
 
             return true;
         } catch (\Throwable $e) {
-            throw new \RuntimeException(trans('common.job_retry_failed').': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('common.job_retry_failed') . ': ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -235,7 +237,7 @@ class QueueService
         }
 
         try {
-            $repo = app(\Laravel\Horizon\Contracts\JobRepository::class);
+            $repo = app(JobRepository::class);
 
             return $repo->failed()->where('queue', $queue)->count();
         } catch (\Throwable $e) {

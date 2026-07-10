@@ -62,7 +62,7 @@ class McpToolRegistryTest extends TestCase
     {
         parent::setUp();
 
-        $this->registry = new TestMcpToolRegistry();
+        $this->registry = new TestMcpToolRegistry;
     }
 
     // ---------- 工具注册 ----------
@@ -138,7 +138,8 @@ class McpToolRegistryTest extends TestCase
 
     public function test_duplicate_tool_throws(): void
     {
-        $registry = new class () extends McpToolRegistry {
+        $registry = new class extends McpToolRegistry
+        {
             public function registerTools(): void
             {
                 $this->tool('test', '测试', [], fn () => 'ok');

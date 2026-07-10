@@ -12,7 +12,7 @@
  * 将 http_handler 选项移除即对接真实服务。
  */
 
-require __DIR__.'/../../vendor/autoload.php';
+require __DIR__ . '/../../vendor/autoload.php';
 
 use MultiTenantSaas\SDK\Client;
 use MultiTenantSaas\SDK\Exceptions\SdkException;
@@ -51,7 +51,7 @@ try {
 
     // 3. AI 用量查询
     $usage = $client->ai()->usage(['period' => '2026-06']);
-    echo '[AI 用量] success='.($usage['success'] ? 'true' : 'false')."\n";
+    echo '[AI 用量] success=' . ($usage['success'] ? 'true' : 'false') . "\n";
 } catch (SdkException $e) {
     fprintf(STDERR, "[错误] [%s] %s (HTTP %d)\n", $e->getErrorCode(), $e->getMessage(), $e->getStatusCode());
     exit(1);

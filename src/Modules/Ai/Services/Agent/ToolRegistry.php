@@ -3,13 +3,14 @@
 namespace MultiTenantSaas\Modules\Ai\Services\Agent;
 
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Ai\Models\AgentTool;
-use MultiTenantSaas\Scopes\TenantScope;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Dto\Tool;
+use MultiTenantSaas\Scopes\TenantScope;
 
 /**
  * 工具注册表实现
@@ -258,9 +259,9 @@ class ToolRegistry implements ToolRegistryContract
      *
      * 提取公共查询逻辑，避免 loadDbTools() 和 findDbTool() 重复代码。
      *
-     * @return \Illuminate\Database\Eloquent\Builder<AgentTool>
+     * @return Builder<AgentTool>
      */
-    private function buildTenantQuery(): \Illuminate\Database\Eloquent\Builder
+    private function buildTenantQuery(): Builder
     {
         return AgentTool::withoutGlobalScope(TenantScope::class)
             ->where(function ($query) {

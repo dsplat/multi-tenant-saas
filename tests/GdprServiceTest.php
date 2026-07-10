@@ -9,12 +9,12 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\ConsentService;
 use MultiTenantSaas\Services\GdprService;
+use MultiTenantSaas\Tests\Schema\AiModule;
+use MultiTenantSaas\Tests\Schema\BillingModule;
+use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\MiscModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;
 use MultiTenantSaas\Tests\Schema\SecurityModule;
-use MultiTenantSaas\Tests\Schema\EventModule;
-use MultiTenantSaas\Tests\Schema\AiModule;
-use MultiTenantSaas\Tests\Schema\BillingModule;
 
 /**
  * TASK-018 GdprService 单元测试
@@ -26,7 +26,9 @@ class GdprServiceTest extends TestCase
     protected array $uses = [AiModule::class, BillingModule::class, EventModule::class, MiscModule::class, PluginModule::class, SecurityModule::class];
 
     private GdprService $service;
+
     private int $userId;
+
     private int $tenantId = 1001;
 
     protected function setUp(): void

@@ -3,13 +3,14 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use MultiTenantSaas\Models\Tenant;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\MultiTenantSaas\Models\Tenant>
+ * @extends Factory<Tenant>
  */
 class TenantFactory extends Factory
 {
-    protected $model = \MultiTenantSaas\Models\Tenant::class;
+    protected $model = Tenant::class;
 
     public function definition(): array
     {

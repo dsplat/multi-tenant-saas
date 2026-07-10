@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
+use Illuminate\Http\Client\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Queue\CallQueuedClosure;
 use Illuminate\Support\Facades\Event;
@@ -9,15 +10,15 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Models\FileUpload;
 use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Services\AiVideoService;
 use MultiTenantSaas\Services\FileService;
-use RuntimeException;
 use MultiTenantSaas\Tests\Schema\AiModule;
-use MultiTenantSaas\Tests\Schema\PluginModule;
 use MultiTenantSaas\Tests\Schema\BillingModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
+use RuntimeException;
 
 /**
  * AiVideoService 测试套件
@@ -197,7 +198,7 @@ class AiVideoServiceTest extends TestCase
         Queue::assertPushed(CallQueuedClosure::class, 1);
 
         // 提交请求应携带 model 与 prompt
-        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+        Http::assertSent(function (Request $request): bool {
             return $request->url() === 'https://api.dev.runwayml.com/v1/text_to_video'
                 && str_contains((string) $request->body(), 'gen-3')
                 && str_contains((string) $request->body(), 'a cat playing piano');
@@ -230,7 +231,7 @@ class AiVideoServiceTest extends TestCase
             'status' => AiRequest::STATUS_PENDING,
         ]);
 
-        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+        Http::assertSent(function (Request $request): bool {
             return str_starts_with($request->url(), 'https://api.klingai.com/v1/videos/text2video')
                 && str_contains((string) $request->body(), 'kling-v2');
         });
@@ -257,7 +258,7 @@ class AiVideoServiceTest extends TestCase
         $this->assertSame('task-runway-img', $result['task_id']);
 
         // 请求体应包含输入图片的可访问 URL（JSON 会转义斜杠，需还原后再匹配）
-        Http::assertSent(function (\Illuminate\Http\Client\Request $request) use ($expectedUrl): bool {
+        Http::assertSent(function (Request $request) use ($expectedUrl): bool {
             $body = str_replace('\/', '/', (string) $request->body());
 
             return $request->url() === 'https://api.dev.runwayml.com/v1/image_to_video'
@@ -286,7 +287,7 @@ class AiVideoServiceTest extends TestCase
         $this->assertSame('runway', $result['provider']);
         $this->assertSame('task-runway-edit', $result['task_id']);
 
-        Http::assertSent(function (\Illuminate\Http\Client\Request $request) use ($expectedUrl): bool {
+        Http::assertSent(function (Request $request) use ($expectedUrl): bool {
             $body = str_replace('\/', '/', (string) $request->body());
 
             return $request->url() === 'https://api.dev.runwayml.com/v1/video_edit'

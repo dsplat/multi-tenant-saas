@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Concerns;
 
 use Illuminate\Http\Request;
+use MultiTenantSaas\Models\TenantUser;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * 租户访问控制 Trait
@@ -16,7 +18,7 @@ trait AuthorizesTenantAccess
     /**
      * 验证用户是否属于目标租户
      *
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     * @throws HttpException
      */
     protected function ensureTenantAccess(Request $request, int $tenantId): void
     {
@@ -27,12 +29,12 @@ trait AuthorizesTenantAccess
         }
 
         // 直接查询 tenant_users 表
-        $exists = \MultiTenantSaas\Models\TenantUser::where('user_id', $user->user_id)
+        $exists = TenantUser::where('user_id', $user->user_id)
             ->where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->exists();
 
-        if (!$exists) {
+        if (! $exists) {
             abort(403, '您不属于该租户');
         }
     }
@@ -40,7 +42,7 @@ trait AuthorizesTenantAccess
     /**
      * 验证用户是否为 super_admin
      *
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     * @throws HttpException
      */
     protected function ensureSuperAdmin(Request $request): void
     {

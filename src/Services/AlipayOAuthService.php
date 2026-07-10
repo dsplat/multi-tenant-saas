@@ -9,6 +9,7 @@ use MultiTenantSaas\Models\OauthAccount;
 use MultiTenantSaas\Models\TenantSetting;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * 支付宝 OAuth 认证服务
@@ -99,7 +100,7 @@ class AlipayOAuthService
      * 返回格式与 SocialiteService::handleCallback 一致：
      *  ['user' => [...], 'token' => ...]
      *
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException state 校验失败时 abort(403)
+     * @throws HttpException state 校验失败时 abort(403)
      */
     public function handleCallback(int $tenantId): array
     {

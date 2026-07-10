@@ -26,7 +26,7 @@ use MultiTenantSaas\Scopes\TenantScope;
  */
 class TenantHierarchy extends Model
 {
-    use HasGlobalId, BelongsToTenant;
+    use BelongsToTenant, HasGlobalId;
 
     /** 关系类型：子公司 */
     public const TYPE_SUBSIDIARY = 'subsidiary';
@@ -141,6 +141,7 @@ class TenantHierarchy extends Model
         $scope['shared_resources'] = $resources;
 
         $this->permission_scope = $scope;
+
         return $this->save();
     }
 
@@ -154,7 +155,7 @@ class TenantHierarchy extends Model
 
         $remaining = array_values(array_filter(
             $resources,
-            fn ($r) => !(
+            fn ($r) => ! (
                 ($r['resource_type'] ?? '') === $resourceType
                 && (int) ($r['resource_id'] ?? 0) === $resourceId
             )

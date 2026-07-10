@@ -2,14 +2,16 @@
 
 namespace MultiTenantSaas\Services;
 
-use MultiTenantSaas\Models\CreditAccount;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
+use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use MultiTenantSaas\Models\CreditAccount;
+use MultiTenantSaas\Models\OauthAccount;
+use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Models\User;
 
 class UserService
 {
@@ -128,12 +130,12 @@ class UserService
     /**
      * 通过 OAuth 登录（找或新建用户，并确保租户附件）
      *
-     * @param  array{provider: string, provider_id: string, provider_name?: string, provider_email?: string, provider_avatar?: string, access_token?: string, refresh_token?: string, token_expires_at?: \Carbon\Carbon|null, metadata?: array}  $oauthData
+     * @param  array{provider: string, provider_id: string, provider_name?: string, provider_email?: string, provider_avatar?: string, access_token?: string, refresh_token?: string, token_expires_at?: Carbon|null, metadata?: array}  $oauthData
      */
     public function loginViaOauth(array $oauthData, int $tenantId, string $tenantRole = 'end_user'): User
     {
         return DB::transaction(function () use ($oauthData, $tenantId, $tenantRole) {
-            $oauthAccount = \MultiTenantSaas\Models\OauthAccount::where('provider', $oauthData['provider'])
+            $oauthAccount = OauthAccount::where('provider', $oauthData['provider'])
                 ->where('provider_id', $oauthData['provider_id'])
                 ->first();
 
@@ -152,14 +154,14 @@ class UserService
                 $user = $oauthAccount->user;
             } else {
                 $isNewUser = true;
-                $name = $oauthData['provider_name'] ?? ('用户'.substr($oauthData['provider_id'], -4));
+                $name = $oauthData['provider_name'] ?? ('用户' . substr($oauthData['provider_id'], -4));
                 $email = $oauthData['provider_email'] ?? null;
 
                 if ($email && User::where('email', $email)->exists()) {
                     $email = null;
                 }
                 if (! $email) {
-                    $email = $oauthData['provider'].'_'.strtolower(substr($oauthData['provider_id'], 0, 20)).'@oauth.local';
+                    $email = $oauthData['provider'] . '_' . strtolower(substr($oauthData['provider_id'], 0, 20)) . '@oauth.local';
                 }
                 $user = User::create([
                     'name' => $name,
@@ -169,7 +171,7 @@ class UserService
                     'password' => Hash::make(Str::random(32)),
                 ]);
 
-                \MultiTenantSaas\Models\OauthAccount::create([
+                OauthAccount::create([
                     'user_id' => $user->user_id,
                     'tenant_id' => $tenantId,
                     'provider' => $oauthData['provider'],

@@ -56,7 +56,7 @@ class SessionService
      */
     public function generateFingerprint(string $userAgent, string $ip): string
     {
-        return hash('sha256', $userAgent.'|'.$ip);
+        return hash('sha256', $userAgent . '|' . $ip);
     }
 
     /**

@@ -9,9 +9,9 @@ use MultiTenantSaas\Models\AuditLog;
 use MultiTenantSaas\Models\IpWhitelist;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\IpWhitelistService;
-use Symfony\Component\HttpFoundation\Response;
 use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\SecurityModule;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * TASK-017 IpWhitelistService 单元测试

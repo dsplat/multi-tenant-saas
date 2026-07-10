@@ -2,17 +2,32 @@
 
 namespace MultiTenantSaas\Modules\Ai;
 
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\Facades\Route;
+use Laravel\Ai\Contracts\ConversationStore;
+use MultiTenantSaas\Contracts\AgentMonitorContract;
+use MultiTenantSaas\Contracts\AgentRuntimeContract;
+use MultiTenantSaas\Contracts\AgentServiceContract;
+use MultiTenantSaas\Contracts\AiTextServiceContract;
+use MultiTenantSaas\Contracts\CapabilityContract;
+use MultiTenantSaas\Contracts\McpToolRegistryContract;
+use MultiTenantSaas\Contracts\MemoryContract;
+use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Contracts\ToolRegistryContract;
+use MultiTenantSaas\Contracts\WorkflowEngineContract;
+use MultiTenantSaas\Modules\Ai\Mcp\McpClientRegistry;
 use MultiTenantSaas\Modules\Ai\Mcp\McpRouteMacro;
-use MultiTenantSaas\Modules\Ai\Services\Ai\AiGatewayService;
-use MultiTenantSaas\Modules\Ai\Services\Ai\AiTextService;
-use MultiTenantSaas\Modules\Ai\Services\Ai\AiVideoService;
-use MultiTenantSaas\Modules\Ai\Services\Ai\Storage\TenantConversationStore;
+use MultiTenantSaas\Modules\Ai\Mcp\McpSkillGenerator;
+use MultiTenantSaas\Modules\Ai\Mcp\McpToolRegistry;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentMonitor;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentRuntime;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\MemoryCompressor;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
+use MultiTenantSaas\Modules\Ai\Services\Ai\AiGatewayService;
+use MultiTenantSaas\Modules\Ai\Services\Ai\AiTextService;
+use MultiTenantSaas\Modules\Ai\Services\Ai\AiVideoService;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Storage\TenantConversationStore;
 use MultiTenantSaas\Modules\Ai\Services\Capability\CapabilityRegistry;
 use MultiTenantSaas\Modules\Ai\Services\Capability\CapabilityService;
 use MultiTenantSaas\Modules\Ai\Services\Capability\ClassifyCapability;
@@ -28,9 +43,6 @@ use MultiTenantSaas\Modules\Ai\Services\Capability\SummarizeCapability;
 use MultiTenantSaas\Modules\Ai\Services\Capability\TagCapability;
 use MultiTenantSaas\Modules\Ai\Services\Capability\TranslateCapability;
 use MultiTenantSaas\Modules\Ai\Services\Capability\VisionCapability;
-use MultiTenantSaas\Modules\Ai\Mcp\McpClientRegistry;
-use MultiTenantSaas\Modules\Ai\Mcp\McpSkillGenerator;
-use MultiTenantSaas\Modules\Ai\Mcp\McpToolRegistry;
 use MultiTenantSaas\Modules\Ai\Services\Memory\EntityMemory;
 use MultiTenantSaas\Modules\Ai\Services\Memory\MemoryPipeline;
 use MultiTenantSaas\Modules\Ai\Services\Memory\TenantMemory;
@@ -48,18 +60,6 @@ use MultiTenantSaas\Modules\Ai\Services\Tool\OcrRecognizeTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\VectorSearchTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\WebhookTriggerTool;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
-use MultiTenantSaas\Contracts\AgentMonitorContract;
-use MultiTenantSaas\Contracts\AgentRuntimeContract;
-use MultiTenantSaas\Contracts\AgentServiceContract;
-use MultiTenantSaas\Contracts\AiTextServiceContract;
-use MultiTenantSaas\Contracts\CapabilityContract;
-use MultiTenantSaas\Contracts\MemoryContract;
-use MultiTenantSaas\Contracts\McpToolRegistryContract;
-use MultiTenantSaas\Contracts\TenantContextContract;
-use MultiTenantSaas\Contracts\ToolRegistryContract;
-use MultiTenantSaas\Contracts\WorkflowEngineContract;
-use Laravel\Ai\Contracts\ConversationStore;
-use Illuminate\Contracts\Container\Container;
 
 class AiServiceProvider extends ModuleServiceProvider
 {
@@ -116,6 +116,7 @@ class AiServiceProvider extends ModuleServiceProvider
             $registry->register('ocr', new OcrCapability);
             $registry->register('vision', new VisionCapability);
             $registry->register('embedding', new EmbeddingCapability);
+
             return $registry;
         });
         $this->app->alias(CapabilityContract::class, CapabilityRegistry::class);

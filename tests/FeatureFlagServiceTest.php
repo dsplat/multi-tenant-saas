@@ -5,13 +5,12 @@ namespace MultiTenantSaas\Tests;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Middleware\CheckFeatureFlag;
-use MultiTenantSaas\Models\AuditLog;
 use MultiTenantSaas\Models\FeatureFlag;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\FeatureFlagService;
-use Symfony\Component\HttpFoundation\Response;
 use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\SecurityModule;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * TASK-022 FeatureFlagService 单元测试
@@ -532,6 +531,6 @@ class FeatureFlagServiceTest extends TestCase
      */
     private function computeBucket(string $flagName, int $tenantId): int
     {
-        return abs(crc32($flagName.':'.$tenantId)) % 100;
+        return abs(crc32($flagName . ':' . $tenantId)) % 100;
     }
 }

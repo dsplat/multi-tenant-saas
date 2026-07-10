@@ -97,13 +97,17 @@ class IsolationServiceTest extends TestCase
 
     public function test_register_custom_strategy(): void
     {
-        $custom = new class implements IsolationStrategyContract {
+        $custom = new class implements IsolationStrategyContract
+        {
             public function getConnection(Tenant $tenant): string
             {
                 return 'custom';
             }
+
             public function setupDatabase(Tenant $tenant): void {}
+
             public function teardownDatabase(Tenant $tenant): void {}
+
             public function migrate(Tenant $tenant): void {}
         };
 
@@ -267,7 +271,7 @@ class IsolationServiceTest extends TestCase
         $this->assertSame(2, DB::connection($sharedConn)->table('tenant_settings')->where('tenant_id', $tenantId)->count());
 
         // 预注册目标连接（:memory:）并创建目标 schema，模拟 run_migrations=false 下运维已准备结构
-        $targetConn = 'tenant.'.$tenantId;
+        $targetConn = 'tenant.' . $tenantId;
         Config::set("database.connections.{$targetConn}", [
             'driver' => 'sqlite',
             'database' => ':memory:',
@@ -321,7 +325,7 @@ class IsolationServiceTest extends TestCase
         ]);
 
         // 预注册目标连接但 *不创建表* → 导入将失败，触发异常
-        $targetConn = 'tenant.'.$tenantId;
+        $targetConn = 'tenant.' . $tenantId;
         Config::set("database.connections.{$targetConn}", [
             'driver' => 'sqlite',
             'database' => ':memory:',

@@ -11,7 +11,9 @@ use MultiTenantSaas\Contracts\ChannelContract;
 class WechatMiniProgramProvider implements ChannelContract
 {
     protected string $appId;
+
     protected string $appSecret;
+
     protected SignatureValidator $signatureValidator;
 
     /**

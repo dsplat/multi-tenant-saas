@@ -3,6 +3,8 @@
 namespace MultiTenantSaas\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 
@@ -20,7 +22,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class CostAllocation extends Model
 {
-    use HasGlobalId, BelongsToTenant;
+    use BelongsToTenant, HasGlobalId;
 
     /** 成本类型：基础设施 */
     public const TYPE_INFRASTRUCTURE = 'infrastructure';
@@ -76,11 +78,10 @@ class CostAllocation extends Model
      *
      * @param  string  $period  计费周期（YYYY-MM）
      * @param  int|null  $tenantId  租户 ID（NULL 表示系统级）
-     * @return \Illuminate\Support\Collection
      */
-    public static function periodRecords(string $period, ?int $tenantId = null): \Illuminate\Support\Collection
+    public static function periodRecords(string $period, ?int $tenantId = null): Collection
     {
-        $query = \Illuminate\Support\Facades\DB::table('cost_allocations')
+        $query = DB::table('cost_allocations')
             ->where('period', $period);
 
         if ($tenantId !== null) {

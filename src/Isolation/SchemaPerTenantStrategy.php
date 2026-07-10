@@ -5,9 +5,9 @@ namespace MultiTenantSaas\Isolation;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 use MultiTenantSaas\Contracts\IsolationStrategyContract;
 use MultiTenantSaas\Models\Tenant;
-use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
 
@@ -50,7 +50,7 @@ class SchemaPerTenantStrategy implements IsolationStrategyContract
         $schema = $tenant->schema_name;
         $this->validateIdentifier($schema, 'schema_name');
         $base = (string) config('tenancy.isolation.base_connection', config('database.default'));
-        DB::connection($base)->statement('CREATE SCHEMA IF NOT EXISTS "'.$schema.'"');
+        DB::connection($base)->statement('CREATE SCHEMA IF NOT EXISTS "' . $schema . '"');
 
         $this->ensureConnection($tenant);
     }
@@ -71,7 +71,7 @@ class SchemaPerTenantStrategy implements IsolationStrategyContract
 
         if (! empty($schema)) {
             $this->validateIdentifier($schema, 'schema_name');
-            DB::connection($base)->statement('DROP SCHEMA IF EXISTS "'.$schema.'" CASCADE');
+            DB::connection($base)->statement('DROP SCHEMA IF EXISTS "' . $schema . '" CASCADE');
         }
 
         try {
@@ -112,7 +112,7 @@ class SchemaPerTenantStrategy implements IsolationStrategyContract
     {
         $prefix = (string) config('tenancy.isolation.connection_prefix', 'tenant.');
 
-        return $prefix.$tenant->getKey();
+        return $prefix . $tenant->getKey();
     }
 
     /**

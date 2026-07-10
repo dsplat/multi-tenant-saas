@@ -24,7 +24,7 @@ class PaymentResource
      */
     public function createOrder(int $tenantId, array $data): array
     {
-        return $this->client->request('POST', '/tenants/'.$tenantId.'/payment-orders', [], $data);
+        return $this->client->request('POST', '/tenants/' . $tenantId . '/payment-orders', [], $data);
     }
 
     /**
@@ -36,7 +36,7 @@ class PaymentResource
      */
     public function listOrders(int $tenantId, array $query = []): array
     {
-        return $this->client->request('GET', '/tenants/'.$tenantId.'/payment-orders', $query);
+        return $this->client->request('GET', '/tenants/' . $tenantId . '/payment-orders', $query);
     }
 
     /**
@@ -48,7 +48,7 @@ class PaymentResource
      */
     public function refund(int $tenantId, array $data): array
     {
-        return $this->client->request('POST', '/tenants/'.$tenantId.'/payment-orders/refund', [], $data);
+        return $this->client->request('POST', '/tenants/' . $tenantId . '/payment-orders/refund', [], $data);
     }
 
     /**
@@ -60,6 +60,6 @@ class PaymentResource
      */
     public function refundStatus(int $tenantId, array $query = []): array
     {
-        return $this->client->request('GET', '/tenants/'.$tenantId.'/payment-orders/refund-status', $query);
+        return $this->client->request('GET', '/tenants/' . $tenantId . '/payment-orders/refund-status', $query);
     }
 }

@@ -11,8 +11,11 @@ use MultiTenantSaas\Contracts\ChannelContract;
 class EnterpriseWechatProvider implements ChannelContract
 {
     protected string $corpId;
+
     protected string $corpSecret;
+
     protected string $agentId;
+
     protected SignatureValidator $signatureValidator;
 
     /**

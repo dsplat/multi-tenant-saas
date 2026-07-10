@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use MultiTenantSaas\Context\TenantContext;
@@ -518,7 +519,7 @@ class WebhookServiceTest extends TestCase
     public function test_job_marks_failed_on_connection_error(): void
     {
         Http::fake(function () {
-            throw new \Illuminate\Http\Client\ConnectionException('Connection refused');
+            throw new ConnectionException('Connection refused');
         });
 
         $webhook = $this->service->createWebhook('https://example.com/hook', ['tenant.created']);
@@ -532,7 +533,7 @@ class WebhookServiceTest extends TestCase
 
         $job = new ProcessWebhookDelivery($delivery->webhook_delivery_id);
 
-        $this->expectException(\Illuminate\Http\Client\ConnectionException::class);
+        $this->expectException(ConnectionException::class);
         $job->handle($this->service);
     }
 

@@ -3,10 +3,9 @@
 namespace MultiTenantSaas\Services;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use MultiTenantSaas\Models\PaymentOrder;
 use MultiTenantSaas\Models\FinancialRecord;
+use MultiTenantSaas\Models\PaymentOrder;
 use Yansongda\Pay\Pay;
 
 /**
@@ -19,10 +18,10 @@ class RefundService
     /**
      * 发起退款
      *
-     * @param int $tenantId 租户ID
-     * @param string $orderNo 原订单号
-     * @param float $refundAmount 退款金额
-     * @param string $reason 退款原因
+     * @param  int  $tenantId  租户ID
+     * @param  string  $orderNo  原订单号
+     * @param  float  $refundAmount  退款金额
+     * @param  string  $reason  退款原因
      * @return array 退款结果
      */
     public static function refund(int $tenantId, string $orderNo, float $refundAmount, string $reason = ''): array
@@ -32,16 +31,16 @@ class RefundService
             ->where('order_no', $orderNo)
             ->first();
 
-        if (!$order) {
-            throw new \RuntimeException(trans("payment.order_not_found"));
+        if (! $order) {
+            throw new \RuntimeException(trans('payment.order_not_found'));
         }
 
         if ($order->status !== 'paid' && $order->status !== 'completed') {
-            throw new \RuntimeException(trans("payment.order_status_invalid"));
+            throw new \RuntimeException(trans('payment.order_status_invalid'));
         }
 
         if ($refundAmount > floatval($order->amount)) {
-            throw new \RuntimeException(trans("payment.refund_amount_exceeds"));
+            throw new \RuntimeException(trans('payment.refund_amount_exceeds'));
         }
 
         $driver = $order->driver;
@@ -56,7 +55,7 @@ class RefundService
             } elseif ($driver === 'alipay') {
                 $result = self::alipayRefund($pay, $order, $refundNo, $refundAmount, $reason);
             } else {
-                throw new \RuntimeException(trans("payment.unsupported_driver") . ": {$driver}");
+                throw new \RuntimeException(trans('payment.unsupported_driver') . ": {$driver}");
             }
 
             // 更新订单状态
@@ -146,8 +145,7 @@ class RefundService
     /**
      * 查询退款状态
      *
-     * @param int $tenantId
-     * @param string $orderNo 原订单号
+     * @param  string  $orderNo  原订单号
      * @return array 退款状态信息
      */
     public static function queryRefundStatus(int $tenantId, string $orderNo): array
@@ -156,24 +154,24 @@ class RefundService
             ->where('order_no', $orderNo)
             ->first();
 
-        if (!$order) {
+        if (! $order) {
             throw new \RuntimeException(trans('payment.order_not_found'));
         }
 
         $extra = $order->extra ?? [];
         $refundNo = $extra['refund_no'] ?? null;
 
-        if (!$refundNo && isset($extra['refunds']) && is_array($extra['refunds'])) {
+        if (! $refundNo && isset($extra['refunds']) && is_array($extra['refunds'])) {
             $latestRefund = end($extra['refunds']);
             $refundNo = $latestRefund['refund_no'] ?? null;
         }
 
-        if (!$refundNo) {
+        if (! $refundNo) {
             return [
                 'order_no' => $orderNo,
                 'status' => $order->status,
                 'has_refund' => false,
-                'message' => trans("payment.no_refund_record"),
+                'message' => trans('payment.no_refund_record'),
             ];
         }
 
@@ -231,8 +229,8 @@ class RefundService
     {
         $tenantId = $request->query('tenant_id');
 
-        if (!$tenantId) {
-            throw new \RuntimeException(trans("payment.missing_tenant_callback"));
+        if (! $tenantId) {
+            throw new \RuntimeException(trans('payment.missing_tenant_callback'));
         }
 
         $pay = PayService::createPayInstancePublic((int) $tenantId, $driver);

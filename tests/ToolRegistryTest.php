@@ -4,8 +4,9 @@ namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Ai\Models\AgentTool;
-use MultiTenantSaas\Tests\Handlers\DummyHandler;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Dto\Tool;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
+use MultiTenantSaas\Tests\Handlers\DummyHandler;
 use MultiTenantSaas\Tests\Schema\AgentModule;
 
 /**
@@ -359,7 +360,7 @@ class ToolRegistryTest extends TestCase
 
     public function test_tool_from_array(): void
     {
-        $tool = \MultiTenantSaas\Modules\Ai\Services\Agent\Dto\Tool::fromArray([
+        $tool = Tool::fromArray([
             'slug' => 'test',
             'name' => 'Test',
             'description' => 'desc',

@@ -6,7 +6,6 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Modules\Voting\Models\Vote;
 use MultiTenantSaas\Modules\Voting\Services\VotingService;
 use MultiTenantSaas\Tests\Schema\VotingModule;
 
@@ -52,7 +51,7 @@ class VotingControllerTest extends TestCase
 
     public function test_index_votes(): void
     {
-        $service = new VotingService();
+        $service = new VotingService;
         $service->createVote([
             'title' => '测试投票',
             'options' => [
@@ -89,7 +88,7 @@ class VotingControllerTest extends TestCase
 
     public function test_show_vote(): void
     {
-        $service = new VotingService();
+        $service = new VotingService;
         $vote = $service->createVote([
             'title' => '测试投票',
             'options' => [
@@ -108,7 +107,7 @@ class VotingControllerTest extends TestCase
 
     public function test_update_vote(): void
     {
-        $service = new VotingService();
+        $service = new VotingService;
         $vote = $service->createVote([
             'title' => '原标题',
             'options' => [
@@ -129,7 +128,7 @@ class VotingControllerTest extends TestCase
 
     public function test_destroy_vote(): void
     {
-        $service = new VotingService();
+        $service = new VotingService;
         $vote = $service->createVote([
             'title' => '测试投票',
             'status' => 'draft',
@@ -148,7 +147,7 @@ class VotingControllerTest extends TestCase
 
     public function test_destroy_active_vote_fails(): void
     {
-        $service = new VotingService();
+        $service = new VotingService;
         $vote = $service->createVote([
             'title' => '进行中投票',
             'status' => 'active',
@@ -169,7 +168,7 @@ class VotingControllerTest extends TestCase
 
     public function test_cast_vote(): void
     {
-        $service = new VotingService();
+        $service = new VotingService;
         $vote = $service->createVote([
             'title' => '测试投票',
             'status' => 'active',
@@ -194,7 +193,7 @@ class VotingControllerTest extends TestCase
 
     public function test_cast_vote_inactive_fails(): void
     {
-        $service = new VotingService();
+        $service = new VotingService;
         $vote = $service->createVote([
             'title' => '草稿投票',
             'status' => 'draft',
@@ -219,7 +218,7 @@ class VotingControllerTest extends TestCase
 
     public function test_ranking(): void
     {
-        $service = new VotingService();
+        $service = new VotingService;
         $vote = $service->createVote([
             'title' => '测试投票',
             'status' => 'active',
@@ -239,7 +238,7 @@ class VotingControllerTest extends TestCase
 
     public function test_statistics(): void
     {
-        $service = new VotingService();
+        $service = new VotingService;
         $vote = $service->createVote([
             'title' => '测试投票',
             'status' => 'active',
@@ -259,7 +258,7 @@ class VotingControllerTest extends TestCase
 
     public function test_records(): void
     {
-        $service = new VotingService();
+        $service = new VotingService;
         $vote = $service->createVote([
             'title' => '测试投票',
             'status' => 'active',
@@ -288,7 +287,7 @@ class VotingControllerTest extends TestCase
             'status' => 'active',
         ]);
 
-        $service = new VotingService();
+        $service = new VotingService;
         $vote = $service->createVote([
             'title' => '其他租户投票',
             'options' => [

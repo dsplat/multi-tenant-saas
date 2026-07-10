@@ -16,7 +16,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class InAppNotification extends Model
 {
-    use HasGlobalId, BelongsToTenant, SoftDeletes;
+    use BelongsToTenant, HasGlobalId, SoftDeletes;
 
     /** 分类：系统 */
     public const TYPE_SYSTEM = 'system';

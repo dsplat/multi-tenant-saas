@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\Ai\Services\Agent;
 
 use Illuminate\Support\Collection;
+use MultiTenantSaas\Services\Agent\AgentService;
 
 /**
  * 预置 Agent 模板定义数据
@@ -10,8 +11,8 @@ use Illuminate\Support\Collection;
  * 框架层提供 8 个角色骨架空模板（客服/销售/营销/数据分析等），
  * feature_keys 留空由业务层填充。本类为纯数据类，不含任何业务逻辑。
  *
- * @see \MultiTenantSaas\Services\Agent\AgentService::getBuiltinTemplates()
- * @see \MultiTenantSaas\Services\Agent\AgentService::cloneFromTemplate()
+ * @see AgentService::getBuiltinTemplates()
+ * @see AgentService::cloneFromTemplate()
  */
 final class BuiltinAgentTemplates
 {
@@ -188,7 +189,6 @@ final class BuiltinAgentTemplates
      *
      * 对 $templateId 做整型强制转换，避免调用方传入字符串 "1" 时严格比较失败。
      *
-     * @param  int  $templateId
      * @return array<string, mixed>|null
      */
     public static function find(int $templateId): ?array
@@ -207,7 +207,6 @@ final class BuiltinAgentTemplates
     /**
      * 按 template_key 查找模板
      *
-     * @param  string  $templateKey
      * @return array<string, mixed>|null
      */
     public static function findByKey(string $templateKey): ?array

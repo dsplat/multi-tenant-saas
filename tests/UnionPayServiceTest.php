@@ -185,6 +185,7 @@ class UnionPayServiceTest extends TestCase
         Http::fake(function () use (&$index, $cases) {
             $code = $cases[$index]['respCode'] ?? '99';
             $index++;
+
             return Http::response("respCode={$code}&queryId=Q-{$code}&orderId=ORD-MAP-001", 200);
         });
 

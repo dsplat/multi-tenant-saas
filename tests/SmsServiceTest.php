@@ -2,13 +2,10 @@
 
 namespace MultiTenantSaas\Tests;
 
-use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Modules\Sms\Models\SmsBatchTask;
-use MultiTenantSaas\Modules\Sms\Models\SmsDeliveryStat;
-use MultiTenantSaas\Modules\Sms\Models\SmsTemplate;
-use MultiTenantSaas\Modules\Sms\Models\SmsUnsubscribe;
 use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Sms\Models\SmsBatchTask;
+use MultiTenantSaas\Modules\Sms\Models\SmsTemplate;
 use MultiTenantSaas\Modules\Sms\Services\SmsService;
 use MultiTenantSaas\Tests\Schema\SmsModule;
 

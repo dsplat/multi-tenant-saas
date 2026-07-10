@@ -2,9 +2,11 @@
 
 namespace MultiTenantSaas\Models;
 
+use Database\Factories\TenantFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -22,7 +24,7 @@ class Tenant extends Model
      */
     protected static function newFactory()
     {
-        return \Database\Factories\TenantFactory::new();
+        return TenantFactory::new();
     }
 
     /**
@@ -118,7 +120,7 @@ class Tenant extends Model
     /**
      * 订阅计划
      */
-    public function subscriptionPlan(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function subscriptionPlan(): BelongsTo
     {
         return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
     }
@@ -132,7 +134,7 @@ class Tenant extends Model
             return true;
         }
 
-        if (!$this->subscription_expires_at) {
+        if (! $this->subscription_expires_at) {
             return false;
         }
 

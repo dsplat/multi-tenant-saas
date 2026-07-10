@@ -2,9 +2,9 @@
 
 namespace MultiTenantSaas\Modules\Ai\Services\Agent;
 
-use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Contracts\AgentMonitorContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Models\AgentToolLog;
 
@@ -41,7 +41,7 @@ class AgentMonitor implements AgentMonitorContract
             'message_count' => $conversation->message_count + 1,
         ];
 
-        if (!empty($data['token_usage'])) {
+        if (! empty($data['token_usage'])) {
             $current = $conversation->token_usage ?? [
                 'prompt_tokens' => 0,
                 'completion_tokens' => 0,
@@ -205,7 +205,7 @@ class AgentMonitor implements AgentMonitorContract
     {
         $tenantId = $this->resolveTenantId();
 
-        $agent = \MultiTenantSaas\Modules\Ai\Models\Agent::where('agent_id', $agentId)
+        $agent = Agent::where('agent_id', $agentId)
             ->where('tenant_id', $tenantId)
             ->first();
 

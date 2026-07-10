@@ -7,6 +7,7 @@ use MultiTenantSaas\Contracts\ToolContract;
 class ToolRegistry
 {
     protected array $tools = [];
+
     protected array $categories = ['Core', 'AI', 'Storage', 'Knowledge', 'Channel', 'Workflow'];
 
     public function register(ToolContract $tool): void
@@ -21,7 +22,7 @@ class ToolRegistry
 
     public function getByCategory(string $category): array
     {
-        return array_filter($this->tools, fn($t) => $t->category() === $category);
+        return array_filter($this->tools, fn ($t) => $t->category() === $category);
     }
 
     public function all(): array

@@ -2,9 +2,8 @@
 
 namespace MultiTenantSaas\Tests;
 
-use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\SubscriptionHistory;
 use MultiTenantSaas\Models\SubscriptionPlan;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\PlanChangeService;
@@ -287,7 +286,7 @@ class PlanChangeServiceTest extends TestCase
 
     public function test_change_plan_throws_for_unknown_tenant(): void
     {
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
         PlanChangeService::changePlan(9999, 3, 'immediate');
     }
 

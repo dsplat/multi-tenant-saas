@@ -1,5 +1,8 @@
 <?php
 
+use MultiTenantSaas\Services\Ai\Drivers\LaravelAiDriverAdapter;
+use MultiTenantSaas\Services\Ai\Drivers\MockAiDriver;
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -24,8 +27,8 @@ return [
 
     // 已注册 driver 实现
     'drivers' => [
-        'mock' => \MultiTenantSaas\Services\Ai\Drivers\MockAiDriver::class,
-        'laravel-ai' => \MultiTenantSaas\Services\Ai\Drivers\LaravelAiDriverAdapter::class,
+        'mock' => MockAiDriver::class,
+        'laravel-ai' => LaravelAiDriverAdapter::class,
     ],
 
     // 默认模型（driver 未显式指定时使用）

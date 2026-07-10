@@ -35,7 +35,7 @@ class TenantContext implements TenantContextContract
     public static function getId(): ?string
     {
         $request = static::getRequest();
-        if (!$request) {
+        if (! $request) {
             return null;
         }
 
@@ -79,7 +79,7 @@ class TenantContext implements TenantContextContract
 
         // 通过 ID 加载（直接查询，Request 级缓存已覆盖）
         $id = static::getId();
-        if (!$id) {
+        if (! $id) {
             return null;
         }
 
@@ -111,6 +111,7 @@ class TenantContext implements TenantContextContract
     public static function getDomainType(): ?string
     {
         $request = static::getRequest();
+
         return $request ? $request->attributes->get('domain_type') : null;
     }
 
@@ -131,6 +132,7 @@ class TenantContext implements TenantContextContract
     public static function getTenantRole(): ?string
     {
         $request = static::getRequest();
+
         return $request ? $request->attributes->get('tenant_role') : null;
     }
 

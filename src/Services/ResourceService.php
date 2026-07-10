@@ -5,9 +5,7 @@ namespace MultiTenantSaas\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 use MultiTenantSaas\Contracts\TenantContextContract;
-use MultiTenantSaas\Services\NotificationService;
 use Throwable;
 
 /**
@@ -50,7 +48,7 @@ class ResourceService
 
             return 1;
         } catch (Throwable $e) {
-            Log::warning('[ResourceService] getDbConnections failed: '.$e->getMessage());
+            Log::warning('[ResourceService] getDbConnections failed: ' . $e->getMessage());
 
             return 0;
         }
@@ -284,8 +282,6 @@ class ResourceService
     /**
      * 构建告警条目
      *
-     * @param  mixed  $current
-     * @param  mixed  $threshold
      * @return array{metric: string, severity: string, message: string, current: mixed, threshold: mixed}
      */
     protected function buildAlert(string $metric, string $severity, string $message, mixed $current, mixed $threshold): array

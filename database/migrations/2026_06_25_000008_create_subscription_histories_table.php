@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('subscription_histories', function (Blueprint $table) {
-            $table->unsignedBigInteger("subscription_history_id")->primary()->comment("历史ID（全局ID）");
+            $table->unsignedBigInteger('subscription_history_id')->primary()->comment('历史ID（全局ID）');
             $table->bigInteger('tenant_id')->unsigned();
             $table->unsignedBigInteger('plan_id')->nullable();
             $table->foreign('plan_id')->references('subscription_plan_id')->on('subscription_plans')->nullOnDelete();

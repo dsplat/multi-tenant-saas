@@ -53,7 +53,7 @@ class FakeToolRegistry implements ToolRegistryContract
     {
         return collect(array_filter(
             array_values($this->tools),
-            fn(Tool $t) => $t->category === $category,
+            fn (Tool $t) => $t->category === $category,
         ));
     }
 

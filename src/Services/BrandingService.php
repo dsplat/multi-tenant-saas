@@ -48,7 +48,7 @@ class BrandingService
     /**
      * 更新品牌配置
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function updateConfig(int $tenantId, array $data): BrandingConfig
     {
@@ -131,13 +131,13 @@ class BrandingService
      */
     public function setCustomDomain(int $tenantId, string $domain): BrandingConfig
     {
-        if (!config('tenancy.branding.custom_domain_enabled', true)) {
+        if (! config('tenancy.branding.custom_domain_enabled', true)) {
             throw new \RuntimeException(trans('tenant.branding_domain_invalid'));
         }
 
         $domain = strtolower(trim($domain));
 
-        if (!$this->isValidDomain($domain)) {
+        if (! $this->isValidDomain($domain)) {
             throw new \RuntimeException(trans('tenant.branding_domain_invalid'));
         }
 
@@ -220,7 +220,7 @@ class BrandingService
         $allowed = config('tenancy.branding.logo_mime_types', []);
         $maxSize = (int) config('tenancy.branding.logo_max_size', 2097152);
 
-        if (!empty($allowed) && !in_array($mime, $allowed, true)) {
+        if (! empty($allowed) && ! in_array($mime, $allowed, true)) {
             throw new \RuntimeException(trans('tenant.branding_logo_invalid'));
         }
 

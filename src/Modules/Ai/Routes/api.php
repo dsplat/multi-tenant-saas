@@ -1,11 +1,11 @@
 <?php
 
+use MultiTenantSaas\Http\Controllers\CapabilityController;
+use MultiTenantSaas\Http\Controllers\ConversationController;
 use MultiTenantSaas\Modules\Ai\Http\Controllers\AgentChatController;
 use MultiTenantSaas\Modules\Ai\Http\Controllers\AgentController;
 use MultiTenantSaas\Modules\Ai\Http\Controllers\AgentStatsController;
 use MultiTenantSaas\Modules\Ai\Http\Controllers\ToolController;
-use MultiTenantSaas\Http\Controllers\CapabilityController;
-use MultiTenantSaas\Http\Controllers\ConversationController;
 
 // ========== Agent 管理 ==========
 Route::get('/agents', [AgentController::class, 'index']);

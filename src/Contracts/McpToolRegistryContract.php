@@ -42,8 +42,6 @@ interface McpToolRegistryContract
 
     /**
      * 获取所有已注册工具
-     *
-     * @return Collection
      */
     public function all(): Collection;
 

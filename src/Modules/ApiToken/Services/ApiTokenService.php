@@ -2,11 +2,13 @@
 
 namespace MultiTenantSaas\Modules\ApiToken\Services;
 
-use MultiTenantSaas\Modules\ApiToken\Models\UserApiToken;
-use MultiTenantSaas\Modules\ApiToken\Models\UserApiTokenHistory;
+use Illuminate\Http\Client\Response;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Modules\ApiToken\Models\UserApiToken;
+use MultiTenantSaas\Modules\ApiToken\Models\UserApiTokenHistory;
 use RuntimeException;
 
 /**
@@ -75,7 +77,7 @@ class ApiTokenService
             $item = collect($list)->firstWhere('name', $tokenName);
 
             if (! $item) {
-                throw new \RuntimeException('[ApiTokenService] ' . trans("apitoken.token_not_found") . ': ' . $tokenName);
+                throw new RuntimeException('[ApiTokenService] ' . trans('apitoken.token_not_found') . ': ' . $tokenName);
             }
         }
 
@@ -84,7 +86,7 @@ class ApiTokenService
         $rawKey = $keyResult['key'] ?? null;
 
         if (! $rawKey || str_contains((string) $rawKey, '****')) {
-            throw new \RuntimeException('[ApiTokenService] ' . trans("apitoken.key_incomplete") . ': ' . $item['id']);
+            throw new RuntimeException('[ApiTokenService] ' . trans('apitoken.key_incomplete') . ': ' . $item['id']);
         }
 
         // 加 sk- 前缀存储，保证 getDecryptedKey() 返回可直接使用的完整 key
@@ -225,7 +227,7 @@ class ApiTokenService
             try {
                 $this->delete('/api/token/' . (int) $existing['id']);
             } catch (\Throwable $e) {
-                Log::warning('[ApiTokenService] ' . trans("apitoken.old_token_delete_failed"), [
+                Log::warning('[ApiTokenService] ' . trans('apitoken.old_token_delete_failed'), [
                     'token_id' => $existing['id'],
                     'error' => $e->getMessage(),
                 ]);
@@ -245,14 +247,14 @@ class ApiTokenService
         $list = $this->getList('/api/token/', ['keyword' => $tokenName, 'size' => 5]);
         $item = collect($list)->firstWhere('name', $tokenName);
         if (! $item) {
-            throw new RuntimeException('[ApiTokenService] ' . trans("apitoken.promo_token_not_found") . ': ' . $tokenName);
+            throw new RuntimeException('[ApiTokenService] ' . trans('apitoken.promo_token_not_found') . ': ' . $tokenName);
         }
 
         $keyResult = $this->post('/api/token/' . (int) $item['id'] . '/key', []);
         $rawKey = $keyResult['key'] ?? null;
 
         if (! $rawKey || str_contains((string) $rawKey, '****')) {
-            throw new RuntimeException('[ApiTokenService] ' . trans("apitoken.promo_key_incomplete") . ': ' . $item['id']);
+            throw new RuntimeException('[ApiTokenService] ' . trans('apitoken.promo_key_incomplete') . ': ' . $item['id']);
         }
 
         $fullKey = str_starts_with($rawKey, 'sk-') ? $rawKey : 'sk-' . $rawKey;
@@ -354,7 +356,7 @@ class ApiTokenService
                     $record->saveQuietly();
                     $count++;
                 } catch (\Throwable $e) {
-                    Log::warning('[ApiTokenService] ' . trans("apitoken.sync_quota_failed"), [
+                    Log::warning('[ApiTokenService] ' . trans('apitoken.sync_quota_failed'), [
                         'user_id' => $record->user_id,
                         'error' => $e->getMessage(),
                     ]);
@@ -375,7 +377,7 @@ class ApiTokenService
      *
      * @return array{tokens_used: int, calls_count: int, cost_usd: float}|null
      */
-    public function fetchDailyUsage(int $apiserTokenId, \Illuminate\Support\Carbon $date): ?array
+    public function fetchDailyUsage(int $apiserTokenId, Carbon $date): ?array
     {
         // TODO: 当 New API 提供 /api/usage?token_id=&date= 时，在此实现
         return null;
@@ -515,18 +517,18 @@ class ApiTokenService
         ];
     }
 
-    private function assertSuccess(\Illuminate\Http\Client\Response $response, string $method, string $path): void
+    private function assertSuccess(Response $response, string $method, string $path): void
     {
         if ($response->failed()) {
             $body = $response->body();
-            Log::error('[ApiTokenService] ' . trans("apitoken.http_error"), [
+            Log::error('[ApiTokenService] ' . trans('apitoken.http_error'), [
                 'method' => $method,
                 'path' => $path,
                 'status' => $response->status(),
                 'body' => mb_substr($body, 0, 500),
             ]);
             throw new RuntimeException(
-                '[ApiTokenService] ' . $method . ' ' . $path . ' ' . trans("apitoken.http_failed") . ': HTTP ' . $response->status()
+                '[ApiTokenService] ' . $method . ' ' . $path . ' ' . trans('apitoken.http_failed') . ': HTTP ' . $response->status()
             );
         }
 
@@ -534,13 +536,13 @@ class ApiTokenService
         $json = $response->json();
         if (is_array($json) && isset($json['success']) && $json['success'] === false) {
             $message = $json['message'] ?? 'unknown error';
-            Log::error('[ApiTokenService] ' . trans("apitoken.business_error"), [
+            Log::error('[ApiTokenService] ' . trans('apitoken.business_error'), [
                 'method' => $method,
                 'path' => $path,
                 'message' => $message,
             ]);
             throw new RuntimeException(
-                '[ApiTokenService] ' . $method . ' ' . $path . ' ' . trans("apitoken.business_failed") . ': ' . $message
+                '[ApiTokenService] ' . $method . ' ' . $path . ' ' . trans('apitoken.business_failed') . ': ' . $message
             );
         }
     }

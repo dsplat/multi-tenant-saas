@@ -71,18 +71,18 @@ class StripeService
                 'quantity' => 1,
             ]],
             'mode' => 'payment',
-            'success_url' => $returnUrl.'?order_no='.$orderNo.'&status=success',
-            'cancel_url' => $returnUrl.'?order_no='.$orderNo.'&status=cancel',
+            'success_url' => $returnUrl . '?order_no=' . $orderNo . '&status=success',
+            'cancel_url' => $returnUrl . '?order_no=' . $orderNo . '&status=cancel',
             'client_reference_id' => $orderNo,
         ];
 
         $resp = Http::withToken($secretKey)
             ->asForm()
-            ->post(self::BASE_URL.'/v1/checkout/sessions', $payload);
+            ->post(self::BASE_URL . '/v1/checkout/sessions', $payload);
 
         if (! $resp->successful()) {
             Log::error('[StripeService] createCheckoutSession failed', ['order_no' => $orderNo, 'resp' => $resp->body()]);
-            throw new \RuntimeException(trans('payment.stripe_create_failed').': '.$resp->body());
+            throw new \RuntimeException(trans('payment.stripe_create_failed') . ': ' . $resp->body());
         }
 
         $data = $resp->json();
@@ -104,14 +104,14 @@ class StripeService
 
         $resp = Http::withToken($secretKey)
             ->asForm()
-            ->post(self::BASE_URL.'/v1/payment_intents', [
+            ->post(self::BASE_URL . '/v1/payment_intents', [
                 'amount' => intval($amount * 100),
                 'currency' => strtolower($currency),
                 'automatic_payment_methods' => ['enabled' => 'true'],
             ]);
 
         if (! $resp->successful()) {
-            throw new \RuntimeException(trans('payment.stripe_intent_failed').': '.$resp->body());
+            throw new \RuntimeException(trans('payment.stripe_intent_failed') . ': ' . $resp->body());
         }
 
         $data = $resp->json();
@@ -140,10 +140,10 @@ class StripeService
 
         $resp = Http::withToken($secretKey)
             ->asForm()
-            ->post(self::BASE_URL.'/v1/refunds', $payload);
+            ->post(self::BASE_URL . '/v1/refunds', $payload);
 
         if (! $resp->successful()) {
-            throw new \RuntimeException(trans('payment.stripe_refund_failed').': '.$resp->body());
+            throw new \RuntimeException(trans('payment.stripe_refund_failed') . ': ' . $resp->body());
         }
 
         $data = $resp->json();
@@ -219,7 +219,7 @@ class StripeService
             return false;
         }
 
-        $signedPayload = $timestamp.'.'.json_encode($payload);
+        $signedPayload = $timestamp . '.' . json_encode($payload);
         $expectedSignature = hash_hmac('sha256', $signedPayload, $webhookSecret);
 
         return in_array($expectedSignature, $signatures, true);

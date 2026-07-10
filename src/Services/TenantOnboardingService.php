@@ -15,7 +15,6 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantSetting;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\ModuleManager;
 
 /**
  * 租户引导式注册服务
@@ -130,13 +129,13 @@ class TenantOnboardingService
         }
 
         // 存在未完成的注册会话，禁止重复发起
-        if (Cache::has(self::EMAIL_INDEX_PREFIX.$email)) {
+        if (Cache::has(self::EMAIL_INDEX_PREFIX . $email)) {
             throw new \RuntimeException(trans('tenant.onboarding.registration_failed'));
         }
 
         $token = Str::random(64);
         $sessionData = $data;
-        $sessionData['password'] = \Illuminate\Support\Facades\Hash::make($data['password']);
+        $sessionData['password'] = Hash::make($data['password']);
         $session = [
             'token' => $token,
             'current_step' => self::STEP_DOMAIN,
@@ -149,7 +148,7 @@ class TenantOnboardingService
         ];
 
         $this->saveSession($token, $session);
-        Cache::put(self::EMAIL_INDEX_PREFIX.$email, $token, self::SESSION_TTL);
+        Cache::put(self::EMAIL_INDEX_PREFIX . $email, $token, self::SESSION_TTL);
 
         return $token;
     }
@@ -241,6 +240,7 @@ class TenantOnboardingService
      * - 触发 TenantCreated 事件
      *
      * @param  string|null  $clientIp  客户端 IP，用于绑定验证
+     *
      * @throws \InvalidArgumentException token 无效、未完成全部步骤或已完成
      */
     public function complete(string $token, ?string $clientIp = null): Tenant
@@ -308,7 +308,7 @@ class TenantOnboardingService
         $this->saveSession($token, $session);
 
         // 释放邮箱占用索引（后续重复注册由 User 唯一约束保障）
-        Cache::forget(self::EMAIL_INDEX_PREFIX.$basic['admin_email']);
+        Cache::forget(self::EMAIL_INDEX_PREFIX . $basic['admin_email']);
 
         // 触发事件（MailTemplateService 尚未就绪，统一由事件监听器处理后续通知）
         Event::dispatch(new TenantCreated($tenant));
@@ -443,10 +443,10 @@ class TenantOnboardingService
             if (! Tenant::where('slug', $slug)->exists()) {
                 return $slug;
             }
-            $slug = $base.'-'.Str::lower(Str::random(6));
+            $slug = $base . '-' . Str::lower(Str::random(6));
         }
 
-        return $base.'-'.Str::lower(Str::random(10));
+        return $base . '-' . Str::lower(Str::random(10));
     }
 
     /**
@@ -489,7 +489,7 @@ class TenantOnboardingService
      */
     protected function saveSession(string $token, array $session): void
     {
-        Cache::put(self::SESSION_PREFIX.$token, $session, self::SESSION_TTL);
+        Cache::put(self::SESSION_PREFIX . $token, $session, self::SESSION_TTL);
     }
 
     /**
@@ -497,7 +497,7 @@ class TenantOnboardingService
      */
     protected function loadSession(string $token): ?array
     {
-        $session = Cache::get(self::SESSION_PREFIX.$token);
+        $session = Cache::get(self::SESSION_PREFIX . $token);
 
         return is_array($session) ? $session : null;
     }

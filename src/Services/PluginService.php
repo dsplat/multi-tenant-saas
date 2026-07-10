@@ -132,7 +132,7 @@ class PluginService
             return true;
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new \RuntimeException(trans('common.plugin_uninstall_failed').': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('common.plugin_uninstall_failed') . ': ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -354,7 +354,7 @@ class PluginService
      */
     protected function readManifest(string $pluginName): ?array
     {
-        $path = base_path(self::PLUGIN_DIR.'/'.$pluginName.'/manifest.json');
+        $path = base_path(self::PLUGIN_DIR . '/' . $pluginName . '/manifest.json');
         if (! file_exists($path)) {
             return null;
         }
@@ -372,14 +372,14 @@ class PluginService
      */
     protected function triggerHook(string $pluginName, string $hook, array $args = []): void
     {
-        $providerClass = 'Plugin\\'.$pluginName.'\\PluginServiceProvider';
+        $providerClass = 'Plugin\\' . $pluginName . '\\PluginServiceProvider';
 
         if (! class_exists($providerClass)) {
             return;
         }
 
         try {
-            $method = 'on'.ucfirst($hook);
+            $method = 'on' . ucfirst($hook);
             if (method_exists($providerClass, $method)) {
                 $providerClass::{$method}(...$args);
             }

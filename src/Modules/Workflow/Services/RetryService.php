@@ -11,7 +11,9 @@ use MultiTenantSaas\Modules\Workflow\Models\WorkflowExecution;
 class RetryService
 {
     private int $maxRetries;
+
     private int $baseDelay;
+
     private string $backoffStrategy;
 
     public function __construct(
@@ -54,7 +56,7 @@ class RetryService
 
     public function retry(WorkflowExecution $execution, array $overrideContext = []): WorkflowExecution
     {
-        if (!$this->canRetry($execution)) {
+        if (! $this->canRetry($execution)) {
             throw new \RuntimeException(
                 "Execution cannot be retried. Status: {$execution->status}, Retry count: " .
                 $this->getRetryCount($execution) . ", Max: {$this->maxRetries}"
@@ -66,7 +68,7 @@ class RetryService
         $context['_last_error'] = $execution->error;
         $context['_last_failed_at'] = $execution->completed_at?->toDateTimeString();
 
-        if (!empty($overrideContext)) {
+        if (! empty($overrideContext)) {
             $context = array_merge($context, $overrideContext);
         }
 

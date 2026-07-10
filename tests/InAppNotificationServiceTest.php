@@ -19,7 +19,9 @@ class InAppNotificationServiceTest extends TestCase
     protected array $uses = [NotificationModule::class];
 
     private InAppNotificationService $service;
+
     private int $userId = 5001;
+
     private int $tenantId = 1001;
 
     protected function setUp(): void

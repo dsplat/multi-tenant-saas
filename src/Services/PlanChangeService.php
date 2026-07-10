@@ -26,6 +26,7 @@ use MultiTenantSaas\Services\Traits\ResolvesPlan;
 class PlanChangeService
 {
     use ResolvesPlan;
+
     /**
      * 计算按比例差价
      *

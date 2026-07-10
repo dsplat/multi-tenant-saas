@@ -12,8 +12,8 @@ use MultiTenantSaas\Models\ReadState;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Modules\Conversation\Services\ReadStateService;
-use MultiTenantSaas\Tests\TestCase;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
+use MultiTenantSaas\Tests\TestCase;
 
 /**
  * IMPL-004 ReadStateService 单元测试

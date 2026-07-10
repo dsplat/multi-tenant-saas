@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Tests;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\SubscriptionPlan;
 use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Models\UsageRecord;
 use MultiTenantSaas\Services\UsageService;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;
@@ -366,7 +367,7 @@ class UsageServiceTest extends TestCase
 
     private function recordUsageWithTimestamp(int $tenantId, string $metric, float $value, string $period, $recordedAt): void
     {
-        \MultiTenantSaas\Models\UsageRecord::create([
+        UsageRecord::create([
             'tenant_id' => $tenantId,
             'metric_type' => $metric,
             'value' => $value,

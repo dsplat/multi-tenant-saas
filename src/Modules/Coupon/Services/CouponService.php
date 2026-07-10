@@ -73,14 +73,14 @@ class CouponService
 
         do {
             if (++$attempts > $maxAttempts) {
-                throw new \RuntimeException('Failed to generate unique coupon code after '.$maxAttempts.' attempts.');
+                throw new \RuntimeException('Failed to generate unique coupon code after ' . $maxAttempts . ' attempts.');
             }
 
             $suffix = '';
             for ($i = 0; $i < $length; $i++) {
                 $suffix .= $alphabet[random_int(0, $max)];
             }
-            $code = $prefix.$suffix;
+            $code = $prefix . $suffix;
         } while (Coupon::byCode($code)->exists());
 
         return $code;
@@ -303,8 +303,8 @@ class CouponService
         if (! empty($filters['keyword'])) {
             $keyword = Str::replace(['%', '_'], ['\\%', '\\_'], $filters['keyword']);
             $query->where(function ($q) use ($keyword) {
-                $q->where('code', 'like', $keyword.'%')
-                    ->orWhere('description', 'like', '%'.$keyword.'%');
+                $q->where('code', 'like', $keyword . '%')
+                    ->orWhere('description', 'like', '%' . $keyword . '%');
             });
         }
 
@@ -419,7 +419,7 @@ class CouponService
     {
         $template = static::findCoupon($templateId);
 
-        if (!$template->isTemplate()) {
+        if (! $template->isTemplate()) {
             throw new \RuntimeException('指定优惠券不是模板');
         }
 
@@ -437,7 +437,7 @@ class CouponService
             }
         }
 
-        if (!empty($attributes)) {
+        if (! empty($attributes)) {
             $template->update($attributes);
         }
 
@@ -453,7 +453,7 @@ class CouponService
     {
         $template = static::findCoupon($templateId);
 
-        if (!$template->isTemplate()) {
+        if (! $template->isTemplate()) {
             throw new \RuntimeException('指定优惠券不是模板');
         }
 
@@ -476,16 +476,16 @@ class CouponService
     {
         $query = Coupon::templates();
 
-        if (!empty($filters['type'])) {
+        if (! empty($filters['type'])) {
             $query->where('type', $filters['type']);
         }
-        if (!empty($filters['applies_to'])) {
+        if (! empty($filters['applies_to'])) {
             $query->where('applies_to', $filters['applies_to']);
         }
         if (array_key_exists('is_active', $filters)) {
             $query->where('is_active', $filters['is_active']);
         }
-        if (!empty($filters['keyword'])) {
+        if (! empty($filters['keyword'])) {
             $keyword = Str::replace(['%', '_'], ['\\%', '\\_'], $filters['keyword']);
             $query->where(function ($q) use ($keyword) {
                 $q->where('description', 'like', '%' . $keyword . '%');
@@ -513,11 +513,11 @@ class CouponService
     {
         $template = static::findCoupon($templateId);
 
-        if (!$template->isTemplate()) {
+        if (! $template->isTemplate()) {
             throw new \RuntimeException('指定优惠券不是模板');
         }
 
-        if (!$template->isActive()) {
+        if (! $template->isActive()) {
             throw new \RuntimeException('模板已停用，无法生成优惠券');
         }
 
@@ -550,7 +550,7 @@ class CouponService
     {
         $template = static::findCoupon($templateId);
 
-        if (!$template->isTemplate()) {
+        if (! $template->isTemplate()) {
             throw new \RuntimeException('指定优惠券不是模板');
         }
 
@@ -567,7 +567,7 @@ class CouponService
     {
         $template = static::findCoupon($templateId);
 
-        if (!$template->isTemplate()) {
+        if (! $template->isTemplate()) {
             throw new \RuntimeException('指定优惠券不是模板');
         }
 
@@ -584,10 +584,10 @@ class CouponService
     /**
      * 批量发放优惠券给指定用户列表
      *
-     * @param  int    $templateId  模板ID
-     * @param  array  $userIds     用户ID列表（int[]）
-     * @param  int    $tenantId    租户ID
-     * @return array  ['issued' => int, 'codes' => array]
+     * @param  int  $templateId  模板ID
+     * @param  array  $userIds  用户ID列表（int[]）
+     * @param  int  $tenantId  租户ID
+     * @return array ['issued' => int, 'codes' => array]
      */
     public static function bulkDistribute(int $templateId, array $userIds, int $tenantId): array
     {
@@ -597,11 +597,11 @@ class CouponService
 
         $template = static::findCoupon($templateId);
 
-        if (!$template->isTemplate()) {
+        if (! $template->isTemplate()) {
             throw new \RuntimeException('指定优惠券不是模板');
         }
 
-        if (!$template->isActive()) {
+        if (! $template->isActive()) {
             throw new \RuntimeException('模板已停用，无法发券');
         }
 
@@ -631,7 +631,7 @@ class CouponService
                     $codes[] = $code;
                     $issued++;
                 } catch (QueryException $e) {
-                    if (!static::isDuplicateException($e)) {
+                    if (! static::isDuplicateException($e)) {
                         throw $e;
                     }
                 }
@@ -652,11 +652,11 @@ class CouponService
     {
         $template = static::findCoupon($couponTemplateId);
 
-        if (!$template->isTemplate()) {
+        if (! $template->isTemplate()) {
             throw new \RuntimeException('指定优惠券不是模板');
         }
 
-        if (!$template->isActive()) {
+        if (! $template->isActive()) {
             throw new \RuntimeException('模板已停用，无法分享');
         }
 
@@ -674,10 +674,10 @@ class CouponService
     /**
      * 裂变发券：分享链接被点击后向分享人和被分享人发券
      *
-     * @param  string  $shareCode   分享码
-     * @param  int     $receiverId  被分享人用户ID
-     * @param  int     $tenantId    租户ID
-     * @return array  ['sharer_coupon' => Coupon, 'receiver_coupon' => Coupon, 'share' => CouponShare]
+     * @param  string  $shareCode  分享码
+     * @param  int  $receiverId  被分享人用户ID
+     * @param  int  $tenantId  租户ID
+     * @return array ['sharer_coupon' => Coupon, 'receiver_coupon' => Coupon, 'share' => CouponShare]
      */
     public static function acceptShare(string $shareCode, int $receiverId, int $tenantId): array
     {
@@ -688,7 +688,7 @@ class CouponService
                 ->lockForUpdate()
                 ->first();
 
-            if (!$share) {
+            if (! $share) {
                 throw new \RuntimeException('分享链接无效或已使用');
             }
 
@@ -703,7 +703,7 @@ class CouponService
 
             $template = static::findCoupon($share->coupon_template_id);
 
-            if (!$template->isActive()) {
+            if (! $template->isActive()) {
                 throw new \RuntimeException('优惠券模板已停用');
             }
 
@@ -757,10 +757,10 @@ class CouponService
     {
         $query = CouponShare::where('tenant_id', $tenantId);
 
-        if (!empty($filters['sharer_id'])) {
+        if (! empty($filters['sharer_id'])) {
             $query->where('sharer_id', (int) $filters['sharer_id']);
         }
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 

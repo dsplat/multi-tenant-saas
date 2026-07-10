@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\ModuleManager;
 
@@ -32,7 +33,7 @@ class ModuleControllerTest extends TestCase
             'role' => 'platform_admin',
         ]);
 
-        \MultiTenantSaas\Models\TenantUser::create([
+        TenantUser::create([
             'tenant_user_id' => 3001,
             'tenant_id' => $this->tenantId,
             'user_id' => $this->user->user_id,

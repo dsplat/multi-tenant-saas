@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Services;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantHierarchy;
 use MultiTenantSaas\Scopes\TenantScope;
@@ -36,13 +37,12 @@ class CrossTenantService
     /**
      * 创建父-子租户关系
      *
-     * @param  int     $parentTenantId  父租户 ID
-     * @param  int     $childTenantId   子租户 ID
-     * @param  string  $relationType    关系类型（subsidiary/branch/division）
+     * @param  int  $parentTenantId  父租户 ID
+     * @param  int  $childTenantId  子租户 ID
+     * @param  string  $relationType  关系类型（subsidiary/branch/division）
      * @param  array<string, mixed>|null  $permissionScope  权限范围初始数据
-     * @return TenantHierarchy
      *
-     * @throws \RuntimeException 父/子租户不存在、自引用、关系已存在时抛出
+     * @throws RuntimeException 父/子租户不存在、自引用、关系已存在时抛出
      */
     public function createRelationship(
         int $parentTenantId,
@@ -54,14 +54,14 @@ class CrossTenantService
             throw new RuntimeException(trans('tenant.hierarchy_self_reference'));
         }
 
-        if (!Tenant::where('tenant_id', $parentTenantId)->exists()) {
+        if (! Tenant::where('tenant_id', $parentTenantId)->exists()) {
             throw new RuntimeException(trans('tenant.hierarchy_parent_not_found'));
         }
-        if (!Tenant::where('tenant_id', $childTenantId)->exists()) {
+        if (! Tenant::where('tenant_id', $childTenantId)->exists()) {
             throw new RuntimeException(trans('tenant.hierarchy_child_not_found'));
         }
 
-        if (!in_array($relationType, TenantHierarchy::TYPES, true)) {
+        if (! in_array($relationType, TenantHierarchy::TYPES, true)) {
             throw new RuntimeException(
                 trans('tenant.hierarchy_relation_type_invalid', ['type' => $relationType])
             );
@@ -126,14 +126,14 @@ class CrossTenantService
     /**
      * 资源共享：在父-子关系内共享某资源
      *
-     * @param  int     $parentTenantId  父租户 ID
-     * @param  int     $childTenantId   子租户 ID
-     * @param  string  $resourceType    资源类型（如 ai_prompt）
-     * @param  int     $resourceId      资源 ID
-     * @param  string[] $permissions    权限列表（默认 read）
+     * @param  int  $parentTenantId  父租户 ID
+     * @param  int  $childTenantId  子租户 ID
+     * @param  string  $resourceType  资源类型（如 ai_prompt）
+     * @param  int  $resourceId  资源 ID
+     * @param  string[]  $permissions  权限列表（默认 read）
      * @return TenantHierarchy 更新后的关系实例
      *
-     * @throws \RuntimeException 关系不存在时抛出
+     * @throws RuntimeException 关系不存在时抛出
      */
     public function shareResource(
         int $parentTenantId,
@@ -221,7 +221,7 @@ class CrossTenantService
     ): bool {
         $hierarchy = TenantHierarchy::findByChild($parentTenantId, $childTenantId);
 
-        if ($hierarchy === null || !$hierarchy->is_active) {
+        if ($hierarchy === null || ! $hierarchy->is_active) {
             return false;
         }
 
@@ -234,8 +234,8 @@ class CrossTenantService
      * 集成 SubscriptionService：父租户统一付费时，将子租户的订阅支出
      * 汇总到父租户名下，便于统一对账。
      *
-     * @param  int     $parentTenantId  父租户 ID
-     * @param  string  $period          计费周期（YYYY-MM）
+     * @param  int  $parentTenantId  父租户 ID
+     * @param  string  $period  计费周期（YYYY-MM）
      * @return array{
      *   parent_tenant_id:int,
      *   period:string,
@@ -255,7 +255,7 @@ class CrossTenantService
             $childTenantId = (int) $child->child_tenant_id;
 
             // 仅聚合授权 billing_view 的子租户
-            if (!$child->canAccess(self::ACCESS_BILLING_VIEW)) {
+            if (! $child->canAccess(self::ACCESS_BILLING_VIEW)) {
                 continue;
             }
 
@@ -282,11 +282,11 @@ class CrossTenantService
      * 与 SubscriptionService 集成：在父租户订阅续费周期内，
      * 将子租户实际消耗汇总后从父租户账户扣款。
      *
-     * @param  int     $parentTenantId  父租户 ID
-     * @param  string  $period          计费周期（YYYY-MM）
+     * @param  int  $parentTenantId  父租户 ID
+     * @param  string  $period  计费周期（YYYY-MM）
      * @return array 聚合计费结果（参见 aggregateBilling）
      *
-     * @throws \RuntimeException 父租户不存在时抛出
+     * @throws RuntimeException 父租户不存在时抛出
      */
     public function billAtParent(int $parentTenantId, string $period): array
     {
@@ -303,7 +303,7 @@ class CrossTenantService
 
         // 在父租户名下记录聚合计费财务条目
         DB::table('financial_records')->insert([
-            'financial_record_id' => app(\MultiTenantSaas\Contracts\IdGeneratorContract::class)->generate(),
+            'financial_record_id' => app(IdGeneratorContract::class)->generate(),
             'tenant_id' => $parentTenantId,
             'type' => 'hierarchy_billing',
             'amount' => $aggregate['total_amount'],
@@ -331,7 +331,7 @@ class CrossTenantService
     /**
      * 获取关系，不存在则抛出异常
      *
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
     protected function getOrFailRelationship(int $parentTenantId, int $childTenantId): TenantHierarchy
     {

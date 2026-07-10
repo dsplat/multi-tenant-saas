@@ -508,8 +508,8 @@ class SlaServiceTest extends TestCase
 
         for ($i = 0; $i < 15; $i++) {
             $service->recordDowntime(
-                startedAt: '2026-06-'.sprintf('%02d', 10 + $i).' 10:00:00',
-                endedAt: '2026-06-'.sprintf('%02d', 10 + $i).' 10:01:00'
+                startedAt: '2026-06-' . sprintf('%02d', 10 + $i) . ' 10:00:00',
+                endedAt: '2026-06-' . sprintf('%02d', 10 + $i) . ' 10:01:00'
             );
         }
 

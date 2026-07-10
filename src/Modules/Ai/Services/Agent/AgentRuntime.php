@@ -53,15 +53,14 @@ class AgentRuntime implements AgentRuntimeContract
      * 加载 Agent 配置 → 解析关联工作流 → 执行工作流链 → 处理对话。
      * 若 input 中包含 conversation_id 和 message，则委托 run() 执行对话。
      *
-     * @param  int    $tenantId  租户 ID
-     * @param  int    $agentId   Agent ID
-     * @param  array  $input     输入数据 {
-     *                            message?: string,
-     *                            conversation_id?: int,
-     *                            options?: array,
-     *                            ...
-     *                            }
-     * @return AgentResponse
+     * @param  int  $tenantId  租户 ID
+     * @param  int  $agentId  Agent ID
+     * @param  array  $input  输入数据 {
+     *                        message?: string,
+     *                        conversation_id?: int,
+     *                        options?: array,
+     *                        ...
+     *                        }
      */
     public function execute(int $tenantId, int $agentId, array $input): AgentResponse
     {
@@ -110,6 +109,7 @@ class AgentRuntime implements AgentRuntimeContract
                     raw: $raw,
                 );
             }
+
             return $response;
         }
 
@@ -144,7 +144,6 @@ class AgentRuntime implements AgentRuntimeContract
      * 内部加载 Agent 实例并验证租户隔离。
      *
      * @param  int  $agentId  Agent ID
-     * @return Collection
      */
     public function resolveWorkflows(int $agentId): Collection
     {
@@ -165,10 +164,10 @@ class AgentRuntime implements AgentRuntimeContract
      * 会合并到输入中传递给下一个工作流。
      * 任一工作流失败或非 completed 状态则中断链式执行。
      *
-     * @param  int         $tenantId   租户 ID
+     * @param  int  $tenantId  租户 ID
      * @param  Collection  $workflows  工作流集合
-     * @param  array       $input      初始输入上下文
-     * @return array  每个工作流的执行结果
+     * @param  array  $input  初始输入上下文
+     * @return array 每个工作流的执行结果
      */
     public function executeWorkflowChain(int $tenantId, Collection $workflows, array $input): array
     {
@@ -220,14 +219,14 @@ class AgentRuntime implements AgentRuntimeContract
     /**
      * 执行 Agent 对话（ReAct 循环）
      *
-     * @param  int  $agentId         Agent ID
+     * @param  int  $agentId  Agent ID
      * @param  int  $conversationId  会话 ID
-     * @param  string  $message      用户消息
-     * @param  array  $options       可选配置 {
-     *                               max_tool_calls?: int,
-     *                               temperature?: float,
-     *                               ...
-     *                               }
+     * @param  string  $message  用户消息
+     * @param  array  $options  可选配置 {
+     *                          max_tool_calls?: int,
+     *                          temperature?: float,
+     *                          ...
+     *                          }
      * @return AgentResponse {message, tool_calls, token_usage, finish_reason}
      */
     public function run(int $agentId, int $conversationId, string $message, array $options = []): AgentResponse
@@ -384,8 +383,7 @@ class AgentRuntime implements AgentRuntimeContract
      * 将工具执行结果加入上下文并继续对话。
      *
      * @param  int  $conversationId  会话 ID
-     * @param  array  $toolResults   工具执行结果列表
-     * @return AgentResponse
+     * @param  array  $toolResults  工具执行结果列表
      */
     public function continueWithToolResults(int $conversationId, array $toolResults): AgentResponse
     {
@@ -492,7 +490,7 @@ class AgentRuntime implements AgentRuntimeContract
      * 构建用于 AI 推理的消息上下文，包括系统提示词和历史消息。
      *
      * @param  int  $conversationId  会话 ID
-     * @param  int  $maxMessages     最大历史消息数
+     * @param  int  $maxMessages  最大历史消息数
      * @return array OpenAI 消息格式 [{role, content, ...}, ...]
      */
     public function getConversationContext(int $conversationId, int $maxMessages = 20): array
@@ -560,7 +558,7 @@ class AgentRuntime implements AgentRuntimeContract
      * 当会话历史过长时，自动摘要旧消息以节省 Token。
      *
      * @param  int  $conversationId  会话 ID
-     * @param  int  $maxTokens       token 阈值（默认 8000）
+     * @param  int  $maxTokens  token 阈值（默认 8000）
      * @return bool 是否执行了压缩
      */
     public function compressMemory(int $conversationId, int $maxTokens = 8000): bool
@@ -579,11 +577,11 @@ class AgentRuntime implements AgentRuntimeContract
      * 遇 tool_calls 暂停流式 → 执行工具 → 结果入上下文 → 继续流式。
      * 末尾产出 finish_reason='stop' 的 StreamChunk（[DONE] 信号）。
      *
-     * @param  int  $agentId         Agent ID
+     * @param  int  $agentId  Agent ID
      * @param  int  $conversationId  会话 ID
-     * @param  string  $message      用户消息
-     * @param  array  $options       可选配置
-     * @return \Generator<int, StreamChunk, mixed, AgentResponse>
+     * @param  string  $message  用户消息
+     * @param  array  $options  可选配置
+     * @return Generator<int, StreamChunk, mixed, AgentResponse>
      */
     public function runStream(int $agentId, int $conversationId, string $message, array $options = []): Generator
     {
@@ -592,6 +590,7 @@ class AgentRuntime implements AgentRuntimeContract
 
         if ($agent === null) {
             yield new StreamChunk(text: "Agent [{$agentId}] 不存在", finishReason: 'error');
+
             return AgentResponse::fromArray([
                 'message' => "Agent [{$agentId}] 不存在",
                 'finish_reason' => 'error',
@@ -630,18 +629,18 @@ class AgentRuntime implements AgentRuntimeContract
      *
      * 每次调用执行一轮 AI 推理 + 工具执行。若有工具调用，递归继续。
      *
-     * @param  array  $context          当前消息上下文
-     * @param  Agent  $agent            Agent 实例
-     * @param  int    $agentId          Agent ID
-     * @param  int    $conversationId   会话 ID
-     * @param  int    $tenantId         租户 ID
-     * @param  string $message          原始用户消息（仅用于日志）
+     * @param  array  $context  当前消息上下文
+     * @param  Agent  $agent  Agent 实例
+     * @param  int  $agentId  Agent ID
+     * @param  int  $conversationId  会话 ID
+     * @param  int  $tenantId  租户 ID
+     * @param  string  $message  原始用户消息（仅用于日志）
      * @param  array  $toolDefinitions  工具定义
-     * @param  array  $options          调用选项
-     * @param  int    $maxToolCalls     最大工具调用次数
-     * @param  int    $loopCount        当前循环计数
-     * @param  array  $totalUsage       累计 token 用量
-     * @return \Generator<int, StreamChunk, mixed, AgentResponse>
+     * @param  array  $options  调用选项
+     * @param  int  $maxToolCalls  最大工具调用次数
+     * @param  int  $loopCount  当前循环计数
+     * @param  array  $totalUsage  累计 token 用量
+     * @return Generator<int, StreamChunk, mixed, AgentResponse>
      */
     private function streamInner(
         array $context,
@@ -792,12 +791,12 @@ class AgentRuntime implements AgentRuntimeContract
     /**
      * 执行工具调用并返回更新后的上下文
      *
-     * @param  array  $toolCalls        工具调用列表（OpenAI 格式）
-     * @param  array  $context          当前消息上下文
-     * @param  int    $conversationId   会话 ID
-     * @param  int    $agentId          Agent ID
-     * @param  int    $tenantId         租户 ID
-     * @param  string $assistantContent 助手累积文本（工具调用前的文本内容）
+     * @param  array  $toolCalls  工具调用列表（OpenAI 格式）
+     * @param  array  $context  当前消息上下文
+     * @param  int  $conversationId  会话 ID
+     * @param  int  $agentId  Agent ID
+     * @param  int  $tenantId  租户 ID
+     * @param  string  $assistantContent  助手累积文本（工具调用前的文本内容）
      * @return array{0: array, 1: array} 更新后的上下文 + 工具调用列表
      */
     private function executeToolCalls(
@@ -830,10 +829,10 @@ class AgentRuntime implements AgentRuntimeContract
      *
      * 统一处理工具执行的完整生命周期，供 run() 和 executeToolCalls() 复用。
      *
-     * @param  array  $toolCall        单个工具调用（OpenAI 格式）
-     * @param  int    $conversationId  会话 ID
-     * @param  int    $agentId         Agent ID
-     * @param  int    $tenantId        租户 ID
+     * @param  array  $toolCall  单个工具调用（OpenAI 格式）
+     * @param  int  $conversationId  会话 ID
+     * @param  int  $agentId  Agent ID
+     * @param  int  $tenantId  租户 ID
      * @return array{0: array, 1: string|null} 工具上下文消息 + 错误信息（null 表示无错误）
      */
     private function executeSingleToolCall(
@@ -1030,12 +1029,12 @@ class AgentRuntime implements AgentRuntimeContract
      * 先尝试主驱动，失败后检查 agent.model_config 中的 fallback_provider/fallback_model，
      * 若配置了 fallback 则切换重试。全部失败返回 null。
      *
-     * @param  array       $context      消息上下文
-     * @param  array       $chatOptions  主驱动调用选项
-     * @param  Agent       $agent        Agent 实例（读取 fallback 配置）
-     * @param  int         $conversationId  会话 ID（用于日志）
-     * @param  int         $agentId      Agent ID（用于日志）
-     * @return AiResponse|null  成功返回响应，全部失败返回 null
+     * @param  array  $context  消息上下文
+     * @param  array  $chatOptions  主驱动调用选项
+     * @param  Agent  $agent  Agent 实例（读取 fallback 配置）
+     * @param  int  $conversationId  会话 ID（用于日志）
+     * @param  int  $agentId  Agent ID（用于日志）
+     * @return AiResponse|null 成功返回响应，全部失败返回 null
      */
     private function chatWithFallback(
         array $context,
@@ -1067,6 +1066,7 @@ class AgentRuntime implements AgentRuntimeContract
                 'agent_id' => $agentId,
                 'conversation_id' => $conversationId,
             ]);
+
             return null;
         }
 

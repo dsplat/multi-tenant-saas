@@ -2,17 +2,17 @@
 
 namespace MultiTenantSaas\Modules\Ai\Models;
 
-use MultiTenantSaas\Concerns\BelongsToTenant;
-use MultiTenantSaas\Concerns\HasGlobalId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use MultiTenantSaas\Concerns\BelongsToTenant;
+use MultiTenantSaas\Concerns\HasGlobalId;
 
 /**
  * Agent 工具模型
  */
 class AgentTool extends Model
 {
-    use BelongsToTenant, HasGlobalId, HasFactory;
+    use BelongsToTenant, HasFactory, HasGlobalId;
 
     protected $primaryKey = 'tool_id';
 

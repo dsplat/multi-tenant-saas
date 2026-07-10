@@ -71,7 +71,7 @@ class ArchiveDecryptor
 
         $decrypted = '';
 
-        if (!openssl_private_decrypt(base64_decode($encryptedKey), $decrypted, $privateKey)) {
+        if (! openssl_private_decrypt(base64_decode($encryptedKey), $decrypted, $privateKey)) {
             throw new RuntimeException('RSA decryption failed');
         }
 

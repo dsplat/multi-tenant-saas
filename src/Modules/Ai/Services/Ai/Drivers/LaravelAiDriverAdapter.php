@@ -23,13 +23,14 @@ use RuntimeException;
 class LaravelAiDriverAdapter implements AiDriverContract
 {
     private string $defaultProvider;
+
     private readonly array $resolvedConfig;
 
     /** @var array<string, LaravelAiProviderAdapter> */
     private array $providers = [];
 
     /**
-     * @param array|null $config 可选；为 null 时从 config('ai') 读取
+     * @param  array|null  $config  可选；为 null 时从 config('ai') 读取
      */
     public function __construct(?array $config = null)
     {

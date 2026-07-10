@@ -34,7 +34,7 @@ trait EnsuresTenantContext
 
         if ($current !== null && $current !== (string) $tenantId) {
             throw new PermissionDeniedException(
-                'Tenant context mismatch: authenticated tenant ['.$current.'] does not match requested tenant ['.$tenantId.'].'
+                'Tenant context mismatch: authenticated tenant [' . $current . '] does not match requested tenant [' . $tenantId . '].'
             );
         }
 

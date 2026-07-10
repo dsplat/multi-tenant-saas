@@ -2,8 +2,8 @@
 
 namespace MultiTenantSaas\Services;
 
-use InvalidArgumentException;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 use MultiTenantSaas\Contracts\IsolationStrategyContract;
 use MultiTenantSaas\Isolation\DatabasePerTenantStrategy;
 use MultiTenantSaas\Isolation\SchemaPerTenantStrategy;
@@ -48,9 +48,9 @@ class IsolationService
      */
     protected function registerDefaultStrategies(): void
     {
-        $this->strategies[self::TYPE_SHARED] = new SharedDatabaseStrategy();
-        $this->strategies[self::TYPE_DATABASE] = new DatabasePerTenantStrategy();
-        $this->strategies[self::TYPE_SCHEMA] = new SchemaPerTenantStrategy();
+        $this->strategies[self::TYPE_SHARED] = new SharedDatabaseStrategy;
+        $this->strategies[self::TYPE_DATABASE] = new DatabasePerTenantStrategy;
+        $this->strategies[self::TYPE_SCHEMA] = new SchemaPerTenantStrategy;
     }
 
     /**
@@ -73,6 +73,7 @@ class IsolationService
      * 按类型获取策略
      *
      * @param  string  $type  策略类型（shared/database/schema）
+     *
      * @throws InvalidArgumentException 不支持的类型
      */
     public function strategy(string $type): IsolationStrategyContract
@@ -115,8 +116,8 @@ class IsolationService
     /**
      * 租户创建时自动初始化数据库
      *
-     * @param  Tenant       $tenant  租户实例
-     * @param  string|null  $type    隔离类型，缺省使用默认策略
+     * @param  Tenant  $tenant  租户实例
+     * @param  string|null  $type  隔离类型，缺省使用默认策略
      */
     public function setupForTenant(Tenant $tenant, ?string $type = null): void
     {
@@ -153,9 +154,10 @@ class IsolationService
      * 流程：导出现有数据 → 切换策略并初始化新库 → 新库建表迁移 → 导入数据 →
      *       清理旧库数据 → 校验一致性
      *
-     * @param  int     $tenantId      租户 ID
+     * @param  int  $tenantId  租户 ID
      * @param  string  $fromStrategy  源策略类型（必须与租户当前策略一致）
-     * @param  string  $toStrategy    目标策略类型
+     * @param  string  $toStrategy  目标策略类型
+     *
      * @throws RuntimeException 策略不一致或校验失败
      */
     public function migrate(int $tenantId, string $fromStrategy, string $toStrategy): void
@@ -264,6 +266,7 @@ class IsolationService
      * 校验目标连接中租户数据行数与导出一致
      *
      * @param  array<string, array<int, object>>  $expected
+     *
      * @throws RuntimeException 校验失败
      */
     protected function verifyMigration(Tenant $tenant, string $connection, array $expected): void

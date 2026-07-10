@@ -165,7 +165,7 @@ class InvoiceService
             mkdir($directory, 0755, true);
         }
 
-        $outputPath = rtrim($directory, '/').'/'.$invoice->invoice_number.'.pdf';
+        $outputPath = rtrim($directory, '/') . '/' . $invoice->invoice_number . '.pdf';
 
         PdfService::generateInvoice([
             'invoice' => $invoice,
@@ -221,12 +221,12 @@ class InvoiceService
         $prefix = substr($prefix, 0, strpos($prefix, '{seq}'));
 
         $maxSeq = DB::table('invoices')
-            ->where('invoice_number', 'like', $prefix.'%')
+            ->where('invoice_number', 'like', $prefix . '%')
             ->lockForUpdate()
-            ->select(DB::raw('MAX(CAST(SUBSTRING(invoice_number, '.(strlen($prefix) + 1).') AS UNSIGNED)) AS max_seq'))
+            ->select(DB::raw('MAX(CAST(SUBSTRING(invoice_number, ' . (strlen($prefix) + 1) . ') AS UNSIGNED)) AS max_seq'))
             ->value('max_seq');
 
-        return $prefix.str_pad((string) (($maxSeq ?? 0) + 1), 4, '0', STR_PAD_LEFT);
+        return $prefix . str_pad((string) (($maxSeq ?? 0) + 1), 4, '0', STR_PAD_LEFT);
     }
 
     /**

@@ -2,13 +2,12 @@
 
 namespace MultiTenantSaas\Modules\Lottery\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Modules\Lottery\Models\LotteryActivity;
 use MultiTenantSaas\Modules\Lottery\Models\LotteryActivityPrize;
-use MultiTenantSaas\Modules\Lottery\Models\LotteryBlacklist;
 use MultiTenantSaas\Modules\Lottery\Services\LotteryService;
 
 /**
@@ -29,8 +28,10 @@ class LotteryController extends Controller
      *     summary="获取抽奖活动列表",
      *     tags={"Lottery 抽奖"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="tenantId", in="path", required=true, description="租户ID", @OA\Schema(type="integer")),
      *     @OA\Parameter(name="status", in="query", description="状态筛选", @OA\Schema(type="string", enum={"draft","active","paused","ended"})),
+     *
      *     @OA\Response(response=200, description="活动列表"),
      *     @OA\Response(response=401, description="未认证"),
      *     @OA\Response(response=403, description="无权访问")
@@ -55,14 +56,18 @@ class LotteryController extends Controller
      *     summary="创建抽奖活动",
      *     tags={"Lottery 抽奖"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="tenantId", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
+     *
      *         @OA\Property(property="title", type="string", description="活动标题"),
      *         @OA\Property(property="slug", type="string", description="URL标识"),
      *         @OA\Property(property="description", type="string", description="活动描述"),
      *         @OA\Property(property="rules", type="object", description="规则配置（含动画配置）"),
      *         @OA\Property(property="prizes", type="array", @OA\Items(type="object"), description="奖品列表")
      *     )),
+     *
      *     @OA\Response(response=201, description="创建成功"),
      *     @OA\Response(response=422, description="验证失败")
      * )
@@ -104,7 +109,7 @@ class LotteryController extends Controller
         $activity = LotteryService::createActivity($data);
 
         // 创建奖品
-        if (!empty($data['prizes'])) {
+        if (! empty($data['prizes'])) {
             foreach ($data['prizes'] as $prize) {
                 $prize['tenant_id'] = $tenantId;
                 $prize['activity_id'] = $activity->activity_id;
@@ -289,15 +294,19 @@ class LotteryController extends Controller
      *     summary="执行抽奖",
      *     tags={"Lottery 抽奖"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="tenantId", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="activityId", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="抽奖结果", @OA\JsonContent(
+     *
      *         @OA\Property(property="success", type="boolean"),
      *         @OA\Property(property="data", type="object",
      *             @OA\Property(property="result", type="string", enum={"win","miss","blacklist"}),
      *             @OA\Property(property="prize", type="object", nullable=true)
      *         )
      *     )),
+     *
      *     @OA\Response(response=422, description="抽奖失败（活动未开始/已结束/黑名单等）")
      * )
      */

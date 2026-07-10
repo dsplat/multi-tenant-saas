@@ -68,12 +68,12 @@ class WorkflowDefinitionParser
         $errors = [];
 
         foreach ($this->schema['required'] as $field) {
-            if (!isset($definition[$field])) {
+            if (! isset($definition[$field])) {
                 $errors[] = "Missing required field: {$field}";
             }
         }
 
-        if (isset($definition['name']) && !is_string($definition['name'])) {
+        if (isset($definition['name']) && ! is_string($definition['name'])) {
             $errors[] = 'Field "name" must be a string';
         }
 
@@ -81,29 +81,31 @@ class WorkflowDefinitionParser
             $errors[] = 'Field "name" must not be empty';
         }
 
-        if (isset($definition['description']) && !is_string($definition['description'])) {
+        if (isset($definition['description']) && ! is_string($definition['description'])) {
             $errors[] = 'Field "description" must be a string';
         }
 
-        if (isset($definition['type']) && !is_string($definition['type'])) {
+        if (isset($definition['type']) && ! is_string($definition['type'])) {
             $errors[] = 'Field "type" must be a string';
         }
 
-        if (isset($definition['config']) && !is_array($definition['config'])) {
+        if (isset($definition['config']) && ! is_array($definition['config'])) {
             $errors[] = 'Field "config" must be an object';
         }
 
-        if (!isset($definition['nodes'])) {
+        if (! isset($definition['nodes'])) {
             return $errors;
         }
 
-        if (!is_array($definition['nodes'])) {
+        if (! is_array($definition['nodes'])) {
             $errors[] = 'Field "nodes" must be an array';
+
             return $errors;
         }
 
         if (empty($definition['nodes'])) {
             $errors[] = 'Field "nodes" must not be empty';
+
             return $errors;
         }
 
@@ -115,24 +117,24 @@ class WorkflowDefinitionParser
             $prefix = "nodes[{$index}]";
 
             foreach ($this->schema['nodes']['required'] as $field) {
-                if (!isset($node[$field])) {
+                if (! isset($node[$field])) {
                     $errors[] = "{$prefix}: Missing required field: {$field}";
                 }
             }
 
-            if (isset($node['id']) && !is_string($node['id'])) {
+            if (isset($node['id']) && ! is_string($node['id'])) {
                 $errors[] = "{$prefix}: Field \"id\" must be a string";
             }
 
-            if (isset($node['name']) && !is_string($node['name'])) {
+            if (isset($node['name']) && ! is_string($node['name'])) {
                 $errors[] = "{$prefix}: Field \"name\" must be a string";
             }
 
-            if (isset($node['type']) && !is_string($node['type'])) {
+            if (isset($node['type']) && ! is_string($node['type'])) {
                 $errors[] = "{$prefix}: Field \"type\" must be a string";
             }
 
-            if (isset($node['type']) && !in_array($node['type'], $this->schema['nodes']['types'])) {
+            if (isset($node['type']) && ! in_array($node['type'], $this->schema['nodes']['types'])) {
                 $errors[] = "{$prefix}: Invalid node type: {$node['type']}";
             }
 
@@ -152,33 +154,33 @@ class WorkflowDefinitionParser
                 }
             }
 
-            if (isset($node['config']) && !is_array($node['config'])) {
+            if (isset($node['config']) && ! is_array($node['config'])) {
                 $errors[] = "{$prefix}: Field \"config\" must be an object";
             }
 
-            if (isset($node['order']) && !is_int($node['order'])) {
+            if (isset($node['order']) && ! is_int($node['order'])) {
                 $errors[] = "{$prefix}: Field \"order\" must be an integer";
             }
         }
 
-        if (!$hasStart) {
+        if (! $hasStart) {
             $errors[] = 'Workflow must have at least one "start" node';
         }
-        if (!$hasEnd) {
+        if (! $hasEnd) {
             $errors[] = 'Workflow must have at least one "end" node';
         }
 
         if (isset($definition['edges'])) {
             foreach ($definition['edges'] as $index => $edge) {
                 $prefix = "edges[{$index}]";
-                if (!isset($edge['from'])) {
+                if (! isset($edge['from'])) {
                     $errors[] = "{$prefix}: Missing required field: from";
-                } elseif (!in_array($edge['from'], $nodeIds)) {
+                } elseif (! in_array($edge['from'], $nodeIds)) {
                     $errors[] = "{$prefix}: Unknown node id: {$edge['from']}";
                 }
-                if (!isset($edge['to'])) {
+                if (! isset($edge['to'])) {
                     $errors[] = "{$prefix}: Missing required field: to";
-                } elseif (!in_array($edge['to'], $nodeIds)) {
+                } elseif (! in_array($edge['to'], $nodeIds)) {
                     $errors[] = "{$prefix}: Unknown node id: {$edge['to']}";
                 }
             }
@@ -202,14 +204,14 @@ class WorkflowDefinitionParser
             );
         }
 
-        if (!is_array($definition)) {
+        if (! is_array($definition)) {
             throw new \InvalidArgumentException(
                 'Workflow definition must be a JSON object'
             );
         }
 
         $errors = $this->validate($definition);
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             throw new \InvalidArgumentException(
                 'Invalid workflow definition: ' . implode('; ', $errors)
             );
@@ -220,7 +222,7 @@ class WorkflowDefinitionParser
             description: $definition['description'] ?? null,
             type: $definition['type'] ?? 'sequential',
             config: $definition['config'] ?? null,
-            nodes: array_map(fn($n) => [
+            nodes: array_map(fn ($n) => [
                 'id' => $n['id'],
                 'name' => $n['name'] ?? $n['id'],
                 'type' => $n['type'],
@@ -257,7 +259,7 @@ class WorkflowDefinitionParser
                 $nodeMap[$nodeData['id']] = $node;
             }
 
-            if (!empty($def->edges)) {
+            if (! empty($def->edges)) {
                 foreach ($def->edges as $edge) {
                     if (isset($nodeMap[$edge['from']], $nodeMap[$edge['to']])) {
                         $nodeMap[$edge['from']]->update([
@@ -267,7 +269,7 @@ class WorkflowDefinitionParser
                 }
             } else {
                 $sortedNodes = $def->nodes;
-                usort($sortedNodes, fn($a, $b) => $a['order'] <=> $b['order']);
+                usort($sortedNodes, fn ($a, $b) => $a['order'] <=> $b['order']);
 
                 for ($i = 0; $i < count($sortedNodes) - 1; $i++) {
                     $currentId = $sortedNodes[$i]['id'];
@@ -293,7 +295,7 @@ class WorkflowDefinitionParser
             'description' => $workflow->description,
             'type' => $workflow->type,
             'config' => $workflow->config,
-            'nodes' => $workflow->nodes->map(fn($node) => [
+            'nodes' => $workflow->nodes->map(fn ($node) => [
                 'id' => (string) $node->node_id,
                 'name' => $node->name,
                 'type' => $node->type,
@@ -301,8 +303,8 @@ class WorkflowDefinitionParser
                 'order' => $node->order,
             ])->toArray(),
             'edges' => $workflow->nodes
-                ->filter(fn($node) => $node->next_node_id !== null)
-                ->map(fn($node) => [
+                ->filter(fn ($node) => $node->next_node_id !== null)
+                ->map(fn ($node) => [
                     'from' => (string) $node->node_id,
                     'to' => (string) $node->next_node_id,
                 ])

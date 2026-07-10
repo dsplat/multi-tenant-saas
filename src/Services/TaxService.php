@@ -212,7 +212,7 @@ class TaxService
 
             return [
                 'rate' => $rate,
-                'name' => $config['name'] ?? ($region.' Tax'),
+                'name' => $config['name'] ?? ($region . ' Tax'),
             ];
         }
 

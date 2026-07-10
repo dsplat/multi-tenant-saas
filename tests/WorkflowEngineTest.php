@@ -10,19 +10,26 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Modules\Workflow\Models\Workflow;
 use MultiTenantSaas\Modules\Workflow\Models\WorkflowExecution;
 use MultiTenantSaas\Modules\Workflow\Models\WorkflowNode;
+use MultiTenantSaas\Modules\Workflow\Services\Nodes\ActionNode;
+use MultiTenantSaas\Modules\Workflow\Services\Nodes\ConditionNode;
+use MultiTenantSaas\Modules\Workflow\Services\Nodes\ConfirmNode;
+use MultiTenantSaas\Modules\Workflow\Services\Nodes\DelayNode;
+use MultiTenantSaas\Modules\Workflow\Services\Nodes\ParallelNode;
 use MultiTenantSaas\Modules\Workflow\Services\WorkflowEngine;
 use MultiTenantSaas\Modules\Workflow\Services\WorkflowRegistry;
 use MultiTenantSaas\Modules\Workflow\Services\WorkflowService;
-use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
-use MultiTenantSaas\Tests\Schema\WorkflowModule;
 use MultiTenantSaas\Tests\Schema\AgentModule;
+use MultiTenantSaas\Tests\Schema\WorkflowModule;
+use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
 
 class WorkflowEngineTest extends TestCase
 {
     protected array $uses = [AgentModule::class, WorkflowModule::class];
 
     private Tenant $tenant;
+
     private FakeToolRegistry $toolRegistry;
+
     private TenantContextContract $tenantContext;
 
     protected function setUp(): void
@@ -38,7 +45,7 @@ class WorkflowEngineTest extends TestCase
 
         TenantContext::setTenantId((string) $this->tenant->tenant_id);
         $this->tenantContext = $this->app->make(TenantContextContract::class);
-        $this->toolRegistry = new FakeToolRegistry();
+        $this->toolRegistry = new FakeToolRegistry;
     }
 
     private function createWorkflow(string $type = 'sequential'): Workflow
@@ -386,7 +393,7 @@ class WorkflowEngineTest extends TestCase
     public function test_registry_register_and_get(): void
     {
         $workflow = $this->createWorkflow();
-        $registry = new WorkflowRegistry();
+        $registry = new WorkflowRegistry;
 
         $registry->register($workflow);
 
@@ -397,7 +404,7 @@ class WorkflowEngineTest extends TestCase
     public function test_registry_get_by_tenant(): void
     {
         $workflow = $this->createWorkflow();
-        $registry = new WorkflowRegistry();
+        $registry = new WorkflowRegistry;
 
         $registry->register($workflow);
 
@@ -407,7 +414,7 @@ class WorkflowEngineTest extends TestCase
 
     public function test_registry_all(): void
     {
-        $registry = new WorkflowRegistry();
+        $registry = new WorkflowRegistry;
 
         $registry->register($this->createWorkflow());
         $registry->register(Workflow::create([
@@ -675,37 +682,37 @@ class WorkflowEngineTest extends TestCase
     public function test_get_action_node(): void
     {
         $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
-        $this->assertInstanceOf(\MultiTenantSaas\Modules\Workflow\Services\Nodes\ActionNode::class, $engine->getActionNode());
+        $this->assertInstanceOf(ActionNode::class, $engine->getActionNode());
     }
 
     public function test_get_condition_node(): void
     {
         $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
-        $this->assertInstanceOf(\MultiTenantSaas\Modules\Workflow\Services\Nodes\ConditionNode::class, $engine->getConditionNode());
+        $this->assertInstanceOf(ConditionNode::class, $engine->getConditionNode());
     }
 
     public function test_get_confirm_node(): void
     {
         $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
-        $this->assertInstanceOf(\MultiTenantSaas\Modules\Workflow\Services\Nodes\ConfirmNode::class, $engine->getConfirmNode());
+        $this->assertInstanceOf(ConfirmNode::class, $engine->getConfirmNode());
     }
 
     public function test_get_delay_node(): void
     {
         $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
-        $this->assertInstanceOf(\MultiTenantSaas\Modules\Workflow\Services\Nodes\DelayNode::class, $engine->getDelayNode());
+        $this->assertInstanceOf(DelayNode::class, $engine->getDelayNode());
     }
 
     public function test_get_parallel_node(): void
     {
         $engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
-        $this->assertInstanceOf(\MultiTenantSaas\Modules\Workflow\Services\Nodes\ParallelNode::class, $engine->getParallelNode());
+        $this->assertInstanceOf(ParallelNode::class, $engine->getParallelNode());
     }
 
     public function test_registry_has(): void
     {
         $workflow = $this->createWorkflow();
-        $registry = new WorkflowRegistry();
+        $registry = new WorkflowRegistry;
 
         $registry->register($workflow);
 
@@ -715,7 +722,7 @@ class WorkflowEngineTest extends TestCase
 
     public function test_registry_names(): void
     {
-        $registry = new WorkflowRegistry();
+        $registry = new WorkflowRegistry;
 
         $registry->register($this->createWorkflow());
         $registry->register(Workflow::create([
@@ -730,7 +737,7 @@ class WorkflowEngineTest extends TestCase
 
     public function test_registry_names_by_tenant(): void
     {
-        $registry = new WorkflowRegistry();
+        $registry = new WorkflowRegistry;
 
         $registry->register($this->createWorkflow());
         $registry->register(Workflow::create([
@@ -746,7 +753,7 @@ class WorkflowEngineTest extends TestCase
     public function test_registry_unregister(): void
     {
         $workflow = $this->createWorkflow();
-        $registry = new WorkflowRegistry();
+        $registry = new WorkflowRegistry;
 
         $registry->register($workflow);
 
@@ -756,14 +763,14 @@ class WorkflowEngineTest extends TestCase
 
     public function test_registry_unregister_nonexistent(): void
     {
-        $registry = new WorkflowRegistry();
+        $registry = new WorkflowRegistry;
 
         $this->assertFalse($registry->unregister('Nonexistent', 1001));
     }
 
     public function test_registry_discover(): void
     {
-        $registry = new WorkflowRegistry();
+        $registry = new WorkflowRegistry;
 
         $registry->register($this->createWorkflow());
         $registry->register(Workflow::create([
@@ -779,7 +786,7 @@ class WorkflowEngineTest extends TestCase
 
     public function test_registry_discover_by_tenant(): void
     {
-        $registry = new WorkflowRegistry();
+        $registry = new WorkflowRegistry;
 
         $registry->register($this->createWorkflow());
         $registry->register(Workflow::create([

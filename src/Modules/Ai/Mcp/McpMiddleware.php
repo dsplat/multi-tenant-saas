@@ -51,7 +51,7 @@ class McpMiddleware
                 );
             }
 
-            if (!$client->isActive()) {
+            if (! $client->isActive()) {
                 return $this->jsonRpcError(
                     'MCP client is inactive.',
                     McpException::CODE_FORBIDDEN,
@@ -106,7 +106,7 @@ class McpMiddleware
             $authHeader = $request->header('Authorization');
 
             if ($authHeader !== null) {
-                if (!str_starts_with($authHeader, 'Bearer ')) {
+                if (! str_starts_with($authHeader, 'Bearer ')) {
                     return null;
                 }
 
@@ -132,7 +132,7 @@ class McpMiddleware
     {
         return McpClient::query()
             ->get()
-            ->first(fn(McpClient $client) => $client->api_key === $apiKey);
+            ->first(fn (McpClient $client) => $client->api_key === $apiKey);
     }
 
     /**

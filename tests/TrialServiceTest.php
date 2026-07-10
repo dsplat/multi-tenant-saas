@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Tests;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\SubscriptionPlan;
 use MultiTenantSaas\Models\Tenant;
@@ -19,7 +20,7 @@ class TrialServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->service = new TrialService();
+        $this->service = new TrialService;
 
         SubscriptionPlan::unguarded(function () {
             SubscriptionPlan::create([
@@ -117,7 +118,7 @@ class TrialServiceTest extends TestCase
 
     public function test_start_trial_throws_for_unknown_tenant(): void
     {
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
         TrialService::startTrial(9999, 1);
     }
 

@@ -21,6 +21,7 @@ class PayPalServiceTest extends TestCase
     protected array $uses = [WebhookModule::class];
 
     private const TENANT_ID = 1001;
+
     private const ACCESS_TOKEN = 'pp_access_token_mock';
 
     protected function setUp(): void

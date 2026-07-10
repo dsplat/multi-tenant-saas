@@ -251,7 +251,7 @@ class TenantProfileService
             throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new \RuntimeException(trans('common.trial_start_failed').': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('common.trial_start_failed') . ': ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -321,7 +321,7 @@ class TenantProfileService
             return $migrated;
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new \RuntimeException(trans('common.data_migration_failed').': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('common.data_migration_failed') . ': ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -392,7 +392,7 @@ class TenantProfileService
             return $counts;
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new \RuntimeException(trans('common.cleanup_failed').': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('common.cleanup_failed') . ': ' . $e->getMessage(), 0, $e);
         }
     }
 }

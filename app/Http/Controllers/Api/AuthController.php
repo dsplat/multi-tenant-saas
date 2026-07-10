@@ -528,7 +528,7 @@ class AuthController extends Controller
     public function samlMetadata(Request $request)
     {
         $spEntityId = (string) config('socialite.saml.sp_entity_id', 'saml:sp');
-        $acsUrl = $request->input('acs_url', $request->root().'/api/v1/sso/saml/acs');
+        $acsUrl = $request->input('acs_url', $request->root() . '/api/v1/sso/saml/acs');
 
         /** @var SsoService $ssoService */
         $ssoService = app(SsoService::class);
@@ -647,7 +647,7 @@ class AuthController extends Controller
      */
     private function defaultAcsUrl(Request $request, string $provider): string
     {
-        return $request->root()."/api/v1/sso/{$provider}/callback";
+        return $request->root() . "/api/v1/sso/{$provider}/callback";
     }
 
     /**

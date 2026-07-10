@@ -48,8 +48,8 @@ class SandboxService
         return DB::transaction(function () use ($developerId): array {
             // 创建独立隔离的沙箱租户
             $sandboxTenant = Tenant::create([
-                'name' => self::TENANT_NAME_PREFIX.uniqid(),
-                'slug' => 'sandbox-'.Str::random(16),
+                'name' => self::TENANT_NAME_PREFIX . uniqid(),
+                'slug' => 'sandbox-' . Str::random(16),
                 'status' => 'sandbox',
                 'subscription_plan' => 'sandbox',
             ]);
@@ -203,7 +203,7 @@ class SandboxService
      */
     public function generateTestApiKey(): string
     {
-        return self::API_KEY_PREFIX.Str::random(64);
+        return self::API_KEY_PREFIX . Str::random(64);
     }
 
     /**

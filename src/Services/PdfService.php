@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Services;
 
 use Barryvdh\DomPDF\Facade\Pdf;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * PDF 服务
@@ -28,6 +29,7 @@ class PdfService
 
         if ($outputPath) {
             $pdf->save($outputPath);
+
             return $outputPath;
         }
 
@@ -37,18 +39,20 @@ class PdfService
     /**
      * 下载 PDF
      */
-    public static function download(string $view, array $data = [], string $filename = 'document.pdf'): \Symfony\Component\HttpFoundation\Response
+    public static function download(string $view, array $data = [], string $filename = 'document.pdf'): Response
     {
         $pdf = Pdf::loadView($view, $data);
+
         return $pdf->download($filename);
     }
 
     /**
      * 在浏览器中显示 PDF
      */
-    public static function stream(string $view, array $data = [], string $filename = 'document.pdf'): \Symfony\Component\HttpFoundation\Response
+    public static function stream(string $view, array $data = [], string $filename = 'document.pdf'): Response
     {
         $pdf = Pdf::loadView($view, $data);
+
         return $pdf->stream($filename);
     }
 

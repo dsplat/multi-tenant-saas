@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Models\TenantSetting;
@@ -41,6 +41,7 @@ class TenantTokenController extends Controller
             ->get()
             ->map(function ($s) {
                 $data = json_decode($s->value, true) ?? [];
+
                 return [
                     'id' => $s->id,
                     'name' => $data['name'] ?? $s->key,
@@ -101,7 +102,7 @@ class TenantTokenController extends Controller
             ->where('id', $tokenId)
             ->delete();
 
-        return response()->json(['success' => true, 'message' => trans("common.deleted")]);
+        return response()->json(['success' => true, 'message' => trans('common.deleted')]);
     }
 
     /**

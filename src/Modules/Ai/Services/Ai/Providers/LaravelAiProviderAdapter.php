@@ -30,7 +30,7 @@ class LaravelAiProviderAdapter implements AiProviderContract
     private string $labProvider;
 
     /**
-     * @param array{driver: string, key?: string, url?: string, base_url?: string, api_key?: string} $config
+     * @param  array{driver: string, key?: string, url?: string, base_url?: string, api_key?: string}  $config
      */
     public function __construct(
         private readonly array $config,

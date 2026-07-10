@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\AuditLog;
@@ -10,9 +11,9 @@ use MultiTenantSaas\Models\FinancialRecord;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantSetting;
 use MultiTenantSaas\Services\TenantProfileService;
-use MultiTenantSaas\Tests\Schema\PluginModule;
-use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\BillingModule;
+use MultiTenantSaas\Tests\Schema\EventModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
 
 /**
  * TenantProfileService 单元测试
@@ -150,7 +151,7 @@ class TenantProfileServiceTest extends TestCase
     {
         $service = app(TenantProfileService::class);
 
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
         $service->getUsageStats(9999);
     }
 

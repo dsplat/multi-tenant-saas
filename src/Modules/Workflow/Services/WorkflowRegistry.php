@@ -25,6 +25,7 @@ class WorkflowRegistry implements WorkflowRegistryContract
     public function getByName(string $name, int $tenantId): ?Workflow
     {
         $key = $this->buildKey($name, $tenantId);
+
         return $this->workflows[$key] ?? null;
     }
 
@@ -44,6 +45,7 @@ class WorkflowRegistry implements WorkflowRegistryContract
     public function has(string $name, int $tenantId): bool
     {
         $key = $this->buildKey($name, $tenantId);
+
         return isset($this->workflows[$key]);
     }
 
@@ -71,10 +73,11 @@ class WorkflowRegistry implements WorkflowRegistryContract
     public function unregister(string $name, int $tenantId): bool
     {
         $key = $this->buildKey($name, $tenantId);
-        if (!isset($this->workflows[$key])) {
+        if (! isset($this->workflows[$key])) {
             return false;
         }
         unset($this->workflows[$key]);
+
         return true;
     }
 
@@ -96,6 +99,7 @@ class WorkflowRegistry implements WorkflowRegistryContract
                 'status' => $workflow->status,
             ];
         }
+
         return $result;
     }
 }

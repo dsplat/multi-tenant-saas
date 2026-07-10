@@ -9,7 +9,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
 
 class UsageRecord extends Model
 {
-    use HasGlobalId, BelongsToTenant, HasFactory;
+    use BelongsToTenant, HasFactory, HasGlobalId;
 
     protected $primaryKey = 'usage_record_id';
 

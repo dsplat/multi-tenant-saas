@@ -22,7 +22,7 @@ class GeneralNotification extends Notification implements ShouldQueue
     public function via(object $notifiable): array
     {
         $channels = ['database'];
-        
+
         if ($notifiable->email && config('app.notifications_email_enabled', true)) {
             $channels[] = 'mail';
         }

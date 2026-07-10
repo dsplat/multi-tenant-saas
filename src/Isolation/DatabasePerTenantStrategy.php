@@ -5,9 +5,9 @@ namespace MultiTenantSaas\Isolation;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 use MultiTenantSaas\Contracts\IsolationStrategyContract;
 use MultiTenantSaas\Models\Tenant;
-use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
 
@@ -94,7 +94,7 @@ class DatabasePerTenantStrategy implements IsolationStrategyContract
     {
         $prefix = (string) config('tenancy.isolation.connection_prefix', 'tenant.');
 
-        return $prefix.$tenant->getKey();
+        return $prefix . $tenant->getKey();
     }
 
     /**
@@ -155,7 +155,7 @@ class DatabasePerTenantStrategy implements IsolationStrategyContract
             if ($driver === 'mysql') {
                 DB::connection($admin)->statement("CREATE DATABASE IF NOT EXISTS `{$name}`");
             } elseif ($driver === 'pgsql') {
-                DB::connection($admin)->statement('CREATE DATABASE "'.$name.'"');
+                DB::connection($admin)->statement('CREATE DATABASE "' . $name . '"');
             }
         } catch (Throwable $e) {
             throw new RuntimeException(
@@ -189,7 +189,7 @@ class DatabasePerTenantStrategy implements IsolationStrategyContract
             if ($driver === 'mysql') {
                 DB::connection($admin)->statement("DROP DATABASE IF EXISTS `{$name}`");
             } elseif ($driver === 'pgsql') {
-                DB::connection($admin)->statement('DROP DATABASE IF EXISTS "'.$name.'"');
+                DB::connection($admin)->statement('DROP DATABASE IF EXISTS "' . $name . '"');
             }
         } catch (Throwable $e) {
             throw new RuntimeException(

@@ -135,7 +135,7 @@ class EventModule implements SchemaModuleInterface
     {
         return [
             'broadcast_events', 'event_subscriptions', 'dead_letters',
-            'metrics_snapshots', 'sla_events', 'audit_logs'
+            'metrics_snapshots', 'sla_events', 'audit_logs',
         ];
     }
 }

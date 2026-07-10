@@ -3,7 +3,6 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Modules\Form\Models\Form;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
@@ -52,7 +51,7 @@ class FormControllerTest extends TestCase
 
     public function test_index_forms(): void
     {
-        $service = new FormBuilderService();
+        $service = new FormBuilderService;
         $service->createForm([
             'title' => '测试表单',
             'fields' => [
@@ -96,7 +95,7 @@ class FormControllerTest extends TestCase
 
     public function test_show_form(): void
     {
-        $service = new FormBuilderService();
+        $service = new FormBuilderService;
         $form = $service->createForm([
             'title' => '测试表单',
             'fields' => [
@@ -114,7 +113,7 @@ class FormControllerTest extends TestCase
 
     public function test_update_form(): void
     {
-        $service = new FormBuilderService();
+        $service = new FormBuilderService;
         $form = $service->createForm([
             'title' => '原标题',
             'fields' => [
@@ -134,7 +133,7 @@ class FormControllerTest extends TestCase
 
     public function test_destroy_form(): void
     {
-        $service = new FormBuilderService();
+        $service = new FormBuilderService;
         $form = $service->createForm([
             'title' => '测试表单',
             'status' => 'draft',
@@ -154,7 +153,7 @@ class FormControllerTest extends TestCase
 
     public function test_submit_form_via_service(): void
     {
-        $service = new FormBuilderService();
+        $service = new FormBuilderService;
         $form = $service->createForm([
             'title' => '测试表单',
             'status' => 'published',
@@ -174,7 +173,7 @@ class FormControllerTest extends TestCase
 
     public function test_submissions(): void
     {
-        $service = new FormBuilderService();
+        $service = new FormBuilderService;
         $form = $service->createForm([
             'title' => '测试表单',
             'status' => 'published',
@@ -197,7 +196,7 @@ class FormControllerTest extends TestCase
 
     public function test_statistics(): void
     {
-        $service = new FormBuilderService();
+        $service = new FormBuilderService;
         $form = $service->createForm([
             'title' => '测试表单',
             'fields' => [
@@ -217,7 +216,7 @@ class FormControllerTest extends TestCase
 
     public function test_export(): void
     {
-        $service = new FormBuilderService();
+        $service = new FormBuilderService;
         $form = $service->createForm([
             'title' => '测试表单',
             'fields' => [
@@ -245,7 +244,7 @@ class FormControllerTest extends TestCase
             'status' => 'active',
         ]);
 
-        $service = new FormBuilderService();
+        $service = new FormBuilderService;
         $form = $service->createForm([
             'title' => '其他租户表单',
             'fields' => [

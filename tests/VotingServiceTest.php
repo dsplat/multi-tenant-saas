@@ -6,7 +6,6 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Modules\Voting\Models\Vote;
 use MultiTenantSaas\Modules\Voting\Models\VoteOption;
-use MultiTenantSaas\Modules\Voting\Models\VoteRecord;
 use MultiTenantSaas\Modules\Voting\Services\VotingService;
 use MultiTenantSaas\Tests\Schema\VotingModule;
 
@@ -20,7 +19,7 @@ class VotingServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->service = new VotingService();
+        $this->service = new VotingService;
 
         Tenant::create([
             'tenant_id' => 2001,

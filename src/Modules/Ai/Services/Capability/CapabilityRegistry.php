@@ -50,6 +50,7 @@ class CapabilityRegistry
                 $result[$name] = $capability;
             }
         }
+
         return $result;
     }
 
@@ -65,6 +66,7 @@ class CapabilityRegistry
                 'class' => get_class($capability),
             ];
         }
+
         return $result;
     }
 
@@ -75,7 +77,7 @@ class CapabilityRegistry
     {
         $capability = $this->get($name);
 
-        if (!$capability) {
+        if (! $capability) {
             return new CapabilityResult(
                 capability: $name,
                 output: null,

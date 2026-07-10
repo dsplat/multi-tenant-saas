@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Services;
 
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\Request;
 use MultiTenantSaas\Models\AuditLog;
 
 /**
@@ -17,7 +18,7 @@ class LoginLogService
         protected UserProfileService $profileService
     ) {}
 
-    public function recordLogin(int $userId, ?\Illuminate\Http\Request $request = null): AuditLog
+    public function recordLogin(int $userId, ?Request $request = null): AuditLog
     {
         return $this->profileService->recordLogin($userId, $request);
     }

@@ -5,14 +5,15 @@ namespace MultiTenantSaas\Services;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\FileUpload;
 use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\SubscriptionPlan;
-use MultiTenantSaas\Context\TenantContext;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FileService
 {
     private const MAX_FILE_SIZE = 104857600; // 100MB
+
     private const ALLOWED_MIME_TYPES = [
         'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
         'application/pdf',
@@ -23,7 +24,7 @@ class FileService
         'video/mp4', 'video/quicktime',
         'audio/mpeg', 'audio/wav',
     ];
-    
+
     private const IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
 
     /**
@@ -31,12 +32,12 @@ class FileService
      */
     public static function checkStorageQuota(?int $tenantId, int $fileSize): bool
     {
-        if (!$tenantId) {
+        if (! $tenantId) {
             return true;
         }
 
         $tenant = Tenant::where('tenant_id', $tenantId)->first();
-        if (!$tenant) {
+        if (! $tenant) {
             return true;
         }
 
@@ -77,12 +78,12 @@ class FileService
 
         // 验证文件类型
         $mimeType = $file->getMimeType();
-        if (!empty(self::ALLOWED_MIME_TYPES) && !in_array($mimeType, self::ALLOWED_MIME_TYPES)) {
+        if (! empty(self::ALLOWED_MIME_TYPES) && ! in_array($mimeType, self::ALLOWED_MIME_TYPES)) {
             throw new \RuntimeException(trans('file.type_not_supported') . ": {$mimeType}");
         }
 
         // 检查存储配额
-        if (!static::checkStorageQuota($tenantId, $file->getSize())) {
+        if (! static::checkStorageQuota($tenantId, $file->getSize())) {
             throw new \RuntimeException(trans('file.quota_exceeded'));
         }
 
@@ -167,12 +168,12 @@ class FileService
     public static function verifyShareUrl(int $fileId, string $token, string $signature): bool
     {
         $expected = hash_hmac('sha256', $token, config('app.key'));
-        if (!hash_equals($expected, $signature)) {
+        if (! hash_equals($expected, $signature)) {
             return false;
         }
 
         $data = json_decode(base64_decode($token), true);
-        if (!$data || $data['file_id'] !== $fileId) {
+        if (! $data || $data['file_id'] !== $fileId) {
             return false;
         }
 
@@ -184,7 +185,7 @@ class FileService
      */
     public static function getPreviewUrl(FileUpload $file): ?string
     {
-        if (!in_array($file->mime_type, self::IMAGE_MIME_TYPES)) {
+        if (! in_array($file->mime_type, self::IMAGE_MIME_TYPES)) {
             return null;
         }
 
@@ -215,9 +216,9 @@ class FileService
     /**
      * 下载文件内容
      */
-    public static function download(FileUpload $file): \Symfony\Component\HttpFoundation\StreamedResponse
+    public static function download(FileUpload $file): StreamedResponse
     {
-        if (!Storage::disk($file->disk)->exists($file->path)) {
+        if (! Storage::disk($file->disk)->exists($file->path)) {
             throw new \RuntimeException(trans('file.not_found'));
         }
 

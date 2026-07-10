@@ -14,10 +14,10 @@ use MultiTenantSaas\Services\PluginService;
 use MultiTenantSaas\Services\RateLimitService;
 use MultiTenantSaas\Services\StructuredLogService;
 use MultiTenantSaas\Services\UserProfileService;
+use MultiTenantSaas\Tests\Schema\BillingModule;
+use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\NotificationModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;
-use MultiTenantSaas\Tests\Schema\EventModule;
-use MultiTenantSaas\Tests\Schema\BillingModule;
 
 /**
  * TASK-001 新增模块单元测试

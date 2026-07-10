@@ -2,11 +2,13 @@
 
 namespace MultiTenantSaas\Services;
 
+use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\InvalidStateException;
 use MultiTenantSaas\Models\OauthAccount;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\TenantSetting;
+use MultiTenantSaas\Models\TenantUser;
+use MultiTenantSaas\Models\User;
 
 /**
  * 第三方登录服务（租户级配置）
@@ -39,7 +41,7 @@ class SocialiteService
         $config = self::getOAuthConfig($tenantId, $provider);
 
         // 过滤空值
-        $config = array_filter($config, fn($v) => $v !== '' && $v !== null);
+        $config = array_filter($config, fn ($v) => $v !== '' && $v !== null);
 
         if (empty($config['client_id']) || empty($config['client_secret'])) {
             throw new \RuntimeException(trans('common.oauth_not_configured', ['provider' => $provider, 'tenant' => $tenantId]));
@@ -47,7 +49,7 @@ class SocialiteService
 
         // 保存原始配置到 app 容器（请求级隔离）
         $key = "oauth.original.{$provider}";
-        if (!app()->bound($key)) {
+        if (! app()->bound($key)) {
             app()->instance($key, config("services.{$provider}"));
         }
 
@@ -106,7 +108,7 @@ class SocialiteService
 
         try {
             $socialUser = Socialite::driver($provider)->user();
-        } catch (\Laravel\Socialite\Two\InvalidStateException $e) {
+        } catch (InvalidStateException $e) {
             abort(403, trans('common.oauth_state_invalid'));
         } finally {
             self::resetDriverConfig($provider);
@@ -146,12 +148,12 @@ class SocialiteService
         // 通过邮箱查找
         $user = User::where('email', $socialUser->getEmail())->first();
 
-        if (!$user) {
+        if (! $user) {
             // 创建新用户
             $user = User::create([
                 'name' => $socialUser->getName() ?? $socialUser->getNickname(),
                 'email' => $socialUser->getEmail(),
-                'password' => bcrypt(\Illuminate\Support\Str::random(32)),
+                'password' => bcrypt(Str::random(32)),
                 'role' => 'platform_user',
             ]);
 
@@ -197,7 +199,8 @@ class SocialiteService
     public static function isConfigured(int $tenantId, string $provider): bool
     {
         $config = self::getOAuthConfig($tenantId, $provider);
-        return !empty($config['client_id']) && !empty($config['client_secret']);
+
+        return ! empty($config['client_id']) && ! empty($config['client_secret']);
     }
 
     /**
@@ -211,7 +214,7 @@ class SocialiteService
         foreach ($providers as $provider) {
             $config = self::getOAuthConfig($tenantId, $provider);
             $result[$provider] = [
-                'configured' => !empty($config['client_id']) && !empty($config['client_secret']),
+                'configured' => ! empty($config['client_id']) && ! empty($config['client_secret']),
                 'client_id' => $config['client_id'],
                 'redirect' => $config['redirect'],
             ];
@@ -242,12 +245,12 @@ class SocialiteService
     public static function getSupportedProviders(): array
     {
         return [
-            'wechat' => ['name' => trans("common.wechat"), 'icon' => 'wechat'],
-            'dingtalk' => ['name' => trans("common.dingtalk"), 'icon' => 'dingtalk'],
-            'feishu' => ['name' => trans("common.feishu"), 'icon' => 'feishu'],
+            'wechat' => ['name' => trans('common.wechat'), 'icon' => 'wechat'],
+            'dingtalk' => ['name' => trans('common.dingtalk'), 'icon' => 'dingtalk'],
+            'feishu' => ['name' => trans('common.feishu'), 'icon' => 'feishu'],
             'github' => ['name' => 'GitHub', 'icon' => 'github'],
             'google' => ['name' => 'Google', 'icon' => 'google'],
-            'alipay' => ['name' => trans("common.alipay"), 'icon' => 'alipay'],
+            'alipay' => ['name' => trans('common.alipay'), 'icon' => 'alipay'],
         ];
     }
 }

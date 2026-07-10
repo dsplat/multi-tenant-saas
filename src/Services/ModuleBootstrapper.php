@@ -47,6 +47,7 @@ class ModuleBootstrapper
 
         if (empty($loadOrder)) {
             Log::debug('[ModuleBootstrapper] 无已启用模块');
+
             return;
         }
 
@@ -76,11 +77,13 @@ class ModuleBootstrapper
 
         if (! $providerClass) {
             Log::warning("[ModuleBootstrapper] 模块 [{$name}] 无 provider 定义");
+
             return;
         }
 
         if (! class_exists($providerClass)) {
             Log::warning("[ModuleBootstrapper] 模块 [{$name}] Provider 类不存在: {$providerClass}");
+
             return;
         }
 
@@ -110,6 +113,7 @@ class ModuleBootstrapper
         if (! $provider instanceof ModuleServiceProvider) {
             // 非标准模块 Provider, Laravel 已自动 boot
             $this->booted[$name] = $provider;
+
             return;
         }
 

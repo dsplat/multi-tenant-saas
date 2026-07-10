@@ -74,7 +74,7 @@ class DataResidencyService
         $regions = $this->getAvailableRegions();
         $config = $regions[$region] ?? null;
 
-        if (!is_array($config)) {
+        if (! is_array($config)) {
             throw new RuntimeException(
                 trans('tenant.residency_region_unsupported', ['region' => $region])
             );
@@ -133,11 +133,11 @@ class DataResidencyService
     /**
      * 设置租户驻留区域
      *
-     * @throws \RuntimeException 区域不合法或套餐不允许时抛出
+     * @throws RuntimeException 区域不合法或套餐不允许时抛出
      */
     public function setTenantRegion(int $tenantId, string $region): void
     {
-        if (!$this->isValidRegion($region)) {
+        if (! $this->isValidRegion($region)) {
             throw new RuntimeException(
                 trans('tenant.residency_region_unsupported', ['region' => $region])
             );
@@ -149,7 +149,7 @@ class DataResidencyService
         }
 
         $plan = (string) ($tenant->subscription_plan ?? 'free');
-        if (!$this->isRegionAllowedForPlan($plan, $region)) {
+        if (! $this->isRegionAllowedForPlan($plan, $region)) {
             throw new RuntimeException(
                 trans('tenant.residency_region_not_allowed_by_plan', [
                     'region' => $region,
@@ -204,12 +204,12 @@ class DataResidencyService
     /**
      * 数据存储区域限制：检查指定数据区域是否与租户区域一致
      *
-     * @param  int     $tenantId       租户 ID
-     * @param  string  $dataRegion     数据实际所在区域
-     * @param  bool    $throwOnFailure 校验失败时是否抛出异常（false 返回布尔值）
-     * @return bool    校验通过返回 true
+     * @param  int  $tenantId  租户 ID
+     * @param  string  $dataRegion  数据实际所在区域
+     * @param  bool  $throwOnFailure  校验失败时是否抛出异常（false 返回布尔值）
+     * @return bool 校验通过返回 true
      *
-     * @throws \RuntimeException 校验失败且 throwOnFailure=true 时抛出
+     * @throws RuntimeException 校验失败且 throwOnFailure=true 时抛出
      */
     public function enforceStorageRegion(int $tenantId, string $dataRegion, bool $throwOnFailure = true): bool
     {
@@ -219,7 +219,7 @@ class DataResidencyService
             return true;
         }
 
-        if (!$this->isComplianceEnforced($tenantId)) {
+        if (! $this->isComplianceEnforced($tenantId)) {
             return false;
         }
 
@@ -250,18 +250,19 @@ class DataResidencyService
      * 切换物理存储（数据库 / 对象存储），与 IsolationService 的
      * shared → database 迁移同构，因此直接委托。
      *
-     * @param  int     $tenantId      租户 ID
-     * @param  string  $fromRegion    源区域
-     * @param  string  $toRegion      目标区域
-     * @throws \RuntimeException 配置禁用跨区域迁移、区域非法或底层迁移失败时抛出
+     * @param  int  $tenantId  租户 ID
+     * @param  string  $fromRegion  源区域
+     * @param  string  $toRegion  目标区域
+     *
+     * @throws RuntimeException 配置禁用跨区域迁移、区域非法或底层迁移失败时抛出
      */
     public function migrateRegion(int $tenantId, string $fromRegion, string $toRegion): void
     {
-        if (!(bool) config('tenancy.residency.cross_region_migration_enabled', true)) {
+        if (! (bool) config('tenancy.residency.cross_region_migration_enabled', true)) {
             throw new RuntimeException(trans('tenant.residency_migration_disabled'));
         }
 
-        if (!$this->isValidRegion($fromRegion) || !$this->isValidRegion($toRegion)) {
+        if (! $this->isValidRegion($fromRegion) || ! $this->isValidRegion($toRegion)) {
             throw new RuntimeException(trans('tenant.residency_region_unsupported', [
                 'region' => $fromRegion . '/' . $toRegion,
             ]));
@@ -287,7 +288,7 @@ class DataResidencyService
         }
 
         $plan = (string) ($tenant->subscription_plan ?? 'free');
-        if (!$this->isRegionAllowedForPlan($plan, $toRegion)) {
+        if (! $this->isRegionAllowedForPlan($plan, $toRegion)) {
             throw new RuntimeException(
                 trans('tenant.residency_region_not_allowed_by_plan', [
                     'region' => $toRegion,

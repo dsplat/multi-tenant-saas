@@ -12,18 +12,22 @@ use MultiTenantSaas\Modules\Workflow\Models\WorkflowExecution;
 use MultiTenantSaas\Modules\Workflow\Models\WorkflowNode;
 use MultiTenantSaas\Modules\Workflow\Services\RetryService;
 use MultiTenantSaas\Modules\Workflow\Services\WorkflowEngine;
-use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
-use MultiTenantSaas\Tests\Schema\WorkflowModule;
 use MultiTenantSaas\Tests\Schema\AgentModule;
+use MultiTenantSaas\Tests\Schema\WorkflowModule;
+use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
 
 class RetryServiceTest extends TestCase
 {
     protected array $uses = [AgentModule::class, WorkflowModule::class];
 
     private Tenant $tenant;
+
     private FakeToolRegistry $toolRegistry;
+
     private TenantContextContract $tenantContext;
+
     private WorkflowEngine $engine;
+
     private RetryService $retryService;
 
     protected function setUp(): void
@@ -39,7 +43,7 @@ class RetryServiceTest extends TestCase
 
         TenantContext::setTenantId((string) $this->tenant->tenant_id);
         $this->tenantContext = $this->app->make(TenantContextContract::class);
-        $this->toolRegistry = new FakeToolRegistry();
+        $this->toolRegistry = new FakeToolRegistry;
         $this->engine = new WorkflowEngine($this->tenantContext, $this->toolRegistry);
         $this->retryService = new RetryService($this->engine, 3, 60, 'exponential');
     }

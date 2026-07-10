@@ -17,7 +17,7 @@ class ParallelNodeTest extends TestCase
     {
         parent::setUp();
 
-        $this->parallelNode = new ParallelNode();
+        $this->parallelNode = new ParallelNode;
     }
 
     public function test_execute_initializes_branches(): void

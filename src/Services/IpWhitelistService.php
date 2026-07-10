@@ -261,8 +261,8 @@ class IpWhitelistService
     /**
      * 记录 IP 白名单审计日志
      *
-     * @param array|string|null $oldValues
-     * @param array|string|null $newValues
+     * @param  array|string|null  $oldValues
+     * @param  array|string|null  $newValues
      */
     protected function audit(string $action, ?int $resourceId, $oldValues = null, $newValues = null): void
     {

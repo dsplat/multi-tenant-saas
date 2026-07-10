@@ -19,7 +19,7 @@ class QuotaService
         $tenantId = $tenantId ?? TenantContext::getId();
         $tenant = Tenant::find($tenantId);
 
-        if (!$tenant) {
+        if (! $tenant) {
             return;
         }
 
@@ -39,6 +39,7 @@ class QuotaService
     protected static function getLimit(string $resource, Tenant $tenant): int
     {
         $plan = $tenant->subscription_plan;
+
         return config("tenancy.plans.{$plan}.limits.{$resource}", PHP_INT_MAX);
     }
 
@@ -64,7 +65,7 @@ class QuotaService
         $tenantId = $tenantId ?? TenantContext::getId();
         $tenant = Tenant::find($tenantId);
 
-        if (!$tenant) {
+        if (! $tenant) {
             return ['limit' => 0, 'current' => 0, 'remaining' => 0];
         }
 

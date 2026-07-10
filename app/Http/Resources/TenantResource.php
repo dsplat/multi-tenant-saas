@@ -24,11 +24,11 @@ class TenantResource extends JsonResource
             'contact_name' => $this->contact_name,
             'contact_email' => $this->when(
                 $request->user()?->role === 'super_admin',
-                fn() => $this->contact_email
+                fn () => $this->contact_email
             ),
             'contact_phone' => $this->when(
                 $request->user()?->role === 'super_admin',
-                fn() => $this->contact_phone ? $this->maskPhone($this->contact_phone) : null
+                fn () => $this->contact_phone ? $this->maskPhone($this->contact_phone) : null
             ),
             'created_at' => $this->created_at,
         ];

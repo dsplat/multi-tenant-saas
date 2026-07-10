@@ -2,7 +2,6 @@
 
 namespace MultiTenantSaas\Tests;
 
-use Carbon\Carbon;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\AuditLog;
 use MultiTenantSaas\Models\PaymentOrder;

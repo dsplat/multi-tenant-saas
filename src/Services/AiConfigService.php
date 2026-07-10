@@ -94,7 +94,7 @@ class AiConfigService
 
         $config = $this->getOrCreateConfig();
 
-        $field = $category.'_enabled';
+        $field = $category . '_enabled';
         $config->{$field} = $enabled;
         $config->save();
 

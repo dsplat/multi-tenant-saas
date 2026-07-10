@@ -19,7 +19,9 @@ class ConsentServiceTest extends TestCase
     protected array $uses = [MiscModule::class];
 
     private ConsentService $service;
+
     private int $userId = 1;
+
     private int $tenantId = 1001;
 
     protected function setUp(): void

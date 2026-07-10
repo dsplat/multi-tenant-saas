@@ -55,13 +55,12 @@ class ParallelNode
 
     /**
      * @param  array<string, mixed>  $context
-     * @param  int  $branchIndex
      * @param  array<string, mixed>  $result
      * @return array<string, mixed>
      */
     public function completeBranch(array $context, int $branchIndex, array $result): array
     {
-        if (!isset($context['_parallel_branches'][$branchIndex])) {
+        if (! isset($context['_parallel_branches'][$branchIndex])) {
             return $context;
         }
 

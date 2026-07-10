@@ -17,7 +17,7 @@ interface ToolHandlerContract
      * 执行工具逻辑
      *
      * @param  array  $arguments  工具调用参数（由 AI 生成，符合 parameters_schema）
-     * @param  int  $tenantId     租户 ID（用于租户隔离和数据访问）
+     * @param  int  $tenantId  租户 ID（用于租户隔离和数据访问）
      * @return mixed 工具执行结果（将被序列化后返回给 AI）
      *
      * @throws \Exception 工具执行失败时抛出异常，由 ToolRegistry 捕获并转换为错误响应

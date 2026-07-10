@@ -18,7 +18,7 @@ class DelayNodeTest extends TestCase
     {
         parent::setUp();
 
-        $this->delayNode = new DelayNode();
+        $this->delayNode = new DelayNode;
     }
 
     public function test_execute_with_seconds_delay(): void

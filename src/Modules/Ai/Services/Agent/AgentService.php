@@ -3,11 +3,10 @@
 namespace MultiTenantSaas\Modules\Ai\Services\Agent;
 
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
-use Illuminate\Support\Arr;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\AgentServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Events\AgentCreated;
@@ -88,6 +87,7 @@ class AgentService implements AgentServiceContract
             ]);
 
             DB::commit();
+
             return $agent->fresh();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -178,8 +178,8 @@ class AgentService implements AgentServiceContract
      * 允许通过 $overrides 覆盖部分字段。
      *
      * @param  int  $templateId  模板 ID
-     * @param  int  $tenantId    目标租户 ID
-     * @param  array  $overrides 覆盖字段（仅允许 CLONE_OVERRIDABLE_KEYS 中的键）
+     * @param  int  $tenantId  目标租户 ID
+     * @param  array  $overrides  覆盖字段（仅允许 CLONE_OVERRIDABLE_KEYS 中的键）
      */
     public function cloneFromTemplate(int $templateId, int $tenantId, array $overrides = []): Agent
     {
@@ -278,7 +278,7 @@ class AgentService implements AgentServiceContract
         $slugs = $agent->tools ?? [];
 
         if (empty($slugs)) {
-            return new EloquentCollection();
+            return new EloquentCollection;
         }
 
         $tenantId = $this->resolveTenantId();
@@ -341,7 +341,7 @@ class AgentService implements AgentServiceContract
             ->first();
 
         if ($agent === null) {
-            throw new \Illuminate\Database\Eloquent\ModelNotFoundException(
+            throw new ModelNotFoundException(
                 "Agent [{$agentId}] 在当前租户 [{$tenantId}] 下不存在"
             );
         }

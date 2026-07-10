@@ -3,13 +3,13 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Tests\Schema\MfaModule;
 
 class TenantControllerTest extends TestCase
 {
     protected array $uses = [MfaModule::class];
+
     private User $admin;
 
     protected function setUp(): void

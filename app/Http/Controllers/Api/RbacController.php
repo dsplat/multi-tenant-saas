@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use MultiTenantSaas\Services\RbacService;
 use MultiTenantSaas\Services\AuditService;
+use MultiTenantSaas\Services\RbacService;
 
 /**
  * @OA\Tag(
@@ -24,6 +24,7 @@ class RbacController extends Controller
     public function permissions(Request $request)
     {
         $grouped = RbacService::getAllPermissionsGrouped();
+
         return response()->json(['success' => true, 'data' => $grouped]);
     }
 
@@ -35,6 +36,7 @@ class RbacController extends Controller
         $this->ensureTenantAccess($request, $tenantId);
 
         $roles = RbacService::getTenantRoles($tenantId);
+
         return response()->json(['success' => true, 'data' => $roles]);
     }
 
@@ -86,7 +88,7 @@ class RbacController extends Controller
 
         AuditService::log('update', 'role', $roleId, null, ['permission_count' => count($validated['permission_ids'])]);
 
-        return response()->json(['success' => true, 'message' => trans("tenant.role_updated")]);
+        return response()->json(['success' => true, 'message' => trans('tenant.role_updated')]);
     }
 
     /**
@@ -104,7 +106,7 @@ class RbacController extends Controller
 
         AuditService::log('delete', 'role', $roleId, null, ['deleted' => true]);
 
-        return response()->json(['success' => true, 'message' => trans("tenant.role_deleted")]);
+        return response()->json(['success' => true, 'message' => trans('tenant.role_deleted')]);
     }
 
     /**
@@ -125,6 +127,6 @@ class RbacController extends Controller
 
         AuditService::log('update', 'tenant_member', $userId, null, ['role_id' => $validated['role_id']]);
 
-        return response()->json(['success' => true, 'message' => trans("tenant.role_assigned")]);
+        return response()->json(['success' => true, 'message' => trans('tenant.role_assigned')]);
     }
 }

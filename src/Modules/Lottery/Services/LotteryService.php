@@ -2,8 +2,8 @@
 
 namespace MultiTenantSaas\Modules\Lottery\Services;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Modules\Lottery\Models\LotteryActivity;
 use MultiTenantSaas\Modules\Lottery\Models\LotteryActivityPrize;
@@ -60,12 +60,12 @@ class LotteryService
     /**
      * 获取租户活动列表
      */
-    public static function getActivities(int $tenantId, array $filters = []): \Illuminate\Database\Eloquent\Collection
+    public static function getActivities(int $tenantId, array $filters = []): Collection
     {
         $query = LotteryActivity::where('tenant_id', $tenantId)
             ->withCount(['prizes', 'drawLogs']);
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
@@ -125,7 +125,7 @@ class LotteryService
     /**
      * 获取活动奖品列表
      */
-    public static function getPrizes(int $activityId): \Illuminate\Database\Eloquent\Collection
+    public static function getPrizes(int $activityId): Collection
     {
         return LotteryActivityPrize::where('activity_id', $activityId)
             ->orderBy('sort_order')
@@ -325,7 +325,7 @@ class LotteryService
     /**
      * 获取活动黑名单
      */
-    public static function getBlacklist(int $activityId): \Illuminate\Database\Eloquent\Collection
+    public static function getBlacklist(int $activityId): Collection
     {
         return LotteryBlacklist::where('activity_id', $activityId)->get();
     }
@@ -368,7 +368,7 @@ class LotteryService
     /**
      * 获取用户抽奖记录
      */
-    public static function getUserDrawLogs(int $activityId, int $userId): \Illuminate\Database\Eloquent\Collection
+    public static function getUserDrawLogs(int $activityId, int $userId): Collection
     {
         return LotteryDrawLog::where('activity_id', $activityId)
             ->where('user_id', $userId)
@@ -379,7 +379,7 @@ class LotteryService
     /**
      * 获取中奖记录列表
      */
-    public static function getWinLogs(int $activityId, int $limit = 50): \Illuminate\Database\Eloquent\Collection
+    public static function getWinLogs(int $activityId, int $limit = 50): Collection
     {
         return LotteryDrawLog::where('activity_id', $activityId)
             ->where('result', 'win')
@@ -399,16 +399,16 @@ class LotteryService
         $query = LotteryDrawLog::where('activity_id', $activityId)
             ->with(['prize']);
 
-        if (!empty($filters['user_id'])) {
+        if (! empty($filters['user_id'])) {
             $query->where('user_id', $filters['user_id']);
         }
-        if (!empty($filters['result'])) {
+        if (! empty($filters['result'])) {
             $query->where('result', $filters['result']);
         }
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('draw_at', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('draw_at', '<=', $filters['end_date']);
         }
 

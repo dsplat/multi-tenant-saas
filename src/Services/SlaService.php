@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Services;
 
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -107,13 +108,6 @@ class SlaService
 
     /**
      * 记录停机事件（便捷方法）
-     *
-     * @param  \DateTimeInterface|string  $startedAt
-     * @param  \DateTimeInterface|string|null  $endedAt
-     * @param  string  $affectedScope
-     * @param  int  $affectedCount
-     * @param  int|null  $tenantId
-     * @return int
      */
     public function recordDowntime(
         \DateTimeInterface|string $startedAt,
@@ -234,7 +228,7 @@ class SlaService
     public function getSlaCompliance(string $period = self::PERIOD_MONTHLY, ?string $level = null, ?int $tenantId = null): array
     {
         $level = $level ?? (string) config('health.sla.default_level', self::LEVEL_STANDARD);
-        $target = (float) config('health.sla.levels.'.$level, $this->defaultLevels()[$level] ?? 99.9);
+        $target = (float) config('health.sla.levels.' . $level, $this->defaultLevels()[$level] ?? 99.9);
 
         [$from, $to] = $this->periodRange($period);
 
@@ -265,7 +259,7 @@ class SlaService
 
         foreach ($levels as $level => $target) {
             $compliance = $this->getSlaCompliance($period, $level, $tenantId);
-            if (!$compliance['compliant']) {
+            if (! $compliance['compliant']) {
                 $breaches[] = $compliance;
                 $this->triggerBreachAlert($level, (float) $target, $compliance['actual'], $period, $tenantId);
             }
@@ -278,7 +272,6 @@ class SlaService
      * 获取进行中的 SLA 事件
      *
      * @param  int|null  $tenantId  租户 ID
-     * @return Collection
      */
     public function getActiveEvents(?int $tenantId = null): Collection
     {
@@ -297,28 +290,27 @@ class SlaService
      *
      * @param  array{event_type?: string, severity?: string, status?: string, from?: string, to?: string}  $filters
      * @param  int  $perPage  每页条数
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function history(array $filters = [], int $perPage = 20): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function history(array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
         $q = DB::table('sla_events');
 
-        if (!empty($filters['event_type'])) {
+        if (! empty($filters['event_type'])) {
             $q->where('event_type', $filters['event_type']);
         }
-        if (!empty($filters['severity'])) {
+        if (! empty($filters['severity'])) {
             $q->where('severity', $filters['severity']);
         }
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $q->where('status', $filters['status']);
         }
-        if (!empty($filters['from'])) {
+        if (! empty($filters['from'])) {
             $q->where('started_at', '>=', $filters['from']);
         }
-        if (!empty($filters['to'])) {
+        if (! empty($filters['to'])) {
             $q->where('started_at', '<=', $filters['to']);
         }
-        if (!empty($filters['tenant_id'])) {
+        if (! empty($filters['tenant_id'])) {
             $q->where(function ($q) use ($filters) {
                 $q->where('tenant_id', $filters['tenant_id'])->orWhereNull('tenant_id');
             });
@@ -421,7 +413,7 @@ class SlaService
         int $durationSec
     ): void {
         try {
-            $ruleName = 'sla.'.$eventType;
+            $ruleName = 'sla.' . $eventType;
             $message = trans('common.sla_event_triggered', [
                 'type' => $eventType,
                 'scope' => $affectedScope,
@@ -435,7 +427,7 @@ class SlaService
                 'duration_sec' => $durationSec,
             ]);
         } catch (\Throwable $e) {
-            Log::error('[SlaService] alert dispatch failed: '.$e->getMessage());
+            Log::error('[SlaService] alert dispatch failed: ' . $e->getMessage());
         }
     }
 
@@ -460,7 +452,7 @@ class SlaService
                 'tenant_id' => $tenantId,
             ]);
         } catch (\Throwable $e) {
-            Log::error('[SlaService] breach alert failed: '.$e->getMessage());
+            Log::error('[SlaService] breach alert failed: ' . $e->getMessage());
         }
     }
 }

@@ -3,11 +3,11 @@
 namespace MultiTenantSaas\Modules\Platform;
 
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
-use MultiTenantSaas\Services\ExportService;
 use MultiTenantSaas\Services\ApiVersionService;
-use MultiTenantSaas\Services\TenantProfileService;
 use MultiTenantSaas\Services\CostService;
 use MultiTenantSaas\Services\EventBusService;
+use MultiTenantSaas\Services\ExportService;
+use MultiTenantSaas\Services\TenantProfileService;
 
 class PlatformServiceProvider extends ModuleServiceProvider
 {

@@ -2,20 +2,22 @@
 
 namespace MultiTenantSaas\Tests;
 
+use Illuminate\Http\Client\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Mockery;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Models\FileUpload;
 use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Modules\Ai\Services\Ai\Providers\DalleImageProvider;
 use MultiTenantSaas\Services\AiImageService;
-use RuntimeException;
+use MultiTenantSaas\Services\FileService;
 use MultiTenantSaas\Tests\Schema\AiModule;
-use MultiTenantSaas\Tests\Schema\PluginModule;
 use MultiTenantSaas\Tests\Schema\BillingModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
+use RuntimeException;
 
 /**
  * AiImageService 测试套件
@@ -132,7 +134,7 @@ class AiImageServiceTest extends TestCase
 
         $uploaded = new UploadedFile($tempPath, $filename, 'image/png', null, true);
 
-        $file = \MultiTenantSaas\Services\FileService::upload($uploaded, 1001, null, 'general', 'local', false);
+        $file = FileService::upload($uploaded, 1001, null, 'general', 'local', false);
 
         @unlink($tempPath);
 
@@ -218,7 +220,7 @@ class AiImageServiceTest extends TestCase
             'status' => AiRequest::STATUS_SUCCESS,
         ]);
 
-        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+        Http::assertSent(function (Request $request): bool {
             return str_starts_with($request->url(), 'https://api.stability.ai/v2beta/stable-image/generate/sd3')
                 && str_contains((string) $request->body(), 'a futuristic city')
                 && str_contains((string) $request->body(), 'blurry');
@@ -253,7 +255,7 @@ class AiImageServiceTest extends TestCase
         ]);
 
         // 应以 multipart 上传初始图
-        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+        Http::assertSent(function (Request $request): bool {
             return str_starts_with($request->url(), 'https://api.stability.ai/v2beta/stable-image/generate/sdxl')
                 && str_contains((string) $request->body(), 'oil painting style')
                 && $request->hasFile('image');
@@ -303,7 +305,7 @@ class AiImageServiceTest extends TestCase
         $this->assertSame('stability', $result['provider']);
         $this->assertCount(1, $result['images']);
 
-        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+        Http::assertSent(function (Request $request): bool {
             return str_starts_with($request->url(), 'https://api.stability.ai/v2beta/stable-image/edit/inpaint')
                 && $request->hasFile('image')
                 && $request->hasFile('mask');
@@ -328,7 +330,7 @@ class AiImageServiceTest extends TestCase
         $this->assertSame('stability', $result['provider']);
         $this->assertCount(1, $result['images']);
 
-        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+        Http::assertSent(function (Request $request): bool {
             return str_starts_with($request->url(), 'https://api.stability.ai/v2beta/stable-image/generate/sdxl')
                 && str_contains((string) $request->body(), 'van gogh starry night')
                 && $request->hasFile('image');

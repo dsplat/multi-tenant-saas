@@ -2,8 +2,8 @@
 
 namespace MultiTenantSaas\Modules\SSL\Services;
 
-use MultiTenantSaas\Models\Tenant;
 use Carbon\Carbon;
+use MultiTenantSaas\Models\Tenant;
 use RuntimeException;
 
 /**
@@ -36,7 +36,7 @@ class TenantSslService
         $domain = $tenant->custom_domain;
 
         if (! $domain) {
-            throw new RuntimeException(trans("ssl.no_domain"));
+            throw new RuntimeException(trans('ssl.no_domain'));
         }
 
         // 解析证书过期时间
@@ -52,8 +52,8 @@ class TenantSslService
         }
 
         // 规范化 PEM 内容（确保有换行结尾）
-        $certContent = rtrim($certificate)."\n";
-        $keyContent = rtrim($privateKey)."\n";
+        $certContent = rtrim($certificate) . "\n";
+        $keyContent = rtrim($privateKey) . "\n";
 
         $certFile = "{$dir}/{$domain}.crt";
         $keyFile = "{$dir}/{$domain}.key";
@@ -152,7 +152,7 @@ class TenantSslService
 
         $mapContent = implode("\n", [
             '# 自动生成 — 勿手动编辑（由 TenantSslService 生成）',
-            '# 最后更新: '.now()->toDateTimeString(),
+            '# 最后更新: ' . now()->toDateTimeString(),
             '',
             'map $ssl_server_name $ssl_cert_file {',
             "    default  {$defaultCert};",

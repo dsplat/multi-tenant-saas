@@ -8,8 +8,8 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
-use MultiTenantSaas\Contracts\EventHandler;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Contracts\EventHandler;
 use MultiTenantSaas\Models\DeadLetter;
 use MultiTenantSaas\Models\EventSubscription;
 use MultiTenantSaas\Services\WebhookService;
@@ -115,7 +115,7 @@ class DispatchEventJob implements ShouldQueue
         ])->timeout($timeout)->withBody($body, 'application/json')->post($subscription->handler);
 
         if ($response->status() < 200 || $response->status() >= 300) {
-            throw new \RuntimeException('Webhook delivery failed with HTTP status '.$response->status());
+            throw new \RuntimeException('Webhook delivery failed with HTTP status ' . $response->status());
         }
     }
 
@@ -124,10 +124,10 @@ class DispatchEventJob implements ShouldQueue
      */
     protected function sanitizeFailureReason(\Throwable $exception): string
     {
-        $reason = $exception->getMessage()."\n\n".$exception->getTraceAsString();
+        $reason = $exception->getMessage() . "\n\n" . $exception->getTraceAsString();
         $reason = preg_replace('/\/[^\s:)]+\.(php|blade\.php|phtml)/', '[redacted]', $reason);
         $reason = mb_substr($reason, 0, 4096);
-        if (mb_strlen($exception->getMessage()."\n\n".$exception->getTraceAsString()) > 4096) {
+        if (mb_strlen($exception->getMessage() . "\n\n" . $exception->getTraceAsString()) > 4096) {
             $reason .= "\n[truncated]";
         }
 

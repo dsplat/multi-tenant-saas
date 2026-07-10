@@ -38,7 +38,7 @@ class CacheService
     {
         $tenantId = $tenantId ?? (int) (TenantContext::getId() ?? 0);
 
-        return self::TENANT_PREFIX.$tenantId.':'.$key;
+        return self::TENANT_PREFIX . $tenantId . ':' . $key;
     }
 
     /**
@@ -118,7 +118,7 @@ class CacheService
     public function clearTenant(?int $tenantId = null): int
     {
         $tenantId = $tenantId ?? (int) (TenantContext::getId() ?? 0);
-        $prefix = self::TENANT_PREFIX.$tenantId.':';
+        $prefix = self::TENANT_PREFIX . $tenantId . ':';
 
         $cleared = 0;
         if ($this->isRedisDriver()) {
@@ -202,7 +202,7 @@ class CacheService
         }
 
         $tenantId = (int) (TenantContext::getId() ?? 0);
-        $prefix = self::TENANT_PREFIX.$tenantId.':';
+        $prefix = self::TENANT_PREFIX . $tenantId . ':';
 
         $tenantKeys = $this->countRedisPrefix($prefix);
 
@@ -252,7 +252,7 @@ class CacheService
         $cursor = '0';
 
         do {
-            [$cursor, $keys] = $redis->scan($cursor, ['match' => $prefix.'*', 'count' => 200]);
+            [$cursor, $keys] = $redis->scan($cursor, ['match' => $prefix . '*', 'count' => 200]);
             if (! empty($keys)) {
                 $redis->del(...$keys);
                 $cleared += count($keys);
@@ -272,7 +272,7 @@ class CacheService
         $cursor = '0';
 
         do {
-            [$cursor, $keys] = $redis->scan($cursor, ['match' => $prefix.'*', 'count' => 200]);
+            [$cursor, $keys] = $redis->scan($cursor, ['match' => $prefix . '*', 'count' => 200]);
             $count += count($keys);
         } while ($cursor !== '0' && $cursor !== 0);
 

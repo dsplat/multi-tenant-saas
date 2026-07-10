@@ -2,10 +2,10 @@
 
 namespace MultiTenantSaas\Modules\Payment\Services;
 
-use MultiTenantSaas\Models\CreditAccount;
-use MultiTenantSaas\Models\PaymentOrder;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Models\CreditAccount;
+use MultiTenantSaas\Models\PaymentOrder;
 
 /**
  * 支付网关服务
@@ -56,10 +56,10 @@ class PaymentService
         ksort($params);
         $parts = [];
         foreach ($params as $k => $v) {
-            $parts[] = $k.'='.($v === null ? 'null' : $v);
+            $parts[] = $k . '=' . ($v === null ? 'null' : $v);
         }
 
-        return strtoupper(md5(implode('&', $parts).'&key='.$this->password));
+        return strtoupper(md5(implode('&', $parts) . '&key=' . $this->password));
     }
 
     /**
@@ -154,13 +154,13 @@ class PaymentService
         Log::info('MantouPay H5 prepay request', ['trade_no' => $order->out_trade_no, 'amount' => $order->total_fee]);
 
         $resp = Http::asForm()
-            ->post($this->gateway.'/v3/wechat/h5/prepay', $params)
+            ->post($this->gateway . '/v3/wechat/h5/prepay', $params)
             ->json();
 
         Log::info('MantouPay H5 prepay response', ['trade_no' => $order->out_trade_no, 'resp' => $resp]);
 
         if (! ($resp['status'] ?? false)) {
-            throw new \RuntimeException(trans("payment.h5_preorder_failed") . ': ' . ($resp['message'] ?? trans("common.unknown_error")));
+            throw new \RuntimeException(trans('payment.h5_preorder_failed') . ': ' . ($resp['message'] ?? trans('common.unknown_error')));
         }
 
         return $resp['data'];
@@ -210,13 +210,13 @@ class PaymentService
         Log::info('MantouPay Native prepay request', ['trade_no' => $order->out_trade_no, 'amount' => $order->total_fee]);
 
         $resp = Http::asForm()
-            ->post($this->gateway.'/v3/wechat/nativepay', $params)
+            ->post($this->gateway . '/v3/wechat/nativepay', $params)
             ->json();
 
         Log::info('MantouPay Native prepay response', ['trade_no' => $order->out_trade_no, 'resp' => $resp]);
 
         if (! ($resp['status'] ?? false)) {
-            throw new \RuntimeException(trans("payment.native_preorder_failed") . ': ' . ($resp['message'] ?? trans("common.unknown_error")));
+            throw new \RuntimeException(trans('payment.native_preorder_failed') . ': ' . ($resp['message'] ?? trans('common.unknown_error')));
         }
 
         return $resp['data'];
@@ -264,13 +264,13 @@ class PaymentService
         Log::info('MantouPay JSAPI prepay request', ['trade_no' => $order->out_trade_no, 'amount' => $order->total_fee]);
 
         $resp = Http::asForm()
-            ->post($this->gateway.'/v3/wechat/prepay', $params)
+            ->post($this->gateway . '/v3/wechat/prepay', $params)
             ->json();
 
         Log::info('MantouPay JSAPI prepay response', ['trade_no' => $order->out_trade_no, 'resp' => $resp]);
 
         if (! ($resp['status'] ?? false)) {
-            throw new \RuntimeException(trans("payment.jsapi_preorder_failed") . ': ' . ($resp['message'] ?? trans("common.unknown_error")));
+            throw new \RuntimeException(trans('payment.jsapi_preorder_failed') . ': ' . ($resp['message'] ?? trans('common.unknown_error')));
         }
 
         return $resp['data'];
@@ -352,11 +352,11 @@ class PaymentService
         unset($params['sign']);
 
         ksort($params);
-        $str = urldecode(http_build_query($params)).'&key='.$this->password;
+        $str = urldecode(http_build_query($params)) . '&key=' . $this->password;
         $localSign = strtoupper(md5($str));
 
         if ($sign !== $localSign) {
-            throw new \RuntimeException(trans("payment.signature_invalid"));
+            throw new \RuntimeException(trans('payment.signature_invalid'));
         }
 
         return $params;
@@ -406,7 +406,7 @@ class PaymentService
      */
     public function queryOrder(string $tradeNo): ?array
     {
-        $resp = Http::get($this->gateway.'/check/order', [
+        $resp = Http::get($this->gateway . '/check/order', [
             'out_trade_no' => $tradeNo,
         ])->json();
 

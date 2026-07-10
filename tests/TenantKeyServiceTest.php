@@ -2,10 +2,10 @@
 
 namespace MultiTenantSaas\Tests;
 
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantKey;
 use MultiTenantSaas\Services\TenantKeyService;
@@ -29,7 +29,7 @@ class TenantKeyServiceTest extends TestCase
         Tenant::create(['tenant_id' => 1001, 'name' => 'Tenant A', 'slug' => 'tenant-a', 'status' => 'active']);
         Tenant::create(['tenant_id' => 1002, 'name' => 'Tenant B', 'slug' => 'tenant-b', 'status' => 'active']);
 
-        $this->service = new TenantKeyService();
+        $this->service = new TenantKeyService;
     }
 
     public function test_can_generate_key(): void

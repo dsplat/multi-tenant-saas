@@ -19,7 +19,9 @@ class BroadcastingServiceTest extends TestCase
     protected array $uses = [EventModule::class];
 
     private BroadcastingService $service;
+
     private int $tenantId = 1001;
+
     private int $userId = 5001;
 
     protected function setUp(): void

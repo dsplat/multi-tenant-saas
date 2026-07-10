@@ -2,8 +2,8 @@
 
 namespace MultiTenantSaas\Modules\Coupon\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Modules\Coupon\Models\Coupon;

@@ -129,11 +129,11 @@ class Client
     private function buildUrl(string $path, array $query): string
     {
         $prefix = $this->options['api_prefix'] ?? self::DEFAULT_API_PREFIX;
-        $normalizedPath = '/'.ltrim($path, '/');
-        $url = rtrim($this->baseUrl, '/').$prefix.$normalizedPath;
+        $normalizedPath = '/' . ltrim($path, '/');
+        $url = rtrim($this->baseUrl, '/') . $prefix . $normalizedPath;
 
         if (! empty($query)) {
-            $url .= '?'.http_build_query($query);
+            $url .= '?' . http_build_query($query);
         }
 
         return $url;
@@ -147,7 +147,7 @@ class Client
     private function buildHeaders(): array
     {
         return [
-            'Authorization' => 'Bearer '.$this->apiKey,
+            'Authorization' => 'Bearer ' . $this->apiKey,
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
             'User-Agent' => 'MultiTenantSaas-PHP-SDK/1.0',
@@ -192,7 +192,7 @@ class Client
                 return $response;
             }
 
-            $lastError = $response['error'] ?? ('HTTP '.$response['status']);
+            $lastError = $response['error'] ?? ('HTTP ' . $response['status']);
 
             if ($attempt < $maxRetries) {
                 // 退避延迟（毫秒 -> 微秒）
@@ -250,7 +250,7 @@ class Client
     {
         $headerLines = [];
         foreach ($headers as $name => $value) {
-            $headerLines[] = $name.': '.$value;
+            $headerLines[] = $name . ': ' . $value;
         }
 
         $ch = curl_init($url);

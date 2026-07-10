@@ -17,7 +17,7 @@ class ConfirmNodeTest extends TestCase
     {
         parent::setUp();
 
-        $this->confirmNode = new ConfirmNode();
+        $this->confirmNode = new ConfirmNode;
     }
 
     public function test_execute_with_no_confirmation_sets_pending(): void

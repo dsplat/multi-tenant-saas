@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Services;
 
 use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
@@ -32,7 +33,7 @@ class BroadcastingService
      */
     public function tenantChannel(int $tenantId): string
     {
-        return self::CHANNEL_PREFIX.'.'.$tenantId;
+        return self::CHANNEL_PREFIX . '.' . $tenantId;
     }
 
     /**
@@ -40,7 +41,7 @@ class BroadcastingService
      */
     public function userChannel(int $tenantId, int $userId): string
     {
-        return self::CHANNEL_PREFIX.'.'.$tenantId.'.'.$userId;
+        return self::CHANNEL_PREFIX . '.' . $tenantId . '.' . $userId;
     }
 
     /**
@@ -178,9 +179,9 @@ class BroadcastingService
     /**
      * 查询当前租户广播事件历史（受 TenantScope 自动隔离）
      *
-     * @return \Illuminate\Support\Collection<int,BroadcastEvent>
+     * @return Collection<int,BroadcastEvent>
      */
-    public function getHistory(?string $eventType = null, int $limit = 100): \Illuminate\Support\Collection
+    public function getHistory(?string $eventType = null, int $limit = 100): Collection
     {
         $limit = min(max($limit, 1), 500);
 
@@ -214,7 +215,7 @@ class BroadcastingService
         $record = BroadcastEvent::create([
             'tenant_id' => $tenantId,
             'event_type' => $eventType,
-            'channel' => 'private-'.$channel,
+            'channel' => 'private-' . $channel,
             'payload' => $payload,
             'is_sent' => false,
         ]);

@@ -51,7 +51,7 @@ class VotingService
                 'metadata' => $data['metadata'] ?? null,
             ]);
 
-            if (!empty($data['options'])) {
+            if (! empty($data['options'])) {
                 $this->saveOptions($vote->getKey(), $data['options']);
             }
 
@@ -92,13 +92,13 @@ class VotingService
     /**
      * 投票
      *
-     * @param  int     $voteId      投票ID
-     * @param  array   $optionIds   选项ID列表
-     * @param  int     $userId      用户ID
-     * @param  int     $tenantId    租户ID
-     * @param  string|null $ipAddress    IP地址
-     * @param  string|null $userAgent    用户代理
-     * @param  string|null $fingerprint  设备指纹（防刷票）
+     * @param  int  $voteId  投票ID
+     * @param  array  $optionIds  选项ID列表
+     * @param  int  $userId  用户ID
+     * @param  int  $tenantId  租户ID
+     * @param  string|null  $ipAddress  IP地址
+     * @param  string|null  $userAgent  用户代理
+     * @param  string|null  $fingerprint  设备指纹（防刷票）
      */
     public function castVote(int $voteId, array $optionIds, int $userId, int $tenantId, ?string $ipAddress = null, ?string $userAgent = null, ?string $fingerprint = null): Collection
     {
@@ -230,7 +230,7 @@ class VotingService
         // 检查选项是否属于该投票
         $validOptionIds = $vote->options->pluck('vote_option_id')->toArray();
         foreach ($optionIds as $optionId) {
-            if (!in_array((int) $optionId, $validOptionIds)) {
+            if (! in_array((int) $optionId, $validOptionIds)) {
                 throw new \RuntimeException(trans('voting.vote_invalid_option'));
             }
         }
@@ -333,10 +333,10 @@ class VotingService
     {
         $query = VoteRecord::where('vote_id', $voteId)->with('option');
 
-        if (!empty($filters['user_id'])) {
+        if (! empty($filters['user_id'])) {
             $query->where('user_id', $filters['user_id']);
         }
-        if (!empty($filters['option_id'])) {
+        if (! empty($filters['option_id'])) {
             $query->where('vote_option_id', $filters['option_id']);
         }
 

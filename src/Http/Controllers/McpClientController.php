@@ -17,7 +17,7 @@ class McpClientController extends Controller
      */
     public function index(): JsonResponse
     {
-        if (!RbacService::check('mcp_client.view')) {
+        if (! RbacService::check('mcp_client.view')) {
             abort(403);
         }
 
@@ -36,7 +36,7 @@ class McpClientController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        if (!RbacService::check('mcp_client.view')) {
+        if (! RbacService::check('mcp_client.view')) {
             abort(403);
         }
 
@@ -53,7 +53,7 @@ class McpClientController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        if (!RbacService::check('mcp_client.create')) {
+        if (! RbacService::check('mcp_client.create')) {
             abort(403);
         }
 
@@ -77,7 +77,7 @@ class McpClientController extends Controller
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        if (!RbacService::check('mcp_client.update')) {
+        if (! RbacService::check('mcp_client.update')) {
             abort(403);
         }
 
@@ -103,7 +103,7 @@ class McpClientController extends Controller
      */
     public function destroy(int $id): JsonResponse
     {
-        if (!RbacService::check('mcp_client.delete')) {
+        if (! RbacService::check('mcp_client.delete')) {
             abort(403);
         }
 

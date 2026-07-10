@@ -9,20 +9,29 @@ use RuntimeException;
 class McpException extends RuntimeException
 {
     public const PARSE_ERROR = -32700;
+
     public const INVALID_REQUEST = -32600;
+
     public const METHOD_NOT_FOUND = -32601;
+
     public const INVALID_PARAMS = -32602;
+
     public const INTERNAL_ERROR = -32603;
 
     public const SERVER_ERROR_MIN = -32000;
+
     public const SERVER_ERROR_MAX = -32099;
 
     public const TOOL_NOT_FOUND = -31000;
+
     public const TENANT_UNAUTHORIZED = -31001;
+
     public const RATE_LIMITED = -31002;
+
     public const TOOL_EXECUTION_FAILED = -31003;
 
     protected int $errorCode;
+
     protected mixed $errorData;
 
     public function __construct(

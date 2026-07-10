@@ -4,9 +4,7 @@ namespace MultiTenantSaas\Services;
 
 use Illuminate\Support\Collection;
 use MultiTenantSaas\Models\SubscriptionPlan;
-use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\UsageRecord;
-use MultiTenantSaas\Services\RateLimitService;
 use MultiTenantSaas\Services\Traits\ResolvesPlan;
 
 /**
@@ -27,6 +25,7 @@ use MultiTenantSaas\Services\Traits\ResolvesPlan;
 class UsageService
 {
     use ResolvesPlan;
+
     /**
      * 记录用量
      *
@@ -163,8 +162,6 @@ class UsageService
 
         return $service->dynamicLimit($baseLimit);
     }
-
-
 
     /**
      * 评估简单限额规则

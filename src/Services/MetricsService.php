@@ -2,10 +2,13 @@
 
 namespace MultiTenantSaas\Services;
 
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Models\MetricsSnapshot;
 
 /**
@@ -134,7 +137,6 @@ class MetricsService
      * 获取 QPS（每秒请求数）
      *
      * @param  int  $lastSeconds  时间窗口（秒）
-     * @return float
      */
     public function getQps(int $lastSeconds = 60): float
     {
@@ -155,7 +157,6 @@ class MetricsService
      * 获取错误率（百分比）
      *
      * @param  int  $lastSeconds  时间窗口（秒）
-     * @return float
      */
     public function getErrorRate(int $lastSeconds = 60): float
     {
@@ -170,7 +171,7 @@ class MetricsService
         foreach ($samples as $s) {
             if (isset($s['at']) && strtotime($s['at']) >= $cutoff->timestamp) {
                 $total++;
-                if (!empty($s['is_error'])) {
+                if (! empty($s['is_error'])) {
                     $errors++;
                 }
             }
@@ -192,7 +193,7 @@ class MetricsService
      */
     public function getActiveUsers(int $lastMinutes = 5): int
     {
-        if (!\Illuminate\Support\Facades\Schema::hasTable('user_sessions')) {
+        if (! Schema::hasTable('user_sessions')) {
             return 0;
         }
 
@@ -206,7 +207,7 @@ class MetricsService
      * 获取 API 端点调用分布
      *
      * @param  int  $lastMinutes  时间窗口（分钟）
-     * @return array<string,int>  endpoint => count
+     * @return array<string,int> endpoint => count
      */
     public function getEndpointDistribution(int $lastMinutes = 5): array
     {
@@ -238,7 +239,7 @@ class MetricsService
      */
     public function aggregate(string $fromGranularity, string $toGranularity, \DateTimeInterface|string $periodStart): int
     {
-        $periodStart = is_string($periodStart) ? \Illuminate\Support\Carbon::parse($periodStart) : $periodStart;
+        $periodStart = is_string($periodStart) ? Carbon::parse($periodStart) : $periodStart;
         $end = $this->endOfGranularity($toGranularity, $periodStart);
 
         return DB::transaction(function () use ($fromGranularity, $toGranularity, $periodStart, $end) {
@@ -315,7 +316,7 @@ class MetricsService
         ?string $dimensionValue = null,
         bool $aggregated = false
     ): int {
-        $sampledAt = $sampledAt ? \Illuminate\Support\Carbon::parse($sampledAt) : now();
+        $sampledAt = $sampledAt ? Carbon::parse($sampledAt) : now();
 
         $data = [
             'tenant_id' => $tenantId,
@@ -331,7 +332,7 @@ class MetricsService
         ];
 
         // 通过 IdGenerator 生成 16 位主键
-        $id = app(\MultiTenantSaas\Contracts\IdGeneratorContract::class)->generate();
+        $id = app(IdGeneratorContract::class)->generate();
         $data['metrics_snapshot_id'] = $id;
 
         DB::table('metrics_snapshots')->insert($data);
@@ -345,7 +346,6 @@ class MetricsService
      * @param  string  $metric  指标名
      * @param  string  $granularity  粒度
      * @param  int  $lastPoints  返回点数
-     * @return Collection
      */
     public function getSeries(string $metric, string $granularity, int $lastPoints = 60): Collection
     {
@@ -409,7 +409,7 @@ class MetricsService
                 continue;
             }
             $count += $this->storeSnapshot(
-                metric: 'latency_'.$name,
+                metric: 'latency_' . $name,
                 value: (float) $val,
                 granularity: MetricsSnapshot::GRANULARITY_MINUTE,
                 sampledAt: $sampledAt,
@@ -514,9 +514,10 @@ class MetricsService
     /**
      * 计算指定粒度周期的结束时间
      */
-    protected function endOfGranularity(string $granularity, \DateTimeInterface $start): \Illuminate\Support\Carbon
+    protected function endOfGranularity(string $granularity, \DateTimeInterface $start): Carbon
     {
-        $start = \Illuminate\Support\Carbon::instance($start);
+        $start = Carbon::instance($start);
+
         return match ($granularity) {
             MetricsSnapshot::GRANULARITY_HOUR => $start->copy()->addHour(),
             MetricsSnapshot::GRANULARITY_DAY => $start->copy()->addDay(),
@@ -529,7 +530,6 @@ class MetricsService
      * 读取缓存中的请求样本
      *
      * @param  int|null  $tenantId  NULL 表示系统级聚合窗口
-     * @return array
      */
     protected function readSamples(?int $tenantId): array
     {
@@ -587,7 +587,7 @@ class MetricsService
     {
         // 缓存驱动为 array/database/file 时无法枚举，回退到已知租户表
         $tenantIds = [];
-        if (\Illuminate\Support\Facades\Schema::hasTable('tenants')) {
+        if (Schema::hasTable('tenants')) {
             $q = DB::table('tenants')->where('status', 'active');
             if ($lastMinutes !== null) {
                 $q->where('updated_at', '>=', now()->subMinutes($lastMinutes));

@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Services\Channel;
 
-use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\ChannelContract;
-use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\DTOs\MessageDTO;
 use MultiTenantSaas\Services\IdGenerator;
 
@@ -34,7 +32,7 @@ class MessageRouter
     {
         $provider = $this->channels[$channelType] ?? null;
 
-        if (!$provider instanceof ChannelContract) {
+        if (! $provider instanceof ChannelContract) {
             throw new \InvalidArgumentException("Channel provider not found: {$channelType}");
         }
 

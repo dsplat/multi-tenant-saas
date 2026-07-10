@@ -11,16 +11,19 @@ use MultiTenantSaas\Models\ReadState;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Modules\Conversation\Services\TimelineService;
-use MultiTenantSaas\Tests\TestCase;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
+use MultiTenantSaas\Tests\TestCase;
 
 class TimelineServiceTest extends TestCase
 {
     protected array $uses = [ChannelModule::class];
 
     private TimelineService $service;
+
     private int $tenantId = 1001;
+
     private int $senderId = 2001;
+
     private string $conversationId;
 
     protected function setUp(): void

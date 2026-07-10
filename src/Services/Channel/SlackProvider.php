@@ -14,6 +14,7 @@ use MultiTenantSaas\Models\TenantSetting;
 class SlackProvider implements ChannelContract
 {
     protected string $botToken;
+
     protected SlackSignatureValidator $signatureValidator;
 
     public function __construct(
@@ -44,7 +45,7 @@ class SlackProvider implements ChannelContract
             ];
         }
 
-        if ($type === 'event_callback' && !empty($event)) {
+        if ($type === 'event_callback' && ! empty($event)) {
             return [
                 'conversation_id' => $event['channel'] ?? '',
                 'message_id' => $event['ts'] ?? '',
@@ -74,7 +75,7 @@ class SlackProvider implements ChannelContract
         $tenantId = TenantContext::getId();
         $token = $this->resolveBotToken($tenantId);
 
-        if (!$this->ensureTokenAvailable($token, $tenantId)) {
+        if (! $this->ensureTokenAvailable($token, $tenantId)) {
             return false;
         }
 
@@ -89,7 +90,7 @@ class SlackProvider implements ChannelContract
             ->asJson()
             ->post('https://slack.com/api/chat.postMessage', $payload);
 
-        if (!$response->successful() || !($response->json('ok') ?? false)) {
+        if (! $response->successful() || ! ($response->json('ok') ?? false)) {
             Log::error('SlackProvider: failed to send message', [
                 'tenant_id' => $tenantId,
                 'conversation_id' => $conversationId,
@@ -107,7 +108,7 @@ class SlackProvider implements ChannelContract
         $tenantId = TenantContext::getId();
         $token = $this->resolveBotToken($tenantId);
 
-        if (!$this->ensureTokenAvailable($token, $tenantId)) {
+        if (! $this->ensureTokenAvailable($token, $tenantId)) {
             return [];
         }
 
@@ -123,7 +124,7 @@ class SlackProvider implements ChannelContract
             $response = Http::withToken($token)
                 ->get('https://slack.com/api/conversations.members', $params);
 
-            if (!$response->successful() || !($response->json('ok') ?? false)) {
+            if (! $response->successful() || ! ($response->json('ok') ?? false)) {
                 Log::error('SlackProvider: failed to get participants', [
                     'tenant_id' => $tenantId,
                     'conversation_id' => $conversationId,
@@ -163,7 +164,7 @@ class SlackProvider implements ChannelContract
             'num_members' => 0,
         ];
 
-        if (!$this->ensureTokenAvailable($token, $tenantId)) {
+        if (! $this->ensureTokenAvailable($token, $tenantId)) {
             return $emptyInfo;
         }
 
@@ -172,7 +173,7 @@ class SlackProvider implements ChannelContract
                 'channel' => $conversationId,
             ]);
 
-        if (!$response->successful() || !($response->json('ok') ?? false)) {
+        if (! $response->successful() || ! ($response->json('ok') ?? false)) {
             Log::error('SlackProvider: failed to get conversation info', [
                 'tenant_id' => $tenantId,
                 'conversation_id' => $conversationId,

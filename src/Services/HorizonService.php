@@ -2,6 +2,8 @@
 
 namespace MultiTenantSaas\Services;
 
+use Laravel\Horizon\Horizon;
+
 /**
  * 队列监控服务
  *
@@ -17,13 +19,13 @@ class HorizonService
      */
     public static function getStatus(): array
     {
-        if (!class_exists(\Laravel\Horizon\Horizon::class)) {
+        if (! class_exists(Horizon::class)) {
             return ['status' => 'not_installed'];
         }
 
         return [
             'status' => 'installed',
-            'version' => \Laravel\Horizon\Horizon::version(),
+            'version' => Horizon::version(),
         ];
     }
 
@@ -32,11 +34,11 @@ class HorizonService
      */
     public static function getStats(): array
     {
-        if (!class_exists(\Laravel\Horizon\Horizon::class)) {
+        if (! class_exists(Horizon::class)) {
             return [];
         }
 
-        $stats = \Laravel\Horizon\Horizon::stats();
+        $stats = Horizon::stats();
 
         return [
             'jobs_per_minute' => $stats->jobsPerMinute ?? 0,

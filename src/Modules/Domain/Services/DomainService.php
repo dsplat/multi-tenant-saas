@@ -2,10 +2,10 @@
 
 namespace MultiTenantSaas\Modules\Domain\Services;
 
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantSetting;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Models\TenantSetting;
 
 class DomainService
 {
@@ -47,7 +47,7 @@ class DomainService
 
         if ($existing) {
             throw ValidationException::withMessages([
-                'domain' => trans("domain.already_used"),
+                'domain' => trans('domain.already_used'),
             ]);
         }
 
@@ -64,7 +64,7 @@ class DomainService
         $tenant = Tenant::findOrFail($tenantId);
 
         if (empty($tenant->custom_domain)) {
-            throw new \RuntimeException(trans("domain.not_configured"));
+            throw new \RuntimeException(trans('domain.not_configured'));
         }
 
         TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'domain_status', self::STATUS_APPROVED);
@@ -82,7 +82,7 @@ class DomainService
 
     public function verifyIcp(int $tenantId): bool
     {
-        if (!config('domain.icp_check_enabled', false)) {
+        if (! config('domain.icp_check_enabled', false)) {
             return true;
         }
 

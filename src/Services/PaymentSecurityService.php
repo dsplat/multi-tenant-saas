@@ -198,7 +198,7 @@ class PaymentSecurityService
                 'created_at' => now(),
             ]);
         } catch (\Throwable $e) {
-            Log::warning('[PaymentSecurityService] log attempt failed: '.$e->getMessage());
+            Log::warning('[PaymentSecurityService] log attempt failed: ' . $e->getMessage());
         }
     }
 
@@ -213,12 +213,12 @@ class PaymentSecurityService
     {
         try {
             app(StructuredLogService::class)->security(
-                'payment.'.$event,
+                'payment.' . $event,
                 array_merge(['user_id' => $userId], $context),
                 $userId
             );
         } catch (\Throwable $e) {
-            Log::warning('[PaymentSecurityService] security log failed: '.$e->getMessage());
+            Log::warning('[PaymentSecurityService] security log failed: ' . $e->getMessage());
         }
     }
 
@@ -265,7 +265,7 @@ class PaymentSecurityService
     public function dailyReport(int $tenantId, string $fromDate, string $toDate): Collection
     {
         return PaymentOrder::where('tenant_id', $tenantId)
-            ->whereBetween('created_at', [$fromDate.' 00:00:00', $toDate.' 23:59:59'])
+            ->whereBetween('created_at', [$fromDate . ' 00:00:00', $toDate . ' 23:59:59'])
             ->selectRaw('DATE(created_at) as date, driver, status, COUNT(*) as count, SUM(amount) as total')
             ->groupBy('date', 'driver', 'status')
             ->orderByDesc('date')

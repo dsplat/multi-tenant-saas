@@ -22,6 +22,7 @@ class LogEventListener
      * 仅在事务提交后执行，避免回滚时记录幽灵状态
      */
     public bool $afterCommit = true;
+
     public function handleTenantCreated(TenantCreated $event): void
     {
         Log::info('Tenant created', ['tenant_id' => $event->tenant->tenant_id]);

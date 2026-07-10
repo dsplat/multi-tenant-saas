@@ -136,7 +136,7 @@ class ApiVersionService
         if ($headerVersion) {
             $num = ltrim($headerVersion, 'vV');
 
-            return 'v'.$num;
+            return 'v' . $num;
         }
 
         return config('tenancy.api_default_version', 'v1');
@@ -180,7 +180,7 @@ class ApiVersionService
     public function isCompatible(string $route, string $version): bool
     {
         $routeCollection = Route::getRoutes();
-        $targetRoute = "api/{$version}/".ltrim($route, '/');
+        $targetRoute = "api/{$version}/" . ltrim($route, '/');
 
         return $routeCollection->has($targetRoute);
     }

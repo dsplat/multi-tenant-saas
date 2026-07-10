@@ -10,17 +10,21 @@ use MultiTenantSaas\Models\Participant;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Modules\Conversation\Services\ParticipantService;
-use MultiTenantSaas\Tests\TestCase;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
+use MultiTenantSaas\Tests\TestCase;
 
 class ParticipantServiceTest extends TestCase
 {
     protected array $uses = [ChannelModule::class];
 
     private ParticipantService $service;
+
     private int $tenantId = 1001;
+
     private int $userA = 2001;
+
     private int $userB = 2002;
+
     private string $conversationId;
 
     protected function setUp(): void

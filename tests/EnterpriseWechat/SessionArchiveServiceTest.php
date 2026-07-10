@@ -8,14 +8,15 @@ use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\EnterpriseWechat\ArchiveDecryptor;
 use MultiTenantSaas\EnterpriseWechat\SessionArchiveService;
 use MultiTenantSaas\Models\ArchivedMessage;
-use MultiTenantSaas\Tests\TestCase;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
+use MultiTenantSaas\Tests\TestCase;
 
 class SessionArchiveServiceTest extends TestCase
 {
     protected array $uses = [ChannelModule::class];
 
     private string $encodingAesKey;
+
     private string $aesKey;
 
     protected function setUp(): void

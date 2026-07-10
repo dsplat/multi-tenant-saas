@@ -4,12 +4,12 @@ namespace MultiTenantSaas\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use MultiTenantSaas\Concerns\HasGlobalId;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use MultiTenantSaas\Concerns\HasGlobalId;
 
 class Permission extends Model
 {
-    use HasGlobalId, HasFactory;
+    use HasFactory, HasGlobalId;
 
     protected $primaryKey = 'permission_id';
 

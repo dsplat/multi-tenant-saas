@@ -2,9 +2,10 @@
 
 namespace MultiTenantSaas\Services;
 
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Collection;
 use MultiTenantSaas\Models\DataRetentionPolicy;
 
 /**
@@ -81,7 +82,6 @@ class RetentionService
      *
      * @param  string  $dataType  数据类型
      * @param  int|null  $tenantId  租户 ID（null 表示系统级）
-     * @return DataRetentionPolicy|null
      */
     public function getPolicy(string $dataType, ?int $tenantId = null): ?DataRetentionPolicy
     {
@@ -109,7 +109,6 @@ class RetentionService
      * @param  string  $cleanupStrategy  清理策略（delete/anonymize）
      * @param  int|null  $tenantId  租户 ID（null 表示系统级）
      * @param  string|null  $description  描述
-     * @return DataRetentionPolicy
      */
     public function createOrUpdatePolicy(
         string $dataType,
@@ -172,7 +171,6 @@ class RetentionService
      *
      * @param  int  $policyId  策略 ID
      * @param  bool  $exempt  是否豁免
-     * @return DataRetentionPolicy|null
      */
     public function markExempt(int $policyId, bool $exempt = true): ?DataRetentionPolicy
     {
@@ -192,7 +190,6 @@ class RetentionService
      * 检查策略是否豁免
      *
      * @param  int  $policyId  策略 ID
-     * @return bool
      */
     public function isExempt(int $policyId): bool
     {
@@ -343,9 +340,8 @@ class RetentionService
      *
      * @param  DataRetentionPolicy  $policy  保留策略
      * @param  array{table: string, date_field: string, anonymize_fields: array<int, string>}  $config  数据类型配置
-     * @return \Illuminate\Database\Query\Builder
      */
-    protected function buildExpiredQuery(DataRetentionPolicy $policy, array $config): \Illuminate\Database\Query\Builder
+    protected function buildExpiredQuery(DataRetentionPolicy $policy, array $config): Builder
     {
         $query = DB::table($config['table'])
             ->where($config['date_field'], '<', $policy->cutoffDate());

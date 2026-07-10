@@ -485,7 +485,7 @@ class AiTextService
         }
 
         foreach ($variables as $key => $value) {
-            $pattern = '/\{\{\s*'.preg_quote((string) $key, '/').'\s*\}\}/';
+            $pattern = '/\{\{\s*' . preg_quote((string) $key, '/') . '\s*\}\}/';
             $template = (string) preg_replace($pattern, (string) $value, $template);
         }
 

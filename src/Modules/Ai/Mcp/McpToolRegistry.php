@@ -36,7 +36,7 @@ abstract class McpToolRegistry
      */
     protected function ensureInitialized(): void
     {
-        if (!$this->initialized) {
+        if (! $this->initialized) {
             $this->registerTools();
             $this->initialized = true;
         }
@@ -45,10 +45,10 @@ abstract class McpToolRegistry
     /**
      * 注册一个工具
      *
-     * @param  string  $name         工具名称（唯一标识）
+     * @param  string  $name  工具名称（唯一标识）
      * @param  string  $description  工具描述
-     * @param  array   $inputSchema  JSON Schema 格式的参数定义
-     * @param  Closure $handler      工具回调，签名：function(array $params): mixed
+     * @param  array  $inputSchema  JSON Schema 格式的参数定义
+     * @param  Closure  $handler  工具回调，签名：function(array $params): mixed
      * @return $this
      *
      * @throws McpException 当工具名已存在时抛出
@@ -64,10 +64,10 @@ abstract class McpToolRegistry
         }
 
         $this->tools[$name] = [
-            'name'        => $name,
+            'name' => $name,
             'description' => $description,
             'inputSchema' => $inputSchema,
-            'handler'     => $handler,
+            'handler' => $handler,
         ];
 
         return $this;
@@ -86,7 +86,7 @@ abstract class McpToolRegistry
 
         foreach ($this->tools as $tool) {
             $result[] = [
-                'name'        => $tool['name'],
+                'name' => $tool['name'],
                 'description' => $tool['description'],
                 'inputSchema' => $tool['inputSchema'],
             ];
@@ -98,9 +98,9 @@ abstract class McpToolRegistry
     /**
      * 调用指定工具
      *
-     * @param  string $name   工具名称
-     * @param  array  $params 传入工具的参数
-     * @return mixed  工具执行结果
+     * @param  string  $name  工具名称
+     * @param  array  $params  传入工具的参数
+     * @return mixed 工具执行结果
      *
      * @throws McpException 工具不存在时抛出
      */
@@ -108,7 +108,7 @@ abstract class McpToolRegistry
     {
         $this->ensureInitialized();
 
-        if (!isset($this->tools[$name])) {
+        if (! isset($this->tools[$name])) {
             throw McpException::methodNotFound("Tool [{$name}] not found.");
         }
 

@@ -4,24 +4,27 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Tests;
 
+use Illuminate\Support\Collection;
+use MultiTenantSaas\Contracts\ToolRegistryContract;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Dto\Tool;
 use MultiTenantSaas\Modules\Workflow\Services\Nodes\ActionNode;
-use MultiTenantSaas\Modules\Workflow\Services\Nodes\ConditionNode;
-use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
 use MultiTenantSaas\Tests\Schema\AgentModule;
 use MultiTenantSaas\Tests\Schema\WorkflowModule;
+use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
 
 class ActionNodeTest extends TestCase
 {
     protected array $uses = [AgentModule::class, WorkflowModule::class];
 
     private FakeToolRegistry $toolRegistry;
+
     private ActionNode $actionNode;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->toolRegistry = new FakeToolRegistry();
+        $this->toolRegistry = new FakeToolRegistry;
         $this->actionNode = new ActionNode($this->toolRegistry);
     }
 
@@ -109,21 +112,59 @@ class ActionNodeTest extends TestCase
 
     public function test_execute_with_tool_error_stores_error(): void
     {
-        $failingRegistry = new class implements \MultiTenantSaas\Contracts\ToolRegistryContract {
+        $failingRegistry = new class implements ToolRegistryContract
+        {
             public function register(string $slug, string $name, string $description, string $handlerClass, array $schema, string $category = 'core'): void {}
-            public function all(): \Illuminate\Support\Collection { return collect(); }
-            public function get(string $slug): ?\MultiTenantSaas\Modules\Ai\Services\Agent\Dto\Tool { return null; }
-            public function getToolDefinitions(array $slugs): array { return []; }
+
+            public function all(): Collection
+            {
+                return collect();
+            }
+
+            public function get(string $slug): ?Tool
+            {
+                return null;
+            }
+
+            public function getToolDefinitions(array $slugs): array
+            {
+                return [];
+            }
+
             public function execute(string $slug, array $arguments, int $tenantId): mixed
             {
                 throw new \RuntimeException('Tool execution failed');
             }
-            public function isAvailable(string $slug, int $tenantId): bool { return true; }
-            public function getByCategory(string $category): \Illuminate\Support\Collection { return collect(); }
-            public function getCategories(): array { return []; }
-            public function getCategoryCounts(): array { return []; }
-            public function getFrameworkTools(): \Illuminate\Support\Collection { return collect(); }
-            public function getBusinessTools(): \Illuminate\Support\Collection { return collect(); }
+
+            public function isAvailable(string $slug, int $tenantId): bool
+            {
+                return true;
+            }
+
+            public function getByCategory(string $category): Collection
+            {
+                return collect();
+            }
+
+            public function getCategories(): array
+            {
+                return [];
+            }
+
+            public function getCategoryCounts(): array
+            {
+                return [];
+            }
+
+            public function getFrameworkTools(): Collection
+            {
+                return collect();
+            }
+
+            public function getBusinessTools(): Collection
+            {
+                return collect();
+            }
         };
 
         $actionNode = new ActionNode($failingRegistry);

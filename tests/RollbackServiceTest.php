@@ -6,22 +6,23 @@ namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Modules\Workflow\Models\WorkflowExecution;
 use MultiTenantSaas\Modules\Workflow\Services\RollbackService;
-use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
-use MultiTenantSaas\Tests\Schema\WorkflowModule;
 use MultiTenantSaas\Tests\Schema\AgentModule;
+use MultiTenantSaas\Tests\Schema\WorkflowModule;
+use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
 
 class RollbackServiceTest extends TestCase
 {
     protected array $uses = [AgentModule::class, WorkflowModule::class];
 
     private FakeToolRegistry $toolRegistry;
+
     private RollbackService $rollbackService;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->toolRegistry = new FakeToolRegistry();
+        $this->toolRegistry = new FakeToolRegistry;
         $this->rollbackService = new RollbackService($this->toolRegistry);
     }
 

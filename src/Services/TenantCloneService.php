@@ -4,11 +4,12 @@ namespace MultiTenantSaas\Services;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
 use MultiTenantSaas\Models\BrandingConfig;
+use MultiTenantSaas\Models\Permission;
 use MultiTenantSaas\Models\Role;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantSetting;
+use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
 use MultiTenantSaas\Scopes\TenantScope;
 use RuntimeException;
 
@@ -36,11 +37,11 @@ class TenantCloneService
      * 4. 复制 BrandingConfig（若启用 clone_branding）
      * 5. 复制 AiTenantConfig（若启用 clone_ai_config，排除敏感字段）
      *
-     * @param  int                                  $sourceTenantId  模板租户 ID
-     * @param  array{name:string,slug?:string,subscription_plan?:string} $targetBasic 新租户基础信息
+     * @param  int  $sourceTenantId  模板租户 ID
+     * @param  array{name:string,slug?:string,subscription_plan?:string}  $targetBasic  新租户基础信息
      * @return Tenant 新建的租户实例
      *
-     * @throws \RuntimeException 源租户不存在或目标 slug 已被占用时抛出
+     * @throws RuntimeException 源租户不存在或目标 slug 已被占用时抛出
      */
     public function createFromTemplate(int $sourceTenantId, array $targetBasic): Tenant
     {
@@ -138,8 +139,9 @@ class TenantCloneService
      * 导入快照到目标租户
      *
      * @param  array  $snapshot  快照数据（来自 exportSnapshot）
-     * @param  int    $targetTenantId  目标租户 ID
-     * @throws \RuntimeException 目标租户不存在或快照结构无效时抛出
+     * @param  int  $targetTenantId  目标租户 ID
+     *
+     * @throws RuntimeException 目标租户不存在或快照结构无效时抛出
      */
     public function importSnapshot(array $snapshot, int $targetTenantId): void
     {
@@ -148,7 +150,7 @@ class TenantCloneService
             throw new RuntimeException(trans('tenant.not_found'));
         }
 
-        if (!isset($snapshot['version'], $snapshot['tenant'])) {
+        if (! isset($snapshot['version'], $snapshot['tenant'])) {
             throw new RuntimeException(trans('tenant.clone_snapshot_invalid'));
         }
 
@@ -165,12 +167,12 @@ class TenantCloneService
     /**
      * 从 JSON 字符串导入快照
      *
-     * @throws \RuntimeException JSON 解析失败时抛出
+     * @throws RuntimeException JSON 解析失败时抛出
      */
     public function importSnapshotJson(string $json, int $targetTenantId): void
     {
         $data = json_decode($json, true);
-        if (!is_array($data)) {
+        if (! is_array($data)) {
             throw new RuntimeException(trans('tenant.clone_snapshot_invalid'));
         }
 
@@ -250,7 +252,7 @@ class TenantCloneService
         $excluded = (array) config('tenancy.clone.excluded_setting_groups', []);
 
         foreach ($settings as $setting) {
-            if (!empty($included) && !in_array($setting->group, $included, true)) {
+            if (! empty($included) && ! in_array($setting->group, $included, true)) {
                 continue;
             }
             if (in_array($setting->group, $excluded, true)) {
@@ -273,7 +275,7 @@ class TenantCloneService
      */
     protected function copyRoles(int $sourceId, int $targetId): void
     {
-        if (!(bool) config('tenancy.clone.clone_roles', true)) {
+        if (! (bool) config('tenancy.clone.clone_roles', true)) {
             return;
         }
 
@@ -291,7 +293,7 @@ class TenantCloneService
             ]);
 
             $permissionIds = $role->permissions()->pluck('permissions.permission_id')->all();
-            if (!empty($permissionIds)) {
+            if (! empty($permissionIds)) {
                 $newRole->permissions()->sync($permissionIds);
             }
         }
@@ -302,7 +304,7 @@ class TenantCloneService
      */
     protected function copyBranding(int $sourceId, int $targetId): void
     {
-        if (!(bool) config('tenancy.clone.clone_branding', true)) {
+        if (! (bool) config('tenancy.clone.clone_branding', true)) {
             return;
         }
 
@@ -332,7 +334,7 @@ class TenantCloneService
      */
     protected function copyAiConfig(int $sourceId, int $targetId): void
     {
-        if (!(bool) config('tenancy.clone.clone_ai_config', true)) {
+        if (! (bool) config('tenancy.clone.clone_ai_config', true)) {
             return;
         }
 
@@ -377,7 +379,7 @@ class TenantCloneService
 
         $result = [];
         foreach ($settings as $setting) {
-            if (!empty($included) && !in_array($setting->group, $included, true)) {
+            if (! empty($included) && ! in_array($setting->group, $included, true)) {
                 continue;
             }
             if (in_array($setting->group, $excluded, true)) {
@@ -486,13 +488,13 @@ class TenantCloneService
         $included = (array) config('tenancy.clone.included_setting_groups', []);
 
         foreach ($settings as $group => $items) {
-            if (!empty($included) && !in_array($group, $included, true)) {
+            if (! empty($included) && ! in_array($group, $included, true)) {
                 continue;
             }
             if (in_array($group, $excluded, true)) {
                 continue;
             }
-            if (!is_array($items)) {
+            if (! is_array($items)) {
                 continue;
             }
 
@@ -507,7 +509,7 @@ class TenantCloneService
      */
     protected function importRoles(array $roles, int $targetTenantId): void
     {
-        if (!(bool) config('tenancy.clone.clone_roles', true)) {
+        if (! (bool) config('tenancy.clone.clone_roles', true)) {
             return;
         }
 
@@ -521,11 +523,11 @@ class TenantCloneService
             ]);
 
             $permissionNames = $roleData['permissions'] ?? [];
-            if (!empty($permissionNames)) {
-                $ids = \MultiTenantSaas\Models\Permission::whereIn('name', $permissionNames)
+            if (! empty($permissionNames)) {
+                $ids = Permission::whereIn('name', $permissionNames)
                     ->pluck('permission_id')
                     ->all();
-                if (!empty($ids)) {
+                if (! empty($ids)) {
                     $newRole->permissions()->sync($ids);
                 }
             }
@@ -537,7 +539,7 @@ class TenantCloneService
      */
     protected function importBranding(?array $branding, int $targetTenantId): void
     {
-        if (!(bool) config('tenancy.clone.clone_branding', true)) {
+        if (! (bool) config('tenancy.clone.clone_branding', true)) {
             return;
         }
         if ($branding === null) {
@@ -552,6 +554,7 @@ class TenantCloneService
             BrandingConfig::withoutGlobalScope(TenantScope::class)->create(
                 array_merge(['tenant_id' => $targetTenantId], $branding)
             );
+
             return;
         }
 
@@ -563,7 +566,7 @@ class TenantCloneService
      */
     protected function importAiConfig(?array $aiConfig, int $targetTenantId): void
     {
-        if (!(bool) config('tenancy.clone.clone_ai_config', true)) {
+        if (! (bool) config('tenancy.clone.clone_ai_config', true)) {
             return;
         }
         if ($aiConfig === null) {
@@ -578,6 +581,7 @@ class TenantCloneService
             AiTenantConfig::withoutGlobalScope(TenantScope::class)->create(
                 array_merge(['tenant_id' => $targetTenantId], $aiConfig)
             );
+
             return;
         }
 
@@ -609,6 +613,7 @@ class TenantCloneService
             ];
         }
         ksort($map);
+
         return $map;
     }
 
@@ -621,6 +626,7 @@ class TenantCloneService
             return null;
         }
         ksort($branding);
+
         return $branding;
     }
 
@@ -633,6 +639,7 @@ class TenantCloneService
             return null;
         }
         ksort($aiConfig);
+
         return $aiConfig;
     }
 }

@@ -8,6 +8,7 @@ use MultiTenantSaas\Services\RetentionService;
 class ProcessDataRetention extends Command
 {
     protected $signature = 'data:retention {--dry-run : 预览模式，不实际执行清理}';
+
     protected $description = '执行数据保留策略清理（删除/匿名化过期数据）';
 
     public function handle(): int
@@ -22,11 +23,13 @@ class ProcessDataRetention extends Command
                 $this->line("  [{$dataType}] {$count} 条过期记录");
             }
             $this->info("总计: {$result['total']} 条过期记录");
+
             return 0;
         }
 
         $cleaned = $service->cleanupExpiredData();
         $this->info("清理完成: {$cleaned} 条记录已处理");
+
         return 0;
     }
 }

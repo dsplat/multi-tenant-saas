@@ -136,7 +136,7 @@ class SdkTest extends TestCase
         $client->tenant()->list();
 
         $this->assertNotEmpty($handler->calls);
-        $this->assertSame('Bearer '.$this->apiKeyValue, $handler->calls[0]['headers']['Authorization']);
+        $this->assertSame('Bearer ' . $this->apiKeyValue, $handler->calls[0]['headers']['Authorization']);
     }
 
     public function test_request_sends_accept_and_content_type_headers(): void
@@ -162,7 +162,7 @@ class SdkTest extends TestCase
 
         $this->assertStringContainsString('page=2', $handler->calls[0]['url']);
         $this->assertStringContainsString('size=20', $handler->calls[0]['url']);
-        $this->assertStringStartsWith($this->apiBaseUrl.'/v1/tenants', $handler->calls[0]['url']);
+        $this->assertStringStartsWith($this->apiBaseUrl . '/v1/tenants', $handler->calls[0]['url']);
     }
 
     public function test_request_encodes_json_body(): void
@@ -196,7 +196,7 @@ class SdkTest extends TestCase
         $client->tenant()->find(1001);
 
         $this->assertSame('GET', $handler->calls[0]['method']);
-        $this->assertSame($this->apiBaseUrl.'/v1/tenants/1001', $handler->calls[0]['url']);
+        $this->assertSame($this->apiBaseUrl . '/v1/tenants/1001', $handler->calls[0]['url']);
     }
 
     public function test_payment_refund_uses_correct_method_and_path(): void
@@ -207,7 +207,7 @@ class SdkTest extends TestCase
         $client->payment()->refund(1001, ['order_no' => 'ORD1']);
 
         $this->assertSame('POST', $handler->calls[0]['method']);
-        $this->assertSame($this->apiBaseUrl.'/v1/tenants/1001/payment-orders/refund', $handler->calls[0]['url']);
+        $this->assertSame($this->apiBaseUrl . '/v1/tenants/1001/payment-orders/refund', $handler->calls[0]['url']);
     }
 
     public function test_ai_text_completion_uses_correct_path(): void
@@ -218,7 +218,7 @@ class SdkTest extends TestCase
         $client->ai()->textCompletion(['prompt' => 'hi']);
 
         $this->assertSame('POST', $handler->calls[0]['method']);
-        $this->assertSame($this->apiBaseUrl.'/v1/ai/text', $handler->calls[0]['url']);
+        $this->assertSame($this->apiBaseUrl . '/v1/ai/text', $handler->calls[0]['url']);
     }
 
     // ---------- 响应解析 ----------

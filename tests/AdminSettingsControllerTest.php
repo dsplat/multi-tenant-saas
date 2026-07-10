@@ -2,12 +2,12 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\AdminSettingsService;
+use App\Http\Controllers\Api\AdminSettingsController;
 
 class AdminSettingsControllerTest extends TestCase
 {
     public function test_service_exists(): void
     {
-        $this->assertTrue(class_exists(\App\Http\Controllers\Api\AdminSettingsController::class));
+        $this->assertTrue(class_exists(AdminSettingsController::class));
     }
 }

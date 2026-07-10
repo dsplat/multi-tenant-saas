@@ -15,7 +15,7 @@ class CapabilityRegistryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->registry = new CapabilityRegistry();
+        $this->registry = new CapabilityRegistry;
     }
 
     private function createMockCapability(string $name, ?CapabilityResult $result = null): CapabilityContract
@@ -25,6 +25,7 @@ class CapabilityRegistryTest extends TestCase
         if ($result !== null) {
             $mock->method('execute')->willReturn($result);
         }
+
         return $mock;
     }
 

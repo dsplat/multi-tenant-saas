@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Contracts\TenantContextContract;
-use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Models\FileUpload;
+use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Modules\Ai\Services\Ai\Providers\DalleImageProvider;
 use MultiTenantSaas\Modules\Ai\Services\Ai\StableDiffusionProvider;
 use RuntimeException;
@@ -346,7 +346,7 @@ class AiImageService
     /**
      * 解析提供商标识为提供商实例
      *
-     * @throws \RuntimeException 提供商未实现时抛出
+     * @throws RuntimeException 提供商未实现时抛出
      */
     protected function resolveProvider(string $providerCode): object
     {
@@ -452,7 +452,7 @@ class AiImageService
         $tempPath = (string) tempnam(sys_get_temp_dir(), 'ai_img_');
         file_put_contents($tempPath, $binary);
 
-        $filename = 'ai_'.time().'_'.Str::random(8).'.'.$extension;
+        $filename = 'ai_' . time() . '_' . Str::random(8) . '.' . $extension;
 
         $uploadedFile = new UploadedFile(
             $tempPath,

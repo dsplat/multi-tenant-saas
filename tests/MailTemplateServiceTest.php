@@ -2,8 +2,8 @@
 
 namespace MultiTenantSaas\Tests;
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Mail\Mailables\Attachment;
+use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Mail\TenantMail;
 use MultiTenantSaas\Models\MailTemplate;

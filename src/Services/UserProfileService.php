@@ -89,7 +89,7 @@ class UserProfileService
             throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new \RuntimeException(trans('common.profile_update_failed').': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('common.profile_update_failed') . ': ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -169,7 +169,7 @@ class UserProfileService
             throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new \RuntimeException(trans('common.preferences_update_failed').': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('common.preferences_update_failed') . ': ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -198,7 +198,7 @@ class UserProfileService
             return self::DEFAULT_PREFERENCES;
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new \RuntimeException(trans('common.preferences_reset_failed').': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('common.preferences_reset_failed') . ': ' . $e->getMessage(), 0, $e);
         }
     }
 

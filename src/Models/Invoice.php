@@ -21,9 +21,13 @@ class Invoice extends Model
     protected $primaryKey = 'invoice_id';
 
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_ISSUED = 'issued';
+
     public const STATUS_PAID = 'paid';
+
     public const STATUS_VOID = 'void';
+
     public const STATUS_CANCELLED = 'cancelled';
 
     public const STATUSES = [

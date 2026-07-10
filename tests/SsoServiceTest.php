@@ -579,25 +579,25 @@ PEM;
     {
         $attrXml = '';
         foreach ($attributes as $name => $value) {
-            $attrXml .= '<saml:Attribute Name="'.htmlspecialchars($name, ENT_XML1).'">'
-                .'<saml:AttributeValue>'.htmlspecialchars($value, ENT_XML1).'</saml:AttributeValue>'
-                .'</saml:Attribute>';
+            $attrXml .= '<saml:Attribute Name="' . htmlspecialchars($name, ENT_XML1) . '">'
+                . '<saml:AttributeValue>' . htmlspecialchars($value, ENT_XML1) . '</saml:AttributeValue>'
+                . '</saml:Attribute>';
         }
 
         return '<?xml version="1.0"?>'
-            .'<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" '
-            .'xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" '
-            .'ID="_response1" InResponseTo="_request1" Version="2.0" IssueInstant="2026-06-29T00:00:00Z">'
-            .'<saml:Issuer>https://idp.example.com</saml:Issuer>'
-            .'<samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>'
-            .'<saml:Assertion>'
-            .'<saml:Issuer>https://idp.example.com</saml:Issuer>'
-            .'<saml:Subject>'
-            .'<saml:NameID Format="urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified">'.htmlspecialchars($nameId, ENT_XML1).'</saml:NameID>'
-            .'</saml:Subject>'
-            .'<saml:AttributeStatement>'.$attrXml.'</saml:AttributeStatement>'
-            .'</saml:Assertion>'
-            .'</samlp:Response>';
+            . '<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" '
+            . 'xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" '
+            . 'ID="_response1" InResponseTo="_request1" Version="2.0" IssueInstant="2026-06-29T00:00:00Z">'
+            . '<saml:Issuer>https://idp.example.com</saml:Issuer>'
+            . '<samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>'
+            . '<saml:Assertion>'
+            . '<saml:Issuer>https://idp.example.com</saml:Issuer>'
+            . '<saml:Subject>'
+            . '<saml:NameID Format="urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified">' . htmlspecialchars($nameId, ENT_XML1) . '</saml:NameID>'
+            . '</saml:Subject>'
+            . '<saml:AttributeStatement>' . $attrXml . '</saml:AttributeStatement>'
+            . '</saml:Assertion>'
+            . '</samlp:Response>';
     }
 
     /**
@@ -611,21 +611,21 @@ PEM;
 
         // 注入 Signature 块（放在 Issuer 之后）
         $signatureBlock = '<ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">'
-            .'<ds:SignedInfo>'
-            .'<ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>'
-            .'<ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>'
-            .'<ds:Reference URI="">'
-            .'<ds:Transforms><ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/></ds:Transforms>'
-            .'<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>'
-            .'<ds:DigestValue></ds:DigestValue>'
-            .'</ds:Reference>'
-            .'</ds:SignedInfo>'
-            .'<ds:SignatureValue></ds:SignatureValue>'
-            .'</ds:Signature>';
+            . '<ds:SignedInfo>'
+            . '<ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>'
+            . '<ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>'
+            . '<ds:Reference URI="">'
+            . '<ds:Transforms><ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/></ds:Transforms>'
+            . '<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>'
+            . '<ds:DigestValue></ds:DigestValue>'
+            . '</ds:Reference>'
+            . '</ds:SignedInfo>'
+            . '<ds:SignatureValue></ds:SignatureValue>'
+            . '</ds:Signature>';
 
         $withSig = preg_replace(
             '/(<saml:Issuer>https:\/\/idp\.example\.com<\/saml:Issuer>)/',
-            '$1'.$signatureBlock,
+            '$1' . $signatureBlock,
             $unsigned,
             1
         );
@@ -664,6 +664,6 @@ PEM;
         $payload = base64_encode(json_encode($claims));
         $sig = '';
 
-        return $header.'.'.$payload.'.'.$sig;
+        return $header . '.' . $payload . '.' . $sig;
     }
 }

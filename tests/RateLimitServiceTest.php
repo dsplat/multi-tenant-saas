@@ -2,12 +2,13 @@
 
 namespace MultiTenantSaas\Tests;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\RateLimitService;
-use MultiTenantSaas\Tests\Schema\PluginModule;
 use MultiTenantSaas\Tests\Schema\EventModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
 
 /**
  * RateLimitService 单元测试
@@ -185,7 +186,7 @@ class RateLimitServiceTest extends TestCase
     {
         $service = app(RateLimitService::class);
 
-        $request = \Illuminate\Http\Request::create('/api/v1/test', 'GET');
+        $request = Request::create('/api/v1/test', 'GET');
 
         // RateLimiter::attempt 的静态调用错误被服务内 try-catch 捕获，返回 true
         $result = $service->hit($request, 'user');

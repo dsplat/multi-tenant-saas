@@ -2,8 +2,8 @@
 
 namespace MultiTenantSaas\Modules\Domain\Services;
 
-use MultiTenantSaas\Models\Tenant;
 use Illuminate\Support\Facades\File;
+use MultiTenantSaas\Models\Tenant;
 
 class NginxConfigService
 {
@@ -70,7 +70,7 @@ class NginxConfigService
             '    # ===== 企业自定义域名 =====',
             '    # AUTO_GENERATED_DOMAINS_START',
             "    # 生成时间: {$generatedAt}",
-            "    # 域名数量: " . count($domainLines),
+            '    # 域名数量: ' . count($domainLines),
             '',
             $domainsBlock,
             '    ',
@@ -120,7 +120,7 @@ class NginxConfigService
         ]);
 
         $mapDir = dirname($this->sslMapFile);
-        if (!is_dir($mapDir)) {
+        if (! is_dir($mapDir)) {
             mkdir($mapDir, 0755, true);
         }
 

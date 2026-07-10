@@ -17,20 +17,20 @@ interface MemoryServiceContract extends MemoryContract
     /**
      * 读取租户级记忆
      *
-     * @param  int     $tenantId  租户 ID
-     * @param  string  $type      记忆类型
-     * @param  string  $key       记忆键
-     * @return mixed  记忆值；未命中时返回 null
+     * @param  int  $tenantId  租户 ID
+     * @param  string  $type  记忆类型
+     * @param  string  $key  记忆键
+     * @return mixed 记忆值；未命中时返回 null
      */
     public function readTenantMemory(int $tenantId, string $type, string $key): mixed;
 
     /**
      * 写入租户级记忆
      *
-     * @param  int     $tenantId  租户 ID
-     * @param  string  $type      记忆类型
-     * @param  string  $key       记忆键
-     * @param  mixed   $value     记忆值
+     * @param  int  $tenantId  租户 ID
+     * @param  string  $type  记忆类型
+     * @param  string  $key  记忆键
+     * @param  mixed  $value  记忆值
      */
     public function writeTenantMemory(int $tenantId, string $type, string $key, mixed $value): void;
 

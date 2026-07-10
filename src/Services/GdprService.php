@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Models\User;
 
 /**
  * GDPR 合规服务
@@ -59,7 +60,7 @@ class GdprService
         $result = ['exported_at' => now()->toIso8601String()];
 
         foreach ($exportTypes as $type) {
-            $method = 'export'.str_replace('_', '', ucwords($type, '_'));
+            $method = 'export' . str_replace('_', '', ucwords($type, '_'));
             if (method_exists($this, $method)) {
                 $result[$type] = $this->$method($userId);
             }
@@ -100,7 +101,7 @@ class GdprService
     {
         try {
             DB::transaction(function () use ($userId): void {
-                $erasedEmail = 'erased_'.$userId.'@'.config('tenancy.gdpr.erasure_email_domain', 'deleted.local');
+                $erasedEmail = 'erased_' . $userId . '@' . config('tenancy.gdpr.erasure_email_domain', 'deleted.local');
 
                 // 1. 匿名化用户关键字段
                 DB::table('users')->where('user_id', $userId)->update(array_merge(
@@ -117,7 +118,7 @@ class GdprService
                 // 2. 撤销 API 令牌
                 DB::table('personal_access_tokens')
                     ->where('tokenable_id', $userId)
-                    ->where('tokenable_type', \MultiTenantSaas\Models\User::class)
+                    ->where('tokenable_type', User::class)
                     ->delete();
                 DB::table('user_api_tokens')->where('user_id', $userId)->delete();
 
@@ -229,7 +230,7 @@ class GdprService
     {
         $tokens = DB::table('personal_access_tokens')
             ->where('tokenable_id', $userId)
-            ->where('tokenable_type', \MultiTenantSaas\Models\User::class)
+            ->where('tokenable_type', User::class)
             ->get();
 
         $userTokens = DB::table('user_api_tokens')->where('user_id', $userId)->get();

@@ -8,8 +8,8 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Models\UserSession;
 use MultiTenantSaas\Services\SessionService;
-use MultiTenantSaas\Tests\Schema\SecurityModule;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
+use MultiTenantSaas\Tests\Schema\SecurityModule;
 
 /**
  * TASK-015 SessionService 单元测试

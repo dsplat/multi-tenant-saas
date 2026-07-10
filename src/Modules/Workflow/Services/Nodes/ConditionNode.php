@@ -31,11 +31,6 @@ class ConditionNode
         return $context;
     }
 
-    /**
-     * @param  string  $operator
-     * @param  mixed  $actual
-     * @param  mixed  $expected
-     */
     public function evaluate(string $operator, mixed $actual, mixed $expected): bool
     {
         return match ($operator) {
@@ -46,7 +41,7 @@ class ConditionNode
             'lt' => $actual < $expected,
             'lte' => $actual <= $expected,
             'in' => is_array($expected) && in_array($actual, $expected),
-            'not_empty' => !empty($actual),
+            'not_empty' => ! empty($actual),
             default => false,
         };
     }

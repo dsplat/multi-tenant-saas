@@ -2,10 +2,15 @@
 
 namespace MultiTenantSaas\Services;
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Facades\Excel;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Models\CustomReport;
 use Throwable;
@@ -610,7 +615,7 @@ class ReportService
      * @param  string  $from  起始
      * @param  string  $to  截止
      * @param  callable($query): void  $scope  额外查询条件
-     * @return \Illuminate\Support\Collection
+     * @return Collection
      */
     protected function bucketByDay(string $table, string $column, string $from, string $to, callable $scope)
     {
@@ -647,7 +652,7 @@ class ReportService
                 $rows[] = ['section' => (string) $metric, 'key' => (string) $bucket, 'value' => (string) $value];
             }
             foreach (($info['by_tenant'] ?? []) as $tenant => $value) {
-                $rows[] = ['section' => (string) $metric, 'key' => 'tenant:'.$tenant, 'value' => (string) $value];
+                $rows[] = ['section' => (string) $metric, 'key' => 'tenant:' . $tenant, 'value' => (string) $value];
             }
         }
 
@@ -662,7 +667,7 @@ class ReportService
     protected function exportCsv(array $rows): string
     {
         $handle = fopen('php://temp', 'r+');
-        fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF)); // UTF-8 BOM
+        fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
         fputcsv($handle, ['section', 'key', 'value']);
         foreach ($rows as $row) {
             fputcsv($handle, [$row['section'], $row['key'], $row['value']]);
@@ -683,16 +688,15 @@ class ReportService
      */
     protected function exportExcel(array $rows): string
     {
-        if (! class_exists(\Maatwebsite\Excel\Facades\Excel::class)) {
+        if (! class_exists(Excel::class)) {
             throw new \RuntimeException(trans('common.report_export_unavailable'));
         }
 
         $headings = ['section', 'key', 'value'];
 
-        $export = new class($rows, $headings) implements \Maatwebsite\Excel\Concerns\FromCollection,
-            \Maatwebsite\Excel\Concerns\WithHeadings
+        $export = new class($rows, $headings) implements FromCollection, WithHeadings
         {
-            /** @var \Illuminate\Support\Collection */
+            /** @var Collection */
             private $data;
 
             private $headings;
@@ -715,11 +719,11 @@ class ReportService
         };
 
         try {
-            $response = \Maatwebsite\Excel\Facades\Excel::download($export, 'report.xlsx');
+            $response = Excel::download($export, 'report.xlsx');
             $file = $response->getFile();
 
             return (string) file_get_contents($file->getPathname());
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw new \RuntimeException(trans('common.report_export_unavailable'), 0, $e);
         }
     }
@@ -733,7 +737,7 @@ class ReportService
      */
     protected function exportPdf(array $data): string
     {
-        if (! class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
+        if (! class_exists(Pdf::class)) {
             throw new \RuntimeException(trans('common.report_export_unavailable'));
         }
 
@@ -741,7 +745,7 @@ class ReportService
 
         try {
             return (string) PdfService::generate($view, $data);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw new \RuntimeException(trans('common.report_export_unavailable'), 0, $e);
         }
     }

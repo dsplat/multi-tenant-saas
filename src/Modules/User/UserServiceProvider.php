@@ -3,9 +3,9 @@
 namespace MultiTenantSaas\Modules\User;
 
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
-use MultiTenantSaas\Services\UserProfileService;
-use MultiTenantSaas\Services\UserPreferenceService;
 use MultiTenantSaas\Services\LoginLogService;
+use MultiTenantSaas\Services\UserPreferenceService;
+use MultiTenantSaas\Services\UserProfileService;
 
 class UserServiceProvider extends ModuleServiceProvider
 {

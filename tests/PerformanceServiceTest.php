@@ -291,7 +291,7 @@ class PerformanceServiceTest extends TestCase
 
         // Record 10 samples with increasing durations
         for ($i = 1; $i <= 10; $i++) {
-            $service->recordApiResponse("/api/v1/test", $i * 0.010, 200);  // 10ms, 20ms, ..., 100ms
+            $service->recordApiResponse('/api/v1/test', $i * 0.010, 200);  // 10ms, 20ms, ..., 100ms
         }
 
         $aggregated = $service->getAggregated(PerformanceService::METRIC_API_RESPONSE, 5);

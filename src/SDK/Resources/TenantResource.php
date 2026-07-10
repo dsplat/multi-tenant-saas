@@ -34,7 +34,7 @@ class TenantResource
      */
     public function find(int $tenantId): array
     {
-        return $this->client->request('GET', '/tenants/'.$tenantId);
+        return $this->client->request('GET', '/tenants/' . $tenantId);
     }
 
     /**
@@ -57,7 +57,7 @@ class TenantResource
      */
     public function update(int $tenantId, array $data): array
     {
-        return $this->client->request('PUT', '/tenants/'.$tenantId, [], $data);
+        return $this->client->request('PUT', '/tenants/' . $tenantId, [], $data);
     }
 
     /**
@@ -68,7 +68,7 @@ class TenantResource
      */
     public function delete(int $tenantId): array
     {
-        return $this->client->request('DELETE', '/tenants/'.$tenantId);
+        return $this->client->request('DELETE', '/tenants/' . $tenantId);
     }
 
     /**
@@ -79,7 +79,7 @@ class TenantResource
      */
     public function suspend(int $tenantId): array
     {
-        return $this->client->request('POST', '/tenants/'.$tenantId.'/suspend');
+        return $this->client->request('POST', '/tenants/' . $tenantId . '/suspend');
     }
 
     /**
@@ -90,6 +90,6 @@ class TenantResource
      */
     public function activate(int $tenantId): array
     {
-        return $this->client->request('POST', '/tenants/'.$tenantId.'/activate');
+        return $this->client->request('POST', '/tenants/' . $tenantId . '/activate');
     }
 }

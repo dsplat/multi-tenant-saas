@@ -7,19 +7,21 @@ namespace MultiTenantSaas\Tests;
 use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\EnterpriseWechat\EnterpriseWechatProvider;
 use MultiTenantSaas\EnterpriseWechat\SignatureValidator as EnterpriseSignatureValidator;
+use MultiTenantSaas\Tests\Schema\ChannelModule;
+use MultiTenantSaas\Tests\Schema\WebhookModule;
 use MultiTenantSaas\WechatMiniProgram\SignatureValidator as MiniProgramSignatureValidator;
 use MultiTenantSaas\WechatMiniProgram\WechatMiniProgramProvider;
 use MultiTenantSaas\WechatOfficial\SignatureValidator as OfficialSignatureValidator;
 use MultiTenantSaas\WechatOfficial\WechatOfficialProvider;
-use MultiTenantSaas\Tests\Schema\ChannelModule;
-use MultiTenantSaas\Tests\Schema\WebhookModule;
 
 class ChannelProviderIntegrationTest extends TestCase
 {
     protected array $uses = [ChannelModule::class, WebhookModule::class];
 
     private array $enterpriseConfig;
+
     private array $officialConfig;
+
     private array $miniProgramConfig;
 
     protected function setUp(): void

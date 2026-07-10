@@ -19,9 +19,13 @@ use MultiTenantSaas\Modules\Workflow\Services\Nodes\ParallelNode;
 class WorkflowEngine implements WorkflowEngineContract
 {
     protected ActionNode $actionNode;
+
     protected ConditionNode $conditionNode;
+
     protected ConfirmNode $confirmNode;
+
     protected DelayNode $delayNode;
+
     protected ParallelNode $parallelNode;
 
     public function __construct(
@@ -29,10 +33,10 @@ class WorkflowEngine implements WorkflowEngineContract
         protected ToolRegistryContract $toolRegistry,
     ) {
         $this->actionNode = new ActionNode($toolRegistry);
-        $this->conditionNode = new ConditionNode();
-        $this->confirmNode = new ConfirmNode();
-        $this->delayNode = new DelayNode();
-        $this->parallelNode = new ParallelNode();
+        $this->conditionNode = new ConditionNode;
+        $this->confirmNode = new ConfirmNode;
+        $this->delayNode = new DelayNode;
+        $this->parallelNode = new ParallelNode;
     }
 
     public function execute(Workflow $workflow, array $context = []): WorkflowExecution
@@ -173,7 +177,7 @@ class WorkflowEngine implements WorkflowEngineContract
             throw new \RuntimeException('Workflow not found for execution');
         }
 
-        return $this->execute($workflow, !empty($context) ? $context : ($execution->context ?? []));
+        return $this->execute($workflow, ! empty($context) ? $context : ($execution->context ?? []));
     }
 
     public function getActionNode(): ActionNode
@@ -203,7 +207,7 @@ class WorkflowEngine implements WorkflowEngineContract
 
         if (isset($config['variables'])) {
             foreach ($config['variables'] as $key => $default) {
-                if (!array_key_exists($key, $context)) {
+                if (! array_key_exists($key, $context)) {
                     $context[$key] = $default;
                 }
             }

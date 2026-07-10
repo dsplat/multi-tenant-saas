@@ -2,21 +2,21 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
 use MultiTenantSaas\Models\BrandingConfig;
 use MultiTenantSaas\Models\Permission;
 use MultiTenantSaas\Models\Role;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantHierarchy;
 use MultiTenantSaas\Models\TenantSetting;
+use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
 use MultiTenantSaas\Scopes\TenantScope;
 use MultiTenantSaas\Services\CrossTenantService;
 use MultiTenantSaas\Services\TenantCloneService;
-use RuntimeException;
-use MultiTenantSaas\Tests\Schema\RbacModule;
-use MultiTenantSaas\Tests\Schema\MiscModule;
-use MultiTenantSaas\Tests\Schema\BillingModule;
 use MultiTenantSaas\Tests\Schema\AiModule;
+use MultiTenantSaas\Tests\Schema\BillingModule;
+use MultiTenantSaas\Tests\Schema\MiscModule;
+use MultiTenantSaas\Tests\Schema\RbacModule;
+use RuntimeException;
 
 /**
  * TASK-029 TenantCloneService 单元测试
@@ -41,7 +41,7 @@ class TenantCloneServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->service = new TenantCloneService();
+        $this->service = new TenantCloneService;
 
         $this->seedSourceTenant();
     }
@@ -399,7 +399,7 @@ class TenantCloneServiceTest extends TestCase
 
     public function test_cross_tenant_create_relationship(): void
     {
-        $crossService = new CrossTenantService();
+        $crossService = new CrossTenantService;
 
         $parent = $this->sourceTenantId;
         $child = Tenant::create([
@@ -420,7 +420,7 @@ class TenantCloneServiceTest extends TestCase
 
     public function test_cross_tenant_self_reference_throws(): void
     {
-        $crossService = new CrossTenantService();
+        $crossService = new CrossTenantService;
 
         $this->expectException(RuntimeException::class);
         $crossService->createRelationship($this->sourceTenantId, $this->sourceTenantId);

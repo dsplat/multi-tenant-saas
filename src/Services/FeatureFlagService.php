@@ -108,7 +108,7 @@ class FeatureFlagService
      */
     public function find(string $name): ?FeatureFlag
     {
-        $key = self::CACHE_PREFIX.$name;
+        $key = self::CACHE_PREFIX . $name;
         $ttl = (int) config('tenancy.feature_flags.cache_ttl', self::CACHE_TTL);
 
         try {
@@ -397,13 +397,13 @@ class FeatureFlagService
     {
         try {
             if ($name !== null) {
-                Cache::forget(self::CACHE_PREFIX.$name);
+                Cache::forget(self::CACHE_PREFIX . $name);
 
                 return;
             }
 
             foreach (FeatureFlag::withTrashed()->pluck('name') as $flagName) {
-                Cache::forget(self::CACHE_PREFIX.$flagName);
+                Cache::forget(self::CACHE_PREFIX . $flagName);
             }
         } catch (\Throwable $e) {
             Log::debug('[FeatureFlagService] 清除缓存失败（忽略）', [
@@ -481,7 +481,7 @@ class FeatureFlagService
     {
         $seed = $tenantId ?? $userId ?? 0;
 
-        return abs(crc32($flagName.':'.$seed)) % 100;
+        return abs(crc32($flagName . ':' . $seed)) % 100;
     }
 
     /**

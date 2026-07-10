@@ -2,15 +2,12 @@
 
 namespace MultiTenantSaas\Services;
 
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\SubscriptionPlan;
-use MultiTenantSaas\Models\SubscriptionHistory;
-use MultiTenantSaas\Models\FinancialRecord;
-use MultiTenantSaas\Services\NotificationService;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
+use MultiTenantSaas\Models\FinancialRecord;
+use MultiTenantSaas\Models\SubscriptionHistory;
+use MultiTenantSaas\Models\SubscriptionPlan;
+use MultiTenantSaas\Models\Tenant;
 
 class SubscriptionService
 {
@@ -22,7 +19,7 @@ class SubscriptionService
         $tenant = Tenant::findOrFail($tenantId);
         $plan = SubscriptionPlan::findOrFail($planId);
 
-        if (!$plan->is_active) {
+        if (! $plan->is_active) {
             throw new \RuntimeException(trans('subscription.plan_not_available'));
         }
 
@@ -96,7 +93,7 @@ class SubscriptionService
         $newPlan = SubscriptionPlan::findOrFail($newPlanId);
         $oldPlan = static::getCurrentPlan($tenantId);
 
-        if (!$newPlan->is_active) {
+        if (! $newPlan->is_active) {
             throw new \RuntimeException(trans('subscription.plan_not_available'));
         }
 
@@ -134,12 +131,12 @@ class SubscriptionService
         SubscriptionPlan $newPlan,
         string $billingCycle = 'monthly'
     ): float {
-        if (!$oldPlan || $oldPlan->id === $newPlan->id) {
+        if (! $oldPlan || $oldPlan->id === $newPlan->id) {
             return 0;
         }
 
         // 如果当前没有有效订阅或已过期，无需按比例计算
-        if (!$tenant->subscription_expires_at || $tenant->subscription_expires_at->isPast()) {
+        if (! $tenant->subscription_expires_at || $tenant->subscription_expires_at->isPast()) {
             return 0;
         }
 
@@ -211,7 +208,7 @@ class SubscriptionService
     {
         $ttl = (int) config('cache.ttl.subscription_plan', 1800);
 
-        if (!$tenant->subscription_plan_id) {
+        if (! $tenant->subscription_plan_id) {
             if ($tenant->subscription_plan) {
                 return Cache::remember(
                     "plan:name:{$tenant->subscription_plan}",
@@ -263,7 +260,7 @@ class SubscriptionService
             foreach ($tenants as $tenant) {
                 // 直接复用已加载的 Tenant 模型解析计划，避免逐租户回查造成 N+1
                 $plan = static::resolvePlanFromTenant($tenant);
-                if ($plan && !$plan->isFree()) {
+                if ($plan && ! $plan->isFree()) {
                     NotificationService::notifySubscriptionExpiring($tenant, $days);
                     $count++;
                 }
@@ -325,7 +322,7 @@ class SubscriptionService
         // 直接复用传入的 Tenant 模型，避免回查租户行
         $plan = static::resolvePlanFromTenant($tenant);
 
-        if (!$plan || $plan->isFree()) {
+        if (! $plan || $plan->isFree()) {
             return;
         }
 
@@ -346,7 +343,7 @@ class SubscriptionService
             ]);
 
             // TODO: 调用 PayService 发起自动扣款
-            Log::info("自动续费订单已创建", [
+            Log::info('自动续费订单已创建', [
                 'tenant_id' => $tenant->tenant_id,
                 'order_no' => $orderNo,
                 'amount' => $plan->price_monthly,
@@ -363,7 +360,7 @@ class SubscriptionService
             );
 
         } catch (\Exception $e) {
-            Log::error("自动续费失败", [
+            Log::error('自动续费失败', [
                 'tenant_id' => $tenant->tenant_id,
                 'error' => $e->getMessage(),
             ]);

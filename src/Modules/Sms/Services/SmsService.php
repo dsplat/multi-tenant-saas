@@ -2,9 +2,9 @@
 
 namespace MultiTenantSaas\Modules\Sms\Services;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use MultiTenantSaas\Modules\Sms\Models\SmsBatchTask;
 use MultiTenantSaas\Modules\Sms\Models\SmsDeliveryStat;
 use MultiTenantSaas\Modules\Sms\Models\SmsTemplate;
@@ -136,15 +136,16 @@ class SmsService
 
         if (empty($endpoint)) {
             Log::error('SmsService http driver: endpoint not configured');
+
             return false;
         }
 
         try {
             $payload = [
-                'phone'   => $phone,
-                'message' => trans("sms.verification_code", ["code" => $code]),
-                'code'    => $code,
-                'type'    => $type,
+                'phone' => $phone,
+                'message' => trans('sms.verification_code', ['code' => $code]),
+                'code' => $code,
+                'type' => $type,
             ];
 
             $timeout = (int) config('services.sms.http_timeout', 5);
@@ -153,10 +154,10 @@ class SmsService
             $body = $response->json();
 
             Log::info('SmsService http response', [
-                'phone'       => static::maskPhone($phone),
-                'type'        => $type,
+                'phone' => static::maskPhone($phone),
+                'type' => $type,
                 'http_status' => $response->status(),
-                'response'    => $body,
+                'response' => $body,
             ]);
 
             if ($response->successful() && isset($body['status']) && (int) $body['status'] === 1) {
@@ -164,15 +165,15 @@ class SmsService
             }
 
             Log::warning('SmsService http send failed', [
-                'phone'    => static::maskPhone($phone),
-                'type'     => $type,
+                'phone' => static::maskPhone($phone),
+                'type' => $type,
                 'response' => $body,
             ]);
 
             return false;
         } catch (\Throwable $e) {
             Log::error('SmsService http exception', [
-                'phone'   => static::maskPhone($phone),
+                'phone' => static::maskPhone($phone),
                 'message' => $e->getMessage(),
             ]);
 
@@ -193,7 +194,7 @@ class SmsService
 
     private static function extractXmlValue(string $xml, string $tag): ?string
     {
-        if (preg_match('/<'.preg_quote($tag, '/').'>(.*?)<\/'.preg_quote($tag, '/').'>/s', $xml, $matches) !== 1) {
+        if (preg_match('/<' . preg_quote($tag, '/') . '>(.*?)<\/' . preg_quote($tag, '/') . '>/s', $xml, $matches) !== 1) {
             return null;
         }
 
@@ -206,7 +207,7 @@ class SmsService
             return $phone;
         }
 
-        return substr($phone, 0, 3).'****'.substr($phone, -4);
+        return substr($phone, 0, 3) . '****' . substr($phone, -4);
     }
 
     // ========================================
@@ -261,14 +262,14 @@ class SmsService
     /**
      * 获取模板列表
      */
-    public static function getTemplates(array $filters = []): \Illuminate\Database\Eloquent\Collection
+    public static function getTemplates(array $filters = []): Collection
     {
         $query = SmsTemplate::query();
 
-        if (!empty($filters['channel'])) {
+        if (! empty($filters['channel'])) {
             $query->ofChannel($filters['channel']);
         }
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
@@ -367,7 +368,7 @@ class SmsService
     /**
      * 获取批量任务的到达率统计
      */
-    public static function getDeliveryStats(int $batchTaskId): \Illuminate\Database\Eloquent\Collection
+    public static function getDeliveryStats(int $batchTaskId): Collection
     {
         return SmsDeliveryStat::where('sms_batch_task_id', $batchTaskId)
             ->orderByDesc('recorded_at')
@@ -442,7 +443,7 @@ class SmsService
     /**
      * 获取退订列表
      */
-    public static function getUnsubscribes(?int $tenantId = null): \Illuminate\Database\Eloquent\Collection
+    public static function getUnsubscribes(?int $tenantId = null): Collection
     {
         $query = SmsUnsubscribe::query();
 

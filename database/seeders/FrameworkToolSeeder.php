@@ -248,6 +248,6 @@ class FrameworkToolSeeder extends Seeder
             );
         }
 
-        $this->command->info('Framework tools seeded: '.count($tools).' tools');
+        $this->command->info('Framework tools seeded: ' . count($tools) . ' tools');
     }
 }

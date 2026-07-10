@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Tests;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use MultiTenantSaas\Console\Commands\ProcessDataRetention;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\DataRetentionPolicy;
 use MultiTenantSaas\Models\Tenant;
@@ -12,6 +13,8 @@ use MultiTenantSaas\Services\RetentionService;
 use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\MiscModule;
 use MultiTenantSaas\Tests\Schema\SecurityModule;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 
 /**
  * TASK-018 RetentionService 单元测试
@@ -23,7 +26,9 @@ class RetentionServiceTest extends TestCase
     protected array $uses = [EventModule::class, MiscModule::class, SecurityModule::class];
 
     private RetentionService $service;
+
     private int $tenantId = 1001;
+
     private int $userId = 1;
 
     protected function setUp(): void
@@ -365,11 +370,11 @@ class RetentionServiceTest extends TestCase
             'created_at' => Carbon::now()->subDays(60),
         ]);
 
-        $command = new \MultiTenantSaas\Console\Commands\ProcessDataRetention();
+        $command = new ProcessDataRetention;
         $command->setLaravel($this->app);
 
-        $input = new \Symfony\Component\Console\Input\ArrayInput([]);
-        $output = new \Symfony\Component\Console\Output\BufferedOutput();
+        $input = new ArrayInput([]);
+        $output = new BufferedOutput;
 
         $exitCode = $command->run($input, $output);
 
@@ -396,11 +401,11 @@ class RetentionServiceTest extends TestCase
             'created_at' => Carbon::now()->subDays(60),
         ]);
 
-        $command = new \MultiTenantSaas\Console\Commands\ProcessDataRetention();
+        $command = new ProcessDataRetention;
         $command->setLaravel($this->app);
 
-        $input = new \Symfony\Component\Console\Input\ArrayInput(['--dry-run' => true]);
-        $output = new \Symfony\Component\Console\Output\BufferedOutput();
+        $input = new ArrayInput(['--dry-run' => true]);
+        $output = new BufferedOutput;
 
         $exitCode = $command->run($input, $output);
 

@@ -46,44 +46,44 @@ return new class extends Migration
             $p['updated_at'] = $now;
         }
 
-        \DB::table('permissions')->insert($permissions);
+        DB::table('permissions')->insert($permissions);
 
         // 为 tenant_admin 分配新权限
-        $newPermIds = \DB::table('permissions')
+        $newPermIds = DB::table('permissions')
             ->whereIn('name', array_column($permissions, 'name'))
             ->pluck('permission_id');
 
-        $adminRoleId = \DB::table('roles')
+        $adminRoleId = DB::table('roles')
             ->where('name', 'tenant_admin')
             ->whereNull('tenant_id')
             ->value('role_id');
 
         if ($adminRoleId) {
-            $insert = $newPermIds->map(fn($pid) => [
+            $insert = $newPermIds->map(fn ($pid) => [
                 'role_id' => $adminRoleId,
                 'permission_id' => $pid,
                 'created_at' => $now,
                 'updated_at' => $now,
             ])->all();
 
-            \DB::table('role_permissions')->insert($insert);
+            DB::table('role_permissions')->insert($insert);
         }
 
         // super_admin 获得所有权限（已在原 seed 中处理，这里只需确保新权限被分配）
-        $superRoleId = \DB::table('roles')
+        $superRoleId = DB::table('roles')
             ->where('name', 'super_admin')
             ->whereNull('tenant_id')
             ->value('role_id');
 
         if ($superRoleId) {
-            $insertSuper = $newPermIds->map(fn($pid) => [
+            $insertSuper = $newPermIds->map(fn ($pid) => [
                 'role_id' => $superRoleId,
                 'permission_id' => $pid,
                 'created_at' => $now,
                 'updated_at' => $now,
             ])->all();
 
-            \DB::table('role_permissions')->insert($insertSuper);
+            DB::table('role_permissions')->insert($insertSuper);
         }
 
         // end_user 只给查看和参与权限
@@ -94,24 +94,24 @@ return new class extends Migration
             'coupon.view', 'coupon.redeem',
         ];
 
-        $userPermIds = \DB::table('permissions')
+        $userPermIds = DB::table('permissions')
             ->whereIn('name', $userPermNames)
             ->pluck('permission_id');
 
-        $userRoleId = \DB::table('roles')
+        $userRoleId = DB::table('roles')
             ->where('name', 'end_user')
             ->whereNull('tenant_id')
             ->value('role_id');
 
         if ($userRoleId) {
-            $insertUser = $userPermIds->map(fn($pid) => [
+            $insertUser = $userPermIds->map(fn ($pid) => [
                 'role_id' => $userRoleId,
                 'permission_id' => $pid,
                 'created_at' => $now,
                 'updated_at' => $now,
             ])->all();
 
-            \DB::table('role_permissions')->insert($insertUser);
+            DB::table('role_permissions')->insert($insertUser);
         }
     }
 
@@ -124,11 +124,11 @@ return new class extends Migration
             'coupon.view', 'coupon.create', 'coupon.update', 'coupon.delete', 'coupon.redeem',
         ];
 
-        $permIds = \DB::table('permissions')
+        $permIds = DB::table('permissions')
             ->whereIn('name', $permNames)
             ->pluck('permission_id');
 
-        \DB::table('role_permissions')->whereIn('permission_id', $permIds)->delete();
-        \DB::table('permissions')->whereIn('name', $permNames)->delete();
+        DB::table('role_permissions')->whereIn('permission_id', $permIds)->delete();
+        DB::table('permissions')->whereIn('name', $permNames)->delete();
     }
 };

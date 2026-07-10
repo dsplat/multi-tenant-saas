@@ -22,7 +22,7 @@ class RollbackService
 
         $executedNodes = $execution->context['_executed_nodes'] ?? [];
 
-        return !empty($executedNodes);
+        return ! empty($executedNodes);
     }
 
     /**
@@ -30,7 +30,7 @@ class RollbackService
      */
     public function rollback(WorkflowExecution $execution): array
     {
-        if (!$this->canRollback($execution)) {
+        if (! $this->canRollback($execution)) {
             return [
                 'success' => false,
                 'rolled_back_nodes' => [],
@@ -52,6 +52,7 @@ class RollbackService
                 Log::warning('RollbackService: no rollback handler for node', [
                     'node_id' => $nodeId,
                 ]);
+
                 continue;
             }
 
@@ -93,7 +94,6 @@ class RollbackService
     /**
      * @param  array<string, mixed>  $handler
      * @param  array<string, mixed>  $context
-     * @return mixed
      */
     public function executeRollbackHandler(array $handler, array $context): mixed
     {
@@ -109,7 +109,6 @@ class RollbackService
     /**
      * @param  array<string, mixed>  $handler
      * @param  array<string, mixed>  $context
-     * @return mixed
      */
     protected function executeToolRollback(array $handler, array $context): mixed
     {
@@ -128,13 +127,12 @@ class RollbackService
     /**
      * @param  array<string, mixed>  $handler
      * @param  array<string, mixed>  $context
-     * @return mixed
      */
     protected function executeCallbackRollback(array $handler, array $context): mixed
     {
         $callback = $handler['callback'] ?? null;
 
-        if ($callback === null || !is_callable($callback)) {
+        if ($callback === null || ! is_callable($callback)) {
             return null;
         }
 
@@ -143,13 +141,12 @@ class RollbackService
 
     /**
      * @param  array<string, mixed>  $context
-     * @param  string  $nodeId
      * @param  array<string, mixed>  $rollbackHandler
      * @return array<string, mixed>
      */
     public function registerRollbackHandler(array $context, string $nodeId, array $rollbackHandler): array
     {
-        if (!isset($context['_rollback_handlers'])) {
+        if (! isset($context['_rollback_handlers'])) {
             $context['_rollback_handlers'] = [];
         }
 
@@ -160,16 +157,15 @@ class RollbackService
 
     /**
      * @param  array<string, mixed>  $context
-     * @param  string  $nodeId
      * @return array<string, mixed>
      */
     public function trackExecutedNode(array $context, string $nodeId): array
     {
-        if (!isset($context['_executed_nodes'])) {
+        if (! isset($context['_executed_nodes'])) {
             $context['_executed_nodes'] = [];
         }
 
-        if (!in_array($nodeId, $context['_executed_nodes'], true)) {
+        if (! in_array($nodeId, $context['_executed_nodes'], true)) {
             $context['_executed_nodes'][] = $nodeId;
         }
 

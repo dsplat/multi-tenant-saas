@@ -26,7 +26,7 @@ class TrustedDeviceService
      */
     public function generateFingerprint(string $ip, string $userAgent): string
     {
-        return hash('sha256', $ip.'|'.$userAgent);
+        return hash('sha256', $ip . '|' . $userAgent);
     }
 
     /**

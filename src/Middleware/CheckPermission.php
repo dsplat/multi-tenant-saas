@@ -5,7 +5,6 @@ namespace MultiTenantSaas\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Services\RbacService;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -22,7 +21,9 @@ use Symfony\Component\HttpFoundation\Response;
 class CheckPermission
 {
     public const ROLE_SUPER_ADMIN = 'super_admin';
+
     public const ROLE_TENANT_ADMIN = 'tenant_admin';
+
     public const ROLE_END_USER = 'end_user';
 
     /**
@@ -32,7 +33,7 @@ class CheckPermission
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return $this->unauthorized($request);
         }
 
@@ -52,7 +53,7 @@ class CheckPermission
     protected function checkAdminAccess(Request $request, $user, Closure $next, ?string $role): Response
     {
         if ($user->role !== self::ROLE_SUPER_ADMIN) {
-            return $this->forbidden($request, trans("common.super_admin_only"));
+            return $this->forbidden($request, trans('common.super_admin_only'));
         }
 
         return $next($request);
@@ -65,13 +66,13 @@ class CheckPermission
     {
         $tenantId = TenantContext::getId();
 
-        if (!$tenantId) {
-            return $this->forbidden($request, trans("common.missing_tenant"));
+        if (! $tenantId) {
+            return $this->forbidden($request, trans('common.missing_tenant'));
         }
 
         // super_admin 不能访问租户后台（租户数据隔离）
         if ($user->role === self::ROLE_SUPER_ADMIN) {
-            return $this->forbidden($request, trans("common.admin_no_tenant_console"));
+            return $this->forbidden($request, trans('common.admin_no_tenant_console'));
         }
 
         // 检查用户是否属于该租户
@@ -80,15 +81,15 @@ class CheckPermission
             ->wherePivot('is_active', true)
             ->first();
 
-        if (!$tenantUser) {
-            return $this->forbidden($request, trans("common.not_in_tenant"));
+        if (! $tenantUser) {
+            return $this->forbidden($request, trans('common.not_in_tenant'));
         }
 
         $tenantRole = $tenantUser->pivot->role;
 
         // console 仅允许 tenant_admin
         if ($tenantRole !== self::ROLE_TENANT_ADMIN) {
-            return $this->forbidden($request, trans("common.tenant_admin_only"));
+            return $this->forbidden($request, trans('common.tenant_admin_only'));
         }
 
         TenantContext::setTenantRole($tenantRole);
@@ -103,13 +104,13 @@ class CheckPermission
     {
         $tenantId = TenantContext::getId();
 
-        if (!$tenantId) {
-            return $this->forbidden($request, trans("common.missing_tenant"));
+        if (! $tenantId) {
+            return $this->forbidden($request, trans('common.missing_tenant'));
         }
 
         // super_admin 不能访问租户私有数据
         if ($user->role === self::ROLE_SUPER_ADMIN) {
-            return $this->forbidden($request, trans("common.admin_no_tenant_data"));
+            return $this->forbidden($request, trans('common.admin_no_tenant_data'));
         }
 
         // 检查用户是否属于该租户
@@ -118,8 +119,8 @@ class CheckPermission
             ->wherePivot('is_active', true)
             ->first();
 
-        if (!$tenantUser) {
-            return $this->forbidden($request, trans("common.not_in_tenant"));
+        if (! $tenantUser) {
+            return $this->forbidden($request, trans('common.not_in_tenant'));
         }
 
         $tenantRole = $tenantUser->pivot->role;
@@ -127,7 +128,7 @@ class CheckPermission
 
         // 检查指定角色
         if ($role && $tenantRole !== $role) {
-            return $this->forbidden($request, trans("common.role_required", ['role' => $role]));
+            return $this->forbidden($request, trans('common.role_required', ['role' => $role]));
         }
 
         return $next($request);
@@ -138,6 +139,7 @@ class CheckPermission
         if ($request->expectsJson()) {
             return response()->json(['message' => trans('common.unauthenticated'), 'error' => 'Unauthenticated'], 401);
         }
+
         return redirect()->guest(route('login'));
     }
 

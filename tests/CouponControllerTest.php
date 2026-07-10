@@ -2,9 +2,6 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Modules\Coupon\Models\Coupon;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Modules\Coupon\Services\CouponService;
 use MultiTenantSaas\Tests\Schema\CouponModule;
@@ -12,6 +9,7 @@ use MultiTenantSaas\Tests\Schema\CouponModule;
 class CouponControllerTest extends TestCase
 {
     protected array $uses = [CouponModule::class];
+
     private User $user;
 
     protected function setUp(): void

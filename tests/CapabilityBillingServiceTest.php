@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\CreditAccount;
 use MultiTenantSaas\Models\Capability\CapabilityResult;
+use MultiTenantSaas\Models\CreditAccount;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Modules\Ai\Services\Capability\CapabilityBillingService;
@@ -17,15 +17,18 @@ class CapabilityBillingServiceTest extends TestCase
     protected array $uses = [BillingModule::class];
 
     private CapabilityBillingService $billingService;
+
     private Tenant $tenant;
+
     private User $user;
+
     private CreditAccount $account;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->billingService = new CapabilityBillingService();
+        $this->billingService = new CapabilityBillingService;
 
         $this->tenant = Tenant::create([
             'tenant_id' => 1001,

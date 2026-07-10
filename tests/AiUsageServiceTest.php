@@ -3,10 +3,10 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Modules\Ai\Models\AiRequest;
-use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
 use MultiTenantSaas\Models\SubscriptionPlan;
 use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Ai\Models\AiRequest;
+use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
 use MultiTenantSaas\Services\AiConfigService;
 use MultiTenantSaas\Services\AiUsageService;
 use MultiTenantSaas\Tests\Schema\AiModule;
@@ -87,7 +87,7 @@ class AiUsageServiceTest extends TestCase
         $this->assertSame(5, $quota->image_generation_limit);
         $this->assertSame(30, $quota->video_duration_limit);
         $this->assertSame(0, $quota->used_tokens);
-        $this->assertSame('monthly:'.now()->format('Y-m'), $quota->period);
+        $this->assertSame('monthly:' . now()->format('Y-m'), $quota->period);
     }
 
     public function test_get_or_create_quota_returns_existing_record(): void

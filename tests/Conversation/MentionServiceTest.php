@@ -12,8 +12,8 @@ use MultiTenantSaas\Models\Message;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Modules\Conversation\Services\MentionService;
-use MultiTenantSaas\Tests\TestCase;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
+use MultiTenantSaas\Tests\TestCase;
 
 /**
  * IMPL-004 MentionService 单元测试

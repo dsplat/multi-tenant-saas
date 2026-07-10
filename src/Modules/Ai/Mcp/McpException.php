@@ -10,21 +10,28 @@ use RuntimeException;
  * MCP JSON-RPC 2.0 异常
  *
  * 对应 JSON-RPC 2.0 规范中的标准错误码。
+ *
  * @see https://www.jsonrpc.org/specification#error_object
  */
 class McpException extends RuntimeException
 {
     /** JSON-RPC 2.0 标准错误码 */
-    public const CODE_PARSE_ERROR      = -32700;
-    public const CODE_INVALID_REQUEST  = -32600;
+    public const CODE_PARSE_ERROR = -32700;
+
+    public const CODE_INVALID_REQUEST = -32600;
+
     public const CODE_METHOD_NOT_FOUND = -32601;
-    public const CODE_INVALID_PARAMS   = -32602;
-    public const CODE_INTERNAL_ERROR   = -32603;
+
+    public const CODE_INVALID_PARAMS = -32602;
+
+    public const CODE_INTERNAL_ERROR = -32603;
 
     /** 自定义业务错误码 */
     public const CODE_RESOURCE_NOT_FOUND = -32001;
-    public const CODE_FORBIDDEN          = -32002;
-    public const CODE_RATE_LIMITED       = -32003;
+
+    public const CODE_FORBIDDEN = -32002;
+
+    public const CODE_RATE_LIMITED = -32003;
 
     /**
      * JSON-RPC 错误码
@@ -72,7 +79,7 @@ class McpException extends RuntimeException
     public function toJsonRpcError(): array
     {
         $error = [
-            'code'    => $this->errorCode,
+            'code' => $this->errorCode,
             'message' => $this->getMessage(),
         ];
 

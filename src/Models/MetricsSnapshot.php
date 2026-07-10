@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Concerns\HasGlobalId;
 
@@ -98,14 +99,13 @@ class MetricsSnapshot extends Model
      * @param  string  $granularity  粒度
      * @param  \DateTimeInterface|string  $from  起始时间
      * @param  \DateTimeInterface|string  $to  结束时间
-     * @return \Illuminate\Support\Collection
      */
     public static function range(
         string $metric,
         string $granularity,
         \DateTimeInterface|string $from,
         \DateTimeInterface|string $to
-    ): \Illuminate\Support\Collection {
+    ): Collection {
         return DB::table('metrics_snapshots')
             ->where('metric_name', $metric)
             ->where('granularity', $granularity)

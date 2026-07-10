@@ -13,13 +13,12 @@ abstract class McpTool
     abstract public function description(): string;
 
     /**
-     * @return array<string, mixed>  JSON Schema 格式
+     * @return array<string, mixed> JSON Schema 格式
      */
     abstract public function inputSchema(): array;
 
     /**
      * @param  array<string, mixed>  $params
-     * @return mixed
      */
     abstract public function execute(array $params): mixed;
 

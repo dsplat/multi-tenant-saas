@@ -51,9 +51,9 @@ class AiPricing
     /**
      * 计算单次请求的 Token 费用
      *
-     * @param  string  $model              模型名称
-     * @param  int     $promptTokens       输入 token 数
-     * @param  int     $completionTokens   输出 token 数
+     * @param  string  $model  模型名称
+     * @param  int  $promptTokens  输入 token 数
+     * @param  int  $completionTokens  输出 token 数
      * @return float 费用（元）
      */
     public static function calculateCost(string $model, int $promptTokens, int $completionTokens): float

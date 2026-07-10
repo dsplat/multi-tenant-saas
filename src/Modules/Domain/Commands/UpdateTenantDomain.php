@@ -24,7 +24,7 @@ class UpdateTenantDomain extends Command
 
         $tenant = Tenant::where('custom_domain', $old)->first();
 
-        if (!$tenant) {
+        if (! $tenant) {
             $this->error(trans('domain.tenant_not_found_by_domain', ['domain' => $old]));
             $this->line(trans('domain.existing_custom_domains'));
             Tenant::whereNotNull('custom_domain')->get(['name', 'custom_domain'])->each(
@@ -38,8 +38,9 @@ class UpdateTenantDomain extends Command
         $this->line('  ' . trans('domain.old_domain') . ": {$old}");
         $this->line('  ' . trans('domain.new_domain') . ": {$new}");
 
-        if (!$this->confirm(trans('domain.confirm_update'), true)) {
+        if (! $this->confirm(trans('domain.confirm_update'), true)) {
             $this->warn(trans('common.cancelled'));
+
             return self::SUCCESS;
         }
 

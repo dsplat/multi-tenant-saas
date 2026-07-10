@@ -17,15 +17,18 @@ class ConversationSummaryServiceTest extends TestCase
     protected array $uses = [ChannelModule::class];
 
     private ConversationSummaryService $service;
+
     private Tenant $tenant;
+
     private User $user;
+
     private Conversation $conversation;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->service = new ConversationSummaryService();
+        $this->service = new ConversationSummaryService;
 
         $this->tenant = Tenant::create([
             'tenant_id' => 1001,

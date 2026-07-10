@@ -186,7 +186,7 @@ class MailTemplateService
                     'tenant_id' => null,
                 ],
                 [
-                    'name' => trans('notification.mail_templates.names.'.$template['name_key']),
+                    'name' => trans('notification.mail_templates.names.' . $template['name_key']),
                     'type' => $template['type'],
                     'subject' => $template['subject'],
                     'html_body' => $template['html_body'],

@@ -175,7 +175,7 @@ class HealthCheckService
         $disk = config('tenancy.file_storage_disk', 'local');
         $start = microtime(true);
         try {
-            $path = 'health/'.uniqid('ping_', true);
+            $path = 'health/' . uniqid('ping_', true);
             Storage::disk($disk)->put($path, 'ping');
             $exists = Storage::disk($disk)->exists($path);
             Storage::disk($disk)->delete($path);
@@ -354,7 +354,7 @@ class HealthCheckService
 
         return [
             'status' => $status,
-            'message' => (count($endpoints) - $failed).'/'.count($endpoints).' endpoints healthy',
+            'message' => (count($endpoints) - $failed) . '/' . count($endpoints) . ' endpoints healthy',
             'latency_ms' => $latency,
         ];
     }

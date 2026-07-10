@@ -614,14 +614,14 @@ class AiGatewayService
         $userId = $this->currentUserId();
 
         if ($tenantId !== null && $userId !== null) {
-            return 'ai:rl:'.$tenantId.':'.$userId;
+            return 'ai:rl:' . $tenantId . ':' . $userId;
         }
 
         if ($tenantId !== null) {
-            return 'ai:rl:t:'.$tenantId;
+            return 'ai:rl:t:' . $tenantId;
         }
 
-        return 'ai:rl:ip:'.request()->ip();
+        return 'ai:rl:ip:' . request()->ip();
     }
 
     /**

@@ -21,6 +21,7 @@ class TrustedDeviceServiceTest extends TestCase
     protected array $uses = [SecurityModule::class];
 
     private TrustedDeviceService $service;
+
     private int $userId = 1;
 
     protected function setUp(): void

@@ -2,18 +2,17 @@
 
 namespace MultiTenantSaas\Services;
 
+use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 use MultiTenantSaas\Contracts\TenantContextContract;
-use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Models\FileUpload;
+use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Modules\Ai\Services\Ai\KlingProvider;
 use MultiTenantSaas\Modules\Ai\Services\Ai\RunwayProvider;
-use MultiTenantSaas\Services\FileService;
 use RuntimeException;
 use Throwable;
 
@@ -468,7 +467,7 @@ class AiVideoService
     /**
      * 解析提供商标识为提供商实例
      *
-     * @throws \RuntimeException 提供商未实现时抛出
+     * @throws RuntimeException 提供商未实现时抛出
      */
     protected function resolveProvider(string $providerCode): object
     {
@@ -541,7 +540,7 @@ class AiVideoService
         file_put_contents($tempPath, $binary);
 
         try {
-            $filename = 'ai_video_'.time().'_'.Str::random(8).'.'.$extension;
+            $filename = 'ai_video_' . time() . '_' . Str::random(8) . '.' . $extension;
 
             $uploadedFile = new UploadedFile(
                 $tempPath,

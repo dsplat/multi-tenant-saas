@@ -43,13 +43,13 @@ class ProcessWebhookDelivery implements ShouldQueue
     {
         $delivery = WebhookDelivery::where('webhook_delivery_id', $this->webhookDeliveryId)->first();
 
-        if (!$delivery) {
+        if (! $delivery) {
             return;
         }
 
         $webhook = Webhook::where('webhook_id', $delivery->webhook_id)->first();
 
-        if (!$webhook || !$webhook->is_active) {
+        if (! $webhook || ! $webhook->is_active) {
             $delivery->update([
                 'status' => WebhookDelivery::STATUS_FAILED,
                 'error_message' => 'Webhook not found or inactive',

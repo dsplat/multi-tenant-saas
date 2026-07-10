@@ -3,8 +3,6 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Modules\Lottery\Models\LotteryActivity;
-use MultiTenantSaas\Modules\Lottery\Models\LotteryActivityPrize;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;

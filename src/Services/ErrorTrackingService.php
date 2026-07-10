@@ -78,7 +78,7 @@ class ErrorTrackingService
                 return $eventId ? (string) $eventId : null;
             }
         } catch (\Throwable $e) {
-            Log::warning('[ErrorTracking] Sentry captureException failed: '.$e->getMessage());
+            Log::warning('[ErrorTracking] Sentry captureException failed: ' . $e->getMessage());
         }
 
         return null;
@@ -104,7 +104,7 @@ class ErrorTrackingService
                 return $eventId ? (string) $eventId : null;
             }
         } catch (\Throwable $e) {
-            Log::warning('[ErrorTracking] Sentry captureMessage failed: '.$e->getMessage());
+            Log::warning('[ErrorTracking] Sentry captureMessage failed: ' . $e->getMessage());
         }
 
         return null;
@@ -275,7 +275,7 @@ class ErrorTrackingService
                 continue;
             }
             $bucket = $granularity === self::GRANULARITY_HOUR
-                ? substr($createdAt, 0, 13).':00:00' // YYYY-MM-DD HH:00:00
+                ? substr($createdAt, 0, 13) . ':00:00' // YYYY-MM-DD HH:00:00
                 : substr($createdAt, 0, 10);          // YYYY-MM-DD
 
             $buckets[$bucket] = ($buckets[$bucket] ?? 0) + 1;

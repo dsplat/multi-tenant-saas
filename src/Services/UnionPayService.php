@@ -78,7 +78,7 @@ class UnionPayService
 
         return [
             'params' => $params,
-            'gateway_url' => $this->baseUrl($mode).'/gateway/api/frontTransReq.do',
+            'gateway_url' => $this->baseUrl($mode) . '/gateway/api/frontTransReq.do',
         ];
     }
 
@@ -109,10 +109,10 @@ class UnionPayService
         $params['signature'] = $this->sign($tenantId, $params);
         $params['signMethod'] = '01';
 
-        $resp = Http::asForm()->post($this->baseUrl($mode).'/gateway/api/queryTrans.do', $params);
+        $resp = Http::asForm()->post($this->baseUrl($mode) . '/gateway/api/queryTrans.do', $params);
 
         if (! $resp->successful()) {
-            throw new \RuntimeException(trans('payment.unionpay_query_failed').': '.$resp->body());
+            throw new \RuntimeException(trans('payment.unionpay_query_failed') . ': ' . $resp->body());
         }
 
         parse_str($resp->body(), $data);
@@ -140,7 +140,7 @@ class UnionPayService
         $mode = TenantSetting::get($tenantId, 'payment', 'unionpay_mode', 'test');
         $notifyUrl = TenantSetting::get($tenantId, 'payment', 'unionpay_notify_url', '');
 
-        $refundNo = 'RFD'.date('YmdHis').rand(1000, 9999);
+        $refundNo = 'RFD' . date('YmdHis') . rand(1000, 9999);
 
         $params = [
             'version' => '5.1.0',
@@ -161,10 +161,10 @@ class UnionPayService
         $params['signature'] = $this->sign($tenantId, $params);
         $params['signMethod'] = '01';
 
-        $resp = Http::asForm()->post($this->baseUrl($mode).'/gateway/api/visualizationTransReq.do', $params);
+        $resp = Http::asForm()->post($this->baseUrl($mode) . '/gateway/api/visualizationTransReq.do', $params);
 
         if (! $resp->successful()) {
-            throw new \RuntimeException(trans('payment.unionpay_refund_failed').': '.$resp->body());
+            throw new \RuntimeException(trans('payment.unionpay_refund_failed') . ': ' . $resp->body());
         }
 
         parse_str($resp->body(), $data);

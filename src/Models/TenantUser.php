@@ -2,11 +2,12 @@
 
 namespace MultiTenantSaas\Models;
 
-use MultiTenantSaas\Concerns\BelongsToTenant;
-use MultiTenantSaas\Concerns\HasGlobalId;
+use Database\Factories\TenantUserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use MultiTenantSaas\Concerns\BelongsToTenant;
+use MultiTenantSaas\Concerns\HasGlobalId;
 
 class TenantUser extends Model
 {
@@ -17,7 +18,7 @@ class TenantUser extends Model
      */
     protected static function newFactory()
     {
-        return \Database\Factories\TenantUserFactory::new();
+        return TenantUserFactory::new();
     }
 
     protected $primaryKey = 'tenant_user_id';

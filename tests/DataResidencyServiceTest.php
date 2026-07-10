@@ -22,7 +22,7 @@ class DataResidencyServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->service = new DataResidencyService();
+        $this->service = new DataResidencyService;
     }
 
     /**

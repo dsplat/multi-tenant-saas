@@ -12,7 +12,9 @@ use MultiTenantSaas\Contracts\ChannelContract;
 class DingTalkProvider implements ChannelContract
 {
     protected string $appKey;
+
     protected string $appSecret;
+
     protected string $robotSecret;
 
     public function __construct()

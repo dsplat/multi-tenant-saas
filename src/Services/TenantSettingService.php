@@ -3,7 +3,6 @@
 namespace MultiTenantSaas\Services;
 
 use MultiTenantSaas\Context\TenantConfigStore;
-use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\TenantSetting;
 
 /**
@@ -52,7 +51,7 @@ class TenantSettingService
             ->get()
             ->groupBy('group')
             ->map(fn ($items) => $items->mapWithKeys(fn ($s) => [
-                $s->key => $s->is_encrypted ? decrypt($s->value) : $s->value
+                $s->key => $s->is_encrypted ? decrypt($s->value) : $s->value,
             ]))
             ->toArray();
     }
@@ -65,7 +64,7 @@ class TenantSettingService
         $configs = TenantSetting::where('tenant_id', $tenantId)
             ->get()
             ->mapWithKeys(fn ($s) => [
-                "{$s->group}.{$s->key}" => $s->is_encrypted ? decrypt($s->value) : $s->value
+                "{$s->group}.{$s->key}" => $s->is_encrypted ? decrypt($s->value) : $s->value,
             ])
             ->toArray();
 

@@ -28,7 +28,7 @@ class McpMiddleware
         $authHeader = $request->header('Authorization');
         $tenantId = $request->header('X-Tenant-ID') ? (int) $request->header('X-Tenant-ID') : null;
 
-        if (!$authHeader) {
+        if (! $authHeader) {
             throw new McpException(
                 'Authorization required',
                 McpException::AUTH_REQUIRED
@@ -55,7 +55,7 @@ class McpMiddleware
     {
         $validated = $this->clientRegistry->validateToken($token);
 
-        if (!$validated) {
+        if (! $validated) {
             throw new McpException(
                 'Invalid or expired MCP token',
                 McpException::TOKEN_EXPIRED
@@ -92,7 +92,7 @@ class McpMiddleware
             );
         }
 
-        if (!$user) {
+        if (! $user) {
             throw new McpException(
                 'Invalid Sanctum token',
                 McpException::TOKEN_EXPIRED

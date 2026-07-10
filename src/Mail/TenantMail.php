@@ -4,6 +4,9 @@ namespace MultiTenantSaas\Mail;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
+use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
@@ -51,17 +54,17 @@ class TenantMail extends Mailable
         $this->data = $this->withTenantDefaults($data);
     }
 
-    public function envelope(): \Illuminate\Mail\Mailables\Envelope
+    public function envelope(): Envelope
     {
         $subject = $this->renderTemplate()['subject']
             ?? ($this->data['platform_name'] ?? config('app.name', 'Notification'));
 
-        return new \Illuminate\Mail\Mailables\Envelope(
+        return new Envelope(
             subject: $subject,
         );
     }
 
-    public function content(): \Illuminate\Mail\Mailables\Content
+    public function content(): Content
     {
         $rendered = $this->renderTemplate();
         $html = $rendered['html'] ?? '';
@@ -75,7 +78,7 @@ class TenantMail extends Mailable
             });
         }
 
-        return new \Illuminate\Mail\Mailables\Content(
+        return new Content(
             htmlString: $html,
         );
     }
@@ -155,22 +158,22 @@ class TenantMail extends Mailable
      *  - url:       http(s) URL 附件
      *  - name/mime: 可选，用于覆盖文件名与 MIME 类型
      */
-    protected function toAttachment(array $config): \Illuminate\Mail\Mailables\Attachment
+    protected function toAttachment(array $config): Attachment
     {
         if (isset($config['data'])) {
-            $instance = \Illuminate\Mail\Mailables\Attachment::fromData(
+            $instance = Attachment::fromData(
                 fn () => $config['data'],
                 $config['name'] ?? null,
             );
         } elseif (isset($config['storage'])) {
             $instance = isset($config['disk'])
-                ? \Illuminate\Mail\Mailables\Attachment::fromStorageDisk($config['disk'], $config['storage'])
-                : \Illuminate\Mail\Mailables\Attachment::fromStorage($config['storage']);
+                ? Attachment::fromStorageDisk($config['disk'], $config['storage'])
+                : Attachment::fromStorage($config['storage']);
         } elseif (isset($config['url'])) {
-            $instance = \Illuminate\Mail\Mailables\Attachment::fromUrl($config['url']);
+            $instance = Attachment::fromUrl($config['url']);
         } else {
             $path = $config['path'] ?? $config[0] ?? '';
-            $instance = \Illuminate\Mail\Mailables\Attachment::fromPath($path);
+            $instance = Attachment::fromPath($path);
         }
 
         if (isset($config['name'])) {

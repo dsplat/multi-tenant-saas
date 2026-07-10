@@ -45,8 +45,8 @@ abstract class ModuleServiceProvider extends ServiceProvider
      */
     protected function mergeModuleConfig(): void
     {
-        $configPath = $this->getModulePath('Config/'.Str::studly($this->moduleName).'.php')
-            ?? $this->getModulePath('Config/'.strtolower($this->moduleName).'.php');
+        $configPath = $this->getModulePath('Config/' . Str::studly($this->moduleName) . '.php')
+            ?? $this->getModulePath('Config/' . strtolower($this->moduleName) . '.php');
 
         if ($configPath && file_exists($configPath)) {
             $this->mergeConfigFrom($configPath, strtolower($this->moduleName));
@@ -82,7 +82,7 @@ abstract class ModuleServiceProvider extends ServiceProvider
         $moduleDir = $this->getModulePath();
 
         // API 路由 (需要认证)
-        $apiRoute = $moduleDir.'/routes/api.php';
+        $apiRoute = $moduleDir . '/routes/api.php';
         if (file_exists($apiRoute)) {
             Route::middleware(['auth:sanctum', 'throttle:api'])
                 ->prefix('api/v1')
@@ -90,14 +90,14 @@ abstract class ModuleServiceProvider extends ServiceProvider
         }
 
         // 公开路由 (无需认证)
-        $publicRoute = $moduleDir.'/routes/public.php';
+        $publicRoute = $moduleDir . '/routes/public.php';
         if (file_exists($publicRoute)) {
             Route::prefix('api/v1')
                 ->group($publicRoute);
         }
 
         // 系统管理路由
-        $adminRoute = $moduleDir.'/routes/admin.php';
+        $adminRoute = $moduleDir . '/routes/admin.php';
         if (file_exists($adminRoute)) {
             Route::middleware('api')
                 ->prefix('v1/admin')
@@ -105,7 +105,7 @@ abstract class ModuleServiceProvider extends ServiceProvider
         }
 
         // 租户管理路由
-        $tenantRoute = $moduleDir.'/routes/tenant.php';
+        $tenantRoute = $moduleDir . '/routes/tenant.php';
         if (file_exists($tenantRoute)) {
             Route::middleware(['auth:sanctum', 'throttle:api'])
                 ->group($tenantRoute);
@@ -139,34 +139,34 @@ abstract class ModuleServiceProvider extends ServiceProvider
      */
     public function publishModuleAssets(): void
     {
-        $configPath = $this->getModulePath('Config/'.Str::studly($this->moduleName).'.php')
-            ?? $this->getModulePath('Config/'.strtolower($this->moduleName).'.php');
+        $configPath = $this->getModulePath('Config/' . Str::studly($this->moduleName) . '.php')
+            ?? $this->getModulePath('Config/' . strtolower($this->moduleName) . '.php');
 
         if ($configPath && file_exists($configPath)) {
             $this->publishes([
                 $configPath => config_path(basename($configPath)),
-            ], $this->moduleName.'-config');
+            ], $this->moduleName . '-config');
         }
 
         $migrationPath = $this->getModulePath('Database/migrations');
         if ($migrationPath && is_dir($migrationPath)) {
             $this->publishes([
                 $migrationPath => database_path('migrations'),
-            ], $this->moduleName.'-migrations');
+            ], $this->moduleName . '-migrations');
         }
 
         $viewPath = $this->getModulePath('resources/views');
         if ($viewPath && is_dir($viewPath)) {
             $this->publishes([
-                $viewPath => resource_path('views/vendor/'.$this->moduleName),
-            ], $this->moduleName.'-views');
+                $viewPath => resource_path('views/vendor/' . $this->moduleName),
+            ], $this->moduleName . '-views');
         }
 
         $langPath = $this->getModulePath('resources/lang');
         if ($langPath && is_dir($langPath)) {
             $this->publishes([
-                $langPath => resource_path('lang/vendor/'.$this->moduleName),
-            ], $this->moduleName.'-lang');
+                $langPath => resource_path('lang/vendor/' . $this->moduleName),
+            ], $this->moduleName . '-lang');
         }
     }
 
@@ -176,7 +176,7 @@ abstract class ModuleServiceProvider extends ServiceProvider
     protected function getModulePath(string $relativePath = ''): ?string
     {
         $moduleDir = dirname((new \ReflectionClass($this))->getFileName());
-        $fullPath = $moduleDir.($relativePath ? '/'.$relativePath : '');
+        $fullPath = $moduleDir . ($relativePath ? '/' . $relativePath : '');
 
         return $fullPath;
     }

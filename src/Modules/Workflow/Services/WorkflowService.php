@@ -87,7 +87,7 @@ class WorkflowService implements WorkflowServiceContract
             throw new \RuntimeException("Workflow {$workflowId} is not active");
         }
 
-        if (!$workflow->enabled) {
+        if (! $workflow->enabled) {
             throw new \RuntimeException("Workflow {$workflowId} is disabled");
         }
 

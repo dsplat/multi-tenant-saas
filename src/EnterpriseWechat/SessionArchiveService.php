@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\EnterpriseWechat;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Models\ArchivedMessage;
@@ -11,7 +12,9 @@ use MultiTenantSaas\Models\ArchivedMessage;
 class SessionArchiveService
 {
     private ArchiveDecryptor $decryptor;
+
     private string $corpId;
+
     private string $corpSecret;
 
     /**
@@ -61,7 +64,7 @@ class SessionArchiveService
 
     /**
      * @param  list<array<string, mixed>>  $chatData
-     * @return int  成功存储的消息数量
+     * @return int 成功存储的消息数量
      */
     public function decryptAndStore(array $chatData, ?int $tenantId = null): int
     {
@@ -82,7 +85,7 @@ class SessionArchiveService
 
             $msgData = json_decode($decrypted, true);
 
-            if (!is_array($msgData)) {
+            if (! is_array($msgData)) {
                 continue;
             }
 
@@ -144,9 +147,9 @@ class SessionArchiveService
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, ArchivedMessage>
+     * @return Collection<int, ArchivedMessage>
      */
-    public function queryMessages(string $roomId, int $limit = 20, int $offset = 0): \Illuminate\Database\Eloquent\Collection
+    public function queryMessages(string $roomId, int $limit = 20, int $offset = 0): Collection
     {
         return ArchivedMessage::query()
             ->where('room_id', $roomId)

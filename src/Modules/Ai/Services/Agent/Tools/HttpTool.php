@@ -25,6 +25,7 @@ class HttpTool implements ToolContract
     }
 
     private const ALLOWED_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+
     private const BLOCKED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '10.', '172.16.', '192.168.'];
 
     public function execute(array $params): mixed
@@ -39,16 +40,16 @@ class HttpTool implements ToolContract
             return ['error' => 'URL required'];
         }
 
-        if (!in_array($method, self::ALLOWED_METHODS, true)) {
+        if (! in_array($method, self::ALLOWED_METHODS, true)) {
             return ['error' => 'Method not allowed'];
         }
 
         $parsedUrl = parse_url($url);
-        if ($parsedUrl === false || !isset($parsedUrl['scheme'], $parsedUrl['host'])) {
+        if ($parsedUrl === false || ! isset($parsedUrl['scheme'], $parsedUrl['host'])) {
             return ['error' => 'Invalid URL'];
         }
 
-        if (!in_array($parsedUrl['scheme'], ['http', 'https'], true)) {
+        if (! in_array($parsedUrl['scheme'], ['http', 'https'], true)) {
             return ['error' => 'Only HTTP/HTTPS allowed'];
         }
 

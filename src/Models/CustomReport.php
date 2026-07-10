@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use MultiTenantSaas\Concerns\BelongsToTenant;
@@ -23,7 +24,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class CustomReport extends Model
 {
-    use HasGlobalId, BelongsToTenant, SoftDeletes;
+    use BelongsToTenant, HasGlobalId, SoftDeletes;
 
     /** 状态：草稿 */
     public const STATUS_DRAFT = 'draft';
@@ -101,8 +102,8 @@ class CustomReport extends Model
     /**
      * 仅返回启用的报表作用域
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @param  Builder  $query
+     * @return Builder
      */
     public function scopeActive($query)
     {

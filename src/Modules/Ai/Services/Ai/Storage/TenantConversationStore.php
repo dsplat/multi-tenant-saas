@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Modules\Ai\Services\Ai\Storage;
 
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 use Laravel\Ai\Contracts\ConversationStore;
 use Laravel\Ai\Files\File;
 use Laravel\Ai\Messages\AssistantMessage;
@@ -13,9 +16,11 @@ use Laravel\Ai\Messages\ToolResultMessage;
 use Laravel\Ai\Messages\UserMessage;
 use Laravel\Ai\Prompts\AgentPrompt;
 use Laravel\Ai\Responses\AgentResponse;
+use Laravel\Ai\Responses\Data\ToolCall;
+use Laravel\Ai\Responses\Data\ToolResult;
 use Laravel\Ai\Storage\DatabaseConversationStore;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
-use InvalidArgumentException;
+use MultiTenantSaas\Contracts\TenantContextContract;
 
 /**
  * 租户感知的会话存储
@@ -174,13 +179,13 @@ class TenantConversationStore implements ConversationStore
                     $messages = [
                         new AssistantMessage(
                             $record->content ?: '',
-                            $toolCalls->map(\Laravel\Ai\Responses\Data\ToolCall::fromArray(...)),
+                            $toolCalls->map(ToolCall::fromArray(...)),
                         ),
                     ];
 
                     if ($toolResults->isNotEmpty()) {
                         $messages[] = new ToolResultMessage(
-                            $toolResults->map(\Laravel\Ai\Responses\Data\ToolResult::fromArray(...)),
+                            $toolResults->map(ToolResult::fromArray(...)),
                         );
                     }
 
@@ -221,9 +226,9 @@ class TenantConversationStore implements ConversationStore
     /**
      * 获取查询构建器
      */
-    protected function table(string $table): \Illuminate\Database\Query\Builder
+    protected function table(string $table): Builder
     {
-        return \Illuminate\Support\Facades\DB::connection($this->connection)->table($table);
+        return DB::connection($this->connection)->table($table);
     }
 
     /**
@@ -247,7 +252,7 @@ class TenantConversationStore implements ConversationStore
      */
     protected function getTenantId(): ?int
     {
-        $tenantContext = app(\MultiTenantSaas\Contracts\TenantContextContract::class);
+        $tenantContext = app(TenantContextContract::class);
 
         return $tenantContext->getTenantId();
     }

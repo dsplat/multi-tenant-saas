@@ -17,7 +17,9 @@ class WebhookDelivery extends Model
     use BelongsToTenant, HasGlobalId;
 
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_DELIVERED = 'delivered';
+
     public const STATUS_FAILED = 'failed';
 
     protected $primaryKey = 'webhook_delivery_id';

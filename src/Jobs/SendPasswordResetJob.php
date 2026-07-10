@@ -2,7 +2,6 @@
 
 namespace MultiTenantSaas\Jobs;
 
-use MultiTenantSaas\Mail\PasswordResetMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -11,6 +10,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use MultiTenantSaas\Mail\PasswordResetMail;
 use MultiTenantSaas\Models\User;
 
 /**
@@ -23,6 +23,7 @@ class SendPasswordResetJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public array $backoff = [10, 30, 60];
 
     public function __construct(
@@ -32,7 +33,7 @@ class SendPasswordResetJob implements ShouldQueue
     public function handle(): void
     {
         $user = User::find($this->userId);
-        if (!$user) {
+        if (! $user) {
             return;
         }
 

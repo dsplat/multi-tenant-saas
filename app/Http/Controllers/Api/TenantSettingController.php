@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Models\SystemSetting;
 use MultiTenantSaas\Models\TenantSetting;
-use MultiTenantSaas\Services\AuditService;
 use MultiTenantSaas\Modules\Sms\Services\SmsService;
+use MultiTenantSaas\Services\AuditService;
 
 class TenantSettingController extends Controller
 {
@@ -48,20 +48,21 @@ class TenantSettingController extends Controller
                     ['value' => $value]
                 );
             }
-            return response()->json(['success' => true, 'message' => trans("common.updated")]);
+
+            return response()->json(['success' => true, 'message' => trans('common.updated')]);
         }
 
         $allowedGroups = ['info', 'oauth', 'auth', 'mail', 'registration'];
-        if (!in_array($group, $allowedGroups)) {
-            return response()->json(['success' => false, 'message' => trans("common.not_found")], 400);
+        if (! in_array($group, $allowedGroups)) {
+            return response()->json(['success' => false, 'message' => trans('common.not_found')], 400);
         }
 
         // 白名单：每个配置组只允许特定 key
         $allowedKeys = [
             'info' => ['name', 'description', 'logo', 'contact_name', 'contact_email', 'contact_phone'],
             'oauth' => ['wechat_enabled', 'wechat_corp_id', 'wechat_agent_id', 'wechat_secret',
-                        'dingtalk_enabled', 'dingtalk_app_key', 'dingtalk_app_secret',
-                        'feishu_enabled', 'feishu_app_id', 'feishu_app_secret'],
+                'dingtalk_enabled', 'dingtalk_app_key', 'dingtalk_app_secret',
+                'feishu_enabled', 'feishu_app_id', 'feishu_app_secret'],
             'auth' => ['allow_phone_login', 'allow_password_login', 'email_domains'],
             'mail' => ['driver', 'host', 'port', 'username', 'password', 'encryption', 'from_address', 'from_name'],
             'registration' => ['allow_register', 'welcome_credits'],
@@ -77,11 +78,11 @@ class TenantSettingController extends Controller
             }
         }
 
-        if (!empty($changes)) {
+        if (! empty($changes)) {
             AuditService::log('update', 'tenant_settings', $tenantId, null, ['group' => $group, 'changes' => $changes]);
         }
 
-        return response()->json(['success' => true, 'message' => trans("common.updated")]);
+        return response()->json(['success' => true, 'message' => trans('common.updated')]);
     }
 
     public function testSms(Request $request, int $tenantId)
@@ -93,9 +94,9 @@ class TenantSettingController extends Controller
         $result = SmsService::send($request->phone, $code, 'test');
 
         if ($result) {
-            return response()->json(['success' => true, 'message' => trans("common.success")]);
+            return response()->json(['success' => true, 'message' => trans('common.success')]);
         }
 
-        return response()->json(['success' => false, 'message' => trans("common.failed")], 500);
+        return response()->json(['success' => false, 'message' => trans('common.failed')], 500);
     }
 }

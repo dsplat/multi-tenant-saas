@@ -2,12 +2,11 @@
 
 namespace MultiTenantSaas\Services;
 
+use Carbon\Carbon;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Models\CreditAccount;
 use MultiTenantSaas\Models\CreditTransaction;
-use MultiTenantSaas\Models\Tenant;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Carbon\Carbon;
 
 /**
  * 租户积分与财务管理服务
@@ -18,8 +17,7 @@ class TenantCreditService
     /**
      * 获取租户积分账户信息
      *
-     * @param int $tenantId 租户ID
-     * @return array
+     * @param  int  $tenantId  租户ID
      */
     public function getAccountInfo(int $tenantId): array
     {
@@ -28,7 +26,7 @@ class TenantCreditService
             ->where('account_type', 'enterprise')
             ->first();
 
-        if (!$enterpriseAccount) {
+        if (! $enterpriseAccount) {
             // 如果不存在则创建
             $enterpriseAccount = CreditAccount::create([
                 'tenant_id' => $tenantId,
@@ -77,9 +75,8 @@ class TenantCreditService
     /**
      * 获取充值记录
      *
-     * @param int $tenantId 租户ID
-     * @param array $options 选项 ['start_date' => date, 'end_date' => date, 'perPage' => int]
-     * @return LengthAwarePaginator
+     * @param  int  $tenantId  租户ID
+     * @param  array  $options  选项 ['start_date' => date, 'end_date' => date, 'perPage' => int]
      */
     public function getRechargeRecords(int $tenantId, array $options = []): LengthAwarePaginator
     {
@@ -87,7 +84,7 @@ class TenantCreditService
             ->where('account_type', 'enterprise')
             ->first();
 
-        if (!$account) {
+        if (! $account) {
             return new LengthAwarePaginator([], 0, $options['perPage'] ?? 15);
         }
 
@@ -95,11 +92,11 @@ class TenantCreditService
             ->where('type', 'recharge');
 
         // 日期筛选
-        if (!empty($options['start_date'])) {
+        if (! empty($options['start_date'])) {
             $query->whereDate('created_at', '>=', $options['start_date']);
         }
 
-        if (!empty($options['end_date'])) {
+        if (! empty($options['end_date'])) {
             $query->whereDate('created_at', '<=', $options['end_date']);
         }
 
@@ -112,9 +109,8 @@ class TenantCreditService
     /**
      * 获取消费记录
      *
-     * @param int $tenantId 租户ID
-     * @param array $options 选项 ['user_id' => int, 'start_date' => date, 'end_date' => date, 'perPage' => int]
-     * @return LengthAwarePaginator
+     * @param  int  $tenantId  租户ID
+     * @param  array  $options  选项 ['user_id' => int, 'start_date' => date, 'end_date' => date, 'perPage' => int]
      */
     public function getConsumeRecords(int $tenantId, array $options = []): LengthAwarePaginator
     {
@@ -122,7 +118,7 @@ class TenantCreditService
             ->where('account_type', 'enterprise')
             ->first();
 
-        if (!$account) {
+        if (! $account) {
             return new LengthAwarePaginator([], 0, $options['perPage'] ?? 15);
         }
 
@@ -131,16 +127,16 @@ class TenantCreditService
             ->with(['user:user_id,name,email']);
 
         // 按用户筛选
-        if (!empty($options['user_id'])) {
+        if (! empty($options['user_id'])) {
             $query->where('user_id', $options['user_id']);
         }
 
         // 日期筛选
-        if (!empty($options['start_date'])) {
+        if (! empty($options['start_date'])) {
             $query->whereDate('created_at', '>=', $options['start_date']);
         }
 
-        if (!empty($options['end_date'])) {
+        if (! empty($options['end_date'])) {
             $query->whereDate('created_at', '<=', $options['end_date']);
         }
 
@@ -153,11 +149,11 @@ class TenantCreditService
     /**
      * 充值积分
      *
-     * @param int $tenantId 租户ID
-     * @param int $userId 用户ID（操作人）
-     * @param int $amount 充值金额
-     * @param string $payment_method 支付方式
-     * @param string|null $description 描述
+     * @param  int  $tenantId  租户ID
+     * @param  int  $userId  用户ID（操作人）
+     * @param  int  $amount  充值金额
+     * @param  string  $payment_method  支付方式
+     * @param  string|null  $description  描述
      * @return array ['success' => bool, 'message' => string, 'transaction' => CreditTransaction|null]
      */
     public function recharge(int $tenantId, int $userId, int $amount, string $payment_method, ?string $description = null): array
@@ -165,7 +161,7 @@ class TenantCreditService
         if ($amount <= 0) {
             return [
                 'success' => false,
-                'message' => trans("credit.invalid_amount"),
+                'message' => trans('credit.invalid_amount'),
             ];
         }
 
@@ -176,7 +172,7 @@ class TenantCreditService
                 ->lockForUpdate()
                 ->first();
 
-            if (!$account) {
+            if (! $account) {
                 $account = CreditAccount::create([
                     'tenant_id' => $tenantId,
                     'user_id' => null,
@@ -196,14 +192,15 @@ class TenantCreditService
 
             return [
                 'success' => true,
-                'message' => trans("credit.recharge_success"),
+                'message' => trans('credit.recharge_success'),
                 'transaction' => $transaction,
             ];
         } catch (\Exception $e) {
             DB::rollBack();
+
             return [
                 'success' => false,
-                'message' => trans("credit.recharge_failed") . ': ' . $e->getMessage(),
+                'message' => trans('credit.recharge_failed') . ': ' . $e->getMessage(),
             ];
         }
     }
@@ -211,8 +208,7 @@ class TenantCreditService
     /**
      * 获取消费趋势数据（最近30天）
      *
-     * @param int $tenantId 租户ID
-     * @return array
+     * @param  int  $tenantId  租户ID
      */
     public function getConsumeTrend(int $tenantId): array
     {
@@ -220,7 +216,7 @@ class TenantCreditService
             ->where('account_type', 'enterprise')
             ->first();
 
-        if (!$account) {
+        if (! $account) {
             return [];
         }
 
@@ -256,9 +252,8 @@ class TenantCreditService
     /**
      * 获取成员消费统计（Top 10）
      *
-     * @param int $tenantId 租户ID
-     * @param string $period 时间范围 (today, week, month, all)
-     * @return array
+     * @param  int  $tenantId  租户ID
+     * @param  string  $period  时间范围 (today, week, month, all)
      */
     public function getMemberConsumeStats(int $tenantId, string $period = 'month'): array
     {
@@ -266,7 +261,7 @@ class TenantCreditService
             ->where('account_type', 'enterprise')
             ->first();
 
-        if (!$account) {
+        if (! $account) {
             return [];
         }
 
@@ -312,9 +307,8 @@ class TenantCreditService
     /**
      * 获取余额预警信息
      *
-     * @param int $tenantId 租户ID
-     * @param int $threshold 预警阈值（默认10000积分）
-     * @return array
+     * @param  int  $tenantId  租户ID
+     * @param  int  $threshold  预警阈值（默认10000积分）
      */
     public function getBalanceAlert(int $tenantId, int $threshold = 10000): array
     {
@@ -322,7 +316,7 @@ class TenantCreditService
             ->where('account_type', 'enterprise')
             ->first();
 
-        if (!$account) {
+        if (! $account) {
             return [
                 'alert' => false,
                 'balance' => 0,

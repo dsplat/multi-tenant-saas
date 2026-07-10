@@ -24,7 +24,7 @@ return [
     'before' => ':attribute 必须早于 :date',
     'regex' => ':attribute 格式不正确',
     'alpha_dash' => ':attribute 只能包含字母、数字、破折号和下划线',
-    
+
     'attributes' => [
         'name' => '名称',
         'email' => '邮箱',

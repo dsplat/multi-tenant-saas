@@ -4,13 +4,14 @@ namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
+use MultiTenantSaas\Models\User;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\MultiTenantSaas\Models\User>
+ * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
-    protected $model = \MultiTenantSaas\Models\User::class;
+    protected $model = User::class;
 
     public function definition(): array
     {

@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Services;
 
+use Laravel\Horizon\HorizonServiceProvider;
 use Spatie\Health\Checks\Checks\CacheCheck;
 use Spatie\Health\Checks\Checks\DatabaseCheck;
 use Spatie\Health\Checks\Checks\DebugModeCheck;
@@ -29,7 +30,7 @@ class HealthService
      */
     public static function registerChecks(): void
     {
-        if (!class_exists(\Spatie\Health\Facades\Health::class)) {
+        if (! class_exists(Health::class)) {
             return;
         }
 
@@ -51,7 +52,7 @@ class HealthService
      */
     public static function registerHorizonCheck(): void
     {
-        if (class_exists(\Laravel\Horizon\HorizonServiceProvider::class)) {
+        if (class_exists(HorizonServiceProvider::class)) {
             Health::checks([
                 HorizonCheck::new(),
             ]);

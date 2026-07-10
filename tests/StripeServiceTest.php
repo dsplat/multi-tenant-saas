@@ -18,7 +18,9 @@ class StripeServiceTest extends TestCase
     protected array $uses = [WebhookModule::class];
 
     private const TENANT_ID = 1001;
+
     private const STRIPE_SECRET = 'sk_test_secret_key';
+
     private const WEBHOOK_SECRET = 'whsec_test_secret';
 
     protected function setUp(): void
@@ -135,6 +137,7 @@ class StripeServiceTest extends TestCase
         Http::fake([
             'api.stripe.com/v1/refunds' => function ($request) {
                 $body = $request->data();
+
                 return Http::response([
                     'id' => 're_test_22222',
                     'status' => 'succeeded',
@@ -177,7 +180,7 @@ class StripeServiceTest extends TestCase
         ];
 
         $timestamp = time();
-        $signedPayload = $timestamp.'.'.json_encode($payload);
+        $signedPayload = $timestamp . '.' . json_encode($payload);
         $signature = hash_hmac('sha256', $signedPayload, self::WEBHOOK_SECRET);
         $signatureHeader = "t={$timestamp},v1={$signature}";
 
@@ -226,7 +229,7 @@ class StripeServiceTest extends TestCase
             $payload = ['type' => $eventType, 'data' => ['object' => []]];
 
             $timestamp = time();
-            $signedPayload = $timestamp.'.'.json_encode($payload);
+            $signedPayload = $timestamp . '.' . json_encode($payload);
             $signature = hash_hmac('sha256', $signedPayload, self::WEBHOOK_SECRET);
             $signatureHeader = "t={$timestamp},v1={$signature}";
 

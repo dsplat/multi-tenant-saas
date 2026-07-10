@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
+use App\Http\Controllers\Controller;
 use App\Http\Resources\TenantUserResource;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Services\AuditService;
-use MultiTenantSaas\Services\RbacService;
 
 class TenantMemberController extends Controller
 {
@@ -48,7 +47,7 @@ class TenantMemberController extends Controller
             'role' => $request->role ?? 'end_user',
         ]);
 
-        return response()->json(['success' => true, 'message' => trans("tenant.member_added")]);
+        return response()->json(['success' => true, 'message' => trans('tenant.member_added')]);
     }
 
     public function update(Request $request, int $tenantId, int $userId)
@@ -65,7 +64,7 @@ class TenantMemberController extends Controller
 
         AuditService::log('update', 'tenant_user', $userId, $oldValues, $newValues);
 
-        return response()->json(['success' => true, 'message' => trans("common.updated")]);
+        return response()->json(['success' => true, 'message' => trans('common.updated')]);
     }
 
     /**
@@ -86,7 +85,7 @@ class TenantMemberController extends Controller
                 ->where('is_active', true)
                 ->count();
             if ($adminCount <= 1) {
-                return response()->json(['success' => false, 'message' => trans("tenant.last_admin_protected")], 400);
+                return response()->json(['success' => false, 'message' => trans('tenant.last_admin_protected')], 400);
             }
         }
 
@@ -100,6 +99,6 @@ class TenantMemberController extends Controller
 
         AuditService::log('remove', 'tenant_user', $userId, $oldValues, null);
 
-        return response()->json(['success' => true, 'message' => trans("tenant.member_removed")]);
+        return response()->json(['success' => true, 'message' => trans('tenant.member_removed')]);
     }
 }

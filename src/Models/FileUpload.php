@@ -2,16 +2,16 @@
 
 namespace MultiTenantSaas\Models;
 
-use MultiTenantSaas\Concerns\BelongsToTenant;
-use MultiTenantSaas\Concerns\HasGlobalId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use MultiTenantSaas\Concerns\BelongsToTenant;
+use MultiTenantSaas\Concerns\HasGlobalId;
 
 class FileUpload extends Model
 {
-    use BelongsToTenant, HasGlobalId, HasFactory, SoftDeletes;
+    use BelongsToTenant, HasFactory, HasGlobalId, SoftDeletes;
 
     protected $primaryKey = 'file_upload_id';
 
@@ -53,6 +53,7 @@ class FileUpload extends Model
     public function isDocument(): bool
     {
         $docTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+
         return in_array($this->mime_type, $docTypes);
     }
 
@@ -65,6 +66,7 @@ class FileUpload extends Model
             $bytes /= 1024;
             $i++;
         }
+
         return round($bytes, 2) . ' ' . $units[$i];
     }
 }

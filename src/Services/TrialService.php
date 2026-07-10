@@ -2,15 +2,13 @@
 
 namespace MultiTenantSaas\Services;
 
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\SubscriptionPlan;
-use MultiTenantSaas\Models\SubscriptionHistory;
-use MultiTenantSaas\Models\FinancialRecord;
-use MultiTenantSaas\Services\NotificationService;
-use MultiTenantSaas\Services\SubscriptionService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
+use MultiTenantSaas\Models\FinancialRecord;
+use MultiTenantSaas\Models\SubscriptionHistory;
+use MultiTenantSaas\Models\SubscriptionPlan;
+use MultiTenantSaas\Models\Tenant;
 
 /**
  * 试用期管理服务
@@ -36,16 +34,16 @@ class TrialService
     /**
      * 开始试用
      *
-     * @param int $tenantId 租户ID
-     * @param int $planId 订阅计划ID
-     * @param int|null $trialDays 试用期天数，null 时取计划配置或默认值
+     * @param  int  $tenantId  租户ID
+     * @param  int  $planId  订阅计划ID
+     * @param  int|null  $trialDays  试用期天数，null 时取计划配置或默认值
      */
     public static function startTrial(int $tenantId, int $planId, ?int $trialDays = null): Tenant
     {
         $tenant = Tenant::findOrFail($tenantId);
         $plan = SubscriptionPlan::findOrFail($planId);
 
-        if (!$plan->is_active) {
+        if (! $plan->is_active) {
             throw new \RuntimeException(trans('subscription.plan_not_available'));
         }
 
@@ -101,7 +99,7 @@ class TrialService
     {
         $tenant = Tenant::find($tenantId);
 
-        if (!$tenant || !$tenant->trial_ends_at) {
+        if (! $tenant || ! $tenant->trial_ends_at) {
             return [
                 'in_trial' => false,
                 'trial_ends_at' => null,
@@ -129,9 +127,9 @@ class TrialService
      * 注意：若试用期已过期，延长将从当前时间重新开始计算天数，
      * 而非从原 trial_ends_at 延续。此行为允许管理员为过期租户提供二次试用机会。
      *
-     * @param int $tenantId 租户ID
-     * @param int $days 延长天数
-     * @param string|null $reason 延长原因
+     * @param  int  $tenantId  租户ID
+     * @param  int  $days  延长天数
+     * @param  string|null  $reason  延长原因
      */
     public static function extendTrial(int $tenantId, int $days, ?string $reason = null): Tenant
     {
@@ -141,7 +139,7 @@ class TrialService
 
         $tenant = Tenant::findOrFail($tenantId);
 
-        if (!$tenant->trial_ends_at) {
+        if (! $tenant->trial_ends_at) {
             throw new \RuntimeException(trans('subscription.trial_not_in_trial'));
         }
 
@@ -254,8 +252,9 @@ class TrialService
     {
         $plan = SubscriptionService::getCurrentPlan($tenant->tenant_id);
 
-        if (!$plan || $plan->isFree()) {
+        if (! $plan || $plan->isFree()) {
             $this->suspendOnTrialExpiry($tenant);
+
             return;
         }
 

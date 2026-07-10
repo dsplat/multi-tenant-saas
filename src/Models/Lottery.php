@@ -10,7 +10,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
 
 class Lottery extends Model
 {
-    use HasFactory, HasGlobalId, BelongsToTenant;
+    use BelongsToTenant, HasFactory, HasGlobalId;
 
     protected $primaryKey = 'lottery_id';
 

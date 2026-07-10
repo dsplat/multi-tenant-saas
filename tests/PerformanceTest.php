@@ -8,9 +8,9 @@ use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\CacheService;
 use MultiTenantSaas\Services\PerformanceService;
 use MultiTenantSaas\Services\StructuredLogService;
-use MultiTenantSaas\Tests\Schema\RbacModule;
-use MultiTenantSaas\Tests\Schema\PluginModule;
 use MultiTenantSaas\Tests\Schema\EventModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
+use MultiTenantSaas\Tests\Schema\RbacModule;
 
 /**
  * 性能基线测试

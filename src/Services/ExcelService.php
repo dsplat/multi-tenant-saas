@@ -3,6 +3,9 @@
 namespace MultiTenantSaas\Services;
 
 use Illuminate\Support\Collection;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\HeadingRowImport;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -21,10 +24,8 @@ class ExcelService
     /**
      * 导出数据到 Excel
      *
-     * @param array|Collection $data
-     * @param string $filename
-     * @param object $exportClass Export 类
-     * @return BinaryFileResponse
+     * @param  array|Collection  $data
+     * @param  object  $exportClass  Export 类
      */
     public static function export($data, string $filename, $exportClass): BinaryFileResponse
     {
@@ -34,9 +35,8 @@ class ExcelService
     /**
      * 导入 Excel 数据
      *
-     * @param string $filePath 文件路径或 UploadedFile
-     * @param object $importClass Import 类
-     * @return array
+     * @param  string  $filePath  文件路径或 UploadedFile
+     * @param  object  $importClass  Import 类
      */
     public static function import(string $filePath, $importClass): array
     {
@@ -48,7 +48,7 @@ class ExcelService
      */
     public static function getHeadings(string $filePath): array
     {
-        return Excel::toArray(new HeadingRowImport(), $filePath)[0] ?? [];
+        return Excel::toArray(new HeadingRowImport, $filePath)[0] ?? [];
     }
 
     /**
@@ -56,11 +56,10 @@ class ExcelService
      */
     public static function exportArray(array $data, array $headings, string $filename): BinaryFileResponse
     {
-        $export = new class($data, $headings) implements \Maatwebsite\Excel\Concerns\FromCollection,
-            \Maatwebsite\Excel\Concerns\WithHeadings,
-            \Maatwebsite\Excel\Concerns\WithMapping
+        $export = new class($data, $headings) implements FromCollection, WithHeadings, WithMapping
         {
             private $data;
+
             private $headings;
 
             public function __construct(array $data, array $headings)

@@ -3,10 +3,8 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Modules\Form\Models\Form;
-use MultiTenantSaas\Modules\Form\Models\FormField;
-use MultiTenantSaas\Modules\Form\Models\FormSubmission;
 use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Form\Models\Form;
 use MultiTenantSaas\Modules\Form\Services\FormBuilderService;
 use MultiTenantSaas\Tests\Schema\FormModule;
 
@@ -20,7 +18,7 @@ class FormBuilderServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->service = new FormBuilderService();
+        $this->service = new FormBuilderService;
 
         Tenant::create([
             'tenant_id' => 3001,

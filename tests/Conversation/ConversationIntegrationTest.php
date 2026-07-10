@@ -15,8 +15,8 @@ use MultiTenantSaas\Modules\Conversation\Services\MentionService;
 use MultiTenantSaas\Modules\Conversation\Services\ReadStateService;
 use MultiTenantSaas\Modules\Conversation\Services\SessionService;
 use MultiTenantSaas\Modules\Conversation\Services\TagService;
-use MultiTenantSaas\Tests\TestCase;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
+use MultiTenantSaas\Tests\TestCase;
 
 /**
  * IMPL-004 集成测试：验证 Mention / ReadState / Session / Tag 四个服务

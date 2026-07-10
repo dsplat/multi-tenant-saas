@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Modules\Workflow\Services\Nodes\ConditionNode;
-use MultiTenantSaas\Tests\TestCase;
 use MultiTenantSaas\Tests\Schema\WorkflowModule;
 
 class ConditionNodeTest extends TestCase
@@ -18,7 +17,7 @@ class ConditionNodeTest extends TestCase
     {
         parent::setUp();
 
-        $this->conditionNode = new ConditionNode();
+        $this->conditionNode = new ConditionNode;
     }
 
     public function test_execute_eq_operator_true(): void

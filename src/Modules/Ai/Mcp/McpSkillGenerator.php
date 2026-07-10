@@ -14,8 +14,10 @@ class McpSkillGenerator
 {
     /** 客户端类型常量 */
     public const CLIENT_WORKBUDDY = 'workbuddy';
-    public const CLIENT_HERMERS   = 'hermers';
-    public const CLIENT_OPENCLAW  = 'openclaw';
+
+    public const CLIENT_HERMERS = 'hermers';
+
+    public const CLIENT_OPENCLAW = 'openclaw';
 
     /** 支持的客户端类型列表 */
     public const SUPPORTED_CLIENTS = [
@@ -37,7 +39,7 @@ class McpSkillGenerator
     /**
      * 生成指定客户端格式的 Skill 内容
      *
-     * @param  string $clientType 客户端类型（workbuddy/hermers/openclaw）
+     * @param  string  $clientType  客户端类型（workbuddy/hermers/openclaw）
      * @return string 生成的 Skill 内容
      *
      * @throws McpException 不支持的客户端类型时抛出
@@ -46,9 +48,9 @@ class McpSkillGenerator
     {
         return match ($clientType) {
             self::CLIENT_WORKBUDDY => $this->generateWorkBuddy(),
-            self::CLIENT_HERMERS   => $this->generateHermers(),
-            self::CLIENT_OPENCLAW  => $this->generateOpenClaw(),
-            default                => throw McpException::invalidParams(
+            self::CLIENT_HERMERS => $this->generateHermers(),
+            self::CLIENT_OPENCLAW => $this->generateOpenClaw(),
+            default => throw McpException::invalidParams(
                 "Unsupported client type [{$clientType}]. Supported: " . implode(', ', self::SUPPORTED_CLIENTS)
             ),
         };
@@ -113,19 +115,19 @@ class McpSkillGenerator
     {
         $tools = $this->registry->listTools();
         $config = [
-            'version'     => '1.0',
+            'version' => '1.0',
             'client_type' => self::CLIENT_HERMERS,
-            'tools'       => [],
+            'tools' => [],
         ];
 
         foreach ($tools as $tool) {
             [$properties] = $this->extractSchema($tool['inputSchema'] ?? []);
 
             $config['tools'][] = [
-                'name'        => $tool['name'],
+                'name' => $tool['name'],
                 'description' => $tool['description'],
-                'parameters'  => $this->normalizeSchema($tool['inputSchema'] ?? []),
-                'examples'    => [
+                'parameters' => $this->normalizeSchema($tool['inputSchema'] ?? []),
+                'examples' => [
                     $this->buildExamplePayload($tool['name'], $properties),
                 ],
             ];
@@ -142,8 +144,8 @@ class McpSkillGenerator
         $tools = $this->registry->listTools();
         $config = [
             'schema_version' => '2024-01',
-            'platform'       => 'openclaw',
-            'capabilities'   => [],
+            'platform' => 'openclaw',
+            'capabilities' => [],
         ];
 
         foreach ($tools as $tool) {
@@ -151,17 +153,17 @@ class McpSkillGenerator
 
             $config['capabilities'][] = [
                 'function' => [
-                    'name'        => $tool['name'],
+                    'name' => $tool['name'],
                     'description' => $tool['description'],
-                    'parameters'  => [
-                        'type'       => 'object',
+                    'parameters' => [
+                        'type' => 'object',
                         'properties' => $properties,
-                        'required'   => $required,
+                        'required' => $required,
                     ],
                 ],
                 'examples' => [
                     [
-                        'input'  => $this->buildExamplePayload($tool['name'], $properties),
+                        'input' => $this->buildExamplePayload($tool['name'], $properties),
                         'output' => '(result from tool execution)',
                     ],
                 ],
@@ -186,7 +188,7 @@ class McpSkillGenerator
 
         // 空 properties 转为空对象，确保 json_encode 输出 {}
         if (empty($properties)) {
-            $properties = new \stdClass();
+            $properties = new \stdClass;
         }
 
         return [$properties, $required];
@@ -194,13 +196,11 @@ class McpSkillGenerator
 
     /**
      * 将 schema 归一化为 JSON 对象（空数组 → 空对象）
-     *
-     * @return array|\stdClass
      */
     protected function normalizeSchema(array $schema): array|\stdClass
     {
         if (empty($schema)) {
-            return new \stdClass();
+            return new \stdClass;
         }
 
         return $schema;
@@ -221,9 +221,9 @@ class McpSkillGenerator
     /**
      * 根据参数 schema 构建示例请求体
      *
-     * @param  string $toolName   工具名称
-     * @param  array  $properties 参数属性定义
-     * @return array  示例请求体
+     * @param  string  $toolName  工具名称
+     * @param  array  $properties  参数属性定义
+     * @return array 示例请求体
      */
     protected function buildExamplePayload(string $toolName, array $properties): array
     {
@@ -239,13 +239,13 @@ class McpSkillGenerator
     /**
      * 根据参数定义生成示例值
      *
-     * @param  array $paramDef 参数定义（含 type, enum, default 等）
+     * @param  array  $paramDef  参数定义（含 type, enum, default 等）
      * @return mixed 示例值
      */
     protected function generateExampleValue(array $paramDef): mixed
     {
         // 优先使用 enum 的第一个值
-        if (!empty($paramDef['enum'])) {
+        if (! empty($paramDef['enum'])) {
             return $paramDef['enum'][0];
         }
 
@@ -257,11 +257,11 @@ class McpSkillGenerator
         // 根据类型生成示例
         return match ($paramDef['type'] ?? 'string') {
             'integer' => 0,
-            'number'  => 0.0,
+            'number' => 0.0,
             'boolean' => true,
-            'array'   => [],
-            'object'  => (object) [],
-            default   => 'example',
+            'array' => [],
+            'object' => (object) [],
+            default => 'example',
         };
     }
 }

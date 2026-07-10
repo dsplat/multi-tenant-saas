@@ -167,7 +167,7 @@ class SecurityModule implements SchemaModuleInterface
         return [
             'mfa_devices', 'mfa_recovery_codes', 'feature_flags', 'user_sessions',
             'password_histories', 'trusted_devices', 'ip_whitelists', 'sso_providers',
-            'password_reset_tokens', 'email_verification_tokens'
+            'password_reset_tokens', 'email_verification_tokens',
         ];
     }
 }

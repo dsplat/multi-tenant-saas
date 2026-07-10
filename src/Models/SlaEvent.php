@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Concerns\HasGlobalId;
 
@@ -98,13 +99,12 @@ class SlaEvent extends Model
      * @param  \DateTimeInterface|string  $from  起始时间
      * @param  \DateTimeInterface|string  $to  结束时间
      * @param  string|null  $eventType  事件类型过滤
-     * @return \Illuminate\Support\Collection
      */
     public static function range(
         \DateTimeInterface|string $from,
         \DateTimeInterface|string $to,
         ?string $eventType = null
-    ): \Illuminate\Support\Collection {
+    ): Collection {
         $q = DB::table('sla_events')
             ->where('started_at', '<=', $to)
             ->where(function ($q) use ($from) {

@@ -12,11 +12,12 @@ use MultiTenantSaas\Services\TrialService;
 class ProcessSubscriptions extends Command
 {
     protected $signature = 'subscriptions:process';
+
     protected $description = '处理订阅：发送到期提醒 + 过期降级 + 自动续费 + 催款 + 试用期处理';
 
     public function handle(): int
     {
-        $service = new SubscriptionService();
+        $service = new SubscriptionService;
 
         $expiringCount = $service->processExpiringSubscriptions();
         $this->info("发送到期提醒: {$expiringCount} 个租户");
@@ -27,7 +28,7 @@ class ProcessSubscriptions extends Command
         $dunningRetryCount = $this->processFailedPayments();
         $this->info("处理催款重试: {$dunningRetryCount} 个租户");
 
-        $trialService = new TrialService();
+        $trialService = new TrialService;
 
         $expiringTrialCount = $trialService->processExpiringTrials();
         $this->info("处理试用到期提醒: {$expiringTrialCount} 个租户");

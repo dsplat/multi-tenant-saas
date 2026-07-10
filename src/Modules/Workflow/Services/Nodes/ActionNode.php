@@ -16,7 +16,6 @@ class ActionNode
     /**
      * @param  array<string, mixed>  $node
      * @param  array<string, mixed>  $context
-     * @param  int  $tenantId
      * @return array<string, mixed>
      */
     public function execute(array $node, array $context, int $tenantId): array

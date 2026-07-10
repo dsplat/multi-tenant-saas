@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Services\Memory;
 
-use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Memory\EntityMemory;
 use MultiTenantSaas\Models\Memory\TenantMemory;
@@ -12,6 +11,7 @@ use MultiTenantSaas\Models\Memory\TenantMemory;
 class MemoryService implements MemoryServiceContract
 {
     private float $decayRate;
+
     private int $compressThreshold;
 
     public function __construct(
@@ -75,7 +75,7 @@ class MemoryService implements MemoryServiceContract
             $memory->delete();
         }
 
-        if (!empty($compressed)) {
+        if (! empty($compressed)) {
             EntityMemory::create([
                 'entity_type' => $entityType,
                 'entity_id' => $entityId,

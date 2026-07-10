@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Crypt;
 use MultiTenantSaas\Concerns\BelongsToTenant;
+use MultiTenantSaas\Models\User;
 
 /**
  * 用户 API Token 模型
@@ -72,6 +73,6 @@ class UserApiToken extends Model
      */
     public function user()
     {
-        return $this->belongsTo(\MultiTenantSaas\Models\User::class, 'user_id', 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 }

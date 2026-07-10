@@ -219,8 +219,8 @@ class McpClientRegistry
      * 运行时注册的客户端覆盖数据库中同名的客户端。
      *
      * @param  Collection<int, McpClient>  $dbClients
-     * @param  string|null  $tenantId     按租户过滤（null 表示不过滤）
-     * @param  bool         $activeOnly   仅启用状态
+     * @param  string|null  $tenantId  按租户过滤（null 表示不过滤）
+     * @param  bool  $activeOnly  仅启用状态
      * @return Collection<int, McpClient>
      */
     private function mergeRuntime(Collection $dbClients, ?string $tenantId, bool $activeOnly = false): Collection
@@ -231,7 +231,7 @@ class McpClientRegistry
             if ($tenantId !== null && (string) $client->tenant_id !== $tenantId) {
                 continue;
             }
-            if ($activeOnly && !$client->isActive()) {
+            if ($activeOnly && ! $client->isActive()) {
                 continue;
             }
             $merged[$name] = $client;

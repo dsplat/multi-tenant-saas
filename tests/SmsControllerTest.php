@@ -3,10 +3,11 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Models\TenantUser;
+use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Modules\Sms\Models\SmsBatchTask;
 use MultiTenantSaas\Modules\Sms\Models\SmsTemplate;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Modules\Sms\Services\SmsService;
 use MultiTenantSaas\Tests\Schema\SmsModule;
 
@@ -38,7 +39,7 @@ class SmsControllerTest extends TestCase
         ]);
 
         // 创建 tenant_user 关联
-        \MultiTenantSaas\Models\TenantUser::create([
+        TenantUser::create([
             'tenant_user_id' => 3001,
             'tenant_id' => $this->tenantId,
             'user_id' => $this->user->user_id,

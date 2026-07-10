@@ -15,7 +15,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class TenantKey extends Model
 {
-    use HasGlobalId, BelongsToTenant;
+    use BelongsToTenant, HasGlobalId;
 
     protected $primaryKey = 'tenant_key_id';
 

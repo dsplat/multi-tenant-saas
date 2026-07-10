@@ -2,16 +2,16 @@
 
 namespace MultiTenantSaas\Services;
 
-use App\Notifications\GeneralNotification;
-use App\Notifications\TenantSuspendedNotification;
 use App\Notifications\CreditLowNotification;
-use App\Notifications\SubscriptionExpiringNotification;
+use App\Notifications\GeneralNotification;
 use App\Notifications\PaymentSuccessNotification;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\NotificationPreference;
-use Illuminate\Support\Facades\Notification;
+use App\Notifications\SubscriptionExpiringNotification;
+use App\Notifications\TenantSuspendedNotification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Notification;
+use MultiTenantSaas\Models\NotificationPreference;
+use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Models\User;
 
 class NotificationService
 {
@@ -36,7 +36,7 @@ class NotificationService
         ?string $actionUrl = null,
         array $extra = []
     ): void {
-        if (!NotificationPreference::isEnabled($user->id, 'database', 'general')) {
+        if (! NotificationPreference::isEnabled($user->id, 'database', 'general')) {
             return;
         }
         $user->notify(new GeneralNotification($title, $message, $type, $actionUrl, $extra));
@@ -55,7 +55,7 @@ class NotificationService
     ): void {
         $users = User::whereHas('tenants', function ($q) use ($tenantId) {
             $q->where('tenants.tenant_id', $tenantId)
-              ->where('tenant_users.is_active', true);
+                ->where('tenant_users.is_active', true);
         })->get();
 
         $users = static::filterByPreference($users, 'database', 'general');
@@ -78,8 +78,8 @@ class NotificationService
     ): void {
         $users = User::whereHas('tenants', function ($q) use ($tenantId) {
             $q->where('tenants.tenant_id', $tenantId)
-              ->where('tenant_users.is_active', true)
-              ->whereIn('tenant_users.role', ['tenant_admin']);
+                ->where('tenant_users.is_active', true)
+                ->whereIn('tenant_users.role', ['tenant_admin']);
         })->get();
 
         $users = static::filterByPreference($users, 'database', 'general');
@@ -96,7 +96,7 @@ class NotificationService
     {
         $users = User::whereHas('tenants', function ($q) use ($tenant) {
             $q->where('tenants.tenant_id', $tenant->tenant_id)
-              ->where('tenant_users.is_active', true);
+                ->where('tenant_users.is_active', true);
         })->get();
 
         $users = static::filterByPreference($users, 'database', 'tenant_suspended');
@@ -113,8 +113,8 @@ class NotificationService
     {
         $admins = User::whereHas('tenants', function ($q) use ($tenant) {
             $q->where('tenants.tenant_id', $tenant->tenant_id)
-              ->where('tenant_users.is_active', true)
-              ->whereIn('tenant_users.role', ['tenant_admin']);
+                ->where('tenant_users.is_active', true)
+                ->whereIn('tenant_users.role', ['tenant_admin']);
         })->get();
 
         $admins = static::filterByPreference($admins, 'database', 'credit_low');
@@ -131,8 +131,8 @@ class NotificationService
     {
         $admins = User::whereHas('tenants', function ($q) use ($tenant) {
             $q->where('tenants.tenant_id', $tenant->tenant_id)
-              ->wherePivot('is_active', true)
-              ->wherePivotIn('role', ['tenant_admin']);
+                ->wherePivot('is_active', true)
+                ->wherePivotIn('role', ['tenant_admin']);
         })->get();
 
         $admins = static::filterByPreference($admins, 'database', 'subscription_expiring');
@@ -155,7 +155,7 @@ class NotificationService
      */
     public static function notifyPaymentSuccess(User $user, string $orderNo, int $amount, string $paymentMethod): void
     {
-        if (!NotificationPreference::isEnabled($user->id, 'database', 'payment_success')) {
+        if (! NotificationPreference::isEnabled($user->id, 'database', 'payment_success')) {
             return;
         }
         $user->notify(new PaymentSuccessNotification($orderNo, $amount, $paymentMethod));

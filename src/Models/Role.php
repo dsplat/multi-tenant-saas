@@ -4,13 +4,12 @@ namespace MultiTenantSaas\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use MultiTenantSaas\Concerns\HasGlobalId;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use MultiTenantSaas\Concerns\HasGlobalId;
 
 class Role extends Model
 {
-    use HasGlobalId, HasFactory;
+    use HasFactory, HasGlobalId;
 
     protected $primaryKey = 'role_id';
 

@@ -40,9 +40,6 @@ class DelayNode
         return $context;
     }
 
-    /**
-     * @param  string  $unit
-     */
     public function calculateTargetTime(int $duration, string $unit): Carbon
     {
         return match ($unit) {
@@ -55,7 +52,7 @@ class DelayNode
 
     public function isDelayExpired(array $context): bool
     {
-        if (!isset($context['_delay_until'])) {
+        if (! isset($context['_delay_until'])) {
             return true;
         }
 

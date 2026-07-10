@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Models\SubscriptionPlan;
 use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\SubscriptionService;
 use MultiTenantSaas\Services\AuditService;
 use MultiTenantSaas\Services\RbacService;
+use MultiTenantSaas\Services\SubscriptionService;
 
 /**
  * @OA\Tag(
@@ -30,12 +30,14 @@ class SubscriptionController extends Controller
      *     summary="获取所有可用的订阅计划",
      *     tags={"订阅管理"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Response(response=200, description="计划列表")
      * )
      */
     public function plans(Request $request)
     {
         $plans = SubscriptionPlan::active()->get();
+
         return response()->json(['success' => true, 'data' => $plans]);
     }
 
@@ -45,6 +47,7 @@ class SubscriptionController extends Controller
     public function showPlan(Request $request, int $planId)
     {
         $plan = SubscriptionPlan::findOrFail($planId);
+
         return response()->json(['success' => true, 'data' => $plan]);
     }
 
@@ -53,7 +56,7 @@ class SubscriptionController extends Controller
      */
     public function storePlan(Request $request)
     {
-        if (!RbacService::check('subscription.manage')) {
+        if (! RbacService::check('subscription.manage')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
@@ -82,7 +85,7 @@ class SubscriptionController extends Controller
      */
     public function updatePlan(Request $request, int $planId)
     {
-        if (!RbacService::check('subscription.manage')) {
+        if (! RbacService::check('subscription.manage')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
@@ -112,14 +115,14 @@ class SubscriptionController extends Controller
      */
     public function destroyPlan(Request $request, int $planId)
     {
-        if (!RbacService::check('subscription.manage')) {
+        if (! RbacService::check('subscription.manage')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
         $plan = SubscriptionPlan::findOrFail($planId);
 
         if ($plan->name === 'free') {
-            return response()->json(['success' => false, 'message' => trans("subscription.plan_not_deletable")], 422);
+            return response()->json(['success' => false, 'message' => trans('subscription.plan_not_deletable')], 422);
         }
 
         $plan->delete();
@@ -178,7 +181,7 @@ class SubscriptionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => trans("subscription.subscribe_success"),
+                'message' => trans('subscription.subscribe_success'),
                 'data' => [
                     'plan' => SubscriptionService::getCurrentPlan($tenantId),
                     'subscription_expires_at' => $tenant->subscription_expires_at,
@@ -201,7 +204,7 @@ class SubscriptionController extends Controller
 
         AuditService::log('cancel_subscription', 'tenant', $tenantId, null, ['auto_renew' => false]);
 
-        return response()->json(['success' => true, 'message' => trans("subscription.cancel_success")]);
+        return response()->json(['success' => true, 'message' => trans('subscription.cancel_success')]);
     }
 
     /**
@@ -227,7 +230,7 @@ class SubscriptionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => trans("subscription.change_success"),
+                'message' => trans('subscription.change_success'),
                 'data' => [
                     'plan' => SubscriptionService::getCurrentPlan($tenantId),
                     'subscription_expires_at' => $tenant->subscription_expires_at,

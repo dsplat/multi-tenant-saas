@@ -4,8 +4,8 @@ namespace MultiTenantSaas\Services;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Event;
-use MultiTenantSaas\Contracts\EventHandler;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Contracts\EventHandler;
 use MultiTenantSaas\Jobs\DispatchEventJob;
 use MultiTenantSaas\Models\DeadLetter;
 use MultiTenantSaas\Models\EventSubscription;

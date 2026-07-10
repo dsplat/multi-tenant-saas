@@ -107,7 +107,7 @@ class ModuleCreateCommand extends Command
         $this->line("  Creating GitHub repo {$org}/{$repo}...");
 
         $process = proc_open(
-            "gh repo create {$org}/{$repo} --public --description=\"".($this->option('description') ?: $this->argument('name').' 模块')."\" 2>&1",
+            "gh repo create {$org}/{$repo} --public --description=\"" . ($this->option('description') ?: $this->argument('name') . ' 模块') . '" 2>&1',
             [STDIN, ['pipe', 'w'], ['pipe', 'w']],
             $pipes,
             base_path()
@@ -167,7 +167,7 @@ class ModuleCreateCommand extends Command
         if (str_contains($response, '"sha"') || str_contains($response, '"content"')) {
             $this->info('  ✓ composer.json pushed');
         } else {
-            $this->warn('  ⊙ Failed to push composer.json: '.substr($response, 0, 150));
+            $this->warn('  ⊙ Failed to push composer.json: ' . substr($response, 0, 150));
         }
     }
 
@@ -179,7 +179,7 @@ class ModuleCreateCommand extends Command
             return;
         }
 
-        $this->line("  Registering on Packagist...");
+        $this->line('  Registering on Packagist...');
 
         $repoUrl = "https://github.com/{$org}/{$repo}";
         $response = $this->httpPost(
@@ -246,7 +246,7 @@ class ModuleCreateCommand extends Command
         // 模块加到 require-dev (本地开发用, Packagist 分发时不包含)
         $composer['require-dev'][$packageName] = '*';
 
-        File::put($composerPath, json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)."\n");
+        File::put($composerPath, json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n");
     }
 
     protected function addToWorkflowMatrix(string $studly): void
@@ -254,7 +254,7 @@ class ModuleCreateCommand extends Command
         $workflowPath = base_path('.github/workflows/split.yml');
         $content = File::get($workflowPath);
 
-        $repoName = 'multi-tenant-saas-module-'.Str::kebab($studly);
+        $repoName = 'multi-tenant-saas-module-' . Str::kebab($studly);
         $prefix = "src/Modules/{$studly}";
 
         // 检查是否已存在
@@ -277,7 +277,7 @@ class ModuleCreateCommand extends Command
             return;
         }
 
-        $content = substr($content, 0, $lineEnd + 1)."\n".$newEntry.substr($content, $lineEnd + 1);
+        $content = substr($content, 0, $lineEnd + 1) . "\n" . $newEntry . substr($content, $lineEnd + 1);
 
         File::put($workflowPath, $content);
     }
@@ -314,14 +314,14 @@ class ModuleCreateCommand extends Command
         $this->newLine();
         $this->line('下一步 (开发):');
         $this->line("  1. 编辑 src/Modules/{$studly}/composer.json 的 extra.saas");
-        $this->line("  2. 在 ServiceProvider 中注册服务绑定");
-        $this->line("  3. 在 Routes/api.php 中定义路由");
-        $this->line("  4. composer update && php artisan module:list");
+        $this->line('  2. 在 ServiceProvider 中注册服务绑定');
+        $this->line('  3. 在 Routes/api.php 中定义路由');
+        $this->line('  4. composer update && php artisan module:list');
         $this->newLine();
         $this->line('发布到 Packagist (用 --publish 自动完成):');
         $this->line("  1. gh repo create dsplat/multi-tenant-saas-module-{$name} --public");
         $this->line("  2. curl -X POST 'https://packagist.org/api/create-package?username=USER&apiToken=TOKEN' -d '...'");
-        $this->line("  3. push 到 main 后 GitHub Actions 自动分包 + Packagist 更新");
+        $this->line('  3. push 到 main 后 GitHub Actions 自动分包 + Packagist 更新');
     }
 
     protected function createDirectoryStructure(string $moduleDir): void
@@ -344,7 +344,7 @@ class ModuleCreateCommand extends Command
         ];
 
         foreach ($dirs as $dir) {
-            $path = $moduleDir.'/'.$dir;
+            $path = $moduleDir . '/' . $dir;
             if (! is_dir($path)) {
                 mkdir($path, 0755, true);
             }
@@ -353,7 +353,7 @@ class ModuleCreateCommand extends Command
 
     protected function createComposerJson(string $moduleDir, string $name, string $studly): void
     {
-        $description = $this->option('description') ?: ($name.' 模块');
+        $description = $this->option('description') ?: ($name . ' 模块');
         $priority = (int) $this->option('priority');
         $toggleable = $this->option('toggleable');
         $defaultEnabled = ! $this->option('no-default');
@@ -400,15 +400,15 @@ class ModuleCreateCommand extends Command
         ];
 
         file_put_contents(
-            $moduleDir.'/composer.json',
-            json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)."\n"
+            $moduleDir . '/composer.json',
+            json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n"
         );
     }
 
     protected function createGitAttributes(string $moduleDir): void
     {
         $stub = "/tests          export-ignore\n/.gitattributes export-ignore\n/.gitignore     export-ignore\nphpunit.xml     export-ignore\n";
-        file_put_contents($moduleDir.'/.gitattributes', $stub);
+        file_put_contents($moduleDir . '/.gitattributes', $stub);
     }
 
     protected function createServiceProvider(string $moduleDir, string $studly): void
@@ -444,7 +444,7 @@ class {$studly}ServiceProvider extends ModuleServiceProvider
 
 PHP;
 
-        file_put_contents($moduleDir."/{$studly}ServiceProvider.php", $stub);
+        file_put_contents($moduleDir . "/{$studly}ServiceProvider.php", $stub);
     }
 
     protected function createRouteFiles(string $moduleDir): void
@@ -495,10 +495,10 @@ PHP;
 
 PHP;
 
-        file_put_contents($moduleDir.'/routes/api.php', $apiStub);
-        file_put_contents($moduleDir.'/routes/admin.php', $adminStub);
-        file_put_contents($moduleDir.'/routes/tenant.php', $tenantStub);
-        file_put_contents($moduleDir.'/routes/public.php', $publicStub);
+        file_put_contents($moduleDir . '/routes/api.php', $apiStub);
+        file_put_contents($moduleDir . '/routes/admin.php', $adminStub);
+        file_put_contents($moduleDir . '/routes/tenant.php', $tenantStub);
+        file_put_contents($moduleDir . '/routes/public.php', $publicStub);
     }
 
     protected function createConfigFile(string $moduleDir, string $name): void
@@ -518,7 +518,7 @@ return [
 
 PHP;
 
-        file_put_contents($moduleDir.'/Config/'.Str::studly($name).'.php', $stub);
+        file_put_contents($moduleDir . '/Config/' . Str::studly($name) . '.php', $stub);
     }
 
     protected function createStubFiles(string $moduleDir, string $studly): void
@@ -539,7 +539,7 @@ PHP;
         ];
 
         foreach ($emptyDirs as $dir) {
-            $path = $moduleDir.'/'.$dir.'/.gitkeep';
+            $path = $moduleDir . '/' . $dir . '/.gitkeep';
             if (! file_exists($path)) {
                 file_put_contents($path, '');
             }

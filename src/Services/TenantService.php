@@ -2,11 +2,11 @@
 
 namespace MultiTenantSaas\Services;
 
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\CreditAccount;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use MultiTenantSaas\Models\CreditAccount;
+use MultiTenantSaas\Models\Tenant;
 
 class TenantService
 {
@@ -87,6 +87,7 @@ class TenantService
             ]);
 
             DB::commit();
+
             return $tenant->fresh();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -119,6 +120,7 @@ class TenantService
             ]);
 
             DB::commit();
+
             return $tenant->fresh();
         } catch (\Exception $e) {
             DB::rollBack();
@@ -137,6 +139,7 @@ class TenantService
             $result = $tenant->delete();
 
             DB::commit();
+
             return $result;
         } catch (\Exception $e) {
             DB::rollBack();

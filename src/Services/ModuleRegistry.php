@@ -20,7 +20,7 @@ class ModuleRegistry
 
     public function __construct(?string $modulePath = null, ?array $vendorPaths = null)
     {
-        $this->modulePath = $modulePath ?? dirname(__DIR__).'/Modules';
+        $this->modulePath = $modulePath ?? dirname(__DIR__) . '/Modules';
         $this->vendorPaths = $vendorPaths ?? $this->discoverVendorModules();
     }
 
@@ -48,7 +48,7 @@ class ModuleRegistry
                     continue;
                 }
 
-                $moduleDir = $this->modulePath.'/'.$entry;
+                $moduleDir = $this->modulePath . '/' . $entry;
                 if (! is_dir($moduleDir)) {
                     continue;
                 }
@@ -60,7 +60,7 @@ class ModuleRegistry
 
                 // 补充内部元数据
                 $manifest['_path'] = $moduleDir;
-                $manifest['_namespace'] = 'MultiTenantSaas\\Modules\\'.$entry;
+                $manifest['_namespace'] = 'MultiTenantSaas\\Modules\\' . $entry;
 
                 $modules[$manifest['name']] = $manifest;
             }
@@ -94,7 +94,7 @@ class ModuleRegistry
             $manifest['_vendor'] = true;
 
             // 从 autoload 推导命名空间
-            $composerJson = json_decode((string) file_get_contents($vendorDir.'/composer.json'), true);
+            $composerJson = json_decode((string) file_get_contents($vendorDir . '/composer.json'), true);
             $autoload = $composerJson['autoload']['psr-4'] ?? [];
             $manifest['_namespace'] = array_key_first($autoload) ?? '';
 
@@ -121,7 +121,7 @@ class ModuleRegistry
         $paths = [];
         foreach (scandir($vendorDir) as $entry) {
             if (str_starts_with($entry, 'multi-tenant-saas-module-')) {
-                $paths[] = $vendorDir.'/'.$entry;
+                $paths[] = $vendorDir . '/' . $entry;
             }
         }
 
@@ -254,7 +254,7 @@ class ModuleRegistry
      * 校验依赖是否满足
      *
      * @param  string[]  $enabledNames  已启用的模块 name 列表
-     * @return string[]  缺失的依赖描述列表 (空 = 全部满足)
+     * @return string[] 缺失的依赖描述列表 (空 = 全部满足)
      */
     public function validateDependencies(array $enabledNames): array
     {
@@ -282,7 +282,7 @@ class ModuleRegistry
      * 校验互斥模块
      *
      * @param  string[]  $enabledNames  已启用的模块 name 列表
-     * @return string[]  冲突描述列表
+     * @return string[] 冲突描述列表
      */
     public function validateConflicts(array $enabledNames): array
     {
@@ -303,7 +303,7 @@ class ModuleRegistry
      * 校验核心版本
      *
      * @param  string[]  $enabledNames  已启用的模块 name 列表
-     * @return string[]  版本不满足的描述列表
+     * @return string[] 版本不满足的描述列表
      */
     public function validateCoreVersion(array $enabledNames): array
     {
@@ -390,7 +390,7 @@ class ModuleRegistry
      */
     protected function readManifest(string $moduleDir): ?array
     {
-        $composerPath = $moduleDir.'/composer.json';
+        $composerPath = $moduleDir . '/composer.json';
 
         if (! file_exists($composerPath)) {
             return null;

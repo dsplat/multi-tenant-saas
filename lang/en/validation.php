@@ -24,7 +24,7 @@ return [
     'before' => 'The :attribute must be a date before :date',
     'regex' => 'The :attribute format is invalid',
     'alpha_dash' => 'The :attribute may only contain letters, numbers, dashes and underscores',
-    
+
     'attributes' => [
         'name' => 'name',
         'email' => 'email',

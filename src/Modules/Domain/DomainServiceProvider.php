@@ -3,6 +3,10 @@
 namespace MultiTenantSaas\Modules\Domain;
 
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
+use MultiTenantSaas\Modules\Domain\Commands\GenerateNginxDomainMap;
+use MultiTenantSaas\Modules\Domain\Commands\UpdateTenantDomain;
+use MultiTenantSaas\Modules\Domain\Services\DomainService;
+use MultiTenantSaas\Modules\Domain\Services\NginxConfigService;
 
 class DomainServiceProvider extends ModuleServiceProvider
 {
@@ -11,11 +15,11 @@ class DomainServiceProvider extends ModuleServiceProvider
     protected function registerModuleBindings(): void
     {
         $this->app->singleton(
-            \MultiTenantSaas\Modules\Domain\Services\DomainService::class
+            DomainService::class
         );
 
         $this->app->singleton(
-            \MultiTenantSaas\Modules\Domain\Services\NginxConfigService::class
+            NginxConfigService::class
         );
     }
 
@@ -23,8 +27,8 @@ class DomainServiceProvider extends ModuleServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
-                \MultiTenantSaas\Modules\Domain\Commands\UpdateTenantDomain::class,
-                \MultiTenantSaas\Modules\Domain\Commands\GenerateNginxDomainMap::class,
+                UpdateTenantDomain::class,
+                GenerateNginxDomainMap::class,
             ]);
         }
     }

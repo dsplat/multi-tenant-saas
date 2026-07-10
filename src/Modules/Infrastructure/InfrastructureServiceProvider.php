@@ -4,10 +4,10 @@ namespace MultiTenantSaas\Modules\Infrastructure;
 
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
 use MultiTenantSaas\Services\CacheService;
+use MultiTenantSaas\Services\FeatureFlagService;
 use MultiTenantSaas\Services\QueueService;
 use MultiTenantSaas\Services\RateLimitService;
 use MultiTenantSaas\Services\ResourceService;
-use MultiTenantSaas\Services\FeatureFlagService;
 
 class InfrastructureServiceProvider extends ModuleServiceProvider
 {

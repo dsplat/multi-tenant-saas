@@ -67,13 +67,13 @@ class ConversationService
 
         $query = Conversation::where('tenant_id', $tenantId);
 
-        if (!empty($filters['type'])) {
+        if (! empty($filters['type'])) {
             $query->where('type', $filters['type']);
         }
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
-        if (!empty($filters['channel'])) {
+        if (! empty($filters['channel'])) {
             $query->where('channel', $filters['channel']);
         }
 

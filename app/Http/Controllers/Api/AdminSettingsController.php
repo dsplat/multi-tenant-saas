@@ -11,28 +11,29 @@ class AdminSettingsController extends Controller
 {
     public function index(Request $request)
     {
-        if (!RbacService::check('system.settings')) {
+        if (! RbacService::check('system.settings')) {
             return response()->json(['success' => false, 'message' => trans('common.forbidden')], 403);
         }
 
         $settings = SystemSetting::all()->groupBy('group');
+
         return response()->json(['success' => true, 'data' => $settings]);
     }
 
     public function update(Request $request, string $group)
     {
-        if (!RbacService::check('system.settings')) {
+        if (! RbacService::check('system.settings')) {
             return response()->json(['success' => false, 'message' => trans('common.forbidden')], 403);
         }
 
         $allowedGroups = ['system', 'mail', 'credit', 'sms'];
-        if (!in_array($group, $allowedGroups)) {
-            return response()->json(['success' => false, 'message' => trans("common.not_found")], 400);
+        if (! in_array($group, $allowedGroups)) {
+            return response()->json(['success' => false, 'message' => trans('common.not_found')], 400);
         }
 
         foreach ($request->all() as $key => $value) {
             // key 必须是字母数字下划线
-            if (!preg_match('/^[a-zA-Z0-9_]+$/', $key)) {
+            if (! preg_match('/^[a-zA-Z0-9_]+$/', $key)) {
                 continue;
             }
 

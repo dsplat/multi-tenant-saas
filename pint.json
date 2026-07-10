@@ -1,0 +1,19 @@
+{
+    "preset": "laravel",
+    "rules": {
+        "array_indentation": true,
+        "method_chaining_indentation": true,
+        "single_quote": true,
+        "no_unused_imports": true,
+        "ordered_imports": true,
+        "no_extra_blank_lines": true,
+        "concat_space": {
+            "spacing": "one"
+        }
+    },
+    "exclude": [
+        "vendor",
+        "storage",
+        "bootstrap"
+    ]
+}

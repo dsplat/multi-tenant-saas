@@ -23,6 +23,7 @@ use MultiTenantSaas\Scopes\TenantScope;
 class TenantKeyService
 {
     private const KEY_LENGTH_BYTES = 32;
+
     private const IV_LENGTH_BYTES = 16;
 
     /**
@@ -44,7 +45,8 @@ class TenantKeyService
     /**
      * 导入 BYOK 密钥（Bring Your Own Key）
      *
-     * @param string $providedKey 32 字节密钥，支持原始二进制、base64 或 hex 编码
+     * @param  string  $providedKey  32 字节密钥，支持原始二进制、base64 或 hex 编码
+     *
      * @throws \RuntimeException 已存在活跃密钥或密钥格式无效时抛出
      */
     public function importByok(int $tenantId, string $providedKey): TenantKey
@@ -126,7 +128,8 @@ class TenantKeyService
      * 生成新密钥并将旧密钥标记为 retired，随后对配置的字段进行 re-encrypt。
      * 密钥轮换是 CPU 密集型操作，生产环境应通过 rotation_queue 配置异步执行。
      *
-     * @param array<int, array{table: string, column: string, id_column?: string, tenant_column?: string}> $fieldsToReEncrypt
+     * @param  array<int, array{table: string, column: string, id_column?: string, tenant_column?: string}>  $fieldsToReEncrypt
+     *
      * @throws \RuntimeException 租户无活跃密钥时抛出
      */
     public function rotateKey(int $tenantId, array $fieldsToReEncrypt = []): TenantKey
@@ -163,7 +166,7 @@ class TenantKeyService
     /**
      * 使用新密钥重新加密已有数据
      *
-     * @param array<int, array{table: string, column: string, id_column?: string, tenant_column?: string}> $fields
+     * @param  array<int, array{table: string, column: string, id_column?: string, tenant_column?: string}>  $fields
      * @return int 已处理记录数
      */
     public function reEncryptData(
@@ -411,7 +414,7 @@ class TenantKeyService
 
         $queue = config('tenancy.encryption.rotation_queue');
 
-        if (!empty($queue)) {
+        if (! empty($queue)) {
             $oldKeyId = (int) $oldKey->tenant_key_id;
             $newKeyId = (int) $newKey->tenant_key_id;
 

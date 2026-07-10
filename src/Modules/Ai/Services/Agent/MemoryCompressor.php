@@ -28,8 +28,8 @@ class MemoryCompressor
      * 当会话历史 token 估算超过阈值时，将旧消息分批摘要，
      * 删除已摘要消息并插入 role=system 摘要消息。
      *
-     * @param  int     $conversationId  会话 ID
-     * @param  int     $maxTokens       token 阈值（默认 8000）
+     * @param  int  $conversationId  会话 ID
+     * @param  int  $maxTokens  token 阈值（默认 8000）
      * @return bool 是否执行了压缩
      */
     public function compressMemory(int $conversationId, int $maxTokens = 8000): bool
@@ -114,8 +114,8 @@ class MemoryCompressor
      * 从最新消息向前保留，直到达到 token 预算。
      * system_prompt（role=system 的第一条消息）始终保留。
      *
-     * @param  array  $context     OpenAI 消息格式
-     * @param  int    $tokenBudget token 预算
+     * @param  array  $context  OpenAI 消息格式
+     * @param  int  $tokenBudget  token 预算
      * @return array 截断后的上下文
      */
     public function truncateContext(array $context, int $tokenBudget = 8000): array
@@ -265,5 +265,4 @@ class MemoryCompressor
 
         return (int) $tenantId;
     }
-
 }

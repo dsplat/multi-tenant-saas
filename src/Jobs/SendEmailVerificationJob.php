@@ -2,7 +2,6 @@
 
 namespace MultiTenantSaas\Jobs;
 
-use MultiTenantSaas\Mail\EmailVerificationMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -11,6 +10,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use MultiTenantSaas\Mail\EmailVerificationMail;
 use MultiTenantSaas\Models\User;
 
 /**
@@ -24,6 +24,7 @@ class SendEmailVerificationJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public array $backoff = [10, 30, 60];
 
     public function __construct(
@@ -33,7 +34,7 @@ class SendEmailVerificationJob implements ShouldQueue
     public function handle(): void
     {
         $user = User::find($this->userId);
-        if (!$user || $user->email_verified_at) {
+        if (! $user || $user->email_verified_at) {
             return;
         }
 

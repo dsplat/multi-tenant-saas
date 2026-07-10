@@ -5,8 +5,8 @@ namespace MultiTenantSaas\Tests;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
-use MultiTenantSaas\Contracts\EventHandler;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Contracts\EventHandler;
 use MultiTenantSaas\Jobs\DispatchEventJob;
 use MultiTenantSaas\Models\DeadLetter;
 use MultiTenantSaas\Models\EventSubscription;
@@ -55,9 +55,7 @@ class FailingTestEventHandler implements EventHandler
  */
 class TestEventHandler2 implements EventHandler
 {
-    public function handle(string $eventType, array $payload): void
-    {
-    }
+    public function handle(string $eventType, array $payload): void {}
 }
 
 /**
@@ -65,9 +63,7 @@ class TestEventHandler2 implements EventHandler
  */
 class TestEventHandlerB implements EventHandler
 {
-    public function handle(string $eventType, array $payload): void
-    {
-    }
+    public function handle(string $eventType, array $payload): void {}
 }
 
 /**
@@ -275,7 +271,7 @@ class EventBusServiceTest extends TestCase
         Queue::fake();
 
         $this->service->subscribe('tenant.created', TestEventHandler::class, EventSubscription::TYPE_INTERNAL, null, true);
-        $this->service->subscribe('tenant.created', TestEventHandler::class.'2', EventSubscription::TYPE_INTERNAL, null, false);
+        $this->service->subscribe('tenant.created', TestEventHandler::class . '2', EventSubscription::TYPE_INTERNAL, null, false);
 
         $count = $this->service->publish('tenant.created');
 
@@ -288,7 +284,7 @@ class EventBusServiceTest extends TestCase
         Queue::fake();
 
         $this->service->subscribe('tenant.created', TestEventHandler::class);
-        $this->service->subscribe('user.registered', TestEventHandler::class.'B');
+        $this->service->subscribe('user.registered', TestEventHandler::class . 'B');
 
         $this->service->publish('user.registered', ['email' => 'a@b.com']);
 

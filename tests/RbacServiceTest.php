@@ -3,7 +3,6 @@
 namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use MultiTenantSaas\Models\Permission;
 use MultiTenantSaas\Models\Role;
 use MultiTenantSaas\Services\RbacService;

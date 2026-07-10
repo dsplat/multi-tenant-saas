@@ -53,7 +53,7 @@ class RateLimitService
                 $rule['decay_sec']
             );
         } catch (\Throwable $e) {
-            Log::warning('[RateLimitService] hit failed: '.$e->getMessage());
+            Log::warning('[RateLimitService] hit failed: ' . $e->getMessage());
 
             return true;
         }
@@ -205,7 +205,7 @@ class RateLimitService
                 $q->where('tenant_id', $tenantId)->orWhereNull('tenant_id');
             })
             ->where(function ($q) use ($route) {
-                $q->whereNull('pattern')->orWhere('pattern', 'like', '%'.$route.'%');
+                $q->whereNull('pattern')->orWhere('pattern', 'like', '%' . $route . '%');
             })
             ->orderByRaw('tenant_id IS NULL')
             ->first();
@@ -235,9 +235,9 @@ class RateLimitService
 
         return match ($scope) {
             'tenant' => "rl:tenant:{$tenantId}",
-            'api' => "rl:api:{$tenantId}:".$request->path(),
-            'ip' => "rl:ip:{$tenantId}:".$request->ip(),
-            default => "rl:user:{$tenantId}:".($request->user()?->getAuthIdentifier() ?? $request->ip()),
+            'api' => "rl:api:{$tenantId}:" . $request->path(),
+            'ip' => "rl:ip:{$tenantId}:" . $request->ip(),
+            default => "rl:user:{$tenantId}:" . ($request->user()?->getAuthIdentifier() ?? $request->ip()),
         };
     }
 

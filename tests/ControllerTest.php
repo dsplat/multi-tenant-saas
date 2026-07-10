@@ -6,20 +6,25 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\BillingModule;
-use MultiTenantSaas\Tests\Schema\SecurityModule;
+use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;
+use MultiTenantSaas\Tests\Schema\SecurityModule;
 
 class ControllerTest extends TestCase
 {
     protected array $uses = [BillingModule::class, EventModule::class, PluginModule::class, SecurityModule::class];
 
     use DatabaseTransactions;
+
     protected User $superAdmin;
+
     protected User $tenantAdmin;
+
     protected User $endUser;
+
     protected Tenant $tenant;
+
     protected Tenant $otherTenant;
 
     protected function setUp(): void

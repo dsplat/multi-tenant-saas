@@ -25,11 +25,11 @@ class AgentMigrationService
             ->where('tenant_id', $tenantId)
             ->first();
 
-        if (!$agent) {
+        if (! $agent) {
             return false;
         }
 
-        if (!$this->needsMigration($tenantId, $agentId)) {
+        if (! $this->needsMigration($tenantId, $agentId)) {
             return true;
         }
 
@@ -69,7 +69,7 @@ class AgentMigrationService
             ->where('tenant_id', $tenantId)
             ->first();
 
-        if (!$agent) {
+        if (! $agent) {
             return false;
         }
 
@@ -84,7 +84,7 @@ class AgentMigrationService
             ->where('tenant_id', $tenantId)
             ->first();
 
-        if (!$agent) {
+        if (! $agent) {
             return false;
         }
 
@@ -185,7 +185,7 @@ class AgentMigrationService
 
         $agent->model_config = array_merge($defaults, $modelConfig);
 
-        if (!is_array($agent->tools)) {
+        if (! is_array($agent->tools)) {
             $agent->tools = [];
         }
     }

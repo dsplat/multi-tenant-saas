@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Services;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Context\TenantContext;
@@ -28,15 +29,25 @@ class WebhookService
      * 预定义事件类型
      */
     public const EVENT_TENANT_CREATED = 'tenant.created';
+
     public const EVENT_TENANT_SUSPENDED = 'tenant.suspended';
+
     public const EVENT_TENANT_DELETED = 'tenant.deleted';
+
     public const EVENT_USER_REGISTERED = 'user.registered';
+
     public const EVENT_USER_LOGGED_IN = 'user.logged_in';
+
     public const EVENT_PAYMENT_SUCCEEDED = 'payment.succeeded';
+
     public const EVENT_PAYMENT_FAILED = 'payment.failed';
+
     public const EVENT_SUBSCRIPTION_CREATED = 'subscription.created';
+
     public const EVENT_SUBSCRIPTION_RENEWED = 'subscription.renewed';
+
     public const EVENT_SUBSCRIPTION_CANCELLED = 'subscription.cancelled';
+
     public const EVENT_AI_REQUEST_COMPLETED = 'ai.request.completed';
 
     /**
@@ -82,7 +93,7 @@ class WebhookService
     /**
      * Webhook 列表（可按事件类型过滤）
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, Webhook>
+     * @return Collection<int, Webhook>
      */
     public function listWebhooks(?string $eventType = null)
     {
@@ -106,7 +117,7 @@ class WebhookService
     /**
      * 注册 Webhook
      *
-     * @param array<string> $events 订阅的事件类型列表
+     * @param  array<string>  $events  订阅的事件类型列表
      */
     public function createWebhook(string $url, array $events, ?string $description = null, bool $isActive = true): Webhook
     {
@@ -132,7 +143,7 @@ class WebhookService
     public function updateWebhook(int $id, array $attributes): ?Webhook
     {
         $webhook = $this->findWebhook($id);
-        if (!$webhook) {
+        if (! $webhook) {
             return null;
         }
 
@@ -150,7 +161,7 @@ class WebhookService
     public function deleteWebhook(int $id): bool
     {
         $webhook = $this->findWebhook($id);
-        if (!$webhook) {
+        if (! $webhook) {
             return false;
         }
 
@@ -223,7 +234,7 @@ class WebhookService
     /**
      * 分发事件到所有订阅的 Webhook
      *
-     * @param array<string, mixed> $payload 事件数据
+     * @param  array<string, mixed>  $payload  事件数据
      * @return int 创建的交付记录数
      */
     public function dispatchEvent(string $eventType, array $payload = []): int
@@ -262,7 +273,7 @@ class WebhookService
     /**
      * 获取 Webhook 的交付记录列表
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, WebhookDelivery>
+     * @return Collection<int, WebhookDelivery>
      */
     public function getDeliveries(int $webhookId, ?string $status = null)
     {
@@ -288,7 +299,7 @@ class WebhookService
     /**
      * 获取事件相关的交付记录
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, WebhookDelivery>
+     * @return Collection<int, WebhookDelivery>
      */
     public function getDeliveriesByEvent(string $eventType)
     {
@@ -309,7 +320,7 @@ class WebhookService
     public function resend(int $deliveryId): bool
     {
         $delivery = $this->getDelivery($deliveryId);
-        if (!$delivery) {
+        if (! $delivery) {
             return false;
         }
 
@@ -338,8 +349,8 @@ class WebhookService
     /**
      * 记录审计日志
      *
-     * @param array|string|null $oldValues
-     * @param array|string|null $newValues
+     * @param  array|string|null  $oldValues
+     * @param  array|string|null  $newValues
      */
     protected function audit(string $action, ?int $resourceId, $oldValues = null, $newValues = null): void
     {

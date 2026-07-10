@@ -2,14 +2,13 @@
 
 namespace MultiTenantSaas\Services;
 
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantUser;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
+use MultiTenantSaas\Models\TenantUser;
+use MultiTenantSaas\Models\User;
 
 /**
  * 租户成员管理服务
@@ -20,9 +19,8 @@ class TenantMemberService
     /**
      * 获取租户成员列表
      *
-     * @param int $tenantId 租户ID
-     * @param array $options 选项 ['search' => string, 'role' => string, 'perPage' => int]
-     * @return LengthAwarePaginator
+     * @param  int  $tenantId  租户ID
+     * @param  array  $options  选项 ['search' => string, 'role' => string, 'perPage' => int]
      */
     public function getMembers(int $tenantId, array $options = []): LengthAwarePaginator
     {
@@ -30,16 +28,16 @@ class TenantMemberService
             ->with(['user:user_id,name,email,created_at']);
 
         // 搜索
-        if (!empty($options['search'])) {
+        if (! empty($options['search'])) {
             $search = $options['search'];
             $query->whereHas('user', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
         // 角色筛选
-        if (!empty($options['role'])) {
+        if (! empty($options['role'])) {
             $query->where('role', $options['role']);
         }
 
@@ -52,11 +50,11 @@ class TenantMemberService
     /**
      * 邀请新成员加入租户
      *
-     * @param int $tenantId 租户ID
-     * @param string $email 邮箱
-     * @param string $role 角色（tenant_admin / end_user）
-     * @param int $credits 初始积分
-     * @param int $invitedBy 邀请人ID
+     * @param  int  $tenantId  租户ID
+     * @param  string  $email  邮箱
+     * @param  string  $role  角色（tenant_admin / end_user）
+     * @param  int  $credits  初始积分
+     * @param  int  $invitedBy  邀请人ID
      * @return array ['success' => bool, 'message' => string, 'data' => array]
      */
     public function inviteMember(int $tenantId, string $email, string $role, int $credits, int $invitedBy): array
@@ -74,9 +72,10 @@ class TenantMemberService
 
                 if ($existingMember) {
                     DB::rollBack();
+
                     return [
                         'success' => false,
-                        'message' => trans("tenant.member_already_exists"),
+                        'message' => trans('tenant.member_already_exists'),
                     ];
                 }
 
@@ -115,7 +114,7 @@ class TenantMemberService
 
             return [
                 'success' => true,
-                'message' => trans("tenant.member_invited"),
+                'message' => trans('tenant.member_invited'),
                 'data' => [
                     'user' => $user,
                     'tenant_user' => $tenantUser,
@@ -123,9 +122,10 @@ class TenantMemberService
             ];
         } catch (\Exception $e) {
             DB::rollBack();
+
             return [
                 'success' => false,
-                'message' => trans("tenant.invite_failed") . ': ' . $e->getMessage(),
+                'message' => trans('tenant.invite_failed') . ': ' . $e->getMessage(),
             ];
         }
     }
@@ -133,9 +133,9 @@ class TenantMemberService
     /**
      * 更新成员角色
      *
-     * @param int $tenantId 租户ID
-     * @param int $userId 用户ID
-     * @param string $role 新角色
+     * @param  int  $tenantId  租户ID
+     * @param  int  $userId  用户ID
+     * @param  string  $role  新角色
      * @return array ['success' => bool, 'message' => string]
      */
     public function updateMemberRole(int $tenantId, int $userId, string $role): array
@@ -144,10 +144,10 @@ class TenantMemberService
             ->where('user_id', $userId)
             ->first();
 
-        if (!$tenantUser) {
+        if (! $tenantUser) {
             return [
                 'success' => false,
-                'message' => trans("tenant.member_not_found"),
+                'message' => trans('tenant.member_not_found'),
             ];
         }
 
@@ -160,7 +160,7 @@ class TenantMemberService
             if ($adminCount <= 1) {
                 return [
                     'success' => false,
-                    'message' => trans("tenant.last_admin_role_protected"),
+                    'message' => trans('tenant.last_admin_role_protected'),
                 ];
             }
         }
@@ -169,16 +169,16 @@ class TenantMemberService
 
         return [
             'success' => true,
-            'message' => trans("tenant.role_updated"),
+            'message' => trans('tenant.role_updated'),
         ];
     }
 
     /**
      * 调整成员积分
      *
-     * @param int $tenantId 租户ID
-     * @param int $userId 用户ID
-     * @param int $credits 新积分值
+     * @param  int  $tenantId  租户ID
+     * @param  int  $userId  用户ID
+     * @param  int  $credits  新积分值
      * @return array ['success' => bool, 'message' => string]
      */
     public function updateMemberCredits(int $tenantId, int $userId, int $credits): array
@@ -187,10 +187,10 @@ class TenantMemberService
             ->where('user_id', $userId)
             ->first();
 
-        if (!$tenantUser) {
+        if (! $tenantUser) {
             return [
                 'success' => false,
-                'message' => trans("tenant.member_not_found"),
+                'message' => trans('tenant.member_not_found'),
             ];
         }
 
@@ -198,15 +198,15 @@ class TenantMemberService
 
         return [
             'success' => true,
-            'message' => trans("credit.update_success"),
+            'message' => trans('credit.update_success'),
         ];
     }
 
     /**
      * 移除成员
      *
-     * @param int $tenantId 租户ID
-     * @param int $userId 用户ID
+     * @param  int  $tenantId  租户ID
+     * @param  int  $userId  用户ID
      * @return array ['success' => bool, 'message' => string]
      */
     public function removeMember(int $tenantId, int $userId): array
@@ -215,10 +215,10 @@ class TenantMemberService
             ->where('user_id', $userId)
             ->first();
 
-        if (!$tenantUser) {
+        if (! $tenantUser) {
             return [
                 'success' => false,
-                'message' => trans("tenant.member_not_found"),
+                'message' => trans('tenant.member_not_found'),
             ];
         }
 
@@ -231,7 +231,7 @@ class TenantMemberService
             if ($adminCount <= 1) {
                 return [
                     'success' => false,
-                    'message' => trans("tenant.last_admin_protected"),
+                    'message' => trans('tenant.last_admin_protected'),
                 ];
             }
         }
@@ -240,16 +240,15 @@ class TenantMemberService
 
         return [
             'success' => true,
-            'message' => trans("tenant.member_removed"),
+            'message' => trans('tenant.member_removed'),
         ];
     }
 
     /**
      * 获取成员详情
      *
-     * @param int $tenantId 租户ID
-     * @param int $userId 用户ID
-     * @return TenantUser|null
+     * @param  int  $tenantId  租户ID
+     * @param  int  $userId  用户ID
      */
     public function getMember(int $tenantId, int $userId): ?TenantUser
     {
@@ -262,8 +261,7 @@ class TenantMemberService
     /**
      * 获取成员统计信息
      *
-     * @param int $tenantId 租户ID
-     * @return array
+     * @param  int  $tenantId  租户ID
      */
     public function getMemberStats(int $tenantId): array
     {

@@ -2,11 +2,11 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Context\TenantContext;
+use Illuminate\Contracts\Http\Kernel;
 use MultiTenantSaas\Middleware\IdentifyTenant;
-use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Services\Agent\BuiltinAgentTemplates;
 use MultiTenantSaas\Tests\Schema\AgentModule;
 
@@ -15,14 +15,16 @@ class AgentControllerTest extends TestCase
     protected array $uses = [AgentModule::class];
 
     protected Tenant $tenant;
+
     protected Tenant $otherTenant;
+
     protected User $user;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->app->make(\Illuminate\Contracts\Http\Kernel::class)
+        $this->app->make(Kernel::class)
             ->prependMiddleware(IdentifyTenant::class);
 
         $this->tenant = Tenant::create(['tenant_id' => 1001, 'name' => 'Tenant A', 'slug' => 'tenant-a', 'status' => 'active']);
@@ -34,6 +36,7 @@ class AgentControllerTest extends TestCase
     protected function authHeaders(int $tenantId = 1001): array
     {
         $token = $this->user->createToken('test-' . uniqid())->plainTextToken;
+
         return [
             'Authorization' => "Bearer {$token}",
             'X-Tenant-ID' => (string) $tenantId,

@@ -8,6 +8,7 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\DTOs\WorkflowDefinition;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Modules\Workflow\Models\Workflow;
+use MultiTenantSaas\Modules\Workflow\Models\WorkflowNode;
 use MultiTenantSaas\Modules\Workflow\Services\WorkflowDefinitionParser;
 use MultiTenantSaas\Tests\Schema\WorkflowModule;
 
@@ -16,6 +17,7 @@ class WorkflowDefinitionParserTest extends TestCase
     protected array $uses = [WorkflowModule::class];
 
     private WorkflowDefinitionParser $parser;
+
     private int $tenantId;
 
     protected function setUp(): void
@@ -31,7 +33,7 @@ class WorkflowDefinitionParserTest extends TestCase
 
         TenantContext::setTenantId((string) $tenant->tenant_id);
         $this->tenantId = $tenant->tenant_id;
-        $this->parser = new WorkflowDefinitionParser();
+        $this->parser = new WorkflowDefinitionParser;
     }
 
     private function getValidDefinition(): array
@@ -404,7 +406,7 @@ class WorkflowDefinitionParserTest extends TestCase
             'config' => ['export' => true],
         ]);
 
-        $startNode = \MultiTenantSaas\Modules\Workflow\Models\WorkflowNode::create([
+        $startNode = WorkflowNode::create([
             'workflow_id' => $workflow->workflow_id,
             'tenant_id' => $this->tenantId,
             'name' => 'Start',
@@ -412,7 +414,7 @@ class WorkflowDefinitionParserTest extends TestCase
             'order' => 0,
         ]);
 
-        $endNode = \MultiTenantSaas\Modules\Workflow\Models\WorkflowNode::create([
+        $endNode = WorkflowNode::create([
             'workflow_id' => $workflow->workflow_id,
             'tenant_id' => $this->tenantId,
             'name' => 'End',

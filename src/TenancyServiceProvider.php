@@ -10,6 +10,13 @@ use MultiTenantSaas\Console\Commands\CheckTenantIsolation;
 use MultiTenantSaas\Console\Commands\MemoryCleanupCommand;
 use MultiTenantSaas\Console\Commands\MemoryDecayCommand;
 use MultiTenantSaas\Console\Commands\MigrateAgentToolsToWorkflows;
+use MultiTenantSaas\Console\Commands\ModuleCreateCommand;
+use MultiTenantSaas\Console\Commands\ModuleDisableCommand;
+use MultiTenantSaas\Console\Commands\ModuleEnableCommand;
+use MultiTenantSaas\Console\Commands\ModuleListCommand;
+use MultiTenantSaas\Console\Commands\ModuleRequireCommand;
+use MultiTenantSaas\Console\Commands\TenancyInitCommand;
+use MultiTenantSaas\Context\TenantConfigStore;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
@@ -24,7 +31,6 @@ use MultiTenantSaas\Services\IdGenerator;
 use MultiTenantSaas\Services\ModuleBootstrapper;
 use MultiTenantSaas\Services\ModuleManager;
 use MultiTenantSaas\Services\ModuleRegistry;
-use MultiTenantSaas\Context\TenantConfigStore;
 
 /**
  * 核心 ServiceProvider
@@ -41,8 +47,8 @@ class TenancyServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/tenancy.php', 'tenancy');
-        $this->mergeConfigFrom(__DIR__.'/../config/channel.php', 'channel');
+        $this->mergeConfigFrom(__DIR__ . '/../config/tenancy.php', 'tenancy');
+        $this->mergeConfigFrom(__DIR__ . '/../config/channel.php', 'channel');
 
         // 模块基础设施
         $this->app->singleton(ModuleRegistry::class);
@@ -69,11 +75,11 @@ class TenancyServiceProvider extends ServiceProvider
     {
         // 发布资源
         $this->publishes([
-            __DIR__.'/../config/tenancy.php' => config_path('tenancy.php'),
+            __DIR__ . '/../config/tenancy.php' => config_path('tenancy.php'),
         ], 'tenancy-config');
 
         $this->publishes([
-            __DIR__.'/../database/migrations' => database_path('migrations'),
+            __DIR__ . '/../database/migrations' => database_path('migrations'),
         ], 'tenancy-migrations');
 
         HealthService::registerChecks();
@@ -85,12 +91,12 @@ class TenancyServiceProvider extends ServiceProvider
                 MemoryDecayCommand::class,
                 MemoryCleanupCommand::class,
                 MigrateAgentToolsToWorkflows::class,
-                \MultiTenantSaas\Console\Commands\ModuleListCommand::class,
-                \MultiTenantSaas\Console\Commands\ModuleEnableCommand::class,
-                \MultiTenantSaas\Console\Commands\ModuleDisableCommand::class,
-                \MultiTenantSaas\Console\Commands\TenancyInitCommand::class,
-                \MultiTenantSaas\Console\Commands\ModuleRequireCommand::class,
-                \MultiTenantSaas\Console\Commands\ModuleCreateCommand::class,
+                ModuleListCommand::class,
+                ModuleEnableCommand::class,
+                ModuleDisableCommand::class,
+                TenancyInitCommand::class,
+                ModuleRequireCommand::class,
+                ModuleCreateCommand::class,
             ]);
         }
 

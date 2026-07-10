@@ -2,19 +2,19 @@
 
 namespace MultiTenantSaas\Modules\Ai\Models;
 
-use MultiTenantSaas\Concerns\BelongsToTenant;
-use MultiTenantSaas\Concerns\HasGlobalId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use MultiTenantSaas\Concerns\BelongsToTenant;
+use MultiTenantSaas\Concerns\HasGlobalId;
 
 /**
  * Agent 会话模型
  */
 class AgentConversation extends Model
 {
-    use BelongsToTenant, HasGlobalId, HasFactory;
+    use BelongsToTenant, HasFactory, HasGlobalId;
 
     protected $primaryKey = 'conversation_id';
 

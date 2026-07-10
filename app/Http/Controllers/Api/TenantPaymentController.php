@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Models\PaymentOrder;
 use MultiTenantSaas\Services\AuditService;
@@ -13,6 +13,7 @@ use MultiTenantSaas\Services\RefundService;
 class TenantPaymentController extends Controller
 {
     use AuthorizesTenantAccess;
+
     public function getPaymentConfig(Request $request, int $tenantId)
     {
         $this->ensureTenantAccess($request, $tenantId);
@@ -24,8 +25,8 @@ class TenantPaymentController extends Controller
     {
         $this->ensureTenantAccess($request, $tenantId);
 
-        if (!in_array($driver, ['wechat', 'alipay'])) {
-            return response()->json(['success' => false, 'message' => trans("payment.unsupported_driver")], 400);
+        if (! in_array($driver, ['wechat', 'alipay'])) {
+            return response()->json(['success' => false, 'message' => trans('payment.unsupported_driver')], 400);
         }
 
         $allowed = $driver === 'wechat'
@@ -39,7 +40,7 @@ class TenantPaymentController extends Controller
             'fields' => $allowed,
         ]);
 
-        return response()->json(['success' => true, 'message' => trans("payment.config_updated")]);
+        return response()->json(['success' => true, 'message' => trans('payment.config_updated')]);
     }
 
     public function wechatNotify(Request $request)
@@ -58,6 +59,7 @@ class TenantPaymentController extends Controller
                 'error' => $e->getMessage(),
                 'query' => $request->query(),
             ]);
+
             return response('fail', 400);
         }
     }
@@ -78,6 +80,7 @@ class TenantPaymentController extends Controller
                 'error' => $e->getMessage(),
                 'query' => $request->query(),
             ]);
+
             return response('fail', 400);
         }
     }
@@ -206,9 +209,11 @@ class TenantPaymentController extends Controller
         try {
             $result = RefundService::handleRefundCallback('wechat', $request);
             \Log::info('WeChat refund callback success', $result);
+
             return response('success');
         } catch (\Throwable $e) {
             \Log::error('WeChat refund callback failed', ['error' => $e->getMessage()]);
+
             return response('fail', 400);
         }
     }
@@ -221,11 +226,12 @@ class TenantPaymentController extends Controller
         try {
             $result = RefundService::handleRefundCallback('alipay', $request);
             \Log::info('Alipay refund callback success', $result);
+
             return response('success');
         } catch (\Throwable $e) {
             \Log::error('Alipay refund callback failed', ['error' => $e->getMessage()]);
+
             return response('fail', 400);
         }
     }
-
 }

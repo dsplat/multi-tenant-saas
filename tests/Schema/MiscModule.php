@@ -143,7 +143,7 @@ class MiscModule implements SchemaModuleInterface
     {
         return [
             'consents', 'cost_allocations', 'sandbox_environments', 'custom_reports',
-            'data_retention_policies', 'tenant_keys', 'tenant_hierarchies'
+            'data_retention_policies', 'tenant_keys', 'tenant_hierarchies',
         ];
     }
 }

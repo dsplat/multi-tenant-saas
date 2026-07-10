@@ -2,12 +2,11 @@
 
 namespace MultiTenantSaas\Modules\Voting\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Modules\Voting\Models\Vote;
-use MultiTenantSaas\Modules\Voting\Models\VoteOption;
 use MultiTenantSaas\Modules\Voting\Services\VotingService;
 
 /**
@@ -32,8 +31,10 @@ class VotingController extends Controller
      *     summary="获取投票活动列表",
      *     tags={"Voting 投票"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="tenantId", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="status", in="query", @OA\Schema(type="string", enum={"draft","active","ended"})),
+     *
      *     @OA\Response(response=200, description="投票列表"),
      *     @OA\Response(response=401, description="未认证"),
      *     @OA\Response(response=403, description="无权访问")
@@ -61,12 +62,16 @@ class VotingController extends Controller
      *     summary="创建投票活动",
      *     tags={"Voting 投票"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="tenantId", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
+     *
      *         @OA\Property(property="title", type="string", description="投票标题"),
      *         @OA\Property(property="vote_type", type="string", enum={"single","multiple"}, description="投票类型"),
      *         @OA\Property(property="options", type="array", @OA\Items(type="object"), description="投票选项（至少2个）")
      *     )),
+     *
      *     @OA\Response(response=201, description="创建成功"),
      *     @OA\Response(response=422, description="验证失败")
      * )
@@ -178,11 +183,15 @@ class VotingController extends Controller
      *     summary="执行投票",
      *     tags={"Voting 投票"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="tenantId", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="voteId", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
+     *
      *         @OA\Property(property="option_ids", type="array", @OA\Items(type="integer"), description="选项ID列表")
      *     )),
+     *
      *     @OA\Response(response=200, description="投票成功"),
      *     @OA\Response(response=422, description="投票失败（活动未开始/已结束/次数限制等）")
      * )
@@ -223,8 +232,10 @@ class VotingController extends Controller
      *     summary="获取投票排行榜",
      *     tags={"Voting 投票"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="tenantId", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="voteId", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="排行榜数据")
      * )
      */
@@ -248,9 +259,12 @@ class VotingController extends Controller
      *     summary="获取投票统计",
      *     tags={"Voting 投票"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="tenantId", in="path", required=true, @OA\Schema(type="integer")),
      *     @OA\Parameter(name="voteId", in="path", required=true, @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="统计数据", @OA\JsonContent(
+     *
      *         @OA\Property(property="data", type="object",
      *             @OA\Property(property="total_votes", type="integer"),
      *             @OA\Property(property="today_votes", type="integer"),

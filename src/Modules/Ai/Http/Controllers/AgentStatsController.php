@@ -32,13 +32,17 @@ class AgentStatsController extends Controller
      *     description="返回指定时间范围内的会话数、工具调用数、平均响应时间、成功率等指标。",
      *     tags={"Agent 监控"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="agentId", in="path", required=true, description="Agent ID", @OA\Schema(type="integer")),
      *     @OA\Parameter(name="start_date", in="query", description="开始日期（Y-m-d）", @OA\Schema(type="string", format="date")),
      *     @OA\Parameter(name="end_date", in="query", description="结束日期（Y-m-d）", @OA\Schema(type="string", format="date")),
+     *
      *     @OA\Response(response=200, description="使用统计", @OA\JsonContent(
+     *
      *         @OA\Property(property="success", type="boolean", example=true),
      *         @OA\Property(property="data", type="object")
      *     )),
+     *
      *     @OA\Response(response=401, description="未认证"),
      *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
      * )
@@ -65,13 +69,17 @@ class AgentStatsController extends Controller
      *     description="返回指定时间范围内的 prompt_tokens、completion_tokens、total_tokens 汇总。",
      *     tags={"Agent 监控"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="agentId", in="path", required=true, description="Agent ID", @OA\Schema(type="integer")),
      *     @OA\Parameter(name="start_date", in="query", description="开始日期（Y-m-d）", @OA\Schema(type="string", format="date")),
      *     @OA\Parameter(name="end_date", in="query", description="结束日期（Y-m-d）", @OA\Schema(type="string", format="date")),
+     *
      *     @OA\Response(response=200, description="Token 用量", @OA\JsonContent(
+     *
      *         @OA\Property(property="success", type="boolean", example=true),
      *         @OA\Property(property="data", type="object")
      *     )),
+     *
      *     @OA\Response(response=401, description="未认证"),
      *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
      * )
@@ -98,10 +106,13 @@ class AgentStatsController extends Controller
      *     description="根据 Token 用量和模型定价估算指定时间范围内的成本。",
      *     tags={"Agent 监控"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="agentId", in="path", required=true, description="Agent ID", @OA\Schema(type="integer")),
      *     @OA\Parameter(name="start_date", in="query", description="开始日期（Y-m-d）", @OA\Schema(type="string", format="date")),
      *     @OA\Parameter(name="end_date", in="query", description="结束日期（Y-m-d）", @OA\Schema(type="string", format="date")),
+     *
      *     @OA\Response(response=200, description="成本估算", @OA\JsonContent(
+     *
      *         @OA\Property(property="success", type="boolean", example=true),
      *         @OA\Property(property="data", type="object",
      *             @OA\Property(property="agent_id", type="integer"),
@@ -110,6 +121,7 @@ class AgentStatsController extends Controller
      *             @OA\Property(property="estimated_cost", type="number")
      *         )
      *     )),
+     *
      *     @OA\Response(response=401, description="未认证"),
      *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
      * )
@@ -141,10 +153,13 @@ class AgentStatsController extends Controller
      *     description="返回分页的工具调用日志列表，按创建时间倒序排列。",
      *     tags={"Agent 监控"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="agentId", in="path", required=true, description="Agent ID", @OA\Schema(type="integer")),
      *     @OA\Parameter(name="page", in="query", description="页码", @OA\Schema(type="integer", default=1)),
      *     @OA\Parameter(name="per_page", in="query", description="每页数量（最大 100）", @OA\Schema(type="integer", default=20)),
+     *
      *     @OA\Response(response=200, description="工具调用日志（分页）", @OA\JsonContent(
+     *
      *         @OA\Property(property="success", type="boolean", example=true),
      *         @OA\Property(property="data", type="array", @OA\Items(type="object")),
      *         @OA\Property(property="meta", type="object",
@@ -154,6 +169,7 @@ class AgentStatsController extends Controller
      *             @OA\Property(property="total", type="integer")
      *         )
      *     )),
+     *
      *     @OA\Response(response=401, description="未认证"),
      *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
      * )

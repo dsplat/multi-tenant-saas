@@ -26,7 +26,7 @@ class BrandingServiceTest extends TestCase
         Tenant::create(['tenant_id' => 1001, 'name' => 'Tenant A', 'slug' => 'tenant-a', 'status' => 'active']);
         Tenant::create(['tenant_id' => 1002, 'name' => 'Tenant B', 'slug' => 'tenant-b', 'status' => 'active']);
 
-        $this->service = new BrandingService();
+        $this->service = new BrandingService;
     }
 
     public function test_get_config_creates_default(): void

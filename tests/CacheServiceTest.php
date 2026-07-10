@@ -2,13 +2,12 @@
 
 namespace MultiTenantSaas\Tests;
 
-use Illuminate\Support\Facades\Cache;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\CacheService;
+use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\MiscModule;
 use MultiTenantSaas\Tests\Schema\RbacModule;
-use MultiTenantSaas\Tests\Schema\EventModule;
 
 /**
  * CacheService 单元测试
@@ -89,6 +88,7 @@ class CacheServiceTest extends TestCase
         $callCount = 0;
         $callback = function () use (&$callCount) {
             $callCount++;
+
             return 'computed_value';
         };
 
@@ -107,6 +107,7 @@ class CacheServiceTest extends TestCase
         $callCount = 0;
         $callback = function () use (&$callCount) {
             $callCount++;
+
             return 'forever_value';
         };
 

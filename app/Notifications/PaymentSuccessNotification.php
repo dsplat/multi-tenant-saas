@@ -27,7 +27,7 @@ class PaymentSuccessNotification extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject('支付成功通知')
             ->line("您的订单 {$this->orderNo} 支付成功。")
-            ->line("支付金额：¥" . number_format($this->amount / 100, 2))
+            ->line('支付金额：¥' . number_format($this->amount / 100, 2))
             ->line("支付方式：{$this->paymentMethod}")
             ->action('查看订单', url('/console/billing/orders'));
     }

@@ -15,9 +15,13 @@ use Symfony\Component\HttpFoundation\Response;
 class IdentifyDomain
 {
     public const DOMAIN_ADMIN = 'admin';
+
     public const DOMAIN_CONSOLE = 'console';
+
     public const DOMAIN_API = 'api';
+
     public const DOMAIN_APP = 'app';
+
     public const DOMAIN_DEFAULT = 'default';
 
     /**
@@ -46,6 +50,7 @@ class IdentifyDomain
             if (str_starts_with($path, '/console')) {
                 return self::DOMAIN_CONSOLE;
             }
+
             return self::DOMAIN_DEFAULT;
         }
 

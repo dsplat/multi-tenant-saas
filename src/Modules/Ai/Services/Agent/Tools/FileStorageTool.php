@@ -58,7 +58,7 @@ class FileStorageTool implements ToolContract
 
     protected function download(string $disk, string $path): array
     {
-        if (!Storage::disk($disk)->exists($path)) {
+        if (! Storage::disk($disk)->exists($path)) {
             return ['error' => 'File not found'];
         }
 
@@ -72,7 +72,7 @@ class FileStorageTool implements ToolContract
 
     protected function delete(string $disk, string $path): array
     {
-        if (!Storage::disk($disk)->exists($path)) {
+        if (! Storage::disk($disk)->exists($path)) {
             return ['error' => 'File not found'];
         }
 

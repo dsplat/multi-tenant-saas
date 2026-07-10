@@ -3,7 +3,6 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Models\UserApiToken;
 
 class TenantTokenControllerTest extends TestCase
 {

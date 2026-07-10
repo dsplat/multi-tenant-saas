@@ -2,6 +2,9 @@
 
 namespace MultiTenantSaas\Tests;
 
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Facades\Event;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Events\AgentCreated;
@@ -369,37 +372,37 @@ class AgentServiceTest extends TestCase
 
     public function test_update_nonexistent_agent_throws(): void
     {
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
         $this->service->update(999999, ['name' => '新名字']);
     }
 
     public function test_delete_nonexistent_agent_throws(): void
     {
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
         $this->service->delete(999999);
     }
 
     public function test_enable_nonexistent_agent_throws(): void
     {
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
         $this->service->enable(999999);
     }
 
     public function test_disable_nonexistent_agent_throws(): void
     {
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
         $this->service->disable(999999);
     }
 
     public function test_attach_tools_nonexistent_agent_throws(): void
     {
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
         $this->service->attachTools(999999, ['tool']);
     }
 
     public function test_update_model_config_nonexistent_agent_throws(): void
     {
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
         $this->service->updateModelConfig(999999, ['temperature' => 0.5]);
     }
 
@@ -409,13 +412,13 @@ class AgentServiceTest extends TestCase
     {
         $agent = $this->createAgent();
 
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $agent->conversations());
+        $this->assertInstanceOf(HasMany::class, $agent->conversations());
     }
 
     public function test_agent_messages_relationship(): void
     {
         $agent = $this->createAgent();
 
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasManyThrough::class, $agent->messages());
+        $this->assertInstanceOf(HasManyThrough::class, $agent->messages());
     }
 }

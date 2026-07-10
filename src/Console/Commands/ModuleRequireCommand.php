@@ -59,6 +59,7 @@ class ModuleRequireCommand extends Command
                 }
                 if (! $found) {
                     $errors[] = "模块 [{$name}] 不存在 (磁盘上无 composer.json extra.saas)";
+
                     continue;
                 }
             }
@@ -66,13 +67,15 @@ class ModuleRequireCommand extends Command
             if ($remove) {
                 if (! isset($require[$pkgName])) {
                     $errors[] = "模块 [{$name}] 未在 composer.json 的 require 中";
+
                     continue;
                 }
 
                 // 检查是否有其他模块依赖它
                 $dependents = $this->findDependents($registry, $name, array_keys($require));
                 if (! empty($dependents)) {
-                    $errors[] = "无法移除 [{$name}]: 被以下模块依赖: ".implode(', ', $dependents);
+                    $errors[] = "无法移除 [{$name}]: 被以下模块依赖: " . implode(', ', $dependents);
+
                     continue;
                 }
 
@@ -81,6 +84,7 @@ class ModuleRequireCommand extends Command
             } else {
                 if (isset($require[$pkgName])) {
                     $this->warn("模块 [{$name}] 已在 composer.json 中");
+
                     continue;
                 }
 
@@ -95,7 +99,7 @@ class ModuleRequireCommand extends Command
                 }
 
                 if (! empty($missingDeps)) {
-                    $this->warn("模块 [{$name}] 依赖以下模块, 将一并添加: ".implode(', ', $missingDeps));
+                    $this->warn("模块 [{$name}] 依赖以下模块, 将一并添加: " . implode(', ', $missingDeps));
                     foreach ($missingDeps as $dep) {
                         $depPkg = $registry->packageName($dep);
                         if (! isset($require[$depPkg])) {
@@ -127,7 +131,7 @@ class ModuleRequireCommand extends Command
         }
 
         // 显示变更
-        $this->info(($remove ? '将移除' : '将添加').':');
+        $this->info(($remove ? '将移除' : '将添加') . ':');
         foreach ($changed as $change) {
             $this->line("  {$change}");
         }

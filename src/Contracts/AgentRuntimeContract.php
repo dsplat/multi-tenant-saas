@@ -16,14 +16,14 @@ interface AgentRuntimeContract
     /**
      * 执行 Agent 对话
      *
-     * @param  int  $agentId         Agent ID
+     * @param  int  $agentId  Agent ID
      * @param  int  $conversationId  会话 ID
-     * @param  string  $message      用户消息
-     * @param  array  $options       可选配置 {
-     *                               max_tool_calls?: int,
-     *                               temperature?: float,
-     *                               ...
-     *                               }
+     * @param  string  $message  用户消息
+     * @param  array  $options  可选配置 {
+     *                          max_tool_calls?: int,
+     *                          temperature?: float,
+     *                          ...
+     *                          }
      * @return AgentResponse {message, tool_calls, token_usage, finish_reason}
      */
     public function run(int $agentId, int $conversationId, string $message, array $options = []): AgentResponse;
@@ -31,10 +31,10 @@ interface AgentRuntimeContract
     /**
      * 流式执行 Agent 对话 (SSE)
      *
-     * @param  int  $agentId         Agent ID
+     * @param  int  $agentId  Agent ID
      * @param  int  $conversationId  会话 ID
-     * @param  string  $message      用户消息
-     * @param  array  $options       可选配置
+     * @param  string  $message  用户消息
+     * @param  array  $options  可选配置
      * @return Generator 逐 token 或逐块产出流式数据
      */
     public function runStream(int $agentId, int $conversationId, string $message, array $options = []): Generator;
@@ -45,8 +45,7 @@ interface AgentRuntimeContract
      * 当 Agent 调用工具后，将工具执行结果加入上下文并继续对话。
      *
      * @param  int  $conversationId  会话 ID
-     * @param  array  $toolResults   工具执行结果列表
-     * @return AgentResponse
+     * @param  array  $toolResults  工具执行结果列表
      */
     public function continueWithToolResults(int $conversationId, array $toolResults): AgentResponse;
 
@@ -56,7 +55,7 @@ interface AgentRuntimeContract
      * 构建用于 AI 推理的消息上下文，包括系统提示词和历史消息。
      *
      * @param  int  $conversationId  会话 ID
-     * @param  int  $maxMessages     最大历史消息数
+     * @param  int  $maxMessages  最大历史消息数
      * @return array OpenAI 消息格式 [{role, content, ...}, ...]
      */
     public function getConversationContext(int $conversationId, int $maxMessages = 20): array;
@@ -67,7 +66,7 @@ interface AgentRuntimeContract
      * 当会话历史过长时，自动摘要旧消息以节省 Token。
      *
      * @param  int  $conversationId  会话 ID
-     * @param  int  $maxTokens       token 阈值（默认 8000）
+     * @param  int  $maxTokens  token 阈值（默认 8000）
      * @return bool 是否执行了压缩
      */
     public function compressMemory(int $conversationId, int $maxTokens = 8000): bool;

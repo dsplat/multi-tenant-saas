@@ -16,7 +16,7 @@ interface IsolationStrategyContract
      * 获取租户对应的数据库连接名称
      *
      * @param  Tenant  $tenant  租户实例
-     * @return string  连接名称（对应 config('database.connections') 中的 key）
+     * @return string 连接名称（对应 config('database.connections') 中的 key）
      */
     public function getConnection(Tenant $tenant): string;
 

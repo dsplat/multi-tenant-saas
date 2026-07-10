@@ -1,8 +1,8 @@
 <?php
+
 /**
  * Iteratively fix missing Schema modules by running phpunit and parsing errors.
  */
-
 $schemaDir = __DIR__ . '/Schema';
 $testsDir = __DIR__;
 $baseDir = dirname($testsDir);
@@ -25,7 +25,7 @@ foreach (glob($schemaDir . '/*Module.php') as $moduleFile) {
     $content = file_get_contents($moduleFile);
     if (preg_match_all("/Schema::table\('([^']+)'/", $content, $matches)) {
         foreach ($matches[1] as $tableName) {
-            if (!isset($tableToModule[$tableName])) {
+            if (! isset($tableToModule[$tableName])) {
                 $tableToModule[$tableName] = $shortName;
             }
         }
@@ -35,14 +35,14 @@ foreach (glob($schemaDir . '/*Module.php') as $moduleFile) {
 $maxIterations = 3;
 for ($iter = 1; $iter <= $maxIterations; $iter++) {
     echo "=== Iteration {$iter} ===\n";
-    
-    $output = shell_exec("cd " . escapeshellarg($baseDir) . " && ./vendor/bin/phpunit --no-coverage 2>&1");
-    
+
+    $output = shell_exec('cd ' . escapeshellarg($baseDir) . ' && ./vendor/bin/phpunit --no-coverage 2>&1');
+
     // Parse: class -> missing tables
     $classTableMap = [];
     $lines = explode("\n", $output);
     $lastClass = null;
-    
+
     for ($i = 0; $i < count($lines); $i++) {
         $line = $lines[$i];
         if (preg_match('/^[0-9]+\) (MultiTenantSaas\\\\Tests\\\\(?:[A-Za-z\\\\]+))::/', $line, $m)) {
@@ -53,25 +53,25 @@ for ($iter = 1; $iter <= $maxIterations; $iter++) {
             $lastClass = null;
         }
     }
-    
+
     if (empty($classTableMap)) {
         echo "No more missing tables!\n";
         break;
     }
-    
+
     $uniqueClasses = [];
     foreach ($classTableMap as $cls => $tables) {
         $uniqueClasses[$cls] = array_unique($tables);
     }
-    
-    echo "Found " . count($uniqueClasses) . " classes with missing tables.\n";
-    
+
+    echo 'Found ' . count($uniqueClasses) . " classes with missing tables.\n";
+
     // Find test file for each class
     $testFiles = array_merge(
         glob($testsDir . '/*Test.php') ?: [],
         glob($testsDir . '/*/*Test.php') ?: []
     );
-    
+
     $classToFile = [];
     foreach ($testFiles as $file) {
         $content = file_get_contents($file);
@@ -86,14 +86,16 @@ for ($iter = 1; $iter <= $maxIterations; $iter++) {
             $classToFile[$ns . '\\' . $m[1]] = $file;
         }
     }
-    
+
     $fixed = 0;
     foreach ($uniqueClasses as $className => $missingTables) {
         $file = $classToFile[$className] ?? null;
-        if (!$file || !file_exists($file)) continue;
-        
+        if (! $file || ! file_exists($file)) {
+            continue;
+        }
+
         $content = file_get_contents($file);
-        
+
         // Determine needed modules
         $neededModules = [];
         foreach ($missingTables as $table) {
@@ -101,40 +103,44 @@ for ($iter = 1; $iter <= $maxIterations; $iter++) {
                 $neededModules[$tableToModule[$table]] = true;
             }
         }
-        
-        if (empty($neededModules)) continue;
-        
+
+        if (empty($neededModules)) {
+            continue;
+        }
+
         // Get existing modules
         $existingModules = [];
         if (preg_match('/protected\s+array\s+\$uses\s*=\s*\[([^\]]*)\]/', $content, $match)) {
             preg_match_all('/([A-Za-z]+Module)::class/', $match[1], $existingMatches);
             $existingModules = $existingMatches[1];
         }
-        
+
         // Add new modules
         $newModules = [];
         foreach (array_keys($neededModules) as $mod) {
-            if (!in_array($mod, $existingModules)) {
+            if (! in_array($mod, $existingModules)) {
                 $newModules[] = $mod;
                 $existingModules[] = $mod;
             }
         }
-        
-        if (empty($newModules)) continue;
-        
-        echo basename($file) . ": +" . implode(', ', $newModules) . "\n";
-        
+
+        if (empty($newModules)) {
+            continue;
+        }
+
+        echo basename($file) . ': +' . implode(', ', $newModules) . "\n";
+
         // Update or add $uses
         if (preg_match('/protected\s+array\s+\$uses\s*=\s*\[[^\]]*\]/', $content)) {
-            $newUsesArray = array_map(fn($m) => "{$m}::class", $existingModules);
+            $newUsesArray = array_map(fn ($m) => "{$m}::class", $existingModules);
             $newUsesStr = 'protected array $uses = [' . implode(', ', $newUsesArray) . ']';
             $content = preg_replace('/protected\s+array\s+\$uses\s*=\s*\[[^\]]*\]/', $newUsesStr, $content);
         } else {
-            $usesArray = array_map(fn($m) => "{$m}::class", $existingModules);
+            $usesArray = array_map(fn ($m) => "{$m}::class", $existingModules);
             $usesStr = "\n    protected array \$uses = [" . implode(', ', $usesArray) . "];\n";
             $content = preg_replace('/(extends\s+TestCase\s*\{)/', '$1' . $usesStr, $content);
         }
-        
+
         // Add use statements
         $missingUseStmts = [];
         foreach ($newModules as $mod) {
@@ -143,12 +149,14 @@ for ($iter = 1; $iter <= $maxIterations; $iter++) {
                 $missingUseStmts[] = $useStmt;
             }
         }
-        
-        if (!empty($missingUseStmts)) {
+
+        if (! empty($missingUseStmts)) {
             $lines = explode("\n", $content);
             $lastTopUseIdx = -1;
             foreach ($lines as $i => $line) {
-                if (preg_match('/^class\s+/', $line)) break;
+                if (preg_match('/^class\s+/', $line)) {
+                    break;
+                }
                 if (preg_match('/^use\s+.+;$/', $line)) {
                     $lastTopUseIdx = $i;
                 }
@@ -158,10 +166,10 @@ for ($iter = 1; $iter <= $maxIterations; $iter++) {
                 $content = implode("\n", $lines);
             }
         }
-        
+
         file_put_contents($file, $content);
         $fixed++;
     }
-    
+
     echo "Fixed {$fixed} files.\n\n";
 }

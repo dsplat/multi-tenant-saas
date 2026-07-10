@@ -3,7 +3,6 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Services\AuditService;
 use MultiTenantSaas\Tests\Schema\MfaModule;
 

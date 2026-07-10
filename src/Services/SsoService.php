@@ -178,16 +178,16 @@ class SsoService
     {
         $validUntil = now()->addDays(365)->format('Y-m-d\TH:i:s\Z');
 
-        return '<?xml version="1.0"?>'."\n"
-            .'<EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" '
-            .'entityID="'.htmlspecialchars($spEntityId, ENT_XML1).'" '
-            .'validUntil="'.$validUntil.'">'
-            .'<SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">'
-            .'<NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</NameIDFormat>'
-            .'<AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" '
-            .'Location="'.htmlspecialchars($acsUrl, ENT_XML1).'" index="0"/>'
-            .'</SPSSODescriptor>'
-            .'</EntityDescriptor>';
+        return '<?xml version="1.0"?>' . "\n"
+            . '<EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" '
+            . 'entityID="' . htmlspecialchars($spEntityId, ENT_XML1) . '" '
+            . 'validUntil="' . $validUntil . '">'
+            . '<SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">'
+            . '<NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</NameIDFormat>'
+            . '<AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" '
+            . 'Location="' . htmlspecialchars($acsUrl, ENT_XML1) . '" index="0"/>'
+            . '</SPSSODescriptor>'
+            . '</EntityDescriptor>';
     }
 
     // ----------------------------------------
@@ -199,22 +199,22 @@ class SsoService
      */
     public function buildSamlRedirectUrl(SsoProvider $provider, string $acsUrl, string $state): string
     {
-        $requestId = '_'.Str::uuid()->toString();
+        $requestId = '_' . Str::uuid()->toString();
         $issueInstant = now()->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z');
 
         $spEntityId = (string) config('socialite.saml.sp_entity_id', self::SP_ENTITY_PREFIX);
 
         $authnRequest = '<?xml version="1.0" encoding="UTF-8"?>'
-            .'<samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" '
-            .'xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" '
-            .'ID="'.$requestId.'" '
-            .'Version="2.0" '
-            .'IssueInstant="'.$issueInstant.'" '
-            .'Destination="'.htmlspecialchars($provider->sso_url ?? '', ENT_XML1).'" '
-            .'AssertionConsumerServiceURL="'.htmlspecialchars($acsUrl, ENT_XML1).'">'
-            .'<saml:Issuer>'.htmlspecialchars($spEntityId, ENT_XML1).'</saml:Issuer>'
-            .'<samlp:NameIDPolicy AllowCreate="true" Format="urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"/>'
-            .'</samlp:AuthnRequest>';
+            . '<samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" '
+            . 'xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" '
+            . 'ID="' . $requestId . '" '
+            . 'Version="2.0" '
+            . 'IssueInstant="' . $issueInstant . '" '
+            . 'Destination="' . htmlspecialchars($provider->sso_url ?? '', ENT_XML1) . '" '
+            . 'AssertionConsumerServiceURL="' . htmlspecialchars($acsUrl, ENT_XML1) . '">'
+            . '<saml:Issuer>' . htmlspecialchars($spEntityId, ENT_XML1) . '</saml:Issuer>'
+            . '<samlp:NameIDPolicy AllowCreate="true" Format="urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"/>'
+            . '</samlp:AuthnRequest>';
 
         // HTTP-Redirect 绑定：DEFLATE(base64(XML))
         $deflated = gzdeflate($authnRequest, 9);
@@ -227,7 +227,7 @@ class SsoService
             'RelayState' => $state,
         ]);
 
-        return $url.$separator.$query;
+        return $url . $separator . $query;
     }
 
     /**
@@ -396,7 +396,7 @@ class SsoService
         $url = $provider->authorize_url ?? '';
         $separator = str_contains($url, '?') ? '&' : '?';
 
-        return $url.$separator.http_build_query($params);
+        return $url . $separator . http_build_query($params);
     }
 
     /**
@@ -489,7 +489,7 @@ class SsoService
     public function findOrCreateUser(SsoProvider $provider, array $attributes): array
     {
         return DB::transaction(function () use ($provider, $attributes) {
-            $providerKey = $provider->type.':'.$provider->name;
+            $providerKey = $provider->type . ':' . $provider->name;
             $externalId = (string) ($attributes['external_id'] ?? '');
             $email = $attributes['email'] ? strtolower(trim($attributes['email'])) : null;
 
@@ -516,8 +516,8 @@ class SsoService
             if (! $user) {
                 $isNew = true;
                 $user = new User;
-                $user->name = $attributes['name'] ?: ('SSO User '.substr($attributes['external_id'] ?? '', 0, 8));
-                $user->email = $email ?: ($attributes['external_id'].'@sso.local');
+                $user->name = $attributes['name'] ?: ('SSO User ' . substr($attributes['external_id'] ?? '', 0, 8));
+                $user->email = $email ?: ($attributes['external_id'] . '@sso.local');
                 $user->password = bin2hex(random_bytes(16));
                 $user->avatar = $attributes['avatar'] ?? null;
                 $user->role = 'platform_user';
@@ -686,8 +686,8 @@ class SsoService
         $lines = str_split($body, 64);
 
         return "-----BEGIN CERTIFICATE-----\n"
-            .implode("\n", $lines)
-            ."\n-----END CERTIFICATE-----\n";
+            . implode("\n", $lines)
+            . "\n-----END CERTIFICATE-----\n";
     }
 
     /**

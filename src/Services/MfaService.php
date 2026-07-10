@@ -66,7 +66,7 @@ class MfaService
         $timestamp = $timestamp ?? time();
         $counter = intdiv($timestamp, self::TOTP_STEP);
         $binary = $this->base32Decode($secret);
-        $message = pack('N*', 0).pack('N*', $counter);
+        $message = pack('N*', 0) . pack('N*', $counter);
         $hash = hash_hmac('sha1', $message, $binary, true);
         $offset = ord(substr($hash, -1)) & 0x0F;
         $truncated = (
@@ -515,7 +515,7 @@ class MfaService
     {
         $hex = bin2hex(random_bytes(6));
 
-        return strtoupper(substr($hex, 0, 4).'-'.substr($hex, 4, 4).'-'.substr($hex, 8, 4));
+        return strtoupper(substr($hex, 0, 4) . '-' . substr($hex, 4, 4) . '-' . substr($hex, 8, 4));
     }
 
     private function emailCacheKey(int $userId): string

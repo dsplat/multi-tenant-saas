@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\SSL;
 
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
+use MultiTenantSaas\Modules\SSL\Services\TenantSslService;
 
 class SslServiceProvider extends ModuleServiceProvider
 {
@@ -11,7 +12,7 @@ class SslServiceProvider extends ModuleServiceProvider
     protected function registerModuleBindings(): void
     {
         $this->app->singleton(
-            \MultiTenantSaas\Modules\SSL\Services\TenantSslService::class
+            TenantSslService::class
         );
     }
 }

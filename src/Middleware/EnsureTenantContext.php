@@ -31,11 +31,11 @@ class EnsureTenantContext
         $tenantId = TenantContext::getId();
         $tenant = TenantContext::getTenant();
 
-        if (!$tenantId || !$tenant) {
+        if (! $tenantId || ! $tenant) {
             return $this->missingTenantResponse($request);
         }
 
-        if (!$tenant->isActive()) {
+        if (! $tenant->isActive()) {
             return $this->inactiveTenantResponse($request, $tenant);
         }
 
@@ -50,12 +50,12 @@ class EnsureTenantContext
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => false,
-                'message' => trans("common.missing_tenant"),
+                'message' => trans('common.missing_tenant'),
                 'error' => 'MissingTenant',
             ], 400);
         }
 
-        abort(400, trans("common.missing_tenant"));
+        abort(400, trans('common.missing_tenant'));
     }
 
     /**
@@ -64,9 +64,9 @@ class EnsureTenantContext
     protected function inactiveTenantResponse(Request $request, $tenant): Response
     {
         $message = match ($tenant->status) {
-            'suspended' => trans("tenant.suspended"),
-            'cancelled' => trans("tenant.cancelled"),
-            default => trans("tenant.inactive"),
+            'suspended' => trans('tenant.suspended'),
+            'cancelled' => trans('tenant.cancelled'),
+            default => trans('tenant.inactive'),
         };
 
         if ($request->expectsJson()) {

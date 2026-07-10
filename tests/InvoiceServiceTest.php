@@ -2,9 +2,9 @@
 
 namespace MultiTenantSaas\Tests;
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Invoice;
-use MultiTenantSaas\Models\InvoiceItem;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\InvoiceService;
 use MultiTenantSaas\Tests\Schema\BillingModule;
@@ -300,7 +300,7 @@ class InvoiceServiceTest extends TestCase
 
     public function test_generate_pdf(): void
     {
-        if (! class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
+        if (! class_exists(Pdf::class)) {
             $this->markTestSkipped('barryvdh/laravel-dompdf not installed');
         }
 

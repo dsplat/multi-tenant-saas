@@ -224,7 +224,7 @@ class PluginModule implements SchemaModuleInterface
             'plugins', 'plugin_dependencies', 'file_uploads', 'export_tasks',
             'structured_logs', 'alert_rules', 'alerts', 'rate_limit_rules',
             'user_preferences', 'api_versions', 'oauth_accounts', 'usage_records',
-            'user_api_tokens', 'user_api_token_histories'
+            'user_api_tokens', 'user_api_token_histories',
         ];
     }
 }

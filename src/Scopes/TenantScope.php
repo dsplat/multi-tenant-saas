@@ -28,7 +28,7 @@ class TenantScope implements Scope
         $tenantId = TenantContext::getId();
 
         if ($tenantId) {
-            $builder->where($model->getTable().'.tenant_id', $tenantId);
+            $builder->where($model->getTable() . '.tenant_id', $tenantId);
         }
     }
 
@@ -49,6 +49,7 @@ class TenantScope implements Scope
     {
         $builder->macro('withoutTenantScope', function (Builder $builder) {
             self::enforceAdminContext('withoutTenantScope');
+
             return $builder->withoutGlobalScope(TenantScope::class);
         });
     }
@@ -60,8 +61,9 @@ class TenantScope implements Scope
     {
         $builder->macro('withTenant', function (Builder $builder, string $tenantId) {
             self::enforceAdminContext('withTenant');
+
             return $builder->withoutGlobalScope(TenantScope::class)
-                ->where($builder->getModel()->getTable().'.tenant_id', $tenantId);
+                ->where($builder->getModel()->getTable() . '.tenant_id', $tenantId);
         });
     }
 
@@ -72,6 +74,7 @@ class TenantScope implements Scope
     {
         $builder->macro('forAllTenants', function (Builder $builder) {
             self::enforceAdminContext('forAllTenants');
+
             return $builder->withoutGlobalScope(TenantScope::class);
         });
     }

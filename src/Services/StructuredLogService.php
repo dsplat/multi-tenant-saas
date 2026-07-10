@@ -139,7 +139,7 @@ class StructuredLogService
             $q->where('category', $filters['category']);
         }
         if (! empty($filters['action'])) {
-            $q->where('action', 'like', $filters['action'].'%');
+            $q->where('action', 'like', $filters['action'] . '%');
         }
         if (! empty($filters['user_id'])) {
             $q->where('user_id', $filters['user_id']);
@@ -170,7 +170,7 @@ class StructuredLogService
         $q = DB::table(self::TABLE);
 
         if (! empty($filters['action'])) {
-            $q->where('action', 'like', $filters['action'].'%');
+            $q->where('action', 'like', $filters['action'] . '%');
         }
         if (! empty($filters['user_id'])) {
             $q->where('user_id', $filters['user_id']);

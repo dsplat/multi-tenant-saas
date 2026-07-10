@@ -10,6 +10,7 @@ use App\Http\Resources\MessageResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\StreamedResponse;
+use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\AgentRuntimeContract;
 use MultiTenantSaas\Contracts\AgentServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
@@ -38,9 +39,12 @@ class AgentChatController extends Controller
      *     description="创建新会话，通过 SSE 流式输出 Agent 回复。服务端使用 AgentRuntime.runStream() 逐 chunk 推送。",
      *     tags={"Agent 对话"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="agentId", in="path", required=true, description="Agent ID", @OA\Schema(type="integer")),
+     *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
      *         required={"message"},
+     *
      *         @OA\Property(property="message", type="string", maxLength=32000, example="你好，请帮我查询订单"),
      *         @OA\Property(property="customer_id", type="integer", nullable=true, description="客户 ID"),
      *         @OA\Property(property="staff_id", type="integer", nullable=true, description="客服 ID"),
@@ -51,6 +55,7 @@ class AgentChatController extends Controller
      *             @OA\Property(property="temperature", type="number", minimum=0, maximum=2)
      *         )
      *     )),
+     *
      *     @OA\Response(response=200, description="SSE 流式响应（Content-Type: text/event-stream）"),
      *     @OA\Response(response=401, description="未认证"),
      *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户"),
@@ -89,16 +94,20 @@ class AgentChatController extends Controller
      *     description="向已有会话追加用户消息，通过 SSE 流式输出 Agent 回复。",
      *     tags={"Agent 对话"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="agentId", in="path", required=true, description="Agent ID", @OA\Schema(type="integer")),
      *     @OA\Parameter(name="conversationId", in="path", required=true, description="会话 ID", @OA\Schema(type="integer")),
+     *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
      *         required={"message"},
+     *
      *         @OA\Property(property="message", type="string", maxLength=32000, example="继续追问"),
      *         @OA\Property(property="options", type="object", nullable=true,
      *             @OA\Property(property="max_tool_calls", type="integer", minimum=1),
      *             @OA\Property(property="temperature", type="number", minimum=0, maximum=2)
      *         )
      *     )),
+     *
      *     @OA\Response(response=200, description="SSE 流式响应（Content-Type: text/event-stream）"),
      *     @OA\Response(response=400, description="会话已结束"),
      *     @OA\Response(response=401, description="未认证"),
@@ -143,9 +152,12 @@ class AgentChatController extends Controller
      *     summary="获取 Agent 的对话列表",
      *     tags={"Agent 对话"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="agentId", in="path", required=true, description="Agent ID", @OA\Schema(type="integer")),
      *     @OA\Parameter(name="page", in="query", description="页码", @OA\Schema(type="integer", default=1)),
+     *
      *     @OA\Response(response=200, description="对话列表（分页）", @OA\JsonContent(
+     *
      *         @OA\Property(property="success", type="boolean", example=true),
      *         @OA\Property(property="data", type="array", @OA\Items(type="object")),
      *         @OA\Property(property="meta", type="object",
@@ -155,6 +167,7 @@ class AgentChatController extends Controller
      *             @OA\Property(property="total", type="integer")
      *         )
      *     )),
+     *
      *     @OA\Response(response=401, description="未认证"),
      *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
      * )
@@ -187,11 +200,15 @@ class AgentChatController extends Controller
      *     summary="获取对话详情",
      *     tags={"Agent 对话"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="conversationId", in="path", required=true, description="会话 ID", @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="对话详情", @OA\JsonContent(
+     *
      *         @OA\Property(property="success", type="boolean", example=true),
      *         @OA\Property(property="data", type="object")
      *     )),
+     *
      *     @OA\Response(response=401, description="未认证"),
      *     @OA\Response(response=404, description="会话不存在或不属于当前租户")
      * )
@@ -223,9 +240,12 @@ class AgentChatController extends Controller
      *     summary="获取对话消息列表",
      *     tags={"Agent 对话"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="conversationId", in="path", required=true, description="会话 ID", @OA\Schema(type="integer")),
      *     @OA\Parameter(name="page", in="query", description="页码", @OA\Schema(type="integer", default=1)),
+     *
      *     @OA\Response(response=200, description="消息列表（分页）", @OA\JsonContent(
+     *
      *         @OA\Property(property="success", type="boolean", example=true),
      *         @OA\Property(property="data", type="array", @OA\Items(type="object")),
      *         @OA\Property(property="meta", type="object",
@@ -235,6 +255,7 @@ class AgentChatController extends Controller
      *             @OA\Property(property="total", type="integer")
      *         )
      *     )),
+     *
      *     @OA\Response(response=401, description="未认证"),
      *     @OA\Response(response=404, description="会话不存在或不属于当前租户")
      * )
@@ -277,11 +298,15 @@ class AgentChatController extends Controller
      *     summary="删除对话",
      *     tags={"Agent 对话"},
      *     security={{"sanctum":{}}},
+     *
      *     @OA\Parameter(name="conversationId", in="path", required=true, description="会话 ID", @OA\Schema(type="integer")),
+     *
      *     @OA\Response(response=200, description="删除成功", @OA\JsonContent(
+     *
      *         @OA\Property(property="success", type="boolean", example=true),
      *         @OA\Property(property="message", type="string", example="会话已删除")
      *     )),
+     *
      *     @OA\Response(response=401, description="未认证"),
      *     @OA\Response(response=404, description="会话不存在或不属于当前租户")
      * )
@@ -332,7 +357,7 @@ class AgentChatController extends Controller
                 /** @var StreamChunk $chunk */
                 foreach ($agentRuntime->runStream($agentId, $conversationId, $message, $options) as $chunk) {
                     // 输出 SSE 格式数据
-                    echo "data: " . json_encode([
+                    echo 'data: ' . json_encode([
                         'text' => $chunk->text,
                         'tool_calls' => $chunk->toolCalls,
                         'finish_reason' => $chunk->finishReason,
@@ -342,13 +367,13 @@ class AgentChatController extends Controller
                     flush();
                 }
             } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::error('AgentChatController: 流式对话异常', [
+                Log::error('AgentChatController: 流式对话异常', [
                     'agent_id' => $agentId,
                     'conversation_id' => $conversationId,
                     'error' => $e->getMessage(),
                 ]);
 
-                echo "data: " . json_encode([
+                echo 'data: ' . json_encode([
                     'text' => "\n\n[对话处理过程中发生错误]",
                     'tool_calls' => [],
                     'finish_reason' => 'error',
@@ -393,6 +418,7 @@ class AgentChatController extends Controller
         if ($agent === null || (int) $agent->tenant_id !== $tenantId) {
             abort(404, 'Agent 不存在或不属于当前租户');
         }
+
         return $agent;
     }
 }

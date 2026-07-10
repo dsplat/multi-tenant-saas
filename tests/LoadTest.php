@@ -12,9 +12,9 @@ use MultiTenantSaas\Models\WebhookDelivery;
 use MultiTenantSaas\Services\CacheService;
 use MultiTenantSaas\Services\PerformanceService;
 use MultiTenantSaas\Services\WebhookService;
-use MultiTenantSaas\Tests\Schema\WebhookModule;
-use MultiTenantSaas\Tests\Schema\PluginModule;
 use MultiTenantSaas\Tests\Schema\EventModule;
+use MultiTenantSaas\Tests\Schema\PluginModule;
+use MultiTenantSaas\Tests\Schema\WebhookModule;
 
 /**
  * 负载测试
@@ -146,7 +146,7 @@ class LoadTest extends TestCase
 
         for ($i = 0; $i < $total; $i++) {
             // 100 个不同 key，每个访问 10 次：首命中 + 9 次命中
-            $key = "hot:key:" . intdiv($i, 10);
+            $key = 'hot:key:' . intdiv($i, 10);
 
             $cache->remember($key, function () use (&$misses) {
                 $misses++;

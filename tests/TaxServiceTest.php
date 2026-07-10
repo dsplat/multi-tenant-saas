@@ -3,8 +3,8 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TaxRule;
+use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Services\TaxService;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 

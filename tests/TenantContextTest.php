@@ -10,7 +10,7 @@ class TenantContextTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // 创建测试租户
         Tenant::create([
             'tenant_id' => 1001,
@@ -23,7 +23,7 @@ class TenantContextTest extends TestCase
     public function test_can_set_and_get_tenant_id(): void
     {
         TenantContext::setId('1001');
-        
+
         $this->assertEquals('1001', TenantContext::getId());
     }
 
@@ -31,7 +31,7 @@ class TenantContextTest extends TestCase
     {
         $tenant = Tenant::find(1001);
         TenantContext::setTenant($tenant);
-        
+
         $this->assertEquals($tenant, TenantContext::getTenant());
         $this->assertEquals('1001', TenantContext::getId());
     }
@@ -41,9 +41,9 @@ class TenantContextTest extends TestCase
         TenantContext::setId('1001');
         TenantContext::setDomainType('customer');
         TenantContext::setTenantRole('admin');
-        
+
         TenantContext::clear();
-        
+
         $this->assertNull(TenantContext::getId());
         $this->assertNull(TenantContext::getTenant());
         $this->assertNull(TenantContext::getDomainType());
@@ -54,7 +54,7 @@ class TenantContextTest extends TestCase
     {
         TenantContext::setDomainType('admin');
         $this->assertEquals('admin', TenantContext::getDomainType());
-        
+
         TenantContext::setDomainType('customer');
         $this->assertEquals('customer', TenantContext::getDomainType());
     }
@@ -63,7 +63,7 @@ class TenantContextTest extends TestCase
     {
         TenantContext::setTenantRole('tenant_admin');
         $this->assertEquals('tenant_admin', TenantContext::getTenantRole());
-        
+
         TenantContext::setTenantRole('end_user');
         $this->assertEquals('end_user', TenantContext::getTenantRole());
     }

@@ -197,6 +197,6 @@ class AiUsageQuota extends Model
      */
     public static function currentPeriodKey(): string
     {
-        return static::PERIOD_MONTHLY.':'.now()->format('Y-m');
+        return static::PERIOD_MONTHLY . ':' . now()->format('Y-m');
     }
 }

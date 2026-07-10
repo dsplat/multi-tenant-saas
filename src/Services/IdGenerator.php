@@ -30,6 +30,7 @@ use MultiTenantSaas\Contracts\IdGeneratorContract;
 class IdGenerator implements IdGeneratorContract
 {
     protected int $min;
+
     protected int $max;
 
     public function __construct()
@@ -55,6 +56,7 @@ class IdGenerator implements IdGeneratorContract
         for ($i = 0; $i < $count; $i++) {
             $ids[] = $this->generate();
         }
+
         return $ids;
     }
 
@@ -76,6 +78,7 @@ class IdGenerator implements IdGeneratorContract
     public function isJsSafe(int|string $id): bool
     {
         $numId = is_string($id) ? (int) $id : $id;
+
         return $numId <= $this->max;
     }
 

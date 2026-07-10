@@ -2,8 +2,8 @@
 
 namespace MultiTenantSaas\Services;
 
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Consent;
 
@@ -52,7 +52,7 @@ class ConsentService
      * @param  string  $ip  IP 地址
      * @param  string  $userAgent  User-Agent
      * @param  int|null  $tenantId  租户 ID（null 时从上下文获取）
-     * @return Consent
+     *
      * @throws \InvalidArgumentException
      */
     public function grantConsent(
@@ -113,7 +113,6 @@ class ConsentService
      * @param  int  $userId  用户 ID
      * @param  string  $type  同意类型
      * @param  int|null  $tenantId  租户 ID（null 表示不限定租户）
-     * @return bool
      */
     public function hasConsent(int $userId, string $type, ?int $tenantId = null): bool
     {
@@ -170,7 +169,7 @@ class ConsentService
             $status[$type] = [
                 'granted' => $consent !== null,
                 'version' => $consent?->version,
-                'granted_at' => $consent?->granted_at ? (new \Illuminate\Support\Carbon($consent->granted_at))->toIso8601String() : null,
+                'granted_at' => $consent?->granted_at ? (new Carbon($consent->granted_at))->toIso8601String() : null,
             ];
         }
 
@@ -184,7 +183,6 @@ class ConsentService
      * @param  string  $ip  IP 地址
      * @param  string  $userAgent  User-Agent
      * @param  int|null  $tenantId  租户 ID
-     * @return Consent
      */
     public function recordCookieConsent(int $userId, string $ip, string $userAgent, ?int $tenantId = null): Consent
     {
@@ -198,7 +196,6 @@ class ConsentService
      * @param  string  $ip  IP 地址
      * @param  string  $userAgent  User-Agent
      * @param  int|null  $tenantId  租户 ID
-     * @return Consent
      */
     public function recordDataProcessingConsent(int $userId, string $ip, string $userAgent, ?int $tenantId = null): Consent
     {
@@ -214,7 +211,6 @@ class ConsentService
      * @param  string  $ip  IP 地址
      * @param  string  $userAgent  User-Agent
      * @param  int|null  $tenantId  租户 ID
-     * @return Consent
      */
     public function recordMarketingConsent(int $userId, string $ip, string $userAgent, ?int $tenantId = null): Consent
     {
@@ -231,7 +227,6 @@ class ConsentService
      * @param  string  $ip  IP 地址
      * @param  string  $userAgent  User-Agent
      * @param  int|null  $tenantId  租户 ID
-     * @return Consent
      */
     public function acceptTerms(int $userId, ?string $version = null, string $ip = '', string $userAgent = '', ?int $tenantId = null): Consent
     {
@@ -247,8 +242,6 @@ class ConsentService
 
     /**
      * 获取当前条款版本
-     *
-     * @return string
      */
     public function getCurrentTermsVersion(): string
     {
@@ -283,13 +276,14 @@ class ConsentService
      * 验证同意类型是否合法
      *
      * @param  string  $type  同意类型
+     *
      * @throws \InvalidArgumentException
      */
     protected function validateType(string $type): void
     {
         if (! in_array($type, $this->validTypes, true)) {
             throw new \InvalidArgumentException(
-                trans('tenant.consent_invalid_type').': '.$type
+                trans('tenant.consent_invalid_type') . ': ' . $type
             );
         }
     }

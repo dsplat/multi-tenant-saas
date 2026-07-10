@@ -4,6 +4,8 @@ namespace MultiTenantSaas\Mail;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 class PasswordResetMail extends Mailable
@@ -15,14 +17,14 @@ class PasswordResetMail extends Mailable
         public string $email,
     ) {}
 
-    public function envelope(): \Illuminate\Mail\Mailables\Envelope
+    public function envelope(): Envelope
     {
-        return new \Illuminate\Mail\Mailables\Envelope(
+        return new Envelope(
             subject: trans('auth.reset_password_subject'),
         );
     }
 
-    public function content(): \Illuminate\Mail\Mailables\Content
+    public function content(): Content
     {
         $resetUrl = config('app.frontend_url', config('app.url')) . '/reset-password?token=' . $this->token . '&email=' . urlencode($this->email);
         $buttonText = trans('auth.reset_password_button');
@@ -31,7 +33,7 @@ class PasswordResetMail extends Mailable
         $expiry = trans('auth.reset_password_expiry');
         $note = trans('auth.email_auto_send_note');
 
-        return new \Illuminate\Mail\Mailables\Content(
+        return new Content(
             htmlString: <<<HTML
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2>{$title}</h2>

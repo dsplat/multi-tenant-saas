@@ -170,13 +170,13 @@ class KlingProvider
             default => 'ai.provider_api_error',
         };
 
-        Log::error('[KlingProvider] '.$operation.' HTTP error', [
+        Log::error('[KlingProvider] ' . $operation . ' HTTP error', [
             'model' => $model,
             'status' => $status,
             'body' => $body,
         ]);
 
-        throw new \RuntimeException(trans($errorKey, ['provider' => 'kling']).' ['.$status.']');
+        throw new \RuntimeException(trans($errorKey, ['provider' => 'kling']) . ' [' . $status . ']');
     }
 
     /**
@@ -292,7 +292,7 @@ class KlingProvider
      */
     public function getTaskStatus(string $taskId): array
     {
-        $url = $this->getBaseUrl().self::TASK_ENDPOINT_PREFIX.rawurlencode($taskId);
+        $url = $this->getBaseUrl() . self::TASK_ENDPOINT_PREFIX . rawurlencode($taskId);
 
         try {
             $response = $this->http()->get($url);
@@ -301,7 +301,7 @@ class KlingProvider
                 'task_id' => $taskId,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'kling']).': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'kling']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, 'getTaskStatus', '');
         } catch (Throwable $e) {
@@ -309,7 +309,7 @@ class KlingProvider
                 'task_id' => $taskId,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'kling']).': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'kling']) . ': ' . $e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {
@@ -326,24 +326,24 @@ class KlingProvider
      */
     protected function sendSubmit(string $endpoint, array $payload, string $operation, string $model): Response
     {
-        $url = $this->getBaseUrl().$endpoint;
+        $url = $this->getBaseUrl() . $endpoint;
 
         try {
             $response = $this->http()->post($url, $payload);
         } catch (ConnectionException $e) {
-            Log::error('[KlingProvider] '.$operation.' connection error', [
+            Log::error('[KlingProvider] ' . $operation . ' connection error', [
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'kling']).': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'kling']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, $operation, $model);
         } catch (Throwable $e) {
-            Log::error('[KlingProvider] '.$operation.' exception', [
+            Log::error('[KlingProvider] ' . $operation . ' exception', [
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'kling']).': '.$e->getMessage(), 0, $e);
+            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'kling']) . ': ' . $e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {

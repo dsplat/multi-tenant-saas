@@ -16,7 +16,7 @@ class CheckRbacPermission
 {
     public function handle(Request $request, Closure $next, string $permission): Response
     {
-        if (!RbacService::check($permission)) {
+        if (! RbacService::check($permission)) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,

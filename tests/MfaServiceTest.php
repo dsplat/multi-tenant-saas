@@ -66,7 +66,7 @@ class MfaServiceTest extends TestCase
         $uri = $this->service->getOtpauthUri($secret, 'alice@example.com');
 
         $this->assertStringStartsWith('otpauth://totp/', $uri);
-        $this->assertStringContainsString('secret='.$secret, $uri);
+        $this->assertStringContainsString('secret=' . $secret, $uri);
         $this->assertStringContainsString('period=30', $uri);
         $this->assertStringContainsString('digits=6', $uri);
     }

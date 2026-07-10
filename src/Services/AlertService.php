@@ -168,7 +168,7 @@ class AlertService
             $q->where('severity', $filters['severity']);
         }
         if (! empty($filters['rule_name'])) {
-            $q->where('rule_name', 'like', $filters['rule_name'].'%');
+            $q->where('rule_name', 'like', $filters['rule_name'] . '%');
         }
         if (! empty($filters['tenant_id'])) {
             $q->where('tenant_id', $filters['tenant_id']);
@@ -292,7 +292,7 @@ class AlertService
                 'context' => $context,
             ]);
         } catch (\Throwable $e) {
-            Log::warning('[AlertService] webhook failed: '.$e->getMessage());
+            Log::warning('[AlertService] webhook failed: ' . $e->getMessage());
         }
     }
 
@@ -313,7 +313,7 @@ class AlertService
         try {
             app(SmsService::class)->send($phone, "[{$severity}] {$ruleName}: {$message}");
         } catch (\Throwable $e) {
-            Log::warning('[AlertService] sms failed: '.$e->getMessage());
+            Log::warning('[AlertService] sms failed: ' . $e->getMessage());
         }
     }
 }

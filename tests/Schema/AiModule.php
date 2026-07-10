@@ -128,7 +128,7 @@ class AiModule implements SchemaModuleInterface
     {
         return [
             'ai_tenant_configs', 'ai_model_aliases', 'ai_requests',
-            'ai_prompts', 'ai_usage_quotas', 'branding_configs'
+            'ai_prompts', 'ai_usage_quotas', 'branding_configs',
         ];
     }
 }

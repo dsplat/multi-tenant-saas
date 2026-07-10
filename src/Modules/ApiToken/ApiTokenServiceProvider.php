@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Modules\ApiToken;
 
+use MultiTenantSaas\Modules\ApiToken\Services\ApiTokenService;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
 
 class ApiTokenServiceProvider extends ModuleServiceProvider
@@ -15,7 +16,7 @@ class ApiTokenServiceProvider extends ModuleServiceProvider
         }
 
         $this->app->singleton(
-            \MultiTenantSaas\Modules\ApiToken\Services\ApiTokenService::class
+            ApiTokenService::class
         );
     }
 }

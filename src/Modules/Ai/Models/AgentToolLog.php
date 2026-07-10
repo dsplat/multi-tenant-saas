@@ -2,17 +2,17 @@
 
 namespace MultiTenantSaas\Modules\Ai\Models;
 
-use MultiTenantSaas\Concerns\HasGlobalId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use MultiTenantSaas\Concerns\HasGlobalId;
 
 /**
  * Agent 工具调用日志模型
  */
 class AgentToolLog extends Model
 {
-    use HasGlobalId, HasFactory;
+    use HasFactory, HasGlobalId;
 
     protected $primaryKey = 'log_id';
 

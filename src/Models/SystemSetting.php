@@ -2,9 +2,9 @@
 
 namespace MultiTenantSaas\Models;
 
-use MultiTenantSaas\Concerns\HasGlobalId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Crypt;
+use MultiTenantSaas\Concerns\HasGlobalId;
 
 class SystemSetting extends Model
 {
@@ -71,6 +71,7 @@ class SystemSetting extends Model
                     'key' => $this->key,
                     'error' => $e->getMessage(),
                 ]);
+
                 return null;
             }
         }
@@ -102,11 +103,12 @@ class SystemSetting extends Model
 
     private function isJson(string $string): bool
     {
-        if (!is_string($string)) {
+        if (! is_string($string)) {
             return false;
         }
 
         json_decode($string);
+
         return json_last_error() === JSON_ERROR_NONE;
     }
 

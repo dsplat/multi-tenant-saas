@@ -13,7 +13,7 @@ class UserResource extends JsonResource
             'user_id' => $this->user_id,
             'name' => $this->name,
             'email' => $this->email,
-            'phone' => $this->when($this->phone, fn() => $this->maskPhone($this->phone)),
+            'phone' => $this->when($this->phone, fn () => $this->maskPhone($this->phone)),
             'role' => $this->role,
             'avatar' => $this->avatar,
             'created_at' => $this->created_at,

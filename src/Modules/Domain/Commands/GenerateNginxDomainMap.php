@@ -40,6 +40,7 @@ class GenerateNginxDomainMap extends Command
                 $this->info(trans('domain.nginx_reloaded', ['result' => $reloadResult]));
             } else {
                 $this->error(trans('domain.nginx_test_failed'));
+
                 return self::FAILURE;
             }
         } else {

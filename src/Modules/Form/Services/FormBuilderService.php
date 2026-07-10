@@ -3,7 +3,6 @@
 namespace MultiTenantSaas\Modules\Form\Services;
 
 use Carbon\Carbon;
-use Illuminate\Database\QueryException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -51,7 +50,7 @@ class FormBuilderService
                 'metadata' => $data['metadata'] ?? null,
             ]);
 
-            if (!empty($data['fields'])) {
+            if (! empty($data['fields'])) {
                 $this->saveFields($form->getKey(), $data['fields']);
             }
 
@@ -179,12 +178,12 @@ class FormBuilderService
      */
     protected function validateSignature(FormField $field, mixed $value): string
     {
-        if (!is_string($value)) {
+        if (! is_string($value)) {
             throw new \RuntimeException("{$field->label} 签名数据格式不正确");
         }
 
         // 验证 base64 格式（支持 data:image/png;base64,... 或纯 base64）
-        if (!preg_match('/^(data:image\/(png|jpeg|svg\+xml);base64,)?[A-Za-z0-9+\/=]+$/', $value)) {
+        if (! preg_match('/^(data:image\/(png|jpeg|svg\+xml);base64,)?[A-Za-z0-9+\/=]+$/', $value)) {
             throw new \RuntimeException("{$field->label} 签名数据格式不正确");
         }
 
@@ -197,15 +196,15 @@ class FormBuilderService
      */
     protected function validateLocation(FormField $field, mixed $value): array
     {
-        if (!is_array($value)) {
+        if (! is_array($value)) {
             throw new \RuntimeException("{$field->label} 位置数据格式不正确");
         }
 
-        if (!isset($value['lat']) || !isset($value['lng'])) {
+        if (! isset($value['lat']) || ! isset($value['lng'])) {
             throw new \RuntimeException("{$field->label} 缺少经纬度信息");
         }
 
-        if (!is_numeric($value['lat']) || !is_numeric($value['lng'])) {
+        if (! is_numeric($value['lat']) || ! is_numeric($value['lng'])) {
             throw new \RuntimeException("{$field->label} 经纬度必须是数字");
         }
 
@@ -234,7 +233,7 @@ class FormBuilderService
      */
     protected function validateCascader(FormField $field, mixed $value): array
     {
-        if (!is_array($value)) {
+        if (! is_array($value)) {
             throw new \RuntimeException("{$field->label} 级联选择数据格式不正确");
         }
 
@@ -244,8 +243,8 @@ class FormBuilderService
         $validated = [];
 
         foreach ($value as $level => $item) {
-            if (!is_string($item) && !is_numeric($item)) {
-                throw new \RuntimeException("{$field->label} 第 " . ($level + 1) . " 级选择值格式不正确");
+            if (! is_string($item) && ! is_numeric($item)) {
+                throw new \RuntimeException("{$field->label} 第 " . ($level + 1) . ' 级选择值格式不正确');
             }
 
             // 查找当前级别是否有该选项
@@ -260,8 +259,8 @@ class FormBuilderService
                 }
             }
 
-            if (!$found) {
-                throw new \RuntimeException("{$field->label} 第 " . ($level + 1) . " 级选择值无效");
+            if (! $found) {
+                throw new \RuntimeException("{$field->label} 第 " . ($level + 1) . ' 级选择值无效');
             }
         }
 
@@ -298,10 +297,10 @@ class FormBuilderService
         $query = Form::where('tenant_id', $tenantId)
             ->withCount(['fields', 'submissions']);
 
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
-        if (!empty($filters['keyword'])) {
+        if (! empty($filters['keyword'])) {
             $query->where('title', 'like', "%{$filters['keyword']}%");
         }
 
@@ -317,10 +316,10 @@ class FormBuilderService
     {
         $query = FormSubmission::where('form_id', $formId)->with('form.fields');
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('created_at', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('created_at', '<=', $filters['end_date']);
         }
 

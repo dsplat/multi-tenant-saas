@@ -5,37 +5,44 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Models\Capability\CapabilityResult;
 use MultiTenantSaas\Models\Conversation;
 use MultiTenantSaas\Models\CreditAccount;
-use MultiTenantSaas\Models\Memory\EntityMemory;
 use MultiTenantSaas\Models\Message;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Modules\Workflow\Models\Workflow;
-use MultiTenantSaas\Modules\Workflow\Models\WorkflowExecution;
-use MultiTenantSaas\Modules\Workflow\Models\WorkflowNode;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\CacheTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\DateTimeTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\EncryptionTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\JsonTool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Tools\ValidationTool;
 use MultiTenantSaas\Modules\Ai\Services\Capability\CapabilityBillingService;
 use MultiTenantSaas\Modules\Conversation\Services\ConversationService;
 use MultiTenantSaas\Modules\Conversation\Services\MessageService;
-use MultiTenantSaas\Services\Memory\MemoryService;
+use MultiTenantSaas\Modules\Workflow\Models\Workflow;
+use MultiTenantSaas\Modules\Workflow\Models\WorkflowNode;
 use MultiTenantSaas\Modules\Workflow\Services\WorkflowEngine;
 use MultiTenantSaas\Modules\Workflow\Services\WorkflowService;
-use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
+use MultiTenantSaas\Services\Memory\MemoryService;
 use MultiTenantSaas\Tests\Schema\AgentModule;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
-use MultiTenantSaas\Tests\Schema\WorkflowModule;
 use MultiTenantSaas\Tests\Schema\MemoryModule;
+use MultiTenantSaas\Tests\Schema\WorkflowModule;
+use MultiTenantSaas\Tests\Stubs\FakeToolRegistry;
 
 class EndToEndIntegrationTest extends TestCase
 {
     protected array $uses = [AgentModule::class, BillingModule::class, ChannelModule::class, MemoryModule::class, WorkflowModule::class];
 
     private Tenant $tenant;
+
     private User $user;
+
     private int $tenantId = 1001;
+
     private int $userId = 2001;
 
     protected function setUp(): void
@@ -115,10 +122,10 @@ class EndToEndIntegrationTest extends TestCase
 
     public function test_workflow_execution_flow(): void
     {
-        $toolRegistry = new FakeToolRegistry();
+        $toolRegistry = new FakeToolRegistry;
         $toolRegistry->register('process_order', 'Process Order', 'Process an order', 'OrderHandler', []);
 
-        $tenantContext = $this->app->make(\MultiTenantSaas\Contracts\TenantContextContract::class);
+        $tenantContext = $this->app->make(TenantContextContract::class);
         $engine = new WorkflowEngine($tenantContext, $toolRegistry);
         $service = new WorkflowService($tenantContext, $engine);
 
@@ -208,7 +215,7 @@ class EndToEndIntegrationTest extends TestCase
 
     public function test_capability_billing_flow(): void
     {
-        $billingService = new CapabilityBillingService();
+        $billingService = new CapabilityBillingService;
 
         // Create credit account
         $account = CreditAccount::create([
@@ -234,7 +241,7 @@ class EndToEndIntegrationTest extends TestCase
         $this->assertTrue($billingService->canAfford($account, 'text_generation', 100));
 
         // Charge
-        $result = $billingService->charge($account, new \MultiTenantSaas\Models\Capability\CapabilityResult(
+        $result = $billingService->charge($account, new CapabilityResult(
             capability: 'text_generation',
             output: 'Generated text',
             confidence: 1.0,
@@ -253,7 +260,7 @@ class EndToEndIntegrationTest extends TestCase
 
     public function test_cache_tool_flow(): void
     {
-        $tool = new \MultiTenantSaas\Modules\Ai\Services\Agent\Tools\CacheTool();
+        $tool = new CacheTool;
 
         // Set
         $setResult = $tool->execute(['action' => 'set', 'key' => 'e2e_key', 'value' => 'e2e_value']);
@@ -280,7 +287,7 @@ class EndToEndIntegrationTest extends TestCase
 
     public function test_encryption_tool_flow(): void
     {
-        $tool = new \MultiTenantSaas\Modules\Ai\Services\Agent\Tools\EncryptionTool();
+        $tool = new EncryptionTool;
 
         $original = 'Sensitive data: API_KEY=sk-12345';
 
@@ -303,7 +310,7 @@ class EndToEndIntegrationTest extends TestCase
 
     public function test_validation_tool_flow(): void
     {
-        $tool = new \MultiTenantSaas\Modules\Ai\Services\Agent\Tools\ValidationTool();
+        $tool = new ValidationTool;
 
         // Valid data
         $validResult = $tool->execute([
@@ -333,7 +340,7 @@ class EndToEndIntegrationTest extends TestCase
 
     public function test_json_tool_flow(): void
     {
-        $tool = new \MultiTenantSaas\Modules\Ai\Services\Agent\Tools\JsonTool();
+        $tool = new JsonTool;
 
         $data = ['users' => [['id' => 1, 'name' => 'Alice'], ['id' => 2, 'name' => 'Bob']]];
 
@@ -354,7 +361,7 @@ class EndToEndIntegrationTest extends TestCase
 
     public function test_datetime_tool_flow(): void
     {
-        $tool = new \MultiTenantSaas\Modules\Ai\Services\Agent\Tools\DateTimeTool();
+        $tool = new DateTimeTool;
 
         // Now
         $nowResult = $tool->execute(['action' => 'now']);
@@ -375,7 +382,7 @@ class EndToEndIntegrationTest extends TestCase
     {
         $conversationService = $this->app->make(ConversationService::class);
         $messageService = $this->app->make(MessageService::class);
-        $memoryService = new MemoryService();
+        $memoryService = new MemoryService;
 
         // Create conversation
         $conversation = $conversationService->createConversation(
@@ -405,9 +412,9 @@ class EndToEndIntegrationTest extends TestCase
 
     public function test_workflow_with_billing(): void
     {
-        $billingService = new CapabilityBillingService();
-        $tenantContext = $this->app->make(\MultiTenantSaas\Contracts\TenantContextContract::class);
-        $toolRegistry = new FakeToolRegistry();
+        $billingService = new CapabilityBillingService;
+        $tenantContext = $this->app->make(TenantContextContract::class);
+        $toolRegistry = new FakeToolRegistry;
         $engine = new WorkflowEngine($tenantContext, $toolRegistry);
 
         // Create account
@@ -452,7 +459,7 @@ class EndToEndIntegrationTest extends TestCase
         $this->assertSame('completed', $execution->status);
 
         // Bill for capability usage
-        $result = $billingService->charge($account, new \MultiTenantSaas\Models\Capability\CapabilityResult(
+        $result = $billingService->charge($account, new CapabilityResult(
             capability: 'conversation',
             output: 'Response',
             confidence: 1.0,

@@ -9,12 +9,6 @@
         "framework"
     ],
     "license": "MIT",
-    "repositories": [
-        {
-            "type": "path",
-            "url": "src/Modules/*"
-        }
-    ],
     "require": {
         "php": "^8.3",
         "barryvdh/laravel-dompdf": "^3.0",

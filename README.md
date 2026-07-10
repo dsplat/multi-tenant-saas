@@ -79,8 +79,12 @@ Each module is an independent Composer package on Packagist. Push to `main` trig
 
 | Package | Type |
 |---|---|
-| `dsplat/multi-tenant-saas` | Core framework |
+| `dsplat/multi-tenant-saas` | Core framework (includes `Contracts/ModuleServiceProvider` base class) |
 | `dsplat/multi-tenant-saas-module-{name}` | 22 independent modules |
+
+**Module types:**
+- **Self-contained** (9): Ai, ApiToken, Conversation, Coupon, Form, Lottery, Sms, Voting, Workflow — have Controllers, Routes, Models in module directory
+- **Thin wrappers** (13): Billing, Auth, Infrastructure, etc. — ServiceProvider only, business logic lives in core package
 
 ---
 

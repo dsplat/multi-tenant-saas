@@ -121,6 +121,7 @@ class ModuleCreateCommand extends Command
 
         if ($exitCode === 0) {
             $this->info("  ✓ GitHub repo: https://github.com/{$org}/{$repo}");
+            sleep(2); // 等待 GitHub 初始化仓库
         } else {
             $errorMsg = trim($output ?: $stderr);
             if (str_contains($errorMsg, 'already exists') || str_contains($errorMsg, 'name already exists')) {
@@ -162,10 +163,10 @@ class ModuleCreateCommand extends Command
             ["Authorization: token {$ghToken}", 'Accept: application/vnd.github+json']
         );
 
-        if (str_contains($response, '"sha"')) {
+        if (str_contains($response, '"sha"') || str_contains($response, '"content"')) {
             $this->info('  ✓ composer.json pushed');
         } else {
-            $this->warn('  ⊙ Failed to push composer.json: '.substr($response, 0, 100));
+            $this->warn('  ⊙ Failed to push composer.json: '.substr($response, 0, 150));
         }
     }
 
@@ -282,13 +283,10 @@ class ModuleCreateCommand extends Command
 
     protected function getGhToken(): string
     {
-        $process = proc_open('gh auth token 2>/dev/null', [STDIN, ['pipe', 'w'], ['pipe', 'w']], $pipes);
-        $output = trim(stream_get_contents($pipes[1]));
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        proc_close($process);
+        $output = '';
+        exec('gh auth token 2>/dev/null', $output);
 
-        return $output;
+        return trim(implode('', $output));
     }
 
     protected function httpPost(string $url, string $body, array $headers = []): string

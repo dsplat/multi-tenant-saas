@@ -46,7 +46,8 @@
         "dsplat/multi-tenant-saas-module-lottery": "*",
         "dsplat/multi-tenant-saas-module-voting": "*",
         "dsplat/multi-tenant-saas-module-sms": "*",
-        "dsplat/multi-tenant-saas-module-coupon": "*"
+        "dsplat/multi-tenant-saas-module-coupon": "*",
+        "dsplat/multi-tenant-saas-module-demo": "*"
     },
     "require-dev": {
         "brianium/paratest": "^7.8",

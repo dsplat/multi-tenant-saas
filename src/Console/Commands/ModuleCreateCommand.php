@@ -160,7 +160,8 @@ class ModuleCreateCommand extends Command
         $response = $this->httpPost(
             "https://api.github.com/repos/{$org}/{$repo}/contents/composer.json",
             $payload,
-            ["Authorization: token {$ghToken}", 'Accept: application/vnd.github+json']
+            ["Authorization: token {$ghToken}", 'Accept: application/vnd.github+json'],
+            'PUT'
         );
 
         if (str_contains($response, '"sha"') || str_contains($response, '"content"')) {
@@ -289,13 +290,13 @@ class ModuleCreateCommand extends Command
         return trim(implode('', $output));
     }
 
-    protected function httpPost(string $url, string $body, array $headers = []): string
+    protected function httpPost(string $url, string $body, array $headers = [], string $method = 'POST'): string
     {
         $defaultHeaders = ['Content-Type: application/json'];
         $headers = array_merge($defaultHeaders, $headers);
 
         $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

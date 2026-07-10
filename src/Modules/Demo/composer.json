@@ -1,0 +1,28 @@
+{
+    "name": "dsplat/multi-tenant-saas-module-demo",
+    "version": "1.0.0",
+    "description": "Demo 模块 - 测试自动发布流程",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.3",
+        "dsplat/multi-tenant-saas": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\Demo\\": ""
+        }
+    },
+    "extra": {
+        "saas": {
+            "name": "demo",
+            "priority": 500,
+            "dependencies": [],
+            "conflicts": [],
+            "requires_core": ">=2.0.0",
+            "provider": "MultiTenantSaas\\Modules\\Demo\\DemoServiceProvider",
+            "tenant_toggleable": true,
+            "default_enabled": true
+        }
+    }
+}

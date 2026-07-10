@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/).
 
+## [2.1.0] - 2026-07-10
+
+### Architecture — Composer-managed Modules (Packagist)
+
+- **根包类型**: `type: project` → `type: library`, 支持模块 `require` 核心包
+- **模块元数据**: `module.json` 合并到 `composer.json` 的 `extra.saas` 字段, 删除所有 `module.json`
+- **模块包名**: `dsplat/module-{name}` → `dsplat/multi-tenant-saas-module-{name}`
+- **模块依赖**: 每个模块声明 `require: dsplat/multi-tenant-saas: ^2.0`; SSL 额外依赖 domain, Ai 依赖 laravel/ai, Payment 依赖 yansongda/pay
+- **ModuleRegistry**: `readManifest()` 改为读取 `composer.json extra.saas`; 修复 `packageName()` 前缀 bug
+- **ModuleCreateCommand**: 模板生成 `extra.saas` 而非 `module.json`
+- **GitHub Actions**: `.github/workflows/split.yml` — monorepo push 时自动 subtree split 到 23 个独立仓库
+- **Packagist**: 核心 + 22 个模块各自独立发布, 支持 `composer require dsplat/multi-tenant-saas-module-{name}` 按需安装
+
 ## [2.0.0] - 2026-07-09
 
 ### Overview
@@ -13,12 +26,11 @@ v2.0.0 是一次架构级重构, 将单体 ServiceProvider 拆分为 Core + Modu
 
 ### Architecture — Core + Modules + Plugins
 
-- **ModuleRegistry** (`src/Services/ModuleRegistry.php`): 纯读取层 — 扫描磁盘, 读取 `module.json`, 提供元数据查询, 依赖/冲突/核心版本校验, 拓扑排序
+- **ModuleRegistry** (`src/Services/ModuleRegistry.php`): 纯读取层 — 扫描磁盘, 读取 `composer.json extra.saas`, 提供元数据查询, 依赖/冲突/核心版本校验, 拓扑排序
 - **ModuleManager** (`src/Services/ModuleManager.php`): 业务层 — 系统级启停 (`modules` 表), 租户级启停 (`tenant_modules` 表), 部署模式, 租户模块自动开通
 - **ModuleBootstrapper** (`src/Services/ModuleBootstrapper.php`): 启动器 — `TenancyServiceProvider::boot()` 调用, 按 priority + 依赖拓扑排序注册并 boot 已启用模块
 - **ModuleServiceProvider** (`src/Modules/Contracts/ModuleServiceProvider.php`): 模块基类 — 自动加载迁移/路由/视图/翻译/命令, 路由前缀 `api/v1`
-- **module.json**: 模块声明 — name, version, description, priority, dependencies, conflicts, requires_core, provider, tenant_toggleable, default_enabled
-- **composer.json** (每个模块): Composer 包定义, path 仓库引入, 无 `extra.laravel.providers` (防止禁用模块加载)
+- **composer.json** (每个模块): Composer 包定义 + `extra.saas` 运行时元数据 (name, priority, dependencies, conflicts, requires_core, provider, tenant_toggleable, default_enabled), 无 `extra.laravel.providers` (防止禁用模块加载)
 
 ### Architecture — ServiceProvider Split
 

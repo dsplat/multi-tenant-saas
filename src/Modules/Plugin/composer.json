@@ -1,5 +1,5 @@
 {
-    "name": "dsplat/module-plugin",
+    "name": "dsplat/multi-tenant-saas-module-plugin",
     "version": "1.0.0",
     "description": "插件管理 - 插件安装/卸载、启用/禁用、生命周期钩子",
     "type": "library",
@@ -7,6 +7,22 @@
     "autoload": {
         "psr-4": {
             "MultiTenantSaas\\Modules\\Plugin\\": ""
+        }
+    },
+    "require": {
+        "php": "^8.3",
+        "dsplat/multi-tenant-saas": "^2.0"
+    },
+    "extra": {
+        "saas": {
+            "name": "plugin",
+            "priority": 2,
+            "dependencies": [],
+            "conflicts": [],
+            "requires_core": ">=1.0.0",
+            "provider": "MultiTenantSaas\\Modules\\Plugin\\PluginModuleServiceProvider",
+            "tenant_toggleable": false,
+            "default_enabled": true
         }
     }
 }

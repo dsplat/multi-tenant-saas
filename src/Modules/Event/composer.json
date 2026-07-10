@@ -1,5 +1,5 @@
 {
-    "name": "dsplat/module-event",
+    "name": "dsplat/multi-tenant-saas-module-event",
     "version": "1.0.0",
     "description": "事件总线 - 异步事件分发、外部订阅、Webhook 投递",
     "type": "library",
@@ -7,6 +7,22 @@
     "autoload": {
         "psr-4": {
             "MultiTenantSaas\\Modules\\Event\\": ""
+        }
+    },
+    "require": {
+        "php": "^8.3",
+        "dsplat/multi-tenant-saas": "^2.0"
+    },
+    "extra": {
+        "saas": {
+            "name": "event",
+            "priority": 4,
+            "dependencies": [],
+            "conflicts": [],
+            "requires_core": ">=1.0.0",
+            "provider": "MultiTenantSaas\\Modules\\Event\\EventServiceProvider",
+            "tenant_toggleable": false,
+            "default_enabled": true
         }
     }
 }

@@ -1,5 +1,5 @@
 {
-    "name": "dsplat/module-payment",
+    "name": "dsplat/multi-tenant-saas-module-payment",
     "version": "1.0.0",
     "description": "第三方支付网关 - 对接馒头支付等独立支付平台",
     "type": "library",
@@ -7,6 +7,23 @@
     "autoload": {
         "psr-4": {
             "MultiTenantSaas\\Modules\\Payment\\": ""
+        }
+    },
+    "require": {
+        "php": "^8.3",
+        "dsplat/multi-tenant-saas": "^2.0",
+        "yansongda/pay": "^3.7"
+    },
+    "extra": {
+        "saas": {
+            "name": "payment",
+            "priority": 150,
+            "dependencies": [],
+            "conflicts": [],
+            "requires_core": ">=1.0.0",
+            "provider": "MultiTenantSaas\\Modules\\Payment\\PaymentServiceProvider",
+            "tenant_toggleable": true,
+            "default_enabled": false
         }
     }
 }

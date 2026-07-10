@@ -1,0 +1,88 @@
+name: Split Monorepo
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+jobs:
+  split:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 核心包
+          - prefix: ''
+            repo: multi-tenant-saas
+          # 22 个模块
+          - prefix: 'src/Modules/Ai'
+            repo: multi-tenant-saas-module-ai
+          - prefix: 'src/Modules/ApiToken'
+            repo: multi-tenant-saas-module-api-token
+          - prefix: 'src/Modules/Auth'
+            repo: multi-tenant-saas-module-auth
+          - prefix: 'src/Modules/Billing'
+            repo: multi-tenant-saas-module-billing
+          - prefix: 'src/Modules/Conversation'
+            repo: multi-tenant-saas-module-conversation
+          - prefix: 'src/Modules/Coupon'
+            repo: multi-tenant-saas-module-coupon
+          - prefix: 'src/Modules/DeveloperPortal'
+            repo: multi-tenant-saas-module-developer-portal
+          - prefix: 'src/Modules/Domain'
+            repo: multi-tenant-saas-module-domain
+          - prefix: 'src/Modules/Event'
+            repo: multi-tenant-saas-module-event
+          - prefix: 'src/Modules/Form'
+            repo: multi-tenant-saas-module-form
+          - prefix: 'src/Modules/Infrastructure'
+            repo: multi-tenant-saas-module-infrastructure
+          - prefix: 'src/Modules/Logging'
+            repo: multi-tenant-saas-module-logging
+          - prefix: 'src/Modules/Lottery'
+            repo: multi-tenant-saas-module-lottery
+          - prefix: 'src/Modules/Monitoring'
+            repo: multi-tenant-saas-module-monitoring
+          - prefix: 'src/Modules/Payment'
+            repo: multi-tenant-saas-module-payment
+          - prefix: 'src/Modules/Platform'
+            repo: multi-tenant-saas-module-platform
+          - prefix: 'src/Modules/Plugin'
+            repo: multi-tenant-saas-module-plugin
+          - prefix: 'src/Modules/Sms'
+            repo: multi-tenant-saas-module-sms
+          - prefix: 'src/Modules/SSL'
+            repo: multi-tenant-saas-module-ssl
+          - prefix: 'src/Modules/User'
+            repo: multi-tenant-saas-module-user
+          - prefix: 'src/Modules/Voting'
+            repo: multi-tenant-saas-module-voting
+          - prefix: 'src/Modules/Workflow'
+            repo: multi-tenant-saas-module-workflow
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Split subtree to ${{ matrix.repo }}
+        run: |
+          REPO_URL="https://x-access-token:${{ secrets.SPLIT_TOKEN }}@github.com/dsplat/${{ matrix.repo }}.git"
+
+          if [ -n "${{ matrix.prefix }}" ]; then
+            SPLIT_SHA=$(git subtree split --prefix=${{ matrix.prefix }} --branch=split)
+          else
+            SPLIT_SHA=$(git subtree split --prefix=. --branch=split 2>/dev/null || echo "")
+            if [ -z "$SPLIT_SHA" ]; then
+              git branch -f split HEAD
+              SPLIT_SHA=$(git rev-parse split)
+            fi
+          fi
+
+          git push "$REPO_URL" split:main --force
+
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG=${{ github.ref_name }}
+            git tag -f "$TAG" "$SPLIT_SHA"
+            git push "$REPO_URL" "$TAG" --force
+          fi

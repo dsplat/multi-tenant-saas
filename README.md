@@ -605,13 +605,13 @@ multi-tenant-saas/
 | `AiServiceProvider` | AI 文本/图像/视频、Agent、MCP、能力引擎、记忆系统 | ModuleBootstrapper 动态加载 |
 | `ConversationServiceProvider` | 会话/消息/标签、频道管理、消息路由 | ModuleBootstrapper 动态加载 |
 | `WorkflowServiceProvider` | 工作流引擎、服务、注册表 | ModuleBootstrapper 动态加载 |
-| 各模块 ServiceProvider | 模块业务逻辑 | ModuleBootstrapper 按 module.json 加载 |
+| 各模块 ServiceProvider | 模块业务逻辑 | ModuleBootstrapper 按 composer.json extra.saas 加载 |
 
-**启动流程:** `TenancyServiceProvider::boot()` → `ModuleBootstrapper::bootstrap()` → 扫描 `module.json` → 拓扑排序 → 注册并 boot 已启用模块的 ServiceProvider。
+**启动流程:** `TenancyServiceProvider::boot()` → `ModuleBootstrapper::bootstrap()` → 扫描 `composer.json extra.saas` → 拓扑排序 → 注册并 boot 已启用模块的 ServiceProvider。
 
 ### Composer 管理模块
 
-每个模块是独立的 Composer 包, 通过 `path` 仓库引入:
+每个模块是独立的 Composer 包, 通过 `path` 仓库引入（开发时）:
 
 ```json
 // 根 composer.json
@@ -625,14 +625,37 @@ multi-tenant-saas/
 
 - 模块 `composer.json` 无 `extra.laravel.providers` — 防止禁用模块加载路由/迁移
 - 模块注册由 `ModuleBootstrapper` 独家控制, Composer 仅负责安装
-- `module.json` 保留运行时元数据 (priority, dependencies, conflicts, tenant_toggleable)
+- 运行时元数据 (priority, dependencies, conflicts, tenant_toggleable) 保存在 `composer.json` 的 `extra.saas` 字段
+
+### 独立安装（Packagist）
+
+核心框架和每个模块都独立发布到 Packagist, 可按需安装:
+
+```bash
+# 创建项目
+composer create-project dsplat/multi-tenant-saas my-app
+
+# 按需安装模块
+composer require dsplat/multi-tenant-saas-module-billing
+composer require dsplat/multi-tenant-saas-module-ai
+composer require dsplat/multi-tenant-saas-module-ssl    # 自动拉入 domain 模块
+
+# 卸载模块
+composer remove dsplat/multi-tenant-saas-module-lottery
+```
+
+| 包名 | 类型 | 说明 |
+|---|---|---|
+| `dsplat/multi-tenant-saas` | library | 核心框架 + 项目骨架 |
+| `dsplat/multi-tenant-saas-module-{name}` | library | 22 个独立模块 |
+
+monorepo push 到 main 时, GitHub Actions 自动 subtree split 到各独立仓库, Packagist webhook 自动更新版本。
 
 ### 模块标准目录结构
 
 ```
 src/Modules/{ModuleName}/
-├── module.json                # 框架元数据 (priority, dependencies, tenant_toggleable)
-├── composer.json              # Composer 包定义
+├── composer.json              # Composer 包定义 + extra.saas 框架元数据
 ├── {Name}ServiceProvider.php  # 模块 ServiceProvider
 ├── Models/                    # 数据模型
 ├── Services/                  # 业务服务
@@ -967,19 +990,33 @@ php artisan tenancy:init normal  # 14 个模块 (默认)
 php artisan tenancy:init full    # 22 个模块 (全部)
 ```
 
-**module.json 示例:**
+**composer.json extra.saas 示例:**
 
 ```json
 {
-    "name": "lottery",
+    "name": "dsplat/multi-tenant-saas-module-lottery",
     "version": "1.0.0",
     "description": "抽奖活动管理模块",
-    "priority": 50,
-    "dependencies": ["billing"],
-    "conflicts": [],
-    "provider": "MultiTenantSaas\\Modules\\Lottery\\LotteryServiceProvider",
-    "tenant_toggleable": true,
-    "default_enabled": true
+    "type": "library",
+    "require": {
+        "php": "^8.3",
+        "dsplat/multi-tenant-saas": "^2.0"
+    },
+    "autoload": {
+        "psr-4": { "MultiTenantSaas\\Modules\\Lottery\\": "" }
+    },
+    "extra": {
+        "saas": {
+            "name": "lottery",
+            "priority": 50,
+            "dependencies": ["billing"],
+            "conflicts": [],
+            "requires_core": ">=2.0.0",
+            "provider": "MultiTenantSaas\\Modules\\Lottery\\LotteryServiceProvider",
+            "tenant_toggleable": true,
+            "default_enabled": true
+        }
+    }
 }
 ```
 

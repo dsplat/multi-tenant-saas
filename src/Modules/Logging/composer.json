@@ -1,5 +1,5 @@
 {
-    "name": "dsplat/module-logging",
+    "name": "dsplat/multi-tenant-saas-module-logging",
     "version": "1.0.0",
     "description": "结构化日志 - 操作日志、安全日志、审计日志、日志查询与导出",
     "type": "library",
@@ -7,6 +7,22 @@
     "autoload": {
         "psr-4": {
             "MultiTenantSaas\\Modules\\Logging\\": ""
+        }
+    },
+    "require": {
+        "php": "^8.3",
+        "dsplat/multi-tenant-saas": "^2.0"
+    },
+    "extra": {
+        "saas": {
+            "name": "logging",
+            "priority": 5,
+            "dependencies": [],
+            "conflicts": [],
+            "requires_core": ">=1.0.0",
+            "provider": "MultiTenantSaas\\Modules\\Logging\\LoggingServiceProvider",
+            "tenant_toggleable": false,
+            "default_enabled": true
         }
     }
 }

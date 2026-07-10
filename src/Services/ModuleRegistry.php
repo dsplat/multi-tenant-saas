@@ -5,8 +5,8 @@ namespace MultiTenantSaas\Services;
 /**
  * 模块注册表 (纯读取层)
  *
- * 只负责扫描磁盘, 读取 module.json, 提供元数据查询。
- * 不涉及数据库、不涉及启停状态、不涉及 Composer。
+ * 只负责扫描磁盘, 读取 composer.json extra.saas, 提供元数据查询。
+ * 不涉及数据库、不涉及启停状态。
  */
 class ModuleRegistry
 {
@@ -21,7 +21,7 @@ class ModuleRegistry
     }
 
     /**
-     * 扫描磁盘, 返回所有已安装模块 (有 module.json = 已安装)
+     * 扫描磁盘, 返回所有已安装模块 (有 composer.json extra.saas = 已安装)
      *
      * @return array<string, array> name => meta
      */
@@ -109,7 +109,7 @@ class ModuleRegistry
      */
     public function packageName(string $name): string
     {
-        return "multi-tenant-saas/module-{$name}";
+        return "dsplat/multi-tenant-saas-module-{$name}";
     }
 
     /**
@@ -322,23 +322,34 @@ class ModuleRegistry
     // ========== 内部方法 ==========
 
     /**
-     * 读取模块目录下的 module.json
+     * 读取模块目录下的 composer.json extra.saas
      */
     protected function readManifest(string $moduleDir): ?array
     {
-        $manifestPath = $moduleDir.'/module.json';
+        $composerPath = $moduleDir.'/composer.json';
 
-        if (! file_exists($manifestPath)) {
+        if (! file_exists($composerPath)) {
             return null;
         }
 
-        $manifest = json_decode((string) file_get_contents($manifestPath), true);
+        $composer = json_decode((string) file_get_contents($composerPath), true);
 
-        if (! is_array($manifest) || empty($manifest['name'])) {
+        if (! is_array($composer) || ! isset($composer['extra']['saas'])) {
             return null;
         }
 
-        return $manifest;
+        $saas = $composer['extra']['saas'];
+
+        // 从 Composer 包名推导短名（如果 extra.saas.name 缺省）
+        if (empty($saas['name'])) {
+            $saas['name'] = str_replace('dsplat/multi-tenant-saas-module-', '', $composer['name'] ?? '');
+        }
+
+        // 合并顶层字段
+        $saas['version'] = $composer['version'] ?? '0.0.0';
+        $saas['description'] = $composer['description'] ?? '';
+
+        return $saas;
     }
 
     /**

@@ -168,7 +168,7 @@ return [
     ],
 
     // 租户模块默认开通配置 (tenant_toggleable 模块)
-    // key = 模块名 (module.json 的 name), value = 新租户默认是否开通
+    // key = 模块名 (composer.json extra.saas 的 name), value = 新租户默认是否开通
     'tenant_module_defaults' => [
         'domain' => true,
         'ssl' => false,

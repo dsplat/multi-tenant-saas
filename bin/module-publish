@@ -1,0 +1,357 @@
+#!/bin/bash
+#
+# module-publish — 模块发布辅助脚本
+#
+# 用法:
+#   bin/module-publish <module-name> [options]
+#
+# 示例:
+#   bin/module-publish demo --priority=500 --toggleable --description="Demo 模块"
+#   bin/module-publish demo --dry-run          # 只预览，不执行
+#   bin/module-publish --list                  # 列出所有已发布模块
+#   bin/module-publish --verify                # 验证所有模块状态
+#
+# 环境变量 (或通过 --packagist-user/--packagist-token 传入):
+#   PACKAGIST_USER   — Packagist 用户名
+#   PACKAGIST_TOKEN  — Packagist API token
+#   GITHUB_ORG       — GitHub 组织名 (默认 dsplat)
+
+set -euo pipefail
+
+# ========== 默认值 ==========
+ORG="${GITHUB_ORG:-dsplat}"
+PACKAGIST_USER="${PACKAGIST_USER:-}"
+PACKAGIST_TOKEN="${PACKAGIST_TOKEN:-}"
+DRY_RUN=false
+ACTION="publish"
+
+# ========== 颜色 ==========
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+info()  { echo -e "${GREEN}✓${NC} $*"; }
+warn()  { echo -e "${YELLOW}⊙${NC} $*"; }
+error() { echo -e "${RED}✗${NC} $*"; }
+step()  { echo -e "${CYAN}→${NC} $*"; }
+
+# ========== 参数解析 ==========
+MODULE_NAME=""
+PRIORITY=300
+TOGGLEABLE=false
+DEFAULT_ENABLED=true
+DESCRIPTION=""
+DEPENDENCIES=""
+EXTRA_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --list)       ACTION="list"; shift ;;
+        --verify)     ACTION="verify"; shift ;;
+        --dry-run)    DRY_RUN=true; shift ;;
+        --priority=*) PRIORITY="${1#*=}"; shift ;;
+        --toggleable) TOGGLEABLE=true; shift ;;
+        --no-default) DEFAULT_ENABLED=false; shift ;;
+        --description=*) DESCRIPTION="${1#*=}"; shift ;;
+        --dependencies=*) DEPENDENCIES="${1#*=}"; shift ;;
+        --packagist-user=*) PACKAGIST_USER="${1#*=}"; shift ;;
+        --packagist-token=*) PACKAGIST_TOKEN="${1#*=}"; shift ;;
+        --org=*)      ORG="${1#*=}"; shift ;;
+        -*)           EXTRA_ARGS+=("$1"); shift ;;
+        *)
+            if [ -z "$MODULE_NAME" ]; then
+                MODULE_NAME="$1"
+            else
+                EXTRA_ARGS+=("$1")
+            fi
+            shift
+            ;;
+    esac
+done
+
+# ========== 辅助函数 ==========
+
+get_gh_token() {
+    gh auth token 2>/dev/null || echo ""
+}
+
+github_api() {
+    local method="$1" url="$2" body="${3:-}"
+    local token
+    token=$(get_gh_token)
+
+    local args=(-s -H "Authorization: token $token" -H "Accept: application/vnd.github+json")
+    if [ -n "$body" ]; then
+        args+=(-X "$method" -H "Content-Type: application/json" -d "$body")
+    fi
+
+    curl "${args[@]}" "$url"
+}
+
+packagist_api() {
+    local url="$1" body="$2"
+    curl -s -X POST "$url" -H "Content-Type: application/json" -d "$body"
+}
+
+check_repo_exists() {
+    local repo="$1"
+    local code
+    code=$(curl -s -o /dev/null -w "%{http_code}" \
+        -H "Authorization: token $(get_gh_token)" \
+        -H "Accept: application/vnd.github+json" \
+        "https://api.github.com/repos/$ORG/$repo")
+    [ "$code" = "200" ]
+}
+
+check_packagist_exists() {
+    local repo="$1"
+    local code
+    code=$(curl -s -o /dev/null -w "%{http_code}" \
+        "https://packagist.org/packages/$ORG/$repo.json")
+    [ "$code" = "200" ]
+}
+
+check_webhook_exists() {
+    local repo="$1"
+    local result
+    result=$(github_api GET "https://api.github.com/repos/$ORG/$repo/hooks" 2>/dev/null)
+    echo "$result" | grep -q "packagist.org"
+}
+
+# ========== 动作: list ==========
+
+if [ "$ACTION" = "list" ]; then
+    echo "已发布的模块:"
+    echo ""
+
+    # 从 workflow 读取模块列表
+    modules=$(grep "repo: multi-tenant-saas-module-" .github/workflows/split.yml | sed 's/.*repo: //' | sort)
+
+    printf "  %-30s %-12s %-12s %-10s\n" "模块" "GitHub" "Packagist" "Webhook"
+    printf "  %-30s %-12s %-12s %-10s\n" "----" "-------" "---------" "-------"
+
+    for repo in $modules; do
+        name="${repo#multi-tenant-saas-module-}"
+
+        if check_repo_exists "$repo"; then
+            gh_status="✓"
+        else
+            gh_status="✗"
+        fi
+
+        if check_packagist_exists "$repo"; then
+            pkg_status="✓"
+        else
+            pkg_status="✗"
+        fi
+
+        if check_webhook_exists "$repo"; then
+            hook_status="✓"
+        else
+            hook_status="✗"
+        fi
+
+        printf "  %-30s %-12s %-12s %-10s\n" "$name" "$gh_status" "$pkg_status" "$hook_status"
+    done
+
+    exit 0
+fi
+
+# ========== 动作: verify ==========
+
+if [ "$ACTION" = "verify" ]; then
+    echo "验证所有模块状态..."
+    echo ""
+
+    modules=$(grep "repo: multi-tenant-saas-module-" .github/workflows/split.yml | sed 's/.*repo: //' | sort)
+    errors=0
+
+    for repo in $modules; do
+        name="${repo#multi-tenant-saas-module-}"
+        issues=""
+
+        if ! check_repo_exists "$repo"; then
+            issues+="GitHub 仓库不存在; "
+        fi
+
+        if ! check_packagist_exists "$repo"; then
+            issues+="Packagist 未注册; "
+        fi
+
+        if ! check_webhook_exists "$repo"; then
+            issues+="Webhook 未设置; "
+        fi
+
+        if [ -z "$issues" ]; then
+            info "$name"
+        else
+            error "$name: $issues"
+            errors=$((errors + 1))
+        fi
+    done
+
+    echo ""
+    if [ $errors -eq 0 ]; then
+        info "所有模块状态正常"
+    else
+        error "$errors 个模块有问题"
+    fi
+
+    exit 0
+fi
+
+# ========== 动作: publish ==========
+
+if [ -z "$MODULE_NAME" ]; then
+    echo "用法: bin/module-publish <module-name> [options]"
+    echo ""
+    echo "选项:"
+    echo "  --priority=N        加载优先级 (默认 300)"
+    echo "  --toggleable        支持租户级启停"
+    echo "  --no-default        默认禁用"
+    echo "  --description=...   模块描述"
+    echo "  --dependencies=a,b  依赖的模块"
+    echo "  --dry-run           只预览，不执行"
+    echo "  --list              列出所有已发布模块"
+    echo "  --verify            验证所有模块状态"
+    echo "  --org=NAME          GitHub 组织名 (默认 dsplat)"
+    echo "  --packagist-user=   Packagist 用户名"
+    echo "  --packagist-token=  Packagist API token"
+    exit 1
+fi
+
+STUDLY=$(echo "$MODULE_NAME" | sed -r 's/(^|-)([a-z])/\U\2/g')
+REPO_NAME="multi-tenant-saas-module-${MODULE_NAME}"
+MODULE_DIR="src/Modules/${STUDLY}"
+
+echo ""
+echo "=========================================="
+echo "  模块发布: $MODULE_NAME"
+echo "=========================================="
+echo ""
+
+# Step 1: 本地创建
+step "Step 1: 创建模块骨架..."
+
+if [ -d "$MODULE_DIR" ]; then
+    warn "模块目录已存在: $MODULE_DIR (跳过本地创建)"
+else
+    if [ "$DRY_RUN" = true ]; then
+        info "[dry-run] 将创建: $MODULE_DIR"
+    else
+        ARTISAN_ARGS="$MODULE_NAME --priority=$PRIORITY --description=${DESCRIPTION:-$MODULE_NAME 模块}"
+        [ "$TOGGLEABLE" = true ] && ARTISAN_ARGS+=" --toggleable"
+        [ "$DEFAULT_ENABLED" = false ] && ARTISAN_ARGS+=" --no-default"
+        [ -n "$DEPENDENCIES" ] && ARTISAN_ARGS+=" --dependencies=$DEPENDENCIES"
+
+        php artisan module:create $ARTISAN_ARGS
+        info "模块骨架已创建"
+    fi
+fi
+
+# Step 2: GitHub 仓库
+step "Step 2: GitHub 仓库..."
+
+if check_repo_exists "$REPO_NAME"; then
+    warn "仓库已存在: $ORG/$REPO_NAME"
+else
+    if [ "$DRY_RUN" = true ]; then
+        info "[dry-run] 将创建: $ORG/$REPO_NAME"
+    else
+        gh repo create "$ORG/$REPO_NAME" --public --description="${DESCRIPTION:-$MODULE_NAME 模块}" 2>/dev/null
+        info "仓库已创建: https://github.com/$ORG/$REPO_NAME"
+        sleep 2
+    fi
+fi
+
+# Step 3: 推送 composer.json
+step "Step 3: 推送 composer.json..."
+
+if [ "$DRY_RUN" = true ]; then
+    info "[dry-run] 将推送 composer.json"
+else
+    GH_TOKEN=$(get_gh_token)
+    COMPOSER_CONTENT=$(base64 < "$MODULE_DIR/composer.json" | tr -d '\n')
+
+    RESPONSE=$(curl -s -w "\n%{http_code}" \
+        -H "Authorization: token $GH_TOKEN" \
+        -H "Accept: application/vnd.github+json" \
+        -X PUT \
+        "https://api.github.com/repos/$ORG/$REPO_NAME/contents/composer.json" \
+        -d "{\"message\":\"init: add composer.json\",\"content\":\"$COMPOSER_CONTENT\",\"branch\":\"main\"}")
+
+    HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+    if [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "200" ]; then
+        info "composer.json 已推送"
+    else
+        warn "推送失败 (HTTP $HTTP_CODE), 可能已存在"
+    fi
+fi
+
+# Step 4: Packagist 注册
+step "Step 4: Packagist 注册..."
+
+if [ -z "$PACKAGIST_USER" ] || [ -z "$PACKAGIST_TOKEN" ]; then
+    warn "Packagist 凭据未设置, 跳过 (设置 PACKAGIST_USER 和 PACKAGIST_TOKEN 环境变量)"
+elif check_packagist_exists "$REPO_NAME"; then
+    warn "Packagist 包已存在: $ORG/$REPO_NAME"
+else
+    if [ "$DRY_RUN" = true ]; then
+        info "[dry-run] 将注册 Packagist"
+    else
+        RESPONSE=$(packagist_api \
+            "https://packagist.org/api/create-package?username=$PACKAGIST_USER&apiToken=$PACKAGIST_TOKEN" \
+            "{\"repository\":\"https://github.com/$ORG/$REPO_NAME\"}")
+
+        if echo "$RESPONSE" | grep -q '"status":"success"'; then
+            info "Packagist 已注册: https://packagist.org/packages/$ORG/$REPO_NAME"
+        elif echo "$RESPONSE" | grep -q "already exists"; then
+            warn "Packagist 包已存在"
+        else
+            error "Packagist 注册失败: $RESPONSE"
+        fi
+    fi
+fi
+
+# Step 5: Webhook
+step "Step 5: Packagist webhook..."
+
+if [ -z "$PACKAGIST_USER" ] || [ -z "$PACKAGIST_TOKEN" ]; then
+    warn "Packagist 凭据未设置, 跳过"
+elif check_webhook_exists "$REPO_NAME"; then
+    warn "Webhook 已存在"
+else
+    if [ "$DRY_RUN" = true ]; then
+        info "[dry-run] 将添加 webhook"
+    else
+        GH_TOKEN=$(get_gh_token)
+        WEBHOOK_URL="https://packagist.org/api/update-package?username=$PACKAGIST_USER&apiToken=$PACKAGIST_TOKEN"
+
+        RESPONSE=$(github_api POST \
+            "https://api.github.com/repos/$ORG/$REPO_NAME/hooks" \
+            "{\"name\":\"web\",\"active\":true,\"events\":[\"push\"],\"config\":{\"url\":\"$WEBHOOK_URL\",\"content_type\":\"json\"}}")
+
+        if echo "$RESPONSE" | grep -q '"id"'; then
+            info "Webhook 已添加"
+        else
+            warn "Webhook 添加失败或已存在"
+        fi
+    fi
+fi
+
+# 完成
+echo ""
+echo "=========================================="
+info "模块 [$MODULE_NAME] 发布完成!"
+echo "=========================================="
+echo ""
+echo "后续:"
+echo "  1. git add -A && git commit -m 'feat: add $MODULE_NAME module'"
+echo "  2. git push origin main"
+echo "  3. GitHub Actions 自动分包 + Packagist 更新"
+echo ""
+echo "用户安装:"
+echo "  composer require $ORG/$REPO_NAME"
+echo ""

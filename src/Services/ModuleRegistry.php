@@ -15,13 +15,21 @@ class ModuleRegistry
 
     protected string $modulePath;
 
-    public function __construct(?string $modulePath = null)
+    /** @var string[] 额外扫描路径 (如 vendor/dsplat/multi-tenant-saas-module-*) */
+    protected array $vendorPaths;
+
+    public function __construct(?string $modulePath = null, ?array $vendorPaths = null)
     {
         $this->modulePath = $modulePath ?? dirname(__DIR__).'/Modules';
+        $this->vendorPaths = $vendorPaths ?? $this->discoverVendorModules();
     }
 
     /**
      * 扫描磁盘, 返回所有已安装模块 (有 composer.json extra.saas = 已安装)
+     *
+     * 扫描两个位置:
+     * 1. src/Modules/ — 本地开发 (monorepo)
+     * 2. vendor/dsplat/multi-tenant-saas-module-* — Composer 安装
      *
      * @return array<string, array> name => meta
      */
@@ -31,18 +39,16 @@ class ModuleRegistry
             return $this->cache;
         }
 
-        if (! is_dir($this->modulePath)) {
-            return $this->cache = [];
-        }
-
         $modules = [];
 
-        foreach (scandir($this->modulePath) as $entry) {
-            if ($entry === '.' || $entry === '..' || $entry === 'Contracts') {
-                continue;
-            }
+        // 扫描 src/Modules/ (本地开发)
+        if (is_dir($this->modulePath)) {
+            foreach (scandir($this->modulePath) as $entry) {
+                if ($entry === '.' || $entry === '..' || $entry === 'Contracts') {
+                    continue;
+                }
 
-            $moduleDir = $this->modulePath.'/'.$entry;
+                $moduleDir = $this->modulePath.'/'.$entry;
             if (! is_dir($moduleDir)) {
                 continue;
             }
@@ -59,9 +65,66 @@ class ModuleRegistry
             $modules[$manifest['name']] = $manifest;
         }
 
+        // 扫描 vendor/ (Composer 安装)
+        foreach ($this->vendorPaths as $vendorDir) {
+            if (! is_dir($vendorDir)) {
+                continue;
+            }
+
+            // 跳过已在 src/Modules/ 中发现的模块
+            $vendorName = basename($vendorDir);
+            $alreadyFound = false;
+            foreach ($modules as $m) {
+                if (($m['_path'] ?? '') === $vendorDir) {
+                    $alreadyFound = true;
+                    break;
+                }
+            }
+            if ($alreadyFound) {
+                continue;
+            }
+
+            $manifest = $this->readManifest($vendorDir);
+            if ($manifest === null) {
+                continue;
+            }
+
+            $manifest['_path'] = $vendorDir;
+            $manifest['_vendor'] = true;
+
+            // 从 autoload 推导命名空间
+            $composerJson = json_decode((string) file_get_contents($vendorDir.'/composer.json'), true);
+            $autoload = $composerJson['autoload']['psr-4'] ?? [];
+            $manifest['_namespace'] = array_key_first($autoload) ?? '';
+
+            $modules[$manifest['name']] = $manifest;
+        }
+
         $this->cache = $modules;
 
         return $modules;
+    }
+
+    /**
+     * 发现 vendor 目录中的模块包
+     *
+     * @return string[]
+     */
+    protected function discoverVendorModules(): array
+    {
+        $vendorDir = base_path('vendor/dsplat');
+        if (! is_dir($vendorDir)) {
+            return [];
+        }
+
+        $paths = [];
+        foreach (scandir($vendorDir) as $entry) {
+            if (str_starts_with($entry, 'multi-tenant-saas-module-')) {
+                $paths[] = $vendorDir.'/'.$entry;
+            }
+        }
+
+        return $paths;
     }
 
     /**

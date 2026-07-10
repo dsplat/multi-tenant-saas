@@ -1,60 +1,56 @@
-# Multi-Tenant SaaS Framework 文档
+# Multi-Tenant SaaS Framework Documentation
 
-> Laravel 多租户 SaaS 基础框架 — 开箱即用的企业级项目骨架
+## Architecture
+- [System Overview](architecture/system-overview.md)
+- [AI Module Architecture](architecture/ai-module.md)
+- [Multi-Domain Architecture](architecture/multi-domain.md)
+- [Tenant Isolation](architecture/tenant-isolation.md)
+- [Data Model Design](architecture/data-model.md)
+- [Design Decisions](architecture/design-decisions.md)
 
-## 文档目录
+## Deployment & Operations
+- [Deployment Guide](deployment/deployment-guide.md)
+- [Operations Manual](deployment/operations-manual.md)
+- [Release Checklist](deployment/release-checklist.md)
+- [Backup & Restore](deployment/backup-restore.md)
+- [Incident Response](deployment/incident-response.md)
+- [Monitoring & Alerting](deployment/monitoring-alerting.md)
+- [Nginx Configuration](deployment/nginx-guide.md)
 
-### 架构设计
-- [系统架构概览](architecture/系统架构概览.md)
-- [AI 模块架构](architecture/AI模块架构.md)
-- [多域名架构设计](architecture/多域名架构设计.md)
-- [租户隔离架构](architecture/租户隔离架构.md)
-- [数据模型设计](architecture/数据模型设计.md)
-- [设计决策](architecture/设计决策.md)
+## Development
+- [Local Development Setup](development/local-setup.md)
+- [Coding Standards](development/coding-standards.md)
 
-### 部署运维
-- [部署指南（Docker / Kubernetes）](deployment/部署指南.md)
-- [运维手册](deployment/运维手册.md)
-- [发布检查清单](deployment/发布检查清单.md)
-- [备份恢复流程](deployment/备份恢复流程.md)
-- [故障应急手册](deployment/故障应急手册.md)
-- [监控告警配置](deployment/监控告警配置.md)
-- [Nginx 配置指南](deployment/Nginx配置指南.md)
-- [本地开发环境](development/本地开发环境.md)
-- [编码规范](development/coding-standards.md)
+## Guides
+- [Quickstart](guides/quickstart.md)
+- [Four-Layer Access Architecture](guides/four-layer-access.md)
+- [Domain Configuration](guides/domain-config.md)
+- [RBAC & Permissions](guides/rbac-guide.md)
+- [AI Module Guide](guides/ai-module-guide.md)
+- [Billing Configuration](guides/billing-config.md)
+- [OAuth SDK Integration](guides/oauth-sdk-guide.md)
+- [Payment SDK Integration](guides/payment-sdk-guide.md)
+- [SaaS Module Extension](guides/saas-extension-guide.md)
 
-### 使用指南
-- [快速开始（5 分钟上手）](guides/快速开始.md)
-- [四重访问架构](guides/四重访问架构.md)
-- [域名配置指南](guides/域名配置指南.md)
-- [权限控制指南](guides/权限控制指南.md)
-- [AI 模块使用指南](guides/AI模块使用指南.md)
-- [计费配置指南](guides/计费配置指南.md)
-- [OAuth SDK 接入指南](guides/OAuth_SDK接入指南.md)
-- [支付 SDK 接入指南](guides/支付SDK接入指南.md)
-- [SaaS 核心模块扩展指南](guides/SaaS核心模块扩展指南.md)
+## API Reference
+- [API Overview](api/api-overview.md)
+- [AI Module API](api/ai-module-api.md)
+- [Core API](api/core-api.md)
+- [Middleware API](api/middleware-api.md)
+- [Service Layer API](api/service-layer-api.md)
+- [OpenAPI Spec](api/openapi.yaml)
 
-### API 参考
-- [HTTP 端点总览](api/端点总览.md)
-- [AI 模块 API](api/AI模块API.md)
-- [核心 API](api/核心API.md)
-- [中间件 API](api/中间件API.md)
-- [服务层 API](api/服务层API.md)
-- [OpenAPI 规范](api/openapi.yaml)
+## Security
+- [Security Audit Report](security/security-audit.md)
 
-### 安全
-- [安全审计报告（OWASP Top 10）](security/安全审计报告.md)
+## Requirements
+- [Framework Upgrade Plan](requirements/framework-upgrade-plan.md)
+- [Upgrade Effort Estimate](requirements/framework-upgrade-plan-effort.md)
 
-### 需求规划
-- [框架层升级规划](Requirement/框架层升级规划.md)
-- [框架层升级规划 - 工作量评估](Requirement/框架层升级规划_task-eff.md)
-
-### 示例代码
-- [PHP SDK 使用示例](examples/php-sdk-quickstart.md)
-- [REST API 调用示例](examples/rest-api-examples.md)
-- [PHP SDK 可运行示例](examples/php-sdk-sample.php)
+## Examples
+- [PHP SDK Quickstart](examples/php-sdk-quickstart.md)
+- [REST API Examples](examples/rest-api-examples.md)
 
 ---
 
-**框架版本**: v1.2.0
-**最后更新**: 2026-07-03
+**Version**: v2.1.0 | **Last Updated**: 2026-07-10

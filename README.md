@@ -1,1144 +1,134 @@
 # Multi-Tenant SaaS Framework
 
-开箱即用的 Laravel 多租户 SaaS 基础框架，为构建企业级多租户应用提供完整的解决方案。
-
-📖 **完整文档**：[docs/README.md](docs/README.md) ｜ 🛡 [安全审计报告](docs/security/安全审计报告.md) ｜ 🚀 [5 分钟快速开始](docs/guides/快速开始.md) ｜ 🤖 [AI 模块](docs/guides/AI模块使用指南.md)
+Laravel 多租户 SaaS 基础框架 — 开箱即用的企业级项目骨架。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PHP Version](https://img.shields.io/badge/PHP-%5E8.3-777BB4)](https://php.net)
-[![Laravel Version](https://img.shields.io/badge/Laravel-%5E13.0-FF2D20)](https://laravel.com)
-[![Version](https://img.shields.io/badge/version-v2.0.0-blue)](CHANGELOG.md)
-[![Tests](https://img.shields.io/badge/tests-2269%20passed%20(5648%20assertions)-brightgreen)](#)
+[![PHP](https://img.shields.io/badge/PHP-%5E8.3-777BB4)](https://php.net)
+[![Laravel](https://img.shields.io/badge/Laravel-%5E13.0-FF2D20)](https://laravel.com)
+[![Tests](https://img.shields.io/badge/tests-2269%20passed-brightgreen)](#)
+
+[Docs](docs/README.md) | [User Manual](docs/user-manual.md) | [Quickstart](docs/guides/quickstart.md) | [Security Audit](docs/security/security-audit.md)
 
 ---
 
-## 核心特性
+## Quick Start
 
-### 🏢 四重访问架构
-
-系统分为四个独立的访问层级，每个层级有不同的访问权限和用途：
-
-| 层级 | 域名示例 | 路径 | 角色要求 | 说明 |
-|------|----------|------|----------|------|
-| **系统后台** | `admin.lyt.com` | `/*` | `super_admin` | 独立域名，避免暴力破解 |
-| **租户后台** | `ai.lyt.com` | `/console/*` | `tenant_admin` | 租户管理后台 |
-| **用户前台** | `ai.tenant1.local` | `/*` | `end_user` | 租户自定义域名 |
-| **访客** | 同用户前台 | `/*` | 未登录 | 登录状态区分 |
-
-### 🔒 数据隔离
-
-- **全局作用域**：自动为所有查询添加 `WHERE tenant_id = ?`
-- **自动填充**：创建记录时自动填充 `tenant_id`
-- **透明操作**：业务代码无需关心租户隔离逻辑
-
-```php
-// 自动按租户过滤
-Order::all();
-// SQL: SELECT * FROM orders WHERE tenant_id = 123456
-
-// 创建时自动填充 tenant_id
-Order::create(['name' => '新订单']);
-// 自动设置 tenant_id = 当前租户ID
-```
-
-### 🌐 多域名支持
-
-- **单域名模式**：通过路径区分功能（`/console/*`、`/api/*`）
-- **多域名模式**：租户使用独立域名，增强品牌感
-- **域名白名单**：自动管理 Nginx 域名白名单
-- **SSL 证书**：支持自定义域名 SSL 证书管理
-
-### 👥 RBAC 权限控制
-
-- **平台级角色**：`super_admin`（超级管理员）、`platform_user`（普通用户）
-- **租户内角色**：`tenant_admin`（租户管理员）、`end_user`（终端用户）
-- **细粒度权限**：40+ 权限节点，按 `tenant.view`、`member.create` 等命名
-- **自定义角色**：租户可创建自定义角色并分配权限
-- **中间件保护**：`rbac.permission:permission.name` 中间件实现路由级权限控制
-
-### 🆔 全局唯一 ID
-
-- 16 位随机数字，JavaScript 安全（`<= Number.MAX_SAFE_INTEGER`）
-- 全局唯一，所有表共用 ID 空间
-- 完全无序，无法推测业务增长
-
-### 💰 积分/配额管理
-
-- 租户级积分账户
-- 用户级积分账户
-- 积分过期与到期提醒
-- 配额检查和限制
-- 交易记录追溯
-
-### 📋 订阅管理
-
-- 订阅计划（free/basic/pro/enterprise）
-- 月付/年付定价
-- 试用期管理
-- 订阅历史记录
-- 升级/降级/取消
-
-### 💳 多支付网关
-
-| 支付方式 | 驱动 | 说明 |
-|----------|------|------|
-| 微信支付 | `wechat` | 通过 yansongda/pay |
-| 支付宝 | `alipay` | 通过 yansongda/pay |
-| PayPal | `paypal` | 独立 Service 实现 |
-| Stripe | `stripe` | 独立 Service 实现 |
-| 银联 | `unionpay` | 独立 Service 实现 |
-
-- 统一的 `createOrder` / `refund` / `handleWebhook` 接口
-- 支付安全日志
-- 租户级支付配置
-
-### 🔐 第三方登录
-
-- 微信（企业微信）
-- 钉钉
-- 飞书
-- 支付宝
-- 租户独立配置
-
-### 📁 文件存储
-
-- 多磁盘支持（local/s3/oss）
-- 文件分享（签名 URL）
-- 存储配额管理
-- 图片预览
-
-### 🔔 通知中心
-
-- 站内通知（Laravel Notification）
-- 通知偏好配置
-- 5 种内置通知类型：
-  - 积分不足提醒
-  - 支付成功通知
-  - 订阅即将到期通知
-  - 租户暂停通知
-  - 通用通知
-
-### 📝 审计日志
-
-- 自动记录关键操作
-- 支持自定义审计事件
-- 租户隔离的日志查询
-
-### 🌍 国际化
-
-- 支持 `zh_CN` 和 `en` 双语
-- 14 个语言文件覆盖所有业务模块
-- `SetLocale` 中间件自动设置语言
-
-### 📊 监控与运维
-
-- **健康检查**：spatie/laravel-health 集成
-- **结构化日志**：带租户/用户上下文的日志记录
-- **告警系统**：阈值监控 + 告警规则
-- **性能监控**：PerformanceService 追踪关键指标
-- **队列监控**：Horizon 集成（开发环境）
-
-### 🔧 高级特性
-
-- **API 版本管理**：多版本 API 共存 + 废弃通知
-- **插件系统**：租户级插件安装与管理
-- **速率限制**：可配置的 API 限流规则
-- **导出任务**：Excel/PDF 异步导出
-- **支付安全**：支付密码 + 支付日志
-- **Swagger/OpenAPI**：API 文档自动生成
-
-### 🤖 AI 网关
-
-- **多提供商统一接口**：OpenAI / 智谱 / Anthropic / DeepSeek（文本），DALL-E / Stability（图像），Runway / 可灵（视频）
-- **租户级配置**：能力开关、自定义 API Key（加密）、模型白名单、月度预算
-- **用量与配额**：按 `monthly` 周期聚合 token/张数/秒数，超额策略 `block`/`warn`/`allow`
-- **异步视频生成**：提交 → 队列延迟轮询 → 完成事件回调 → 结果存储
-- **流式输出**：`streamChat` 支持 SSE 风格逐 chunk 输出
-- **Prompt 模板**：模板管理 + 变量渲染
-- **PHP SDK**：`AiResource` 一行调用文本/图像/视频/用量
-
-### 🤖 Agent Framework（智能体框架 — 8 个数字员工）
-
-开箱即用的 AI 智能体基础设施，为每个租户提供 **8 个预置数字员工模板**，一键克隆即可投入使用：
-
-| # | 角色 | 模板 Key | 职责 |
-|---|------|----------|------|
-| 1 | 客服专员 | `customer_service` | 接待客户咨询、解答疑问、处理投诉 |
-| 2 | 销售顾问 | `sales` | 挖掘需求、推荐产品、跟进商机、促成成交 |
-| 3 | 营销专员 | `marketing` | 策划活动、撰写文案、分析投放、优化转化 |
-| 4 | 数据分析师 | `data_analyst` | 采集清洗数据、统计分析、输出报表与决策建议 |
-| 5 | 运营专员 | `operations` | 日常运营、流程优化、活动执行与效果跟踪 |
-| 6 | 人力资源 | `hr` | 招聘、培训、绩效评估、员工关系 |
-| 7 | 财务助手 | `finance` | 账务处理、报销审核、发票管理、预算执行 |
-| 8 | 技术支持 | `tech_support` | 解答技术问题、排查故障、IT 支持与工单管理 |
-
-**核心能力：**
-
-- **Agent CRUD**：创建、更新、删除、启用/禁用，支持 8 种预置角色模板一键克隆
-- **工具注册与 Function Calling**：全局/租户私有工具双级管理，JSON Schema 定义参数，运行时动态注册与执行
-- **ReAct 运行时**：非流式 `run()` + SSE 流式 `runStream()`，支持多轮工具调用（受 `max_tool_calls` 限制自动总结）
-- **多轮对话记忆**：会话上下文自动管理，超阈值旧消息分批摘要压缩为单条 system 消息
-- **降级容错**：AI 驱动异常自动切换 `fallback_provider` 重试；工具执行失败以 `role=tool` 返回 AI 决策
-- **用量监控**：Token 用量统计、成本估算（按模型定价）、工具调用日志、性能指标
-- **多租户隔离**：所有 Agent/对话/工具/日志强制 `tenant_id` 隔离
-
-**快速开始：**
-
-```php
-use MultiTenantSaas\Contracts\AgentServiceContract;
-use MultiTenantSaas\Contracts\AgentRuntimeContract;
-
-// 创建 Agent
-$agentService = app(AgentServiceContract::class);
-$agent = $agentService->create([
-    'name' => '客服助手',
-    'role' => 'customer_service',
-    'system_prompt' => '你是一个专业的客服助手',
-    'model_config' => ['preferred_model' => 'gpt-4o-mini'],
-]);
-
-// 发起对话（非流式）
-$runtime = app(AgentRuntimeContract::class);
-$response = $runtime->run($agent->agent_id, $conversationId, '你好');
-echo $response->message;
-
-// 流式对话（SSE）
-foreach ($runtime->runStream($agent->agent_id, $conversationId, '你好') as $chunk) {
-    echo $chunk->text;
-}
-```
-
-**API 概览（27 个端点）：**
-
-| 分类 | 端点 | 说明 |
-|------|------|------|
-| Agent 管理（§6.1） | `GET/POST/PUT/DELETE /v1/agents` | CRUD + 启用/禁用/模板/克隆/配置 |
-| 对话 + SSE（§6.2） | `POST /v1/agents/{id}/chat` | 发起对话（SSE 流式） |
-| | `POST /v1/agents/{id}/chat/{cid}` | 追加消息（SSE 流式） |
-| | `GET /v1/agents/{id}/conversations` | 对话列表 |
-| | `GET/DELETE /v1/conversations/{id}` | 详情/删除 |
-| | `GET /v1/conversations/{id}/messages` | 消息列表 |
-| 监控（§6.3） | `GET /v1/agents/{id}/stats` | 使用统计 |
-| | `GET /v1/agents/{id}/token-usage` | Token 用量 |
-| | `GET /v1/agents/{id}/cost` | 成本估算 |
-| | `GET /v1/agents/{id}/tool-logs` | 工具调用日志 |
-| 工具管理（§6.4） | `GET/POST/PUT/DELETE /v1/tools` | 工具 CRUD |
-
-**配置项（`config/ai.php`）：**
-
-| 配置 | 说明 | 默认值 |
-|------|------|--------|
-| `ai.default_provider` | 默认 AI 提供商 | `openai` |
-| `ai.default_model` | 默认模型 | `gpt-4o-mini` |
-| `ai.providers.{name}.base_url` | 提供商 API 地址 | — |
-| `ai.providers.{name}.api_key` | API Key | — |
-| `ai.providers.{name}.models` | 可用模型列表 | — |
-| `model_config.temperature` | 采样温度 | `0.7` |
-| `model_config.max_tokens` | 最大输出 token | `4096` |
-| `model_config.max_tool_calls` | 单次对话最大工具调用次数 | `5` |
-| `model_config.fallback_provider` | 降级提供商 | — |
-
-### 🎲 抽奖系统
-
-完整的抽奖活动管理引擎，支持多奖品池、概率控制、防刷机制：
-
-- **活动管理**：创建/更新/启用/禁用抽奖活动，支持时间范围、参与次数限制
-- **奖品管理**：奖品池配置、库存管理、权重概率控制、乐观锁扣减
-- **抽奖执行**：加权随机抽取、用户次数限制、IP 防刷、黑名单过滤
-- **黑名单管理**：按用户 ID、IP 地址等维度封禁，支持租户级隔离
-- **统计查询**：中奖率统计、用户抽奖记录、中奖记录列表
-- **动画配置**：支持大转盘(wheel)、刮刮卡(scratch)、砸金蛋(egg)、盲盒(blindbox)
-- **数据导出**：抽奖记录导出，支持按用户/结果/时间筛选
-
-**数据模型：**
-
-| 模型 | 说明 |
-|------|------|
-| `LotteryActivity` | 抽奖活动（时间范围、规则、状态） |
-| `LotteryActivityPrize` | 活动奖品（库存、权重、概率） |
-| `LotteryDrawLog` | 抽奖日志（结果、用户、时间） |
-| `LotteryBlacklist` | 黑名单（用户/IP 封禁） |
-| `LotteryPool` | 奖品池（全局奖品管理） |
-
-### 📱 短信服务增强
-
-完整的短信营销与管理平台：
-
-- **模板管理**：创建/更新/审核短信模板，支持变量渲染
-- **批量发送**：批量任务创建、定时发送、任务取消
-- **到达率统计**：发送量/送达量/失败量/点击量/退订量统计
-- **退订管理**：用户退订记录、退订检查、退订列表查询
-- **多驱动支持**：log（日志）、ww（网建短信）、http（通用 HTTP 网关）
-
-**数据模型：**
-
-| 模型 | 说明 |
-|------|------|
-| `SmsTemplate` | 短信模板（内容、状态、审核） |
-| `SmsBatchTask` | 批量任务（定时发送、状态追踪） |
-| `SmsDeliveryStat` | 到达率统计（送达/失败/点击） |
-| `SmsUnsubscribe` | 退订记录（用户退订管理） |
-
-### 🗳️ 投票系统
-
-完整的投票活动管理引擎，支持防刷票机制：
-
-- **投票管理**：创建/更新/删除投票活动，支持单选/多选
-- **投票执行**：投票记录、计数统计、排行榜实时更新
-- **防刷机制**：IP 限制、用户限制、设备指纹防刷、每日/总次数限制
-- **统计分析**：投票统计、选项占比、每日趋势
-
-**数据模型：**
-
-| 模型 | 说明 |
-|------|------|
-| `Vote` | 投票活动（标题、类型、规则、状态） |
-| `VoteOption` | 投票选项（标题、图片、计数） |
-| `VoteRecord` | 投票记录（用户、选项、IP、指纹） |
-
-### 📋 表单系统
-
-通用的表单构建与数据收集引擎：
-
-- **表单设计**：拖拽式字段配置，支持 20+ 字段类型
-- **字段类型**：text/textarea/number/email/phone/date/select/radio/checkbox/file/rating/signature/location/cascader
-- **数据收集**：表单提交、数据验证、提交限制
-- **数据导出**：提交记录导出、统计分析
-
-**数据模型：**
-
-| 模型 | 说明 |
-|------|------|
-| `Form` | 表单（标题、状态、提交限制） |
-| `FormField` | 表单字段（类型、标签、验证规则） |
-| `FormSubmission` | 提交记录（数据、用户、时间） |
-
-### 🎫 优惠券分享（裂变发券）
-
-基于分享链接的裂变营销能力：
-
-- **分享链接生成**：生成唯一分享码，记录分享关系
-- **裂变发券**：分享人和被分享人各得一张优惠券
-- **防滥用**：分享人不能接受自己的分享、租户隔离校验、行锁防并发
-- **分享记录**：查询分享状态、接收时间、关联优惠券
-
-**数据模型：**
-
-| 模型 | 说明 |
-|------|------|
-| `CouponShare` | 分享记录（分享码、状态、接收人） |
-
-### 🔌 MCP 服务器（Model Context Protocol）
-
-AI 工具调用协议实现，支持 JSON-RPC 2.0 标准：
-
-- **工具注册**：抽象基类 `McpToolRegistry`，子类实现 `registerTools()` 注册业务工具
-- **JSON-RPC 2.0**：支持 `initialize`、`tools/list`、`tools/call`、`notifications/initialized` 方法
-- **SSE 流式响应**：支持 `text/event-stream` Accept 头的流式工具调用
-- **客户端管理**：`McpClientRegistry` 管理多个 MCP 客户端配置
-- **技能生成**：`McpSkillGenerator` 生成客户端技能描述文件
-- **访问日志**：`McpToolAccessLog` 记录工具调用详情
-
-**核心组件：**
-
-| 组件 | 说明 |
-|------|------|
-| `McpToolRegistry` | 工具注册表抽象基类 |
-| `McpClientRegistry` | 客户端配置注册表 |
-| `McpSkillGenerator` | 技能描述文件生成器 |
-| `McpMiddleware` | MCP 请求认证中间件 |
-| `McpServerController` | JSON-RPC 2.0 服务器控制器 |
-
-### 📡 渠道扩展
-
-新增多个消息渠道支持：
-
-- **钉钉**：`DingTalkProvider` 钉钉机器人消息推送
-- **Slack**：`SlackProvider` + `SlackSignatureValidator` Slack 消息与签名验证
-- **微信公众号**：`WechatOfficialProvider` 微信公众号消息与事件处理
-- **事件总线桥接**：`EventBusBridge` 渠道消息与事件总线集成
-
-### 🔄 工作流引擎
-
-可视化的业务流程编排引擎，支持复杂的多步骤自动化流程：
-
-- **节点类型**：Task（任务）、Condition（条件分支）、Parallel（并行执行）、Delay（延迟等待）、SubWorkflow（子流程）
-- **执行引擎**：`WorkflowEngine` 驱动节点按序执行，自动处理条件判断与分支选择
-- **重试与回滚**：`RetryService` 支持指数退避重试，`RollbackService` 提供事务级回滚
-- **注册表**：`WorkflowRegistry` 管理流程定义，支持版本化
-- **定义解析**：`WorkflowDefinitionParser` 解析工作流定义 DSL
-- **监控**：`WorkflowExecution` 模型记录每次执行的完整轨迹与节点状态
-
-### 💬 对话中心
-
-通用的会话与消息管理系统，为 Agent 对话和团队协作提供基础设施：
-
-- **会话管理**：创建/归档会话，支持一对一和群组模式
-- **消息系统**：富文本消息、附件上传、表情回应（Reaction）、@提及（Mention）
-- **参与者**：邀请/移除参与者，角色权限管理
-- **已读追踪**：`ReadStateService` 管理每条消息的已读状态
-- **标签系统**：`TagService` 支持会话分类与筛选
-- **会话隔离**：`SessionService` 管理独立对话上下文
-
-### 🧠 记忆系统
-
-为 AI 智能体提供长期记忆能力，支持租户级和实体级记忆：
-
-- **MemoryService**：记忆的存储、检索与衰减管理
-- **MemoryPipeline**：记忆处理流水线（提取 → 存储 → 检索 → 注入）
-- **TenantMemory**：租户级知识积累（业务偏好、历史决策、常见问题）
-- **EntityMemory**：实体级记忆（特定客户/项目的上下文信息）
-- **记忆压缩**：`MemoryCompressor` 将旧对话摘要化，控制上下文窗口大小
-
-### 📡 渠道抽象
-
-统一的消息渠道管理，支持多渠道接入与路由：
-
-- **ChannelManager**：渠道注册与管理（企业微信、微信公众号、小程序等）
-- **MessageRouter**：消息路由规则引擎，按条件分发到不同渠道
-- **微信生态**：内置企业微信（4 个文件）、微信公众号（2 个）、小程序（2 个）集成
-
-### 🎯 AI 能力系统（14 种能力）
-
-细粒度的 AI 能力注册与计费中间件：
-
-| 类别 | 能力 |
-|------|------|
-| **文本** | TextCompletion / TextGeneration / TextSummarization / TextClassification / TextTranslation / Conversation / CodeGeneration / CodeReview / Embedding |
-| **图像** | ImageGeneration / ImageEditing / ImageVariation |
-| **视频** | VideoGeneration |
-
-- `CapabilityRegistry`：能力注册与发现
-- `CapabilityBillingService`：按能力维度计费
-
-### 🏗 企业级扩展
-
-- **Webhook**：事件驱动的 HTTP 回调，支持签名验证、重试、死信队列
-- **事件总线**：`EventBusService` 解耦模块间通信
-- **功能开关**：`FeatureFlagService` 灰度发布与 A/B 测试
-- **SLA 管理**：`SlaService` + `SlaEvent` 模型追踪服务水平协议
-- **成本分摊**：`CostService` 支持基础设施/AI/第三方成本归因与损益分析
-- **数据驻留**：`DataResidencyService` 满足合规要求
-- **GDPR 合规**：`GdprService` 支持数据导出与删除权
-- **租户克隆**：`TenantCloneService` 一键复制租户配置与数据
-- **沙箱环境**：`SandboxService` 为租户提供隔离测试环境
-- **品牌定制**：`BrandingService` 租户级 UI 品牌配置
-- **BYOK 加密**：`TenantKeyService` 支持租户自带密钥加密
-- **数据保留**：`RetentionService` + `DataRetentionPolicy` 自动清理过期数据
-
-### 💲 计费体系
-
-- **订阅**：free / basic / pro / enterprise 四档计划，月付/年付，试用期
-- **积分/配额**：租户级预付费积分账户，充值/消耗/退款/过期，配额检查
-- **AI 用量计费**：按 token/张/秒计费，月度预算与超额策略
-- **发票税务**：发票开具、税率配置、优惠券核销
-- **成本核算**：基础设施 / AI / 第三方成本分摊 + 损益与趋势预测
-
-### 🛡 安全
-
-- **OWASP Top 10 合规**：0 高危（见 [安全审计报告](docs/security/安全审计报告.md)）
-- **租户数据隔离**：全局作用域 + 跨租户 403
-- **RBAC + Token abilities**：60+ 权限节点 + 14 种 API 权限
-- **敏感数据保护**：密码哈希、敏感字段隐藏、手机号脱敏、API Key/Tokens 加密存储
-- **安全响应头**：`X-Content-Type-Options` / `X-Frame-Options` / HSTS
-- **限流与 MFA**：认证端点限流 + TOTP/邮箱/短信多因素认证
-- **防刷机制**：投票设备指纹防刷、抽奖 IP 防刷、表单提交限流
-- **统一异常处理**：全局异常处理器，统一 API 错误响应格式
-- **审计日志**：关键操作自动记录审计日志（抽奖/投票/优惠券核销）
-- **缓存策略**：统计查询 Redis 缓存，写操作自动清除
-
----
-
-## 快速开始
-
-### 安装
+### Option A: Create Project + Select Modules
 
 ```bash
-# 创建项目
-composer create-project dsplat/multi-tenant-saas my-saas-app
-cd my-saas-app
+composer create-project dsplat/multi-tenant-saas my-app
+cd my-app
 
-# 按需安装模块
+# Install modules as needed
 composer require dsplat/multi-tenant-saas-module-billing
 composer require dsplat/multi-tenant-saas-module-ai
 composer require dsplat/multi-tenant-saas-module-form
 ```
 
-或使用初始化预设：
+### Option B: Preset Initialization
 
 ```bash
-# mini (6 核心模块) / normal (14 模块) / full (全部 22 模块)
-php artisan tenancy:init normal
+composer create-project dsplat/multi-tenant-saas my-app
+cd my-app
+php artisan tenancy:init normal   # mini(6) / normal(14) / full(22)
 composer update
 ```
 
-### 环境配置
+### Environment & Database
 
 ```bash
 cp .env.example .env
 php artisan key:generate
-```
+# Edit .env: DB_*, ADMIN_DOMAIN
 
-编辑 `.env` 文件，配置数据库和域名：
-
-```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=multi_tenant_saas
-DB_USERNAME=your_username
-DB_PASSWORD=your_password
-
-ADMIN_DOMAIN=admin.example.com
-```
-
-### 数据库迁移
-
-```bash
 php artisan migrate
-php artisan db:seed
-```
-
-> `db:seed` 会创建平台默认租户（ID: 9007199254740991）
-
-### 创建测试数据
-
-```bash
-php artisan tinker
-```
-
-```php
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Models\TenantUser;
-
-// 创建系统管理员
-$admin = User::create([
-    'name' => '系统管理员',
-    'email' => 'admin@example.com',
-    'password' => bcrypt('password'),
-    'role' => 'super_admin',
-]);
-
-// 创建租户
-$tenant = Tenant::create([
-    'name' => '示例企业',
-    'slug' => 'example',
-    'custom_domain' => 'ai.example.com',
-    'status' => 'active',
-]);
-
-// 关联用户到租户
-TenantUser::create([
-    'tenant_id' => $tenant->tenant_id,
-    'user_id' => $admin->id,
-    'role' => 'tenant_admin',
-    'is_active' => true,
-]);
-```
-
-### 配置 Nginx
-
-```nginx
-server {
-    listen 80;
-    server_name ai.example.com;
-    root /path/to/public;
-    
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-    
-    location ~ \.php$ {
-        fastcgi_pass 127.0.0.1:9000;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        fastcgi_param HTTP_X_ORIGINAL_HOST $host;
-        include fastcgi_params;
-    }
-}
+php artisan db:seed   # Creates platform tenant (ID: 9007199254740991)
 ```
 
 ---
 
-## 项目结构
+## Key Features
+
+- **Four-Layer Access**: System admin → Tenant admin → End user → Guest
+- **Tenant Isolation**: Auto `WHERE tenant_id = ?` on all queries
+- **RBAC**: 60+ permission nodes, custom roles per tenant
+- **Global ID**: 16-digit random JS-safe IDs, no auto-increment
+- **Multi-Payment**: WeChat, Alipay, PayPal, Stripe, UnionPay
+- **AI Gateway**: Multi-provider (OpenAI/Claude/DeepSeek), Agent framework (8 templates)
+- **22 Modules**: Billing, Auth, Form, Lottery, Voting, SMS, Coupon, Workflow, Conversation, etc.
+
+---
+
+## Module Management
+
+```bash
+# Install / Uninstall
+composer require dsplat/multi-tenant-saas-module-billing
+composer remove dsplat/multi-tenant-saas-module-lottery
+
+# CLI
+php artisan module:list
+php artisan module:enable billing
+php artisan module:disable ssl
+
+# Create + publish new module
+bin/module-publish demo --priority=500 --toggleable --description="Demo module"
+```
+
+Each module is an independent Composer package on Packagist. Push to `main` triggers GitHub Actions to auto-split and update Packagist.
+
+| Package | Type |
+|---|---|
+| `dsplat/multi-tenant-saas` | Core framework |
+| `dsplat/multi-tenant-saas-module-{name}` | 22 independent modules |
+
+---
+
+## Architecture
 
 ```
 multi-tenant-saas/
-├── app/Http/Controllers/Api/  # 核心 API 控制器 (22 个)
-├── config/
-│   ├── tenancy.php            # 框架核心配置 (部署模式、模块默认值)
-│   └── ...
-├── database/migrations/       # 核心迁移
-├── routes/
-│   ├── api.php                # 核心路由 (142 端点: auth, tenant, file, notification)
-│   └── web.php
+├── app/Http/Controllers/Api/  # Core API controllers (22)
+├── config/tenancy.php         # Framework config
 ├── src/
-│   ├── Concerns/              # Traits (BelongsToTenant, HasGlobalId)
-│   ├── Context/               # TenantContext 租户上下文
-│   ├── Contracts/             # 接口定义 (18 个)
-│   ├── Modules/               # 可选模块 (22 个)
-│   │   ├── Contracts/
-│   │   │   └── ModuleServiceProvider.php  # 模块基类
-│   │   ├── Ai/                # AI 模块 (Models, Services, Controllers, Routes)
-│   │   ├── Form/              # 表单模块
-│   │   ├── Lottery/           # 抽奖模块
-│   │   ├── Voting/            # 投票模块
-│   │   ├── Sms/               # 短信模块
-│   │   ├── Coupon/            # 优惠券模块
-│   │   ├── Workflow/          # 工作流模块
-│   │   ├── Conversation/      # 会话模块
-│   │   └── ...                # 其他模块 (共 22 个)
-│   ├── Services/
-│   │   ├── ModuleRegistry.php # 模块注册表 (纯读取: 发现、元数据、校验)
-│   │   ├── ModuleManager.php  # 模块管理器 (业务: 启停、租户级、部署模式)
-│   │   ├── ModuleBootstrapper.php # 模块启动器 (注册 + boot 已启用模块)
-│   │   └── ...                # 核心服务 (94 个)
-│   └── TenancyServiceProvider.php # 核心 Provider (框架根基)
-├── compose.json               # 部署配置 (模式、模块开关)
-├── tests/
-│   ├── TestCase.php           # 测试基类 (SQLite PRAGMA 优化)
-│   └── Schema/                # 测试 Schema 模块
-└── composer.json              # Composer 包定义 (path 仓库)
+│   ├── Concerns/              # BelongsToTenant, HasGlobalId
+│   ├── Context/               # TenantContext
+│   ├── Contracts/             # 18 interfaces
+│   ├── Modules/               # 22 modules (split to Packagist)
+│   │   └── Contracts/         # ModuleServiceProvider base class
+│   ├── Services/              # 94 core services + ModuleRegistry/Manager/Bootstrapper
+│   └── TenancyServiceProvider.php
+├── composer.json              # type: library, path repo for modules
+└── bin/module-publish         # Module publish helper
 ```
 
-### ServiceProvider 架构
-
-框架采用 ServiceProvider 分离设计, 核心 Provider 极简 (~80 行), 业务 Provider 按模块加载:
-
-| ServiceProvider | 职责 | 注册方式 |
-|---|---|---|
-| `TenancyServiceProvider` | IdGenerator, TenantContext, TenantConfigStore | `bootstrap/app.php` 手动注册 |
-| `AiServiceProvider` | AI 文本/图像/视频、Agent、MCP、能力引擎、记忆系统 | ModuleBootstrapper 动态加载 |
-| `ConversationServiceProvider` | 会话/消息/标签、频道管理、消息路由 | ModuleBootstrapper 动态加载 |
-| `WorkflowServiceProvider` | 工作流引擎、服务、注册表 | ModuleBootstrapper 动态加载 |
-| 各模块 ServiceProvider | 模块业务逻辑 | ModuleBootstrapper 按 composer.json extra.saas 加载 |
-
-**启动流程:** `TenancyServiceProvider::boot()` → `ModuleBootstrapper::bootstrap()` → 扫描 `composer.json extra.saas` → 拓扑排序 → 注册并 boot 已启用模块的 ServiceProvider。
-
-### 模块管理
-
-#### 安装/卸载模块
-
-```bash
-# 安装模块 (从 Packagist)
-composer require dsplat/multi-tenant-saas-module-billing
-composer require dsplat/multi-tenant-saas-module-ai
-composer require dsplat/multi-tenant-saas-module-ssl    # 自动拉入 domain 模块
-
-# 卸载模块
-composer remove dsplat/multi-tenant-saas-module-lottery
-```
-
-#### 模块 CLI
-
-```bash
-# 查看所有模块状态
-php artisan module:list
-
-# 启用/禁用模块 (系统级)
-php artisan module:enable billing
-php artisan module:disable lottery
-
-# 初始化预设
-php artisan tenancy:init mini    # 6 核心模块
-php artisan tenancy:init normal  # 14 模块
-php artisan tenancy:init full    # 全部 22 模块
-```
-
-#### 创建新模块
-
-```bash
-# 本地创建 (不发布)
-php artisan module:create demo --priority=500 --toggleable --description="Demo 模块"
-
-# 一键创建 + 发布到 GitHub + Packagist
-php artisan module:create demo --priority=500 --toggleable --description="Demo 模块" \
-  --publish --packagist-user=YOUR_USER --packagist-token=YOUR_TOKEN
-
-# 或使用辅助脚本
-bin/module-publish demo --priority=500 --toggleable --description="Demo 模块"
-
-# 查看所有已发布模块
-bin/module-publish --list
-
-# 验证所有模块状态
-bin/module-publish --verify
-```
-
-#### 架构说明
-
-- 每个模块是独立的 Composer 包, 发布到 Packagist
-- 开发时通过 `path` 仓库引入, push 到 main 后 GitHub Actions 自动分包
-- 模块注册由 `ModuleBootstrapper` 独家控制, Composer 仅负责安装
-- 运行时元数据 (priority, dependencies, conflicts, tenant_toggleable) 保存在 `composer.json` 的 `extra.saas` 字段
-- 不使用 `extra.laravel.providers`, 防止禁用模块加载路由/迁移
-
-| 包名 | 类型 | 说明 |
-|---|---|---|
-| `dsplat/multi-tenant-saas` | library | 核心框架 + 项目骨架 |
-| `dsplat/multi-tenant-saas-module-{name}` | library | 22 个独立模块 |
-
-#### 发布流程
-
-```
-monorepo 开发 → git push main
-  → GitHub Actions 分包到 22 个模块仓库
-  → 自动触发 Packagist 更新
-  → 用户 composer require 即可安装
-```
-
-### 模块标准目录结构
-
-```
-src/Modules/{ModuleName}/
-├── composer.json              # Composer 包定义 + extra.saas 元数据 + require 依赖声明
-├── {Name}ServiceProvider.php  # 模块 ServiceProvider
-├── Models/                    # 数据模型
-├── Services/                  # 业务服务
-├── Http/Controllers/          # 控制器
-├── Config/                    # 配置文件
-├── Routes/                    # 路由 (api.php, admin.php, tenant.php, public.php)
-├── Database/migrations/       # 迁移
-├── Console/Commands/          # Artisan 命令
-├── Events/                    # 事件
-├── Listeners/                 # 监听器
-└── Policies/                  # 授权策略
-```
+**Boot flow:** `TenancyServiceProvider::boot()` → `ModuleBootstrapper` → scan `composer.json extra.saas` → topological sort → register & boot enabled modules.
 
 ---
 
-## 核心组件
+## Docs
 
-### 中间件
-
-| 中间件 | 别名 | 说明 |
-|--------|------|------|
-| `IdentifyDomain` | `domain.identify` | 识别域名类型（admin/console/api/app） |
-| `IdentifyTenant` | `tenant.identify` | 识别当前租户 |
-| `CheckPermission` | `tenant.permission` | 角色级权限控制 |
-| `CheckRbacPermission` | `rbac.permission` | RBAC 细粒度权限控制 |
-| `EnsureTenantContext` | `tenant.ensure` | 确保租户上下文有效 |
-| `SetLocale` | `locale.set` | 自动设置请求语言 |
-| `CheckFeatureFlag` | `feature.flag` | 功能开关检查 |
-| `CheckIpWhitelist` | `ip.whitelist` | IP 白名单校验 |
-| `McpMiddleware` | `mcp.auth` | MCP 请求认证 |
-
-### 服务（174 个）
-
-| 分类 | 代表服务 | 说明 |
-|------|------|------|
-| **基础** | `IdGenerator` | 16位随机ID生成器 |
-| | `TenantService` | 租户CRUD管理 |
-| | `TenantSettingService` | 租户配置管理 |
-| | `TenantMemberService` | 成员管理 |
-| | `TenantProfileService` | 租户档案管理 |
-| | `UserService` / `UserProfileService` | 用户管理 |
-| **权限** | `RbacService` | RBAC权限管理 |
-| | `MfaService` | 多因素认证（TOTP/邮箱/短信） |
-| | `SsoService` | SSO 单点登录 |
-| | `IpWhitelistService` | IP 白名单管理 |
-| | `ConsentService` | 用户授权同意管理 |
-| | `SessionService` / `TrustedDeviceService` | 会话与设备管理 |
-| **积分/计费** | `TenantCreditService` | 积分/配额管理 |
-| | `QuotaService` / `UsageService` | 配额检查与用量追踪 |
-| | `SubscriptionService` / `PlanChangeService` / `TrialService` | 订阅全生命周期 |
-| | `InvoiceService` / `TaxService` / `CouponService` | 发票、税率、优惠券 |
-| | `CostService` | 成本分摊与损益分析 |
-| | `RefundService` / `DunningService` | 退款与催收 |
-| **支付** | `PayService` | 支付统一入口（微信/支付宝） |
-| | `PayPalService` / `StripeService` / `UnionPayService` | 独立支付网关 |
-| | `PaymentSecurityService` | 支付安全 |
-| **OAuth** | `SocialiteService` | 第三方登录（微信/钉钉/飞书） |
-| | `AlipayOAuthService` | 支付宝OAuth |
-| **文件** | `FileService` / `ExcelService` / `PdfService` | 文件存储与导出 |
-| **通知** | `NotificationService` / `InAppNotificationService` | 通知中心 |
-| | `MailTemplateService` / `SmsService` | 邮件模板与短信 |
-| | `BroadcastingService` | 实时广播 |
-| **审计** | `AuditService` / `StructuredLogService` / `LoginLogService` | 审计日志 |
-| **运维** | `CacheService` / `QueueService` / `HorizonService` | 缓存/队列 |
-| | `PerformanceService` / `AlertService` / `HealthService` | 性能/告警/健康检查 |
-| | `SystemSettingService` / `MetricsService` / `SlaService` | 系统配置/指标/SLA |
-| | `ExportService` / `ReportService` | 导出与报表 |
-| | `ErrorTrackingService` | 错误追踪（Sentry） |
-| **AI 网关** | `AiGatewayService` / `AiConfigService` | AI 统一网关与配置 |
-| | `AiTextService` / `AiImageService` / `AiVideoService` | 文本/图像/视频生成 |
-| | `AiUsageService` | AI 用量统计 |
-| **Agent** | `AgentService` | Agent CRUD + 配置管理 |
-| | `AgentRuntime` | ReAct 运行时（非流式 + SSE 流式） |
-| | `AgentMonitor` | Agent 用量监控与成本估算 |
-| | `ToolRegistry` | 工具注册表（运行时 + 数据库双源） |
-| | `MemoryCompressor` | 会话记忆压缩 |
-| **对话中心** | `ConversationService` / `MessageService` | 会话与消息管理 |
-| | `SessionService` / `ParticipantService` | 会话参与者管理 |
-| | `ReadStateService` / `TagService` | 已读状态与标签 |
-| **工作流** | `WorkflowEngine` / `WorkflowService` | 工作流引擎 |
-| | `WorkflowRegistry` | 工作流注册表 |
-| | `RetryService` / `RollbackService` | 重试与回滚 |
-| **渠道** | `ChannelManager` / `MessageRouter` | 消息渠道抽象与路由 |
-| **记忆** | `MemoryService` / `MemoryPipeline` | 记忆系统 |
-| | `TenantMemory` / `EntityMemory` | 租户/实体记忆 |
-| **能力** | `CapabilityRegistry` / `CapabilityBillingService` | AI 能力注册与计费（14 种能力） |
-| **企业扩展** | `WebhookService` / `EventBusService` | Webhook 与事件总线 |
-| | `FeatureFlagService` | 功能开关 |
-| | `DataResidencyService` / `GdprService` / `RetentionService` | 数据驻留/GDPR/保留策略 |
-| | `TenantCloneService` / `SandboxService` | 租户克隆与沙箱 |
-| | `BrandingService` / `TenantKeyService` | 品牌定制与 BYOK 加密 |
-| | `DeveloperPortalService` / `ResourceService` | 开发者门户 |
-| **高级** | `ApiVersionService` / `PluginService` / `RateLimitService` | API版本/插件/限流 |
-| | `DomainService` / `SslService` / `NginxConfigService` | 域名/SSL/Nginx |
-| | `UserPreferenceService` / `CrossTenantService` | 用户偏好/跨租户 |
-| **抽奖** | `LotteryService` | 抽奖活动/奖品/执行/黑名单/统计 |
-| **短信** | `SmsService` | 短信模板/批量发送/到达率/退订 |
-| **优惠券** | `CouponService` | 优惠券/模板/批量发券/裂变发券/规则 |
-| **MCP** | `McpToolRegistry` / `McpClientRegistry` | MCP 工具注册/客户端管理 |
-| | `McpSkillGenerator` | MCP 技能描述文件生成 |
-| **投票** | `VotingService` | 投票活动管理 |
-| **表单** | `FormBuilderService` | 动态表单构建 |
-| **入驻** | `TenantOnboardingService` | 租户引导式注册 |
-| **密码** | `PasswordPolicyService` | 密码策略管理 |
-
-### 模型（120+ 个）
-
-| 分类 | 模型 | 说明 |
-|------|------|------|
-| **核心** | `Tenant` / `User` / `TenantUser` | 租户、用户、关系 |
-| | `TenantSetting` / `SystemSetting` | 租户/系统配置 |
-| | `Role` / `Permission` / `RolePermission` | RBAC 权限 |
-| **计费** | `CreditAccount` / `CreditTransaction` | 积分账户与交易 |
-| | `FinancialRecord` / `PaymentOrder` | 财务记录与支付订单 |
-| | `Invoice` / `Coupon` / `CouponShare` | 发票/优惠券/优惠券分享 |
-| | `TaxRule` | 税率规则 |
-| | `SubscriptionPlan` / `SubscriptionHistory` | 订阅计划与历史 |
-| | `UsageRecord` / `CostAllocation` | 用量记录与成本分摊 |
-| **安全** | `MfaDevice` / `MfaRecoveryCode` | 多因素认证设备与恢复码 |
-| | `UserSession` / `TrustedDevice` | 会话与可信设备 |
-| | `PasswordHistory` / `SsoProvider` | 密码历史与 SSO |
-| | `IpWhitelist` / `Consent` | IP白名单与授权同意 |
-| **AI** | `AiProvider` / `AiPrompt` / `AiModelAlias` | AI 提供商/提示词/模型别名 |
-| | `AiUsageQuota` / `AiRequest` | AI 用量配额与请求记录 |
-| **Agent** | `Agent` / `AgentTool` | 智能体与工具 |
-| | `AgentConversation` / `AgentConversationMessage` | 对话与消息 |
-| | `AgentToolLog` | 工具调用日志 |
-| **对话中心** | `Conversation` / `Message` / `Participant` | 会话/消息/参与者 |
-| | `Attachment` / `Reaction` / `Mention` | 附件/表情回应/@提及 |
-| | `ReadState` / `ConversationSession` / `ConversationTag` | 已读/会话/标签 |
-| **工作流** | `Workflow` / `WorkflowNode` / `WorkflowExecution` | 工作流定义与执行 |
-| **抽奖系统** | `LotteryActivity` / `LotteryActivityPrize` | 抽奖活动与活动奖品 |
-| | `LotteryDrawLog` / `LotteryBlacklist` | 抽奖日志与黑名单 |
-| | `LotteryPool` / `LotteryPrize` | 奖品池与全局奖品 |
-| **短信服务** | `SmsTemplate` / `SmsBatchTask` | 短信模板与批量任务 |
-| | `SmsDeliveryStat` / `SmsUnsubscribe` | 到达率统计与退订记录 |
-| **MCP** | `McpClient` / `McpTool` | MCP 客户端与工具 |
-| | `McpToolAccessLog` | MCP 工具访问日志 |
-| **企业** | `Webhook` / `WebhookDelivery` / `EventSubscription` | Webhook 与事件订阅 |
-| | `FeatureFlag` / `MetricsSnapshot` / `SlaEvent` | 功能开关/指标快照/SLA |
-| | `BrandingConfig` / `TenantHierarchy` / `SandboxEnvironment` | 品牌/层级/沙箱 |
-| | `DataRetentionPolicy` / `CustomReport` / `InAppNotification` | 保留策略/报表/站内通知 |
-| **文件** | `FileUpload` | 文件上传 |
-| **其他** | `AuditLog` / `NotificationPreference` / `UserApiToken` | 审计/通知偏好/API Token |
-
-### 模块
-
-框架采用 **Core + Modules + Plugins** 架构, 22 个模块按 Composer 包管理:
-
-**系统基础模块 (始终启用):**
-
-| 模块 | 说明 |
-|------|------|
-| `infrastructure` | 缓存、队列、限流、资源管理、功能开关 |
-| `plugin` | 插件安装/卸载、生命周期钩子 |
-| `event` | 事件总线、异步分发、Webhook 投递 |
-| `billing` | 订阅管理、套餐变更、续费 |
-| `logging` | 结构化日志、安全日志、审计 |
-| `auth` | 社交登录、支付宝 OAuth |
-| `user` | 用户资料、偏好设置、登录日志 |
-| `monitoring` | 指标采集、SLA 监控、告警、性能追踪 |
-| `platform` | 数据导出、API 版本、租户资料、成本管理 |
-| `developer-portal` | API 文档、沙箱环境、SDK |
-| `ai` | Agent、能力引擎、MCP、工具注册表、记忆系统、AI 网关 |
-| `conversation` | 多渠道会话、消息路由、频道管理 |
-| `workflow` | 流程编排、节点执行、条件分支 |
-
-**业务功能模块 (可租户切换):**
-
-| 模块 | 说明 | 默认启用 |
-|------|------|----------|
-| `domain` | 自定义域名绑定、ICP 备案、Nginx 白名单 | 是 |
-| `ssl` | SSL 证书上传、续期、Nginx 配置 (依赖 domain) | 否 |
-| `api-token` | API Token 管理、Quota 同步 | 否 |
-| `payment` | 第三方支付网关 (馒头支付等) | 否 |
-| `form` | 拖拽式表单、数据收集、统计导出 | 是 |
-| `lottery` | 抽奖活动、奖品池、防刷机制 | 是 |
-| `voting` | 投票系统、排行榜、防刷票 | 是 |
-| `sms` | 短信模板、批量发送、到达率统计 | 是 |
-| `coupon` | 优惠券、批量发券、裂变分享 | 是 |
-
-**插件机制** (独立于模块): `plugins/{name}/manifest.json`, 运行时安装/卸载, 租户隔离。
-
----
-
-## 使用示例
-
-### 继承基类模型
-
-```php
-use MultiTenantSaas\Models\Tenant;
-
-class Customer extends Tenant
-{
-    protected $primaryKey = 'customer_id';
-    
-    protected $fillable = [
-        'tenant_id',
-        'name',
-        'email',
-    ];
-}
-```
-
-### 使用辅助函数
-
-```php
-// 获取当前租户ID
-$tenantId = tenant_id();
-
-// 获取租户配置
-$corpId = tenant_config('wecom', 'corp_id');
-
-// 检查配额
-check_quota('customers', 1);
-
-// 生成唯一ID
-$id = generate_id();
-```
-
-### 路由配置
-
-```php
-// 系统后台路由
-Route::prefix('admin')->group(function () {
-    Route::get('/', [AdminController::class, 'dashboard']);
-});
-
-// 租户后台路由
-Route::middleware(['tenant.ensure'])->prefix('console')->group(function () {
-    Route::get('/', [ConsoleController::class, 'dashboard']);
-});
-
-// 需要特定角色的路由
-Route::middleware(['tenant.permission:tenant_admin'])->group(function () {
-    // 仅 tenant_admin 可访问
-});
-```
-
-### 查询数据
-
-```php
-// 自动按租户过滤（模型需使用 BelongsToTenant Trait）
-$orders = Order::all();
-
-// 跨租户查询（仅 admin 域名下可用）
-$allOrders = Order::withoutTenantScope()->get();
-
-// 指定租户查询（仅 admin 域名下可用）
-$tenantOrders = Order::withTenant('1234567890123456')->get();
-
-// 查询所有租户数据（仅 admin 域名下可用）
-$allOrders = Order::forAllTenants()->get();
-```
-
----
-
-## 文档
-
-- [文档目录](docs/README.md)
-- [系统架构概览](docs/architecture/系统架构概览.md)
-- [多域名架构设计](docs/architecture/多域名架构设计.md)
-- [租户隔离架构](docs/architecture/租户隔离架构.md)
-- [数据模型设计](docs/architecture/数据模型设计.md)
-- [设计决策](docs/architecture/设计决策.md)
-- [快速开始（5 分钟上手）](docs/guides/快速开始.md)
-- [四重访问架构](docs/guides/四重访问架构.md)
-- [域名配置指南](docs/guides/域名配置指南.md)
-- [权限控制指南](docs/guides/权限控制指南.md)
-- [AI 模块使用指南](docs/guides/AI模块使用指南.md)
-- [计费配置指南](docs/guides/计费配置指南.md)
-- [OAuth SDK接入指南](docs/guides/OAuth_SDK接入指南.md)
-- [支付SDK接入指南](docs/guides/支付SDK接入指南.md)
-- [SaaS核心模块扩展指南](docs/guides/SaaS核心模块扩展指南.md)
-- [部署指南（Docker / Kubernetes）](docs/deployment/部署指南.md)
-- [运维手册](docs/deployment/运维手册.md)
-- [发布检查清单](docs/deployment/发布检查清单.md)
-- [备份恢复流程](docs/deployment/备份恢复流程.md)
-- [故障应急手册](docs/deployment/故障应急手册.md)
-- [监控告警配置](docs/deployment/监控告警配置.md)
-- [Nginx配置指南](docs/deployment/Nginx配置指南.md)
-- [本地开发环境](docs/development/本地开发环境.md)
-- [编码规范](docs/development/coding-standards.md)
-- [HTTP 端点总览](docs/api/端点总览.md)
-- [AI 模块 API](docs/api/AI模块API.md)
-- [核心API](docs/api/核心API.md)
-- [中间件API](docs/api/中间件API.md)
-- [服务层API](docs/api/服务层API.md)
-- [OpenAPI规范](docs/api/openapi.yaml)
-- [安全审计报告（OWASP Top 10）](docs/security/安全审计报告.md)
-- [框架层升级规划](docs/Requirement/框架层升级规划.md)
-- [框架层升级规划 - 工作量评估](docs/Requirement/框架层升级规划_task-eff.md)
-- [PHP SDK 使用示例](docs/examples/php-sdk-quickstart.md)
-- [REST API 调用示例](docs/examples/rest-api-examples.md)
-- [需求文档](docs/requirement.md)
-
----
-
-## 模块管理
-
-```bash
-# 查看所有模块
-php artisan module:list
-
-# 添加/移除模块 (通过 Composer)
-php artisan module:require sms coupon
-php artisan module:require --remove lottery
-
-# 系统级启用/禁用
-php artisan module:enable payment
-php artisan module:disable ssl
-```
-
-**API 管理:**
-
-| 方法 | 路由 | 说明 |
-|------|------|------|
-| `GET` | `/api/v1/admin/modules` | 列出所有模块 |
-| `POST` | `/api/v1/admin/modules/{name}/enable` | 系统级启用 |
-| `POST` | `/api/v1/admin/modules/{name}/disable` | 系统级禁用 |
-| `GET` | `/api/v1/tenants/{id}/modules` | 租户可用模块 |
-| `POST` | `/api/v1/tenants/{id}/modules/{name}/enable` | 租户级启用 |
-| `POST` | `/api/v1/tenants/{id}/modules/{name}/disable` | 租户级禁用 |
-
-新租户创建时自动按套餐开通模块, 配置见 `config/tenancy.php` 的 `plan_modules` 和 `tenant_module_defaults`。
-
-**初始化预设:**
-
-```bash
-php artisan tenancy:init mini    # 6 个核心模块
-php artisan tenancy:init normal  # 14 个模块 (默认)
-php artisan tenancy:init full    # 22 个模块 (全部)
-```
-
-**composer.json extra.saas 示例:**
-
-```json
-{
-    "name": "dsplat/multi-tenant-saas-module-lottery",
-    "version": "1.0.0",
-    "description": "抽奖活动管理模块",
-    "type": "library",
-    "require": {
-        "php": "^8.3",
-        "dsplat/multi-tenant-saas": "^2.0"
-    },
-    "autoload": {
-        "psr-4": { "MultiTenantSaas\\Modules\\Lottery\\": "" }
-    },
-    "extra": {
-        "saas": {
-            "name": "lottery",
-            "priority": 50,
-            "dependencies": ["billing"],
-            "conflicts": [],
-            "requires_core": ">=2.0.0",
-            "provider": "MultiTenantSaas\\Modules\\Lottery\\LotteryServiceProvider",
-            "tenant_toggleable": true,
-            "default_enabled": true
-        }
-    }
-}
-```
-
----
-
-## 技术栈
-
-- **PHP**: ^8.3
-- **Laravel**: ^13.0
-- **数据库**: MySQL 8.0+
-- **缓存**: Redis (推荐) / Database
-- **Web服务器**: Nginx + PHP-FPM
-- **前端**: Vue.js 3 + TypeScript + Vite（系统后台 15 组件 / 租户控制台 16 组件）
-- **CSS**: Bootstrap（管理后台 UI）
-
-## 集成库
-
-| 库 | 用途 | 配置 |
-|---|---|---|
-| `laravel/sanctum` | API 认证 + Token abilities | `config/sanctum.php` |
-| `laravel/socialite` | 第三方登录（微信/钉钉/飞书） | `config/socialite.php` |
-| `yansongda/pay` | 支付（微信/支付宝） | `config/pay.php` |
-| `spatie/laravel-health` | 健康检查 | `config/health.php` |
-| `darkaonline/l5-swagger` | Swagger/OpenAPI 文档 | `config/l5-swagger.php` |
-| `maatwebsite/excel` | Excel 导入导出 | 内置 |
-| `barryvdh/laravel-dompdf` | PDF 生成 | 内置 |
-| `laravel/horizon` | 队列监控 (dev) | `/horizon` |
-| `sentry/sentry-laravel` | 错误追踪 (dev) | `.env` |
-| `guzzlehttp/guzzle` | HTTP 客户端（短信/渠道） | 内置 |
-
-## 测试
-
-```bash
-# 并行测试 (默认, ~7秒, 12核)
-composer test
-
-# 串行测试 (调试用)
-composer test:sequential
-
-# 过滤测试
-composer test:filter -- SomeTest
-```
-
-**测试基线:** 2269 tests, 5648 assertions, 0 failures, 0 skipped
-
-**优化配置:**
-- SQLite `:memory:` + PRAGMA 优化 (journal_mode=OFF, synchronous=OFF, foreign_keys=OFF)
-- 数据重置用 DELETE 代替 DROP/CREATE (首次建表后不再重建)
-- bcrypt rounds=4 (测试环境)
-- `brianium/paratest` 并行执行
-
-**派生项目自动继承:**
-
-所有测试优化配置均通过 Git 跟踪的文件管理, `composer create-project` 或 fork 后自动生效:
-
-| 文件 | 作用 |
+| Category | Links |
 |---|---|
-| `phpunit.xml.dist` | SQLite 内存数据库、环境变量、`cacheResult=false` |
-| `composer.json` 的 `test` scripts | `composer test` 默认并行 |
-| `tests/TestCase.php` | PRAGMA 优化、DELETE 重置、bcrypt rounds |
-| `brianium/paratest` (require-dev) | 并行执行引擎 |
-
-派生项目可创建本地 `phpunit.xml` 覆盖 `.dist` 配置 (如需连接真实 MySQL)。
+| **Guides** | [Quickstart](docs/guides/quickstart.md) · [RBAC](docs/guides/rbac-guide.md) · [Billing](docs/guides/billing-config.md) · [AI Module](docs/guides/ai-module-guide.md) |
+| **Architecture** | [System Overview](docs/architecture/system-overview.md) · [Tenant Isolation](docs/architecture/tenant-isolation.md) · [Data Model](docs/architecture/data-model.md) |
+| **Deployment** | [Deployment Guide](docs/deployment/deployment-guide.md) · [Nginx](docs/deployment/nginx-guide.md) · [Monitoring](docs/deployment/monitoring-alerting.md) |
+| **API** | [API Overview](docs/api/api-overview.md) · [Core API](docs/api/core-api.md) · [OpenAPI Spec](docs/api/openapi.yaml) |
+| **Full Index** | [docs/README.md](docs/README.md) |
 
 ---
 
-## 更新框架
+## Tech Stack
+
+PHP ^8.3 · Laravel ^13.0 · MySQL 8.0+ · Redis · Nginx + PHP-FPM · Vue.js 3 + TypeScript + Vite
+
+## Testing
 
 ```bash
-composer update dsplat/multi-tenant-saas
+composer test              # Parallel (~6s, 2269 tests, 5648 assertions)
+composer test:sequential   # Single-thread fallback
 ```
 
----
+## License
 
-## 许可证
-
-MIT License
-
----
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request！
-
----
-
-## 致谢
-
-感谢 [aistudio_backend](https://github.com/luoyueliang/aistudio_backend) 项目提供的架构参考。
+MIT

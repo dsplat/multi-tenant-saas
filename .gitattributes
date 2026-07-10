@@ -13,5 +13,7 @@
 /compose.json export-ignore
 /requirements.md export-ignore
 /*.sh export-ignore
+/bin export-ignore
+/src/Modules export-ignore
 /.env export-ignore
 /.env.* export-ignore

@@ -121,6 +121,7 @@
             "/requirements.md",
             "/ai-runner",
             "/*.sh",
+            "/bin",
             "/src/Modules"
         ]
     },

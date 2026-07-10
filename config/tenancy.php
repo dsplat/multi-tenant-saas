@@ -274,4 +274,10 @@ return [
             ],
         ],
     ],
+
+    // Packagist 发布配置 (用于 module:create --publish)
+    'packagist' => [
+        'user' => env('PACKAGIST_USER', ''),
+        'token' => env('PACKAGIST_TOKEN', ''),
+    ],
 ];

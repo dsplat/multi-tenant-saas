@@ -130,18 +130,21 @@ jobs:
             # 跳过不存在的文件
             [ ! -f "$FULL_PATH" ] && continue
 
-            # Base64 编码文件内容
-            CONTENT_B64=$(base64 -w0 "$FULL_PATH")
+            # Base64 编码文件内容 (兼容 macOS 和 Linux)
+            CONTENT_B64=$(base64 "$FULL_PATH" | tr -d '\n')
 
             # 创建 blob
-            BLOB_SHA=$(curl -s \
+            BLOB_RESPONSE=$(curl -s \
               -H "Authorization: token $GH_TOKEN" \
               -H "Accept: application/vnd.github+json" \
               "https://api.github.com/repos/$ORG/$REPO/git/blobs" \
-              -d "{\"encoding\":\"base64\",\"content\":\"$CONTENT_B64\"}" | jq -r '.sha')
+              -d "{\"encoding\":\"base64\",\"content\":\"$CONTENT_B64\"}")
+
+            BLOB_SHA=$(echo "$BLOB_RESPONSE" | jq -r '.sha')
 
             if [ "$BLOB_SHA" = "null" ] || [ -z "$BLOB_SHA" ]; then
               echo "WARNING: Failed to create blob for $REL_PATH"
+              echo "  Response: $(echo "$BLOB_RESPONSE" | head -c 200)"
               continue
             fi
 

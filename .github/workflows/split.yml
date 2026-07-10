@@ -84,6 +84,24 @@ jobs:
             SRC_DIR="."
           fi
 
+          # 如果仓库是空的, 先用 Contents API 创建一个占位文件初始化
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$ORG/$REPO/git/refs/heads/main")
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Initializing empty repo..."
+            INIT_CONTENT=$(echo -n "# $REPO" | base64 | tr -d '\n')
+            curl -s -o /dev/null \
+              -H "Authorization: token $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -X PUT \
+              "https://api.github.com/repos/$ORG/$REPO/contents/README.md" \
+              -d "{\"message\":\"init\",\"content\":\"$INIT_CONTENT\",\"branch\":\"main\"}"
+            sleep 1
+          fi
+
           # 收集所有文件 (排除 .git 目录)
           FILES=$(cd "$SRC_DIR" && find . -type f \
             ! -path './.git/*' \

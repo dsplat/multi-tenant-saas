@@ -59,7 +59,6 @@ jobs:
           - prefix: 'src/Modules/Workflow'
             repo: multi-tenant-saas-module-workflow
 
-            repo: multi-tenant-saas-module-demo
     steps:
       - uses: actions/checkout@v4
         with:

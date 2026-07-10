@@ -49,20 +49,21 @@ class ModuleRegistry
                 }
 
                 $moduleDir = $this->modulePath.'/'.$entry;
-            if (! is_dir($moduleDir)) {
-                continue;
+                if (! is_dir($moduleDir)) {
+                    continue;
+                }
+
+                $manifest = $this->readManifest($moduleDir);
+                if ($manifest === null) {
+                    continue;
+                }
+
+                // 补充内部元数据
+                $manifest['_path'] = $moduleDir;
+                $manifest['_namespace'] = 'MultiTenantSaas\\Modules\\'.$entry;
+
+                $modules[$manifest['name']] = $manifest;
             }
-
-            $manifest = $this->readManifest($moduleDir);
-            if ($manifest === null) {
-                continue;
-            }
-
-            // 补充内部元数据
-            $manifest['_path'] = $moduleDir;
-            $manifest['_namespace'] = 'MultiTenantSaas\\Modules\\'.$entry;
-
-            $modules[$manifest['name']] = $manifest;
         }
 
         // 扫描 vendor/ (Composer 安装)

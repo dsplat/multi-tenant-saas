@@ -7,7 +7,7 @@ Laravel 多租户 SaaS 基础框架 — 开箱即用的企业级项目骨架。
 [![Laravel](https://img.shields.io/badge/Laravel-%5E13.0-FF2D20)](https://laravel.com)
 [![Tests](https://img.shields.io/badge/tests-2269%20passed-brightgreen)](#)
 
-[Docs](docs/README.md) | [User Manual](docs/user-manual.md) | [Quickstart](docs/guides/quickstart.md) | [Security Audit](docs/security/security-audit.md)
+[Docs](docs/README.md) | [User Manual (中文)](docs/zh/user-manual.md) | [Quickstart](docs/en/guides/quickstart.md) | [安全审计](docs/zh/security/security-audit.md)
 
 ---
 
@@ -110,11 +110,11 @@ multi-tenant-saas/
 
 | Category | Links |
 |---|---|
-| **Guides** | [Quickstart](docs/guides/quickstart.md) · [RBAC](docs/guides/rbac-guide.md) · [Billing](docs/guides/billing-config.md) · [AI Module](docs/guides/ai-module-guide.md) |
-| **Architecture** | [System Overview](docs/architecture/system-overview.md) · [Tenant Isolation](docs/architecture/tenant-isolation.md) · [Data Model](docs/architecture/data-model.md) |
-| **Deployment** | [Deployment Guide](docs/deployment/deployment-guide.md) · [Nginx](docs/deployment/nginx-guide.md) · [Monitoring](docs/deployment/monitoring-alerting.md) |
-| **API** | [API Overview](docs/api/api-overview.md) · [Core API](docs/api/core-api.md) · [OpenAPI Spec](docs/api/openapi.yaml) |
-| **Full Index** | [docs/README.md](docs/README.md) |
+| **Guides** | [Quickstart (en)](docs/en/guides/quickstart.md) · [快速开始 (zh)](docs/zh/guides/quickstart.md) · [RBAC](docs/zh/guides/rbac-guide.md) · [AI Module](docs/zh/guides/ai-module-guide.md) |
+| **Architecture** | [System Overview](docs/zh/architecture/system-overview.md) · [Tenant Isolation](docs/zh/architecture/tenant-isolation.md) · [Data Model](docs/zh/architecture/data-model.md) |
+| **Deployment** | [Deployment Guide](docs/zh/deployment/deployment-guide.md) · [Nginx](docs/zh/deployment/nginx-guide.md) · [Monitoring](docs/zh/deployment/monitoring-alerting.md) |
+| **API** | [API Overview](docs/zh/api/api-overview.md) · [Core API](docs/zh/api/core-api.md) · [OpenAPI Spec](docs/zh/api/openapi.yaml) |
+| **Full Index** | [docs/README.md](docs/README.md) (bilingual) |
 
 ---
 

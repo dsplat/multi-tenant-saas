@@ -42,5 +42,4 @@ runner.db
 *.sqlite
 *.sqlite-journal
 
-# Console Commands (only framework)
-src/Console/Commands/
+# Console Commands (framework commands are tracked)

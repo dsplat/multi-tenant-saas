@@ -106,10 +106,21 @@
     },
     "archive": {
         "exclude": [
-            "/docs", "/tests", "/.ai", "/vendor", "/storage",
-            "/public", "/bootstrap", "/.env*", "/*.md",
-            "/phpunit.xml.dist", "/artisan", "/compose.json",
-            "/requirements.md", "/ai-runner", "/*.sh",
+            "/docs",
+            "/tests",
+            "/.ai",
+            "/vendor",
+            "/storage",
+            "/public",
+            "/bootstrap",
+            "/.env*",
+            "/*.md",
+            "/phpunit.xml.dist",
+            "/artisan",
+            "/compose.json",
+            "/requirements.md",
+            "/ai-runner",
+            "/*.sh",
             "/src/Modules"
         ]
     },

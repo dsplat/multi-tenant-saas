@@ -86,10 +86,13 @@ class ModuleCreateCommand extends Command
         $this->info('Publishing module...');
         $this->createGithubRepo($githubOrg, $repoName, $packagistUser, $packagistToken);
 
-        // Step 5: 注册 Packagist
+        // Step 5: 推送 composer.json 到仓库 (Packagist 需要)
+        $this->pushComposerJson($githubOrg, $repoName, $studly);
+
+        // Step 6: 注册 Packagist
         $this->registerPackagist($packagistUser, $packagistToken, $githubOrg, $repoName);
 
-        // Step 6: 添加 Packagist webhook
+        // Step 7: 添加 Packagist webhook
         $this->addPackagistWebhook($githubOrg, $repoName, $packagistUser, $packagistToken);
 
         $this->newLine();
@@ -128,6 +131,44 @@ class ModuleCreateCommand extends Command
         }
     }
 
+    protected function pushComposerJson(string $org, string $repo, string $studly): void
+    {
+        $this->line('  Pushing composer.json to repo...');
+
+        $composerPath = base_path("src/Modules/{$studly}/composer.json");
+        if (! file_exists($composerPath)) {
+            $this->warn('  ⊙ composer.json not found, skipping');
+
+            return;
+        }
+
+        $ghToken = $this->getGhToken();
+        if (empty($ghToken)) {
+            $this->warn('  ⊙ GitHub token not available, skipping');
+
+            return;
+        }
+
+        $content = base64_encode(file_get_contents($composerPath));
+        $payload = json_encode([
+            'message' => 'init: add composer.json',
+            'content' => $content,
+            'branch' => 'main',
+        ]);
+
+        $response = $this->httpPost(
+            "https://api.github.com/repos/{$org}/{$repo}/contents/composer.json",
+            $payload,
+            ["Authorization: token {$ghToken}", 'Accept: application/vnd.github+json']
+        );
+
+        if (str_contains($response, '"sha"')) {
+            $this->info('  ✓ composer.json pushed');
+        } else {
+            $this->warn('  ⊙ Failed to push composer.json: '.substr($response, 0, 100));
+        }
+    }
+
     protected function registerPackagist(string $user, string $token, string $org, string $repo): void
     {
         if (empty($user) || empty($token)) {
@@ -161,18 +202,11 @@ class ModuleCreateCommand extends Command
             return;
         }
 
-        $this->line("  Adding Packagist webhook...");
+        $this->line('  Adding Packagist webhook...');
 
         $webhookUrl = "https://packagist.org/api/update-package?username={$packagistUser}&apiToken={$packagistToken}";
 
-        $process = proc_open(
-            "gh api repos/{$org}/{$repo}/hooks --method POST --input - 2>&1",
-            [STDIN, ['pipe', 'w'], ['pipe', 'w']],
-            $pipes,
-            base_path()
-        );
-
-        fwrite($pipes[0], json_encode([
+        $payload = json_encode([
             'name' => 'web',
             'active' => true,
             'events' => ['push'],
@@ -180,14 +214,16 @@ class ModuleCreateCommand extends Command
                 'url' => $webhookUrl,
                 'content_type' => 'json',
             ],
-        ]));
-        fclose($pipes[0]);
+        ]);
 
-        $output = stream_get_contents($pipes[1]);
-        fclose($pipes[1]);
-        $exitCode = proc_close($process);
+        $ghToken = $this->getGhToken();
+        $response = $this->httpPost(
+            "https://api.github.com/repos/{$org}/{$repo}/hooks",
+            $payload,
+            ["Authorization: token {$ghToken}", 'Accept: application/vnd.github+json']
+        );
 
-        if ($exitCode === 0 && str_contains($output, '"id"')) {
+        if (str_contains($response, '"id"')) {
             $this->info('  ✓ Packagist webhook 已添加');
         } else {
             $this->warn('  ⊙ Packagist webhook 添加失败或已存在');
@@ -244,13 +280,28 @@ class ModuleCreateCommand extends Command
         File::put($workflowPath, $content);
     }
 
-    protected function httpPost(string $url, string $body): string
+    protected function getGhToken(): string
     {
+        $process = proc_open('gh auth token 2>/dev/null', [STDIN, ['pipe', 'w'], ['pipe', 'w']], $pipes);
+        $output = trim(stream_get_contents($pipes[1]));
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        proc_close($process);
+
+        return $output;
+    }
+
+    protected function httpPost(string $url, string $body, array $headers = []): string
+    {
+        $defaultHeaders = ['Content-Type: application/json'];
+        $headers = array_merge($defaultHeaders, $headers);
+
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'multi-tenant-saas-module-create');
         $response = curl_exec($ch);
         curl_close($ch);
 

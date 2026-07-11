@@ -36,6 +36,7 @@ use MultiTenantSaas\Listeners\LogEventListener;
 use MultiTenantSaas\Services\BackupService;
 use MultiTenantSaas\Services\HealthService;
 use MultiTenantSaas\Services\IdGenerator;
+use MultiTenantSaas\Services\ImageService;
 use MultiTenantSaas\Services\MailerService;
 use MultiTenantSaas\Services\ModuleBootstrapper;
 use MultiTenantSaas\Services\ModuleManager;
@@ -69,6 +70,7 @@ class TenancyServiceProvider extends ServiceProvider
         $this->app->singleton(MailerService::class);
         $this->app->singleton(SearchService::class);
         $this->app->singleton(BackupService::class);
+        $this->app->singleton(ImageService::class);
 
         // 框架根基
         $this->app->singleton(IdGeneratorContract::class, function () {

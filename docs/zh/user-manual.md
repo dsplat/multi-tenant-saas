@@ -228,6 +228,33 @@ php artisan backup:restore path/to/backup.json.gz --tenant=2002 --confirm
 
 **Scheduled:** Auto-backup runs daily at 02:00 via SchedulerService.
 
+### Image Processing
+
+Image manipulation via `ImageService` (PHP GD, no external dependencies).
+
+```php
+use MultiTenantSaas\Services\ImageService;
+
+$image = app(ImageService::class);
+
+// Resize (aspect ratio preserved)
+$path = $image->resize('/path/to/image.jpg', width: 800);
+$path = $image->resize('/path/to/image.jpg', height: 600);
+$path = $image->resize('/path/to/image.jpg', 800, 600);
+
+// Crop
+$path = $image->crop('/path/to/image.jpg', 200, 200, x: 50, y: 50);
+
+// Thumbnail (center crop + resize)
+$path = $image->thumbnail('/path/to/image.jpg', 150, 150);
+
+// Get dimensions
+$dims = $image->getDimensions('/path/to/image.jpg');
+// ['width' => 1920, 'height' => 1080, 'type' => 'jpeg']
+```
+
+**Supported formats:** JPEG, PNG, GIF, WebP.
+
 ### Scheduler
 
 Centralized task scheduling via `SchedulerService`. All scheduled tasks are registered in `routes/console.php`.

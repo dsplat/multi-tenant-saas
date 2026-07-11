@@ -93,10 +93,12 @@ class SearchService
         $columns = implode(',', $fields);
         $escaped = $this->escapeFulltext($keyword);
 
-        return $query->whereRaw(
+        $query->whereRaw(
             "MATCH({$columns}) AGAINST(? IN BOOLEAN MODE)",
             [$escaped]
         );
+
+        return $query;
     }
 
     /**

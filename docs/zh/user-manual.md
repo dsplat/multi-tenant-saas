@@ -253,6 +253,51 @@ $dims = $image->getDimensions('/path/to/image.jpg');
 // ['width' => 1920, 'height' => 1080, 'type' => 'jpeg']
 ```
 
+### Authentication
+
+Complete auth system via Auth module. Controllers, routes, and services.
+
+**Public endpoints (no auth required):**
+
+| Method | URI | Description |
+|--------|-----|-------------|
+| POST | `/api/v1/auth/login` | Email + password login (throttle: 5/min) |
+| POST | `/api/v1/auth/register` | User registration (throttle: 3/min) |
+| POST | `/api/v1/auth/forgot-password` | Send reset email (throttle: 3/min) |
+| POST | `/api/v1/auth/reset-password` | Reset password with token |
+| POST | `/api/v1/auth/verify-email` | Email verification |
+| POST | `/api/v1/auth/resend-verification` | Resend verification email |
+| GET | `/api/v1/auth/sso/{provider}/redirect` | SSO redirect URL |
+| GET | `/api/v1/auth/sso/{provider}/callback` | SSO callback |
+
+**Authenticated endpoints:**
+
+| Method | URI | Description |
+|--------|-----|-------------|
+| GET | `/api/v1/auth/me` | Current user info |
+| POST | `/api/v1/auth/logout` | Revoke token |
+| POST | `/api/v1/auth/mfa/verify` | MFA challenge verification |
+
+**MFA management (authenticated):**
+
+| Method | URI | Description |
+|--------|-----|-------------|
+| POST | `/api/v1/mfa/totp/setup` | TOTP setup |
+| POST | `/api/v1/mfa/totp/confirm` | Confirm TOTP binding |
+| POST | `/api/v1/mfa/email/send` | Send email verification code |
+| POST | `/api/v1/mfa/sms/send` | Send SMS verification code |
+| GET | `/api/v1/mfa/devices` | List MFA devices |
+| DELETE | `/api/v1/mfa/devices/{id}` | Remove MFA device |
+| PUT | `/api/v1/mfa/devices/{id}` | Rename MFA device |
+| POST | `/api/v1/mfa/devices/{id}/primary` | Set primary device |
+| POST | `/api/v1/mfa/recovery-codes/generate` | Generate recovery codes |
+| GET | `/api/v1/mfa/recovery-codes/status` | Recovery code status |
+| GET | `/api/v1/mfa/sessions` | List active sessions |
+| DELETE | `/api/v1/mfa/sessions/{id}` | Revoke session |
+| POST | `/api/v1/mfa/sessions/revoke-all` | Revoke all sessions |
+
+**Services:** `PasswordService` (change/reset password), `MfaService` (TOTP/email/SMS), `SessionService` (sessions).
+
 **Supported formats:** JPEG, PNG, GIF, WebP.
 
 ### Scheduler

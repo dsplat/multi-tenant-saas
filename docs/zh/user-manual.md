@@ -203,6 +203,31 @@ $users = User::search('keyword')->paginate();
 
 **Config:** `config/tenancy.php` → `search.backend` (like/fulltext), `search.per_page`.
 
+### Backup & Restore
+
+Tenant-level backup via `BackupService`. Exports all tenant data as compressed JSON.
+
+```bash
+# Backup single tenant
+php artisan backup:run --tenant=1001
+
+# Backup all active tenants
+php artisan backup:run
+
+# List backups
+php artisan backup:list
+
+# Restore from backup
+php artisan backup:restore backups/tenant_1001/backup_tenant_1001_20260711_020000.json.gz --confirm
+
+# Restore to different tenant
+php artisan backup:restore path/to/backup.json.gz --tenant=2002 --confirm
+```
+
+**Config:** `config/tenancy.php` → `backup.disk`, `backup.keep_days`, `backup.tables`.
+
+**Scheduled:** Auto-backup runs daily at 02:00 via SchedulerService.
+
 ### Scheduler
 
 Centralized task scheduling via `SchedulerService`. All scheduled tasks are registered in `routes/console.php`.

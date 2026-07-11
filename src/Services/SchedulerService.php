@@ -97,6 +97,12 @@ class SchedulerService
             'schedule' => 'dailyAt:05:00',
             'description' => '检查邮件服务健康状态',
         ]);
+
+        $this->addTask($schedule, 'backup', [
+            'command' => 'backup:run',
+            'schedule' => 'dailyAt:02:00',
+            'description' => '自动备份所有活跃租户数据',
+        ]);
     }
 
     /**

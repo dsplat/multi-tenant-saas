@@ -281,6 +281,13 @@ return [
         'per_page' => 15,
     ],
 
+    // 备份配置
+    'backup' => [
+        'disk' => env('TENANCY_BACKUP_DISK', 'local'),
+        'keep_days' => 30,
+        'tables' => [],
+    ],
+
     // 定时任务开关 (key = 任务名, value = true/false)
     'scheduler' => [
         'subscriptions' => true,
@@ -290,6 +297,8 @@ return [
         'reports' => true,
         'memory-cleanup' => true,
         'memory-decay' => true,
+        'mailer-health' => true,
+        'backup' => true,
     ],
 
     // Packagist 发布配置 (用于 module:create --publish)

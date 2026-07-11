@@ -6,6 +6,9 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use MultiTenantSaas\Console\Commands\BackupListCommand;
+use MultiTenantSaas\Console\Commands\BackupRestoreCommand;
+use MultiTenantSaas\Console\Commands\BackupRunCommand;
 use MultiTenantSaas\Console\Commands\CheckTenantIsolation;
 use MultiTenantSaas\Console\Commands\MailerHealthCheckCommand;
 use MultiTenantSaas\Console\Commands\MemoryCleanupCommand;
@@ -30,6 +33,7 @@ use MultiTenantSaas\Events\TenantSuspended;
 use MultiTenantSaas\Events\UserLoggedIn;
 use MultiTenantSaas\Events\UserRegistered;
 use MultiTenantSaas\Listeners\LogEventListener;
+use MultiTenantSaas\Services\BackupService;
 use MultiTenantSaas\Services\HealthService;
 use MultiTenantSaas\Services\IdGenerator;
 use MultiTenantSaas\Services\MailerService;
@@ -64,6 +68,7 @@ class TenancyServiceProvider extends ServiceProvider
         $this->app->singleton(SchedulerService::class);
         $this->app->singleton(MailerService::class);
         $this->app->singleton(SearchService::class);
+        $this->app->singleton(BackupService::class);
 
         // 框架根基
         $this->app->singleton(IdGeneratorContract::class, function () {
@@ -111,6 +116,9 @@ class TenancyServiceProvider extends ServiceProvider
                 ProcessScheduledReports::class,
                 ScheduleListCommand::class,
                 MailerHealthCheckCommand::class,
+                BackupRunCommand::class,
+                BackupListCommand::class,
+                BackupRestoreCommand::class,
             ]);
         }
 

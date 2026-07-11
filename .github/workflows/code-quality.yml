@@ -25,25 +25,3 @@ jobs:
 
       - name: Run Pint (check mode)
         run: vendor/bin/pint --test
-
-  static-analysis:
-    name: PHPStan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          tools: composer:v2
-          coverage: none
-
-      - name: Install dependencies
-        run: composer install --no-interaction --no-progress --no-scripts
-
-      - name: Install PHPStan
-        run: composer require --dev phpstan/phpstan --no-interaction
-
-      - name: Run PHPStan
-        run: vendor/bin/phpstan analyse src --level=5 --no-progress

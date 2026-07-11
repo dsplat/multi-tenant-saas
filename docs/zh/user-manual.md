@@ -255,50 +255,221 @@ $dims = $image->getDimensions('/path/to/image.jpg');
 
 ### Authentication
 
-Complete auth system via Auth module. Controllers, routes, and services.
+Complete auth system via Auth module — login, registration, MFA, SSO, password management.
 
-**Public endpoints (no auth required):**
+#### Login
 
-| Method | URI | Description |
-|--------|-----|-------------|
-| POST | `/api/v1/auth/login` | Email + password login (throttle: 5/min) |
-| POST | `/api/v1/auth/register` | User registration (throttle: 3/min) |
-| POST | `/api/v1/auth/forgot-password` | Send reset email (throttle: 3/min) |
-| POST | `/api/v1/auth/reset-password` | Reset password with token |
-| POST | `/api/v1/auth/verify-email` | Email verification |
-| POST | `/api/v1/auth/resend-verification` | Resend verification email |
-| GET | `/api/v1/auth/sso/{provider}/redirect` | SSO redirect URL |
-| GET | `/api/v1/auth/sso/{provider}/callback` | SSO callback |
+```bash
+POST /api/v1/auth/login
+Content-Type: application/json
 
-**Authenticated endpoints:**
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
 
-| Method | URI | Description |
-|--------|-----|-------------|
-| GET | `/api/v1/auth/me` | Current user info |
-| POST | `/api/v1/auth/logout` | Revoke token |
-| POST | `/api/v1/auth/mfa/verify` | MFA challenge verification |
+**Success (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "token": "1|abc123...",
+    "user": {
+      "user_id": 1234567890123456,
+      "name": "John Doe",
+      "email": "user@example.com",
+      "role": "end_user",
+      "email_verified": true
+    }
+  }
+}
+```
 
-**MFA management (authenticated):**
+**MFA Required (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "mfa_required": true,
+    "challenge_token": "eyJ...",
+    "available_types": ["totp", "email"]
+  }
+}
+```
 
-| Method | URI | Description |
-|--------|-----|-------------|
-| POST | `/api/v1/mfa/totp/setup` | TOTP setup |
-| POST | `/api/v1/mfa/totp/confirm` | Confirm TOTP binding |
-| POST | `/api/v1/mfa/email/send` | Send email verification code |
-| POST | `/api/v1/mfa/sms/send` | Send SMS verification code |
-| GET | `/api/v1/mfa/devices` | List MFA devices |
-| DELETE | `/api/v1/mfa/devices/{id}` | Remove MFA device |
-| PUT | `/api/v1/mfa/devices/{id}` | Rename MFA device |
-| POST | `/api/v1/mfa/devices/{id}/primary` | Set primary device |
-| POST | `/api/v1/mfa/recovery-codes/generate` | Generate recovery codes |
-| GET | `/api/v1/mfa/recovery-codes/status` | Recovery code status |
-| GET | `/api/v1/mfa/sessions` | List active sessions |
-| DELETE | `/api/v1/mfa/sessions/{id}` | Revoke session |
-| POST | `/api/v1/mfa/sessions/revoke-all` | Revoke all sessions |
+**Invalid credentials (401):**
+```json
+{"success": false, "message": "Invalid credentials"}
+```
 
-**Services:** `PasswordService` (change/reset password), `MfaService` (TOTP/email/SMS), `SessionService` (sessions).
+**Account locked (423):**
+```json
+{"success": false, "message": "Account locked", "retry_after": 300}
+```
 
-**Supported formats:** JPEG, PNG, GIF, WebP.
+#### Register
+
+```bash
+POST /api/v1/auth/register
+
+{
+  "name": "John Doe",
+  "email": "user@example.com",
+  "password": "password123",
+  "password_confirmation": "password123"
+}
+```
+
+**Success (201):**
+```json
+{
+  "success": true,
+  "data": {
+    "token": "1|abc123...",
+    "user": {"user_id": 123, "name": "John Doe", "email": "user@example.com", "role": "end_user", "email_verified": false}
+  }
+}
+```
+
+#### MFA Verification
+
+```bash
+POST /api/v1/auth/mfa/verify
+Authorization: Bearer {challenge_token}
+
+{
+  "challenge_token": "eyJ...",
+  "code": "123456",
+  "type": "totp"
+}
+```
+
+**Success (200):** Returns full token (same as login success).
+
+#### Get Current User
+
+```bash
+GET /api/v1/auth/me
+Authorization: Bearer {token}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "user": {"user_id": 123, "name": "John", "email": "john@example.com", "role": "end_user", "email_verified": true},
+    "tenant_id": 9876543210123456
+  }
+}
+```
+
+#### Logout
+
+```bash
+POST /api/v1/auth/logout
+Authorization: Bearer {token}
+```
+
+**Response (200):**
+```json
+{"success": true, "message": "Logged out"}
+```
+
+#### Forgot / Reset Password
+
+```bash
+POST /api/v1/auth/forgot-password
+{"email": "user@example.com"}
+
+POST /api/v1/auth/reset-password
+{
+  "email": "user@example.com",
+  "token": "abc123...",
+  "password": "newpassword",
+  "password_confirmation": "newpassword"
+}
+```
+
+#### MFA Device Management
+
+```bash
+# List devices
+GET /api/v1/mfa/devices
+Authorization: Bearer {token}
+
+# TOTP setup
+POST /api/v1/mfa/totp/setup
+# Response: {"secret": "JBSWY3DPEHPK3PXP", "otpauth_url": "otpauth://totp/..."}
+
+# Confirm TOTP
+POST /api/v1/mfa/totp/confirm
+{"code": "123456"}
+
+# Remove device
+DELETE /api/v1/mfa/devices/{deviceId}
+
+# Generate recovery codes
+POST /api/v1/mfa/recovery-codes/generate
+# Response: {"recovery_codes": ["abc123", "def456", ...]}
+```
+
+#### Session Management
+
+```bash
+# List sessions
+GET /api/v1/mfa/sessions
+Authorization: Bearer {token}
+
+# Revoke session
+DELETE /api/v1/mfa/sessions/{sessionId}
+
+# Revoke all other sessions
+POST /api/v1/mfa/sessions/revoke-all
+```
+
+#### SSO
+
+```bash
+# Get redirect URL
+GET /api/v1/auth/sso/wechat/redirect
+# Response: {"url": "https://open.weixin.qq.com/..."}
+
+# Callback
+GET /api/v1/auth/sso/wechat/callback?code=xxx&state=yyy
+```
+
+**All endpoints summary:**
+
+| Method | URI | Auth | Description |
+|--------|-----|------|-------------|
+| POST | `/api/v1/auth/login` | No | Login (throttle: 5/min) |
+| POST | `/api/v1/auth/register` | No | Register (throttle: 3/min) |
+| POST | `/api/v1/auth/forgot-password` | No | Send reset email |
+| POST | `/api/v1/auth/reset-password` | No | Reset password |
+| POST | `/api/v1/auth/verify-email` | No | Verify email |
+| POST | `/api/v1/auth/resend-verification` | No | Resend verification |
+| GET | `/api/v1/auth/sso/{provider}/redirect` | No | SSO redirect |
+| GET | `/api/v1/auth/sso/{provider}/callback` | No | SSO callback |
+| GET | `/api/v1/auth/me` | Yes | Current user |
+| POST | `/api/v1/auth/logout` | Yes | Logout |
+| POST | `/api/v1/auth/mfa/verify` | Yes | MFA verify |
+| POST | `/api/v1/mfa/totp/setup` | Yes | TOTP setup |
+| POST | `/api/v1/mfa/totp/confirm` | Yes | Confirm TOTP |
+| POST | `/api/v1/mfa/email/send` | Yes | Send email code |
+| POST | `/api/v1/mfa/sms/send` | Yes | Send SMS code |
+| GET | `/api/v1/mfa/devices` | Yes | List devices |
+| DELETE | `/api/v1/mfa/devices/{id}` | Yes | Remove device |
+| PUT | `/api/v1/mfa/devices/{id}` | Yes | Rename device |
+| POST | `/api/v1/mfa/devices/{id}/primary` | Yes | Set primary |
+| POST | `/api/v1/mfa/recovery-codes/generate` | Yes | Generate codes |
+| GET | `/api/v1/mfa/recovery-codes/status` | Yes | Code status |
+| GET | `/api/v1/mfa/sessions` | Yes | List sessions |
+| DELETE | `/api/v1/mfa/sessions/{id}` | Yes | Revoke session |
+| POST | `/api/v1/mfa/sessions/revoke-all` | Yes | Revoke all |
+
+**Services:** `PasswordService`, `MfaService`, `SessionService`.
 
 ### Scheduler
 

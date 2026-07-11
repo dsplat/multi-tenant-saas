@@ -140,7 +140,7 @@ class AuthController extends Controller
             'success' => true,
             'data' => [
                 'user' => $this->userToArray($request->user()),
-                'tenant_id' => $request->attributes->get('tenant_id'),
+                'tenant_id' => $request->attributes->get('tenant_id') ?? $request->user()->tenant_id,
             ],
         ]);
     }
@@ -397,7 +397,7 @@ class AuthController extends Controller
             'success' => true,
             'data' => [
                 'user' => $this->userToArray($user),
-                'tenant_id' => $request->attributes->get('tenant_id'),
+                'tenant_id' => $request->attributes->get('tenant_id') ?? $user->tenant_id,
                 'auth_token' => $token,
                 'refresh_token' => Str::random(60),
                 'auth_token_expires_in' => 1800,

@@ -17,23 +17,31 @@ class MfaController extends Controller
 
     public function setupTotp(Request $request): JsonResponse
     {
-        $result = $this->mfaService->generateTotpSetup($request->user()->user_id);
+        $secret = $this->mfaService->generateTotpSecret();
+        $label = $request->user()->email ?? 'User';
+        $uri = $this->mfaService->getOtpauthUri($secret, $label);
 
-        return response()->json(['success' => true, 'data' => $result]);
+        return response()->json([
+            'success' => true,
+            'data' => ['secret' => $secret, 'otpauth_url' => $uri],
+        ]);
     }
 
     public function confirmTotp(Request $request): JsonResponse
     {
-        $request->validate(['code' => 'required|string']);
+        $request->validate(['code' => 'required|string', 'secret' => 'required|string']);
 
-        $device = $this->mfaService->confirmTotpSetup(
-            $request->user()->user_id,
-            $request->code
-        );
+        $valid = $this->mfaService->verifyTotp($request->secret, $request->code);
 
-        if (! $device) {
+        if (! $valid) {
             return response()->json(['success' => false, 'message' => trans('auth.mfa_invalid_code')], 422);
         }
+
+        $device = $this->mfaService->setupTotpDevice(
+            $request->user()->user_id,
+            $request->secret,
+            $request->input('label', 'TOTP')
+        );
 
         return response()->json(['success' => true, 'data' => ['device_id' => $device->mfa_device_id]]);
     }
@@ -54,14 +62,14 @@ class MfaController extends Controller
 
     public function devices(Request $request): JsonResponse
     {
-        $devices = $this->mfaService->getDevices($request->user()->user_id);
+        $devices = $this->mfaService->listDevices($request->user()->user_id);
 
         return response()->json(['success' => true, 'data' => ['devices' => $devices]]);
     }
 
     public function destroyDevice(Request $request, int $deviceId): JsonResponse
     {
-        $this->mfaService->removeDevice($request->user()->user_id, $deviceId);
+        $this->mfaService->deleteDevice($request->user()->user_id, $deviceId);
 
         return response()->json(['success' => true, 'message' => trans('auth.mfa_device_removed')]);
     }
@@ -70,7 +78,7 @@ class MfaController extends Controller
     {
         $request->validate(['name' => 'required|string|max:50']);
 
-        $this->mfaService->renameDevice($deviceId, $request->name);
+        $this->mfaService->renameDevice($request->user()->user_id, $deviceId, $request->name);
 
         return response()->json(['success' => true, 'message' => trans('auth.mfa_device_renamed')]);
     }
@@ -84,7 +92,7 @@ class MfaController extends Controller
 
     public function generateRecoveryCodes(Request $request): JsonResponse
     {
-        $codes = $this->mfaService->generateRecoveryCodes($request->user()->user_id);
+        $codes = $this->mfaService->regenerateRecoveryCodes($request->user()->user_id);
 
         return response()->json(['success' => true, 'data' => ['recovery_codes' => $codes]]);
     }
@@ -98,14 +106,14 @@ class MfaController extends Controller
 
     public function sessions(Request $request): JsonResponse
     {
-        $sessions = $this->sessionService->getActiveSessions($request->user()->user_id);
+        $sessions = $this->sessionService->listSessions($request->user()->user_id);
 
         return response()->json(['success' => true, 'data' => ['sessions' => $sessions]]);
     }
 
     public function revokeSession(Request $request, int $sessionId): JsonResponse
     {
-        $this->sessionService->revokeSession($sessionId);
+        $this->sessionService->revokeSession($request->user()->user_id, $sessionId);
 
         return response()->json(['success' => true, 'message' => trans('auth.session_revoked')]);
     }

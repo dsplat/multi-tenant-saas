@@ -59,14 +59,12 @@ class AuthController extends Controller
 
         // MFA 检查
         if ($this->mfaService->hasMfaEnabled($user->user_id)) {
-            $challengeToken = $this->mfaService->createChallengeToken($user->user_id);
-
             return response()->json([
                 'success' => true,
                 'data' => [
                     'mfa_required' => true,
-                    'challenge_token' => $challengeToken,
-                    'available_types' => $this->mfaService->getAvailableTypes($user->user_id),
+                    'user_id' => $user->user_id,
+                    'available_types' => $this->mfaService->getAvailableChallengeTypes($user->user_id),
                 ],
             ]);
         }

@@ -11,10 +11,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\Searchable;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, HasGlobalId, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, HasGlobalId, Notifiable, Searchable, SoftDeletes;
+
+    protected array $searchable = ['name', 'email', 'phone'];
 
     /**
      * 工厂类位于 Database\Factories 命名空间，而非 HasFactory 默认查找的路径

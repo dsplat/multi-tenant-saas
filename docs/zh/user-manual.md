@@ -167,6 +167,42 @@ $mailer->sendTest('admin@example.com');
 **Config:** `config/tenancy.php` → `mail_templates.default_from_address`, `mail_templates.default_from_name`.
 - Swagger/OpenAPI: auto-generated API docs
 
+### Full-Text Search
+
+Centralized search via `SearchService` + `Searchable` trait. LIKE backend with proper wildcard escaping.
+
+```php
+use MultiTenantSaas\Services\SearchService;
+
+$search = app(SearchService::class);
+
+// Direct search
+$results = $search->search(User::query(), 'keyword', ['name', 'email'])->get();
+
+// With pagination
+$results = $search->searchModels(User::class, 'keyword', ['name', 'email'], 20);
+
+// FULLTEXT (MySQL only, falls back to LIKE)
+$results = $search->fulltext(User::query(), 'keyword', ['name', 'email'])->get();
+```
+
+**Searchable trait (recommended):**
+
+```php
+use MultiTenantSaas\Concerns\Searchable;
+
+class User extends Model
+{
+    use Searchable;
+    protected array $searchable = ['name', 'email', 'phone'];
+}
+
+// Usage
+$users = User::search('keyword')->paginate();
+```
+
+**Config:** `config/tenancy.php` → `search.backend` (like/fulltext), `search.per_page`.
+
 ### Scheduler
 
 Centralized task scheduling via `SchedulerService`. All scheduled tasks are registered in `routes/console.php`.

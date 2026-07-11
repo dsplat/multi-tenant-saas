@@ -37,6 +37,7 @@ use MultiTenantSaas\Services\ModuleBootstrapper;
 use MultiTenantSaas\Services\ModuleManager;
 use MultiTenantSaas\Services\ModuleRegistry;
 use MultiTenantSaas\Services\SchedulerService;
+use MultiTenantSaas\Services\SearchService;
 
 /**
  * 核心 ServiceProvider
@@ -62,6 +63,7 @@ class TenancyServiceProvider extends ServiceProvider
         $this->app->singleton(ModuleBootstrapper::class);
         $this->app->singleton(SchedulerService::class);
         $this->app->singleton(MailerService::class);
+        $this->app->singleton(SearchService::class);
 
         // 框架根基
         $this->app->singleton(IdGeneratorContract::class, function () {

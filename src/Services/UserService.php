@@ -28,12 +28,7 @@ class UserService
 
         // 搜索（name 或 email）
         if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
-            });
+            $query->search($filters['search']);
         }
 
         // 按角色筛选

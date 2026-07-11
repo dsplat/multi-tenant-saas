@@ -275,6 +275,12 @@ return [
         ],
     ],
 
+    // 搜索配置
+    'search' => [
+        'backend' => env('TENANCY_SEARCH_BACKEND', 'like'),
+        'per_page' => 15,
+    ],
+
     // 定时任务开关 (key = 任务名, value = true/false)
     'scheduler' => [
         'subscriptions' => true,

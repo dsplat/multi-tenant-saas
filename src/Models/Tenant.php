@@ -11,13 +11,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\Searchable;
 
 /**
  * 租户模型
  */
 class Tenant extends Model
 {
-    use HasFactory, HasGlobalId, SoftDeletes;
+    use HasFactory, HasGlobalId, Searchable, SoftDeletes;
+
+    protected array $searchable = ['name', 'slug', 'contact_email'];
 
     /**
      * 工厂类位于 Database\Factories 命名空间，而非 HasFactory 默认查找的路径
@@ -191,18 +194,6 @@ class Tenant extends Model
     public function scopeByPlan(Builder $query, string $plan): Builder
     {
         return $query->where('subscription_plan', $plan);
-    }
-
-    /**
-     * Scope: 搜索租户（按名称或标识）
-     */
-    public function scopeSearch(Builder $query, string $keyword): Builder
-    {
-        return $query->where(function ($q) use ($keyword) {
-            $q->where('name', 'like', "%{$keyword}%")
-                ->orWhere('slug', 'like', "%{$keyword}%")
-                ->orWhere('contact_email', 'like', "%{$keyword}%");
-        });
     }
 
     /**

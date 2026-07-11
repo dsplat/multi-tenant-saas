@@ -5,8 +5,11 @@ namespace MultiTenantSaas\Services;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use MultiTenantSaas\Mail\TenantInvitationMail;
+use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
 
@@ -107,8 +110,23 @@ class TenantMemberService
                 ]);
             }
 
-            // TODO: 发送邀请邮件
-            // Mail::to($email)->send(new TenantInvitationMail(...));
+            // 发送邀请邮件
+            try {
+                $tenant = Tenant::find($tenantId);
+                $inviter = User::find($invitedBy);
+                Mail::to($email)->send(new TenantInvitationMail(
+                    email: $email,
+                    tenantName: $tenant?->name ?? '',
+                    inviterName: $inviter?->name ?? 'System',
+                    inviteUrl: url("/invite?tenant={$tenantId}&email=" . urlencode($email)),
+                    role: $role,
+                ));
+            } catch (\Throwable $e) {
+                Log::warning('[TenantMemberService] Failed to send invitation email', [
+                    'email' => $email,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             DB::commit();
 

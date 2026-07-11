@@ -6,6 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use MultiTenantSaas\Services\MailTemplateService;
 
 class SubscriptionExpiringNotification extends Notification implements ShouldQueue
 {
@@ -25,6 +26,22 @@ class SubscriptionExpiringNotification extends Notification implements ShouldQue
 
     public function toMail(object $notifiable): MailMessage
     {
+        $templateService = app(MailTemplateService::class);
+        $rendered = $templateService->render('notification', [
+            'user_name' => $notifiable->name,
+            'tenant_name' => $this->tenantName,
+            'plan_name' => $this->planName,
+            'expires_at' => $this->expiresAt,
+            'days_left' => $this->daysLeft,
+        ]);
+
+        if ($rendered) {
+            return (new MailMessage)
+                ->subject($rendered['subject'])
+                ->line($rendered['text'] ?? strip_tags($rendered['html']))
+                ->action('续费订阅', url('/console/subscription'));
+        }
+
         return (new MailMessage)
             ->subject("订阅即将过期 - {$this->tenantName}")
             ->line("您所在的租户「{$this->tenantName}」的{$this->planName}套餐订阅将在 {$this->daysLeft} 天后过期。")

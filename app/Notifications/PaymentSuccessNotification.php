@@ -6,6 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use MultiTenantSaas\Services\MailTemplateService;
 
 class PaymentSuccessNotification extends Notification implements ShouldQueue
 {
@@ -24,6 +25,21 @@ class PaymentSuccessNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
+        $templateService = app(MailTemplateService::class);
+        $rendered = $templateService->render('billing', [
+            'user_name' => $notifiable->name,
+            'order_no' => $this->orderNo,
+            'amount' => number_format($this->amount / 100, 2),
+            'payment_method' => $this->paymentMethod,
+        ]);
+
+        if ($rendered) {
+            return (new MailMessage)
+                ->subject($rendered['subject'])
+                ->line($rendered['text'] ?? strip_tags($rendered['html']))
+                ->action('查看订单', url('/console/billing/orders'));
+        }
+
         return (new MailMessage)
             ->subject('支付成功通知')
             ->line("您的订单 {$this->orderNo} 支付成功。")

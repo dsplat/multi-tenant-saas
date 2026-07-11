@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use MultiTenantSaas\Console\Commands\CheckTenantIsolation;
+use MultiTenantSaas\Console\Commands\MailerHealthCheckCommand;
 use MultiTenantSaas\Console\Commands\MemoryCleanupCommand;
 use MultiTenantSaas\Console\Commands\MemoryDecayCommand;
 use MultiTenantSaas\Console\Commands\MigrateAgentToolsToWorkflows;
@@ -107,6 +108,7 @@ class TenancyServiceProvider extends ServiceProvider
                 ProcessSmsBatch::class,
                 ProcessScheduledReports::class,
                 ScheduleListCommand::class,
+                MailerHealthCheckCommand::class,
             ]);
         }
 

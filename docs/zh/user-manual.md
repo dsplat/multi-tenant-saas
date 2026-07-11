@@ -132,7 +132,65 @@ Auto-records key operations, custom audit events, tenant-isolated queries.
 - Rate limiting: configurable API throttle rules
 - Export tasks: Excel/PDF async export
 - Payment security: payment password + logs
+
+### Mailer Service
+
+Centralized email sending via `MailerService`. All emails go through `TenantMail` for template rendering + branding injection.
+
+```php
+use MultiTenantSaas\Services\MailerService;
+
+$mailer = app(MailerService::class);
+
+// Template-driven (recommended)
+$mailer->sendTemplate('user@example.com', 'welcome_registration', [
+    'user_name' => 'John',
+    'platform_name' => 'MyApp',
+]);
+
+// Direct HTML
+$mailer->sendRaw('user@example.com', 'Subject', '<p>Content</p>');
+
+// MFA code
+$mailer->sendMfaCode('user@example.com', '123456');
+
+// Test email
+$mailer->sendTest('admin@example.com');
+```
+
+**Template system:** 6 preset templates (welcome, reset, billing, notification) stored in `mail_templates` table. Tenant-specific overrides with system default fallback. Variable substitution via `{{variable_name}}`.
+
+**Branding:** `TenantMail` auto-injects tenant logo, brand colors, platform name.
+
+**Scheduled check:** `mailer:health-check` runs daily at 05:00.
+
+**Config:** `config/tenancy.php` → `mail_templates.default_from_address`, `mail_templates.default_from_name`.
 - Swagger/OpenAPI: auto-generated API docs
+
+### Scheduler
+
+Centralized task scheduling via `SchedulerService`. All scheduled tasks are registered in `routes/console.php`.
+
+```bash
+# View all scheduled tasks
+php artisan schedule:list
+
+# Run scheduler (production)
+php artisan schedule:run
+```
+
+| Task | Command | Schedule | Description |
+|------|---------|----------|-------------|
+| subscriptions | `subscriptions:process` | Daily 08:00 | Subscription expiry, auto-renew, dunning |
+| credits | `credits:process-expiry` | Daily 00:30 | Credit expiry, low balance alerts |
+| retention | `data:retention` | Daily 03:00 | GDPR data cleanup |
+| sms-batch | `sms:process-batch` | Every 15min | Scheduled SMS batch tasks |
+| reports | `reports:send-scheduled` | Hourly | Scheduled report delivery |
+| memory-cleanup | `memory:cleanup` | Daily 04:00 | Memory data cleanup |
+| memory-decay | `memory:decay` | Daily 04:30 | Memory decay processing |
+| mailer-health | `mailer:health-check` | Daily 05:00 | Mail service health check |
+
+**Disable a task:** In `config/tenancy.php` → `scheduler` array, set task name to `false`.
 
 ---
 

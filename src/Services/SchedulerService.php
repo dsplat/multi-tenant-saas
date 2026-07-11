@@ -91,6 +91,12 @@ class SchedulerService
             'schedule' => 'dailyAt:04:30',
             'description' => '执行内存衰减处理',
         ]);
+
+        $this->addTask($schedule, 'mailer-health', [
+            'command' => 'mailer:health-check',
+            'schedule' => 'dailyAt:05:00',
+            'description' => '检查邮件服务健康状态',
+        ]);
     }
 
     /**

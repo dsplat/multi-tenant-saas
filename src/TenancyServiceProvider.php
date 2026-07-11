@@ -31,6 +31,7 @@ use MultiTenantSaas\Events\UserRegistered;
 use MultiTenantSaas\Listeners\LogEventListener;
 use MultiTenantSaas\Services\HealthService;
 use MultiTenantSaas\Services\IdGenerator;
+use MultiTenantSaas\Services\MailerService;
 use MultiTenantSaas\Services\ModuleBootstrapper;
 use MultiTenantSaas\Services\ModuleManager;
 use MultiTenantSaas\Services\ModuleRegistry;
@@ -59,6 +60,7 @@ class TenancyServiceProvider extends ServiceProvider
         $this->app->singleton(ModuleManager::class);
         $this->app->singleton(ModuleBootstrapper::class);
         $this->app->singleton(SchedulerService::class);
+        $this->app->singleton(MailerService::class);
 
         // 框架根基
         $this->app->singleton(IdGeneratorContract::class, function () {

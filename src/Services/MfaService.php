@@ -4,7 +4,6 @@ namespace MultiTenantSaas\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Mail;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Models\MfaDevice;
@@ -120,9 +119,7 @@ class MfaService
         $user = User::find($userId);
 
         if ($user && $user->email) {
-            Mail::raw(trans('auth.mfa_email_body', ['code' => $code]), function ($message) use ($user) {
-                $message->to($user->email)->subject(trans('auth.mfa_email_subject'));
-            });
+            app(MailerService::class)->sendMfaCode($user->email, $code);
         }
 
         return $code;

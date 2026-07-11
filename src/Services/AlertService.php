@@ -269,11 +269,24 @@ class AlertService
     }
 
     /**
-     * 邮件通知（暂用 Log 占位，避免依赖 mail driver）
+     * 邮件通知
      */
     protected function sendEmail(string $severity, string $ruleName, string $message, array $context): void
     {
-        Log::info("[AlertEmail] [{$severity}] {$ruleName}: {$message}", $context);
+        $to = config('tenancy.alerts.email_recipient', config('tenancy.mail_templates.default_from_address'));
+        if (empty($to)) {
+            Log::info("[AlertEmail] [{$severity}] {$ruleName}: {$message} (no recipient configured)", $context);
+
+            return;
+        }
+
+        $subject = "[{$severity}] 告警: {$ruleName}";
+        $html = "<p><strong>{$ruleName}</strong></p><p>{$message}</p>";
+        if (! empty($context)) {
+            $html .= '<pre>' . e(json_encode($context, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) . '</pre>';
+        }
+
+        app(MailerService::class)->sendRaw($to, $subject, $html);
     }
 
     /**

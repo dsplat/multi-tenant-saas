@@ -3,7 +3,6 @@
 namespace MultiTenantSaas\Services;
 
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use MultiTenantSaas\Models\SystemSetting;
@@ -223,10 +222,7 @@ class SystemSettingService
     public function testMailConnection(string $testEmail): array
     {
         try {
-            Mail::raw('这是一封测试邮件，用于验证邮件服务配置是否正确。', function ($message) use ($testEmail) {
-                $message->to($testEmail)
-                    ->subject('邮件服务测试');
-            });
+            app(MailerService::class)->sendTest($testEmail);
 
             return [
                 'success' => true,

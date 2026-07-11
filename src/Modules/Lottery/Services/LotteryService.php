@@ -9,6 +9,7 @@ use MultiTenantSaas\Modules\Lottery\Models\LotteryActivity;
 use MultiTenantSaas\Modules\Lottery\Models\LotteryActivityPrize;
 use MultiTenantSaas\Modules\Lottery\Models\LotteryBlacklist;
 use MultiTenantSaas\Modules\Lottery\Models\LotteryDrawLog;
+use MultiTenantSaas\Services\AuditService;
 
 /**
  * 抽奖服务

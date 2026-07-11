@@ -48,7 +48,7 @@ class FormController extends Controller
             'keyword' => $request->query('keyword'),
         ]);
 
-        $forms = $this->formService->getForms($tenantId, $filters, $request->query('per_page'));
+        $forms = $this->formService->getForms($tenantId, $filters, $request->integer('per_page') ?: null);
 
         return response()->json(['success' => true, 'data' => $forms]);
     }
@@ -206,6 +206,7 @@ class FormController extends Controller
                 $formId,
                 $data['data'],
                 $request->user()?->user_id,
+                $request->attributes->get('tenant_id'),
             );
 
             return response()->json([
@@ -236,7 +237,7 @@ class FormController extends Controller
             'end_date' => $request->query('end_date'),
         ]);
 
-        $submissions = $this->formService->getSubmissions($formId, $filters, $request->query('per_page'));
+        $submissions = $this->formService->getSubmissions($formId, $filters, $request->integer('per_page') ?: null);
 
         return response()->json(['success' => true, 'data' => $submissions]);
     }

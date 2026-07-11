@@ -410,7 +410,7 @@ class AgentController extends Controller
     public function updateModelConfig(UpdateModelConfigRequest $request, int $agentId): JsonResponse
     {
         try {
-            $this->agentService->updateModelConfig($agentId, $request->validated());
+            $this->agentService->updateModelConfig($agentId, $request->validated('model_config'));
         } catch (\Exception $e) {
             return $this->handleServiceException($e);
         }

@@ -41,8 +41,8 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => trans('auth.invalid_credentials')], 401);
         }
 
-        if ($this->passwordPolicy->isLocked($user->user_id)) {
-            $remaining = $this->passwordPolicy->getLockRemaining($user->user_id);
+        if ($this->passwordPolicy->isLocked($user)) {
+            $remaining = $this->passwordPolicy->getLockRemainingSeconds($user);
 
             return response()->json([
                 'success' => false,
@@ -55,7 +55,7 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => trans('auth.account_disabled')], 403);
         }
 
-        $this->passwordPolicy->recordSuccessfulLogin($user->user_id);
+        $this->passwordPolicy->recordSuccessfulLogin($user);
 
         // MFA 检查
         if ($this->mfaService->hasMfaEnabled($user->user_id)) {

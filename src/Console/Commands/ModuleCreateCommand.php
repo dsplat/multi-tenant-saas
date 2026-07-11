@@ -432,7 +432,25 @@ class {$studly}ServiceProvider extends ModuleServiceProvider
 
     protected function bootModule(): void
     {
-        //
+        \$this->loadAdminTenantRoutes();
+    }
+
+    protected function loadAdminTenantRoutes(): void
+    {
+        if (\$this->app->routesAreCached()) {
+            return;
+        }
+
+        \$moduleDir = dirname((new \ReflectionClass(\$this))->getFileName());
+
+        foreach (['admin.php', 'tenant.php'] as \$file) {
+            \$path = \$moduleDir . '/routes/' . \$file;
+            if (file_exists(\$path)) {
+                \\Illuminate\\Support\\Facades\\Route::middleware(['auth:sanctum', 'throttle:api'])
+                    ->prefix('api/v1')
+                    ->group(\$path);
+            }
+        }
     }
 
     protected function registerModuleCommands(): void
@@ -471,22 +489,36 @@ PHP;
         $adminStub = <<<PHP
 <?php
 
-// ========== {$name} 系统管理路由 ==========
-// Route::get('/config', [AdminController::class, 'config']);
-// Route::put('/config', [AdminController::class, 'updateConfig']);
+use Illuminate\Support\Facades\Route;
+
+// ========== {$name} Admin 路由 (系统级管理) ==========
+// Route::prefix('admin/{$name}')->group(function () {
+//     Route::get('/', [{$name}Controller::class, 'index']);
+//     Route::post('/', [{$name}Controller::class, 'store']);
+//     Route::get('/{id}', [{$name}Controller::class, 'show']);
+//     Route::put('/{id}', [{$name}Controller::class, 'update']);
+//     Route::delete('/{id}', [{$name}Controller::class, 'destroy']);
+// });
 
 PHP;
 
         $tenantStub = <<<PHP
 <?php
 
-// ========== {$name} 租户管理路由 ==========
-// Route::prefix('/tenants/{tenantId}/{$name}')->group(function () {
-//     Route::get('/settings', [TenantController::class, 'settings']);
-//     Route::put('/settings', [TenantController::class, 'updateSettings']);
+use Illuminate\Support\Facades\Route;
+
+// ========== {$name} Tenant 路由 (租户级操作) ==========
+// Route::prefix('tenant/{$name}')->group(function () {
+//     Route::get('/', [{$name}Controller::class, 'index']);
+//     Route::post('/', [{$name}Controller::class, 'store']);
+//     Route::get('/{id}', [{$name}Controller::class, 'show']);
+//     Route::put('/{id}', [{$name}Controller::class, 'update']);
+//     Route::delete('/{id}', [{$name}Controller::class, 'destroy']);
 // });
 
 PHP;
+        //     Route::put('/settings', [TenantController::class, 'updateSettings']);
+        // });
 
         $publicStub = <<<PHP
 <?php

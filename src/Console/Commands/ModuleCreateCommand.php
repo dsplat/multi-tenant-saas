@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
  *   2. 注册到 Packagist
  *   3. 添加 Packagist webhook
  *   4. 添加到 .github/workflows/split.yml matrix
- *   5. 添加到根 composer.json require
+ *   5. 添加到根 composer.json require-dev
  */
 class ModuleCreateCommand extends Command
 {
@@ -315,7 +315,7 @@ class ModuleCreateCommand extends Command
         $this->line('下一步 (开发):');
         $this->line("  1. 编辑 src/Modules/{$studly}/composer.json 的 extra.saas");
         $this->line('  2. 在 ServiceProvider 中注册服务绑定');
-        $this->line('  3. 在 Routes/api.php 中定义路由');
+        $this->line('  3. 在 routes/api.php 中定义路由');
         $this->line('  4. composer update && php artisan module:list');
         $this->newLine();
         $this->line('发布到 Packagist (用 --publish 自动完成):');
@@ -334,10 +334,11 @@ class ModuleCreateCommand extends Command
             'Http/Resources',
             'Config',
             'Database/migrations',
-            'Routes',
+            'routes',
             'Console/Commands',
             'Events',
             'Listeners',
+            'Notifications',
             'Policies',
             'resources/views',
             'resources/lang',

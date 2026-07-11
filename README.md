@@ -83,8 +83,58 @@ Each module is an independent Composer package on Packagist. Push to `main` trig
 | `dsplat/multi-tenant-saas-module-{name}` | 22 independent modules |
 
 **Module types:**
-- **Self-contained** (9): Ai, ApiToken, Conversation, Coupon, Form, Lottery, Sms, Voting, Workflow — have Controllers, Routes, Models in module directory
-- **Thin wrappers** (13): Billing, Auth, Infrastructure, etc. — ServiceProvider only, business logic lives in core package
+- **Self-contained** (10): Ai, ApiToken, Auth, Conversation, Coupon, Form, Lottery, Sms, Voting, Workflow — have Controllers, Routes, Models in module directory
+- **Thin wrappers** (12): Billing, Infrastructure, etc. — ServiceProvider only, business logic lives in core package
+
+### Framework Architecture
+
+```
+dsplat/multi-tenant-saas (core package, type: library)
+│
+├── src/                          ← 框架库 (library layer)
+│   ├── Concerns/                 # 共享 Traits: BelongsToTenant, HasGlobalId, Searchable
+│   ├── Context/                  # TenantContext 租户上下文
+│   ├── Contracts/                # 接口定义 (18 个)
+│   ├── Events/                   # 框架事件
+│   ├── Exceptions/               # 异常类
+│   ├── Helpers/                  # 辅助函数 (tenant_id(), generate_id())
+│   ├── Http/                     # 核心中间件
+│   ├── Jobs/                     # 队列任务
+│   ├── Mail/                     # 邮件类 (TenantMail, PasswordResetMail)
+│   ├── Models/                   # 核心模型 (User, Tenant, TenantUser...)
+│   ├── Modules/                  # 22 个功能模块 (独立 Composer 包)
+│   │   ├── Contracts/            # ModuleServiceProvider 基类
+│   │   ├── Auth/                 # 认证模块 (Controller + Route + Service)
+│   │   ├── Ai/                   # AI 模块 (Agent + MCP + 能力引擎)
+│   │   ├── Billing/              # 计费模块 (薄包装, 只有 Service)
+│   │   └── ...                   # 其他 19 个模块
+│   └── Services/                 # 核心服务 (94 个)
+│
+├── app/                          ← 项目骨架 (skeleton layer)
+│   ├── Http/Controllers/Api/     # API 控制器 (调用框架 Services)
+│   ├── Http/Resources/           # API 响应格式化
+│   ├── Http/Requests/            # 表单验证规则
+│   └── Exceptions/               # 异常处理
+│
+├── config/                       # 配置文件
+├── database/                     # 迁移和种子
+├── routes/                       # 路由定义
+└── tests/                        # 测试 (2313 tests, 5751 assertions)
+```
+
+**两层架构：**
+- `src/` = 框架库，包含所有业务逻辑、模型、服务、模块
+- `app/` = 项目骨架，包含 HTTP 接口层（控制器、资源、请求验证）
+
+**模块独立安装：**
+```bash
+composer require dsplat/multi-tenant-saas-module-billing  # 按需安装
+composer require dsplat/multi-tenant-saas-module-ai        # 独立包
+```
+
+**模块类型：**
+- 自包含模块：Controller + Route + Model + Service（开箱即用）
+- 薄包装模块：只有 Service（项目层按需调用）
 
 ### Common Pitfalls
 

@@ -29,7 +29,7 @@ class AuthControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson(['success' => true])
-            ->assertJsonStructure(['data' => ['token', 'user']]);
+            ->assertJsonStructure(['data' => ['auth_token', 'user']]);
     }
 
     public function test_login_invalid_credentials(): void

@@ -3,12 +3,12 @@
 namespace MultiTenantSaas\Modules\Ai\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\ToolLogResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Contracts\AgentMonitorContract;
 use MultiTenantSaas\Contracts\AgentServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Modules\Ai\Http\Resources\ToolLogResource;
 use MultiTenantSaas\Modules\Ai\Models\AgentToolLog;
 
 /**

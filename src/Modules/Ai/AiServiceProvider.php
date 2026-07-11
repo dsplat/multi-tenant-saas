@@ -3,7 +3,6 @@
 namespace MultiTenantSaas\Modules\Ai;
 
 use Illuminate\Contracts\Container\Container;
-use Illuminate\Support\Facades\Route;
 use Laravel\Ai\Contracts\ConversationStore;
 use MultiTenantSaas\Contracts\AgentMonitorContract;
 use MultiTenantSaas\Contracts\AgentRuntimeContract;
@@ -68,15 +67,6 @@ class AiServiceProvider extends ModuleServiceProvider
     protected function bootModule(): void
     {
         McpRouteMacro::register();
-
-        if (! $this->app->routesAreCached()) {
-            $routeFile = $this->getModulePath('routes/api.php');
-            if ($routeFile && file_exists($routeFile)) {
-                Route::middleware(['auth:sanctum', 'throttle:api'])
-                    ->prefix('api/v1')
-                    ->group($routeFile);
-            }
-        }
     }
 
     protected function registerModuleBindings(): void

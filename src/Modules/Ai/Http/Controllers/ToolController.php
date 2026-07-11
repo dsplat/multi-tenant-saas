@@ -3,13 +3,13 @@
 namespace MultiTenantSaas\Modules\Ai\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Agent\RegisterToolRequest;
-use App\Http\Requests\Agent\UpdateToolRequest;
-use App\Http\Resources\ToolResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
+use MultiTenantSaas\Modules\Ai\Http\Requests\RegisterToolRequest;
+use MultiTenantSaas\Modules\Ai\Http\Requests\UpdateToolRequest;
+use MultiTenantSaas\Modules\Ai\Http\Resources\ToolResource;
 use MultiTenantSaas\Modules\Ai\Models\AgentTool;
 use MultiTenantSaas\Scopes\TenantScope;
 

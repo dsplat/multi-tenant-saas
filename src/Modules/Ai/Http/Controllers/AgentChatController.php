@@ -3,10 +3,6 @@
 namespace MultiTenantSaas\Modules\Ai\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Agent\SendMessageRequest;
-use App\Http\Requests\Agent\StartChatRequest;
-use App\Http\Resources\ConversationResource;
-use App\Http\Resources\MessageResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\StreamedResponse;
@@ -14,9 +10,13 @@ use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\AgentRuntimeContract;
 use MultiTenantSaas\Contracts\AgentServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Modules\Ai\Http\Requests\SendMessageRequest;
+use MultiTenantSaas\Modules\Ai\Http\Requests\StartChatRequest;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversationMessage;
 use MultiTenantSaas\Modules\Ai\Services\Ai\StreamChunk;
+use MultiTenantSaas\Modules\Conversation\Http\Resources\ConversationResource;
+use MultiTenantSaas\Modules\Conversation\Http\Resources\MessageResource;
 
 /**
  * @OA\Tag(

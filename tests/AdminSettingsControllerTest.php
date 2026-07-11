@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use App\Http\Controllers\Api\AdminSettingsController;
+use MultiTenantSaas\Modules\Platform\Http\Controllers\AdminSettingsController;
 
 class AdminSettingsControllerTest extends TestCase
 {

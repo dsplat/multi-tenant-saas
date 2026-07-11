@@ -2,7 +2,6 @@
 
 namespace MultiTenantSaas\Tests;
 
-use App\Http\Resources\UserResource;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -10,6 +9,7 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\User\Http\Resources\UserResource;
 
 /**
  * 安全测试（OWASP Top 10）

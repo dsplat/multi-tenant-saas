@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use App\Http\Controllers\Api\TenantMemberController;
+use MultiTenantSaas\Modules\User\Http\Controllers\TenantMemberController;
 
 class TenantMemberControllerTest extends TestCase
 {

@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use App\Http\Controllers\Api\TenantSslController;
+use MultiTenantSaas\Modules\SSL\Http\Controllers\TenantSslController;
 
 class TenantSslControllerTest extends TestCase
 {

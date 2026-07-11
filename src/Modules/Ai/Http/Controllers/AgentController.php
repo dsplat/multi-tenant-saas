@@ -3,18 +3,18 @@
 namespace MultiTenantSaas\Modules\Ai\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Agent\CloneTemplateRequest;
-use App\Http\Requests\Agent\CreateAgentRequest;
-use App\Http\Requests\Agent\UpdateAgentRequest;
-use App\Http\Requests\Agent\UpdateKnowledgeBasesRequest;
-use App\Http\Requests\Agent\UpdateModelConfigRequest;
-use App\Http\Requests\Agent\UpdateToolsRequest;
-use App\Http\Resources\AgentResource;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Contracts\AgentServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Modules\Ai\Http\Requests\CloneTemplateRequest;
+use MultiTenantSaas\Modules\Ai\Http\Requests\CreateAgentRequest;
+use MultiTenantSaas\Modules\Ai\Http\Requests\UpdateAgentRequest;
+use MultiTenantSaas\Modules\Ai\Http\Requests\UpdateKnowledgeBasesRequest;
+use MultiTenantSaas\Modules\Ai\Http\Requests\UpdateModelConfigRequest;
+use MultiTenantSaas\Modules\Ai\Http\Requests\UpdateToolsRequest;
+use MultiTenantSaas\Modules\Ai\Http\Resources\AgentResource;
 
 /**
  * @OA\Tag(

@@ -1,0 +1,28 @@
+{
+    "name": "dsplat/multi-tenant-saas-module-storage",
+    "version": "1.0.0",
+    "description": "文件存储 - 上传、下载、分享、配额管理",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.3",
+        "dsplat/multi-tenant-saas": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\Storage\\": ""
+        }
+    },
+    "extra": {
+        "saas": {
+            "name": "storage",
+            "priority": 25,
+            "dependencies": [],
+            "conflicts": [],
+            "requires_core": ">=2.0.0",
+            "provider": "MultiTenantSaas\\Modules\\Storage\\StorageServiceProvider",
+            "tenant_toggleable": false,
+            "default_enabled": true
+        }
+    }
+}

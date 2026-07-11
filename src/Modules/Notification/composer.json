@@ -1,0 +1,28 @@
+{
+    "name": "dsplat/multi-tenant-saas-module-notification",
+    "version": "1.0.0",
+    "description": "通知中心 - 站内通知、已读状态、偏好设置",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.3",
+        "dsplat/multi-tenant-saas": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\Notification\\": ""
+        }
+    },
+    "extra": {
+        "saas": {
+            "name": "notification",
+            "priority": 30,
+            "dependencies": [],
+            "conflicts": [],
+            "requires_core": ">=2.0.0",
+            "provider": "MultiTenantSaas\\Modules\\Notification\\NotificationServiceProvider",
+            "tenant_toggleable": false,
+            "default_enabled": true
+        }
+    }
+}

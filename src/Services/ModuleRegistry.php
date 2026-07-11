@@ -18,6 +18,14 @@ class ModuleRegistry
     /** @var string[] 额外扫描路径 (如 vendor/dsplat/multi-tenant-saas-module-*) */
     protected array $vendorPaths;
 
+    /**
+     * @param  string|null  $modulePath  模块目录路径
+     * @param  string[]|null  $vendorPaths  额外扫描路径
+     *
+     * 注意：不要使用 base_path() 定位模块目录！
+     * Orchestra Testbench 中 base_path() 指向临时目录，会导致模块发现失败。
+     * 使用 dirname(__DIR__) 获取框架真实路径，或传入绝对路径。
+     */
     public function __construct(?string $modulePath = null, ?array $vendorPaths = null)
     {
         $this->modulePath = $modulePath ?? dirname(__DIR__) . '/Modules';

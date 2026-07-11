@@ -86,6 +86,10 @@ Each module is an independent Composer package on Packagist. Push to `main` trig
 - **Self-contained** (9): Ai, ApiToken, Conversation, Coupon, Form, Lottery, Sms, Voting, Workflow — have Controllers, Routes, Models in module directory
 - **Thin wrappers** (13): Billing, Auth, Infrastructure, etc. — ServiceProvider only, business logic lives in core package
 
+### Common Pitfalls
+
+**`base_path()` in Orchestra Testbench:** `base_path()` points to a temp directory during tests, not the real project root. Use `dirname(__DIR__)` or absolute paths when locating modules/services. This affects any code that scans `src/Modules/` or `vendor/` for module discovery.
+
 ---
 
 ## Architecture

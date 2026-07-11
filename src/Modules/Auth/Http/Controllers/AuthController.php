@@ -313,6 +313,71 @@ class AuthController extends Controller
         return $this->createTokenResponse($user, $request);
     }
 
+    /**
+     * SAML SP 元数据。
+     */
+    public function samlMetadata(Request $request): JsonResponse
+    {
+        $ssoService = app(SsoService::class);
+        $spEntityId = url('/api/v1/sso/saml/metadata');
+        $acsUrl = url('/api/v1/sso/saml/callback');
+        $metadata = $ssoService->buildSpMetadata($spEntityId, $acsUrl);
+
+        return response($metadata)->header('Content-Type', 'application/xml');
+    }
+
+    /**
+     * 列出租户 SSO 提供方。
+     */
+    public function ssoProviders(Request $request, int $tenantId): JsonResponse
+    {
+        $ssoService = app(SsoService::class);
+        $providers = $ssoService->listProviders($tenantId);
+
+        return response()->json(['success' => true, 'data' => $providers]);
+    }
+
+    /**
+     * 创建/更新 SSO 提供方。
+     */
+    public function storeSsoProvider(Request $request, int $tenantId): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => 'required|string',
+            'type' => 'required|string|in:saml,oidc',
+            'config' => 'required|array',
+        ]);
+
+        $data['tenant_id'] = $tenantId;
+        $ssoService = app(SsoService::class);
+
+        $existing = $ssoService->getProvider($tenantId, $data['name']);
+        if ($existing) {
+            $ssoService->updateProvider($existing->sso_provider_id, $data);
+        } else {
+            $ssoService->createProvider($data);
+        }
+
+        return response()->json(['success' => true, 'message' => trans('common.updated')]);
+    }
+
+    /**
+     * 删除 SSO 提供方。
+     */
+    public function destroySsoProvider(Request $request, int $tenantId, string $name): JsonResponse
+    {
+        $ssoService = app(SsoService::class);
+        $provider = $ssoService->getProvider($tenantId, $name);
+
+        if (! $provider) {
+            return response()->json(['success' => false, 'message' => trans('auth.sso_provider_not_found')], 404);
+        }
+
+        $ssoService->deleteProvider($provider->sso_provider_id);
+
+        return response()->json(['success' => true, 'message' => trans('common.deleted')]);
+    }
+
     protected function createTokenResponse(User $user, Request $request): JsonResponse
     {
         $newToken = $user->createToken('auth_token');

@@ -15,6 +15,9 @@ use MultiTenantSaas\Console\Commands\ModuleDisableCommand;
 use MultiTenantSaas\Console\Commands\ModuleEnableCommand;
 use MultiTenantSaas\Console\Commands\ModuleListCommand;
 use MultiTenantSaas\Console\Commands\ModuleRequireCommand;
+use MultiTenantSaas\Console\Commands\ProcessScheduledReports;
+use MultiTenantSaas\Console\Commands\ProcessSmsBatch;
+use MultiTenantSaas\Console\Commands\ScheduleListCommand;
 use MultiTenantSaas\Console\Commands\TenancyInitCommand;
 use MultiTenantSaas\Context\TenantConfigStore;
 use MultiTenantSaas\Context\TenantContext;
@@ -31,6 +34,7 @@ use MultiTenantSaas\Services\IdGenerator;
 use MultiTenantSaas\Services\ModuleBootstrapper;
 use MultiTenantSaas\Services\ModuleManager;
 use MultiTenantSaas\Services\ModuleRegistry;
+use MultiTenantSaas\Services\SchedulerService;
 
 /**
  * 核心 ServiceProvider
@@ -54,6 +58,7 @@ class TenancyServiceProvider extends ServiceProvider
         $this->app->singleton(ModuleRegistry::class);
         $this->app->singleton(ModuleManager::class);
         $this->app->singleton(ModuleBootstrapper::class);
+        $this->app->singleton(SchedulerService::class);
 
         // 框架根基
         $this->app->singleton(IdGeneratorContract::class, function () {
@@ -97,6 +102,9 @@ class TenancyServiceProvider extends ServiceProvider
                 TenancyInitCommand::class,
                 ModuleRequireCommand::class,
                 ModuleCreateCommand::class,
+                ProcessSmsBatch::class,
+                ProcessScheduledReports::class,
+                ScheduleListCommand::class,
             ]);
         }
 

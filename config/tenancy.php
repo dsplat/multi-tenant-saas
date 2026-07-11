@@ -275,6 +275,17 @@ return [
         ],
     ],
 
+    // 定时任务开关 (key = 任务名, value = true/false)
+    'scheduler' => [
+        'subscriptions' => true,
+        'credits' => true,
+        'retention' => true,
+        'sms-batch' => true,
+        'reports' => true,
+        'memory-cleanup' => true,
+        'memory-decay' => true,
+    ],
+
     // Packagist 发布配置 (用于 module:create --publish)
     'packagist' => [
         'user' => env('PACKAGIST_USER', ''),

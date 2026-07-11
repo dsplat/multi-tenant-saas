@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use MultiTenantSaas\Events\UserLoggedIn;
 use MultiTenantSaas\Events\UserRegistered;
 use MultiTenantSaas\Jobs\SendEmailVerificationJob;
@@ -106,13 +107,26 @@ class AuthController extends Controller
 
         event(new UserRegistered($user, $tenantId));
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $newToken = $user->createToken('auth_token');
+        $token = $newToken->plainTextToken;
+        $tokenId = $newToken->accessToken->id;
+
+        $this->sessionService->recordSession(
+            $user->user_id,
+            $tokenId,
+            $request->ip(),
+            $request->userAgent()
+        );
 
         return response()->json([
             'success' => true,
             'data' => [
-                'token' => $token,
                 'user' => $this->userToArray($user),
+                'tenant_id' => $tenantId,
+                'auth_token' => $token,
+                'refresh_token' => Str::random(60),
+                'auth_token_expires_in' => 1800,
+                'refresh_token_expires_in' => 604800,
             ],
         ], 201);
     }
@@ -317,8 +331,12 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'token' => $token,
                 'user' => $this->userToArray($user),
+                'tenant_id' => $request->attributes->get('tenant_id'),
+                'auth_token' => $token,
+                'refresh_token' => Str::random(60),
+                'auth_token_expires_in' => 1800,
+                'refresh_token_expires_in' => 604800,
             ],
         ]);
     }

@@ -36,11 +36,11 @@ return new class extends Migration
             $table->string('agent')->comment('Agent 类名');
             $table->string('role', 25)->comment('消息角色');
             $table->text('content')->comment('消息内容');
-            $table->text('attachments')->default('[]')->comment('附件 JSON');
-            $table->text('tool_calls')->default('[]')->comment('工具调用 JSON');
-            $table->text('tool_results')->default('[]')->comment('工具结果 JSON');
-            $table->text('usage')->default('[]')->comment('Token 用量 JSON');
-            $table->text('meta')->default('[]')->comment('元数据 JSON');
+            $table->json('attachments')->nullable()->comment('附件 JSON');
+            $table->json('tool_calls')->nullable()->comment('工具调用 JSON');
+            $table->json('tool_results')->nullable()->comment('工具结果 JSON');
+            $table->json('usage')->nullable()->comment('Token 用量 JSON');
+            $table->json('meta')->nullable()->comment('元数据 JSON');
             $table->timestamps();
 
             $table->index(['conversation_id', 'user_id', 'updated_at'], 'conversation_index');

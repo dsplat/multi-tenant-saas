@@ -9,11 +9,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tenants', function (Blueprint $table) {
-            $table->unsignedBigInteger('subscription_plan_id')->nullable()->after('subscription_plan');
-            $table->boolean('auto_renew')->default(false)->after('subscription_expires_at');
-            $table->timestamp('trial_ends_at')->nullable()->after('auto_renew');
+            if (! Schema::hasColumn('tenants', 'subscription_plan_id')) {
+                $table->unsignedBigInteger('subscription_plan_id')->nullable()->after('subscription_plan');
+            }
+            if (! Schema::hasColumn('tenants', 'auto_renew')) {
+                $table->boolean('auto_renew')->default(false)->after('subscription_expires_at');
+            }
+            if (! Schema::hasColumn('tenants', 'trial_ends_at')) {
+                $table->timestamp('trial_ends_at')->nullable()->after('auto_renew');
+            }
 
-            $table->foreign('subscription_plan_id')->references('id')->on('subscription_plans')->onDelete('set null');
+            $table->foreign('subscription_plan_id')->references('subscription_plan_id')->on('subscription_plans')->onDelete('set null');
         });
     }
 

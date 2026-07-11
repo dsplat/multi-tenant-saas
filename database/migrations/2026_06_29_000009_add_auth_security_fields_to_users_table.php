@@ -16,9 +16,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->timestamp('password_changed_at')->nullable()->after('password');
-            $table->unsignedInteger('login_attempts')->default(0)->after('password_changed_at');
-            $table->timestamp('locked_until')->nullable()->after('login_attempts');
+            if (! Schema::hasColumn('users', 'password_changed_at')) {
+                $table->timestamp('password_changed_at')->nullable()->after('password');
+            }
+            if (! Schema::hasColumn('users', 'login_attempts')) {
+                $table->unsignedInteger('login_attempts')->default(0)->after('password_changed_at');
+            }
+            if (! Schema::hasColumn('users', 'locked_until')) {
+                $table->timestamp('locked_until')->nullable()->after('login_attempts');
+            }
         });
     }
 

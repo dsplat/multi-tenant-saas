@@ -9,6 +9,12 @@
         "framework"
     ],
     "license": "MIT",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "src/Modules/*"
+        }
+    ],
     "require": {
         "php": "^8.3",
         "barryvdh/laravel-dompdf": "^3.0",
@@ -30,29 +36,7 @@
         "orchestra/testbench": "^11.0",
         "phpunit/phpunit": "^10.5|^11.0",
         "sentry/sentry-laravel": "^4.0",
-        "yansongda/pay": "^3.7",
-        "dsplat/multi-tenant-saas-module-infrastructure": "*",
-        "dsplat/multi-tenant-saas-module-plugin": "*",
-        "dsplat/multi-tenant-saas-module-event": "*",
-        "dsplat/multi-tenant-saas-module-billing": "*",
-        "dsplat/multi-tenant-saas-module-logging": "*",
-        "dsplat/multi-tenant-saas-module-auth": "*",
-        "dsplat/multi-tenant-saas-module-user": "*",
-        "dsplat/multi-tenant-saas-module-monitoring": "*",
-        "dsplat/multi-tenant-saas-module-platform": "*",
-        "dsplat/multi-tenant-saas-module-developer-portal": "*",
-        "dsplat/multi-tenant-saas-module-conversation": "*",
-        "dsplat/multi-tenant-saas-module-workflow": "*",
-        "dsplat/multi-tenant-saas-module-ai": "*",
-        "dsplat/multi-tenant-saas-module-domain": "*",
-        "dsplat/multi-tenant-saas-module-ssl": "*",
-        "dsplat/multi-tenant-saas-module-payment": "*",
-        "dsplat/multi-tenant-saas-module-api-token": "*",
-        "dsplat/multi-tenant-saas-module-form": "*",
-        "dsplat/multi-tenant-saas-module-lottery": "*",
-        "dsplat/multi-tenant-saas-module-voting": "*",
-        "dsplat/multi-tenant-saas-module-sms": "*",
-        "dsplat/multi-tenant-saas-module-coupon": "*"
+        "yansongda/pay": "^3.7"
     },
     "autoload": {
         "psr-4": {

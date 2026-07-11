@@ -2,12 +2,8 @@
 
 namespace MultiTenantSaas\Modules\Platform;
 
+use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
-use MultiTenantSaas\Services\ApiVersionService;
-use MultiTenantSaas\Services\CostService;
-use MultiTenantSaas\Services\EventBusService;
-use MultiTenantSaas\Services\ExportService;
-use MultiTenantSaas\Services\TenantProfileService;
 
 class PlatformServiceProvider extends ModuleServiceProvider
 {
@@ -15,10 +11,27 @@ class PlatformServiceProvider extends ModuleServiceProvider
 
     protected function registerModuleBindings(): void
     {
-        $this->app->singleton(ExportService::class);
-        $this->app->singleton(ApiVersionService::class);
-        $this->app->singleton(TenantProfileService::class);
-        $this->app->singleton(CostService::class);
-        $this->app->singleton(EventBusService::class);
+        //
+    }
+
+    protected function bootModule(): void
+    {
+        $this->loadPlatformRoutes();
+    }
+
+    protected function loadPlatformRoutes(): void
+    {
+        if ($this->app->routesAreCached()) {
+            return;
+        }
+
+        $moduleDir = dirname((new \ReflectionClass($this))->getFileName());
+
+        $adminRoute = $moduleDir . '/routes/admin.php';
+        if (file_exists($adminRoute)) {
+            Route::middleware(['auth:sanctum', 'throttle:api'])
+                ->prefix('api/v1')
+                ->group($adminRoute);
+        }
     }
 }

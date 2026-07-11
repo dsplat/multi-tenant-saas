@@ -1,132 +1,145 @@
-# Changelog
+# Changelog — v2.2.0
 
-## v2.2.0 — 2026-07-11
+## 概要
 
-### Breaking Changes
+`app/` 下所有业务控制器迁移到框架模块，骨架只保留基础层。新增 2 个模块、6 个服务、Auth 模块升级。
 
-**所有业务控制器从 `app/` 迁移到 `src/Modules/`。** 下游项目需要删除 `app/` 中已迁移的文件。
+## 模块清单（24 个）
 
-### 新增模块
+| 模块 | 包名 | 类型 | 变更 |
+|---|---|---|---|
+| Auth | `dsplat/multi-tenant-saas-module-auth` | 必选 | 新增 AuthController + MfaController + RbacController + TenantOAuthController |
+| User | `dsplat/multi-tenant-saas-module-user` | 必选 | 新增 TenantController + TenantMemberController + TenantSettingController + TenantOnboardingController |
+| Billing | `dsplat/multi-tenant-saas-module-billing` | 必选 | 新增 SubscriptionController + TenantCreditController + TenantQuotaController + Commands |
+| Infrastructure | `dsplat/multi-tenant-saas-module-infrastructure` | 必选 | 新增 ModuleController |
+| Platform | `dsplat/multi-tenant-saas-module-platform` | 必选 | 新增 AdminSettingsController |
+| Logging | `dsplat/multi-tenant-saas-module-logging` | 必选 | 新增 TenantAuditController |
+| Domain | `dsplat/multi-tenant-saas-module-domain` | 必选 | 新增 TenantDomainController |
+| Payment | `dsplat/multi-tenant-saas-module-payment` | 必选 | 新增 TenantPaymentController |
+| Notification | `dsplat/multi-tenant-saas-module-notification` | 必选 | **新建** — NotificationController + GeneralNotification |
+| Storage | `dsplat/multi-tenant-saas-module-storage` | 必选 | **新建** — FileController |
+| SSL | `dsplat/multi-tenant-saas-module-ssl` | 可选 | 新增 TenantSslController |
+| ApiToken | `dsplat/multi-tenant-saas-module-api-token` | 可选 | 新增 TenantTokenController |
+| Ai | `dsplat/multi-tenant-saas-module-ai` | 可选 | 新增 McpServerController + ToolController + Agent Requests + Resources |
+| Conversation | `dsplat/multi-tenant-saas-module-conversation` | 可选 | 新增 Resources (ConversationResource, MessageResource) |
+| Form | `dsplat/multi-tenant-saas-module-form` | 可选 | 新增 StoreFormRequest |
+| Lottery | `dsplat/multi-tenant-saas-module-lottery` | 可选 | 新增 StoreLotteryRequest |
+| Voting | `dsplat/multi-tenant-saas-module-voting` | 可选 | 新增 StoreVoteRequest |
+| Coupon | `dsplat/multi-tenant-saas-module-coupon` | 可选 | 新增 StoreCouponRequest |
+| Event | `dsplat/multi-tenant-saas-module-event` | 必选 | 无变更 |
+| Monitoring | `dsplat/multi-tenant-saas-module-monitoring` | 必选 | 无变更 |
+| DeveloperPortal | `dsplat/multi-tenant-saas-module-developer-portal` | 必选 | 无变更 |
+| Plugin | `dsplat/multi-tenant-saas-module-plugin` | 必选 | 无变更 |
+| Sms | `dsplat/multi-tenant-saas-module-sms` | 可选 | 无变更 |
+| Workflow | `dsplat/multi-tenant-saas-module-workflow` | 可选 | 无变更 |
 
-| 模块 | 包名 | 说明 |
-|---|---|---|
-| Notification | `dsplat/multi-tenant-saas-module-notification` | 通知中心（站内通知、已读状态、偏好设置） |
-| Storage | `dsplat/multi-tenant-saas-module-storage` | 文件存储（上传、下载、分享、配额管理） |
-
-### 新增服务
+## 新增服务
 
 | 服务 | 说明 |
 |---|---|
-| `SchedulerService` | 定时任务集中管理（8 个内置任务） |
+| `SchedulerService` | 定时任务集中管理（9 个内置任务） |
 | `MailerService` | 统一邮件发送（模板驱动 + 品牌注入） |
 | `SearchService` + `Searchable` trait | 全文搜索（LIKE + MySQL FULLTEXT） |
 | `BackupService` | 租户数据备份/恢复 |
 | `ImageService` | 图片处理（resize/crop/thumbnail） |
 | `PasswordService` | 密码修改/重置 + 密码历史 |
 
-### Auth 模块升级
+## Auth 模块升级
 
 - `AuthController`：登录/注册/登出/邮箱验证/密码重置/SSO
 - `MfaController`：TOTP 设置/确认 + 设备管理 + 会话管理 + 恢复码
-- 登录返回格式：`auth_token` + `refresh_token` + `auth_token_expires_in` + `refresh_token_expires_in`
+- 登录返回：`auth_token` + `refresh_token` + `auth_token_expires_in` + `refresh_token_expires_in`
 
-### 迁移指南
+## 迁移指南
 
-**下游项目需要删除以下文件（已迁移到框架模块）：**
+### 下游项目需要删除的文件
 
-#### Controllers（已迁移到 `src/Modules/`）
-
+**Controllers:**
 ```
-app/Http/Controllers/Api/AuthController.php           → src/Modules/Auth/
-app/Http/Controllers/Api/MfaController.php            → src/Modules/Auth/
-app/Http/Controllers/Api/RbacController.php           → src/Modules/Auth/
-app/Http/Controllers/Api/TenantOAuthController.php    → src/Modules/Auth/
-app/Http/Controllers/Api/TenantController.php         → src/Modules/User/
-app/Http/Controllers/Api/TenantMemberController.php   → src/Modules/User/
-app/Http/Controllers/Api/TenantSettingController.php  → src/Modules/User/
-app/Http/Controllers/Api/TenantOnboardingController.php → src/Modules/User/
-app/Http/Controllers/Api/SubscriptionController.php   → src/Modules/Billing/
-app/Http/Controllers/Api/TenantCreditController.php   → src/Modules/Billing/
-app/Http/Controllers/Api/TenantQuotaController.php    → src/Modules/Billing/
-app/Http/Controllers/Api/TenantDomainController.php   → src/Modules/Domain/
-app/Http/Controllers/Api/TenantSslController.php      → src/Modules/SSL/
-app/Http/Controllers/Api/TenantPaymentController.php  → src/Modules/Payment/
-app/Http/Controllers/Api/TenantTokenController.php    → src/Modules/ApiToken/
-app/Http/Controllers/Api/ModuleController.php         → src/Modules/Infrastructure/
-app/Http/Controllers/Api/AdminSettingsController.php  → src/Modules/Platform/
-app/Http/Controllers/Api/TenantAuditController.php    → src/Modules/Logging/
-app/Http/Controllers/Api/NotificationController.php   → src/Modules/Notification/
-app/Http/Controllers/Api/FileController.php           → src/Modules/Storage/
-app/Http/Controllers/Api/McpServerController.php      → src/Modules/Ai/
-app/Http/Controllers/Api/ToolController.php           → src/Modules/Ai/
-```
-
-#### Resources（已迁移到模块）
-
-```
-app/Http/Resources/TenantResource.php          → src/Modules/User/
-app/Http/Resources/TenantSettingResource.php   → src/Modules/User/
-app/Http/Resources/TenantUserResource.php      → src/Modules/User/
-app/Http/Resources/UserResource.php            → src/Modules/User/
-app/Http/Resources/CreditAccountResource.php   → src/Modules/Billing/
-app/Http/Resources/AgentResource.php           → src/Modules/Ai/
-app/Http/Resources/ToolResource.php            → src/Modules/Ai/
-app/Http/Resources/ToolLogResource.php         → src/Modules/Ai/
-app/Http/Resources/ConversationResource.php    → src/Modules/Conversation/
-app/Http/Resources/MessageResource.php         → src/Modules/Conversation/
+app/Http/Controllers/Api/AuthController.php
+app/Http/Controllers/Api/MfaController.php
+app/Http/Controllers/Api/RbacController.php
+app/Http/Controllers/Api/TenantOAuthController.php
+app/Http/Controllers/Api/TenantController.php
+app/Http/Controllers/Api/TenantMemberController.php
+app/Http/Controllers/Api/TenantSettingController.php
+app/Http/Controllers/Api/TenantOnboardingController.php
+app/Http/Controllers/Api/SubscriptionController.php
+app/Http/Controllers/Api/TenantCreditController.php
+app/Http/Controllers/Api/TenantQuotaController.php
+app/Http/Controllers/Api/TenantDomainController.php
+app/Http/Controllers/Api/TenantSslController.php
+app/Http/Controllers/Api/TenantPaymentController.php
+app/Http/Controllers/Api/TenantTokenController.php
+app/Http/Controllers/Api/ModuleController.php
+app/Http/Controllers/Api/AdminSettingsController.php
+app/Http/Controllers/Api/TenantAuditController.php
+app/Http/Controllers/Api/NotificationController.php
+app/Http/Controllers/Api/FileController.php
+app/Http/Controllers/Api/McpServerController.php
+app/Http/Controllers/Api/ToolController.php
 ```
 
-#### Requests（已迁移到模块）
-
+**Resources:**
 ```
-app/Http/Requests/Agent/*                      → src/Modules/Ai/Http/Requests/
-app/Http/Requests/Form/StoreFormRequest.php    → src/Modules/Form/
-app/Http/Requests/Lottery/StoreLotteryRequest.php → src/Modules/Lottery/
-app/Http/Requests/Voting/StoreVoteRequest.php  → src/Modules/Voting/
-app/Http/Requests/Coupon/StoreCouponRequest.php → src/Modules/Coupon/
-```
-
-#### Commands（已迁移到模块）
-
-```
-app/Console/Commands/ProcessCreditExpiry.php   → src/Modules/Billing/
-app/Console/Commands/ProcessSubscriptions.php  → src/Modules/Billing/
+app/Http/Resources/TenantResource.php
+app/Http/Resources/TenantSettingResource.php
+app/Http/Resources/TenantUserResource.php
+app/Http/Resources/UserResource.php
+app/Http/Resources/CreditAccountResource.php
+app/Http/Resources/AgentResource.php
+app/Http/Resources/ToolResource.php
+app/Http/Resources/ToolLogResource.php
+app/Http/Resources/ConversationResource.php
+app/Http/Resources/MessageResource.php
 ```
 
-#### Notifications（已迁移到模块）
+**Requests:**
+```
+app/Http/Requests/Agent/* (全部)
+app/Http/Requests/Form/StoreFormRequest.php
+app/Http/Requests/Lottery/StoreLotteryRequest.php
+app/Http/Requests/Voting/StoreVoteRequest.php
+app/Http/Requests/Coupon/StoreCouponRequest.php
+```
+
+**Commands:**
+```
+app/Console/Commands/ProcessCreditExpiry.php
+app/Console/Commands/ProcessSubscriptions.php
+```
+
+**Notifications:**
+```
+app/Notifications/PaymentSuccessNotification.php
+app/Notifications/SubscriptionExpiringNotification.php
+app/Notifications/CreditLowNotification.php
+app/Notifications/TenantSuspendedNotification.php
+app/Notifications/GeneralNotification.php
+```
+
+### 路由更新
+
+`routes/api.php` 已精简为共享路由（支付回调、OAuth、Webhook、广播）。模块路由由 `ModuleServiceProvider` 自动加载，无需手动配置。
+
+### 保留的骨架文件
 
 ```
-app/Notifications/PaymentSuccessNotification.php    → src/Modules/Billing/
-app/Notifications/SubscriptionExpiringNotification.php → src/Modules/Billing/
-app/Notifications/CreditLowNotification.php         → src/Modules/Billing/
-app/Notifications/TenantSuspendedNotification.php    → src/Modules/User/
-app/Notifications/GeneralNotification.php           → src/Modules/Notification/
+app/Http/Controllers/Controller.php
+app/Http/Controllers/Concerns/ApiResponse.php
+app/Http/Controllers/Concerns/AuthorizesTenantAccess.php
+app/Http/Controllers/SpaController.php
+app/Http/Middleware/AddSecurityHeaders.php
+app/Exceptions/Handler.php
+app/Models/Customer.php
 ```
 
-#### 路由更新
+## CLI 新增
 
-`routes/api.php` 已精简为共享路由（支付回调、OAuth、Webhook、广播）。模块路由由 `ModuleServiceProvider` 自动加载。
+- `module:list --available` — 查询 Packagist 可用模块
+- `bin/module-publish` — 模块发布辅助脚本
 
-**保留的文件（骨架层）：**
-- `app/Http/Controllers/Controller.php` — 基础控制器
-- `app/Http/Controllers/Concerns/ApiResponse.php` — API 响应 trait
-- `app/Http/Controllers/Concerns/AuthorizesTenantAccess.php` — 租户授权 trait
-- `app/Http/Controllers/SpaController.php` — SPA 控制器
-- `app/Http/Middleware/AddSecurityHeaders.php` — 安全头中间件
-- `app/Exceptions/Handler.php` — 异常处理器
-- `app/Models/Customer.php` — 示例模型
-
-### 其他变更
-
-- `module:list --available`：查询 Packagist 可用模块
-- `bin/module-publish`：模块发布辅助脚本
-- `pint.json`：代码格式化配置
-- `.github/workflows/code-quality.yml`：CI Pint 检查
-- 双语文档结构：`docs/zh/` + `docs/en/`
-- `README.md` 精简为快速启动 + 架构概览
-- `docs/zh/user-manual.md` 详细使用手册
-
-### 版本要求
+## 版本要求
 
 - PHP ^8.3
 - Laravel ^13.0

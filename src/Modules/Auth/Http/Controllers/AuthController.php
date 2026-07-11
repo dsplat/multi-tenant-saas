@@ -258,8 +258,16 @@ class AuthController extends Controller
      */
     public function ssoRedirect(Request $request, string $provider): JsonResponse
     {
+        $tenantId = $request->attributes->get('tenant_id');
         $ssoService = app(SsoService::class);
-        $result = $ssoService->getRedirectUrl($provider, $request->all());
+        $ssoProvider = $ssoService->getProvider($tenantId, $provider);
+
+        if (! $ssoProvider) {
+            return response()->json(['success' => false, 'message' => trans('auth.sso_provider_not_found')], 404);
+        }
+
+        $acsUrl = url("/api/v1/auth/sso/{$provider}/callback");
+        $result = $ssoService->initiate($ssoProvider, $acsUrl);
 
         return response()->json(['success' => true, 'data' => $result]);
     }
@@ -269,8 +277,20 @@ class AuthController extends Controller
      */
     public function ssoCallback(Request $request, string $provider): JsonResponse
     {
+        $tenantId = $request->attributes->get('tenant_id');
         $ssoService = app(SsoService::class);
-        $user = $ssoService->handleCallback($provider, $request->all());
+        $ssoProvider = $ssoService->getProvider($tenantId, $provider);
+
+        if (! $ssoProvider) {
+            return response()->json(['success' => false, 'message' => trans('auth.sso_provider_not_found')], 404);
+        }
+
+        $acsUrl = url("/api/v1/auth/sso/{$provider}/callback");
+        $result = $ssoService->handleCallback($ssoProvider, $request->all(), $acsUrl);
+        $attributes = $result['attributes'] ?? [];
+
+        $userResult = $ssoService->findOrCreateUser($ssoProvider, $attributes);
+        $user = User::find($userResult['user_id'] ?? null);
 
         if (! $user) {
             return response()->json(['success' => false, 'message' => trans('auth.sso_failed')], 401);
@@ -281,10 +301,13 @@ class AuthController extends Controller
 
     protected function createTokenResponse(User $user, Request $request): JsonResponse
     {
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $newToken = $user->createToken('auth_token');
+        $token = $newToken->plainTextToken;
+        $tokenId = $newToken->accessToken->id;
 
         $this->sessionService->recordSession(
             $user->user_id,
+            $tokenId,
             $request->ip(),
             $request->userAgent()
         );

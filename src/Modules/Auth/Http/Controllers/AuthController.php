@@ -5,7 +5,6 @@ namespace MultiTenantSaas\Modules\Auth\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Events\UserLoggedIn;
@@ -137,23 +136,11 @@ class AuthController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $tenantId = $request->attributes->get('tenant_id');
-
-        // fallback: 通过 tenant_users 表查询用户的活跃租户
-        if (! $tenantId) {
-            $tenantId = DB::table('tenant_users')
-                ->where('user_id', $user->user_id)
-                ->where('status', 'active')
-                ->orderByDesc('last_active_at')
-                ->value('tenant_id');
-        }
-
         return response()->json([
             'success' => true,
             'data' => [
-                'user' => $this->userToArray($user),
-                'tenant_id' => $tenantId,
+                'user' => $this->userToArray($request->user()),
+                'tenant_id' => $request->attributes->get('tenant_id'),
             ],
         ]);
     }
@@ -406,22 +393,11 @@ class AuthController extends Controller
 
         event(new UserLoggedIn($user, $request->ip()));
 
-        $tenantId = $request->attributes->get('tenant_id');
-
-        // fallback: 通过 tenant_users 表查询用户的活跃租户
-        if (! $tenantId) {
-            $tenantId = DB::table('tenant_users')
-                ->where('user_id', $user->user_id)
-                ->where('status', 'active')
-                ->orderByDesc('last_active_at')
-                ->value('tenant_id');
-        }
-
         return response()->json([
             'success' => true,
             'data' => [
                 'user' => $this->userToArray($user),
-                'tenant_id' => $tenantId,
+                'tenant_id' => $request->attributes->get('tenant_id'),
                 'auth_token' => $token,
                 'refresh_token' => Str::random(60),
                 'auth_token_expires_in' => 1800,

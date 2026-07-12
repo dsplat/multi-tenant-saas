@@ -55,6 +55,8 @@ jobs:
             repo: multi-tenant-saas-module-lottery
           - prefix: 'src/Modules/Monitoring'
             repo: multi-tenant-saas-module-monitoring
+          - prefix: 'src/Modules/Notification'
+            repo: multi-tenant-saas-module-notification
           - prefix: 'src/Modules/Payment'
             repo: multi-tenant-saas-module-payment
           - prefix: 'src/Modules/Platform'
@@ -65,6 +67,8 @@ jobs:
             repo: multi-tenant-saas-module-sms
           - prefix: 'src/Modules/SSL'
             repo: multi-tenant-saas-module-ssl
+          - prefix: 'src/Modules/Storage'
+            repo: multi-tenant-saas-module-storage
           - prefix: 'src/Modules/User'
             repo: multi-tenant-saas-module-user
           - prefix: 'src/Modules/Voting'

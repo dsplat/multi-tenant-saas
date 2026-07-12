@@ -119,6 +119,9 @@ abstract class TestCase extends BaseTestCase
 
         // SQLite 测试优化
         $app['config']->set('database.connections.sqlite.foreign_key_constraints', false);
+
+        // 测试环境不使用默认租户
+        $app['config']->set('tenancy.default_tenant_id', null);
     }
 
     protected function setUpDatabase(): void

@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'default_tenant_id' => null,
+    'default_tenant_id' => env('TENANCY_DEFAULT_TENANT_ID'),
 
     // 框架核心版本 (供模块 requires_core 校验)
     'core_version' => env('TENANCY_CORE_VERSION', '1.0.0'),

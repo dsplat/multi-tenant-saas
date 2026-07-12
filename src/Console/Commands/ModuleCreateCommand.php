@@ -433,6 +433,7 @@ class {$studly}ServiceProvider extends ModuleServiceProvider
     protected function bootModule(): void
     {
         \$this->loadAdminTenantRoutes();
+        \$this->loadModuleViews();
     }
 
     protected function loadAdminTenantRoutes(): void
@@ -450,6 +451,16 @@ class {$studly}ServiceProvider extends ModuleServiceProvider
                     ->prefix('api/v1')
                     ->group(\$path);
             }
+        }
+    }
+
+    protected function loadModuleViews(): void
+    {
+        \$moduleDir = dirname((new \ReflectionClass(\$this))->getFileName());
+        \$viewsDir = \$moduleDir . '/resources/views';
+
+        if (is_dir(\$viewsDir)) {
+            \$this->loadViewsFrom(\$viewsDir, 'module.' . \$this->moduleName);
         }
     }
 
@@ -567,7 +578,6 @@ PHP;
             'Events',
             'Listeners',
             'Policies',
-            'resources/views',
             'resources/lang',
         ];
 
@@ -577,5 +587,101 @@ PHP;
                 file_put_contents($path, '');
             }
         }
+
+        $this->createAdminTenantViews($moduleDir, $studly);
+    }
+
+    protected function createAdminTenantViews(string $moduleDir, string $studly): void
+    {
+        $name = $this->argument('name');
+        $kebab = Str::kebab($name);
+
+        // Admin view (Blade)
+        $adminStub = <<<BLADE
+@extends('layouts.admin')
+
+@section('title', '{$studly} 管理')
+
+@section('content')
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold mb-6">{$studly} 管理</h1>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold">列表</h2>
+            <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                新增
+            </button>
+        </div>
+        
+        <div id="data-table">
+            <!-- DataTable 组件 -->
+            <x-admin.data-table :endpoint="'/api/v1/admin/{$kebab}'" />
+        </div>
+    </div>
+</div>
+@endsection
+BLADE;
+
+        // Tenant view (Blade + Vue.js)
+        $tenantStub = <<<BLADE
+@extends('layouts.tenant')
+
+@section('title', '{$studly}')
+
+@section('content')
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold mb-6">{$studly}</h1>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <div id="tenant-content">
+            <!-- Vue.js 组件挂载点 -->
+            <tenant-{$kebab}></tenant-{$kebab}>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+    // Vue.js 组件注册
+    app.component('tenant-{$kebab}', {
+        template: `<div>Loading...</div>`,
+        data() {
+            return { items: [], loading: true }
+        },
+        mounted() {
+            this.fetchData()
+        },
+        methods: {
+            async fetchData() {
+                try {
+                    const res = await axios.get('/api/v1/tenant/{$kebab}')
+                    this.items = res.data.data
+                } catch (err) {
+                    console.error(err)
+                } finally {
+                    this.loading = false
+                }
+            }
+        }
+    })
+</script>
+@endpush
+@endsection
+BLADE;
+
+        // Create directories
+        $adminDir = $moduleDir . '/resources/views/admin';
+        $tenantDir = $moduleDir . '/resources/views/tenant';
+
+        if (! is_dir($adminDir)) {
+            mkdir($adminDir, 0755, true);
+        }
+        if (! is_dir($tenantDir)) {
+            mkdir($tenantDir, 0755, true);
+        }
+
+        file_put_contents($adminDir . '/index.blade.php', $adminStub);
+        file_put_contents($tenantDir . '/index.blade.php', $tenantStub);
     }
 }

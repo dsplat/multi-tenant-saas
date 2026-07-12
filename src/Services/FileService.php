@@ -139,6 +139,126 @@ class FileService
     }
 
     /**
+     * 按业务实体上传/替换文件
+     *
+     * 存储路径: uploads/{tenantId}/{module}/{entityId}/{filename}
+     */
+    public static function uploadForEntity(
+        UploadedFile $file,
+        string $module,
+        string $entityId,
+        ?int $tenantId = null,
+        ?int $userId = null,
+        bool $replace = true
+    ): FileUpload {
+        $tenantId = $tenantId ?? TenantContext::getId();
+
+        // 替换模式：删除旧文件
+        if ($replace) {
+            $oldFile = static::getForEntity($module, $entityId, $tenantId);
+            if ($oldFile) {
+                static::delete($oldFile);
+            }
+        }
+
+        $disk = config('tenancy.file_storage_disk', 'local');
+
+        // 验证文件大小
+        if ($file->getSize() > self::MAX_FILE_SIZE) {
+            throw new \RuntimeException(trans('file.size_exceeded'));
+        }
+
+        // 验证文件类型
+        $mimeType = $file->getMimeType();
+        if (! empty(self::ALLOWED_MIME_TYPES) && ! in_array($mimeType, self::ALLOWED_MIME_TYPES)) {
+            throw new \RuntimeException(trans('file.type_not_supported') . ": {$mimeType}");
+        }
+
+        // 检查存储配额
+        if (! static::checkStorageQuota($tenantId, $file->getSize())) {
+            throw new \RuntimeException(trans('file.quota_exceeded'));
+        }
+
+        // 计算文件哈希
+        $hash = hash_file('sha256', $file->getRealPath());
+
+        // 生成存储路径: uploads/{tenantId}/{module}/{entityId}/{filename}
+        $extension = $file->getClientOriginalExtension();
+        $originalName = $file->getClientOriginalName();
+        $storedName = Str::uuid() . ($extension ? '.' . $extension : '');
+        $path = "uploads/{$tenantId}/{$module}/{$entityId}/{$storedName}";
+
+        // 存储文件
+        $file->storeAs('', $path, $disk);
+
+        // 生成图片元数据
+        $metadata = [
+            'extension' => $extension,
+            'original_name' => $originalName,
+            'module' => $module,
+            'entity_id' => $entityId,
+        ];
+
+        // 如果是图片，提取尺寸信息
+        if (in_array($mimeType, self::IMAGE_MIME_TYPES)) {
+            try {
+                $imageInfo = getimagesize($file->getRealPath());
+                if ($imageInfo) {
+                    $metadata['width'] = $imageInfo[0];
+                    $metadata['height'] = $imageInfo[1];
+                }
+            } catch (\Exception $e) {
+                // 忽略图片信息提取失败
+            }
+        }
+
+        // 创建数据库记录
+        return FileUpload::create([
+            'tenant_id' => $tenantId,
+            'user_id' => $userId,
+            'disk' => $disk,
+            'path' => $path,
+            'filename' => $originalName,
+            'mime_type' => $mimeType,
+            'size' => $file->getSize(),
+            'hash' => $hash,
+            'category' => $module,
+            'is_public' => false,
+            'metadata' => $metadata,
+        ]);
+    }
+
+    /**
+     * 获取业务实体的文件
+     */
+    public static function getForEntity(
+        string $module,
+        string $entityId,
+        ?int $tenantId = null
+    ): ?FileUpload {
+        $tenantId = $tenantId ?? TenantContext::getId();
+
+        return FileUpload::where('tenant_id', $tenantId)
+            ->where('category', $module)
+            ->whereJsonContains('metadata->entity_id', $entityId)
+            ->latest()
+            ->first();
+    }
+
+    /**
+     * 获取业务实体文件的访问 URL
+     */
+    public static function getUrlForEntity(
+        string $module,
+        string $entityId,
+        ?int $tenantId = null
+    ): ?string {
+        $file = static::getForEntity($module, $entityId, $tenantId);
+
+        return $file ? static::getUrl($file) : null;
+    }
+
+    /**
      * 生成文件分享签名 URL（限时访问）
      */
     public static function createShareUrl(FileUpload $file, int $expiresInMinutes = 60): string

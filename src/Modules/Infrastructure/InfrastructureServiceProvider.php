@@ -16,10 +16,11 @@ class InfrastructureServiceProvider extends ModuleServiceProvider
 
     protected function bootModule(): void
     {
-        $this->loadInfrastructureRoutes();
+        $this->loadAdminTenantRoutes();
+        $this->loadModuleViews();
     }
 
-    protected function loadInfrastructureRoutes(): void
+    protected function loadAdminTenantRoutes(): void
     {
         if ($this->app->routesAreCached()) {
             return;
@@ -27,11 +28,23 @@ class InfrastructureServiceProvider extends ModuleServiceProvider
 
         $moduleDir = dirname((new \ReflectionClass($this))->getFileName());
 
-        $adminRoute = $moduleDir . '/routes/admin.php';
-        if (file_exists($adminRoute)) {
-            Route::middleware(['auth:sanctum', 'throttle:api'])
-                ->prefix('api/v1')
-                ->group($adminRoute);
+        foreach (['admin.php', 'tenant.php'] as $file) {
+            $path = $moduleDir . '/routes/' . $file;
+            if (file_exists($path)) {
+                Route::middleware(['auth:sanctum', 'throttle:api'])
+                    ->prefix('api/v1')
+                    ->group($path);
+            }
+        }
+    }
+
+    protected function loadModuleViews(): void
+    {
+        $moduleDir = dirname((new \ReflectionClass($this))->getFileName());
+        $viewsDir = $moduleDir . '/resources/views';
+
+        if (is_dir($viewsDir)) {
+            $this->loadViewsFrom($viewsDir, 'module.' . $this->moduleName);
         }
     }
 }

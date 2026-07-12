@@ -82,7 +82,7 @@ class AiServiceProvider extends ModuleServiceProvider
         $this->app->singleton(ToolRegistryContract::class, fn ($app) => new ToolRegistry($app->make(Container::class)));
         $this->app->alias(ToolRegistryContract::class, ToolRegistry::class);
         $this->app->singleton(MemoryCompressor::class, fn ($app) => new MemoryCompressor($app->make(AiTextServiceContract::class), $app->make(TenantContextContract::class)));
-        $this->app->singleton(AgentRuntimeContract::class, fn ($app) => new AgentRuntime($app->make(AiTextServiceContract::class), $app->make(ToolRegistryContract::class), $app->make(AgentMonitorContract::class), $app->make(TenantContextContract::class), $app->make(WorkflowEngineContract::class), $app->make(MemoryCompressor::class)));
+        $this->app->singleton(AgentRuntimeContract::class, fn ($app) => new AgentRuntime($app->make(AiTextServiceContract::class), $app->make(ToolRegistryContract::class), $app->make(AgentMonitorContract::class), $app->make(TenantContextContract::class), $app->bound(WorkflowEngineContract::class) ? $app->make(WorkflowEngineContract::class) : null, $app->bound(MemoryCompressor::class) ? $app->make(MemoryCompressor::class) : null));
         $this->app->alias(AgentRuntimeContract::class, AgentRuntime::class);
         $this->app->singleton(McpToolRegistryContract::class, fn ($app) => new McpToolRegistry($app->make(Container::class)));
         $this->app->alias(McpToolRegistryContract::class, McpToolRegistry::class);

@@ -4,7 +4,6 @@ namespace MultiTenantSaas\Modules\Billing;
 
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
-use MultiTenantSaas\Services\SubscriptionService;
 
 class BillingServiceProvider extends ModuleServiceProvider
 {
@@ -12,15 +11,16 @@ class BillingServiceProvider extends ModuleServiceProvider
 
     protected function registerModuleBindings(): void
     {
-        $this->app->singleton(SubscriptionService::class);
+        //
     }
 
     protected function bootModule(): void
     {
-        $this->loadBillingRoutes();
+        $this->loadAdminTenantRoutes();
+        $this->loadModuleViews();
     }
 
-    protected function loadBillingRoutes(): void
+    protected function loadAdminTenantRoutes(): void
     {
         if ($this->app->routesAreCached()) {
             return;
@@ -28,20 +28,23 @@ class BillingServiceProvider extends ModuleServiceProvider
 
         $moduleDir = dirname((new \ReflectionClass($this))->getFileName());
 
-        // Admin 路由
-        $adminRoute = $moduleDir . '/routes/admin.php';
-        if (file_exists($adminRoute)) {
-            Route::middleware(['auth:sanctum', 'throttle:api'])
-                ->prefix('api/v1')
-                ->group($adminRoute);
+        foreach (['admin.php', 'tenant.php'] as $file) {
+            $path = $moduleDir . '/routes/' . $file;
+            if (file_exists($path)) {
+                Route::middleware(['auth:sanctum', 'throttle:api'])
+                    ->prefix('api/v1')
+                    ->group($path);
+            }
         }
+    }
 
-        // Tenant 路由
-        $tenantRoute = $moduleDir . '/routes/tenant.php';
-        if (file_exists($tenantRoute)) {
-            Route::middleware(['auth:sanctum', 'throttle:api'])
-                ->prefix('api/v1')
-                ->group($tenantRoute);
+    protected function loadModuleViews(): void
+    {
+        $moduleDir = dirname((new \ReflectionClass($this))->getFileName());
+        $viewsDir = $moduleDir . '/resources/views';
+
+        if (is_dir($viewsDir)) {
+            $this->loadViewsFrom($viewsDir, 'module.' . $this->moduleName);
         }
     }
 }

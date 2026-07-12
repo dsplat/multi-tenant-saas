@@ -4,7 +4,6 @@ namespace MultiTenantSaas\Modules\Logging;
 
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
-use MultiTenantSaas\Services\StructuredLogService;
 
 class LoggingServiceProvider extends ModuleServiceProvider
 {
@@ -12,15 +11,16 @@ class LoggingServiceProvider extends ModuleServiceProvider
 
     protected function registerModuleBindings(): void
     {
-        $this->app->singleton(StructuredLogService::class);
+        //
     }
 
     protected function bootModule(): void
     {
-        $this->loadLoggingRoutes();
+        $this->loadAdminTenantRoutes();
+        $this->loadModuleViews();
     }
 
-    protected function loadLoggingRoutes(): void
+    protected function loadAdminTenantRoutes(): void
     {
         if ($this->app->routesAreCached()) {
             return;
@@ -28,11 +28,23 @@ class LoggingServiceProvider extends ModuleServiceProvider
 
         $moduleDir = dirname((new \ReflectionClass($this))->getFileName());
 
-        $adminRoute = $moduleDir . '/routes/admin.php';
-        if (file_exists($adminRoute)) {
-            Route::middleware(['auth:sanctum', 'throttle:api'])
-                ->prefix('api/v1')
-                ->group($adminRoute);
+        foreach (['admin.php', 'tenant.php'] as $file) {
+            $path = $moduleDir . '/routes/' . $file;
+            if (file_exists($path)) {
+                Route::middleware(['auth:sanctum', 'throttle:api'])
+                    ->prefix('api/v1')
+                    ->group($path);
+            }
+        }
+    }
+
+    protected function loadModuleViews(): void
+    {
+        $moduleDir = dirname((new \ReflectionClass($this))->getFileName());
+        $viewsDir = $moduleDir . '/resources/views';
+
+        if (is_dir($viewsDir)) {
+            $this->loadViewsFrom($viewsDir, 'module.' . $this->moduleName);
         }
     }
 }

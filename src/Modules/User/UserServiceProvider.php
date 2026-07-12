@@ -4,9 +4,6 @@ namespace MultiTenantSaas\Modules\User;
 
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
-use MultiTenantSaas\Services\LoginLogService;
-use MultiTenantSaas\Services\UserPreferenceService;
-use MultiTenantSaas\Services\UserProfileService;
 
 class UserServiceProvider extends ModuleServiceProvider
 {
@@ -14,17 +11,16 @@ class UserServiceProvider extends ModuleServiceProvider
 
     protected function registerModuleBindings(): void
     {
-        $this->app->singleton(UserProfileService::class);
-        $this->app->singleton(UserPreferenceService::class);
-        $this->app->singleton(LoginLogService::class);
+        //
     }
 
     protected function bootModule(): void
     {
-        $this->loadUserRoutes();
+        $this->loadAdminTenantRoutes();
+        $this->loadModuleViews();
     }
 
-    protected function loadUserRoutes(): void
+    protected function loadAdminTenantRoutes(): void
     {
         if ($this->app->routesAreCached()) {
             return;
@@ -32,18 +28,23 @@ class UserServiceProvider extends ModuleServiceProvider
 
         $moduleDir = dirname((new \ReflectionClass($this))->getFileName());
 
-        $adminRoute = $moduleDir . '/routes/admin.php';
-        if (file_exists($adminRoute)) {
-            Route::middleware(['auth:sanctum', 'throttle:api'])
-                ->prefix('api/v1')
-                ->group($adminRoute);
+        foreach (['admin.php', 'tenant.php'] as $file) {
+            $path = $moduleDir . '/routes/' . $file;
+            if (file_exists($path)) {
+                Route::middleware(['auth:sanctum', 'throttle:api'])
+                    ->prefix('api/v1')
+                    ->group($path);
+            }
         }
+    }
 
-        $tenantRoute = $moduleDir . '/routes/tenant.php';
-        if (file_exists($tenantRoute)) {
-            Route::middleware(['auth:sanctum', 'throttle:api'])
-                ->prefix('api/v1')
-                ->group($tenantRoute);
+    protected function loadModuleViews(): void
+    {
+        $moduleDir = dirname((new \ReflectionClass($this))->getFileName());
+        $viewsDir = $moduleDir . '/resources/views';
+
+        if (is_dir($viewsDir)) {
+            $this->loadViewsFrom($viewsDir, 'module.' . $this->moduleName);
         }
     }
 }

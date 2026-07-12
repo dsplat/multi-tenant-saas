@@ -349,7 +349,7 @@ class AgentChatController extends Controller
         int $conversationId,
         string $message,
         array $options = [],
-    ): StreamedResponse {
+    ): \Symfony\Component\HttpFoundation\StreamedResponse {
         $agentRuntime = $this->agentRuntime;
 
         return response()->stream(function () use ($agentRuntime, $agentId, $conversationId, $message, $options) {

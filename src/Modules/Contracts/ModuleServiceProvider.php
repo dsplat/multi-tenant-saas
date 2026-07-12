@@ -89,10 +89,11 @@ abstract class ModuleServiceProvider extends ServiceProvider
                 ->group($apiRoute);
         }
 
-        // 公开路由 (无需认证)
+        // 公开路由 (无需认证，但需要租户识别)
         $publicRoute = $moduleDir . '/Routes/public.php';
         if (file_exists($publicRoute)) {
-            Route::prefix('api/v1')
+            Route::middleware(['api'])
+                ->prefix('api/v1')
                 ->group($publicRoute);
         }
 

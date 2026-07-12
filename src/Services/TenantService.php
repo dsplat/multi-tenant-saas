@@ -59,8 +59,8 @@ class TenantService
     {
         DB::beginTransaction();
         try {
-            // 创建租户
-            $tenant = Tenant::create([
+            // 基础字段 + 允许透传 fillable 字段
+            $baseFields = [
                 'name' => $data['name'],
                 'slug' => $data['slug'],
                 'status' => $data['status'] ?? 'active',
@@ -74,7 +74,11 @@ class TenantService
                 'used_credits' => 0,
                 'settings' => $data['settings'] ?? [],
                 'branding' => $data['branding'] ?? [],
-            ]);
+            ];
+
+            // 透传额外的 fillable 字段 (如 admin_id, admin_name)
+            $extraFields = array_intersect_key($data, array_flip((new Tenant)->getFillable()));
+            $tenant = Tenant::create(array_merge($baseFields, $extraFields));
 
             // 创建默认积分账户
             CreditAccount::create([

@@ -46,6 +46,8 @@ class Tenant extends Model
         'custom_domain',
         'logo',
         'description',
+        'admin_id',
+        'admin_name',
         'subscription_plan',
         'subscription_plan_id',
         'subscription_started_at',

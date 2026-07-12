@@ -212,4 +212,52 @@ class TenantService
             'recent_transactions' => $recentTransactions,
         ];
     }
+
+    /**
+     * 批量更新租户状态
+     *
+     * @param  array<int, int>  $tenantIds
+     * @return int 更新数量
+     */
+    public function bulkUpdateStatus(array $tenantIds, string $status): int
+    {
+        $validStatuses = ['active', 'suspended', 'deleted'];
+        if (! in_array($status, $validStatuses)) {
+            throw new \InvalidArgumentException("Invalid status: {$status}. Must be one of: " . implode(', ', $validStatuses));
+        }
+
+        return DB::transaction(function () use ($tenantIds, $status) {
+            return Tenant::whereIn('tenant_id', $tenantIds)
+                ->update(['status' => $status]);
+        });
+    }
+
+    /**
+     * 批量删除租户（软删除）
+     *
+     * @param  array<int, int>  $tenantIds
+     * @return int 删除数量
+     */
+    public function bulkDelete(array $tenantIds): int
+    {
+        return DB::transaction(function () use ($tenantIds) {
+            return Tenant::whereIn('tenant_id', $tenantIds)
+                ->update(['status' => 'deleted', 'deleted_at' => now()]);
+        });
+    }
+
+    /**
+     * 批量恢复已删除的租户
+     *
+     * @param  array<int, int>  $tenantIds
+     * @return int 恢复数量
+     */
+    public function bulkRestore(array $tenantIds): int
+    {
+        return DB::transaction(function () use ($tenantIds) {
+            return Tenant::whereIn('tenant_id', $tenantIds)
+                ->where('status', 'deleted')
+                ->update(['status' => 'active', 'deleted_at' => null]);
+        });
+    }
 }

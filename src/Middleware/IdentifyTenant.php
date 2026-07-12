@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Tenant;
 use Symfony\Component\HttpFoundation\Response;
@@ -76,10 +77,21 @@ class IdentifyTenant
             return (string) $tenantId;
         }
 
-        // 6. 认证用户
+        // 6. 认证用户 — 通过 tenant_users 表查询
         if ($user = $request->user()) {
             if (property_exists($user, 'current_tenant_id') && $user->current_tenant_id) {
                 return (string) $user->current_tenant_id;
+            }
+
+            // fallback: 查询 tenant_users 表获取用户最近的活跃租户
+            $tenantId = DB::table('tenant_users')
+                ->where('user_id', $user->user_id ?? $user->id)
+                ->where('status', 'active')
+                ->orderByDesc('last_active_at')
+                ->value('tenant_id');
+
+            if ($tenantId) {
+                return (string) $tenantId;
             }
         }
 

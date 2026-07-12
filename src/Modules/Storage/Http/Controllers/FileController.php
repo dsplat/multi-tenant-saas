@@ -247,4 +247,99 @@ class FileController extends Controller
             'data' => array_merge($quotaInfo, ['file_count' => $fileCount]),
         ]);
     }
+
+    /**
+     * 按业务实体上传文件
+     */
+    public function uploadForEntity(Request $request, string $module, string $entityId)
+    {
+        $request->validate([
+            'file' => 'required|file|max:102400',
+            'replace' => 'nullable|boolean',
+        ]);
+
+        try {
+            $file = FileService::uploadForEntity(
+                file: $request->file('file'),
+                module: $module,
+                entityId: $entityId,
+                tenantId: TenantContext::getId(),
+                userId: $request->user()?->id,
+                replace: $request->boolean('replace', true)
+            );
+
+            AuditService::log('upload', 'file', $file->id, null, [
+                'filename' => $file->filename,
+                'module' => $module,
+                'entity_id' => $entityId,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => trans('file.upload_success'),
+                'data' => $file,
+                'url' => FileService::getUrl($file),
+            ], 201);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * 获取业务实体的文件
+     */
+    public function getForEntity(Request $request, string $module, string $entityId)
+    {
+        $file = FileService::getForEntity($module, $entityId, TenantContext::getId());
+
+        if (! $file) {
+            return response()->json(['success' => false, 'message' => trans('file.not_found')], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $file,
+            'url' => FileService::getUrl($file),
+            'preview_url' => FileService::getPreviewUrl($file),
+        ]);
+    }
+
+    /**
+     * 获取业务实体文件的访问 URL
+     */
+    public function getUrlForEntity(Request $request, string $module, string $entityId)
+    {
+        $url = FileService::getUrlForEntity($module, $entityId, TenantContext::getId());
+
+        if (! $url) {
+            return response()->json(['success' => false, 'message' => trans('file.not_found')], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => ['url' => $url],
+        ]);
+    }
+
+    /**
+     * 删除业务实体的文件
+     */
+    public function deleteForEntity(Request $request, string $module, string $entityId)
+    {
+        $file = FileService::getForEntity($module, $entityId, TenantContext::getId());
+
+        if (! $file) {
+            return response()->json(['success' => false, 'message' => trans('file.not_found')], 404);
+        }
+
+        AuditService::log('delete', 'file', $file->id, null, [
+            'filename' => $file->filename,
+            'module' => $module,
+            'entity_id' => $entityId,
+        ]);
+
+        FileService::delete($file);
+
+        return response()->json(['success' => true, 'message' => trans('file.deleted')]);
+    }
 }

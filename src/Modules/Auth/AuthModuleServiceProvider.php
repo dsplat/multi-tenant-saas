@@ -30,14 +30,14 @@ class AuthModuleServiceProvider extends ModuleServiceProvider
 
         $moduleDir = dirname((new \ReflectionClass($this))->getFileName());
 
-        $adminRoute = $moduleDir . '/routes/admin.php';
+        $adminRoute = $moduleDir . '/Routes/admin.php';
         if (file_exists($adminRoute)) {
             Route::middleware(['auth:sanctum', 'throttle:api'])
                 ->prefix('api/v1')
                 ->group($adminRoute);
         }
 
-        $tenantRoute = $moduleDir . '/routes/tenant.php';
+        $tenantRoute = $moduleDir . '/Routes/tenant.php';
         if (file_exists($tenantRoute)) {
             Route::middleware(['auth:sanctum', 'throttle:api'])
                 ->prefix('api/v1')

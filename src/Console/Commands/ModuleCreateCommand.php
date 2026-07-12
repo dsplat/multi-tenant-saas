@@ -315,7 +315,7 @@ class ModuleCreateCommand extends Command
         $this->line('下一步 (开发):');
         $this->line("  1. 编辑 src/Modules/{$studly}/composer.json 的 extra.saas");
         $this->line('  2. 在 ServiceProvider 中注册服务绑定');
-        $this->line('  3. 在 routes/api.php 中定义路由');
+        $this->line('  3. 在 Routes/api.php 中定义路由');
         $this->line('  4. composer update && php artisan module:list');
         $this->newLine();
         $this->line('发布到 Packagist (用 --publish 自动完成):');
@@ -445,7 +445,7 @@ class {$studly}ServiceProvider extends ModuleServiceProvider
         \$moduleDir = dirname((new \ReflectionClass(\$this))->getFileName());
 
         foreach (['admin.php', 'tenant.php'] as \$file) {
-            \$path = \$moduleDir . '/routes/' . \$file;
+            \$path = \$moduleDir . '/Routes/' . \$file;
             if (file_exists(\$path)) {
                 \\Illuminate\\Support\\Facades\\Route::middleware(['auth:sanctum', 'throttle:api'])
                     ->prefix('api/v1')
@@ -539,10 +539,10 @@ PHP;
 
 PHP;
 
-        file_put_contents($moduleDir . '/routes/api.php', $apiStub);
-        file_put_contents($moduleDir . '/routes/admin.php', $adminStub);
-        file_put_contents($moduleDir . '/routes/tenant.php', $tenantStub);
-        file_put_contents($moduleDir . '/routes/public.php', $publicStub);
+        file_put_contents($moduleDir . '/Routes/api.php', $apiStub);
+        file_put_contents($moduleDir . '/Routes/admin.php', $adminStub);
+        file_put_contents($moduleDir . '/Routes/tenant.php', $tenantStub);
+        file_put_contents($moduleDir . '/Routes/public.php', $publicStub);
     }
 
     protected function createConfigFile(string $moduleDir, string $name): void

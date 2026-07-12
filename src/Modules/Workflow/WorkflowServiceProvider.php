@@ -29,7 +29,7 @@ class WorkflowServiceProvider extends ModuleServiceProvider
         $moduleDir = dirname((new \ReflectionClass($this))->getFileName());
 
         foreach (['admin.php', 'tenant.php'] as $file) {
-            $path = $moduleDir . '/routes/' . $file;
+            $path = $moduleDir . '/Routes/' . $file;
             if (file_exists($path)) {
                 Route::middleware(['auth:sanctum', 'throttle:api'])
                     ->prefix('api/v1')

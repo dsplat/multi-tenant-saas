@@ -68,10 +68,10 @@ abstract class ModuleServiceProvider extends ServiceProvider
      * 加载模块路由 (Laravel 标准方式)
      *
      * 约定:
-     *   routes/api.php       → API 路由, 带 auth:sanctum 中间件
-     *   routes/admin.php     → 系统管理路由
-     *   routes/tenant.php    → 租户管理路由
-     *   routes/public.php    → 公开路由 (无认证)
+     *   Routes/api.php       → API 路由, 带 auth:sanctum 中间件
+     *   Routes/admin.php     → 系统管理路由
+     *   Routes/tenant.php    → 租户管理路由
+     *   Routes/public.php    → 公开路由 (无认证)
      */
     protected function loadModuleRoutes(): void
     {
@@ -82,7 +82,7 @@ abstract class ModuleServiceProvider extends ServiceProvider
         $moduleDir = $this->getModulePath();
 
         // API 路由 (需要认证)
-        $apiRoute = $moduleDir . '/routes/api.php';
+        $apiRoute = $moduleDir . '/Routes/api.php';
         if (file_exists($apiRoute)) {
             Route::middleware(['auth:sanctum', 'throttle:api'])
                 ->prefix('api/v1')
@@ -90,14 +90,14 @@ abstract class ModuleServiceProvider extends ServiceProvider
         }
 
         // 公开路由 (无需认证)
-        $publicRoute = $moduleDir . '/routes/public.php';
+        $publicRoute = $moduleDir . '/Routes/public.php';
         if (file_exists($publicRoute)) {
             Route::prefix('api/v1')
                 ->group($publicRoute);
         }
 
         // 系统管理路由
-        $adminRoute = $moduleDir . '/routes/admin.php';
+        $adminRoute = $moduleDir . '/Routes/admin.php';
         if (file_exists($adminRoute)) {
             Route::middleware('api')
                 ->prefix('v1/admin')
@@ -105,7 +105,7 @@ abstract class ModuleServiceProvider extends ServiceProvider
         }
 
         // 租户管理路由
-        $tenantRoute = $moduleDir . '/routes/tenant.php';
+        $tenantRoute = $moduleDir . '/Routes/tenant.php';
         if (file_exists($tenantRoute)) {
             Route::middleware(['auth:sanctum', 'throttle:api'])
                 ->group($tenantRoute);

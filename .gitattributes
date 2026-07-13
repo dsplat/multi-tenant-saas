@@ -2,6 +2,7 @@
 /docs export-ignore
 /tests export-ignore
 /.ai export-ignore
+/.mimocode export-ignore
 /vendor export-ignore
 /storage export-ignore
 /public export-ignore
@@ -15,6 +16,10 @@
 /*.sh export-ignore
 /bin export-ignore
 /.github export-ignore
+
+# SPA source (build-time only, not distributed via Composer)
+/resources/js export-ignore
+/node_modules export-ignore
 /src/Modules/Ai export-ignore
 /src/Modules/ApiToken export-ignore
 /src/Modules/Auth export-ignore

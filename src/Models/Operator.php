@@ -21,6 +21,8 @@ class Operator extends Model
         'avatar',
         'scope',
         'is_active',
+        'invite_token',
+        'invite_expires_at',
     ];
 
     protected $hidden = [

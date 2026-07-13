@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  build-spa:
+    name: Build SPA Assets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Admin dependencies
+        working-directory: resources/js/admin
+        run: npm ci
+
+      - name: Install Console dependencies
+        working-directory: resources/js/console
+        run: npm ci
+
+      - name: Build Admin SPA (Element Plus)
+        working-directory: resources/js/admin
+        run: npx vite build
+        env:
+          VITE_UI_FRAMEWORK: element-plus
+
+      - name: Build Console SPA (Bootstrap)
+        working-directory: resources/js/console
+        run: npx vite build
+        env:
+          VITE_UI_FRAMEWORK: bootstrap
+
+      - name: Upload SPA artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: spa-assets
+          path: |
+            public/admin/
+            public/console/
+          retention-days: 30
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build-spa
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download SPA artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: spa-assets
+          path: public/
+
+      - name: Create release archive
+        run: |
+          tar czf multi-tenant-saas-${{ github.ref_name }}.tar.gz \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='.github' \
+            --exclude='docs' \
+            --exclude='tests' \
+            --exclude='.ai' \
+            --exclude='.mimocode' \
+            .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: multi-tenant-saas-${{ github.ref_name }}.tar.gz
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

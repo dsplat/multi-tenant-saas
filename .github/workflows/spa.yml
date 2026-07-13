@@ -1,0 +1,133 @@
+name: SPA Build & Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'resources/js/**'
+      - 'src/Modules/*/resources/admin/**'
+      - 'src/Modules/*/resources/console/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'resources/js/**'
+      - 'src/Modules/*/resources/admin/**'
+      - 'src/Modules/*/resources/console/**'
+
+jobs:
+  build-admin:
+    name: Build Admin SPA
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        framework: [element-plus, bootstrap]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: resources/js/admin
+        run: npm ci
+
+      - name: Build (${{ matrix.framework }})
+        working-directory: resources/js/admin
+        run: npx vite build
+        env:
+          VITE_UI_FRAMEWORK: ${{ matrix.framework }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-${{ matrix.framework }}
+          path: public/admin/
+          retention-days: 7
+
+  build-console:
+    name: Build Console SPA
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        framework: [element-plus, bootstrap]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: resources/js/console
+        run: npm ci
+
+      - name: Build (${{ matrix.framework }})
+        working-directory: resources/js/console
+        run: npx vite build
+        env:
+          VITE_UI_FRAMEWORK: ${{ matrix.framework }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: console-${{ matrix.framework }}
+          path: public/console/
+          retention-days: 7
+
+  module-isolation:
+    name: Module SPA Isolation Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install admin dependencies
+        working-directory: resources/js/admin
+        run: npm ci
+
+      - name: Build without modules (baseline)
+        working-directory: resources/js/admin
+        run: npx vite build
+
+      - name: Create test module
+        run: |
+          mkdir -p src/Modules/TestIso/resources/admin/views
+          cat > src/Modules/TestIso/resources/admin/views/TestIso.vue << 'EOF'
+          <template><div>TestIso</div></template>
+          EOF
+
+      - name: Build with test module
+        working-directory: resources/js/admin
+        run: npx vite build
+
+      - name: Verify test module in output
+        run: |
+          if ls public/admin/assets/TestIso-*.js 1>/dev/null 2>&1; then
+            echo "✅ TestIso module page compiled"
+          else
+            echo "❌ TestIso module page NOT found"
+            exit 1
+          fi
+
+      - name: Remove test module
+        run: rm -rf src/Modules/TestIso
+
+      - name: Build after removal
+        working-directory: resources/js/admin
+        run: npx vite build
+
+      - name: Verify test module NOT in output
+        run: |
+          if ls public/admin/assets/TestIso-*.js 1>/dev/null 2>&1; then
+            echo "❌ TestIso module page still present after removal"
+            exit 1
+          else
+            echo "✅ TestIso module page correctly absent"
+          fi

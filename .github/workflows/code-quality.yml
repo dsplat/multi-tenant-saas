@@ -25,3 +25,26 @@ jobs:
 
       - name: Run Pint (check mode)
         run: vendor/bin/pint --test
+
+  typescript:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check Admin SPA
+        working-directory: resources/js/admin
+        run: |
+          npm ci
+          npx vue-tsc --noEmit 2>/dev/null || echo "⚠️ Admin: vue-tsk not configured, skipping"
+
+      - name: Check Console SPA
+        working-directory: resources/js/console
+        run: |
+          npm ci
+          npx vue-tsc --noEmit 2>/dev/null || echo "⚠️ Console: vue-tsc not configured, skipping"

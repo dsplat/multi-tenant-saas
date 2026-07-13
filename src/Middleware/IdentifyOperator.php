@@ -5,7 +5,7 @@ namespace MultiTenantSaas\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\OperatorTenant;
+use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 use Symfony\Component\HttpFoundation\Response;
 
 class IdentifyOperator

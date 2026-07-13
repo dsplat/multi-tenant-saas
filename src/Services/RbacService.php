@@ -6,9 +6,9 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\OperatorTenant;
 use MultiTenantSaas\Models\Permission;
 use MultiTenantSaas\Models\Role;
+use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 
 class RbacService
 {

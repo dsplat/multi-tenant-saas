@@ -5,9 +5,9 @@ namespace MultiTenantSaas\Modules\Operator\Services;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use MultiTenantSaas\Models\Operator;
-use MultiTenantSaas\Models\OperatorTenant;
 use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
+use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 
 class OperatorService
 {

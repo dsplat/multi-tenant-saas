@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Modules\Ai\Services\Capability;
 
 use MultiTenantSaas\Models\Capability\CapabilityResult;
-use MultiTenantSaas\Models\CreditAccount;
+use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
 
 class CapabilityBillingService
 {

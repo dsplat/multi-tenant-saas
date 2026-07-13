@@ -5,8 +5,8 @@ namespace MultiTenantSaas\Modules\Infrastructure\Http\Controllers;
 use App\Http\Controllers\Concerns\ApiResponse;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
-use MultiTenantSaas\Services\ModuleManager;
-use MultiTenantSaas\Services\ModuleRegistry;
+use MultiTenantSaas\Modules\Infrastructure\Services\ModuleManager;
+use MultiTenantSaas\Modules\Infrastructure\Services\ModuleRegistry;
 
 class ModuleController extends Controller
 {

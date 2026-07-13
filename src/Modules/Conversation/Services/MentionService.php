@@ -7,8 +7,8 @@ namespace MultiTenantSaas\Modules\Conversation\Services;
 use Illuminate\Support\Collection;
 use MultiTenantSaas\Concerns\EnsuresTenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
-use MultiTenantSaas\Models\Mention;
-use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Conversation\Models\Mention;
 
 /**
  * @提及服务

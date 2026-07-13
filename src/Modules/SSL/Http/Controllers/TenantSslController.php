@@ -5,7 +5,7 @@ namespace MultiTenantSaas\Modules\SSL\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\SSL\Services\TenantSslService;
 
 class TenantSslController extends Controller

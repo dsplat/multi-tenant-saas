@@ -5,8 +5,8 @@ namespace MultiTenantSaas\Modules\Auth\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use MultiTenantSaas\Services\AuditService;
-use MultiTenantSaas\Services\RbacService;
+use MultiTenantSaas\Modules\Auth\Services\RbacService;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 /**
  * @OA\Tag(

@@ -9,9 +9,9 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
-use MultiTenantSaas\Models\Webhook;
-use MultiTenantSaas\Models\WebhookDelivery;
-use MultiTenantSaas\Services\WebhookService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Webhook;
+use MultiTenantSaas\Modules\Infrastructure\Models\WebhookDelivery;
+use MultiTenantSaas\Modules\Infrastructure\Services\WebhookService;
 
 /**
  * 异步投递 Webhook

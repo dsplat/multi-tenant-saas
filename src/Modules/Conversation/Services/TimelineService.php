@@ -7,8 +7,8 @@ namespace MultiTenantSaas\Modules\Conversation\Services;
 use Illuminate\Support\Collection;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
-use MultiTenantSaas\Models\Message;
-use MultiTenantSaas\Models\ReadState;
+use MultiTenantSaas\Modules\Conversation\Models\Message;
+use MultiTenantSaas\Modules\Conversation\Models\ReadState;
 
 class TimelineService
 {

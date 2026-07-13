@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Events;
 
 use Illuminate\Foundation\Events\Dispatchable;
-use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\Auth\Models\User;
 
 class UserLoggedIn
 {

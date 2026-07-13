@@ -7,8 +7,8 @@ namespace MultiTenantSaas\Modules\Conversation\Services;
 use Illuminate\Support\Collection;
 use MultiTenantSaas\Concerns\EnsuresTenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
-use MultiTenantSaas\Models\Conversation;
-use MultiTenantSaas\Models\ConversationTag;
+use MultiTenantSaas\Modules\Conversation\Models\Conversation;
+use MultiTenantSaas\Modules\Conversation\Models\ConversationTag;
 
 /**
  * 会话标签服务

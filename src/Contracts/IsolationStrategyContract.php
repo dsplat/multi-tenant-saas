@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Contracts;
 
-use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
 /**
  * 数据库隔离策略接口契约

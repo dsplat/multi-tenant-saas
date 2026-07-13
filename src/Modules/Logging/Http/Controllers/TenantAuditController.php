@@ -5,7 +5,7 @@ namespace MultiTenantSaas\Modules\Logging\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use MultiTenantSaas\Models\AuditLog;
+use MultiTenantSaas\Modules\Logging\Models\AuditLog;
 
 class TenantAuditController extends Controller
 {

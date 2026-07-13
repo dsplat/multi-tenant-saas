@@ -33,17 +33,17 @@ use MultiTenantSaas\Events\TenantSuspended;
 use MultiTenantSaas\Events\UserLoggedIn;
 use MultiTenantSaas\Events\UserRegistered;
 use MultiTenantSaas\Listeners\LogEventListener;
-use MultiTenantSaas\Services\BackupService;
-use MultiTenantSaas\Services\HealthService;
-use MultiTenantSaas\Services\IdGenerator;
-use MultiTenantSaas\Services\ImageService;
-use MultiTenantSaas\Services\MailerService;
-use MultiTenantSaas\Services\ModuleBootstrapper;
-use MultiTenantSaas\Services\ModuleManager;
-use MultiTenantSaas\Services\ModuleRegistry;
-use MultiTenantSaas\Services\PasswordService;
-use MultiTenantSaas\Services\SchedulerService;
-use MultiTenantSaas\Services\SearchService;
+use MultiTenantSaas\Modules\Auth\Services\PasswordService;
+use MultiTenantSaas\Modules\Infrastructure\Services\BackupService;
+use MultiTenantSaas\Modules\Infrastructure\Services\HealthService;
+use MultiTenantSaas\Modules\Infrastructure\Services\IdGenerator;
+use MultiTenantSaas\Modules\Infrastructure\Services\ImageService;
+use MultiTenantSaas\Modules\Infrastructure\Services\MailerService;
+use MultiTenantSaas\Modules\Infrastructure\Services\ModuleBootstrapper;
+use MultiTenantSaas\Modules\Infrastructure\Services\ModuleManager;
+use MultiTenantSaas\Modules\Infrastructure\Services\ModuleRegistry;
+use MultiTenantSaas\Modules\Infrastructure\Services\SchedulerService;
+use MultiTenantSaas\Modules\Infrastructure\Services\SearchService;
 
 /**
  * 核心 ServiceProvider

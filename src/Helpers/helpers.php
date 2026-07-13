@@ -1,10 +1,10 @@
 <?php
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\IdGenerator;
-use MultiTenantSaas\Services\QuotaService;
-use MultiTenantSaas\Services\TenantSettingService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\IdGenerator;
+use MultiTenantSaas\Modules\Infrastructure\Services\QuotaService;
+use MultiTenantSaas\Modules\Infrastructure\Services\TenantSettingService;
 
 if (! function_exists('tenant_id')) {
     /**

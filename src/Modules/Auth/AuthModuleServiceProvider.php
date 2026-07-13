@@ -2,9 +2,9 @@
 
 namespace MultiTenantSaas\Modules\Auth;
 
+use MultiTenantSaas\Modules\Auth\Services\AlipayOAuthService;
+use MultiTenantSaas\Modules\Auth\Services\SocialiteService;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
-use MultiTenantSaas\Services\AlipayOAuthService;
-use MultiTenantSaas\Services\SocialiteService;
 
 class AuthModuleServiceProvider extends ModuleServiceProvider
 {

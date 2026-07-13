@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Console\Commands;
 
 use Illuminate\Console\Command;
-use MultiTenantSaas\Services\ModuleManager;
+use MultiTenantSaas\Modules\Infrastructure\Services\ModuleManager;
 
 class ModuleDisableCommand extends Command
 {

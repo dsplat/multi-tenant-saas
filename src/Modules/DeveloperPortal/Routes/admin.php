@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use MultiTenantSaas\Services\SandboxService;
+use MultiTenantSaas\Modules\DeveloperPortal\Services\SandboxService;
 
 Route::prefix('admin/developer-portal')->group(function () {
     Route::get('/sandbox', function () {

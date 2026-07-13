@@ -5,10 +5,10 @@ namespace MultiTenantSaas\Modules\User\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use MultiTenantSaas\Models\SystemSetting;
-use MultiTenantSaas\Models\TenantSetting;
+use MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\Sms\Services\SmsService;
-use MultiTenantSaas\Services\AuditService;
 
 class TenantSettingController extends Controller
 {

@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Modules\SSL\Services;
 
 use Carbon\Carbon;
-use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use RuntimeException;
 
 /**

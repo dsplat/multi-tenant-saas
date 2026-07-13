@@ -9,8 +9,8 @@ use Illuminate\Support\Collection;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Events\MessageReceived;
-use MultiTenantSaas\Models\Conversation;
-use MultiTenantSaas\Models\Message;
+use MultiTenantSaas\Modules\Conversation\Models\Conversation;
+use MultiTenantSaas\Modules\Conversation\Models\Message;
 
 class MessageService
 {

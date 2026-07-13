@@ -6,7 +6,7 @@ namespace MultiTenantSaas\Modules\Ai\Mcp;
 
 use Illuminate\Support\Collection;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\McpClient;
+use MultiTenantSaas\Modules\ApiToken\Models\McpClient;
 
 /**
  * MCP 客户端注册表

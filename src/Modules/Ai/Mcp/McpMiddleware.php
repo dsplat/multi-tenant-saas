@@ -9,7 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\McpClient;
+use MultiTenantSaas\Modules\ApiToken\Models\McpClient;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

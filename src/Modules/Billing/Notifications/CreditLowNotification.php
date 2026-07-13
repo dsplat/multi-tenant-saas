@@ -6,7 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use MultiTenantSaas\Services\MailTemplateService;
+use MultiTenantSaas\Modules\Notification\Services\MailTemplateService;
 
 class CreditLowNotification extends Notification implements ShouldQueue
 {

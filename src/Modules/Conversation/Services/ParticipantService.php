@@ -7,7 +7,7 @@ namespace MultiTenantSaas\Modules\Conversation\Services;
 use Illuminate\Support\Collection;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
-use MultiTenantSaas\Models\Participant;
+use MultiTenantSaas\Modules\Conversation\Models\Participant;
 
 class ParticipantService
 {

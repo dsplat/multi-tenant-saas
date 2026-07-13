@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use MultiTenantSaas\Services\EventBusService;
+use MultiTenantSaas\Modules\Infrastructure\Services\EventBusService;
 
 Route::prefix('tenant/events')->group(function () {
     Route::get('/', function () {

@@ -11,14 +11,14 @@ use MultiTenantSaas\Events\UserLoggedIn;
 use MultiTenantSaas\Events\UserRegistered;
 use MultiTenantSaas\Jobs\SendEmailVerificationJob;
 use MultiTenantSaas\Jobs\SendPasswordResetJob;
-use MultiTenantSaas\Models\TenantUser;
-use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Auth\Services\MfaService;
+use MultiTenantSaas\Modules\Auth\Services\PasswordPolicyService;
+use MultiTenantSaas\Modules\Auth\Services\SessionService;
+use MultiTenantSaas\Modules\Auth\Services\SsoService;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
 use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
-use MultiTenantSaas\Services\MfaService;
-use MultiTenantSaas\Services\PasswordPolicyService;
-use MultiTenantSaas\Services\SessionService;
-use MultiTenantSaas\Services\SsoService;
 
 class AuthController extends Controller
 {

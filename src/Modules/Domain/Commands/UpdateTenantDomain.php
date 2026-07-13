@@ -4,7 +4,7 @@ namespace MultiTenantSaas\Modules\Domain\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
-use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
 class UpdateTenantDomain extends Command
 {

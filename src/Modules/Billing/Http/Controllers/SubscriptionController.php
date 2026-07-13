@@ -5,11 +5,11 @@ namespace MultiTenantSaas\Modules\Billing\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use MultiTenantSaas\Models\SubscriptionPlan;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\AuditService;
-use MultiTenantSaas\Services\RbacService;
-use MultiTenantSaas\Services\SubscriptionService;
+use MultiTenantSaas\Modules\Auth\Services\RbacService;
+use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
+use MultiTenantSaas\Modules\Billing\Services\SubscriptionService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 /**
  * @OA\Tag(

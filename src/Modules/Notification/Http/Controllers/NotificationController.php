@@ -4,9 +4,9 @@ namespace MultiTenantSaas\Modules\Notification\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use MultiTenantSaas\Models\NotificationPreference;
-use MultiTenantSaas\Services\AuditService;
-use MultiTenantSaas\Services\NotificationService;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
+use MultiTenantSaas\Modules\Notification\Models\NotificationPreference;
+use MultiTenantSaas\Modules\Notification\Services\NotificationService;
 
 /**
  * @OA\Tag(

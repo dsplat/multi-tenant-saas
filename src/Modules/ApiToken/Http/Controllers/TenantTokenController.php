@@ -6,7 +6,7 @@ use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use MultiTenantSaas\Models\TenantSetting;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 
 class TenantTokenController extends Controller
 {

@@ -4,7 +4,7 @@ namespace MultiTenantSaas\Modules\Auth\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use MultiTenantSaas\Services\RbacService;
+use MultiTenantSaas\Modules\Auth\Services\RbacService;
 use Symfony\Component\HttpFoundation\Response;
 
 /**

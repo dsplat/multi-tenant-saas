@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Modules\Conversation\Models;
 
-use MultiTenantSaas\Models\ConversationSession as BaseSession;
+use MultiTenantSaas\Modules\Conversation\Models\ConversationSession as BaseSession;
 
 /**
  * 会话会话模型

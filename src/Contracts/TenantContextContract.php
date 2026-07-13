@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Contracts;
 
-use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
 /**
  * 租户上下文接口契约

@@ -2,8 +2,8 @@
 
 namespace MultiTenantSaas\Services\Traits;
 
-use MultiTenantSaas\Models\SubscriptionPlan;
-use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
 trait ResolvesPlan
 {

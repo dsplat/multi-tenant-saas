@@ -6,7 +6,7 @@ namespace MultiTenantSaas\Services\Channel;
 
 use MultiTenantSaas\Contracts\ChannelContract;
 use MultiTenantSaas\DTOs\MessageDTO;
-use MultiTenantSaas\Services\IdGenerator;
+use MultiTenantSaas\Modules\Infrastructure\Services\IdGenerator;
 
 class MessageRouter
 {

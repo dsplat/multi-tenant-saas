@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use MultiTenantSaas\Services\PluginService;
+use MultiTenantSaas\Modules\Plugin\Services\PluginService;
 
 Route::prefix('admin/plugins')->group(function () {
     Route::get('/', function () {

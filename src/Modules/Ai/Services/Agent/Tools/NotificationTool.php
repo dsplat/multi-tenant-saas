@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Modules\Ai\Services\Agent\Tools;
 
 use MultiTenantSaas\Contracts\ToolContract;
-use MultiTenantSaas\Models\InAppNotification;
+use MultiTenantSaas\Modules\Notification\Models\InAppNotification;
 
 class NotificationTool implements ToolContract
 {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\DTOs;
 
-use MultiTenantSaas\Models\Message;
+use MultiTenantSaas\Modules\Conversation\Models\Message;
 
 class MessageDTO
 {

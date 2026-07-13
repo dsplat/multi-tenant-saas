@@ -10,9 +10,9 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\EventHandler;
-use MultiTenantSaas\Models\DeadLetter;
-use MultiTenantSaas\Models\EventSubscription;
-use MultiTenantSaas\Services\WebhookService;
+use MultiTenantSaas\Modules\Event\Models\EventSubscription;
+use MultiTenantSaas\Modules\Infrastructure\Services\WebhookService;
+use MultiTenantSaas\Modules\Monitoring\Models\DeadLetter;
 
 /**
  * 异步事件分发任务

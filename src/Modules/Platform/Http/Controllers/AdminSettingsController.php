@@ -4,8 +4,8 @@ namespace MultiTenantSaas\Modules\Platform\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use MultiTenantSaas\Models\SystemSetting;
-use MultiTenantSaas\Services\RbacService;
+use MultiTenantSaas\Modules\Auth\Services\RbacService;
+use MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting;
 
 class AdminSettingsController extends Controller
 {

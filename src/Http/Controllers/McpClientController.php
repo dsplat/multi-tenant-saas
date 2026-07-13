@@ -7,8 +7,8 @@ namespace MultiTenantSaas\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use MultiTenantSaas\Models\McpClient;
-use MultiTenantSaas\Services\RbacService;
+use MultiTenantSaas\Modules\ApiToken\Models\McpClient;
+use MultiTenantSaas\Modules\Auth\Services\RbacService;
 
 class McpClientController extends Controller
 {

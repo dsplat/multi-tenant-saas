@@ -6,9 +6,9 @@ use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\FileUpload;
-use MultiTenantSaas\Services\AuditService;
-use MultiTenantSaas\Services\FileService;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
+use MultiTenantSaas\Modules\Storage\Models\FileUpload;
+use MultiTenantSaas\Modules\Storage\Services\FileService;
 
 /**
  * @OA\Tag(

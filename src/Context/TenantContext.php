@@ -4,7 +4,7 @@ namespace MultiTenantSaas\Context;
 
 use Illuminate\Http\Request;
 use MultiTenantSaas\Contracts\TenantContextContract;
-use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
 /**
  * 租户上下文管理

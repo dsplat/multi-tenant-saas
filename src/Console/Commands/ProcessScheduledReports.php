@@ -4,8 +4,8 @@ namespace MultiTenantSaas\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
-use MultiTenantSaas\Models\CustomReport;
-use MultiTenantSaas\Services\ReportService;
+use MultiTenantSaas\Modules\Monitoring\Models\CustomReport;
+use MultiTenantSaas\Modules\Monitoring\Services\ReportService;
 
 /**
  * 发送定时报表

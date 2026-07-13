@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Console\Commands;
 
 use Illuminate\Console\Command;
-use MultiTenantSaas\Services\SchedulerService;
+use MultiTenantSaas\Modules\Infrastructure\Services\SchedulerService;
 
 /**
  * 列出所有定时任务及其状态。

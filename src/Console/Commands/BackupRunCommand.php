@@ -3,8 +3,8 @@
 namespace MultiTenantSaas\Console\Commands;
 
 use Illuminate\Console\Command;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\BackupService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\BackupService;
 
 /**
  * 执行租户数据备份。

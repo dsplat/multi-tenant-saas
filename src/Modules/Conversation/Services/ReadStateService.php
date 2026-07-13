@@ -7,8 +7,8 @@ namespace MultiTenantSaas\Modules\Conversation\Services;
 use Illuminate\Support\Collection;
 use MultiTenantSaas\Concerns\EnsuresTenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
-use MultiTenantSaas\Models\Participant;
-use MultiTenantSaas\Models\ReadState;
+use MultiTenantSaas\Modules\Conversation\Models\Participant;
+use MultiTenantSaas\Modules\Conversation\Models\ReadState;
 
 /**
  * 已读状态服务

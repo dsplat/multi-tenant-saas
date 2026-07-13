@@ -7,7 +7,7 @@ namespace MultiTenantSaas\EnterpriseWechat;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use MultiTenantSaas\Models\ArchivedMessage;
+use MultiTenantSaas\Modules\Conversation\Models\ArchivedMessage;
 
 class SessionArchiveService
 {

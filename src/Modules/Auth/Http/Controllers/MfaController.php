@@ -5,8 +5,8 @@ namespace MultiTenantSaas\Modules\Auth\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use MultiTenantSaas\Services\MfaService;
-use MultiTenantSaas\Services\SessionService;
+use MultiTenantSaas\Modules\Auth\Services\MfaService;
+use MultiTenantSaas\Modules\Auth\Services\SessionService;
 
 class MfaController extends Controller
 {

@@ -18,25 +18,25 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->prepend([
             \App\Http\Middleware\AddSecurityHeaders::class,
-            \MultiTenantSaas\Middleware\IdentifyDomain::class,
+            \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyDomain::class,
         ]);
 
         $middleware->web(prepend: [
-            \MultiTenantSaas\Middleware\IdentifyTenant::class,
+            \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant::class,
             \MultiTenantSaas\Modules\Operator\Http\Middleware\IdentifyOperator::class,
         ]);
 
         $middleware->api(prepend: [
-            \MultiTenantSaas\Middleware\IdentifyTenant::class,
+            \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant::class,
             \MultiTenantSaas\Modules\Operator\Http\Middleware\IdentifyOperator::class,
-            \MultiTenantSaas\Middleware\SetLocale::class,
+            \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\SetLocale::class,
         ]);
 
         $middleware->alias([
-            'tenant.ensure' => \MultiTenantSaas\Middleware\EnsureTenantContext::class,
+            'tenant.ensure' => \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\EnsureTenantContext::class,
             'tenant.permission' => \MultiTenantSaas\Modules\Auth\Http\Middleware\CheckPermission::class,
             'rbac.permission' => \MultiTenantSaas\Modules\Auth\Http\Middleware\CheckRbacPermission::class,
-            'mcp.auth' => \MultiTenantSaas\Middleware\McpMiddleware::class,
+            'mcp.auth' => \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\McpMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

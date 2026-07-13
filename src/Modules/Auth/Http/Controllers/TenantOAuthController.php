@@ -5,7 +5,7 @@ namespace MultiTenantSaas\Modules\Auth\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use MultiTenantSaas\Services\SocialiteService;
+use MultiTenantSaas\Modules\Auth\Services\SocialiteService;
 
 class TenantOAuthController extends Controller
 {

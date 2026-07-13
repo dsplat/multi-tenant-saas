@@ -4,8 +4,8 @@ namespace MultiTenantSaas\Modules\Payment\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use MultiTenantSaas\Models\CreditAccount;
-use MultiTenantSaas\Models\PaymentOrder;
+use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
+use MultiTenantSaas\Modules\Billing\Models\PaymentOrder;
 
 /**
  * 支付网关服务

@@ -7,8 +7,8 @@ namespace MultiTenantSaas\Modules\Conversation\Services;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Exceptions\StorageException;
 use MultiTenantSaas\Exceptions\SummaryGenerationException;
-use MultiTenantSaas\Models\Conversation;
-use MultiTenantSaas\Models\Message;
+use MultiTenantSaas\Modules\Conversation\Models\Conversation;
+use MultiTenantSaas\Modules\Conversation\Models\Message;
 
 class ConversationSummaryService
 {

@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use MultiTenantSaas\Services\SandboxService;
+use MultiTenantSaas\Modules\DeveloperPortal\Services\SandboxService;
 
 Route::prefix('tenant/developer')->group(function () {
     Route::get('/docs', function () {

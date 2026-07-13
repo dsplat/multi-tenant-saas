@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Console\Commands;
 
 use Illuminate\Console\Command;
-use MultiTenantSaas\Services\MailerService;
+use MultiTenantSaas\Modules\Infrastructure\Services\MailerService;
 
 /**
  * 检查邮件服务健康状态。

@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Modules\Operator\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
 /**
  * 平台默认租户 Seeder

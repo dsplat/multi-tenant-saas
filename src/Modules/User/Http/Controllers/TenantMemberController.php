@@ -5,9 +5,9 @@ namespace MultiTenantSaas\Modules\User\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use MultiTenantSaas\Models\TenantUser;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\User\Http\Resources\TenantUserResource;
-use MultiTenantSaas\Services\AuditService;
 
 class TenantMemberController extends Controller
 {

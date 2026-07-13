@@ -8,7 +8,7 @@ use MultiTenantSaas\Events\TenantCreated;
 use MultiTenantSaas\Events\TenantSuspended;
 use MultiTenantSaas\Events\UserLoggedIn;
 use MultiTenantSaas\Events\UserRegistered;
-use MultiTenantSaas\Services\AuditService;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 /**
  * 事件监听器 — 将领域事件记录到审计日志和系统日志

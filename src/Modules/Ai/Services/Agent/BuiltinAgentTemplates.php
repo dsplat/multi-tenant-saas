@@ -3,7 +3,6 @@
 namespace MultiTenantSaas\Modules\Ai\Services\Agent;
 
 use Illuminate\Support\Collection;
-use MultiTenantSaas\Services\Agent\AgentService;
 
 /**
  * 预置 Agent 模板定义数据

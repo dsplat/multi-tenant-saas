@@ -5,10 +5,10 @@ namespace MultiTenantSaas\Modules\Billing\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use MultiTenantSaas\Models\FileUpload;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantUser;
-use MultiTenantSaas\Services\SubscriptionService;
+use MultiTenantSaas\Modules\Billing\Services\SubscriptionService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
+use MultiTenantSaas\Modules\Storage\Models\FileUpload;
 
 class TenantQuotaController extends Controller
 {

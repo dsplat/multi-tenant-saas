@@ -5,10 +5,10 @@ namespace MultiTenantSaas\Modules\Payment\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use MultiTenantSaas\Models\PaymentOrder;
-use MultiTenantSaas\Services\AuditService;
-use MultiTenantSaas\Services\PayService;
-use MultiTenantSaas\Services\RefundService;
+use MultiTenantSaas\Modules\Billing\Models\PaymentOrder;
+use MultiTenantSaas\Modules\Billing\Services\PayService;
+use MultiTenantSaas\Modules\Billing\Services\RefundService;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 class TenantPaymentController extends Controller
 {

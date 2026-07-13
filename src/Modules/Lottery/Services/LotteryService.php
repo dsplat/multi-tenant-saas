@@ -5,11 +5,11 @@ namespace MultiTenantSaas\Modules\Lottery\Services;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\Lottery\Models\LotteryActivity;
 use MultiTenantSaas\Modules\Lottery\Models\LotteryActivityPrize;
 use MultiTenantSaas\Modules\Lottery\Models\LotteryBlacklist;
 use MultiTenantSaas\Modules\Lottery\Models\LotteryDrawLog;
-use MultiTenantSaas\Services\AuditService;
 
 /**
  * 抽奖服务

@@ -6,16 +6,16 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use MultiTenantSaas\Events\TenantCreated;
-use MultiTenantSaas\Models\CreditAccount;
-use MultiTenantSaas\Models\CreditTransaction;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantSetting;
+use MultiTenantSaas\Modules\Auth\Services\RbacService;
+use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
+use MultiTenantSaas\Modules\Billing\Models\CreditTransaction;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
+use MultiTenantSaas\Modules\Infrastructure\Services\IdGenerator;
+use MultiTenantSaas\Modules\Infrastructure\Services\ModuleManager;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
+use MultiTenantSaas\Modules\Notification\Services\NotificationService;
 use MultiTenantSaas\Modules\User\Http\Resources\TenantResource;
-use MultiTenantSaas\Services\AuditService;
-use MultiTenantSaas\Services\IdGenerator;
-use MultiTenantSaas\Services\ModuleManager;
-use MultiTenantSaas\Services\NotificationService;
-use MultiTenantSaas\Services\RbacService;
 
 /**
  * @OA\Tag(

@@ -4,7 +4,7 @@ namespace MultiTenantSaas\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
-use MultiTenantSaas\Services\ModuleRegistry;
+use MultiTenantSaas\Modules\Infrastructure\Services\ModuleRegistry;
 
 /**
  * 通过 Composer 添加或移除模块

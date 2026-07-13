@@ -10,7 +10,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
-use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\Auth\Models\User;
 
 /**
  * AI 请求日志模型

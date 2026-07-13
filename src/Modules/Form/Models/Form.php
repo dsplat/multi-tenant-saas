@@ -15,49 +15,39 @@ class Form extends Model
     protected $primaryKey = 'form_id';
 
     protected $fillable = [
-        'tenant_id', 'title', 'slug', 'description', 'status',
-        'settings', 'submit_count', 'submit_limit', 'submit_text',
-        'success_message', 'is_public', 'require_login', 'metadata',
-        'start_at', 'end_at',
+        'tenant_id',
+        'title',
+        'description',
+        'status',
+        'submit_limit',
+        'start_at',
+        'end_at',
+        'submit_text',
+        'success_message',
+        'is_public',
+        'require_login',
+        'metadata',
     ];
 
     protected function casts(): array
     {
         return [
-            'settings' => 'array',
-            'metadata' => 'array',
-            'submit_count' => 'integer',
             'submit_limit' => 'integer',
-            'is_public' => 'boolean',
-            'require_login' => 'boolean',
             'start_at' => 'datetime',
             'end_at' => 'datetime',
+            'is_public' => 'boolean',
+            'require_login' => 'boolean',
+            'metadata' => 'array',
         ];
     }
 
     public function fields(): HasMany
     {
-        return $this->hasMany(FormField::class, 'form_id', 'form_id');
+        return $this->hasMany(FormField::class, 'form_id', 'form_id')->orderBy('sort_order');
     }
 
     public function submissions(): HasMany
     {
         return $this->hasMany(FormSubmission::class, 'form_id', 'form_id');
-    }
-
-    public function scopePublished($query)
-    {
-        return $query->where('status', 'published');
-    }
-
-    public function scopeActive($query)
-    {
-        return $query->where('status', 'published')
-            ->where(function ($q) {
-                $q->whereNull('start_at')->orWhere('start_at', '<=', now());
-            })
-            ->where(function ($q) {
-                $q->whereNull('end_at')->orWhere('end_at', '>=', now());
-            });
     }
 }

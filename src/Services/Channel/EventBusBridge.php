@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\DTOs\MessageDTO;
 use MultiTenantSaas\Events\MessageReceived;
-use MultiTenantSaas\Models\Message;
+use MultiTenantSaas\Modules\Conversation\Models\Message;
 
 class EventBusBridge
 {

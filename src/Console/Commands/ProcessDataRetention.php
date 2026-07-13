@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Console\Commands;
 
 use Illuminate\Console\Command;
-use MultiTenantSaas\Services\RetentionService;
+use MultiTenantSaas\Modules\Infrastructure\Services\RetentionService;
 
 class ProcessDataRetention extends Command
 {

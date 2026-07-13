@@ -4,8 +4,8 @@ namespace MultiTenantSaas\Modules\Domain\Services;
 
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantSetting;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 
 class DomainService
 {

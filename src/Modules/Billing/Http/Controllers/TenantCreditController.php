@@ -5,8 +5,8 @@ namespace MultiTenantSaas\Modules\Billing\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use MultiTenantSaas\Models\CreditAccount;
-use MultiTenantSaas\Models\CreditTransaction;
+use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
+use MultiTenantSaas\Modules\Billing\Models\CreditTransaction;
 
 class TenantCreditController extends Controller
 {

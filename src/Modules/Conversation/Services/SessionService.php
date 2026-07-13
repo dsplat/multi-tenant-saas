@@ -7,7 +7,7 @@ namespace MultiTenantSaas\Modules\Conversation\Services;
 use Illuminate\Support\Collection;
 use MultiTenantSaas\Concerns\EnsuresTenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
-use MultiTenantSaas\Models\ConversationSession;
+use MultiTenantSaas\Modules\Conversation\Models\ConversationSession;
 
 /**
  * 会话连接服务
@@ -16,7 +16,7 @@ use MultiTenantSaas\Models\ConversationSession;
  * 连接、断开、活跃心跳更新、空闲清理。
  *
  * 注意：本服务操作的是「会话内的实时连接会话」，与
- * MultiTenantSaas\Services\SessionService（用户登录会话 user_sessions）职责不同，
+ * MultiTenantSaas\Modules\Auth\Services\SessionService（用户登录会话 user_sessions）职责不同，
  * 两者操作不同的数据表，不存在功能重叠。
  */
 class SessionService

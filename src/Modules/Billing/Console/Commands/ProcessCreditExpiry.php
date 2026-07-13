@@ -4,10 +4,10 @@ namespace MultiTenantSaas\Modules\Billing\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
-use MultiTenantSaas\Models\CreditAccount;
-use MultiTenantSaas\Models\CreditTransaction;
-use MultiTenantSaas\Models\FinancialRecord;
-use MultiTenantSaas\Services\NotificationService;
+use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
+use MultiTenantSaas\Modules\Billing\Models\CreditTransaction;
+use MultiTenantSaas\Modules\Billing\Models\FinancialRecord;
+use MultiTenantSaas\Modules\Notification\Services\NotificationService;
 
 class ProcessCreditExpiry extends Command
 {

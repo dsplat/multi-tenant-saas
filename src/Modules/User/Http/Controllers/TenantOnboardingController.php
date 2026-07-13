@@ -7,7 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use MultiTenantSaas\Services\TenantOnboardingService;
+use MultiTenantSaas\Modules\Infrastructure\Services\TenantOnboardingService;
 
 /**
  * 租户引导式注册控制器

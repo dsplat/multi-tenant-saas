@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Events;
 
 use Illuminate\Foundation\Events\Dispatchable;
-use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
 class TenantSuspended
 {

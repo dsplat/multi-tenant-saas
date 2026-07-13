@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Isolation;
 
 use MultiTenantSaas\Contracts\IsolationStrategyContract;
-use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
 /**
  * 共享数据库隔离策略

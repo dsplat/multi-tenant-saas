@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\ChannelContract;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
-use MultiTenantSaas\Models\TenantSetting;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 
 class SlackProvider implements ChannelContract
 {

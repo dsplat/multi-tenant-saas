@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Modules\Domain\Services;
 
 use Illuminate\Support\Facades\File;
-use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
 class NginxConfigService
 {

@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Concerns;
 
 use Illuminate\Database\Eloquent\Builder;
-use MultiTenantSaas\Services\SearchService;
+use MultiTenantSaas\Modules\Infrastructure\Services\SearchService;
 
 /**
  * 可搜索 Trait

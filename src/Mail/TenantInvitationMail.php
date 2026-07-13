@@ -5,7 +5,7 @@ namespace MultiTenantSaas\Mail;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use MultiTenantSaas\Services\MailTemplateService;
+use MultiTenantSaas\Modules\Notification\Services\MailTemplateService;
 
 class TenantInvitationMail extends Mailable
 {

@@ -4,10 +4,10 @@ namespace MultiTenantSaas\Modules\Billing\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
-use MultiTenantSaas\Models\PaymentOrder;
-use MultiTenantSaas\Services\DunningService;
-use MultiTenantSaas\Services\SubscriptionService;
-use MultiTenantSaas\Services\TrialService;
+use MultiTenantSaas\Modules\Billing\Models\PaymentOrder;
+use MultiTenantSaas\Modules\Billing\Services\DunningService;
+use MultiTenantSaas\Modules\Billing\Services\SubscriptionService;
+use MultiTenantSaas\Modules\Monitoring\Services\TrialService;
 
 class ProcessSubscriptions extends Command
 {

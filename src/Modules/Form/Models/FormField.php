@@ -14,9 +14,17 @@ class FormField extends Model
     protected $primaryKey = 'field_id';
 
     protected $fillable = [
-        'form_id', 'field_key', 'field_type', 'label', 'placeholder',
-        'default_value', 'options', 'is_required', 'sort_order',
-        'validation_rules', 'metadata',
+        'form_id',
+        'field_key',
+        'field_type',
+        'label',
+        'placeholder',
+        'default_value',
+        'options',
+        'is_required',
+        'sort_order',
+        'validation_rules',
+        'metadata',
     ];
 
     protected function casts(): array

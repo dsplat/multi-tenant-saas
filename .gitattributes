@@ -34,6 +34,7 @@
 /src/Modules/Logging export-ignore
 /src/Modules/Lottery export-ignore
 /src/Modules/Monitoring export-ignore
+/src/Modules/Notification export-ignore
 /src/Modules/Payment export-ignore
 /src/Modules/Platform export-ignore
 /src/Modules/Plugin export-ignore

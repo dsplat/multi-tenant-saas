@@ -1,6 +1,6 @@
 <?php
 
-namespace MultiTenantSaas\Services;
+namespace MultiTenantSaas\Modules\Auth\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;

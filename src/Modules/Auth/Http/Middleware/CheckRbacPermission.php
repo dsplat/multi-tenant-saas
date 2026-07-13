@@ -1,6 +1,6 @@
 <?php
 
-namespace MultiTenantSaas\Middleware;
+namespace MultiTenantSaas\Modules\Auth\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;

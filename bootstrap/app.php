@@ -34,8 +34,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'tenant.ensure' => \MultiTenantSaas\Middleware\EnsureTenantContext::class,
-            'tenant.permission' => \MultiTenantSaas\Middleware\CheckPermission::class,
-            'rbac.permission' => \MultiTenantSaas\Middleware\CheckRbacPermission::class,
+            'tenant.permission' => \MultiTenantSaas\Modules\Auth\Http\Middleware\CheckPermission::class,
+            'rbac.permission' => \MultiTenantSaas\Modules\Auth\Http\Middleware\CheckRbacPermission::class,
             'mcp.auth' => \MultiTenantSaas\Middleware\McpMiddleware::class,
         ]);
     })

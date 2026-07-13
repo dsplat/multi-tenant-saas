@@ -23,12 +23,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(prepend: [
             \MultiTenantSaas\Middleware\IdentifyTenant::class,
-            \MultiTenantSaas\Middleware\IdentifyOperator::class,
+            \MultiTenantSaas\Modules\Operator\Http\Middleware\IdentifyOperator::class,
         ]);
 
         $middleware->api(prepend: [
             \MultiTenantSaas\Middleware\IdentifyTenant::class,
-            \MultiTenantSaas\Middleware\IdentifyOperator::class,
+            \MultiTenantSaas\Modules\Operator\Http\Middleware\IdentifyOperator::class,
             \MultiTenantSaas\Middleware\SetLocale::class,
         ]);
 

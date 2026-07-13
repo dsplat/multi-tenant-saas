@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -20,12 +21,6 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class CheckPermission
 {
-    public const ROLE_SUPER_ADMIN = 'super_admin';
-
-    public const ROLE_TENANT_ADMIN = 'tenant_admin';
-
-    public const ROLE_END_USER = 'end_user';
-
     /**
      * Handle an incoming request.
      */
@@ -48,11 +43,18 @@ class CheckPermission
     }
 
     /**
-     * 检查管理后台访问权限（仅 super_admin）
+     * 检查管理后台访问权限（仅 platform scope operator）
      */
     protected function checkAdminAccess(Request $request, $user, Closure $next, ?string $role): Response
     {
-        if ($user->role !== self::ROLE_SUPER_ADMIN) {
+        $isPlatformOperator = DB::table('operator_tenants')
+            ->join('operators', 'operators.operator_id', '=', 'operator_tenants.operator_id')
+            ->where('operator_tenants.user_id', $user->getKey())
+            ->where('operator_tenants.is_active', true)
+            ->where('operators.scope', 'platform')
+            ->exists();
+
+        if (! $isPlatformOperator) {
             return $this->forbidden($request, trans('common.super_admin_only'));
         }
 
@@ -60,7 +62,7 @@ class CheckPermission
     }
 
     /**
-     * 检查租户后台访问权限（仅 tenant_admin，super_admin 不可访问）
+     * 检查租户后台访问权限（仅 tenant_admin，通过 operator_tenants 验证）
      */
     protected function checkConsoleAccess(Request $request, $user, Closure $next, ?string $role): Response
     {
@@ -70,35 +72,29 @@ class CheckPermission
             return $this->forbidden($request, trans('common.missing_tenant'));
         }
 
-        // super_admin 不能访问租户后台（租户数据隔离）
-        if ($user->role === self::ROLE_SUPER_ADMIN) {
-            return $this->forbidden($request, trans('common.admin_no_tenant_console'));
-        }
-
-        // 检查用户是否属于该租户
-        $tenantUser = $user->tenants()
-            ->where('tenants.tenant_id', $tenantId)
-            ->wherePivot('is_active', true)
+        // 通过 operator_tenants 查找当前用户在当前租户的 active mapping
+        $operatorTenant = DB::table('operator_tenants')
+            ->where('user_id', $user->getKey())
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
             ->first();
 
-        if (! $tenantUser) {
+        if (! $operatorTenant) {
             return $this->forbidden($request, trans('common.not_in_tenant'));
         }
 
-        $tenantRole = $tenantUser->pivot->role;
-
         // console 仅允许 tenant_admin
-        if ($tenantRole !== self::ROLE_TENANT_ADMIN) {
+        if ($operatorTenant->role !== 'tenant_admin') {
             return $this->forbidden($request, trans('common.tenant_admin_only'));
         }
 
-        TenantContext::setTenantRole($tenantRole);
+        TenantContext::setTenantRole($operatorTenant->role);
 
         return $next($request);
     }
 
     /**
-     * 检查租户访问权限（super_admin 不可访问租户私有数据）
+     * 检查租户访问权限（operator_tenants 优先，tenant_users 兜底）
      */
     protected function checkTenantAccess(Request $request, $user, Closure $next, ?string $role): Response
     {
@@ -108,22 +104,29 @@ class CheckPermission
             return $this->forbidden($request, trans('common.missing_tenant'));
         }
 
-        // super_admin 不能访问租户私有数据
-        if ($user->role === self::ROLE_SUPER_ADMIN) {
-            return $this->forbidden($request, trans('common.admin_no_tenant_data'));
-        }
-
-        // 检查用户是否属于该租户
-        $tenantUser = $user->tenants()
-            ->where('tenants.tenant_id', $tenantId)
-            ->wherePivot('is_active', true)
+        // 优先通过 operator_tenants 查找
+        $operatorTenant = DB::table('operator_tenants')
+            ->where('user_id', $user->getKey())
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
             ->first();
 
-        if (! $tenantUser) {
-            return $this->forbidden($request, trans('common.not_in_tenant'));
+        if ($operatorTenant) {
+            $tenantRole = $operatorTenant->role;
+        } else {
+            // fallback: 通过 tenant_users (users.tenants relationship)
+            $tenantUser = $user->tenants()
+                ->where('tenants.tenant_id', $tenantId)
+                ->wherePivot('is_active', true)
+                ->first();
+
+            if (! $tenantUser) {
+                return $this->forbidden($request, trans('common.not_in_tenant'));
+            }
+
+            $tenantRole = $tenantUser->pivot->role;
         }
 
-        $tenantRole = $tenantUser->pivot->role;
         TenantContext::setTenantRole($tenantRole);
 
         // 检查指定角色

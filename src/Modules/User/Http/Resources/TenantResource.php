@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Modules\User\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\DB;
 
 class TenantResource extends JsonResource
 {
@@ -23,15 +24,30 @@ class TenantResource extends JsonResource
             'available_credits' => $this->available_credits,
             'contact_name' => $this->contact_name,
             'contact_email' => $this->when(
-                $request->user()?->role === 'super_admin',
+                $this->isPlatformOperator($request),
                 fn () => $this->contact_email
             ),
             'contact_phone' => $this->when(
-                $request->user()?->role === 'super_admin',
+                $this->isPlatformOperator($request),
                 fn () => $this->contact_phone ? $this->maskPhone($this->contact_phone) : null
             ),
             'created_at' => $this->created_at,
         ];
+    }
+
+    private function isPlatformOperator(Request $request): bool
+    {
+        $user = $request->user();
+        if (! $user) {
+            return false;
+        }
+
+        return DB::table('operator_tenants')
+            ->join('operators', 'operators.operator_id', '=', 'operator_tenants.operator_id')
+            ->where('operator_tenants.user_id', $user->user_id)
+            ->where('operators.scope', 'platform')
+            ->where('operator_tenants.is_active', true)
+            ->exists();
     }
 
     private function maskPhone(string $phone): string

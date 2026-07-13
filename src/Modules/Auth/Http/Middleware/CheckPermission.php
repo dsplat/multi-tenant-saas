@@ -84,11 +84,16 @@ class CheckPermission
         }
 
         // console 仅允许 tenant_admin
-        if ($operatorTenant->role !== 'tenant_admin') {
+        $tenantAdminRoleId = DB::table('roles')
+            ->where('name', 'tenant_admin')
+            ->whereNull('tenant_id')
+            ->value('role_id');
+
+        if ($operatorTenant->role_id !== $tenantAdminRoleId) {
             return $this->forbidden($request, trans('common.tenant_admin_only'));
         }
 
-        TenantContext::setTenantRole($operatorTenant->role);
+        TenantContext::setTenantRole('tenant_admin');
 
         return $next($request);
     }
@@ -112,7 +117,8 @@ class CheckPermission
             ->first();
 
         if ($operatorTenant) {
-            $tenantRole = $operatorTenant->role;
+            $tenantRoleId = $operatorTenant->role_id;
+            $tenantRoleName = DB::table('roles')->where('role_id', $tenantRoleId)->value('name');
         } else {
             // fallback: 通过 tenant_users (users.tenants relationship)
             $tenantUser = $user->tenants()
@@ -124,13 +130,14 @@ class CheckPermission
                 return $this->forbidden($request, trans('common.not_in_tenant'));
             }
 
-            $tenantRole = $tenantUser->pivot->role;
+            $tenantRoleId = $tenantUser->pivot->role_id;
+            $tenantRoleName = DB::table('roles')->where('role_id', $tenantRoleId)->value('name');
         }
 
-        TenantContext::setTenantRole($tenantRole);
+        TenantContext::setTenantRole($tenantRoleName);
 
         // 检查指定角色
-        if ($role && $tenantRole !== $role) {
+        if ($role && $tenantRoleName !== $role) {
             return $this->forbidden($request, trans('common.role_required', ['role' => $role]));
         }
 

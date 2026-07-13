@@ -26,13 +26,21 @@ use MultiTenantSaas\Modules\User\Http\Resources\TenantResource;
 class TenantController extends Controller
 {
     /**
-     * 确保用户有权访问目标租户（super_admin 可访问任意租户）
+     * 确保用户有权访问目标租户（平台 operator 可访问任意租户）
      */
     private function ensureTenantAccessOrSuperAdmin(Request $request, int $tenantId): void
     {
         $user = $request->user();
 
-        if ($user->role === 'super_admin') {
+        // 检查是否是平台级 operator
+        $isPlatformOperator = \DB::table('operator_tenants')
+            ->join('operators', 'operators.operator_id', '=', 'operator_tenants.operator_id')
+            ->where('operator_tenants.user_id', $user->user_id)
+            ->where('operators.scope', 'platform')
+            ->where('operator_tenants.is_active', true)
+            ->exists();
+
+        if ($isPlatformOperator) {
             return;
         }
 

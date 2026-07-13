@@ -169,9 +169,14 @@ class TenantMemberService
         }
 
         // 检查是否是最后一个管理员
-        if ($tenantUser->role === 'tenant_admin' && $role !== 'tenant_admin') {
+        $tenantAdminRoleId = \DB::table('roles')
+            ->where('name', 'tenant_admin')
+            ->whereNull('tenant_id')
+            ->value('role_id');
+
+        if ($tenantUser->role_id === $tenantAdminRoleId && $roleId !== $tenantAdminRoleId) {
             $adminCount = TenantUser::where('tenant_id', $tenantId)
-                ->where('role', 'tenant_admin')
+                ->where('role_id', $tenantAdminRoleId)
                 ->count();
 
             if ($adminCount <= 1) {
@@ -182,7 +187,7 @@ class TenantMemberService
             }
         }
 
-        $tenantUser->update(['role' => $role]);
+        $tenantUser->update(['role_id' => $roleId]);
 
         return [
             'success' => true,
@@ -240,9 +245,14 @@ class TenantMemberService
         }
 
         // 检查是否是最后一个管理员
-        if ($tenantUser->role === 'tenant_admin') {
+        $tenantAdminRoleId = \DB::table('roles')
+            ->where('name', 'tenant_admin')
+            ->whereNull('tenant_id')
+            ->value('role_id');
+
+        if ($tenantUser->role_id === $tenantAdminRoleId) {
             $adminCount = TenantUser::where('tenant_id', $tenantId)
-                ->where('role', 'tenant_admin')
+                ->where('role_id', $tenantAdminRoleId)
                 ->count();
 
             if ($adminCount <= 1) {

@@ -37,8 +37,8 @@ class RbacService
             ->where('is_active', true)
             ->first();
 
-        if ($operatorTenant) {
-            return static::checkRolePermission($operatorTenant->role_id, $operatorTenant->role, $permission);
+        if ($operatorTenant && $operatorTenant->role_id) {
+            return static::checkRolePermission($operatorTenant->role_id, $permission);
         }
 
         // 回退到 tenant_users 路径（向后兼容）
@@ -47,27 +47,21 @@ class RbacService
             ->wherePivot('is_active', true)
             ->first();
 
-        if (! $tenantUser) {
+        if (! $tenantUser || ! $tenantUser->pivot->role_id) {
             return false;
         }
 
-        return static::checkRolePermission($tenantUser->pivot->role_id, $tenantUser->pivot->role, $permission);
+        return static::checkRolePermission($tenantUser->pivot->role_id, $permission);
     }
 
     /**
      * 检查角色是否拥有指定权限
      */
-    public static function checkRolePermission(?int $roleId, ?string $roleName, string $permission): bool
+    public static function checkRolePermission(int $roleId, string $permission): bool
     {
-        // 如果有 role_id，走动态权限检查
-        if ($roleId) {
-            $permissions = static::getRolePermissions($roleId);
+        $permissions = static::getRolePermissions($roleId);
 
-            return in_array($permission, $permissions);
-        }
-
-        // 回退到字符串角色兼容模式
-        return static::checkByRoleName($roleName, $permission);
+        return in_array($permission, $permissions);
     }
 
     /**
@@ -84,32 +78,6 @@ class RbacService
                 ->pluck('permissions.name')
                 ->toArray()
         );
-    }
-
-    /**
-     * 字符串角色兼容模式
-     */
-    protected static function checkByRoleName(?string $roleName, string $permission): bool
-    {
-        if (! $roleName) {
-            return false;
-        }
-
-        // tenant_admin 默认拥有除平台级之外的所有权限
-        if ($roleName === 'tenant_admin') {
-            $denied = ['tenant.create', 'tenant.delete', 'tenant.suspend'];
-
-            return ! in_array($permission, $denied);
-        }
-
-        // end_user 默认只有查看权限
-        if ($roleName === 'end_user') {
-            $allowed = ['tenant.view', 'member.view', 'credit.view', 'setting.view', 'payment.view', 'audit.view', 'file.upload'];
-
-            return in_array($permission, $allowed);
-        }
-
-        return false;
     }
 
     /**

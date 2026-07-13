@@ -76,10 +76,15 @@ class NotificationService
         ?string $actionUrl = null,
         array $extra = []
     ): void {
-        $users = User::whereHas('tenants', function ($q) use ($tenantId) {
+        $tenantAdminRoleId = \DB::table('roles')
+            ->where('name', 'tenant_admin')
+            ->whereNull('tenant_id')
+            ->value('role_id');
+
+        $users = User::whereHas('tenants', function ($q) use ($tenantId, $tenantAdminRoleId) {
             $q->where('tenants.tenant_id', $tenantId)
                 ->where('tenant_users.is_active', true)
-                ->whereIn('tenant_users.role', ['tenant_admin']);
+                ->where('tenant_users.role_id', $tenantAdminRoleId);
         })->get();
 
         $users = static::filterByPreference($users, 'database', 'general');
@@ -111,10 +116,15 @@ class NotificationService
      */
     public static function notifyCreditLow(Tenant $tenant, int $remaining, int $threshold = 100): void
     {
-        $admins = User::whereHas('tenants', function ($q) use ($tenant) {
+        $tenantAdminRoleId = \DB::table('roles')
+            ->where('name', 'tenant_admin')
+            ->whereNull('tenant_id')
+            ->value('role_id');
+
+        $admins = User::whereHas('tenants', function ($q) use ($tenant, $tenantAdminRoleId) {
             $q->where('tenants.tenant_id', $tenant->tenant_id)
                 ->where('tenant_users.is_active', true)
-                ->whereIn('tenant_users.role', ['tenant_admin']);
+                ->where('tenant_users.role_id', $tenantAdminRoleId);
         })->get();
 
         $admins = static::filterByPreference($admins, 'database', 'credit_low');

@@ -6,6 +6,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -30,6 +31,7 @@ class User extends Authenticatable
     protected $primaryKey = 'user_id';
 
     protected $fillable = [
+        'tenant_id',
         'name',
         'email',
         'phone',
@@ -77,5 +79,22 @@ class User extends Authenticatable
     public function creditAccounts(): HasMany
     {
         return $this->hasMany(CreditAccount::class, 'user_id', 'user_id');
+    }
+
+    public function operatorTenants(): HasMany
+    {
+        return $this->hasMany(OperatorTenant::class, 'user_id', 'user_id');
+    }
+
+    public function operator(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            Operator::class,
+            OperatorTenant::class,
+            'user_id',   // Foreign key on operator_tenants table
+            'operator_id', // Foreign key on operators table
+            'user_id',    // Local key on users table
+            'operator_id' // Local key on operator_tenants table
+        );
     }
 }

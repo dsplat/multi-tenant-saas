@@ -27,37 +27,37 @@ export const useUserStore = defineStore('user', () => {
   // 获取用户信息
   const fetchUser = async () => {
     try {
-      const response = await axios.get('/api/v1/auth/me')
+      const response = await axios.get('/api/v1/admin/auth/user')
       user.value = response.data.data
     } catch (error) {
       console.error('获取用户信息失败:', error)
       throw error
     }
   }
-  
+
   // 登录
   const login = async (email: string, password: string) => {
     try {
-      const response = await axios.post('/api/v1/auth/login', {
+      const response = await axios.post('/api/v1/admin/auth/login', {
         email,
         password,
       })
-      
-      const { user: userData, token: tokenValue } = response.data.data
-      setToken(tokenValue)
+
+      const { user: userData, auth_token } = response.data.data
+      setToken(auth_token)
       user.value = userData
-      
+
       return response.data
     } catch (error) {
       console.error('登录失败:', error)
       throw error
     }
   }
-  
+
   // 登出
   const logout = async () => {
     try {
-      await axios.post('/api/v1/auth/logout')
+      await axios.post('/api/v1/admin/auth/logout')
     } catch (error) {
       console.error('登出失败:', error)
     } finally {

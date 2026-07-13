@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use MultiTenantSaas\Models\AgentTool;
+use MultiTenantSaas\Modules\Ai\Models\AgentTool;
 use MultiTenantSaas\Services\Tool\CacheGetTool;
 use MultiTenantSaas\Services\Tool\CacheSetTool;
 use MultiTenantSaas\Services\Tool\DocumentParseTool;

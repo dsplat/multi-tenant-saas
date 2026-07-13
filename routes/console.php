@@ -3,7 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
-use MultiTenantSaas\Services\SchedulerService;
+use MultiTenantSaas\Modules\Infrastructure\Services\SchedulerService;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());

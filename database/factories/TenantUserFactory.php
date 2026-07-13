@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use MultiTenantSaas\Models\TenantUser;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 
 /**
  * @extends Factory<TenantUser>

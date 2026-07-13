@@ -3,11 +3,11 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Auth\Http\Controllers\TenantOAuthController;
+use MultiTenantSaas\Modules\Event\Services\BroadcastingService;
+use MultiTenantSaas\Modules\Notification\Services\InAppNotificationService;
 use MultiTenantSaas\Modules\Payment\Http\Controllers\TenantPaymentController;
-use MultiTenantSaas\Services\BroadcastingService;
 use MultiTenantSaas\Services\Channel\ChannelManager;
 use MultiTenantSaas\Services\Channel\MessageRouter;
-use MultiTenantSaas\Services\InAppNotificationService;
 
 // ========== 支付回调（无需认证） ==========
 Route::post('/v1/pay/wechat/notify', [TenantPaymentController::class, 'wechatNotify']);

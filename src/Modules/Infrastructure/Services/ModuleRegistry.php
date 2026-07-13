@@ -28,7 +28,9 @@ class ModuleRegistry
      */
     public function __construct(?string $modulePath = null, ?array $vendorPaths = null)
     {
-        $this->modulePath = $modulePath ?? dirname(__DIR__) . '/Modules';
+        // 从当前类路径向上找到 src/ 目录，然后定位 Modules/
+        // 当前类在 src/Modules/Infrastructure/Services/，需要向上 3 级到 src/
+        $this->modulePath = $modulePath ?? dirname(__DIR__, 3) . '/Modules';
         $this->vendorPaths = $vendorPaths ?? $this->discoverVendorModules();
     }
 
@@ -121,7 +123,13 @@ class ModuleRegistry
      */
     protected function discoverVendorModules(): array
     {
-        $vendorDir = base_path('vendor/dsplat');
+        // 延迟解析 base_path()，避免在构造函数中调用
+        try {
+            $vendorDir = base_path('vendor/dsplat');
+        } catch (\Throwable $e) {
+            return [];
+        }
+
         if (! is_dir($vendorDir)) {
             return [];
         }

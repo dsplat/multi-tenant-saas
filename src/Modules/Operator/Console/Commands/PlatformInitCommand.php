@@ -1,10 +1,10 @@
 <?php
 
-namespace MultiTenantSaas\Console\Commands;
+namespace MultiTenantSaas\Modules\Operator\Console\Commands;
 
-use Database\Seeders\PlatformInitSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use MultiTenantSaas\Modules\Operator\Database\Seeders\PlatformInitSeeder;
 
 /**
  * 平台初始化命令

@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace MultiTenantSaas\Modules\Operator\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use MultiTenantSaas\Models\Tenant;

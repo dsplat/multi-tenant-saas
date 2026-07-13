@@ -17,8 +17,9 @@
 /bin export-ignore
 /.github export-ignore
 
-# SPA source (build-time only, not distributed via Composer)
-/resources/js export-ignore
+# SPA build artifacts (source code IS distributed, these are not)
+/resources/js/*/node_modules export-ignore
+/resources/js/*/package-lock.json export-ignore
 /node_modules export-ignore
 /src/Modules/Ai export-ignore
 /src/Modules/ApiToken export-ignore

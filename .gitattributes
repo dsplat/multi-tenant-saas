@@ -40,6 +40,7 @@
 /src/Modules/Plugin export-ignore
 /src/Modules/Sms export-ignore
 /src/Modules/SSL export-ignore
+/src/Modules/Storage export-ignore
 /src/Modules/User export-ignore
 /src/Modules/Voting export-ignore
 /src/Modules/Workflow export-ignore

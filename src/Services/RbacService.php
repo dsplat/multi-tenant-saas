@@ -6,6 +6,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Models\OperatorTenant;
 use MultiTenantSaas\Models\Permission;
 use MultiTenantSaas\Models\Role;
 
@@ -25,17 +26,22 @@ class RbacService
             return false;
         }
 
-        // super_admin 直接放行
-        if ($user->role === 'super_admin') {
-            return true;
-        }
-
         $tenantId = TenantContext::getId() ?? request()->route('tenantId');
         if (! $tenantId) {
             return false;
         }
 
-        // 获取用户在当前租户的角色
+        // 优先通过 operator_tenants 查找角色
+        $operatorTenant = OperatorTenant::where('user_id', $user->user_id)
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->first();
+
+        if ($operatorTenant) {
+            return static::checkRolePermission($operatorTenant->role_id, $operatorTenant->role, $permission);
+        }
+
+        // 回退到 tenant_users 路径（向后兼容）
         $tenantUser = $user->tenants()
             ->where('tenants.tenant_id', $tenantId)
             ->wherePivot('is_active', true)

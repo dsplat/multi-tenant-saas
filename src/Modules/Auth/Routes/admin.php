@@ -5,7 +5,7 @@ use MultiTenantSaas\Modules\Auth\Http\Controllers\AuthController;
 use MultiTenantSaas\Modules\Auth\Http\Controllers\RbacController;
 
 // 管理员后台 - RBAC 管理
-Route::middleware('auth:sanctum')->prefix('admin/auth')->group(function () {
+Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
     Route::get('/permissions', [RbacController::class, 'permissions']);
     Route::get('/roles', [RbacController::class, 'roles']);
     Route::post('/roles', [RbacController::class, 'storeRole']);
@@ -15,7 +15,7 @@ Route::middleware('auth:sanctum')->prefix('admin/auth')->group(function () {
 });
 
 // 管理员后台 - SSO 管理
-Route::middleware('auth:sanctum')->prefix('admin/auth/sso')->group(function () {
+Route::middleware('auth:sanctum')->prefix('auth/sso')->group(function () {
     Route::get('/providers', [AuthController::class, 'ssoProviders']);
     Route::post('/providers', [AuthController::class, 'storeSsoProvider']);
     Route::delete('/providers/{name}', [AuthController::class, 'destroySsoProvider']);

@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { initUICore, uiRegistry } from '@multi-tenant-saas/ui-core'
 import { createBootstrapAdapter } from '@multi-tenant-saas/ui-core/adapters/index'
+import { useUserStore } from './stores/user'
 import App from './App.vue'
 import router from './router'
 
@@ -45,6 +46,10 @@ async function main() {
   if (active) await active.install(app)
 
   app.use(createPinia())
+
+  const userStore = useUserStore()
+  await userStore.init()
+
   app.use(router)
   app.mount('#app')
 }

@@ -13,6 +13,8 @@ use MultiTenantSaas\Jobs\SendEmailVerificationJob;
 use MultiTenantSaas\Jobs\SendPasswordResetJob;
 use MultiTenantSaas\Models\TenantUser;
 use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
+use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 use MultiTenantSaas\Services\MfaService;
 use MultiTenantSaas\Services\PasswordPolicyService;
 use MultiTenantSaas\Services\SessionService;
@@ -88,7 +90,6 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'end_user',
         ]);
 
         // 自动加入当前租户
@@ -156,7 +157,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 管理员登录（仅 super_admin）。
+     * 管理员登录（仅 platform scope operator）。
      */
     public function adminLogin(Request $request): JsonResponse
     {
@@ -165,14 +166,32 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $operator = Operator::where('email', $request->email)->first();
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        if (! $operator || ! Hash::check($request->password, $operator->password)) {
             return response()->json(['success' => false, 'message' => trans('auth.invalid_credentials')], 401);
         }
 
-        if ($user->role !== 'super_admin') {
+        if (! $operator->is_active) {
+            return response()->json(['success' => false, 'message' => trans('auth.account_disabled')], 403);
+        }
+
+        if (! $operator->isPlatform()) {
             return response()->json(['success' => false, 'message' => trans('common.super_admin_only')], 403);
+        }
+
+        $operatorTenant = OperatorTenant::where('operator_id', $operator->operator_id)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $operatorTenant) {
+            return response()->json(['success' => false, 'message' => trans('auth.user_not_found')], 404);
+        }
+
+        $user = User::find($operatorTenant->user_id);
+
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => trans('auth.user_not_found')], 404);
         }
 
         if ($this->passwordPolicy->isLocked($user)) {
@@ -181,10 +200,6 @@ class AuthController extends Controller
                 'message' => trans('auth.account_locked'),
                 'retry_after' => $this->passwordPolicy->getLockRemainingSeconds($user),
             ], 423);
-        }
-
-        if (! ($user->is_active ?? true)) {
-            return response()->json(['success' => false, 'message' => trans('auth.account_disabled')], 403);
         }
 
         $this->passwordPolicy->recordSuccessfulLogin($user);
@@ -223,7 +238,7 @@ class AuthController extends Controller
     }
 
     /**
-     * 租户管理员登录（仅 tenant_admin）。
+     * 租户管理员登录（通过 operator_tenants 验证租户权限）。
      */
     public function consoleLogin(Request $request): JsonResponse
     {
@@ -232,14 +247,35 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $operator = Operator::where('email', $request->email)->first();
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        if (! $operator || ! Hash::check($request->password, $operator->password)) {
             return response()->json(['success' => false, 'message' => trans('auth.invalid_credentials')], 401);
         }
 
-        if ($user->role === 'super_admin') {
+        if (! $operator->is_active) {
+            return response()->json(['success' => false, 'message' => trans('auth.account_disabled')], 403);
+        }
+
+        $tenantId = $request->header('X-Tenant-ID') ?? $request->attributes->get('tenant_id');
+
+        if (! $tenantId) {
+            return response()->json(['success' => false, 'message' => trans('common.tenant_required')], 400);
+        }
+
+        $operatorTenant = OperatorTenant::where('operator_id', $operator->operator_id)
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $operatorTenant) {
             return response()->json(['success' => false, 'message' => trans('common.admin_no_tenant_console')], 403);
+        }
+
+        $user = User::find($operatorTenant->user_id);
+
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => trans('auth.user_not_found')], 404);
         }
 
         if ($this->passwordPolicy->isLocked($user)) {
@@ -248,10 +284,6 @@ class AuthController extends Controller
                 'message' => trans('auth.account_locked'),
                 'retry_after' => $this->passwordPolicy->getLockRemainingSeconds($user),
             ], 423);
-        }
-
-        if (! ($user->is_active ?? true)) {
-            return response()->json(['success' => false, 'message' => trans('auth.account_disabled')], 403);
         }
 
         $this->passwordPolicy->recordSuccessfulLogin($user);
@@ -547,11 +579,28 @@ class AuthController extends Controller
 
     protected function userToArray(User $user): array
     {
+        $role = null;
+
+        $operatorTenant = $user->operatorTenants()->where('is_active', true)->first();
+        if ($operatorTenant) {
+            $role = $operatorTenant->role;
+        }
+
+        if (! $role) {
+            $tenantId = request()->attributes->get('tenant_id');
+            if ($tenantId) {
+                $tenantUser = TenantUser::where('user_id', $user->user_id)
+                    ->where('tenant_id', $tenantId)
+                    ->first();
+                $role = $tenantUser?->role;
+            }
+        }
+
         return [
             'user_id' => $user->user_id,
             'name' => $user->name,
             'email' => $user->email,
-            'role' => $user->role,
+            'role' => $role,
             'email_verified' => ! empty($user->email_verified_at),
         ];
     }

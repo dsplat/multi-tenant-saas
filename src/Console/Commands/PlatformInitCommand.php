@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace MultiTenantSaas\Console\Commands;
 
 use Database\Seeders\PlatformInitSeeder;
 use Illuminate\Console\Command;

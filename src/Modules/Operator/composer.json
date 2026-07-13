@@ -1,0 +1,11 @@
+{
+    "name": "multi-tenant-saas/operator",
+    "description": "运营人员管理模块",
+    "type": "library",
+    "license": "proprietary",
+    "autoload": {
+        "psr-4": {
+            "MultiTenantSaas\\Modules\\Operator\\": ""
+        }
+    }
+}

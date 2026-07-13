@@ -8,42 +8,28 @@
           <label>短信驱动</label>
           <select v-model="config.driver">
             <option value="log">仅日志（测试用）</option>
-            <option value="ww">万维短信</option>
-            <option value="mtedu">馒头短信网关</option>
+            <option value="sms">SMS</option>
           </select>
         </div>
 
-        <template v-if="config.driver === 'ww'">
+        <template v-if="config.driver === 'sms'">
           <div class="form-group">
             <label>网关地址</label>
-            <input v-model="config.ww_endpoint" placeholder="https://sms.example.com/api" />
+            <input v-model="config.sms_endpoint" placeholder="https://sms.example.com/api/send" />
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label>账号</label>
-              <input v-model="config.ww_account" />
+              <label>Access Key</label>
+              <input v-model="config.sms_access_key" />
             </div>
             <div class="form-group">
-              <label>密码</label>
-              <input v-model="config.ww_password" type="password" placeholder="******" />
+              <label>Secret Key</label>
+              <input v-model="config.sms_secret_key" type="password" placeholder="******" />
             </div>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>产品 ID</label>
-              <input v-model="config.ww_product_id" />
-            </div>
-            <div class="form-group">
-              <label>签名</label>
-              <input v-model="config.ww_sign" placeholder="馒头科技" />
-            </div>
-          </div>
-        </template>
-
-        <template v-if="config.driver === 'mtedu'">
           <div class="form-group">
-            <label>网关地址</label>
-            <input v-model="config.mtedu_endpoint" placeholder="https://sms.mtedu.com/api/send" />
+            <label>签名</label>
+            <input v-model="config.sms_sign" placeholder="签名" />
           </div>
         </template>
 
@@ -71,12 +57,10 @@ const testPhone = ref('')
 
 const config = reactive({
   driver: 'log',
-  ww_endpoint: '',
-  ww_account: '',
-  ww_password: '',
-  ww_product_id: '',
-  ww_sign: '',
-  mtedu_endpoint: '',
+  sms_endpoint: '',
+  sms_access_key: '',
+  sms_secret_key: '',
+  sms_sign: '',
 })
 
 const getTenantId = () => {

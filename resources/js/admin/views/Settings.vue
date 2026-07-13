@@ -99,9 +99,9 @@
           <p class="form-hint">用户首次注册赠送的积分数量，0 表示关闭</p>
         </div>
         <div class="form-group">
-          <label>老用户迁移积分</label>
-          <input v-model.number="credit.mtedu_credits" type="number" />
-          <p class="form-hint">馒头商学院老用户绑定手机号时额外赠送</p>
+          <label>迁移用户积分</label>
+          <input v-model.number="credit.migration_credits" type="number" />
+          <p class="form-hint">迁移用户绑定手机号时额外赠送，0 表示关闭</p>
         </div>
         <div class="form-group">
           <label>积分过期天数</label>
@@ -171,7 +171,7 @@ const mail = reactive({
 
 const credit = reactive({
   welcome_credits: 500,
-  mtedu_credits: 200,
+  migration_credits: 0,
   expire_days: 0,
 })
 

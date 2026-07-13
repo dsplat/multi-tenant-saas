@@ -48,7 +48,7 @@ class PaymentService
     }
 
     /**
-     * 签名算法（馒头支付平台标准）
+     * 签名算法
      * null 值以字符串 "null" 参与签名，不能过滤
      */
     public function sign(array $params): string
@@ -89,8 +89,8 @@ class PaymentService
         $order = PaymentOrder::create([
             'out_trade_no' => $tradeNo,
             'user_id' => $userId,
-            'subject' => "OPC 积分充值 {$credits} 积分",
-            'pay_body' => "馒头AI-积分充值-{$credits}积分",
+            'subject' => "积分充值 {$credits} 积分",
+            'pay_body' => "积分充值-{$credits}积分",
             'total_fee' => $priceFen,
             'credits' => $credits,
             'trade_type' => $tradeType,
@@ -98,7 +98,7 @@ class PaymentService
             'status' => 'pending',
         ]);
 
-        // 调用馒头预下单
+        // 调用预下单
         $payData = match ($tradeType) {
             'JSAPI' => $this->jsapiPrepay($order),
             'NATIVE' => $this->nativePrepay($order),

@@ -13,13 +13,13 @@ use MultiTenantSaas\Http\Controllers\McpServerController;
  * 一行代码注册 MCP 端点。
  *
  * 用法:
- * Route::mcp('scrm', ScrmMcpToolRegistry::class)
- *   → POST /api/v1/scrm (JSON-RPC 2.0 入口)
- *   → GET /api/v1/scrm/sse (SSE 流式入口)
- *   → POST /api/v1/scrm/sse (SSE 流式入口)
- *   → GET /api/v1/scrm/{client}/skill (Skill 文件)
- *   → GET /api/v1/scrm/{client}/config (JSON 配置)
- *   → GET /api/v1/scrm/clients (客户端列表)
+ * Route::mcp('ai', AiMcpToolRegistry::class)
+ *   → POST /api/v1/ai (JSON-RPC 2.0 入口)
+ *   → GET /api/v1/ai/sse (SSE 流式入口)
+ *   → POST /api/v1/ai/sse (SSE 流式入口)
+ *   → GET /api/v1/ai/{client}/skill (Skill 文件)
+ *   → GET /api/v1/ai/{client}/config (JSON 配置)
+ *   → GET /api/v1/ai/clients (客户端列表)
  */
 class McpRouteMacro
 {

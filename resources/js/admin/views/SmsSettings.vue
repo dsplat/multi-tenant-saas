@@ -21,46 +21,26 @@
               <label>驱动类型</label>
               <select v-model="config.driver">
                 <option value="log">Log（日志）</option>
-                <option value="ww">旺旺</option>
-                <option value="mtedu">MTEDU</option>
+                <option value="sms">SMS</option>
               </select>
             </div>
 
-            <template v-if="config.driver === 'ww'">
+            <template v-if="config.driver === 'sms'">
               <div class="form-group">
                 <label>API URL</label>
-                <input v-model="config.ww.api_url" placeholder="https://api.example.com/sms" />
-              </div>
-              <div class="form-group">
-                <label>App Key</label>
-                <input v-model="config.ww.app_key" />
-              </div>
-              <div class="form-group">
-                <label>App Secret</label>
-                <input v-model="config.ww.app_secret" type="password" placeholder="******" />
-              </div>
-              <div class="form-group">
-                <label>签名</label>
-                <input v-model="config.ww.sign_name" />
-              </div>
-            </template>
-
-            <template v-if="config.driver === 'mtedu'">
-              <div class="form-group">
-                <label>API URL</label>
-                <input v-model="config.mtedu.api_url" placeholder="https://api.example.com/sms" />
+                <input v-model="config.sms.api_url" placeholder="https://api.example.com/sms" />
               </div>
               <div class="form-group">
                 <label>Access Key</label>
-                <input v-model="config.mtedu.access_key" />
+                <input v-model="config.sms.access_key" />
               </div>
               <div class="form-group">
                 <label>Secret Key</label>
-                <input v-model="config.mtedu.secret_key" type="password" placeholder="******" />
+                <input v-model="config.sms.secret_key" type="password" placeholder="******" />
               </div>
               <div class="form-group">
-                <label>模板 ID</label>
-                <input v-model="config.mtedu.template_id" />
+                <label>签名</label>
+                <input v-model="config.sms.sign_name" />
               </div>
             </template>
           </div>
@@ -97,8 +77,7 @@ const testResult = ref<{ ok: boolean; msg: string } | null>(null)
 
 const config = reactive({
   driver: 'log',
-  ww: { api_url: '', app_key: '', app_secret: '', sign_name: '' },
-  mtedu: { api_url: '', access_key: '', secret_key: '', template_id: '' },
+  sms: { api_url: '', access_key: '', secret_key: '', sign_name: '' },
 })
 
 const fetchTenants = async () => {
@@ -115,8 +94,7 @@ const loadConfig = async () => {
     const res = await axios.get(`/api/v1/tenants/${selectedTenantId.value}/settings/sms`)
     const data = res.data.data || {}
     if (data.driver) config.driver = data.driver
-    if (data.ww) Object.assign(config.ww, data.ww)
-    if (data.mtedu) Object.assign(config.mtedu, data.mtedu)
+    if (data.sms) Object.assign(config.sms, data.sms)
   } catch {}
 }
 

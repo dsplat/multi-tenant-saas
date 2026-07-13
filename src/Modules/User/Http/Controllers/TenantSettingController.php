@@ -22,10 +22,9 @@ class TenantSettingController extends Controller
             if ($group === 'sms') {
                 return response()->json(['success' => true, 'data' => [
                     'driver' => config('services.sms.driver', 'log'),
-                    'ww_endpoint' => config('services.sms.ww_endpoint', ''),
-                    'ww_account' => config('services.sms.ww_account', ''),
-                    'ww_sign' => config('services.sms.ww_sign', ''),
-                    'mtedu_endpoint' => config('services.sms.mtedu_endpoint', ''),
+                    'sms_endpoint' => config('services.sms.sms_endpoint', ''),
+                    'sms_access_key' => config('services.sms.sms_access_key', ''),
+                    'sms_sign' => config('services.sms.sms_sign', ''),
                 ]]);
             }
             $data = TenantSetting::getGroup($tenantId, $group);
@@ -41,7 +40,7 @@ class TenantSettingController extends Controller
         $this->ensureTenantAccess($request, $tenantId);
 
         if ($group === 'sms') {
-            $allowed = ['driver', 'ww_endpoint', 'ww_account', 'ww_password', 'ww_sign', 'ww_product_id', 'mtedu_endpoint'];
+            $allowed = ['driver', 'sms_endpoint', 'sms_access_key', 'sms_secret_key', 'sms_sign'];
             foreach ($request->only($allowed) as $key => $value) {
                 SystemSetting::updateOrCreate(
                     ['group' => 'sms', 'key' => $key],

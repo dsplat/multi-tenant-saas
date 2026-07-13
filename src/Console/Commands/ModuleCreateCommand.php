@@ -342,6 +342,8 @@ class ModuleCreateCommand extends Command
             'Policies',
             'resources/views',
             'resources/lang',
+            'resources/admin/views',
+            'resources/console/views',
         ];
 
         foreach ($dirs as $dir) {
@@ -589,6 +591,7 @@ PHP;
         }
 
         $this->createAdminTenantViews($moduleDir, $studly);
+        $this->createSpaViews($moduleDir, $studly);
     }
 
     protected function createAdminTenantViews(string $moduleDir, string $studly): void
@@ -683,5 +686,78 @@ BLADE;
 
         file_put_contents($adminDir . '/index.blade.php', $adminStub);
         file_put_contents($tenantDir . '/index.blade.php', $tenantStub);
+    }
+
+    protected function createSpaViews(string $moduleDir, string $studly): void
+    {
+        $name = $this->argument('name');
+        $label = $this->option('description') ?: ($studly . ' Module');
+
+        // Admin SPA page
+        $adminVue = <<<VUE
+<template>
+  <div class="{$name}-page">
+    <div class="page-header">
+      <h2>{$label}</h2>
+    </div>
+
+    <div class="panel">
+      <p>{$label} content</p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
+
+// const items = ref([])
+// onMounted(async () => {
+//   const res = await axios.get('/api/v1/admin/{$name}')
+//   items.value = res.data.data
+// })
+</script>
+
+<style scoped>
+.page-header { margin-bottom: 20px; }
+.page-header h2 { margin: 0; }
+.panel { background: var(--bg-color, #fff); border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+</style>
+VUE;
+
+        // Console SPA page
+        $consoleVue = <<<VUE
+<template>
+  <div class="{$name}-page">
+    <div class="page-header">
+      <h2>{$label}</h2>
+    </div>
+
+    <div class="panel">
+      <p>{$label} content</p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
+
+// const items = ref([])
+// onMounted(async () => {
+//   const res = await axios.get('/api/v1/{$name}')
+//   items.value = res.data.data
+// })
+</script>
+
+<style scoped>
+.page-header { margin-bottom: 20px; }
+.page-header h2 { margin: 0; }
+.panel { background: var(--bg-color, #fff); border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+</style>
+VUE;
+
+        file_put_contents($moduleDir . '/resources/admin/views/' . $studly . '.vue', $adminVue);
+        file_put_contents($moduleDir . '/resources/console/views/' . $studly . '.vue', $consoleVue);
     }
 }

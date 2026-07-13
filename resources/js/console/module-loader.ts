@@ -1,0 +1,93 @@
+// Module page loader (Console)
+// Discovers module pages under src/Modules/<Name>/resources/console/views/*.vue
+
+export interface ModuleRoute {
+  path: string
+  name: string
+  component: () => Promise<any>
+  meta?: Record<string, any>
+}
+
+const moduleViews = import.meta.glob(
+  '../../../src/Modules/*/resources/console/views/*.vue',
+  { eager: false }
+)
+
+const moduleRoutesFiles = import.meta.glob(
+  '../../../src/Modules/*/resources/console/routes.ts',
+  { eager: false }
+)
+
+function extractModuleName(path: string): string | null {
+  const match = path.match(/src\/Modules\/([^/]+)\/resources\/console\//)
+  return match ? match[1] : null
+}
+
+function extractPageName(path: string): string | null {
+  const match = path.match(/views\/([^/]+)\.vue$/)
+  return match ? match[1] : null
+}
+
+export async function loadModuleRoutes(): Promise<ModuleRoute[]> {
+  const routes: ModuleRoute[] = []
+
+  for (const [path, loader] of Object.entries(moduleRoutesFiles)) {
+    const moduleName = extractModuleName(path)
+    if (!moduleName) continue
+
+    try {
+      const mod = await loader()
+      const moduleRoutes = (mod as any).default || mod
+      if (Array.isArray(moduleRoutes)) {
+        routes.push(...moduleRoutes)
+      }
+    } catch (e) {
+      console.warn(`[ModuleLoader] 加载模块 ${moduleName} 路由失败:`, e)
+    }
+  }
+
+  return routes
+}
+
+export async function loadModuleViews(): Promise<ModuleRoute[]> {
+  const routes: ModuleRoute[] = []
+  const hasCustomRoutes = new Set<string>()
+
+  for (const path of Object.keys(moduleRoutesFiles)) {
+    const name = extractModuleName(path)
+    if (name) hasCustomRoutes.add(name)
+  }
+
+  for (const [path, loader] of Object.entries(moduleViews)) {
+    const moduleName = extractModuleName(path)
+    const pageName = extractPageName(path)
+    if (!moduleName || !pageName) continue
+
+    if (hasCustomRoutes.has(moduleName)) continue
+    if (pageName === 'Login') continue
+
+    const routePath = `${moduleName.toLowerCase()}/${pageName.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '')}`
+
+    routes.push({
+      path: routePath,
+      name: `${moduleName}${pageName}`,
+      component: () => loader() as Promise<any>,
+      meta: {
+        title: pageName,
+        requiresAuth: true,
+        module: moduleName,
+      },
+    })
+  }
+
+  return routes
+}
+
+export async function getAllModuleRoutes(): Promise<ModuleRoute[]> {
+  const [customRoutes, autoRoutes] = await Promise.all([
+    loadModuleRoutes(),
+    loadModuleViews(),
+  ])
+
+  return [...customRoutes, ...autoRoutes]
+}

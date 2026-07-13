@@ -23,3 +23,11 @@ Route::prefix('auth')->group(function () {
     Route::get('/sso/{provider}/callback', [AuthController::class, 'ssoCallback']);
     Route::post('/sso/{provider}/callback', [AuthController::class, 'ssoCallback']);
 });
+
+// 管理员登录（公开，无需认证）
+Route::post('/admin/auth/login', [AuthController::class, 'adminLogin'])
+    ->middleware('throttle:5,1');
+
+// 租户管理员登录（公开，无需认证）
+Route::post('/console/auth/login', [AuthController::class, 'consoleLogin'])
+    ->middleware('throttle:5,1');

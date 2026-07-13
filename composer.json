@@ -30,7 +30,8 @@
         "orchestra/testbench": "^11.0",
         "phpunit/phpunit": "^10.5|^11.0",
         "sentry/sentry-laravel": "^4.0",
-        "yansongda/pay": "^3.7"
+        "yansongda/pay": "^3.7",
+        "dsplat/multi-tenant-saas-module-demo": "*"
     },
     "autoload": {
         "psr-4": {

@@ -156,6 +156,145 @@ class AuthController extends Controller
     }
 
     /**
+     * 管理员登录（仅 super_admin）。
+     */
+    public function adminLogin(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (! $user || ! Hash::check($request->password, $user->password)) {
+            return response()->json(['success' => false, 'message' => trans('auth.invalid_credentials')], 401);
+        }
+
+        if ($user->role !== 'super_admin') {
+            return response()->json(['success' => false, 'message' => trans('common.super_admin_only')], 403);
+        }
+
+        if ($this->passwordPolicy->isLocked($user)) {
+            return response()->json([
+                'success' => false,
+                'message' => trans('auth.account_locked'),
+                'retry_after' => $this->passwordPolicy->getLockRemainingSeconds($user),
+            ], 423);
+        }
+
+        if (! ($user->is_active ?? true)) {
+            return response()->json(['success' => false, 'message' => trans('auth.account_disabled')], 403);
+        }
+
+        $this->passwordPolicy->recordSuccessfulLogin($user);
+
+        if ($this->mfaService->hasMfaEnabled($user->user_id)) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'mfa_required' => true,
+                    'user_id' => $user->user_id,
+                    'available_types' => $this->mfaService->getAvailableChallengeTypes($user->user_id),
+                ],
+            ]);
+        }
+
+        return $this->createTokenResponse($user, $request);
+    }
+
+    /**
+     * 管理员登出。
+     */
+    public function adminLogout(Request $request): JsonResponse
+    {
+        return $this->logout($request);
+    }
+
+    /**
+     * 获取当前管理员信息。
+     */
+    public function adminUser(Request $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $this->userToArray($request->user()),
+        ]);
+    }
+
+    /**
+     * 租户管理员登录（仅 tenant_admin）。
+     */
+    public function consoleLogin(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (! $user || ! Hash::check($request->password, $user->password)) {
+            return response()->json(['success' => false, 'message' => trans('auth.invalid_credentials')], 401);
+        }
+
+        if ($user->role === 'super_admin') {
+            return response()->json(['success' => false, 'message' => trans('common.admin_no_tenant_console')], 403);
+        }
+
+        if ($this->passwordPolicy->isLocked($user)) {
+            return response()->json([
+                'success' => false,
+                'message' => trans('auth.account_locked'),
+                'retry_after' => $this->passwordPolicy->getLockRemainingSeconds($user),
+            ], 423);
+        }
+
+        if (! ($user->is_active ?? true)) {
+            return response()->json(['success' => false, 'message' => trans('auth.account_disabled')], 403);
+        }
+
+        $this->passwordPolicy->recordSuccessfulLogin($user);
+
+        if ($this->mfaService->hasMfaEnabled($user->user_id)) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'mfa_required' => true,
+                    'user_id' => $user->user_id,
+                    'available_types' => $this->mfaService->getAvailableChallengeTypes($user->user_id),
+                ],
+            ]);
+        }
+
+        return $this->createTokenResponse($user, $request);
+    }
+
+    /**
+     * 租户管理员登出。
+     */
+    public function consoleLogout(Request $request): JsonResponse
+    {
+        return $this->logout($request);
+    }
+
+    /**
+     * 获取当前租户用户信息。
+     */
+    public function consoleUser(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $tenantId = $request->attributes->get('tenant_id');
+
+        return response()->json([
+            'success' => true,
+            'data' => array_merge($this->userToArray($user), [
+                'tenant_id' => $tenantId,
+            ]),
+        ]);
+    }
+
+    /**
      * MFA 验证（临时 token 换完整 token）。
      */
     public function mfaVerify(Request $request): JsonResponse

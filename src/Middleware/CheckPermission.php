@@ -136,7 +136,10 @@ class CheckPermission
 
     protected function unauthorized(Request $request): Response
     {
-        if ($request->expectsJson()) {
+        $domainType = TenantContext::getDomainType();
+
+        // Admin/Console 域名始终返回 JSON（SPA 模式）
+        if ($request->expectsJson() || in_array($domainType, ['admin', 'console'])) {
             return response()->json(['message' => trans('common.unauthenticated'), 'error' => 'Unauthenticated'], 401);
         }
 

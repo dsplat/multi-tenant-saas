@@ -11,6 +11,18 @@ Route::prefix('auth')->group(function () {
     Route::post('/mfa/verify', [AuthController::class, 'mfaVerify']);
 });
 
+// 管理员认证路由（需要 auth:sanctum）
+Route::prefix('admin/auth')->group(function () {
+    Route::get('/user', [AuthController::class, 'adminUser']);
+    Route::post('/logout', [AuthController::class, 'adminLogout']);
+});
+
+// 租户管理员认证路由（需要 auth:sanctum）
+Route::prefix('console/auth')->group(function () {
+    Route::get('/user', [AuthController::class, 'consoleUser']);
+    Route::post('/logout', [AuthController::class, 'consoleLogout']);
+});
+
 // MFA 管理路由
 Route::prefix('mfa')->group(function () {
     Route::post('/totp/setup', [MfaController::class, 'setupTotp']);

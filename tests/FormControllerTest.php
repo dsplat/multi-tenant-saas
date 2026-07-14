@@ -50,6 +50,7 @@ class FormControllerTest extends TestCase
             'name' => 'Test User',
             'scope' => 'tenant',
             'is_active' => true,
+            'email_verified_at' => now(),
         ]);
 
         // 创建 operator_tenants 映射

@@ -52,6 +52,7 @@ class ModuleControllerTest extends TestCase
             'name' => $this->user->name,
             'scope' => 'platform',
             'is_active' => true,
+            'email_verified_at' => now(),
         ]);
 
         $superAdminRoleId = \DB::table('roles')
@@ -94,10 +95,6 @@ class ModuleControllerTest extends TestCase
     {
         $response = $this->actingAs($this->user)
             ->getJson('/api/v1/admin/modules');
-
-        if ($response->status() !== 200) {
-            dump('STATUS: ' . $response->status(), $response->json());
-        }
 
         $response->assertOk()
             ->assertJson(['success' => true])

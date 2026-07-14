@@ -33,6 +33,7 @@ class CouponControllerTest extends TestCase
             'name' => 'Test User',
             'scope' => 'platform',
             'is_active' => true,
+            'email_verified_at' => now(),
         ]);
 
         // 获取 super_admin 角色 ID

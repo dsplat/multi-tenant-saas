@@ -79,6 +79,7 @@ class ControllerTest extends TestCase
             'name' => 'Super Admin',
             'scope' => 'platform',
             'is_active' => true,
+            'email_verified_at' => now(),
         ]);
 
         OperatorTenant::create([
@@ -97,6 +98,7 @@ class ControllerTest extends TestCase
             'name' => 'Tenant Admin',
             'scope' => 'tenant',
             'is_active' => true,
+            'email_verified_at' => now(),
         ]);
 
         OperatorTenant::create([

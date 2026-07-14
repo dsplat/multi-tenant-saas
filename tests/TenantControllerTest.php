@@ -33,6 +33,7 @@ class TenantControllerTest extends TestCase
             'name' => 'Super Admin',
             'scope' => 'platform',
             'is_active' => true,
+            'email_verified_at' => now(),
         ]);
 
         // 获取 super_admin 角色 ID

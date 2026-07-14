@@ -59,6 +59,7 @@ class VotingControllerTest extends TestCase
             'name' => $this->user->name,
             'scope' => 'tenant',
             'is_active' => true,
+            'email_verified_at' => now(),
         ]);
 
         OperatorTenant::create([

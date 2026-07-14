@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\Infrastructure\Models;
 
 use Database\Factories\TenantFactory;
+
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Concerns\Searchable;
+use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
 
 /**
  * 租户模型

@@ -86,6 +86,7 @@ jobs:
       - name: Push to ${{ matrix.repo }} via git subtree
         env:
           GH_TOKEN: ${{ secrets.SPLIT_TOKEN }}
+          SPLIT_TOKEN: ${{ secrets.SPLIT_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -106,15 +107,21 @@ jobs:
             sleep 2
           fi
 
-          # 使用 SPLIT_TOKEN 认证推送
+          # 使用 gh 认证推送（gh CLI 自动使用 GH_TOKEN）
           echo "Pushing to $ORG/$REPO..."
-          git push "https://x-access-token:${SPLIT_TOKEN}@github.com/${ORG}/${REPO}.git" "$BRANCH_NAME:main" --force
+          gh api repos/$ORG/$REPO/git/refs/heads/main --method PATCH --field sha="$(git rev-parse $BRANCH_NAME)" --field force=true 2>/dev/null || \
+            gh api repos/$ORG/$REPO/git/refs --method POST --field ref="refs/heads/main" --field sha="$(git rev-parse $BRANCH_NAME)"
 
           # 推送 tag
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG="${{ github.ref_name }}"
             echo "Pushing tag $TAG..."
-            git push "https://x-access-token:${SPLIT_TOKEN}@github.com/${ORG}/${REPO}.git" "$BRANCH_NAME:refs/tags/$TAG" --force
+            TAG_SHA=$(gh api repos/$ORG/$REPO/git/tags --method POST \
+              --field tag="$TAG" \
+              --field object="$(git rev-parse $BRANCH_NAME)" \
+              --field type="commit" \
+              --field message="Release $TAG" | jq -r '.sha')
+            gh api repos/$ORG/$REPO/git/refs --method POST --field ref="refs/tags/$TAG" --field sha="$TAG_SHA"
           fi
 
           echo "✅ Pushed to $ORG/$REPO"

@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Billing\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Billing\Services\SubscriptionService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
@@ -14,9 +15,9 @@ class TenantQuotaController extends Controller
 {
     use AuthorizesTenantAccess;
 
-    public function index(Request $request, int $tenantId)
+    public function index(Request $request)
     {
-        $this->ensureTenantAccess($request, $tenantId);
+        $tenantId = TenantContext::getId();
 
         $tenant = Tenant::findOrFail($tenantId);
         $plan = SubscriptionService::getCurrentPlan($tenantId);
@@ -50,5 +51,34 @@ class TenantQuotaController extends Controller
         ];
 
         return response()->json(['success' => true, 'data' => $quotas]);
+    }
+
+    public function usage(Request $request)
+    {
+        $tenantId = TenantContext::getId();
+
+        $tenant = Tenant::findOrFail($tenantId);
+        $plan = SubscriptionService::getCurrentPlan($tenantId);
+
+        $usedStorage = FileUpload::where('tenant_id', $tenantId)->sum('size');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'members' => [
+                    'limit' => $plan?->getLimit('max_users'),
+                    'used' => TenantUser::where('tenant_id', $tenantId)->count(),
+                ],
+                'storage' => [
+                    'limit' => $plan?->getLimit('max_storage_mb'),
+                    'used' => round($usedStorage / 1024 / 1024, 2),
+                    'unit' => 'MB',
+                ],
+                'credits' => [
+                    'limit' => $tenant->total_credits,
+                    'used' => $tenant->used_credits,
+                ],
+            ],
+        ]);
     }
 }

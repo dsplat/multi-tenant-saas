@@ -5,7 +5,6 @@ namespace MultiTenantSaas\Modules\User\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\Sms\Services\SmsService;
@@ -20,12 +19,7 @@ class TenantSettingController extends Controller
 
         if ($group) {
             if ($group === 'sms') {
-                return response()->json(['success' => true, 'data' => [
-                    'driver' => config('services.sms.driver', 'log'),
-                    'sms_endpoint' => config('services.sms.sms_endpoint', ''),
-                    'sms_access_key' => config('services.sms.sms_access_key', ''),
-                    'sms_sign' => config('services.sms.sms_sign', ''),
-                ]]);
+                return response()->json(['success' => true, 'data' => TenantSetting::getGroup($tenantId, 'sms')]);
             }
             $data = TenantSetting::getGroup($tenantId, $group);
         } else {
@@ -41,11 +35,17 @@ class TenantSettingController extends Controller
 
         if ($group === 'sms') {
             $allowed = ['driver', 'sms_endpoint', 'sms_access_key', 'sms_secret_key', 'sms_sign'];
+            $changes = [];
             foreach ($request->only($allowed) as $key => $value) {
-                SystemSetting::updateOrCreate(
-                    ['group' => 'sms', 'key' => $key],
-                    ['value' => $value]
-                );
+                $oldValue = TenantSetting::get($tenantId, 'sms', $key);
+                TenantSetting::set($tenantId, 'sms', $key, $value);
+                if ($oldValue !== $value) {
+                    $changes[$key] = ['old' => $oldValue, 'new' => $value];
+                }
+            }
+
+            if (! empty($changes)) {
+                AuditService::log('update', 'tenant_settings', $tenantId, null, ['group' => 'sms', 'changes' => $changes]);
             }
 
             return response()->json(['success' => true, 'message' => trans('common.updated')]);

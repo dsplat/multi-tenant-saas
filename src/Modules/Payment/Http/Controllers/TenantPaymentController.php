@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Payment\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Billing\Models\PaymentOrder;
 use MultiTenantSaas\Modules\Billing\Services\PayService;
 use MultiTenantSaas\Modules\Billing\Services\RefundService;
@@ -14,16 +15,16 @@ class TenantPaymentController extends Controller
 {
     use AuthorizesTenantAccess;
 
-    public function getPaymentConfig(Request $request, int $tenantId)
+    public function getPaymentConfig(Request $request)
     {
-        $this->ensureTenantAccess($request, $tenantId);
+        $tenantId = TenantContext::getId();
 
         return response()->json(['success' => true, 'data' => PayService::getPaymentConfig($tenantId)]);
     }
 
-    public function updatePaymentConfig(Request $request, int $tenantId, string $driver)
+    public function updatePaymentConfig(Request $request, string $driver)
     {
-        $this->ensureTenantAccess($request, $tenantId);
+        $tenantId = TenantContext::getId();
 
         if (! in_array($driver, ['wechat', 'alipay'])) {
             return response()->json(['success' => false, 'message' => trans('payment.unsupported_driver')], 400);
@@ -88,9 +89,9 @@ class TenantPaymentController extends Controller
     /**
      * 支付订单列表
      */
-    public function index(Request $request, int $tenantId)
+    public function index(Request $request)
     {
-        $this->ensureTenantAccess($request, $tenantId);
+        $tenantId = TenantContext::getId();
 
         $orders = PaymentOrder::where('tenant_id', $tenantId)
             ->orderBy('created_at', 'desc')
@@ -111,9 +112,9 @@ class TenantPaymentController extends Controller
     /**
      * 创建支付订单
      */
-    public function store(Request $request, int $tenantId)
+    public function store(Request $request)
     {
-        $this->ensureTenantAccess($request, $tenantId);
+        $tenantId = TenantContext::getId();
 
         $request->validate([
             'driver' => 'required|in:wechat,alipay',
@@ -145,9 +146,9 @@ class TenantPaymentController extends Controller
     /**
      * 发起退款
      */
-    public function refund(Request $request, int $tenantId)
+    public function refund(Request $request)
     {
-        $this->ensureTenantAccess($request, $tenantId);
+        $tenantId = TenantContext::getId();
 
         $validated = $request->validate([
             'order_no' => 'required|string',
@@ -178,9 +179,9 @@ class TenantPaymentController extends Controller
     /**
      * 查询退款状态
      */
-    public function refundStatus(Request $request, int $tenantId)
+    public function refundStatus(Request $request)
     {
-        $this->ensureTenantAccess($request, $tenantId);
+        $tenantId = TenantContext::getId();
 
         $request->validate([
             'order_no' => 'required|string',

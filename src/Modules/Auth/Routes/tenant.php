@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use MultiTenantSaas\Modules\Auth\Http\Controllers\AuthController;
 use MultiTenantSaas\Modules\Auth\Http\Controllers\MfaController;
+use MultiTenantSaas\Modules\Auth\Http\Controllers\TenantOAuthController;
 
 // 租户后台 - MFA 管理
 Route::prefix('tenant/auth')->group(function () {
@@ -19,6 +19,6 @@ Route::prefix('tenant/auth')->group(function () {
 
 // 租户后台 - OAuth 配置
 Route::prefix('tenant/auth/oauth')->group(function () {
-    Route::get('/config', [AuthController::class, 'getOAuthConfig']);
-    Route::put('/{provider}', [AuthController::class, 'updateOAuthConfig']);
+    Route::get('/config', [TenantOAuthController::class, 'getOAuthConfig']);
+    Route::put('/{provider}', [TenantOAuthController::class, 'updateOAuthConfig']);
 });

@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Billing\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Auth\Services\RbacService;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
 use MultiTenantSaas\Modules\Billing\Services\SubscriptionService;
@@ -135,9 +136,9 @@ class SubscriptionController extends Controller
     /**
      * 获取租户当前订阅
      */
-    public function current(Request $request, int $tenantId)
+    public function current(Request $request)
     {
-        $this->ensureTenantAccess($request, $tenantId);
+        $tenantId = TenantContext::getId();
 
         $tenant = Tenant::findOrFail($tenantId);
         $plan = SubscriptionService::getCurrentPlan($tenantId);
@@ -159,9 +160,9 @@ class SubscriptionController extends Controller
     /**
      * 订阅计划
      */
-    public function subscribe(Request $request, int $tenantId)
+    public function subscribe(Request $request)
     {
-        $this->ensureTenantAccess($request, $tenantId);
+        $tenantId = TenantContext::getId();
 
         $validated = $request->validate([
             'plan_id' => 'required|integer|exists:subscription_plans,subscription_plan_id',
@@ -196,9 +197,9 @@ class SubscriptionController extends Controller
     /**
      * 取消订阅
      */
-    public function cancel(Request $request, int $tenantId)
+    public function cancel(Request $request)
     {
-        $this->ensureTenantAccess($request, $tenantId);
+        $tenantId = TenantContext::getId();
 
         $tenant = SubscriptionService::cancel($tenantId);
 
@@ -210,9 +211,9 @@ class SubscriptionController extends Controller
     /**
      * 变更计划
      */
-    public function changePlan(Request $request, int $tenantId)
+    public function changePlan(Request $request)
     {
-        $this->ensureTenantAccess($request, $tenantId);
+        $tenantId = TenantContext::getId();
 
         $validated = $request->validate([
             'plan_id' => 'required|integer|exists:subscription_plans,subscription_plan_id',
@@ -244,9 +245,9 @@ class SubscriptionController extends Controller
     /**
      * 获取订阅历史
      */
-    public function history(Request $request, int $tenantId)
+    public function history(Request $request)
     {
-        $this->ensureTenantAccess($request, $tenantId);
+        $tenantId = TenantContext::getId();
 
         $perPage = (int) $request->input('per_page', 15);
         $history = SubscriptionService::getHistory($tenantId, $perPage);

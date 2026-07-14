@@ -5,16 +5,18 @@ namespace MultiTenantSaas\Modules\Billing\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
 use MultiTenantSaas\Modules\Billing\Models\CreditTransaction;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 class TenantCreditController extends Controller
 {
     use AuthorizesTenantAccess;
 
-    public function index(Request $request, int $tenantId)
+    public function index(Request $request)
     {
-        $this->ensureTenantAccess($request, $tenantId);
+        $tenantId = TenantContext::getId();
 
         $account = CreditAccount::where('tenant_id', $tenantId)->whereNull('user_id')->first();
         $transactions = CreditTransaction::where('tenant_id', $tenantId)
@@ -31,6 +33,59 @@ class TenantCreditController extends Controller
                     'available' => $account?->balance ?? 0,
                 ],
                 'transactions' => $transactions,
+            ],
+        ]);
+    }
+
+    public function recharge(Request $request)
+    {
+        $tenantId = TenantContext::getId();
+
+        $request->validate([
+            'amount' => 'required|integer|min:1',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        $account = CreditAccount::firstOrCreate(
+            ['tenant_id' => $tenantId, 'user_id' => null],
+            ['account_type' => 'enterprise', 'balance' => 0, 'gift_balance' => 0, 'recharge_balance' => 0, 'total_recharged' => 0, 'total_consumed' => 0]
+        );
+
+        $account->recharge(
+            $request->user()->user_id,
+            $request->amount,
+            $request->description ?? 'Tenant recharge'
+        );
+
+        AuditService::log('recharge', 'credit_account', $account->account_id, null, [
+            'amount' => $request->amount,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'new_balance' => $account->fresh()->balance,
+            ],
+        ]);
+    }
+
+    public function history(Request $request)
+    {
+        $tenantId = TenantContext::getId();
+
+        $perPage = (int) $request->input('per_page', 15);
+        $transactions = CreditTransaction::where('tenant_id', $tenantId)
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => $transactions->items(),
+            'meta' => [
+                'current_page' => $transactions->currentPage(),
+                'last_page' => $transactions->lastPage(),
+                'per_page' => $transactions->perPage(),
+                'total' => $transactions->total(),
             ],
         ]);
     }

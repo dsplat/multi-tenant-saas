@@ -9,6 +9,7 @@ use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Auth\Services\SsoService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\PluginModule;
+use MultiTenantSaas\Tests\Schema\RbacModule;
 use MultiTenantSaas\Tests\Schema\SecurityModule;
 
 /**
@@ -19,7 +20,7 @@ use MultiTenantSaas\Tests\Schema\SecurityModule;
  */
 class SsoServiceTest extends TestCase
 {
-    protected array $uses = [PluginModule::class, SecurityModule::class];
+    protected array $uses = [PluginModule::class, SecurityModule::class, RbacModule::class];
 
     private SsoService $service;
 

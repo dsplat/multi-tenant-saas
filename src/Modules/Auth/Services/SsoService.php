@@ -520,7 +520,6 @@ class SsoService
                 $user->email = $email ?: ($attributes['external_id'] . '@sso.local');
                 $user->password = bin2hex(random_bytes(16));
                 $user->avatar = $attributes['avatar'] ?? null;
-                $user->role = 'platform_user';
                 $user->email_verified_at = $email ? now() : null;
                 $user->password_changed_at = now();
                 $user->login_attempts = 0;
@@ -544,10 +543,16 @@ class SsoService
             // 创建租户成员关系（JIT 加入）
             $tenantId = (int) $provider->tenant_id;
             if (! TenantUser::where('tenant_id', $tenantId)->where('user_id', $user->user_id)->exists()) {
+                // 获取 end_user 角色 ID
+                $endUserRoleId = \DB::table('roles')
+                    ->where('name', 'end_user')
+                    ->whereNull('tenant_id')
+                    ->value('role_id');
+
                 TenantUser::create([
                     'tenant_id' => $tenantId,
                     'user_id' => $user->user_id,
-                    'role' => 'end_user',
+                    'role_id' => $endUserRoleId,
                     'is_active' => true,
                     'joined_at' => now(),
                 ]);

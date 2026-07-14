@@ -17,7 +17,7 @@ class TenantMemberController extends Controller
     {
         $this->ensureTenantAccess($request, $tenantId);
 
-        $members = TenantUser::where('tenant_id', $tenantId)
+        $members = TenantUser::where('tenant_users.tenant_id', $tenantId)
             ->join('users', 'users.user_id', '=', 'tenant_users.user_id')
             ->select(
                 'users.user_id', 'users.name', 'users.email',

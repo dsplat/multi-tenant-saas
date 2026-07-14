@@ -100,7 +100,7 @@ abstract class ModuleServiceProvider extends ServiceProvider
         // 系统管理路由
         $adminRoute = $moduleDir . '/Routes/admin.php';
         if (file_exists($adminRoute)) {
-            Route::middleware('api')
+            Route::middleware(['auth:sanctum', 'throttle:api'])
                 ->prefix('v1/admin')
                 ->group($adminRoute);
         }

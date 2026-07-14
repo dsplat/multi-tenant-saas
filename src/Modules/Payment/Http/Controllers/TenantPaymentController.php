@@ -234,4 +234,55 @@ class TenantPaymentController extends Controller
             return response('fail', 400);
         }
     }
+
+    /**
+     * 管理员：列出所有支付订单
+     */
+    public function adminIndex(Request $request)
+    {
+        $this->ensureSuperAdmin($request);
+
+        $perPage = min((int) $request->input('per_page', 15), 100);
+        $query = PaymentOrder::query();
+
+        if ($request->filled('tenant_id')) {
+            $query->where('tenant_id', $request->tenant_id);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('driver')) {
+            $query->where('driver', $request->driver);
+        }
+
+        $orders = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => $orders->items(),
+            'meta' => [
+                'current_page' => $orders->currentPage(),
+                'last_page' => $orders->lastPage(),
+                'per_page' => $orders->perPage(),
+                'total' => $orders->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * 管理员：查看指定支付订单
+     */
+    public function adminShow(Request $request, int $orderId)
+    {
+        $this->ensureSuperAdmin($request);
+
+        $order = PaymentOrder::findOrFail($orderId);
+
+        return response()->json([
+            'success' => true,
+            'data' => $order,
+        ]);
+    }
 }

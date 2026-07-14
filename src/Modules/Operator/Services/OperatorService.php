@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Modules\Operator\Services;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
@@ -110,8 +111,9 @@ class OperatorService
             }
 
             // 激活操作员并设置密码
+            $hashedPassword = Hash::make($password);
             $operator->update([
-                'password' => $password,
+                'password' => $hashedPassword,
                 'is_active' => true,
                 'invite_token' => null,
                 'invite_expires_at' => null,
@@ -125,7 +127,7 @@ class OperatorService
             foreach ($operatorTenants as $ot) {
                 // 激活用户并同步密码
                 User::where('user_id', $ot->user_id)->update([
-                    'password' => $password,
+                    'password' => $hashedPassword,
                     'is_active' => true,
                 ]);
 

@@ -34,4 +34,94 @@ class TenantCreditController extends Controller
             ],
         ]);
     }
+
+    public function adminOverview(Request $request)
+    {
+        $this->ensureSuperAdmin($request);
+
+        $accounts = CreditAccount::whereNull('user_id')
+            ->selectRaw('
+                COUNT(*) as total_tenants,
+                SUM(balance) as total_balance,
+                SUM(total_recharged) as total_recharged,
+                SUM(total_consumed) as total_consumed
+            ')
+            ->first();
+
+        $perPage = (int) $request->input('per_page', 20);
+
+        $tenantAccounts = CreditAccount::whereNull('user_id')
+            ->with('tenant:tenant_id,name')
+            ->orderByDesc('balance')
+            ->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'summary' => [
+                    'total_tenants' => $accounts->total_tenants ?? 0,
+                    'total_balance' => $accounts->total_balance ?? 0,
+                    'total_recharged' => $accounts->total_recharged ?? 0,
+                    'total_consumed' => $accounts->total_consumed ?? 0,
+                ],
+                'accounts' => $tenantAccounts->items(),
+                'meta' => [
+                    'current_page' => $tenantAccounts->currentPage(),
+                    'last_page' => $tenantAccounts->lastPage(),
+                    'per_page' => $tenantAccounts->perPage(),
+                    'total' => $tenantAccounts->total(),
+                ],
+            ],
+        ]);
+    }
+
+    public function batchRecharge(Request $request)
+    {
+        $this->ensureSuperAdmin($request);
+
+        $request->validate([
+            'recharges' => 'required|array|min:1',
+            'recharges.*.tenant_id' => 'required|integer',
+            'recharges.*.amount' => 'required|integer|min:1',
+            'recharges.*.description' => 'nullable|string|max:255',
+        ]);
+
+        $results = [];
+        $errors = [];
+
+        foreach ($request->recharges as $item) {
+            try {
+                $account = CreditAccount::firstOrCreate(
+                    ['tenant_id' => $item['tenant_id'], 'user_id' => null],
+                    ['account_type' => 'enterprise', 'balance' => 0, 'gift_balance' => 0, 'recharge_balance' => 0, 'total_recharged' => 0, 'total_consumed' => 0]
+                );
+
+                $account->recharge(
+                    $request->user()->user_id,
+                    $item['amount'],
+                    $item['description'] ?? 'Batch recharge'
+                );
+
+                $results[] = [
+                    'tenant_id' => $item['tenant_id'],
+                    'amount' => $item['amount'],
+                    'new_balance' => $account->fresh()->balance,
+                ];
+            } catch (\Throwable $e) {
+                $errors[] = [
+                    'tenant_id' => $item['tenant_id'],
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+
+        return response()->json([
+            'success' => empty($errors),
+            'data' => [
+                'succeeded' => $results,
+                'failed' => $errors,
+            ],
+            'message' => count($results) . ' succeeded, ' . count($errors) . ' failed',
+        ], empty($errors) ? 200 : 207);
+    }
 }

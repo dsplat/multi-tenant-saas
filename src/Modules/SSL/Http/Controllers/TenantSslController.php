@@ -48,4 +48,24 @@ class TenantSslController extends Controller
 
         return response()->json(['success' => true, 'message' => trans('common.deleted')]);
     }
+
+    public function renew(Request $request, int $tenantId)
+    {
+        $this->ensureSuperAdmin($request);
+
+        $request->validate([
+            'certificate' => 'required|string',
+            'private_key' => 'required|string',
+        ]);
+
+        try {
+            $tenant = Tenant::findOrFail($tenantId);
+            $service = new TenantSslService;
+            $service->storeCertificate($tenant, $request->certificate, $request->private_key);
+
+            return response()->json(['success' => true, 'message' => trans('ssl.renewed')]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
 }

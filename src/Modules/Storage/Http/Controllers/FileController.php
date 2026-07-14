@@ -342,4 +342,86 @@ class FileController extends Controller
 
         return response()->json(['success' => true, 'message' => trans('file.deleted')]);
     }
+
+    /**
+     * 管理员：列出所有租户的文件
+     */
+    public function adminIndex(Request $request)
+    {
+        $this->ensureSuperAdmin($request);
+
+        $perPage = (int) $request->input('per_page', 20);
+        $tenantId = $request->input('tenant_id');
+        $category = $request->input('category');
+
+        $query = FileUpload::query();
+
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        if ($category) {
+            $query->where('category', $category);
+        }
+
+        $files = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => $files->items(),
+            'meta' => [
+                'current_page' => $files->currentPage(),
+                'last_page' => $files->lastPage(),
+                'per_page' => $files->perPage(),
+                'total' => $files->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * 管理员：获取存储用量统计
+     */
+    public function adminUsage(Request $request)
+    {
+        $this->ensureSuperAdmin($request);
+
+        $totalFiles = FileUpload::count();
+        $totalSize = (int) FileUpload::sum('size');
+
+        $byTenant = FileUpload::selectRaw('tenant_id, COUNT(*) as file_count, SUM(size) as total_size')
+            ->groupBy('tenant_id')
+            ->orderByDesc('total_size')
+            ->limit(50)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total_files' => $totalFiles,
+                'total_size_bytes' => $totalSize,
+                'total_size_mb' => round($totalSize / 1024 / 1024, 2),
+                'by_tenant' => $byTenant,
+            ],
+        ]);
+    }
+
+    /**
+     * 管理员：删除文件
+     */
+    public function adminDestroy(Request $request, int $id)
+    {
+        $this->ensureSuperAdmin($request);
+
+        $file = FileUpload::findOrFail($id);
+
+        AuditService::log('admin_delete', 'file', $id, null, [
+            'filename' => $file->filename,
+            'tenant_id' => $file->tenant_id,
+            'size' => $file->size,
+        ]);
+
+        FileService::delete($file);
+
+        return response()->json(['success' => true, 'message' => trans('file.deleted')]);
+    }
 }

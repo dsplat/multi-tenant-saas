@@ -6,6 +6,8 @@ use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Modules\Domain\Services\DomainService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 
 class TenantDomainController extends Controller
 {
@@ -49,5 +51,40 @@ class TenantDomainController extends Controller
         $service->rejectDomain($tenantId, $request->reason ?? '');
 
         return response()->json(['success' => true, 'message' => trans('common.success')]);
+    }
+
+    public function store(Request $request, int $tenantId)
+    {
+        $this->ensureSuperAdmin($request);
+
+        $request->validate(['domain' => 'required|string|max:255']);
+
+        try {
+            $service = new DomainService;
+            $service->updateDomain($tenantId, $request->domain);
+
+            return response()->json(['success' => true, 'message' => trans('common.created')]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function destroy(Request $request, int $tenantId)
+    {
+        $this->ensureSuperAdmin($request);
+
+        try {
+            $tenant = Tenant::findOrFail($tenantId);
+            $tenant->custom_domain = null;
+            $tenant->save();
+
+            TenantSetting::where('tenant_id', $tenantId)
+                ->where('group', DomainService::GROUP_DOMAIN)
+                ->delete();
+
+            return response()->json(['success' => true, 'message' => trans('common.deleted')]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 }

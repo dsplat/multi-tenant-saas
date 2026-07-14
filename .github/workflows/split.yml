@@ -84,6 +84,8 @@ jobs:
           fetch-depth: 0  # 需要完整历史用于 subtree split
 
       - name: Push to ${{ matrix.repo }} via git subtree
+        env:
+          GH_TOKEN: ${{ secrets.SPLIT_TOKEN }}
         run: |
           set -euo pipefail
 

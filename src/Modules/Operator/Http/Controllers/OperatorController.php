@@ -26,7 +26,7 @@ class OperatorController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $tenantId = TenantContext::getId();
+        $tenantId = (int) TenantContext::getId();
         $operators = $this->operatorService->listByTenant($tenantId);
 
         return response()->json([
@@ -55,7 +55,7 @@ class OperatorController extends Controller
             'role' => 'required|string|in:' . implode(',', $this->getValidRoles()),
         ]);
 
-        $tenantId = TenantContext::getId();
+        $tenantId = (int) TenantContext::getId();
 
         try {
             $result = $this->operatorService->invite(
@@ -120,7 +120,7 @@ class OperatorController extends Controller
             'role' => 'required|string|in:' . implode(',', $this->getValidRoles()),
         ]);
 
-        $tenantId = TenantContext::getId();
+        $tenantId = (int) TenantContext::getId();
         $this->operatorService->updateRole($operatorId, $tenantId, $request->role);
 
         AuditService::log('update', 'operator', $operatorId, null, [
@@ -139,7 +139,7 @@ class OperatorController extends Controller
      */
     public function remove(Request $request, int $operatorId): JsonResponse
     {
-        $tenantId = TenantContext::getId();
+        $tenantId = (int) TenantContext::getId();
         $this->operatorService->removeFromTenant($operatorId, $tenantId);
 
         AuditService::log('remove', 'operator', $operatorId, null, [
@@ -149,6 +149,88 @@ class OperatorController extends Controller
         return response()->json([
             'success' => true,
             'message' => trans('operator.removed'),
+        ]);
+    }
+
+    /**
+     * 显示单个运营人员详情
+     */
+    public function show(Request $request, int $operatorId): JsonResponse
+    {
+        $operator = $this->operatorService->getOperator($operatorId);
+
+        return response()->json([
+            'success' => true,
+            'data' => $operator,
+        ]);
+    }
+
+    /**
+     * 更新运营人员资料
+     */
+    public function update(Request $request, int $operatorId): JsonResponse
+    {
+        $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'phone' => 'sometimes|nullable|string|max:20',
+            'avatar' => 'sometimes|nullable|string|max:500',
+        ]);
+
+        $operator = $this->operatorService->updateOperator($operatorId, $request->only([
+            'name', 'phone', 'avatar',
+        ]));
+
+        AuditService::log('update', 'operator', $operatorId, null, [
+            'fields' => array_keys($request->only(['name', 'phone', 'avatar'])),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $operator,
+            'message' => trans('operator.updated'),
+        ]);
+    }
+
+    /**
+     * 切换运营人员激活状态
+     */
+    public function toggleStatus(Request $request, int $operatorId): JsonResponse
+    {
+        $operator = $this->operatorService->toggleStatus($operatorId);
+
+        AuditService::log('toggle_status', 'operator', $operatorId, null, [
+            'is_active' => $operator->is_active,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $operator,
+            'message' => $operator->is_active
+                ? trans('operator.activated')
+                : trans('operator.deactivated'),
+        ]);
+    }
+
+    /**
+     * 重新发送邀请邮件
+     */
+    public function resendInvite(Request $request, int $operatorId): JsonResponse
+    {
+        try {
+            $result = $this->operatorService->resendInvite($operatorId);
+        } catch (\DomainException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+
+        AuditService::log('resend_invite', 'operator', $operatorId);
+
+        return response()->json([
+            'success' => true,
+            'data' => $result,
+            'message' => trans('operator.invite_resent'),
         ]);
     }
 

@@ -272,6 +272,72 @@ class OperatorService
     }
 
     /**
+     * 获取单个操作员
+     */
+    public function getOperator(int $operatorId): Operator
+    {
+        return Operator::findOrFail($operatorId);
+    }
+
+    /**
+     * 更新操作员资料
+     */
+    public function updateOperator(int $operatorId, array $data): Operator
+    {
+        $operator = Operator::findOrFail($operatorId);
+        $operator->update($data);
+
+        return $operator->fresh();
+    }
+
+    /**
+     * 切换操作员激活状态
+     */
+    public function toggleStatus(int $operatorId): Operator
+    {
+        $operator = Operator::findOrFail($operatorId);
+        $operator->update(['is_active' => ! $operator->is_active]);
+
+        return $operator->fresh();
+    }
+
+    /**
+     * 重新发送邀请邮件
+     */
+    public function resendInvite(int $operatorId): array
+    {
+        $operator = Operator::findOrFail($operatorId);
+
+        if ($operator->is_active) {
+            throw new \DomainException('Operator is already active.');
+        }
+
+        if (! $operator->invite_token) {
+            throw new \DomainException('Operator has no pending invitation.');
+        }
+
+        // 刷新邀请令牌
+        $operator->update([
+            'invite_token' => Str::random(64),
+            'invite_expires_at' => now()->addDays(self::INVITE_TOKEN_TTL_DAYS),
+        ]);
+
+        // 查找关联的租户
+        $operatorTenant = OperatorTenant::where('operator_id', $operatorId)
+            ->whereNull('accepted_at')
+            ->first();
+
+        if ($operatorTenant) {
+            $this->sendInvitationEmail($operator, $operatorTenant->tenant_id, $operatorTenant->role);
+        }
+
+        return [
+            'operator' => $operator->fresh(),
+            'invite_token' => $operator->invite_token,
+        ];
+    }
+
+    /**
      * 列出操作员管理的租户
      */
     public function listTenants(int $operatorId): Collection

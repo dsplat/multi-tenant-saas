@@ -5,10 +5,10 @@ use MultiTenantSaas\Modules\Operator\Http\Controllers\OperatorController;
 
 /*
 |--------------------------------------------------------------------------
-| Operator Tenant Routes
+| Operator SPA API Routes
 |--------------------------------------------------------------------------
 |
-| 租户管理员管理本租户运营人员的路由
+| SPA 前端调用的 API 路由
 |
 */
 
@@ -16,10 +16,9 @@ Route::prefix('operators')->group(function () {
     Route::get('/', [OperatorController::class, 'index'])->middleware('rbac.permission:member.view');
     Route::get('/{operatorId}', [OperatorController::class, 'show'])->middleware('rbac.permission:member.view');
     Route::post('/invite', [OperatorController::class, 'invite'])->middleware('rbac.permission:member.create');
-    Route::put('/{operatorId}', [OperatorController::class, 'update'])->middleware('rbac.permission:member.update');
     Route::put('/{operatorId}/role', [OperatorController::class, 'updateRole'])->middleware('rbac.permission:member.update');
-    Route::post('/{operatorId}/toggle-status', [OperatorController::class, 'toggleStatus'])->middleware('rbac.permission:member.update');
-    Route::post('/{operatorId}/resend-invite', [OperatorController::class, 'resendInvite'])->middleware('rbac.permission:member.create');
     Route::delete('/{operatorId}', [OperatorController::class, 'remove'])->middleware('rbac.permission:member.delete');
     Route::get('/{operatorId}/tenants', [OperatorController::class, 'tenants'])->middleware('rbac.permission:member.view');
+    Route::post('/{operatorId}/toggle-status', [OperatorController::class, 'toggleStatus'])->middleware('rbac.permission:member.update');
+    Route::post('/{operatorId}/resend-invite', [OperatorController::class, 'resendInvite'])->middleware('rbac.permission:member.create');
 });

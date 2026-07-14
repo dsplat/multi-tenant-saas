@@ -1,28 +1,28 @@
 {
-    "name": "dsplat/multi-tenant-saas-module-api-token",
-    "version": "1.0.0",
-    "description": "API Token 管理 - 对接 new-api 后端, 提供 Token 创建/查询/轮换、Quota 充值",
-    "type": "library",
-    "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "MultiTenantSaas\\Modules\\ApiToken\\": ""
-        }
-    },
-    "require": {
-        "php": "^8.3",
-        "dsplat/multi-tenant-saas": "^2.0"
-    },
-    "extra": {
-        "saas": {
-            "name": "api-token",
-            "priority": 200,
-            "dependencies": [],
-            "conflicts": [],
-            "requires_core": ">=1.0.0",
-            "provider": "MultiTenantSaas\\Modules\\ApiToken\\ApiTokenServiceProvider",
-            "tenant_toggleable": true,
-            "default_enabled": false
-        }
+  "name": "dsplat/multi-tenant-saas-module-api-token",
+  "version": "1.0.0",
+  "description": "API Token 管理 - 对接 new-api 后端, 提供 Token 创建/查询/轮换、Quota 充值",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\ApiToken\\": ""
     }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "api-token",
+      "priority": 200,
+      "dependencies": [],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\ApiToken\\ApiTokenServiceProvider",
+      "tenant_toggleable": true,
+      "default_enabled": false
+    }
+  }
 }

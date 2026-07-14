@@ -1,28 +1,28 @@
 {
-    "name": "dsplat/multi-tenant-saas-module-domain",
-    "version": "1.0.0",
-    "description": "自定义域名管理 - 租户域名绑定、ICP 备案检查、Nginx 白名单生成",
-    "type": "library",
-    "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "MultiTenantSaas\\Modules\\Domain\\": ""
-        }
-    },
-    "require": {
-        "php": "^8.3",
-        "dsplat/multi-tenant-saas": "^2.0"
-    },
-    "extra": {
-        "saas": {
-            "name": "domain",
-            "priority": 100,
-            "dependencies": [],
-            "conflicts": [],
-            "requires_core": ">=1.0.0",
-            "provider": "MultiTenantSaas\\Modules\\Domain\\DomainServiceProvider",
-            "tenant_toggleable": true,
-            "default_enabled": true
-        }
+  "name": "dsplat/multi-tenant-saas-module-domain",
+  "version": "1.0.0",
+  "description": "自定义域名管理 - 租户域名绑定、ICP 备案检查、Nginx 白名单生成",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\Domain\\": ""
     }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "domain",
+      "priority": 100,
+      "dependencies": [],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\Domain\\DomainServiceProvider",
+      "tenant_toggleable": true,
+      "default_enabled": true
+    }
+  }
 }

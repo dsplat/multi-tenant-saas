@@ -1,28 +1,28 @@
 {
-    "name": "dsplat/multi-tenant-saas-module-developer-portal",
-    "version": "1.0.0",
-    "description": "开发者门户 - API 文档、沙箱环境、SDK 管理",
-    "type": "library",
-    "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "MultiTenantSaas\\Modules\\DeveloperPortal\\": ""
-        }
-    },
-    "require": {
-        "php": "^8.3",
-        "dsplat/multi-tenant-saas": "^2.0"
-    },
-    "extra": {
-        "saas": {
-            "name": "developer-portal",
-            "priority": 80,
-            "dependencies": [],
-            "conflicts": [],
-            "requires_core": ">=1.0.0",
-            "provider": "MultiTenantSaas\\Modules\\DeveloperPortal\\DeveloperPortalServiceProvider",
-            "tenant_toggleable": false,
-            "default_enabled": true
-        }
+  "name": "dsplat/multi-tenant-saas-module-developer-portal",
+  "version": "1.0.0",
+  "description": "开发者门户 - API 文档、沙箱环境、SDK 管理",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\DeveloperPortal\\": ""
     }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "developer-portal",
+      "priority": 80,
+      "dependencies": [],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\DeveloperPortal\\DeveloperPortalServiceProvider",
+      "tenant_toggleable": false,
+      "default_enabled": true
+    }
+  }
 }

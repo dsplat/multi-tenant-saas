@@ -1,28 +1,28 @@
 {
-    "name": "dsplat/multi-tenant-saas-module-form",
-    "version": "1.0.0",
-    "description": "表单构建器 - 拖拽式表单设计、数据收集、提交管理、统计导出",
-    "type": "library",
-    "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "MultiTenantSaas\\Modules\\Form\\": ""
-        }
-    },
-    "require": {
-        "php": "^8.3",
-        "dsplat/multi-tenant-saas": "^2.0"
-    },
-    "extra": {
-        "saas": {
-            "name": "form",
-            "priority": 300,
-            "dependencies": [],
-            "conflicts": [],
-            "requires_core": ">=1.0.0",
-            "provider": "MultiTenantSaas\\Modules\\Form\\FormServiceProvider",
-            "tenant_toggleable": true,
-            "default_enabled": true
-        }
+  "name": "dsplat/multi-tenant-saas-module-form",
+  "version": "1.0.0",
+  "description": "表单构建器 - 拖拽式表单设计、数据收集、提交管理、统计导出",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\Form\\": ""
     }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "form",
+      "priority": 300,
+      "dependencies": [],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\Form\\FormServiceProvider",
+      "tenant_toggleable": true,
+      "default_enabled": true
+    }
+  }
 }

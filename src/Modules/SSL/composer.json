@@ -1,31 +1,31 @@
 {
-    "name": "dsplat/multi-tenant-saas-module-ssl",
-    "version": "1.0.0",
-    "description": "SSL 证书管理 - 租户自定义域名的 SSL 证书上传、续期、Nginx 配置",
-    "type": "library",
-    "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "MultiTenantSaas\\Modules\\SSL\\": ""
-        }
-    },
-    "require": {
-        "php": "^8.3",
-        "dsplat/multi-tenant-saas": "^2.0",
-        "dsplat/multi-tenant-saas-module-domain": "^1.0"
-    },
-    "extra": {
-        "saas": {
-            "name": "ssl",
-            "priority": 90,
-            "dependencies": [
-                "domain"
-            ],
-            "conflicts": [],
-            "requires_core": ">=1.0.0",
-            "provider": "MultiTenantSaas\\Modules\\SSL\\SslServiceProvider",
-            "tenant_toggleable": true,
-            "default_enabled": false
-        }
+  "name": "dsplat/multi-tenant-saas-module-ssl",
+  "version": "1.0.0",
+  "description": "SSL 证书管理 - 租户自定义域名的 SSL 证书上传、续期、Nginx 配置",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\SSL\\": ""
     }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*",
+    "dsplat/multi-tenant-saas-module-domain": "^1.0"
+  },
+  "extra": {
+    "saas": {
+      "name": "ssl",
+      "priority": 90,
+      "dependencies": [
+        "domain"
+      ],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\SSL\\SslServiceProvider",
+      "tenant_toggleable": true,
+      "default_enabled": false
+    }
+  }
 }

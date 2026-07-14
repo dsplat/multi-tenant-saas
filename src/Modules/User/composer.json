@@ -1,28 +1,28 @@
 {
-    "name": "dsplat/multi-tenant-saas-module-user",
-    "version": "1.0.0",
-    "description": "用户管理 - 用户资料、偏好设置、登录日志",
-    "type": "library",
-    "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "MultiTenantSaas\\Modules\\User\\": ""
-        }
-    },
-    "require": {
-        "php": "^8.3",
-        "dsplat/multi-tenant-saas": "^2.0"
-    },
-    "extra": {
-        "saas": {
-            "name": "user",
-            "priority": 70,
-            "dependencies": [],
-            "conflicts": [],
-            "requires_core": ">=1.0.0",
-            "provider": "MultiTenantSaas\\Modules\\User\\UserServiceProvider",
-            "tenant_toggleable": false,
-            "default_enabled": true
-        }
+  "name": "dsplat/multi-tenant-saas-module-user",
+  "version": "1.0.0",
+  "description": "用户管理 - 用户资料、偏好设置、登录日志",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\User\\": ""
     }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "user",
+      "priority": 70,
+      "dependencies": [],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\User\\UserServiceProvider",
+      "tenant_toggleable": false,
+      "default_enabled": true
+    }
+  }
 }

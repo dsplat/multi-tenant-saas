@@ -1,28 +1,28 @@
 {
-    "name": "dsplat/multi-tenant-saas-module-monitoring",
-    "version": "1.0.0",
-    "description": "监控与告警 - 指标采集、SLA 监控、告警规则、性能追踪",
-    "type": "library",
-    "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "MultiTenantSaas\\Modules\\Monitoring\\": ""
-        }
-    },
-    "require": {
-        "php": "^8.3",
-        "dsplat/multi-tenant-saas": "^2.0"
-    },
-    "extra": {
-        "saas": {
-            "name": "monitoring",
-            "priority": 50,
-            "dependencies": [],
-            "conflicts": [],
-            "requires_core": ">=1.0.0",
-            "provider": "MultiTenantSaas\\Modules\\Monitoring\\MonitoringServiceProvider",
-            "tenant_toggleable": false,
-            "default_enabled": true
-        }
+  "name": "dsplat/multi-tenant-saas-module-monitoring",
+  "version": "1.0.0",
+  "description": "监控与告警 - 指标采集、SLA 监控、告警规则、性能追踪",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\Monitoring\\": ""
     }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "monitoring",
+      "priority": 50,
+      "dependencies": [],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\Monitoring\\MonitoringServiceProvider",
+      "tenant_toggleable": false,
+      "default_enabled": true
+    }
+  }
 }

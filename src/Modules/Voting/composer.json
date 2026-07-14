@@ -1,28 +1,28 @@
 {
-    "name": "dsplat/multi-tenant-saas-module-voting",
-    "version": "1.0.0",
-    "description": "投票系统 - 排行榜、防刷票、多类型投票、统计查询",
-    "type": "library",
-    "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "MultiTenantSaas\\Modules\\Voting\\": ""
-        }
-    },
-    "require": {
-        "php": "^8.3",
-        "dsplat/multi-tenant-saas": "^2.0"
-    },
-    "extra": {
-        "saas": {
-            "name": "voting",
-            "priority": 300,
-            "dependencies": [],
-            "conflicts": [],
-            "requires_core": ">=1.0.0",
-            "provider": "MultiTenantSaas\\Modules\\Voting\\VotingServiceProvider",
-            "tenant_toggleable": true,
-            "default_enabled": true
-        }
+  "name": "dsplat/multi-tenant-saas-module-voting",
+  "version": "1.0.0",
+  "description": "投票系统 - 排行榜、防刷票、多类型投票、统计查询",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\Voting\\": ""
     }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "voting",
+      "priority": 300,
+      "dependencies": [],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\Voting\\VotingServiceProvider",
+      "tenant_toggleable": true,
+      "default_enabled": true
+    }
+  }
 }

@@ -1,28 +1,28 @@
 {
-    "name": "dsplat/multi-tenant-saas-module-platform",
-    "version": "1.0.0",
-    "description": "平台工具 - 数据导出、API 版本管理、租户资料、成本管理、事件总线",
-    "type": "library",
-    "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "MultiTenantSaas\\Modules\\Platform\\": ""
-        }
-    },
-    "require": {
-        "php": "^8.3",
-        "dsplat/multi-tenant-saas": "^2.0"
-    },
-    "extra": {
-        "saas": {
-            "name": "platform",
-            "priority": 60,
-            "dependencies": [],
-            "conflicts": [],
-            "requires_core": ">=1.0.0",
-            "provider": "MultiTenantSaas\\Modules\\Platform\\PlatformServiceProvider",
-            "tenant_toggleable": false,
-            "default_enabled": true
-        }
+  "name": "dsplat/multi-tenant-saas-module-platform",
+  "version": "1.0.0",
+  "description": "平台工具 - 数据导出、API 版本管理、租户资料、成本管理、事件总线",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\Platform\\": ""
     }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "platform",
+      "priority": 60,
+      "dependencies": [],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\Platform\\PlatformServiceProvider",
+      "tenant_toggleable": false,
+      "default_enabled": true
+    }
+  }
 }

@@ -1,28 +1,28 @@
 {
-    "name": "dsplat/multi-tenant-saas-module-auth",
-    "version": "1.0.0",
-    "description": "第三方认证 - 社交登录、支付宝 OAuth、SSO 集成",
-    "type": "library",
-    "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "MultiTenantSaas\\Modules\\Auth\\": ""
-        }
-    },
-    "require": {
-        "php": "^8.3",
-        "dsplat/multi-tenant-saas": "^2.0"
-    },
-    "extra": {
-        "saas": {
-            "name": "auth",
-            "priority": 10,
-            "dependencies": [],
-            "conflicts": [],
-            "requires_core": ">=1.0.0",
-            "provider": "MultiTenantSaas\\Modules\\Auth\\AuthModuleServiceProvider",
-            "tenant_toggleable": false,
-            "default_enabled": true
-        }
+  "name": "dsplat/multi-tenant-saas-module-auth",
+  "version": "1.0.0",
+  "description": "第三方认证 - 社交登录、支付宝 OAuth、SSO 集成",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\Auth\\": ""
     }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "auth",
+      "priority": 10,
+      "dependencies": [],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\Auth\\AuthModuleServiceProvider",
+      "tenant_toggleable": false,
+      "default_enabled": true
+    }
+  }
 }

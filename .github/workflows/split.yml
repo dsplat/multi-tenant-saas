@@ -71,13 +71,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Configure git credentials
-        env:
-          SPLIT_TOKEN: ${{ secrets.SPLIT_TOKEN }}
-        run: |
-          git config --global credential.helper store
-          echo "https://x-access-token:${SPLIT_TOKEN}@github.com" > ~/.git-credentials
+          token: ${{ secrets.SPLIT_TOKEN }}
 
       - name: Create repo if needed
         env:
@@ -108,7 +102,7 @@ jobs:
             BRANCH="main"
           fi
 
-          # Push using configured credentials
+          # Push using PAT from checkout token
           git push "https://github.com/${ORG}/${REPO}.git" "${BRANCH}:main" --force
 
           # Tag push

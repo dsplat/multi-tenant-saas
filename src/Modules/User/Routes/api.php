@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\User\Http\Controllers\TenantController;
 use MultiTenantSaas\Modules\User\Http\Controllers\TenantMemberController;
 use MultiTenantSaas\Modules\User\Http\Controllers\TenantSettingController;
+use MultiTenantSaas\Modules\User\Http\Controllers\UserController;
 
 Route::middleware('rbac.permission:tenant.view')->group(function () {
     Route::get('/tenants', [TenantController::class, 'index']);
@@ -47,4 +48,19 @@ Route::middleware('rbac.permission:setting.view')->group(function () {
 Route::middleware('rbac.permission:setting.update')->group(function () {
     Route::put('/tenants/{tenantId}/settings/{group}', [TenantSettingController::class, 'update']);
     Route::post('/tenants/{tenantId}/settings/sms/test', [TenantSettingController::class, 'testSms']);
+});
+
+// 用户管理
+Route::middleware('rbac.permission:user.view')->group(function () {
+    Route::get('/tenants/{tenantId}/users', [UserController::class, 'index']);
+    Route::get('/tenants/{tenantId}/users/search', [UserController::class, 'search']);
+    Route::get('/tenants/{tenantId}/users/{userId}', [UserController::class, 'show']);
+});
+
+Route::middleware('rbac.permission:user.update')->group(function () {
+    Route::put('/tenants/{tenantId}/users/{userId}', [UserController::class, 'update']);
+});
+
+Route::middleware('rbac.permission:user.delete')->group(function () {
+    Route::delete('/tenants/{tenantId}/users/{userId}', [UserController::class, 'destroy']);
 });

@@ -132,6 +132,10 @@ class RbacModule implements SchemaModuleInterface
             ['permission_id' => 45, 'name' => 'form.update', 'display_name' => '更新表单', 'group' => 'form'],
             ['permission_id' => 46, 'name' => 'form.delete', 'display_name' => '删除表单', 'group' => 'form'],
             ['permission_id' => 47, 'name' => 'form.export', 'display_name' => '导出表单', 'group' => 'form'],
+            // 用户模块
+            ['permission_id' => 48, 'name' => 'user.view', 'display_name' => '查看用户', 'group' => 'user'],
+            ['permission_id' => 49, 'name' => 'user.update', 'display_name' => '更新用户', 'group' => 'user'],
+            ['permission_id' => 50, 'name' => 'user.delete', 'display_name' => '删除用户', 'group' => 'user'],
         ];
 
         foreach ($permissions as $perm) {
@@ -155,7 +159,7 @@ class RbacModule implements SchemaModuleInterface
         }
 
         // end_user: 仅查看权限（不含 tenant.view，因为这是管理权限）
-        $userPermNames = ['member.view', 'credit.view', 'setting.view', 'payment.view', 'audit.view', 'file.upload'];
+        $userPermNames = ['member.view', 'credit.view', 'setting.view', 'payment.view', 'audit.view', 'file.upload', 'user.view'];
         $userPerms = DB::table('permissions')->whereIn('name', $userPermNames)->pluck('permission_id');
         foreach ($userPerms as $pid) {
             DB::table('role_permissions')->updateOrInsert(

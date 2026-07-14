@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\User\Http\Controllers\TenantController;
 use MultiTenantSaas\Modules\User\Http\Controllers\TenantMemberController;
+use MultiTenantSaas\Modules\User\Http\Controllers\UserController;
 
 // 管理员后台 - 租户管理
 Route::prefix('admin/tenants')->group(function () {
@@ -21,4 +22,18 @@ Route::prefix('admin/tenants/{tenantId}/members')->group(function () {
     Route::post('/', [TenantMemberController::class, 'store'])->middleware('rbac.permission:member.create');
     Route::put('/{userId}', [TenantMemberController::class, 'update'])->middleware('rbac.permission:member.update');
     Route::delete('/{userId}', [TenantMemberController::class, 'destroy'])->middleware('rbac.permission:member.delete');
+});
+
+// 管理员后台 - 用户管理
+Route::prefix('admin/tenants/{tenantId}/users')->group(function () {
+    Route::get('/', [UserController::class, 'adminIndex'])->middleware('rbac.permission:user.view');
+    Route::get('/search', [UserController::class, 'search'])->middleware('rbac.permission:user.view');
+    Route::get('/{userId}', [UserController::class, 'show'])->middleware('rbac.permission:user.view');
+    Route::put('/{userId}', [UserController::class, 'update'])->middleware('rbac.permission:user.update');
+    Route::delete('/{userId}', [UserController::class, 'destroy'])->middleware('rbac.permission:user.delete');
+});
+
+// 管理员后台 - 全局用户搜索
+Route::prefix('admin/users')->group(function () {
+    Route::get('/search', [UserController::class, 'globalSearch'])->middleware('rbac.permission:user.view');
 });

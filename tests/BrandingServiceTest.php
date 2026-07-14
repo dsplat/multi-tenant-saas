@@ -5,9 +5,9 @@ namespace MultiTenantSaas\Tests;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use MultiTenantSaas\Models\BrandingConfig;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\BrandingService;
+use MultiTenantSaas\Modules\Infrastructure\Models\BrandingConfig;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\BrandingService;
 use MultiTenantSaas\Tests\Schema\AiModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;
 

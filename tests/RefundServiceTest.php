@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\RefundService;
+use MultiTenantSaas\Modules\Billing\Services\RefundService;
 
 class RefundServiceTest extends TestCase
 {

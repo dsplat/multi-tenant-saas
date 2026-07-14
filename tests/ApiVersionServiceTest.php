@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\ApiVersionService;
+use MultiTenantSaas\Modules\Infrastructure\Services\ApiVersionService;
 
 class ApiVersionServiceTest extends TestCase
 {

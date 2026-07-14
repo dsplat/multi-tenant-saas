@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\TenantOnboardingService;
+use MultiTenantSaas\Modules\Infrastructure\Services\TenantOnboardingService;
 
 class TenantOnboardingServiceTest extends TestCase
 {

@@ -5,13 +5,13 @@ namespace MultiTenantSaas\Tests;
 use Illuminate\Contracts\Http\Kernel;
 use Mockery;
 use MultiTenantSaas\Contracts\AgentRuntimeContract;
-use MultiTenantSaas\Middleware\IdentifyTenant;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversationMessage;
 use MultiTenantSaas\Modules\Ai\Services\Ai\StreamChunk;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\AgentModule;
 
 class AgentChatControllerTest extends TestCase

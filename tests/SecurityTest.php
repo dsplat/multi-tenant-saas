@@ -6,9 +6,9 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantUser;
-use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 use MultiTenantSaas\Modules\User\Http\Resources\UserResource;
 
 /**

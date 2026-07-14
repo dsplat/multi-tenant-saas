@@ -3,9 +3,9 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\TaxRule;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\TaxService;
+use MultiTenantSaas\Modules\Billing\Models\TaxRule;
+use MultiTenantSaas\Modules\Billing\Services\TaxService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 
 class TaxServiceTest extends TestCase

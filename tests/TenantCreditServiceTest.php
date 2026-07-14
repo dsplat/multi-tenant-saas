@@ -3,11 +3,11 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\CreditAccount;
-use MultiTenantSaas\Models\CreditTransaction;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\TenantCreditService;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
+use MultiTenantSaas\Modules\Billing\Models\CreditTransaction;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\TenantCreditService;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 
 /**

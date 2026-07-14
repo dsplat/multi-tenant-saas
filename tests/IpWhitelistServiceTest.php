@@ -4,11 +4,11 @@ namespace MultiTenantSaas\Tests;
 
 use Illuminate\Http\Request;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Middleware\CheckIpWhitelist;
-use MultiTenantSaas\Models\AuditLog;
-use MultiTenantSaas\Models\IpWhitelist;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\IpWhitelistService;
+use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\CheckIpWhitelist;
+use MultiTenantSaas\Modules\Infrastructure\Models\IpWhitelist;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\IpWhitelistService;
+use MultiTenantSaas\Modules\Logging\Models\AuditLog;
 use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\SecurityModule;
 use Symfony\Component\HttpFoundation\Response;

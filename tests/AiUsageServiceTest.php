@@ -3,12 +3,12 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\SubscriptionPlan;
-use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
-use MultiTenantSaas\Services\AiConfigService;
-use MultiTenantSaas\Services\AiUsageService;
+use MultiTenantSaas\Modules\Ai\Services\AiConfigService;
+use MultiTenantSaas\Modules\Ai\Services\AiUsageService;
+use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\AiModule;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;

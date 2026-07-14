@@ -3,8 +3,8 @@
 namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\Schema;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\PasswordService;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Auth\Services\PasswordService;
 
 class PasswordServiceTest extends TestCase
 {

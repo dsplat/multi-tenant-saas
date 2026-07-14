@@ -5,9 +5,9 @@ namespace MultiTenantSaas\Tests;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\PasswordPolicyService;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Auth\Services\PasswordPolicyService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\SecurityModule;
 
 /**

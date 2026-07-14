@@ -3,9 +3,9 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantUser;
-use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 use MultiTenantSaas\Modules\Lottery\Services\LotteryService;
 use MultiTenantSaas\Tests\Schema\LotteryModule;
 

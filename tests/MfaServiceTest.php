@@ -3,11 +3,11 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\MfaDevice;
-use MultiTenantSaas\Models\MfaRecoveryCode;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\MfaService;
+use MultiTenantSaas\Modules\Auth\Models\MfaDevice;
+use MultiTenantSaas\Modules\Auth\Models\MfaRecoveryCode;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Auth\Services\MfaService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\SecurityModule;
 
 /**

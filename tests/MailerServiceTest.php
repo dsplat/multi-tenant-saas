@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\MailerService;
+use MultiTenantSaas\Modules\Infrastructure\Services\MailerService;
 
 class MailerServiceTest extends TestCase
 {

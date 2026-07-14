@@ -2,9 +2,9 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantSetting;
-use MultiTenantSaas\Services\DataResidencyService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
+use MultiTenantSaas\Modules\Infrastructure\Services\DataResidencyService;
 use RuntimeException;
 
 /**

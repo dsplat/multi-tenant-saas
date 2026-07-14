@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\SocialiteService;
+use MultiTenantSaas\Modules\Auth\Services\SocialiteService;
 
 class SocialiteServiceTest extends TestCase
 {

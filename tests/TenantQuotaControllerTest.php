@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\QuotaService;
+use MultiTenantSaas\Modules\Infrastructure\Services\QuotaService;
 
 class TenantQuotaControllerTest extends TestCase
 {

@@ -5,9 +5,9 @@ namespace MultiTenantSaas\Tests;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\SubscriptionPlan;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\TrialService;
+use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Monitoring\Services\TrialService;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 
 class TrialServiceTest extends TestCase

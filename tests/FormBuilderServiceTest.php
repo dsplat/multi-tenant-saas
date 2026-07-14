@@ -3,9 +3,9 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Modules\Form\Models\Form;
 use MultiTenantSaas\Modules\Form\Services\FormBuilderService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\FormModule;
 
 class FormBuilderServiceTest extends TestCase

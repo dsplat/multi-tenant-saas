@@ -5,10 +5,10 @@ namespace MultiTenantSaas\Tests;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TrustedDevice;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\TrustedDeviceService;
+use MultiTenantSaas\Modules\Auth\Models\TrustedDevice;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Auth\Services\TrustedDeviceService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\SecurityModule;
 
 /**

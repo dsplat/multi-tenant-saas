@@ -5,8 +5,8 @@ namespace MultiTenantSaas\Tests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\PluginService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Plugin\Services\PluginService;
 use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;
 

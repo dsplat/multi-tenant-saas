@@ -3,9 +3,9 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
-use MultiTenantSaas\Services\AiConfigService;
+use MultiTenantSaas\Modules\Ai\Services\AiConfigService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\AiModule;
 
 /**

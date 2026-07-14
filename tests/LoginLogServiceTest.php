@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\LoginLogService;
+use MultiTenantSaas\Modules\Auth\Services\LoginLogService;
 
 class LoginLogServiceTest extends TestCase
 {

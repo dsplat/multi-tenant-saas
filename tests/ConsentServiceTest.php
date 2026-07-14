@@ -3,10 +3,10 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Consent;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\ConsentService;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Models\Consent;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\ConsentService;
 use MultiTenantSaas\Tests\Schema\MiscModule;
 
 /**

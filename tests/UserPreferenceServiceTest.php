@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\UserPreferenceService;
+use MultiTenantSaas\Modules\User\Services\UserPreferenceService;
 
 class UserPreferenceServiceTest extends TestCase
 {

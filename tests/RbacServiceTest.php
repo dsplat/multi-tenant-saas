@@ -3,9 +3,9 @@
 namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\DB;
-use MultiTenantSaas\Models\Permission;
-use MultiTenantSaas\Models\Role;
-use MultiTenantSaas\Services\RbacService;
+use MultiTenantSaas\Modules\Auth\Models\Permission;
+use MultiTenantSaas\Modules\Auth\Models\Role;
+use MultiTenantSaas\Modules\Auth\Services\RbacService;
 use MultiTenantSaas\Tests\Schema\RbacModule;
 
 /**

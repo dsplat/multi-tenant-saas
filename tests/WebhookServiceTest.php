@@ -7,11 +7,11 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Jobs\ProcessWebhookDelivery;
-use MultiTenantSaas\Models\AuditLog;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\Webhook;
-use MultiTenantSaas\Models\WebhookDelivery;
-use MultiTenantSaas\Services\WebhookService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Webhook;
+use MultiTenantSaas\Modules\Infrastructure\Models\WebhookDelivery;
+use MultiTenantSaas\Modules\Infrastructure\Services\WebhookService;
+use MultiTenantSaas\Modules\Logging\Models\AuditLog;
 use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\WebhookModule;
 

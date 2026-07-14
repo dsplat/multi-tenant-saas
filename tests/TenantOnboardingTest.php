@@ -5,10 +5,10 @@ namespace MultiTenantSaas\Tests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use MultiTenantSaas\Events\TenantCreated;
-use MultiTenantSaas\Models\Role;
-use MultiTenantSaas\Models\SubscriptionPlan;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\Auth\Models\Role;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 use MultiTenantSaas\Tests\Schema\RbacModule;
 

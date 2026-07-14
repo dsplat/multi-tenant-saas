@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Lottery\Services\LotteryService;
 use MultiTenantSaas\Tests\Schema\LotteryModule;
 

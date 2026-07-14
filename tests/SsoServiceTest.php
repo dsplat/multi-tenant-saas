@@ -4,10 +4,10 @@ namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\SsoProvider;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\SsoService;
+use MultiTenantSaas\Modules\Auth\Models\SsoProvider;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Auth\Services\SsoService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\PluginModule;
 use MultiTenantSaas\Tests\Schema\SecurityModule;
 

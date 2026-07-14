@@ -3,10 +3,10 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\SubscriptionHistory;
-use MultiTenantSaas\Models\SubscriptionPlan;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\SubscriptionService;
+use MultiTenantSaas\Modules\Billing\Models\SubscriptionHistory;
+use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
+use MultiTenantSaas\Modules\Billing\Services\SubscriptionService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 
 /**

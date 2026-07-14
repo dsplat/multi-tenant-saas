@@ -4,10 +4,10 @@ namespace MultiTenantSaas\Tests;
 
 use Illuminate\Http\Request;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Middleware\CheckFeatureFlag;
-use MultiTenantSaas\Models\FeatureFlag;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\FeatureFlagService;
+use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\CheckFeatureFlag;
+use MultiTenantSaas\Modules\Infrastructure\Models\FeatureFlag;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Platform\Services\FeatureFlagService;
 use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\SecurityModule;
 use Symfony\Component\HttpFoundation\Response;

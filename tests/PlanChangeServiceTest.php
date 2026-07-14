@@ -4,9 +4,9 @@ namespace MultiTenantSaas\Tests;
 
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\SubscriptionPlan;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\PlanChangeService;
+use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
+use MultiTenantSaas\Modules\Billing\Services\PlanChangeService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 
 /**

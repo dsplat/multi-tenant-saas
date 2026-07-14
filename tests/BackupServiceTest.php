@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\BackupService;
+use MultiTenantSaas\Modules\Infrastructure\Services\BackupService;
 
 class BackupServiceTest extends TestCase
 {

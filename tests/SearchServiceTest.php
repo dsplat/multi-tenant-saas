@@ -4,8 +4,8 @@ namespace MultiTenantSaas\Tests;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\SearchService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\SearchService;
 
 class SearchServiceTest extends TestCase
 {

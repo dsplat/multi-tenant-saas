@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\ResourceService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\ResourceService;
 use MultiTenantSaas\Tests\Schema\MiscModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;
 

@@ -12,8 +12,8 @@ use MultiTenantSaas\Contracts\IsolationStrategyContract;
 use MultiTenantSaas\Isolation\DatabasePerTenantStrategy;
 use MultiTenantSaas\Isolation\SchemaPerTenantStrategy;
 use MultiTenantSaas\Isolation\SharedDatabaseStrategy;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\IsolationService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\IsolationService;
 use RuntimeException;
 
 /**

@@ -5,9 +5,9 @@ namespace MultiTenantSaas\Tests;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\SlaEvent;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\SlaService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Monitoring\Models\SlaEvent;
+use MultiTenantSaas\Modules\Monitoring\Services\SlaService;
 use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;
 

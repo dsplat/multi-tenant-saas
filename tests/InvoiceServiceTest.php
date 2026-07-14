@@ -4,9 +4,9 @@ namespace MultiTenantSaas\Tests;
 
 use Barryvdh\DomPDF\Facade\Pdf;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Invoice;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\InvoiceService;
+use MultiTenantSaas\Modules\Billing\Models\Invoice;
+use MultiTenantSaas\Modules\Billing\Services\InvoiceService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 
 class InvoiceServiceTest extends TestCase

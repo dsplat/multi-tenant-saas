@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Tests;
 
 use Mockery;
-use MultiTenantSaas\Services\QueueService;
+use MultiTenantSaas\Modules\Infrastructure\Services\QueueService;
 
 /**
  * QueueService 单元测试

@@ -6,9 +6,9 @@ use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Mail\TenantMail;
-use MultiTenantSaas\Models\MailTemplate;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\MailTemplateService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Notification\Models\MailTemplate;
+use MultiTenantSaas\Modules\Notification\Services\MailTemplateService;
 use MultiTenantSaas\Tests\Schema\NotificationModule;
 
 /**

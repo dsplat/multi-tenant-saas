@@ -2,8 +2,8 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\AuditService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Tests\Schema\MfaModule;
 
 class TenantAuditControllerTest extends TestCase

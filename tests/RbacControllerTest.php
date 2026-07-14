@@ -2,10 +2,10 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantUser;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\RbacService;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Auth\Services\RbacService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 use MultiTenantSaas\Tests\Schema\MfaModule;
 use MultiTenantSaas\Tests\Schema\RbacModule;
 

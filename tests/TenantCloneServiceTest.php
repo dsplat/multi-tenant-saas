@@ -2,16 +2,16 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Models\BrandingConfig;
-use MultiTenantSaas\Models\Permission;
-use MultiTenantSaas\Models\Role;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantHierarchy;
-use MultiTenantSaas\Models\TenantSetting;
 use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
+use MultiTenantSaas\Modules\Auth\Models\Permission;
+use MultiTenantSaas\Modules\Auth\Models\Role;
+use MultiTenantSaas\Modules\Infrastructure\Models\BrandingConfig;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantHierarchy;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
+use MultiTenantSaas\Modules\Infrastructure\Services\CrossTenantService;
+use MultiTenantSaas\Modules\Infrastructure\Services\TenantCloneService;
 use MultiTenantSaas\Scopes\TenantScope;
-use MultiTenantSaas\Services\CrossTenantService;
-use MultiTenantSaas\Services\TenantCloneService;
 use MultiTenantSaas\Tests\Schema\AiModule;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 use MultiTenantSaas\Tests\Schema\MiscModule;

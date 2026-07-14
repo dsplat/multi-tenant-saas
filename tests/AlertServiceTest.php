@@ -4,8 +4,8 @@ namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\AlertService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\AlertService;
 use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;
 

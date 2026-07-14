@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\Schedule;
-use MultiTenantSaas\Services\SchedulerService;
+use MultiTenantSaas\Modules\Infrastructure\Services\SchedulerService;
 
 class SchedulerServiceTest extends TestCase
 {

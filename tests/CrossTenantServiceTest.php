@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\CrossTenantService;
+use MultiTenantSaas\Modules\Infrastructure\Services\CrossTenantService;
 
 class CrossTenantServiceTest extends TestCase
 {

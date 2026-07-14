@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\SubscriptionService;
+use MultiTenantSaas\Modules\Billing\Services\SubscriptionService;
 
 class SubscriptionControllerTest extends TestCase
 {

@@ -2,8 +2,8 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\InAppNotificationService;
-use MultiTenantSaas\Services\NotificationService;
+use MultiTenantSaas\Modules\Notification\Services\InAppNotificationService;
+use MultiTenantSaas\Modules\Notification\Services\NotificationService;
 
 class NotificationControllerTest extends TestCase
 {

@@ -6,10 +6,10 @@ namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Capability\CapabilityResult;
-use MultiTenantSaas\Models\CreditAccount;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Modules\Ai\Services\Capability\CapabilityBillingService;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 
 class CapabilityBillingServiceTest extends TestCase

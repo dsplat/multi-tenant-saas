@@ -6,9 +6,9 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantKey;
-use MultiTenantSaas\Services\TenantKeyService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantKey;
+use MultiTenantSaas\Modules\Infrastructure\Services\TenantKeyService;
 use MultiTenantSaas\Tests\Schema\MiscModule;
 
 class TenantKeyServiceTest extends TestCase

@@ -5,8 +5,8 @@ namespace MultiTenantSaas\Tests;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\ErrorTrackingService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\ErrorTrackingService;
 use MultiTenantSaas\Tests\Schema\PluginModule;
 
 /**

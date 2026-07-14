@@ -3,9 +3,9 @@
 namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\Http;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantSetting;
-use MultiTenantSaas\Services\UnionPayService;
+use MultiTenantSaas\Modules\Billing\Services\UnionPayService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 
 /**
  * UnionPayService 单元测试

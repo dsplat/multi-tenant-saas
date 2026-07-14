@@ -5,8 +5,8 @@ namespace MultiTenantSaas\Tests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\RateLimitService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\RateLimitService;
 use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;
 

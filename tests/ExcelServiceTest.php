@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\ExcelService;
+use MultiTenantSaas\Modules\Infrastructure\Services\ExcelService;
 
 class ExcelServiceTest extends TestCase
 {

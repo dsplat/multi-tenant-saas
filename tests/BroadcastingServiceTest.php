@@ -3,9 +3,9 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\BroadcastEvent;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\BroadcastingService;
+use MultiTenantSaas\Modules\Event\Models\BroadcastEvent;
+use MultiTenantSaas\Modules\Event\Services\BroadcastingService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\EventModule;
 
 /**

@@ -3,8 +3,8 @@
 namespace MultiTenantSaas\Tests;
 
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantSetting;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 
 class TenantSettingTest extends TestCase
 {

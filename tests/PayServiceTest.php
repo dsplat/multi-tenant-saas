@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\PayService;
+use MultiTenantSaas\Modules\Billing\Services\PayService;
 
 class PayServiceTest extends TestCase
 {

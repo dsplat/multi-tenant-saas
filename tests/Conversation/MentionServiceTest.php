@@ -6,12 +6,12 @@ namespace MultiTenantSaas\Tests\Conversation;
 
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Exceptions\PermissionDeniedException;
-use MultiTenantSaas\Models\Conversation;
-use MultiTenantSaas\Models\Mention;
-use MultiTenantSaas\Models\Message;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Conversation\Models\Conversation;
+use MultiTenantSaas\Modules\Conversation\Models\Mention;
+use MultiTenantSaas\Modules\Conversation\Models\Message;
 use MultiTenantSaas\Modules\Conversation\Services\MentionService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
 use MultiTenantSaas\Tests\TestCase;
 

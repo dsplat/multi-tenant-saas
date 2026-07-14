@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\MfaService;
+use MultiTenantSaas\Modules\Auth\Services\MfaService;
 use MultiTenantSaas\Tests\Schema\MfaModule;
 
 class MfaControllerTest extends TestCase

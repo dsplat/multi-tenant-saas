@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Tests\Conversation;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Conversation;
-use MultiTenantSaas\Models\Participant;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Conversation\Models\Conversation;
+use MultiTenantSaas\Modules\Conversation\Models\Participant;
 use MultiTenantSaas\Modules\Conversation\Services\ParticipantService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
 use MultiTenantSaas\Tests\TestCase;
 

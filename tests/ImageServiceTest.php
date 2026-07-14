@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\ImageService;
+use MultiTenantSaas\Modules\Infrastructure\Services\ImageService;
 
 class ImageServiceTest extends TestCase
 {

@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\TenantSettingService;
+use MultiTenantSaas\Modules\Infrastructure\Services\TenantSettingService;
 
 class TenantSettingControllerTest extends TestCase
 {

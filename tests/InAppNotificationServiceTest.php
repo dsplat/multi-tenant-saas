@@ -3,10 +3,10 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\InAppNotification;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\InAppNotificationService;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Notification\Models\InAppNotification;
+use MultiTenantSaas\Modules\Notification\Services\InAppNotificationService;
 use MultiTenantSaas\Tests\Schema\NotificationModule;
 
 /**

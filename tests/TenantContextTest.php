@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
 class TenantContextTest extends TestCase
 {

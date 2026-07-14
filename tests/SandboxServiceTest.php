@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\SandboxService;
+use MultiTenantSaas\Modules\DeveloperPortal\Services\SandboxService;
 
 class SandboxServiceTest extends TestCase
 {

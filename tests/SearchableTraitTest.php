@@ -4,7 +4,7 @@ namespace MultiTenantSaas\Tests;
 
 use Illuminate\Database\Eloquent\Model;
 use MultiTenantSaas\Concerns\Searchable;
-use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
 class SearchableTraitTest extends TestCase
 {

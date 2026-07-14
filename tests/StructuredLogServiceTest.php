@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\StructuredLogService;
+use MultiTenantSaas\Modules\Infrastructure\Services\StructuredLogService;
 
 class StructuredLogServiceTest extends TestCase
 {

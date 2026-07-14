@@ -7,7 +7,7 @@ namespace MultiTenantSaas\Tests\EnterpriseWechat;
 use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\EnterpriseWechat\ArchiveDecryptor;
 use MultiTenantSaas\EnterpriseWechat\SessionArchiveService;
-use MultiTenantSaas\Models\ArchivedMessage;
+use MultiTenantSaas\Modules\Conversation\Models\ArchivedMessage;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
 use MultiTenantSaas\Tests\TestCase;
 

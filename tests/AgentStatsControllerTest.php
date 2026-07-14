@@ -3,12 +3,12 @@
 namespace MultiTenantSaas\Tests;
 
 use Illuminate\Contracts\Http\Kernel;
-use MultiTenantSaas\Middleware\IdentifyTenant;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Models\AgentToolLog;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\AgentModule;
 
 class AgentStatsControllerTest extends TestCase

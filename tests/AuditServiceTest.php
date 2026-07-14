@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\AuditService;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Tests\Schema\MfaModule;
 
 class AuditServiceTest extends TestCase

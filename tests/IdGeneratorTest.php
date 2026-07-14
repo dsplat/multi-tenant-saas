@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\IdGenerator;
+use MultiTenantSaas\Modules\Infrastructure\Services\IdGenerator;
 
 class IdGeneratorTest extends TestCase
 {

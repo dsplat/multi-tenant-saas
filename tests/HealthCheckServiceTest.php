@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\HealthCheckService;
+use MultiTenantSaas\Modules\Infrastructure\Services\HealthCheckService;
 
 class HealthCheckServiceTest extends TestCase
 {

@@ -4,10 +4,10 @@ namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\CacheService;
-use MultiTenantSaas\Services\PerformanceService;
-use MultiTenantSaas\Services\StructuredLogService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\CacheService;
+use MultiTenantSaas\Modules\Infrastructure\Services\PerformanceService;
+use MultiTenantSaas\Modules\Infrastructure\Services\StructuredLogService;
 use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;
 use MultiTenantSaas\Tests\Schema\RbacModule;

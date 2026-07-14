@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Coupon\Services\CouponService;
 use MultiTenantSaas\Tests\Schema\CouponModule;
 

@@ -5,9 +5,9 @@ namespace MultiTenantSaas\Tests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\PaymentSecurityService;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Billing\Services\PaymentSecurityService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 
 /**

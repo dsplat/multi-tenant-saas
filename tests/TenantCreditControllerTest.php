@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\TenantCreditService;
+use MultiTenantSaas\Modules\Infrastructure\Services\TenantCreditService;
 
 class TenantCreditControllerTest extends TestCase
 {

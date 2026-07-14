@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\HorizonService;
+use MultiTenantSaas\Modules\Infrastructure\Services\HorizonService;
 
 class HorizonServiceTest extends TestCase
 {

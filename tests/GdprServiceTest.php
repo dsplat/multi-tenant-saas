@@ -4,11 +4,11 @@ namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Consent;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\ConsentService;
-use MultiTenantSaas\Services\GdprService;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Models\Consent;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\ConsentService;
+use MultiTenantSaas\Modules\Infrastructure\Services\GdprService;
 use MultiTenantSaas\Tests\Schema\AiModule;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 use MultiTenantSaas\Tests\Schema\EventModule;
@@ -158,7 +158,7 @@ class GdprServiceTest extends TestCase
     public function test_erase_user_revokes_api_tokens(): void
     {
         DB::table('personal_access_tokens')->insert([
-            'tokenable_type' => 'MultiTenantSaas\Models\User',
+            'tokenable_type' => 'MultiTenantSaas\Modules\Auth\Models\User',
             'tokenable_id' => $this->userId,
             'name' => 'test-token',
             'token' => 'test-token-value',

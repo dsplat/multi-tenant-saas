@@ -7,7 +7,7 @@ namespace MultiTenantSaas\Tests;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Models\Memory\EntityMemory;
 use MultiTenantSaas\Models\Memory\TenantMemory;
-use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Services\Memory\MemoryService;
 use MultiTenantSaas\Tests\Schema\MemoryModule;
 

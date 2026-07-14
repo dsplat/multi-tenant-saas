@@ -4,11 +4,11 @@ namespace MultiTenantSaas\Tests;
 
 use Mockery;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Modules\Ai\Models\AiPrompt;
+use MultiTenantSaas\Modules\Ai\Services\AiGatewayService;
+use MultiTenantSaas\Modules\Ai\Services\AiTextService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Scopes\TenantScope;
-use MultiTenantSaas\Services\AiGatewayService;
-use MultiTenantSaas\Services\AiTextService;
 use MultiTenantSaas\Tests\Schema\AiModule;
 
 /**

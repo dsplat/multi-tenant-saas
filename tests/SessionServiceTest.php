@@ -4,10 +4,10 @@ namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Models\UserSession;
-use MultiTenantSaas\Services\SessionService;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Auth\Models\UserSession;
+use MultiTenantSaas\Modules\Auth\Services\SessionService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
 use MultiTenantSaas\Tests\Schema\SecurityModule;
 

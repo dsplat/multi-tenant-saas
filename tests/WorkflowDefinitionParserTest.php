@@ -6,7 +6,7 @@ namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\DTOs\WorkflowDefinition;
-use MultiTenantSaas\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Workflow\Models\Workflow;
 use MultiTenantSaas\Modules\Workflow\Models\WorkflowNode;
 use MultiTenantSaas\Modules\Workflow\Services\WorkflowDefinitionParser;

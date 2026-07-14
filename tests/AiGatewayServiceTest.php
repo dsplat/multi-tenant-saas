@@ -4,13 +4,13 @@ namespace MultiTenantSaas\Tests;
 
 use Mockery;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
 use MultiTenantSaas\Modules\Ai\Models\AiModelAlias;
 use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Modules\Ai\Services\Ai\Providers\LaravelAiProviderAdapter;
 use MultiTenantSaas\Modules\Ai\Services\Ai\ZhipuProvider;
-use MultiTenantSaas\Services\AiGatewayService;
+use MultiTenantSaas\Modules\Ai\Services\AiGatewayService;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\AiModule;
 
 /**

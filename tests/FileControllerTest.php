@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\FileService;
+use MultiTenantSaas\Modules\Storage\Services\FileService;
 
 class FileControllerTest extends TestCase
 {

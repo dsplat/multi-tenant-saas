@@ -8,11 +8,11 @@ use Illuminate\Support\Facades\Queue;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\EventHandler;
 use MultiTenantSaas\Jobs\DispatchEventJob;
-use MultiTenantSaas\Models\DeadLetter;
-use MultiTenantSaas\Models\EventSubscription;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\EventBusService;
-use MultiTenantSaas\Services\WebhookService;
+use MultiTenantSaas\Modules\Event\Models\EventSubscription;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\EventBusService;
+use MultiTenantSaas\Modules\Infrastructure\Services\WebhookService;
+use MultiTenantSaas\Modules\Monitoring\Models\DeadLetter;
 use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\WebhookModule;
 

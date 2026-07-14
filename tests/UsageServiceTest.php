@@ -3,10 +3,10 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\SubscriptionPlan;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\UsageRecord;
-use MultiTenantSaas\Services\UsageService;
+use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
+use MultiTenantSaas\Modules\Billing\Models\UsageRecord;
+use MultiTenantSaas\Modules\Billing\Services\UsageService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;
 

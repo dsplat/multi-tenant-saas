@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\PdfService;
+use MultiTenantSaas\Modules\Infrastructure\Services\PdfService;
 
 class PdfServiceTest extends TestCase
 {

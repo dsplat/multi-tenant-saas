@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\AlipayOAuthService;
+use MultiTenantSaas\Modules\Auth\Services\AlipayOAuthService;
 
 class AlipayOAuthServiceTest extends TestCase
 {

@@ -4,10 +4,10 @@ namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
 use MultiTenantSaas\Modules\Coupon\Models\Coupon;
 use MultiTenantSaas\Modules\Coupon\Models\CouponUsage;
 use MultiTenantSaas\Modules\Coupon\Services\CouponService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 
 class CouponServiceTest extends TestCase

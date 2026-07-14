@@ -3,10 +3,10 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\AuditLog;
-use MultiTenantSaas\Models\PaymentOrder;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\DunningService;
+use MultiTenantSaas\Modules\Billing\Models\PaymentOrder;
+use MultiTenantSaas\Modules\Billing\Services\DunningService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Logging\Models\AuditLog;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 use MultiTenantSaas\Tests\Schema\EventModule;
 

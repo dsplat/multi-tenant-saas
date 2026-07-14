@@ -3,9 +3,9 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\AlipayOAuthService;
-use MultiTenantSaas\Services\SocialiteService;
+use MultiTenantSaas\Modules\Auth\Services\AlipayOAuthService;
+use MultiTenantSaas\Modules\Auth\Services\SocialiteService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\PluginModule;
 
 /**

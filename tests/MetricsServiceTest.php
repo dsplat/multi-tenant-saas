@@ -6,9 +6,9 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
-use MultiTenantSaas\Models\MetricsSnapshot;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\MetricsService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\MetricsService;
+use MultiTenantSaas\Modules\Monitoring\Models\MetricsSnapshot;
 use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\SecurityModule;
 

@@ -3,9 +3,9 @@
 namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\Http;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantSetting;
-use MultiTenantSaas\Services\PayPalService;
+use MultiTenantSaas\Modules\Billing\Services\PayPalService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Tests\Schema\WebhookModule;
 
 /**

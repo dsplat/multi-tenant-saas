@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\User\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Events\TenantCreated;
 use MultiTenantSaas\Modules\Auth\Services\RbacService;
 use MultiTenantSaas\Modules\Billing\Models\CreditAccount;

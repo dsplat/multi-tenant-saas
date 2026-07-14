@@ -136,12 +136,13 @@ jobs:
             # Base64 编码文件内容 (兼容 macOS 和 Linux)
             CONTENT_B64=$(base64 "$FULL_PATH" | tr -d '\n')
 
-            # 创建 blob
+            # 创建 blob (使用临时文件避免参数过长)
+            echo "{\"encoding\":\"base64\",\"content\":\"$CONTENT_B64\"}" > /tmp/blob_payload.json
             BLOB_RESPONSE=$(curl -s \
               -H "Authorization: token $GH_TOKEN" \
               -H "Accept: application/vnd.github+json" \
               "https://api.github.com/repos/$ORG/$REPO/git/blobs" \
-              -d "{\"encoding\":\"base64\",\"content\":\"$CONTENT_B64\"}")
+              -d @/tmp/blob_payload.json)
 
             BLOB_SHA=$(echo "$BLOB_RESPONSE" | jq -r '.sha')
 

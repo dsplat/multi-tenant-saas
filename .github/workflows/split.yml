@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  GH_TOKEN: ${{ secrets.SPLIT_TOKEN }}
+  SPLIT_TOKEN: ${{ secrets.SPLIT_TOKEN }}
 
 jobs:
   # 核心包 Packagist 更新
@@ -106,15 +106,15 @@ jobs:
             sleep 2
           fi
 
-          # 使用 gh 认证推送
+          # 使用 SPLIT_TOKEN 认证推送
           echo "Pushing to $ORG/$REPO..."
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${ORG}/${REPO}.git" "$BRANCH_NAME:main" --force
+          git push "https://x-access-token:${SPLIT_TOKEN}@github.com/${ORG}/${REPO}.git" "$BRANCH_NAME:main" --force
 
           # 推送 tag
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG="${{ github.ref_name }}"
             echo "Pushing tag $TAG..."
-            git push "https://x-access-token:${GH_TOKEN}@github.com/${ORG}/${REPO}.git" "$BRANCH_NAME:refs/tags/$TAG" --force
+            git push "https://x-access-token:${SPLIT_TOKEN}@github.com/${ORG}/${REPO}.git" "$BRANCH_NAME:refs/tags/$TAG" --force
           fi
 
           echo "✅ Pushed to $ORG/$REPO"

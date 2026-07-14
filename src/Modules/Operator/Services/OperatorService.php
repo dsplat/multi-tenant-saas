@@ -5,9 +5,13 @@ namespace MultiTenantSaas\Modules\Operator\Services;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Services\IdGenerator;
+use MultiTenantSaas\Modules\Operator\Mail\OperatorInvitationMail;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
 use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 
@@ -80,6 +84,9 @@ class OperatorService
             ]);
 
             DB::commit();
+
+            // 发送邀请邮件
+            $this->sendInvitationEmail($operator, $tenantId, $role);
 
             return [
                 'operator' => $operator->fresh(),
@@ -273,5 +280,26 @@ class OperatorService
             ->where('is_active', true)
             ->with('operator')
             ->get();
+    }
+
+    /**
+     * 发送邀请邮件
+     */
+    private function sendInvitationEmail(Operator $operator, int $tenantId, string $role): void
+    {
+        try {
+            $tenant = Tenant::find($tenantId);
+            $inviteUrl = url("/operator/accept-invite?token={$operator->invite_token}");
+
+            Mail::to($operator->email)->send(new OperatorInvitationMail(
+                operatorName: $operator->name,
+                tenantName: $tenant?->name ?? 'Platform',
+                inviteUrl: $inviteUrl,
+                role: $role,
+            ));
+        } catch (\Throwable $e) {
+            // 邮件发送失败不影响邀请流程
+            Log::warning('Operator invitation email failed: ' . $e->getMessage());
+        }
     }
 }

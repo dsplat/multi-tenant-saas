@@ -56,11 +56,19 @@ class OperatorController extends Controller
         ]);
 
         $tenantId = TenantContext::getId();
-        $result = $this->operatorService->invite(
-            $request->email,
-            $tenantId,
-            $request->role
-        );
+
+        try {
+            $result = $this->operatorService->invite(
+                $request->email,
+                $tenantId,
+                $request->role
+            );
+        } catch (\DomainException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
 
         AuditService::log('invite', 'operator', $result['operator_id'] ?? null, null, [
             'email' => $request->email,

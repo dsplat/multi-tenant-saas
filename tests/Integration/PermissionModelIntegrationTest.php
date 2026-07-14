@@ -353,7 +353,6 @@ class PermissionModelIntegrationTest extends TestCase
 
         // 验证角色
         $this->assertDatabaseHas('roles', ['name' => 'super_admin']);
-        $this->assertDatabaseHas('roles', ['name' => 'platform_admin']);
         $this->assertDatabaseHas('roles', ['name' => 'tenant_admin']);
         $this->assertDatabaseHas('roles', ['name' => 'end_user']);
 

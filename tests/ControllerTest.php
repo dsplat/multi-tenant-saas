@@ -335,6 +335,7 @@ class ControllerTest extends TestCase
         $token = $this->tenantAdmin->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->withHeader('X-Tenant-ID', $this->tenant->tenant_id)
             ->getJson("/api/v1/tenants/{$this->tenant->tenant_id}/quotas");
 
         $response->assertSuccessful()

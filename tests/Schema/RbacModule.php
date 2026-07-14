@@ -154,8 +154,8 @@ class RbacModule implements SchemaModuleInterface
             );
         }
 
-        // end_user: 仅查看权限
-        $userPermNames = ['tenant.view', 'member.view', 'credit.view', 'setting.view', 'payment.view', 'audit.view', 'file.upload'];
+        // end_user: 仅查看权限（不含 tenant.view，因为这是管理权限）
+        $userPermNames = ['member.view', 'credit.view', 'setting.view', 'payment.view', 'audit.view', 'file.upload'];
         $userPerms = DB::table('permissions')->whereIn('name', $userPermNames)->pluck('permission_id');
         foreach ($userPerms as $pid) {
             DB::table('role_permissions')->updateOrInsert(

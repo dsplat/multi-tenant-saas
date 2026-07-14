@@ -1,4 +1,16 @@
-# Split Pull - 拉取模块更新
+---
+name: dsplat-framework-update
+description: 管理 dsplat/multi-tenant-saas 框架依赖：首次安装、更新、添加新模块
+triggers:
+  - /dsplat-framework-update
+  - dsplat update
+  - 框架更新
+  - composer update dsplat
+  - split pull
+  - 模块更新
+---
+
+# dsplat/multi-tenant-saas 框架依赖管理
 
 下游项目使用此 skill 管理框架和模块依赖。
 
@@ -8,6 +20,8 @@
 - 更新框架到最新版本
 - 添加新模块
 - 检查模块版本状态
+
+---
 
 ## 首次安装
 
@@ -23,34 +37,34 @@ composer create-project dsplat/multi-tenant-saas my-app
 
 ```json
 {
-    "repositories": [
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-auth"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-billing"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-user"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-infrastructure"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-notification"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-storage"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-operator"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-ai"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-api-token"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-conversation"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-coupon"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-developer-portal"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-domain"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-event"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-form"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-logging"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-lottery"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-monitoring"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-payment"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-platform"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-plugin"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-sms"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-ssl"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-voting"},
-        {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-workflow"}
-    ]
+  "repositories": [
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-auth"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-billing"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-user"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-infrastructure"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-notification"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-storage"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-operator"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-ai"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-api-token"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-conversation"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-coupon"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-developer-portal"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-domain"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-event"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-form"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-logging"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-lottery"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-monitoring"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-payment"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-platform"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-plugin"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-sms"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-ssl"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-voting"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-workflow"}
+  ]
 }
 ```
 
@@ -62,30 +76,37 @@ composer require dsplat/multi-tenant-saas-module-auth
 
 # 安装多个模块
 composer require \
-    dsplat/multi-tenant-saas-module-auth \
-    dsplat/multi-tenant-saas-module-billing \
-    dsplat/multi-tenant-saas-module-user
+  dsplat/multi-tenant-saas-module-auth \
+  dsplat/multi-tenant-saas-module-billing \
+  dsplat/multi-tenant-saas-module-user
 ```
+
+---
 
 ## 更新模块
 
-### 更新所有依赖
+### 更新所有 dsplat 依赖
 
 ```bash
-composer update
+composer update "dsplat/*" --ignore-platform-reqs -W
 ```
+
+> **必须加 `-W`**：允许版本调整，解决模块间交叉依赖冲突。
+> **必须加 `--ignore-platform-reqs`**：本地 PHP 版本可能与框架要求不一致。
 
 ### 更新特定模块
 
 ```bash
-composer update dsplat/multi-tenant-saas-module-auth
+composer update dsplat/multi-tenant-saas-module-auth --ignore-platform-reqs -W
 ```
 
 ### 更新核心框架
 
 ```bash
-composer update dsplat/multi-tenant-saas
+composer update dsplat/multi-tenant-saas --ignore-platform-reqs -W
 ```
+
+---
 
 ## 添加新模块
 
@@ -102,8 +123,10 @@ composer update dsplat/multi-tenant-saas
 ### 2. 安装模块
 
 ```bash
-composer require dsplat/multi-tenant-saas-module-新模块名
+composer require dsplat/multi-tenant-saas-module-新模块名 --ignore-platform-reqs
 ```
+
+---
 
 ## 可用模块清单
 
@@ -136,26 +159,46 @@ composer require dsplat/multi-tenant-saas-module-新模块名
 | dsplat/multi-tenant-saas-module-voting | 投票 |
 | dsplat/multi-tenant-saas-module-workflow | 工作流 |
 
+---
+
 ## 故障排除
+
+### 版本别名冲突
+
+如果模块依赖 `^2.0` 但主包是 `dev-main`，在 `composer.json` 的 `require` 中加别名：
+
+```json
+"dsplat/multi-tenant-saas": "dev-main as 2.4.0"
+```
+
+如果某个模块依赖特定版本（如 `domain ^1.0`），给该模块也加别名：
+
+```json
+"dsplat/multi-tenant-saas-module-domain": "dev-main as 1.0.0"
+```
+
+> 上游修复依赖约束后，移除 `as` 后缀即可。
+
+### GitHub API Rate Limit
+
+```bash
+# 检查 token 配置
+cat auth.json
+
+# 或配置全局 token
+composer config -g github-oauth.github.com YOUR_TOKEN
+```
 
 ### 依赖冲突
 
 ```bash
 # 清除缓存重新安装
 composer clear-cache
-composer update
+composer update "dsplat/*" --ignore-platform-reqs -W
 ```
 
-### 版本锁定
+### 查看当前版本
 
 ```bash
-# 查看当前安装的版本
-composer show dsplat/*
+composer show "dsplat/*"
 ```
-
-### VCS 模式问题
-
-确保 `composer.json` 中：
-- `repositories` 配置正确
-- 没有 `path` 类型的仓库（本地开发除外）
-- 版本约束使用 `*` 或 `dev-main`

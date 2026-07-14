@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\User\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\Sms\Services\SmsService;
@@ -13,8 +14,9 @@ class TenantSettingController extends Controller
 {
     use AuthorizesTenantAccess;
 
-    public function index(Request $request, int $tenantId, ?string $group = null)
+    public function index(Request $request, ?string $group = null)
     {
+        $tenantId = TenantContext::getId();
         $this->ensureTenantAccess($request, $tenantId);
 
         if ($group) {
@@ -29,8 +31,9 @@ class TenantSettingController extends Controller
         return response()->json(['success' => true, 'data' => $data]);
     }
 
-    public function update(Request $request, int $tenantId, string $group)
+    public function update(Request $request, string $group)
     {
+        $tenantId = TenantContext::getId();
         $this->ensureTenantAccess($request, $tenantId);
 
         if ($group === 'sms') {
@@ -84,8 +87,9 @@ class TenantSettingController extends Controller
         return response()->json(['success' => true, 'message' => trans('common.updated')]);
     }
 
-    public function testSms(Request $request, int $tenantId)
+    public function testSms(Request $request)
     {
+        $tenantId = TenantContext::getId();
         $this->ensureTenantAccess($request, $tenantId);
 
         $request->validate(['phone' => 'required|string|regex:/^1[3-9]\d{9}$/']);

@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\User\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\User\Http\Resources\TenantUserResource;
@@ -50,17 +51,23 @@ class TenantMemberController extends Controller
         return response()->json(['success' => true, 'message' => trans('tenant.member_added')]);
     }
 
-    public function update(Request $request, int $tenantId, int $userId)
+    public function update(Request $request, int $userId)
     {
+        $tenantId = TenantContext::getId();
         $this->ensureTenantAccess($request, $tenantId);
+
+        $validated = $request->validate([
+            'role_id' => 'sometimes|integer|exists:roles,role_id',
+            'is_active' => 'sometimes|boolean',
+        ]);
 
         $member = TenantUser::where('tenant_id', $tenantId)
             ->where('user_id', $userId)
             ->firstOrFail();
 
         $oldValues = ['role_id' => $member->role_id, 'is_active' => $member->is_active];
-        $member->update($request->only(['role_id', 'is_active']));
-        $newValues = $request->only(['role_id', 'is_active']);
+        $member->update($validated);
+        $newValues = $validated;
 
         AuditService::log('update', 'tenant_user', $userId, $oldValues, $newValues);
 

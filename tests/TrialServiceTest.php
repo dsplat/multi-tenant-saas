@@ -9,10 +9,11 @@ use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Monitoring\Services\TrialService;
 use MultiTenantSaas\Tests\Schema\BillingModule;
+use MultiTenantSaas\Tests\Schema\RbacModule;
 
 class TrialServiceTest extends TestCase
 {
-    protected array $uses = [BillingModule::class];
+    protected array $uses = [BillingModule::class, RbacModule::class];
 
     private TrialService $service;
 

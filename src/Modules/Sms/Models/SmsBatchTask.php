@@ -35,7 +35,10 @@ class SmsBatchTask extends Model
 
     protected $fillable = [
         'tenant_id',
-        'template_id',
+        'sms_template_id',
+        'type',
+        'target_type',
+        'target_ids',
         'name',
         'status',
         'total_count',
@@ -51,6 +54,7 @@ class SmsBatchTask extends Model
     protected function casts(): array
     {
         return [
+            'target_ids' => 'array',
             'total_count' => 'integer',
             'sent_count' => 'integer',
             'success_count' => 'integer',

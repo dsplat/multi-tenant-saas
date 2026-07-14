@@ -19,14 +19,8 @@ class UserFactory extends Factory
             'name' => $this->faker->name(),
             'email' => $this->faker->unique()->safeEmail(),
             'password' => Hash::make('password'),
-            'role' => 'platform_user',
             'is_active' => true,
         ];
-    }
-
-    public function superAdmin(): static
-    {
-        return $this->state(fn () => ['role' => 'super_admin']);
     }
 
     public function inactive(): static

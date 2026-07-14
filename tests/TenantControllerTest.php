@@ -4,11 +4,14 @@ namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
+use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 use MultiTenantSaas\Tests\Schema\MfaModule;
+use MultiTenantSaas\Tests\Schema\RbacModule;
 
 class TenantControllerTest extends TestCase
 {
-    protected array $uses = [MfaModule::class];
+    protected array $uses = [MfaModule::class, RbacModule::class];
 
     private User $admin;
 
@@ -21,7 +24,31 @@ class TenantControllerTest extends TestCase
             'name' => 'Super Admin',
             'email' => 'admin@example.com',
             'password' => bcrypt('password'),
+        ]);
+
+        // 创建平台级 operator
+        $operator = Operator::create([
+            'email' => 'admin@example.com',
+            'name' => 'Super Admin',
+            'scope' => 'platform',
+            'is_active' => true,
+        ]);
+
+        // 获取 super_admin 角色 ID
+        $superAdminRoleId = \DB::table('roles')
+            ->where('name', 'super_admin')
+            ->whereNull('tenant_id')
+            ->value('role_id');
+
+        // 创建 operator_tenants 映射
+        OperatorTenant::create([
+            'operator_id' => $operator->operator_id,
+            'tenant_id' => 9007199254740991, // 平台租户
+            'user_id' => $this->admin->user_id,
             'role' => 'super_admin',
+            'role_id' => $superAdminRoleId,
+            'is_active' => true,
+            'accepted_at' => now(),
         ]);
     }
 

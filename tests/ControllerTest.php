@@ -6,14 +6,17 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
+use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 use MultiTenantSaas\Tests\Schema\EventModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;
+use MultiTenantSaas\Tests\Schema\RbacModule;
 use MultiTenantSaas\Tests\Schema\SecurityModule;
 
 class ControllerTest extends TestCase
 {
-    protected array $uses = [BillingModule::class, EventModule::class, PluginModule::class, SecurityModule::class];
+    protected array $uses = [BillingModule::class, EventModule::class, PluginModule::class, SecurityModule::class, RbacModule::class];
 
     use DatabaseTransactions;
 
@@ -42,7 +45,7 @@ class ControllerTest extends TestCase
             'slug' => 'other',
         ]);
 
-        $this->superAdmin = User::factory()->superAdmin()->create([
+        $this->superAdmin = User::factory()->create([
             'email' => 'super@test.com',
         ]);
 
@@ -54,15 +57,69 @@ class ControllerTest extends TestCase
             'email' => 'user@test.com',
         ]);
 
-        // 关联用户到租户
-        TenantUser::factory()->admin()->create([
-            'tenant_id' => $this->tenant->tenant_id,
-            'user_id' => $this->tenantAdmin->user_id,
+        // 获取角色 ID
+        $superAdminRoleId = \DB::table('roles')
+            ->where('name', 'super_admin')
+            ->whereNull('tenant_id')
+            ->value('role_id');
+
+        $tenantAdminRoleId = \DB::table('roles')
+            ->where('name', 'tenant_admin')
+            ->whereNull('tenant_id')
+            ->value('role_id');
+
+        $endUserRoleId = \DB::table('roles')
+            ->where('name', 'end_user')
+            ->whereNull('tenant_id')
+            ->value('role_id');
+
+        // 创建平台级 operator（super_admin）
+        $superAdminOperator = Operator::create([
+            'email' => 'super@test.com',
+            'name' => 'Super Admin',
+            'scope' => 'platform',
+            'is_active' => true,
         ]);
 
-        TenantUser::factory()->endUser()->create([
+        OperatorTenant::create([
+            'operator_id' => $superAdminOperator->operator_id,
+            'tenant_id' => 9007199254740991,
+            'user_id' => $this->superAdmin->user_id,
+            'role' => 'super_admin',
+            'role_id' => $superAdminRoleId,
+            'is_active' => true,
+            'accepted_at' => now(),
+        ]);
+
+        // 创建租户级 operator（tenant_admin）
+        $tenantAdminOperator = Operator::create([
+            'email' => 'admin@test.com',
+            'name' => 'Tenant Admin',
+            'scope' => 'tenant',
+            'is_active' => true,
+        ]);
+
+        OperatorTenant::create([
+            'operator_id' => $tenantAdminOperator->operator_id,
+            'tenant_id' => $this->tenant->tenant_id,
+            'user_id' => $this->tenantAdmin->user_id,
+            'role' => 'tenant_admin',
+            'role_id' => $tenantAdminRoleId,
+            'is_active' => true,
+            'accepted_at' => now(),
+        ]);
+
+        // 关联用户到租户
+        TenantUser::factory()->create([
+            'tenant_id' => $this->tenant->tenant_id,
+            'user_id' => $this->tenantAdmin->user_id,
+            'role_id' => $tenantAdminRoleId,
+        ]);
+
+        TenantUser::factory()->create([
             'tenant_id' => $this->tenant->tenant_id,
             'user_id' => $this->endUser->user_id,
+            'role_id' => $endUserRoleId,
         ]);
     }
 

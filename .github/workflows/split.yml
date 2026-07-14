@@ -61,6 +61,10 @@ jobs:
             repo: multi-tenant-saas-module-voting
           - prefix: 'src/Modules/Workflow'
             repo: multi-tenant-saas-module-workflow
+          - prefix: 'src/Modules/Notification'
+            repo: multi-tenant-saas-module-notification
+          - prefix: 'src/Modules/Storage'
+            repo: multi-tenant-saas-module-storage
           - prefix: 'src/Modules/Operator'
             repo: multi-tenant-saas-module-operator
 

@@ -72,6 +72,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Configure git credentials
+        env:
+          SPLIT_TOKEN: ${{ secrets.SPLIT_TOKEN }}
+        run: |
+          git config --global credential.helper store
+          echo "https://x-access-token:${SPLIT_TOKEN}@github.com" > ~/.git-credentials
+
       - name: Create repo if needed
         env:
           GH_TOKEN: ${{ secrets.SPLIT_TOKEN }}
@@ -84,8 +91,6 @@ jobs:
           fi
 
       - name: Push to ${{ matrix.repo }} via subtree
-        env:
-          SPLIT_TOKEN: ${{ secrets.SPLIT_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -103,14 +108,14 @@ jobs:
             BRANCH="main"
           fi
 
-          # Push via PAT in URL
-          git push "https://x-access-token:${SPLIT_TOKEN}@github.com/${ORG}/${REPO}.git" "${BRANCH}:main" --force
+          # Push using configured credentials
+          git push "https://github.com/${ORG}/${REPO}.git" "${BRANCH}:main" --force
 
           # Tag push
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG="${{ github.ref_name }}"
             echo "Pushing tag $TAG..."
-            git push "https://x-access-token:${SPLIT_TOKEN}@github.com/${ORG}/${REPO}.git" "${BRANCH}:refs/tags/${TAG}" --force
+            git push "https://github.com/${ORG}/${REPO}.git" "${BRANCH}:refs/tags/${TAG}" --force
           fi
 
           echo "Pushed to $ORG/$REPO"

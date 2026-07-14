@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Auth\Services;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Modules\Logging\Models\AuditLog;
+use MultiTenantSaas\Modules\User\Services\UserProfileService;
 
 /**
  * 登录日志服务

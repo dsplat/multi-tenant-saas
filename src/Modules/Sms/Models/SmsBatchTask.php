@@ -15,7 +15,23 @@ class SmsBatchTask extends Model
 {
     use HasFactory, HasGlobalId;
 
-    protected $primaryKey = 'task_id';
+    // 任务类型
+    const TYPE_BATCH_SEND = 'batch_send';
+
+    const TYPE_SCHEDULED = 'scheduled';
+
+    // 状态
+    const STATUS_PENDING = 'pending';
+
+    const STATUS_SENDING = 'sending';
+
+    const STATUS_COMPLETED = 'completed';
+
+    const STATUS_FAILED = 'failed';
+
+    const STATUS_CANCELLED = 'cancelled';
+
+    protected $primaryKey = 'batch_task_id';
 
     protected $fillable = [
         'tenant_id',

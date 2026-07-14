@@ -9,6 +9,7 @@ use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Modules\Auth\Models\MfaDevice;
 use MultiTenantSaas\Modules\Auth\Models\MfaRecoveryCode;
 use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Services\MailerService;
 use MultiTenantSaas\Modules\Sms\Services\SmsService;
 
 /**

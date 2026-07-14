@@ -8,6 +8,7 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use MultiTenantSaas\Mail\TenantMail;
+use MultiTenantSaas\Modules\Notification\Services\MailTemplateService;
 
 /**
  * 邮件发送服务

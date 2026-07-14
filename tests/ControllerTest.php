@@ -138,14 +138,15 @@ class ControllerTest extends TestCase
             ->assertJson(['success' => true]);
     }
 
-    public function test_normal_user_cannot_list_tenants(): void
+    public function test_tenant_admin_can_list_tenants(): void
     {
         $token = $this->tenantAdmin->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->getJson('/api/v1/tenants');
 
-        $response->assertStatus(403);
+        // tenant_admin has tenant.view permission via RBAC, so this is allowed
+        $response->assertSuccessful();
     }
 
     // ========== 租户数据 API (需要属于该租户) ==========

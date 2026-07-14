@@ -3,8 +3,10 @@
 namespace MultiTenantSaas\Modules\Billing\Services;
 
 use Illuminate\Support\Collection;
+
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
 use MultiTenantSaas\Modules\Billing\Models\UsageRecord;
+use MultiTenantSaas\Modules\Infrastructure\Services\RateLimitService;
 use MultiTenantSaas\Services\Traits\ResolvesPlan;
 
 /**

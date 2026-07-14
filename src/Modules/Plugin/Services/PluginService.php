@@ -3,8 +3,10 @@
 namespace MultiTenantSaas\Modules\Plugin\Services;
 
 use Illuminate\Support\Collection;
+
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 /**
  * 插件管理服务

@@ -3,9 +3,11 @@
 namespace MultiTenantSaas\Modules\Billing\Services;
 
 use Carbon\Carbon;
+
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Modules\Billing\Models\Invoice;
+use MultiTenantSaas\Modules\Infrastructure\Services\PdfService;
 
 /**
  * 发票服务

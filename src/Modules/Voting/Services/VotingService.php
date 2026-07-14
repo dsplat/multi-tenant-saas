@@ -3,10 +3,12 @@
 namespace MultiTenantSaas\Modules\Voting\Services;
 
 use Carbon\Carbon;
+
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\Voting\Models\Vote;
 use MultiTenantSaas\Modules\Voting\Models\VoteOption;
 use MultiTenantSaas\Modules\Voting\Models\VoteRecord;

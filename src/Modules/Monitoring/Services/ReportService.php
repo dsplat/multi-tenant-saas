@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\Monitoring\Services;
 
 use Barryvdh\DomPDF\Facade\Pdf;
+
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +13,7 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Facades\Excel;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Modules\Infrastructure\Services\PdfService;
 use MultiTenantSaas\Modules\Monitoring\Models\CustomReport;
 use Throwable;
 

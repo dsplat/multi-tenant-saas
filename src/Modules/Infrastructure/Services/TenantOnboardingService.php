@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
 use Illuminate\Support\Facades\Cache;
+
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
@@ -15,6 +16,7 @@ use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
+use MultiTenantSaas\Modules\Monitoring\Services\TrialService;
 
 /**
  * 租户引导式注册服务

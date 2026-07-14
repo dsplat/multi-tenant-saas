@@ -3,12 +3,14 @@
 namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
 use Illuminate\Cache\RateLimiter;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 /**
  * API 限流服务

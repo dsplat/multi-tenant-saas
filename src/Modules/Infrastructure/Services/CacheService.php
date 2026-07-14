@@ -3,8 +3,10 @@
 namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
 use Illuminate\Support\Facades\Cache;
+
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 /**
  * 多级缓存服务

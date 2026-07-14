@@ -138,10 +138,50 @@ class CoreModule implements SchemaModuleInterface
             $table->index('tenant_id');
             $table->index('module_name');
         });
+
+        Schema::create('operators', function (Blueprint $table) {
+            $table->bigInteger('operator_id')->unsigned()->primary();
+            $table->string('email')->unique();
+            $table->string('name');
+            $table->string('password')->nullable();
+            $table->string('phone', 20)->nullable();
+            $table->string('avatar', 500)->nullable();
+            $table->string('scope', 20);
+            $table->boolean('is_active')->default(false);
+            $table->timestamp('email_verified_at')->nullable();
+            $table->timestamp('last_login_at')->nullable();
+            $table->unsignedInteger('login_attempts')->default(0);
+            $table->timestamp('locked_until')->nullable();
+            $table->timestamp('password_changed_at')->nullable();
+            $table->string('invite_token', 100)->nullable();
+            $table->timestamp('invite_expires_at')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
+
+            $table->index('scope');
+            $table->index('is_active');
+        });
+
+        Schema::create('operator_tenants', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('operator_id');
+            $table->unsignedBigInteger('tenant_id');
+            $table->unsignedBigInteger('user_id');
+            $table->string('role', 50);
+            $table->unsignedBigInteger('role_id')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->timestamp('invited_at')->nullable();
+            $table->timestamp('accepted_at')->nullable();
+            $table->timestamps();
+
+            $table->unique(['operator_id', 'tenant_id']);
+            $table->index('tenant_id');
+            $table->index('user_id');
+        });
     }
 
     public function getTableNames(): array
     {
-        return ['tenants', 'users', 'tenant_users', 'personal_access_tokens', 'customers', 'tenant_settings', 'modules', 'tenant_modules'];
+        return ['tenants', 'users', 'tenant_users', 'personal_access_tokens', 'customers', 'tenant_settings', 'modules', 'tenant_modules', 'operators', 'operator_tenants'];
     }
 }

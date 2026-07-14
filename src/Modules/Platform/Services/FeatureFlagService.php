@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Infrastructure\Models\FeatureFlag;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 /**
  * 功能开关服务

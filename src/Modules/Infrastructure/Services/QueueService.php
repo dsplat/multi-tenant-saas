@@ -3,11 +3,13 @@
 namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
 use Illuminate\Support\Collection;
+
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use Laravel\Horizon\Contracts\JobRepository;
 use Laravel\Horizon\Horizon;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 /**
  * 队列管理服务

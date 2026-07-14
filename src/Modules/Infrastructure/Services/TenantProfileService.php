@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
@@ -10,6 +11,7 @@ use MultiTenantSaas\Modules\Billing\Models\FinancialRecord;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Logging\Models\AuditLog;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 /**
  * 租户画像服务

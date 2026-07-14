@@ -3,14 +3,15 @@
 namespace App\Http\Controllers\Concerns;
 
 use Illuminate\Http\Request;
-use MultiTenantSaas\Models\TenantUser;
+use Illuminate\Support\Facades\DB;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * 租户访问控制 Trait
  *
  * 确保当前用户有权访问目标租户的数据
- * - super_admin 不能访问租户私有数据
+ * - 平台 operator 不能访问租户私有数据
  * - 普通用户必须属于该租户
  */
 trait AuthorizesTenantAccess
@@ -24,7 +25,15 @@ trait AuthorizesTenantAccess
     {
         $user = $request->user();
 
-        if ($user->role === 'super_admin') {
+        // 检查是否是平台级 operator（平台 operator 不能直接访问租户数据）
+        $isPlatformOperator = DB::table('operator_tenants')
+            ->join('operators', 'operators.operator_id', '=', 'operator_tenants.operator_id')
+            ->where('operator_tenants.user_id', $user->user_id)
+            ->where('operators.scope', 'platform')
+            ->where('operator_tenants.is_active', true)
+            ->exists();
+
+        if ($isPlatformOperator) {
             abort(403, '系统管理员不能访问租户数据');
         }
 
@@ -40,13 +49,22 @@ trait AuthorizesTenantAccess
     }
 
     /**
-     * 验证用户是否为 super_admin
+     * 验证用户是否为平台 operator
      *
      * @throws HttpException
      */
     protected function ensureSuperAdmin(Request $request): void
     {
-        if ($request->user()->role !== 'super_admin') {
+        $user = $request->user();
+
+        $isPlatformOperator = DB::table('operator_tenants')
+            ->join('operators', 'operators.operator_id', '=', 'operator_tenants.operator_id')
+            ->where('operator_tenants.user_id', $user->user_id)
+            ->where('operators.scope', 'platform')
+            ->where('operator_tenants.is_active', true)
+            ->exists();
+
+        if (! $isPlatformOperator) {
             abort(403, '仅超级管理员可访问');
         }
     }

@@ -243,30 +243,17 @@ class RbacServiceTest extends TestCase
         $role->grantPermission(1);
         $role->grantPermission(3);
 
-        $this->assertTrue(RbacService::checkRolePermission($role->role_id, null, 'tenant.view'));
-        $this->assertTrue(RbacService::checkRolePermission($role->role_id, null, 'member.view'));
-        $this->assertFalse(RbacService::checkRolePermission($role->role_id, null, 'tenant.create'));
+        $this->assertTrue(RbacService::checkRolePermission($role->role_id, 'tenant.view'));
+        $this->assertTrue(RbacService::checkRolePermission($role->role_id, 'member.view'));
+        $this->assertFalse(RbacService::checkRolePermission($role->role_id, 'tenant.create'));
     }
 
-    public function test_check_role_permission_falls_back_to_role_name_tenant_admin(): void
+    public function test_check_role_permission_returns_false_for_unknown_permission(): void
     {
-        $this->assertTrue(RbacService::checkRolePermission(null, 'tenant_admin', 'tenant.view'));
-        $this->assertTrue(RbacService::checkRolePermission(null, 'tenant_admin', 'member.manage'));
-        $this->assertFalse(RbacService::checkRolePermission(null, 'tenant_admin', 'tenant.create'));
-        $this->assertFalse(RbacService::checkRolePermission(null, 'tenant_admin', 'tenant.delete'));
-    }
+        $role = RbacService::createRole(1001, 'checker2', 'Checker2', '');
+        $role->grantPermission(1);
 
-    public function test_check_role_permission_falls_back_to_role_name_end_user(): void
-    {
-        $this->assertTrue(RbacService::checkRolePermission(null, 'end_user', 'tenant.view'));
-        $this->assertTrue(RbacService::checkRolePermission(null, 'end_user', 'member.view'));
-        $this->assertFalse(RbacService::checkRolePermission(null, 'end_user', 'member.manage'));
-    }
-
-    public function test_check_role_permission_returns_false_for_unknown_role(): void
-    {
-        $this->assertFalse(RbacService::checkRolePermission(null, null, 'tenant.view'));
-        $this->assertFalse(RbacService::checkRolePermission(null, 'unknown_role', 'tenant.view'));
+        $this->assertFalse(RbacService::checkRolePermission($role->role_id, 'nonexistent.permission'));
     }
 
     // ---------- 权限分组查询 ----------

@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\User\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Request;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Logging\Models\AuditLog;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 /**
  * 用户画像服务

@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\Ai\Services;
 
 use Illuminate\Http\UploadedFile;
+
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -12,6 +13,7 @@ use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Modules\Ai\Services\Ai\Providers\DalleImageProvider;
 use MultiTenantSaas\Modules\Ai\Services\Ai\StableDiffusionProvider;
 use MultiTenantSaas\Modules\Storage\Models\FileUpload;
+use MultiTenantSaas\Modules\Storage\Services\FileService;
 use RuntimeException;
 use Throwable;
 

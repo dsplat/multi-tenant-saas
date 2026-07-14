@@ -2,7 +2,8 @@
 /docs export-ignore
 /tests export-ignore
 /.ai export-ignore
-/.mimocode export-ignore
+/.mimocode/plans export-ignore
+/.mimocode/memory export-ignore
 /vendor export-ignore
 /storage export-ignore
 /public export-ignore

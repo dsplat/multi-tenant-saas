@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Modules\Auth\Models\Role;
+use MultiTenantSaas\Modules\Auth\Models\User;
 
 class TenantUser extends Model
 {

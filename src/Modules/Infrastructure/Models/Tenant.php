@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Concerns\Searchable;
 use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
+use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
 
 /**
  * 租户模型

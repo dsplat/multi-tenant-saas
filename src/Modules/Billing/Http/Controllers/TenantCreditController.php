@@ -16,6 +16,8 @@ class TenantCreditController extends Controller
 
     public function index(Request $request)
     {
+        $this->ensureTenantAccess($request, TenantContext::getId());
+
         $tenantId = TenantContext::getId();
 
         $account = CreditAccount::where('tenant_id', $tenantId)->whereNull('user_id')->first();

@@ -10,7 +10,7 @@ Route::prefix('/coupons')->group(function () {
     Route::put('/{couponId}/activate', [CouponController::class, 'activate'])->middleware('rbac.permission:coupon.update');
     Route::put('/{couponId}/deactivate', [CouponController::class, 'deactivate'])->middleware('rbac.permission:coupon.update');
     Route::post('/redeem', [CouponController::class, 'redeem'])->middleware('rbac.permission:coupon.redeem');
-    Route::post('/validate', [CouponController::class, 'validateCoupon']);
+    Route::post('/validate', [CouponController::class, 'validateCoupon'])->middleware('rbac.permission:coupon.validate');
     Route::get('/{couponId}/usages', [CouponController::class, 'usages'])->middleware('rbac.permission:coupon.view');
     Route::get('/{couponId}/statistics', [CouponController::class, 'statistics'])->middleware('rbac.permission:coupon.view');
 });
@@ -24,8 +24,8 @@ Route::prefix('/coupon-templates')->group(function () {
     Route::put('/{templateId}/deactivate', [CouponController::class, 'deactivateTemplate'])->middleware('rbac.permission:coupon.update');
     Route::post('/{templateId}/generate', [CouponController::class, 'generateFromTemplate'])->middleware('rbac.permission:coupon.create');
     Route::post('/{templateId}/distribute', [CouponController::class, 'bulkDistribute'])->middleware('rbac.permission:coupon.create');
-    Route::post('/{templateId}/share', [CouponController::class, 'share']);
-    Route::post('/accept-share', [CouponController::class, 'acceptShare']);
+    Route::post('/{templateId}/share', [CouponController::class, 'share'])->middleware('auth:sanctum');
+    Route::post('/accept-share', [CouponController::class, 'acceptShare'])->middleware('auth:sanctum');
 });
 
 Route::prefix('/tenants/{tenantId}/coupon-shares')->group(function () {

@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Coupon\Models\Coupon;
 use MultiTenantSaas\Modules\Coupon\Services\CouponService;
 
@@ -65,22 +66,28 @@ class CouponController extends Controller
         }
     }
 
-    public function show(int $couponId): JsonResponse
+    public function show(Request $request, int $couponId): JsonResponse
     {
+        $this->ensureTenantAccess($request, TenantContext::getId());
+
         $coupon = Coupon::findOrFail($couponId);
 
         return response()->json(['success' => true, 'data' => $coupon]);
     }
 
-    public function activate(int $couponId): JsonResponse
+    public function activate(Request $request, int $couponId): JsonResponse
     {
+        $this->ensureTenantAccess($request, TenantContext::getId());
+
         $coupon = CouponService::activate($couponId);
 
         return response()->json(['success' => true, 'data' => $coupon]);
     }
 
-    public function deactivate(int $couponId): JsonResponse
+    public function deactivate(Request $request, int $couponId): JsonResponse
     {
+        $this->ensureTenantAccess($request, TenantContext::getId());
+
         $coupon = CouponService::deactivate($couponId);
 
         return response()->json(['success' => true, 'data' => $coupon]);
@@ -144,14 +151,18 @@ class CouponController extends Controller
 
     public function usages(int $couponId, Request $request): JsonResponse
     {
+        $this->ensureTenantAccess($request, TenantContext::getId());
+
         $tenantId = $request->query('tenant_id');
         $usages = CouponService::getUsages($couponId, $tenantId);
 
         return response()->json(['success' => true, 'data' => $usages]);
     }
 
-    public function statistics(int $couponId): JsonResponse
+    public function statistics(Request $request, int $couponId): JsonResponse
     {
+        $this->ensureTenantAccess($request, TenantContext::getId());
+
         $stats = CouponService::getStatistics($couponId);
 
         return response()->json(['success' => true, 'data' => $stats]);

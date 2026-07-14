@@ -138,6 +138,8 @@ class SubscriptionController extends Controller
      */
     public function current(Request $request)
     {
+        $this->ensureTenantAccess($request, TenantContext::getId());
+
         $tenantId = TenantContext::getId();
 
         $tenant = Tenant::findOrFail($tenantId);
@@ -162,6 +164,8 @@ class SubscriptionController extends Controller
      */
     public function subscribe(Request $request)
     {
+        $this->ensureTenantAccess($request, TenantContext::getId());
+
         $tenantId = TenantContext::getId();
 
         $validated = $request->validate([
@@ -199,6 +203,8 @@ class SubscriptionController extends Controller
      */
     public function cancel(Request $request)
     {
+        $this->ensureTenantAccess($request, TenantContext::getId());
+
         $tenantId = TenantContext::getId();
 
         $tenant = SubscriptionService::cancel($tenantId);
@@ -213,6 +219,8 @@ class SubscriptionController extends Controller
      */
     public function changePlan(Request $request)
     {
+        $this->ensureTenantAccess($request, TenantContext::getId());
+
         $tenantId = TenantContext::getId();
 
         $validated = $request->validate([
@@ -247,6 +255,8 @@ class SubscriptionController extends Controller
      */
     public function history(Request $request)
     {
+        $this->ensureTenantAccess($request, TenantContext::getId());
+
         $tenantId = TenantContext::getId();
 
         $perPage = min((int) $request->input('per_page', 15), 100);

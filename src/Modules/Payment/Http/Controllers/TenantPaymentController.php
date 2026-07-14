@@ -157,6 +157,11 @@ class TenantPaymentController extends Controller
             'reason' => 'nullable|string|max:500',
         ]);
 
+        $order = PaymentOrder::where('order_no', $validated['order_no'])->first();
+        if (! $order || $order->tenant_id !== $tenantId) {
+            return response()->json(['success' => false, 'message' => trans('payment.order_not_found')], 404);
+        }
+
         try {
             $result = RefundService::refund(
                 $tenantId,
@@ -187,6 +192,11 @@ class TenantPaymentController extends Controller
         $request->validate([
             'order_no' => 'required|string',
         ]);
+
+        $order = PaymentOrder::where('order_no', $request->input('order_no'))->first();
+        if (! $order || $order->tenant_id !== $tenantId) {
+            return response()->json(['success' => false, 'message' => trans('payment.order_not_found')], 404);
+        }
 
         try {
             $result = RefundService::queryRefundStatus($tenantId, $request->input('order_no'));

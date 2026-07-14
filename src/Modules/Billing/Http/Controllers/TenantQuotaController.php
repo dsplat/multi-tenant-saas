@@ -17,6 +17,8 @@ class TenantQuotaController extends Controller
 
     public function index(Request $request)
     {
+        $this->ensureTenantAccess($request, TenantContext::getId());
+
         $tenantId = TenantContext::getId();
 
         $tenant = Tenant::findOrFail($tenantId);

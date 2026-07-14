@@ -27,25 +27,38 @@ class RbacService
         }
 
         $tenantId = TenantContext::getId() ?? request()->route('tenantId');
-        if (! $tenantId) {
-            return false;
-        }
 
         // 优先通过 operator_tenants 查找角色
-        $operatorTenant = OperatorTenant::where('user_id', $user->user_id)
-            ->where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->first();
+        if ($tenantId) {
+            $operatorTenant = OperatorTenant::where('user_id', $user->user_id)
+                ->where('tenant_id', $tenantId)
+                ->where('is_active', true)
+                ->first();
+
+            // 如果指定租户无映射，回退到用户任意 active operator（平台管理员场景）
+            if (! $operatorTenant) {
+                $operatorTenant = OperatorTenant::where('user_id', $user->user_id)
+                    ->where('is_active', true)
+                    ->first();
+            }
+        } else {
+            // 平台级路由无 tenantId，查找用户任意 active operator 映射
+            $operatorTenant = OperatorTenant::where('user_id', $user->user_id)
+                ->where('is_active', true)
+                ->first();
+        }
 
         if ($operatorTenant && $operatorTenant->role_id) {
             return static::checkRolePermission($operatorTenant->role_id, $permission);
         }
 
         // 回退到 tenant_users 路径（向后兼容）
-        $tenantUser = $user->tenants()
-            ->where('tenants.tenant_id', $tenantId)
-            ->wherePivot('is_active', true)
-            ->first();
+        $tenantUserQuery = $user->tenants()
+            ->wherePivot('is_active', true);
+        if ($tenantId) {
+            $tenantUserQuery->where('tenants.tenant_id', $tenantId);
+        }
+        $tenantUser = $tenantUserQuery->first();
 
         if (! $tenantUser || ! $tenantUser->pivot->role_id) {
             return false;

@@ -7,9 +7,14 @@ use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 use MultiTenantSaas\Modules\Infrastructure\Services\ModuleManager;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
+use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
+use MultiTenantSaas\Tests\Schema\RbacModule;
 
 class ModuleControllerTest extends TestCase
 {
+    protected array $uses = [RbacModule::class];
+
     private int $tenantId = 1001;
 
     private User $user;
@@ -41,6 +46,45 @@ class ModuleControllerTest extends TestCase
             'is_active' => true,
         ]);
 
+        // 创建平台级 operator (super_admin)
+        $operator = Operator::create([
+            'email' => $this->user->email,
+            'name' => $this->user->name,
+            'scope' => 'platform',
+            'is_active' => true,
+        ]);
+
+        $superAdminRoleId = \DB::table('roles')
+            ->where('name', 'super_admin')
+            ->whereNull('tenant_id')
+            ->value('role_id');
+
+        OperatorTenant::create([
+            'operator_id' => $operator->operator_id,
+            'tenant_id' => 9007199254740991,
+            'user_id' => $this->user->user_id,
+            'role' => 'super_admin',
+            'role_id' => $superAdminRoleId,
+            'is_active' => true,
+            'accepted_at' => now(),
+        ]);
+
+        // 创建租户级 operator_tenants 映射
+        $tenantAdminRoleId = \DB::table('roles')
+            ->where('name', 'tenant_admin')
+            ->whereNull('tenant_id')
+            ->value('role_id');
+
+        OperatorTenant::create([
+            'operator_id' => $operator->operator_id,
+            'tenant_id' => $this->tenantId,
+            'user_id' => $this->user->user_id,
+            'role' => 'tenant_admin',
+            'role_id' => $tenantAdminRoleId,
+            'is_active' => true,
+            'accepted_at' => now(),
+        ]);
+
         TenantContext::setTenantId($this->tenantId);
     }
 
@@ -50,6 +94,10 @@ class ModuleControllerTest extends TestCase
     {
         $response = $this->actingAs($this->user)
             ->getJson('/api/v1/admin/modules');
+
+        if ($response->status() !== 200) {
+            dump('STATUS: ' . $response->status(), $response->json());
+        }
 
         $response->assertOk()
             ->assertJson(['success' => true])

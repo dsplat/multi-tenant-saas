@@ -52,6 +52,9 @@ abstract class TestCase extends BaseTestCase
             $this->resetSqliteData();
         }
 
+        // 重新填充需要 seed 数据的模块
+        $this->reseedModules();
+
         // SQLite 无 NOW() 函数，注册自定义函数
         if (DB::connection()->getDriverName() === 'sqlite') {
             DB::connection()->getPdo()->sqliteCreateFunction('NOW', fn () => date('Y-m-d H:i:s'), 0);
@@ -251,6 +254,19 @@ abstract class TestCase extends BaseTestCase
             $module = $this->getModuleInstance($class);
             $module->createTables();
             static::$loadedModules[$class] = true;
+        }
+    }
+
+    /**
+     * 对支持 seedData() 的模块重新填充数据（每次 setUp 都调用）
+     */
+    private function reseedModules(): void
+    {
+        foreach (array_keys(static::$loadedModules) as $class) {
+            $module = $this->getModuleInstance($class);
+            if (method_exists($module, 'seedData')) {
+                $module->seedData();
+            }
         }
     }
 

@@ -21,8 +21,13 @@ trait AuthorizesTenantAccess
      *
      * @throws HttpException
      */
-    protected function ensureTenantAccess(Request $request, int $tenantId): void
+    protected function ensureTenantAccess(Request $request, ?int $tenantId): void
     {
+        // 平台级路由无 tenantId，跳过租户访问检查
+        if ($tenantId === null) {
+            return;
+        }
+
         $user = $request->user();
 
         // 检查是否是平台级 operator（平台 operator 不能直接访问租户数据）

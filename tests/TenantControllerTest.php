@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
@@ -50,6 +51,8 @@ class TenantControllerTest extends TestCase
             'is_active' => true,
             'accepted_at' => now(),
         ]);
+
+        TenantContext::setTenantId(9007199254740991);
     }
 
     // ========== 租户列表 ==========

@@ -6,12 +6,15 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
+use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 use MultiTenantSaas\Modules\Voting\Services\VotingService;
+use MultiTenantSaas\Tests\Schema\RbacModule;
 use MultiTenantSaas\Tests\Schema\VotingModule;
 
 class VotingControllerTest extends TestCase
 {
-    protected array $uses = [VotingModule::class];
+    protected array $uses = [VotingModule::class, RbacModule::class];
 
     private int $tenantId = 7001;
 
@@ -42,6 +45,30 @@ class VotingControllerTest extends TestCase
             'user_id' => $this->user->user_id,
             'role' => 'tenant_admin',
             'is_active' => true,
+        ]);
+
+        // 创建 tenant_admin 角色 ID
+        $tenantAdminRoleId = \DB::table('roles')
+            ->where('name', 'tenant_admin')
+            ->whereNull('tenant_id')
+            ->value('role_id');
+
+        // 创建租户级 operator
+        $operator = Operator::create([
+            'email' => $this->user->email,
+            'name' => $this->user->name,
+            'scope' => 'tenant',
+            'is_active' => true,
+        ]);
+
+        OperatorTenant::create([
+            'operator_id' => $operator->operator_id,
+            'tenant_id' => $this->tenantId,
+            'user_id' => $this->user->user_id,
+            'role' => 'tenant_admin',
+            'role_id' => $tenantAdminRoleId,
+            'is_active' => true,
+            'accepted_at' => now(),
         ]);
 
         TenantContext::setTenantId($this->tenantId);

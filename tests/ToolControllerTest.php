@@ -7,11 +7,14 @@ use MultiTenantSaas\Modules\Ai\Models\AgentTool;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
+use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 use MultiTenantSaas\Tests\Schema\AgentModule;
+use MultiTenantSaas\Tests\Schema\RbacModule;
 
 class ToolControllerTest extends TestCase
 {
-    protected array $uses = [AgentModule::class];
+    protected array $uses = [AgentModule::class, RbacModule::class];
 
     protected Tenant $tenant;
 
@@ -29,6 +32,30 @@ class ToolControllerTest extends TestCase
         $this->tenant = Tenant::create(['tenant_id' => 1001, 'name' => 'Tenant A', 'slug' => 'tenant-a', 'status' => 'active']);
         $this->otherTenant = Tenant::create(['tenant_id' => 1002, 'name' => 'Tenant B', 'slug' => 'tenant-b', 'status' => 'active']);
         $this->user = User::create(['name' => 'Test', 'email' => 'test@test.com', 'password' => bcrypt('password')]);
+
+        // 创建 tenant_admin 角色 ID
+        $tenantAdminRoleId = \DB::table('roles')
+            ->where('name', 'tenant_admin')
+            ->whereNull('tenant_id')
+            ->value('role_id');
+
+        // 创建租户级 operator
+        $operator = Operator::create([
+            'email' => $this->user->email,
+            'name' => $this->user->name,
+            'scope' => 'tenant',
+            'is_active' => true,
+        ]);
+
+        OperatorTenant::create([
+            'operator_id' => $operator->operator_id,
+            'tenant_id' => 1001,
+            'user_id' => $this->user->user_id,
+            'role' => 'tenant_admin',
+            'role_id' => $tenantAdminRoleId,
+            'is_active' => true,
+            'accepted_at' => now(),
+        ]);
     }
 
     protected function authHeaders(int $tenantId = 1001): array

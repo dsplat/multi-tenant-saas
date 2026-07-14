@@ -6,6 +6,8 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
+use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 use MultiTenantSaas\Modules\Sms\Models\SmsBatchTask;
 use MultiTenantSaas\Modules\Sms\Models\SmsTemplate;
 use MultiTenantSaas\Modules\Sms\Services\SmsService;
@@ -51,6 +53,24 @@ class SmsControllerTest extends TestCase
             'user_id' => $this->user->user_id,
             'role_id' => $tenantAdminRoleId,
             'is_active' => true,
+        ]);
+
+        // 创建租户级 operator
+        $operator = Operator::create([
+            'email' => $this->user->email,
+            'name' => $this->user->name,
+            'scope' => 'tenant',
+            'is_active' => true,
+        ]);
+
+        OperatorTenant::create([
+            'operator_id' => $operator->operator_id,
+            'tenant_id' => $this->tenantId,
+            'user_id' => $this->user->user_id,
+            'role' => 'tenant_admin',
+            'role_id' => $tenantAdminRoleId,
+            'is_active' => true,
+            'accepted_at' => now(),
         ]);
 
         TenantContext::setTenantId($this->tenantId);

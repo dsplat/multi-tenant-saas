@@ -71,6 +71,11 @@ class PermissionModelIntegrationTest extends TestCase
      */
     private function seedRolesAndPermissions(): void
     {
+        // 幂等：如果已有数据则跳过
+        if (\DB::table('roles')->count() > 0) {
+            return;
+        }
+
         $idGenerator = app(IdGeneratorContract::class);
         $now = now();
 
@@ -86,16 +91,18 @@ class PermissionModelIntegrationTest extends TestCase
         ];
 
         foreach ($roles as $role) {
-            \DB::table('roles')->insert([
-                'role_id' => $idGenerator->generate(),
-                'tenant_id' => null,
-                'name' => $role['name'],
-                'display_name' => $role['display_name'],
-                'description' => $role['description'],
-                'is_system' => true,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
+            \DB::table('roles')->updateOrInsert(
+                ['name' => $role['name']],
+                [
+                    'role_id' => $idGenerator->generate(),
+                    'tenant_id' => null,
+                    'display_name' => $role['display_name'],
+                    'description' => $role['description'],
+                    'is_system' => true,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]
+            );
         }
 
         // 创建权限
@@ -115,14 +122,16 @@ class PermissionModelIntegrationTest extends TestCase
         ];
 
         foreach ($permissions as $perm) {
-            \DB::table('permissions')->insert([
-                'permission_id' => $idGenerator->generate(),
-                'name' => $perm['name'],
-                'display_name' => $perm['display_name'],
-                'group' => $perm['group'],
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
+            \DB::table('permissions')->updateOrInsert(
+                ['name' => $perm['name']],
+                [
+                    'permission_id' => $idGenerator->generate(),
+                    'display_name' => $perm['display_name'],
+                    'group' => $perm['group'],
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]
+            );
         }
 
         // 为 super_admin 分配所有权限
@@ -130,12 +139,10 @@ class PermissionModelIntegrationTest extends TestCase
         $superAdminRoleId = \DB::table('roles')->where('name', 'super_admin')->value('role_id');
 
         foreach ($allPermIds as $permId) {
-            \DB::table('role_permissions')->insert([
-                'role_id' => $superAdminRoleId,
-                'permission_id' => $permId,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
+            \DB::table('role_permissions')->updateOrInsert(
+                ['role_id' => $superAdminRoleId, 'permission_id' => $permId],
+                ['created_at' => $now, 'updated_at' => $now]
+            );
         }
 
         // 为 tenant_admin 分配除 tenant.create/delete 外的权限
@@ -145,12 +152,10 @@ class PermissionModelIntegrationTest extends TestCase
             ->pluck('permission_id');
 
         foreach ($tenantPerms as $permId) {
-            \DB::table('role_permissions')->insert([
-                'role_id' => $tenantAdminRoleId,
-                'permission_id' => $permId,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
+            \DB::table('role_permissions')->updateOrInsert(
+                ['role_id' => $tenantAdminRoleId, 'permission_id' => $permId],
+                ['created_at' => $now, 'updated_at' => $now]
+            );
         }
     }
 

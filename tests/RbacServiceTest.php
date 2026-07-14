@@ -21,31 +21,24 @@ class RbacServiceTest extends TestCase
     {
         parent::setUp();
 
+        // 使用 name 作为查找键，避免 permission_id 冲突
         Permission::unguarded(function () {
-            Permission::create([
-                'permission_id' => 1,
-                'name' => 'tenant.view',
-                'display_name' => 'View Tenant',
-                'group' => 'tenant',
-            ]);
-            Permission::create([
-                'permission_id' => 2,
-                'name' => 'tenant.create',
-                'display_name' => 'Create Tenant',
-                'group' => 'tenant',
-            ]);
-            Permission::create([
-                'permission_id' => 3,
-                'name' => 'member.view',
-                'display_name' => 'View Members',
-                'group' => 'member',
-            ]);
-            Permission::create([
-                'permission_id' => 4,
-                'name' => 'member.manage',
-                'display_name' => 'Manage Members',
-                'group' => 'member',
-            ]);
+            Permission::updateOrCreate(
+                ['name' => 'tenant.view'],
+                ['display_name' => 'View Tenant', 'group' => 'tenant']
+            );
+            Permission::updateOrCreate(
+                ['name' => 'tenant.create'],
+                ['display_name' => 'Create Tenant', 'group' => 'tenant']
+            );
+            Permission::updateOrCreate(
+                ['name' => 'member.view'],
+                ['display_name' => 'View Members', 'group' => 'member']
+            );
+            Permission::updateOrCreate(
+                ['name' => 'member.manage'],
+                ['display_name' => 'Manage Members', 'group' => 'member']
+            );
         });
     }
 

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
+use MultiTenantSaas\Modules\Infrastructure\Services\AlertService;
 use MultiTenantSaas\Modules\Monitoring\Models\SlaEvent;
 
 /**

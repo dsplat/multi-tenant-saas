@@ -459,9 +459,11 @@ class SlaServiceTest extends TestCase
     {
         $service = app(SlaService::class);
 
+        // 使用当前月份的日期，确保在 SLA 计算周期内
+        $today = now()->format('Y-m-d');
         $service->recordDowntime(
-            startedAt: '2026-06-10 10:00:00',
-            endedAt: '2026-06-10 12:00:00'
+            startedAt: "$today 10:00:00",
+            endedAt: "$today 12:00:00"
         );
 
         $service->checkSlaBreaches();

@@ -75,9 +75,8 @@ jobs:
             repo: multi-tenant-saas-module-voting
           - prefix: 'src/Modules/Workflow'
             repo: multi-tenant-saas-module-workflow
-
-          - prefix: 'src/Modules/Demo'
-            repo: multi-tenant-saas-module-demo
+          - prefix: 'src/Modules/Operator'
+            repo: multi-tenant-saas-module-operator
     steps:
       - uses: actions/checkout@v4
         with:

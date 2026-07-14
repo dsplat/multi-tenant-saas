@@ -173,11 +173,12 @@ jobs:
               '{"tree":$tree}')
           fi
 
+          echo "$TREE_PAYLOAD" > /tmp/tree_payload.json
           TREE_SHA=$(curl -s \
             -H "Authorization: token $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/$ORG/$REPO/git/trees" \
-            -d "$TREE_PAYLOAD" | jq -r '.sha')
+            -d @/tmp/tree_payload.json | jq -r '.sha')
 
           if [ "$TREE_SHA" = "null" ] || [ -z "$TREE_SHA" ]; then
             echo "ERROR: Failed to create tree"

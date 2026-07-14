@@ -7,11 +7,14 @@ use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Form\Services\FormBuilderService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
+use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 use MultiTenantSaas\Tests\Schema\FormModule;
+use MultiTenantSaas\Tests\Schema\RbacModule;
 
 class FormControllerTest extends TestCase
 {
-    protected array $uses = [FormModule::class];
+    protected array $uses = [FormModule::class, RbacModule::class];
 
     private int $tenantId = 8001;
 
@@ -33,14 +36,39 @@ class FormControllerTest extends TestCase
             'name' => 'Test User',
             'email' => 'form@example.com',
             'password' => bcrypt('password'),
-            'role' => 'tenant_admin',
         ]);
 
+        // 获取 tenant_admin 角色 ID
+        $tenantAdminRoleId = \DB::table('roles')
+            ->where('name', 'tenant_admin')
+            ->whereNull('tenant_id')
+            ->value('role_id');
+
+        // 创建租户级 operator
+        $operator = Operator::create([
+            'email' => 'form@example.com',
+            'name' => 'Test User',
+            'scope' => 'tenant',
+            'is_active' => true,
+        ]);
+
+        // 创建 operator_tenants 映射
+        OperatorTenant::create([
+            'operator_id' => $operator->operator_id,
+            'tenant_id' => $this->tenantId,
+            'user_id' => $this->user->user_id,
+            'role' => 'tenant_admin',
+            'role_id' => $tenantAdminRoleId,
+            'is_active' => true,
+            'accepted_at' => now(),
+        ]);
+
+        // 创建 tenant_user 关联
         TenantUser::create([
             'tenant_user_id' => 10001,
             'tenant_id' => $this->tenantId,
             'user_id' => $this->user->user_id,
-            'role' => 'tenant_admin',
+            'role_id' => $tenantAdminRoleId,
             'is_active' => true,
         ]);
 

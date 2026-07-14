@@ -4,11 +4,14 @@ namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Coupon\Services\CouponService;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
+use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 use MultiTenantSaas\Tests\Schema\CouponModule;
+use MultiTenantSaas\Tests\Schema\RbacModule;
 
 class CouponControllerTest extends TestCase
 {
-    protected array $uses = [CouponModule::class];
+    protected array $uses = [CouponModule::class, RbacModule::class];
 
     private User $user;
 
@@ -21,7 +24,31 @@ class CouponControllerTest extends TestCase
             'name' => 'Test User',
             'email' => 'coupon@example.com',
             'password' => bcrypt('password'),
+        ]);
+
+        // 创建平台级 operator
+        $operator = Operator::create([
+            'email' => 'coupon@example.com',
+            'name' => 'Test User',
+            'scope' => 'platform',
+            'is_active' => true,
+        ]);
+
+        // 获取 super_admin 角色 ID
+        $superAdminRoleId = \DB::table('roles')
+            ->where('name', 'super_admin')
+            ->whereNull('tenant_id')
+            ->value('role_id');
+
+        // 创建 operator_tenants 映射
+        OperatorTenant::create([
+            'operator_id' => $operator->operator_id,
+            'tenant_id' => 9007199254740991,
+            'user_id' => $this->user->user_id,
             'role' => 'super_admin',
+            'role_id' => $superAdminRoleId,
+            'is_active' => true,
+            'accepted_at' => now(),
         ]);
     }
 

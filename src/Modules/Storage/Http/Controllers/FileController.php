@@ -20,6 +20,33 @@ class FileController extends Controller
 {
     use AuthorizesTenantAccess;
 
+    private const ALLOWED_MIME_TYPES = [
+        // Images
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp',
+        // Documents
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/plain', 'text/csv',
+        // Archives
+        'application/zip', 'application/x-7z-compressed', 'application/x-tar', 'application/gzip',
+    ];
+
+    /**
+     * 校验文件模块名称白名单
+     */
+    private function validateModule(string $module): void
+    {
+        $allowed = config('storage.allowed_entity_modules', ['billing', 'order', 'ticket', 'product', 'user', 'coupon']);
+        if (! in_array($module, $allowed, true)) {
+            abort(422, trans('file.invalid_module'));
+        }
+    }
+
     /**
      * 文件列表
      */
@@ -82,7 +109,7 @@ class FileController extends Controller
         try {
             return FileService::download($file)
                 ->header('Content-Type', $file->mime_type)
-                ->header('Content-Disposition', 'inline; filename="' . $file->filename . '"');
+                ->header('Content-Disposition', 'inline; filename="' . addcslashes($file->filename, '\\"') . '"');
         } catch (\RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 404);
         }
@@ -121,10 +148,15 @@ class FileController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|max:102400', // 100MB
+            'file' => 'required|file|max:102400|mimes:' . implode(',', array_map(fn ($m) => str_replace(['image/', 'application/', 'text/'], '', $m), self::ALLOWED_MIME_TYPES)),
             'category' => 'nullable|string|max:50',
             'is_public' => 'boolean',
         ]);
+
+        $uploadedFile = $request->file('file');
+        if (! in_array($uploadedFile->getMimeType(), self::ALLOWED_MIME_TYPES, true)) {
+            return response()->json(['success' => false, 'message' => trans('file.type_not_allowed')], 422);
+        }
 
         try {
             $file = FileService::upload(
@@ -253,10 +285,17 @@ class FileController extends Controller
      */
     public function uploadForEntity(Request $request, string $module, string $entityId)
     {
+        $this->validateModule($module);
+
         $request->validate([
             'file' => 'required|file|max:102400',
             'replace' => 'nullable|boolean',
         ]);
+
+        $uploadedFile = $request->file('file');
+        if (! in_array($uploadedFile->getMimeType(), self::ALLOWED_MIME_TYPES, true)) {
+            return response()->json(['success' => false, 'message' => trans('file.type_not_allowed')], 422);
+        }
 
         try {
             $file = FileService::uploadForEntity(
@@ -290,6 +329,8 @@ class FileController extends Controller
      */
     public function getForEntity(Request $request, string $module, string $entityId)
     {
+        $this->validateModule($module);
+
         $file = FileService::getForEntity($module, $entityId, TenantContext::getId());
 
         if (! $file) {
@@ -309,6 +350,8 @@ class FileController extends Controller
      */
     public function getUrlForEntity(Request $request, string $module, string $entityId)
     {
+        $this->validateModule($module);
+
         $url = FileService::getUrlForEntity($module, $entityId, TenantContext::getId());
 
         if (! $url) {
@@ -326,6 +369,8 @@ class FileController extends Controller
      */
     public function deleteForEntity(Request $request, string $module, string $entityId)
     {
+        $this->validateModule($module);
+
         $file = FileService::getForEntity($module, $entityId, TenantContext::getId());
 
         if (! $file) {
@@ -350,7 +395,7 @@ class FileController extends Controller
     {
         $this->ensureSuperAdmin($request);
 
-        $perPage = (int) $request->input('per_page', 20);
+        $perPage = min((int) $request->input('per_page', 20), 100);
         $tenantId = $request->input('tenant_id');
         $category = $request->input('category');
 

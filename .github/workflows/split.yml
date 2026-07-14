@@ -35,8 +35,6 @@ jobs:
             repo: multi-tenant-saas-module-auth
           - prefix: 'src/Modules/Billing'
             repo: multi-tenant-saas-module-billing
-          - prefix: 'src/Modules/Contracts'
-            repo: multi-tenant-saas-module-contracts
           - prefix: 'src/Modules/Conversation'
             repo: multi-tenant-saas-module-conversation
           - prefix: 'src/Modules/Coupon'
@@ -98,26 +96,26 @@ jobs:
           # 使用 git subtree split 创建只包含模块文件的分支
           git subtree split --prefix="$PREFIX" --branch="$BRANCH_NAME"
 
+          # 检查目标仓库是否存在，不存在则创建
+          if ! gh repo view "$ORG/$REPO" &>/dev/null; then
+            echo "Creating repo $ORG/$REPO..."
+            gh repo create "$ORG/$REPO" --public --description "Multi-tenant SaaS module: $REPO"
+            sleep 2
+          fi
+
           # 添加目标仓库作为 remote
           git remote add target "https://x-access-token:${GH_TOKEN}@github.com/${ORG}/${REPO}.git" 2>/dev/null || \
             git remote set-url target "https://x-access-token:${GH_TOKEN}@github.com/${ORG}/${REPO}.git"
 
-          # 检查目标仓库是否存在
-          if git ls-remote --exit-code target main 2>/dev/null; then
-            echo "Target repo exists, force pushing..."
-            git push target "$BRANCH_NAME:main" --force
-          else
-            echo "Initializing empty repo..."
-            # 创建空仓库并推送
-            git push target "$BRANCH_NAME:main" --force
-          fi
+          # 推送到目标仓库
+          echo "Pushing to $ORG/$REPO..."
+          git push target "$BRANCH_NAME:main" --force
 
           # 推送 tag
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG="${{ github.ref_name }}"
             echo "Pushing tag $TAG..."
-            git push target "refs/tags/$TAG" --force 2>/dev/null || \
-              git push target "$BRANCH_NAME:refs/tags/$TAG" --force
+            git push target "$BRANCH_NAME:refs/tags/$TAG" --force
           fi
 
           echo "✅ Pushed to $ORG/$REPO"

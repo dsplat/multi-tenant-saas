@@ -59,6 +59,7 @@ Route::middleware('rbac.permission:setting.view')->group(function () {
 });
 
 Route::middleware('rbac.permission:setting.update')->group(function () {
+    Route::post('/tools', [ToolController::class, 'store']);
     Route::put('/tools/{slug}', [ToolController::class, 'update']);
 });
 

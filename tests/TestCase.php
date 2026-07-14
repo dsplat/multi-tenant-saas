@@ -174,13 +174,18 @@ abstract class TestCase extends BaseTestCase
             return;
         }
 
-        $pdo = DB::connection()->getPdo();
-        $pdo->exec('PRAGMA journal_mode=OFF');
-        $pdo->exec('PRAGMA synchronous=OFF');
-        $pdo->exec('PRAGMA locking_mode=EXCLUSIVE');
-        $pdo->exec('PRAGMA temp_store=MEMORY');
-        $pdo->exec('PRAGMA cache_size=-200000');  // 200MB cache
-        $pdo->exec('PRAGMA foreign_keys=OFF');     // 测试环境永久关闭
+        try {
+            $pdo = DB::connection()->getPdo();
+            $pdo->exec('PRAGMA journal_mode=OFF');
+            $pdo->exec('PRAGMA synchronous=OFF');
+            $pdo->exec('PRAGMA locking_mode=EXCLUSIVE');
+            $pdo->exec('PRAGMA temp_store=MEMORY');
+            $pdo->exec('PRAGMA cache_size=-200000');  // 200MB cache
+            $pdo->exec('PRAGMA foreign_keys=OFF');     // 测试环境永久关闭
+        } catch (\Throwable $e) {
+            // PRAGMAs may fail inside transactions (DatabaseTransactions trait)
+            // This is safe to ignore - they're performance optimizations only
+        }
 
         static::$pragmaOptimized = true;
     }

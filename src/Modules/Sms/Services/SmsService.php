@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Sms\Services;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Sms\Models\SmsBatchTask;
 use MultiTenantSaas\Modules\Sms\Models\SmsDeliveryStat;
 use MultiTenantSaas\Modules\Sms\Models\SmsTemplate;
@@ -265,6 +266,12 @@ class SmsService
     public static function getTemplates(array $filters = []): Collection
     {
         $query = SmsTemplate::query();
+
+        // 租户隔离
+        $tenantId = TenantContext::getId();
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
 
         if (! empty($filters['channel'])) {
             $query->ofChannel($filters['channel']);

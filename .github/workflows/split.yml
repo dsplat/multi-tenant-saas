@@ -20,7 +20,7 @@ jobs:
             -d '{"repository":{"url":"https://github.com/dsplat/multi-tenant-saas"}}')
           echo "Core Packagist: $RESPONSE"
 
-  # 模块分包
+  # 模块分包 - 使用 git subtree split 优化
   split:
     runs-on: ubuntu-latest
     strategy:
@@ -35,6 +35,8 @@ jobs:
             repo: multi-tenant-saas-module-auth
           - prefix: 'src/Modules/Billing'
             repo: multi-tenant-saas-module-billing
+          - prefix: 'src/Modules/Contracts'
+            repo: multi-tenant-saas-module-contracts
           - prefix: 'src/Modules/Conversation'
             repo: multi-tenant-saas-module-conversation
           - prefix: 'src/Modules/Coupon'
@@ -57,6 +59,8 @@ jobs:
             repo: multi-tenant-saas-module-monitoring
           - prefix: 'src/Modules/Notification'
             repo: multi-tenant-saas-module-notification
+          - prefix: 'src/Modules/Operator'
+            repo: multi-tenant-saas-module-operator
           - prefix: 'src/Modules/Payment'
             repo: multi-tenant-saas-module-payment
           - prefix: 'src/Modules/Platform'
@@ -75,190 +79,50 @@ jobs:
             repo: multi-tenant-saas-module-voting
           - prefix: 'src/Modules/Workflow'
             repo: multi-tenant-saas-module-workflow
-          - prefix: 'src/Modules/Operator'
-            repo: multi-tenant-saas-module-operator
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0  # 需要完整历史用于 subtree split
 
-      - name: Push to ${{ matrix.repo }} via GitHub API
-        id: push
+      - name: Push to ${{ matrix.repo }} via git subtree
         run: |
           set -euo pipefail
 
           ORG="dsplat"
           REPO="${{ matrix.repo }}"
           PREFIX="${{ matrix.prefix }}"
-          COMMIT_MSG="sync: $(git log -1 --format='%s' HEAD)"
-          COMMIT_AUTHOR=$(git log -1 --format='%an' HEAD)
-          COMMIT_EMAIL=$(git log -1 --format='%ae' HEAD)
-          SRC_DIR="$PREFIX"
+          BRANCH_NAME="split-${REPO}"
 
-          # 如果仓库是空的, 先初始化
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "Authorization: token $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/$ORG/$REPO/git/refs/heads/main")
+          echo "📦 Splitting $PREFIX -> $ORG/$REPO"
 
-          if [ "$HTTP_CODE" != "200" ]; then
+          # 使用 git subtree split 创建只包含模块文件的分支
+          git subtree split --prefix="$PREFIX" --branch="$BRANCH_NAME"
+
+          # 添加目标仓库作为 remote
+          git remote add target "https://x-access-token:${GH_TOKEN}@github.com/${ORG}/${REPO}.git" 2>/dev/null || \
+            git remote set-url target "https://x-access-token:${GH_TOKEN}@github.com/${ORG}/${REPO}.git"
+
+          # 检查目标仓库是否存在
+          if git ls-remote --exit-code target main 2>/dev/null; then
+            echo "Target repo exists, force pushing..."
+            git push target "$BRANCH_NAME:main" --force
+          else
             echo "Initializing empty repo..."
-            INIT_CONTENT=$(echo -n "# $REPO" | base64 | tr -d '\n')
-            curl -s -o /dev/null \
-              -H "Authorization: token $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              -X PUT \
-              "https://api.github.com/repos/$ORG/$REPO/contents/README.md" \
-              -d "{\"message\":\"init\",\"content\":\"$INIT_CONTENT\",\"branch\":\"main\"}"
-            sleep 1
+            # 创建空仓库并推送
+            git push target "$BRANCH_NAME:main" --force
           fi
 
-          # 收集所有文件
-          FILES=$(cd "$SRC_DIR" && find . -type f \
-            ! -path './.git/*' \
-            ! -path './vendor/*' \
-            ! -path './node_modules/*' \
-            ! -path './.phpunit.cache/*' \
-            | sort)
-
-          if [ -z "$FILES" ]; then
-            echo "No files found in $SRC_DIR"
-            exit 1
-          fi
-
-          FILE_COUNT=$(echo "$FILES" | wc -l | tr -d ' ')
-          echo "Found $FILE_COUNT files to push"
-
-          # 获取目标仓库当前 main 的 tree SHA
-          BASE_TREE=""
-          HTTP_CODE=$(curl -s -o /tmp/base_ref.json -w "%{http_code}" \
-            -H "Authorization: token $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/$ORG/$REPO/git/refs/heads/main")
-
-          if [ "$HTTP_CODE" = "200" ]; then
-            CURRENT_COMMIT=$(jq -r '.object.sha' /tmp/base_ref.json)
-            BASE_TREE=$(curl -s \
-              -H "Authorization: token $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/$ORG/$REPO/git/commits/$CURRENT_COMMIT" | jq -r '.tree.sha')
-          fi
-
-          # 创建 blob 并构建 tree entries
-          TREE_ENTRIES="[]"
-          while IFS= read -r FILE; do
-            [ -z "$FILE" ] && continue
-            REL_PATH="${FILE#./}"
-            FULL_PATH="$SRC_DIR/$REL_PATH"
-            [ ! -f "$FULL_PATH" ] && continue
-
-            CONTENT_B64=$(base64 "$FULL_PATH" | tr -d '\n')
-
-            BLOB_RESPONSE=$(curl -s \
-              -H "Authorization: token $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/$ORG/$REPO/git/blobs" \
-              -d "{\"encoding\":\"base64\",\"content\":\"$CONTENT_B64\"}")
-
-            BLOB_SHA=$(echo "$BLOB_RESPONSE" | jq -r '.sha')
-
-            if [ "$BLOB_SHA" = "null" ] || [ -z "$BLOB_SHA" ]; then
-              echo "WARNING: Failed to create blob for $REL_PATH"
-              continue
-            fi
-
-            TREE_ENTRIES=$(echo "$TREE_ENTRIES" | jq \
-              --arg path "$REL_PATH" \
-              --arg sha "$BLOB_SHA" \
-              '. + [{"path":$path,"mode":"100644","type":"blob","sha":$sha}]')
-          done <<< "$FILES"
-
-          # 创建 tree
-          if [ -n "$BASE_TREE" ]; then
-            TREE_PAYLOAD=$(jq -n --arg base_tree "$BASE_TREE" --argjson tree "$TREE_ENTRIES" \
-              '{"base_tree":$base_tree,"tree":$tree}')
-          else
-            TREE_PAYLOAD=$(jq -n --argjson tree "$TREE_ENTRIES" '{"tree":$tree}')
-          fi
-
-          TREE_SHA=$(curl -s \
-            -H "Authorization: token $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/$ORG/$REPO/git/trees" \
-            -d "$TREE_PAYLOAD" | jq -r '.sha')
-
-          if [ "$TREE_SHA" = "null" ] || [ -z "$TREE_SHA" ]; then
-            echo "ERROR: Failed to create tree"
-            exit 1
-          fi
-
-          # 创建 commit
-          if [ -n "$BASE_TREE" ]; then
-            PARENT_COMMIT=$(jq -r '.object.sha' /tmp/base_ref.json)
-            COMMIT_PAYLOAD=$(jq -n \
-              --arg message "$COMMIT_MSG" --arg tree "$TREE_SHA" --arg parent "$PARENT_COMMIT" \
-              --arg name "$COMMIT_AUTHOR" --arg email "$COMMIT_EMAIL" \
-              '{"message":$message,"tree":$tree,"parents":[$parent],"author":{"name":$name,"email":$email}}')
-          else
-            COMMIT_PAYLOAD=$(jq -n \
-              --arg message "$COMMIT_MSG" --arg tree "$TREE_SHA" \
-              --arg name "$COMMIT_AUTHOR" --arg email "$COMMIT_EMAIL" \
-              '{"message":$message,"tree":$tree,"author":{"name":$name,"email":$email}}')
-          fi
-
-          NEW_COMMIT_SHA=$(curl -s \
-            -H "Authorization: token $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/$ORG/$REPO/git/commits" \
-            -d "$COMMIT_PAYLOAD" | jq -r '.sha')
-
-          if [ "$NEW_COMMIT_SHA" = "null" ] || [ -z "$NEW_COMMIT_SHA" ]; then
-            echo "ERROR: Failed to create commit"
-            exit 1
-          fi
-
-          # 更新或创建 ref
-          if [ -n "$BASE_TREE" ]; then
-            curl -s -o /dev/null \
-              -H "Authorization: token $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              -X PATCH \
-              "https://api.github.com/repos/$ORG/$REPO/git/refs/heads/main" \
-              -d "{\"sha\":\"$NEW_COMMIT_SHA\",\"force\":true}"
-          else
-            curl -s -o /dev/null \
-              -H "Authorization: token $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/$ORG/$REPO/git/refs" \
-              -d "{\"ref\":\"refs/heads/main\",\"sha\":\"$NEW_COMMIT_SHA\"}"
-          fi
-
-          # tag 推送时也创建 tag
+          # 推送 tag
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG="${{ github.ref_name }}"
-            TAG_PAYLOAD=$(jq -n \
-              --arg tag "$TAG" --arg sha "$NEW_COMMIT_SHA" \
-              --arg name "$COMMIT_AUTHOR" --arg email "$COMMIT_EMAIL" --arg message "Release $TAG" \
-              '{"tag":$tag,"object":$sha,"type":"commit","tagger":{"name":$name,"email":$email,"message":$message}}')
-
-            TAG_SHA=$(curl -s \
-              -H "Authorization: token $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/$ORG/$REPO/git/tags" \
-              -d "$TAG_PAYLOAD" | jq -r '.sha')
-
-            curl -s -o /dev/null \
-              -H "Authorization: token $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/$ORG/$REPO/git/refs" \
-              -d "{\"ref\":\"refs/tags/$TAG\",\"sha\":\"$TAG_SHA\"}"
+            echo "Pushing tag $TAG..."
+            git push target "refs/tags/$TAG" --force 2>/dev/null || \
+              git push target "$BRANCH_NAME:refs/tags/$TAG" --force
           fi
 
-          echo "pushed=true" >> "$GITHUB_OUTPUT"
-          echo "✅ Pushed $FILE_COUNT files to $ORG/$REPO"
+          echo "✅ Pushed to $ORG/$REPO"
 
       - name: Trigger Packagist update
-        if: steps.push.outputs.pushed == 'true'
         run: |
           REPO_URL="https://github.com/dsplat/${{ matrix.repo }}"
           RESPONSE=$(curl -s -X POST \

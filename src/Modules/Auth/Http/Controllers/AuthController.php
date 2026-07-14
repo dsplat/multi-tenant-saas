@@ -5,6 +5,8 @@ namespace MultiTenantSaas\Modules\Auth\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Context\TenantContext;
@@ -381,9 +383,30 @@ class AuthController extends Controller
             return response()->json(['success' => true, 'message' => trans('auth.email_already_verified')]);
         }
 
-        // Token 验证逻辑由 SendEmailVerificationJob 处理
-        // 这里简化：直接标记已验证
+        // 验证 token
+        $tokenRecord = DB::table('email_verification_tokens')
+            ->where('email', $request->email)
+            ->where('token', $request->token)
+            ->first();
+
+        if (! $tokenRecord) {
+            return response()->json(['success' => false, 'message' => trans('auth.invalid_token')], 400);
+        }
+
+        // 检查 token 是否过期（24小时）
+        if (Carbon::parse($tokenRecord->created_at)->addHours(24)->isPast()) {
+            DB::table('email_verification_tokens')
+                ->where('id', $tokenRecord->id)
+                ->delete();
+
+            return response()->json(['success' => false, 'message' => trans('auth.token_expired')], 400);
+        }
+
+        // 标记已验证并删除 token
         $user->update(['email_verified_at' => now()]);
+        DB::table('email_verification_tokens')
+            ->where('id', $tokenRecord->id)
+            ->delete();
 
         return response()->json(['success' => true, 'message' => trans('auth.email_verified')]);
     }
@@ -438,8 +461,31 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => trans('auth.user_not_found')], 404);
         }
 
+        // 验证 token
+        $tokenRecord = DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->where('token', $request->token)
+            ->first();
+
+        if (! $tokenRecord) {
+            return response()->json(['success' => false, 'message' => trans('auth.invalid_token')], 400);
+        }
+
+        // 检查 token 是否过期（1小时）
+        if (Carbon::parse($tokenRecord->created_at)->addHour()->isPast()) {
+            DB::table('password_reset_tokens')
+                ->where('email', $request->email)
+                ->delete();
+
+            return response()->json(['success' => false, 'message' => trans('auth.token_expired')], 400);
+        }
+
+        // 重置密码并删除 token
         $user->update(['password' => Hash::make($request->password)]);
         $user->tokens()->delete();
+        DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->delete();
 
         return response()->json(['success' => true, 'message' => trans('auth.password_reset_success')]);
     }

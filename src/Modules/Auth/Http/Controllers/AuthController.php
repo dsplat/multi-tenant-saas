@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Events\UserLoggedIn;
 use MultiTenantSaas\Events\UserRegistered;
 use MultiTenantSaas\Jobs\SendEmailVerificationJob;
@@ -89,16 +90,21 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => $request->password,  // Model casts auto-hashes
         ]);
 
         // 自动加入当前租户
         $tenantId = $request->attributes->get('tenant_id');
         if ($tenantId) {
+            $endUserRoleId = \DB::table('roles')
+                ->where('name', 'end_user')
+                ->whereNull('tenant_id')
+                ->value('role_id');
+
             TenantUser::create([
                 'tenant_id' => $tenantId,
                 'user_id' => $user->user_id,
-                'role' => 'end_user',
+                'role_id' => $endUserRoleId,
                 'joined_at' => now(),
             ]);
         }
@@ -500,8 +506,9 @@ class AuthController extends Controller
     /**
      * 列出租户 SSO 提供方。
      */
-    public function ssoProviders(Request $request, int $tenantId): JsonResponse
+    public function ssoProviders(Request $request): JsonResponse
     {
+        $tenantId = TenantContext::getId();
         $ssoService = app(SsoService::class);
         $providers = $ssoService->listProviders($tenantId);
 
@@ -511,8 +518,10 @@ class AuthController extends Controller
     /**
      * 创建/更新 SSO 提供方。
      */
-    public function storeSsoProvider(Request $request, int $tenantId): JsonResponse
+    public function storeSsoProvider(Request $request): JsonResponse
     {
+        $tenantId = TenantContext::getId();
+
         $data = $request->validate([
             'name' => 'required|string',
             'type' => 'required|string|in:saml,oidc',
@@ -535,8 +544,9 @@ class AuthController extends Controller
     /**
      * 删除 SSO 提供方。
      */
-    public function destroySsoProvider(Request $request, int $tenantId, string $name): JsonResponse
+    public function destroySsoProvider(Request $request, string $name): JsonResponse
     {
+        $tenantId = TenantContext::getId();
         $ssoService = app(SsoService::class);
         $provider = $ssoService->getProvider($tenantId, $name);
 

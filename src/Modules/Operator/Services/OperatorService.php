@@ -66,7 +66,6 @@ class OperatorService
                 'name' => $operator->name,
                 'email' => $email,
                 'password' => null,
-                'role' => $role,
                 'is_active' => false,
             ]);
 

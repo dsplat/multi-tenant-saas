@@ -5,12 +5,18 @@ namespace MultiTenantSaas\Modules\Operator\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\Operator\Services\OperatorService;
 
 class OperatorController extends Controller
 {
+    private const ROLES_CACHE_KEY = 'operator:valid_roles';
+
+    private const ROLES_CACHE_TTL = 3600; // 1 hour
+
     public function __construct(
         protected OperatorService $operatorService,
     ) {}
@@ -30,11 +36,13 @@ class OperatorController extends Controller
     }
 
     /**
-     * 获取有效角色列表
+     * 获取有效角色列表（缓存）
      */
     private function getValidRoles(): array
     {
-        return DB::table('roles')->pluck('name')->toArray();
+        return Cache::remember(self::ROLES_CACHE_KEY, self::ROLES_CACHE_TTL, function () {
+            return DB::table('roles')->pluck('name')->toArray();
+        });
     }
 
     /**
@@ -53,6 +61,12 @@ class OperatorController extends Controller
             $tenantId,
             $request->role
         );
+
+        AuditService::log('invite', 'operator', $result['operator_id'] ?? null, null, [
+            'email' => $request->email,
+            'tenant_id' => $tenantId,
+            'role' => $request->role,
+        ]);
 
         return response()->json([
             'success' => true,
@@ -101,6 +115,11 @@ class OperatorController extends Controller
         $tenantId = TenantContext::getId();
         $this->operatorService->updateRole($operatorId, $tenantId, $request->role);
 
+        AuditService::log('update', 'operator', $operatorId, null, [
+            'tenant_id' => $tenantId,
+            'new_role' => $request->role,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => trans('operator.role_updated'),
@@ -114,6 +133,10 @@ class OperatorController extends Controller
     {
         $tenantId = TenantContext::getId();
         $this->operatorService->removeFromTenant($operatorId, $tenantId);
+
+        AuditService::log('remove', 'operator', $operatorId, null, [
+            'tenant_id' => $tenantId,
+        ]);
 
         return response()->json([
             'success' => true,

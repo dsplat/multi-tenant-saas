@@ -17,4 +17,5 @@ Route::prefix('operators')->group(function () {
     Route::post('/invite', [OperatorController::class, 'invite'])->middleware('rbac.permission:member.create');
     Route::put('/{operatorId}/role', [OperatorController::class, 'updateRole'])->middleware('rbac.permission:member.update');
     Route::delete('/{operatorId}', [OperatorController::class, 'remove'])->middleware('rbac.permission:member.delete');
+    Route::get('/{operatorId}/tenants', [OperatorController::class, 'tenants'])->middleware('rbac.permission:member.view');
 });

@@ -27,7 +27,7 @@ class FileController extends Controller
     {
         $tenantId = TenantContext::getId();
         $category = $request->input('category');
-        $perPage = (int) $request->input('per_page', 20);
+        $perPage = min((int) $request->input('per_page', 20), 100);
 
         $files = FileService::listFiles($tenantId, $category, $perPage);
 

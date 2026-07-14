@@ -92,10 +92,11 @@ class TenantPaymentController extends Controller
     public function index(Request $request)
     {
         $tenantId = TenantContext::getId();
+        $perPage = min((int) $request->input('per_page', 15), 100);
 
         $orders = PaymentOrder::where('tenant_id', $tenantId)
             ->orderBy('created_at', 'desc')
-            ->paginate(15);
+            ->paginate($perPage);
 
         return response()->json([
             'success' => true,

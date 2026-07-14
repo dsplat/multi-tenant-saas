@@ -100,6 +100,7 @@ class TenantMemberController extends Controller
         // 删除该用户在此租户上下文的 token
         \DB::table('personal_access_tokens')
             ->where('tokenable_id', $userId)
+            ->where('tenant_id', $tenantId)
             ->delete();
 
         AuditService::log('remove', 'tenant_user', $userId, $oldValues, null);

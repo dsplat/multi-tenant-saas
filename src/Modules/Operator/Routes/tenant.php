@@ -13,8 +13,8 @@ use MultiTenantSaas\Modules\Operator\Http\Controllers\OperatorController;
 */
 
 Route::prefix('operators')->group(function () {
-    Route::get('/', [OperatorController::class, 'index']);
-    Route::post('/invite', [OperatorController::class, 'invite']);
-    Route::put('/{operatorId}/role', [OperatorController::class, 'updateRole']);
-    Route::delete('/{operatorId}', [OperatorController::class, 'remove']);
+    Route::get('/', [OperatorController::class, 'index'])->middleware('rbac.permission:member.view');
+    Route::post('/invite', [OperatorController::class, 'invite'])->middleware('rbac.permission:member.create');
+    Route::put('/{operatorId}/role', [OperatorController::class, 'updateRole'])->middleware('rbac.permission:member.update');
+    Route::delete('/{operatorId}', [OperatorController::class, 'remove'])->middleware('rbac.permission:member.delete');
 });

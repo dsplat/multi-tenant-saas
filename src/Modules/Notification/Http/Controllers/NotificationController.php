@@ -22,7 +22,7 @@ class NotificationController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $perPage = (int) $request->input('per_page', 20);
+        $perPage = min((int) $request->input('per_page', 20), 100);
         $unreadOnly = $request->boolean('unread_only', false);
 
         $query = $user->notifications()->orderBy('created_at', 'desc');

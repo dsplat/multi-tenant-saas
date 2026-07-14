@@ -249,7 +249,7 @@ class SubscriptionController extends Controller
     {
         $tenantId = TenantContext::getId();
 
-        $perPage = (int) $request->input('per_page', 15);
+        $perPage = min((int) $request->input('per_page', 15), 100);
         $history = SubscriptionService::getHistory($tenantId, $perPage);
 
         return response()->json([

@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Operator\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Operator\Services\OperatorService;
 
@@ -29,13 +30,21 @@ class OperatorController extends Controller
     }
 
     /**
+     * 获取有效角色列表
+     */
+    private function getValidRoles(): array
+    {
+        return DB::table('roles')->pluck('name')->toArray();
+    }
+
+    /**
      * 邀请运营人员
      */
     public function invite(Request $request): JsonResponse
     {
         $request->validate([
             'email' => 'required|email',
-            'role' => 'required|string',
+            'role' => 'required|string|in:' . implode(',', $this->getValidRoles()),
         ]);
 
         $tenantId = TenantContext::getId();
@@ -86,7 +95,7 @@ class OperatorController extends Controller
     public function updateRole(Request $request, int $operatorId): JsonResponse
     {
         $request->validate([
-            'role' => 'required|string',
+            'role' => 'required|string|in:' . implode(',', $this->getValidRoles()),
         ]);
 
         $tenantId = TenantContext::getId();

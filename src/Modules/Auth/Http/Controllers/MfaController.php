@@ -5,8 +5,10 @@ namespace MultiTenantSaas\Modules\Auth\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Auth\Services\MfaService;
 use MultiTenantSaas\Modules\Auth\Services\SessionService;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 
 class MfaController extends Controller
 {
@@ -14,6 +16,25 @@ class MfaController extends Controller
         protected MfaService $mfaService,
         protected SessionService $sessionService,
     ) {}
+
+    /**
+     * 确保用户属于当前租户
+     */
+    private function ensureTenantMembership(Request $request): void
+    {
+        $tenantId = TenantContext::getId();
+
+        if ($tenantId) {
+            $exists = TenantUser::where('tenant_id', $tenantId)
+                ->where('user_id', $request->user()->user_id)
+                ->where('is_active', true)
+                ->exists();
+
+            if (! $exists) {
+                abort(403, trans('auth.not_tenant_member'));
+            }
+        }
+    }
 
     public function setupTotp(Request $request): JsonResponse
     {
@@ -62,6 +83,8 @@ class MfaController extends Controller
 
     public function devices(Request $request): JsonResponse
     {
+        $this->ensureTenantMembership($request);
+
         $devices = $this->mfaService->listDevices($request->user()->user_id);
 
         return response()->json(['success' => true, 'data' => ['devices' => $devices]]);
@@ -69,6 +92,8 @@ class MfaController extends Controller
 
     public function destroyDevice(Request $request, int $deviceId): JsonResponse
     {
+        $this->ensureTenantMembership($request);
+
         $this->mfaService->deleteDevice($request->user()->user_id, $deviceId);
 
         return response()->json(['success' => true, 'message' => trans('auth.mfa_device_removed')]);
@@ -76,6 +101,8 @@ class MfaController extends Controller
 
     public function renameDevice(Request $request, int $deviceId): JsonResponse
     {
+        $this->ensureTenantMembership($request);
+
         $request->validate(['name' => 'required|string|max:50']);
 
         $this->mfaService->renameDevice($request->user()->user_id, $deviceId, $request->name);
@@ -85,6 +112,8 @@ class MfaController extends Controller
 
     public function setPrimary(Request $request, int $deviceId): JsonResponse
     {
+        $this->ensureTenantMembership($request);
+
         $this->mfaService->setPrimaryDevice($request->user()->user_id, $deviceId);
 
         return response()->json(['success' => true, 'message' => trans('auth.mfa_device_primary_set')]);
@@ -92,6 +121,8 @@ class MfaController extends Controller
 
     public function generateRecoveryCodes(Request $request): JsonResponse
     {
+        $this->ensureTenantMembership($request);
+
         $codes = $this->mfaService->regenerateRecoveryCodes($request->user()->user_id);
 
         return response()->json(['success' => true, 'data' => ['recovery_codes' => $codes]]);
@@ -99,6 +130,8 @@ class MfaController extends Controller
 
     public function recoveryCodeStatus(Request $request): JsonResponse
     {
+        $this->ensureTenantMembership($request);
+
         $status = $this->mfaService->getRecoveryCodeStatus($request->user()->user_id);
 
         return response()->json(['success' => true, 'data' => $status]);
@@ -106,6 +139,8 @@ class MfaController extends Controller
 
     public function sessions(Request $request): JsonResponse
     {
+        $this->ensureTenantMembership($request);
+
         $sessions = $this->sessionService->listSessions($request->user()->user_id);
 
         return response()->json(['success' => true, 'data' => ['sessions' => $sessions]]);
@@ -113,6 +148,8 @@ class MfaController extends Controller
 
     public function revokeSession(Request $request, int $sessionId): JsonResponse
     {
+        $this->ensureTenantMembership($request);
+
         $this->sessionService->revokeSession($request->user()->user_id, $sessionId);
 
         return response()->json(['success' => true, 'message' => trans('auth.session_revoked')]);
@@ -120,6 +157,8 @@ class MfaController extends Controller
 
     public function revokeAllSessions(Request $request): JsonResponse
     {
+        $this->ensureTenantMembership($request);
+
         $count = $this->sessionService->revokeAllSessions($request->user()->user_id);
 
         return response()->json(['success' => true, 'data' => ['revoked' => $count]]);

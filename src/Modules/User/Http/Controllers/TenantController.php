@@ -87,9 +87,9 @@ class TenantController extends Controller
         ]);
     }
 
-    public function show(Request $request)
+    public function show(Request $request, ?int $tenantId = null)
     {
-        $tenantId = TenantContext::getId();
+        $tenantId = $tenantId ?? TenantContext::getId();
 
         if (! RbacService::check('tenant.view')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
@@ -189,9 +189,9 @@ class TenantController extends Controller
         ], 201);
     }
 
-    public function update(Request $request)
+    public function update(Request $request, ?int $tenantId = null)
     {
-        $tenantId = TenantContext::getId();
+        $tenantId = $tenantId ?? TenantContext::getId();
 
         if (! RbacService::check('tenant.update')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
@@ -219,9 +219,9 @@ class TenantController extends Controller
         return response()->json(['success' => true, 'data' => new TenantResource($tenant)]);
     }
 
-    public function destroy(Request $request)
+    public function destroy(Request $request, ?int $tenantId = null)
     {
-        $tenantId = TenantContext::getId();
+        $tenantId = $tenantId ?? TenantContext::getId();
 
         if (! RbacService::check('tenant.delete')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
@@ -241,9 +241,9 @@ class TenantController extends Controller
     /**
      * 暂停租户
      */
-    public function suspend(Request $request)
+    public function suspend(Request $request, ?int $tenantId = null)
     {
-        $tenantId = TenantContext::getId();
+        $tenantId = $tenantId ?? TenantContext::getId();
 
         if (! RbacService::check('tenant.suspend')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
@@ -286,9 +286,9 @@ class TenantController extends Controller
     /**
      * 恢复租户
      */
-    public function activate(Request $request)
+    public function activate(Request $request, ?int $tenantId = null)
     {
-        $tenantId = TenantContext::getId();
+        $tenantId = $tenantId ?? TenantContext::getId();
 
         if (! RbacService::check('tenant.activate')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);

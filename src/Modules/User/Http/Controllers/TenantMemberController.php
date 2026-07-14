@@ -14,8 +14,9 @@ class TenantMemberController extends Controller
 {
     use AuthorizesTenantAccess;
 
-    public function index(Request $request, int $tenantId)
+    public function index(Request $request, ?int $tenantId = null)
     {
+        $tenantId = $tenantId ?? TenantContext::getId();
         $this->ensureTenantAccess($request, $tenantId);
 
         $members = TenantUser::where('tenant_users.tenant_id', $tenantId)
@@ -29,8 +30,9 @@ class TenantMemberController extends Controller
         return response()->json(['success' => true, 'data' => TenantUserResource::collection($members)]);
     }
 
-    public function store(Request $request, int $tenantId)
+    public function store(Request $request, ?int $tenantId = null)
     {
+        $tenantId = $tenantId ?? TenantContext::getId();
         $this->ensureTenantAccess($request, $tenantId);
 
         $request->validate([
@@ -77,8 +79,9 @@ class TenantMemberController extends Controller
     /**
      * 移除租户成员
      */
-    public function destroy(Request $request, int $tenantId, int $userId)
+    public function destroy(Request $request, ?int $tenantId = null, int $userId = 0)
     {
+        $tenantId = $tenantId ?? TenantContext::getId();
         $this->ensureTenantAccess($request, $tenantId);
 
         $member = TenantUser::where('tenant_id', $tenantId)

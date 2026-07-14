@@ -14,9 +14,9 @@ class TenantSettingController extends Controller
 {
     use AuthorizesTenantAccess;
 
-    public function index(Request $request, ?string $group = null)
+    public function index(Request $request, ?int $tenantId = null, ?string $group = null)
     {
-        $tenantId = TenantContext::getId();
+        $tenantId = $tenantId ?? TenantContext::getId();
         $this->ensureTenantAccess($request, $tenantId);
 
         if ($group) {
@@ -31,9 +31,9 @@ class TenantSettingController extends Controller
         return response()->json(['success' => true, 'data' => $data]);
     }
 
-    public function update(Request $request, string $group)
+    public function update(Request $request, ?int $tenantId = null, string $group = '')
     {
-        $tenantId = TenantContext::getId();
+        $tenantId = $tenantId ?? TenantContext::getId();
         $this->ensureTenantAccess($request, $tenantId);
 
         if ($group === 'sms') {
@@ -87,9 +87,9 @@ class TenantSettingController extends Controller
         return response()->json(['success' => true, 'message' => trans('common.updated')]);
     }
 
-    public function testSms(Request $request)
+    public function testSms(Request $request, ?int $tenantId = null)
     {
-        $tenantId = TenantContext::getId();
+        $tenantId = $tenantId ?? TenantContext::getId();
         $this->ensureTenantAccess($request, $tenantId);
 
         $request->validate(['phone' => 'required|string|regex:/^1[3-9]\d{9}$/']);

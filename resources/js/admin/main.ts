@@ -8,7 +8,7 @@ import router from './router'
 
 const fw = localStorage.getItem('multi-tenant-saas-ui-framework')
   || (import.meta.env.VITE_UI_FRAMEWORK as string)
-  || 'element-plus'
+  || 'bootstrap'
 
 // 动态加载依赖，避免 Vite 静态扫描
 async function dynamicImport(specifier: string) {
@@ -42,7 +42,13 @@ async function loadFramework(name: string) {
 
 async function main() {
   await initUICore()
-  await loadFramework(fw)
+  try {
+    await loadFramework(fw)
+  } catch (e) {
+    console.warn(`Failed to load "${fw}", falling back to bootstrap:`, e)
+    localStorage.removeItem('multi-tenant-saas-ui-framework')
+    await loadFramework('bootstrap')
+  }
 
   const app = createApp(App)
   const active = uiRegistry.getActive()

@@ -36,6 +36,7 @@
             <td>{{ op.created_at }}</td>
             <td>
               <button class="link-btn" @click="toggleStatus(op)">{{ op.is_active ? '禁用' : '启用' }}</button>
+              <button class="link-btn danger" @click="handleDelete(op)">删除</button>
             </td>
           </tr>
           <tr v-if="operators.length === 0"><td colspan="7" class="empty-row">暂无运营人员</td></tr>
@@ -96,6 +97,11 @@ const toggleStatus = async (op: any) => {
     await axios.put(`/v1/admin/operators/${op.operator_id}`, { is_active: !op.is_active })
     await fetchOperators()
   } catch {}
+}
+
+const handleDelete = async (op: any) => {
+  if (!confirm(`确定删除运营人员 ${op.name}？`)) return
+  try { await axios.delete(`/v1/admin/operators/${op.operator_id}`); await fetchOperators() } catch (e: any) { alert(e.response?.data?.message || '删除失败') }
 }
 
 onMounted(fetchOperators)

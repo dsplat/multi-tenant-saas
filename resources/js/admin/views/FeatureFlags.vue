@@ -17,6 +17,7 @@
             <td>
               <button class="link-btn" @click="toggleFlag(f)">{{ f.status === 'active' ? '停用' : '启用' }}</button>
               <button class="link-btn" @click="openEdit(f)">编辑</button>
+              <button class="link-btn danger" @click="handleDelete(f)">删除</button>
             </td>
           </tr>
           <tr v-if="flags.length === 0"><td colspan="6" class="empty-row">暂无功能开关</td></tr>
@@ -66,6 +67,11 @@ const handleSubmit = async () => {
 
 const toggleFlag = async (f: any) => {
   try { await axios.post(`${API}/${f.id ?? f.feature_flag_id}/toggle`); await fetch() } catch {}
+}
+
+const handleDelete = async (f: any) => {
+  if (!confirm(`确定删除功能开关 ${f.name}？`)) return
+  try { await axios.delete(`${API}/${f.id ?? f.feature_flag_id}`); await fetch() } catch (e: any) { alert(e.response?.data?.message || '删除失败') }
 }
 
 onMounted(fetch)

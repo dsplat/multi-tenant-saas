@@ -29,12 +29,6 @@ const router = createRouter({
           meta: { title: '成员管理', requiresAuth: true },
         },
         {
-          path: 'settings',
-          name: 'Settings',
-          component: () => import('../views/Settings.vue'),
-          meta: { title: '租户设置', requiresAuth: true },
-        },
-        {
           path: 'credits',
           name: 'Credits',
           component: () => import('../views/Credits.vue'),

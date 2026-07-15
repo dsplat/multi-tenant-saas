@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import axios from 'axios'
 
 interface Tenant {
-  tenant_id: string
+  tenant_id: number
   name: string
   slug: string
   status: string
@@ -39,7 +39,7 @@ export const useTenantStore = defineStore('tenant', () => {
   const restoreSelection = async () => {
     const saved = localStorage.getItem('admin_selected_tenant')
     if (saved && tenants.value.length > 0) {
-      const found = tenants.value.find(t => String(t.tenant_id) === saved)
+      const found = tenants.value.find(t => t.tenant_id === Number(saved))
       if (found) {
         selectedTenant.value = found
         return

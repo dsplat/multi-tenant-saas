@@ -224,10 +224,10 @@ const handleLogout = async () => {
 
 <style>
 /* ===== THEME: light (default) ===== */
-.admin-layout { --ac: var(--primary-color, #6366f1); --ac-r: 99,102,241; --sb: #0f172a; --sb-h: rgba(255,255,255,0.06); --sb-t: #94a3b8; --sb-ta: #e2e8f0; --sb-l: #475569; --tb: #ffffff; --tb-b: #e2e8f0; --pg: #f1f5f9; --tx: #0f172a; --tx2: #64748b; }
+.admin-layout { --ac: var(--primary-color, #6366f1); --ac-r: 99,102,241; --sb: #0f172a; --sb-h: rgba(255,255,255,0.06); --sb-t: #94a3b8; --sb-ta: #e2e8f0; --sb-l: #475569; --tb: #ffffff; --tb-b: #e2e8f0; --pg: #f1f5f9; --tx: #0f172a; --tx2: #64748b; /* Page-level variables (used by all view components) */ --bg-color: #ffffff; --bg-color-page: #f1f5f9; --border-color: #e2e8f0; --fill-color: #f8fafc; --text-color-primary: #0f172a; --text-color-secondary: #64748b; }
 
 /* ===== THEME: dark ===== */
-html.dark .admin-layout { --sb: #020617; --sb-h: rgba(255,255,255,0.08); --sb-t: #94a3b8; --sb-ta: #f1f5f9; --sb-l: #475569; --tb: #0f172a; --tb-b: #1e293b; --pg: #0f172a; --tx: #f1f5f9; --tx2: #94a3b8; }
+html.dark .admin-layout { --sb: #020617; --sb-h: rgba(255,255,255,0.08); --sb-t: #94a3b8; --sb-ta: #f1f5f9; --sb-l: #475569; --tb: #0f172a; --tb-b: #1e293b; --pg: #0f172a; --tx: #f1f5f9; --tx2: #94a3b8; --bg-color: #1e293b; --bg-color-page: #0f172a; --border-color: #334155; --fill-color: #1e293b; --text-color-primary: #f1f5f9; --text-color-secondary: #94a3b8; }
 
 /* ===== LAYOUT ===== */
 .admin-layout { display: flex; height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }

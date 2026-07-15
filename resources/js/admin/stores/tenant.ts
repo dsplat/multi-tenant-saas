@@ -30,7 +30,7 @@ export const useTenantStore = defineStore('tenant', () => {
   const selectTenant = (tenant: Tenant | null) => {
     selectedTenant.value = tenant
     if (tenant) {
-      localStorage.setItem('admin_selected_tenant', tenant.tenant_id)
+      localStorage.setItem('admin_selected_tenant', String(tenant.tenant_id))
     } else {
       localStorage.removeItem('admin_selected_tenant')
     }
@@ -39,7 +39,7 @@ export const useTenantStore = defineStore('tenant', () => {
   const restoreSelection = async () => {
     const saved = localStorage.getItem('admin_selected_tenant')
     if (saved && tenants.value.length > 0) {
-      const found = tenants.value.find(t => t.tenant_id === saved)
+      const found = tenants.value.find(t => String(t.tenant_id) === saved)
       if (found) {
         selectedTenant.value = found
         return

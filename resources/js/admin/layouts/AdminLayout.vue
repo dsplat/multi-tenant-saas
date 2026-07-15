@@ -59,8 +59,40 @@
           <span>Webhooks</span>
         </a>
         <div class="nav-divider"></div>
-        <a href="/admin/settings" :class="['nav-item', { active: isActive('/settings') }]">
+        <a href="/admin/feature-flags" :class="['nav-item', { active: isActive('/feature-flags') }]">
+          <span>功能开关</span>
+        </a>
+        <a href="/admin/ip-whitelist" :class="['nav-item', { active: isActive('/ip-whitelist') }]">
+          <span>IP 白名单</span>
+        </a>
+        <a href="/admin/branding" :class="['nav-item', { active: isActive('/branding') }]">
+          <span>品牌配置</span>
+        </a>
+        <a href="/admin/sso-providers" :class="['nav-item', { active: isActive('/sso-providers') }]">
+          <span>SSO 提供商</span>
+        </a>
+        <a href="/admin/credits" :class="['nav-item', { active: isActive('/credits') }]">
+          <span>积分总览</span>
+        </a>
+        <div class="nav-divider"></div>
+        <a href="/admin/system-settings" :class="['nav-item', { active: isActive('/system-settings') }]">
           <span>系统设置</span>
+        </a>
+        <a href="/admin/tenant-keys" :class="['nav-item', { active: isActive('/tenant-keys') }]">
+          <span>租户密钥</span>
+        </a>
+        <a href="/admin/retention-policies" :class="['nav-item', { active: isActive('/retention-policies') }]">
+          <span>数据保留</span>
+        </a>
+        <a href="/admin/consents" :class="['nav-item', { active: isActive('/consents') }]">
+          <span>合规同意</span>
+        </a>
+        <a href="/admin/sandbox" :class="['nav-item', { active: isActive('/sandbox') }]">
+          <span>沙箱环境</span>
+        </a>
+        <div class="nav-divider"></div>
+        <a href="/admin/settings" :class="['nav-item', { active: isActive('/settings') }]">
+          <span>配置中心</span>
         </a>
       </nav>
     </aside>

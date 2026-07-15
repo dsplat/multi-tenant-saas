@@ -19,7 +19,6 @@ class PlatformInitSeeder extends Seeder
     public function run(): void
     {
         $this->command->info('=== 平台初始化开始 ===');
-        $this->newLine();
 
         $this->call([
             PlatformTenantSeeder::class,
@@ -29,7 +28,6 @@ class PlatformInitSeeder extends Seeder
             SuperAdminSeeder::class,
         ]);
 
-        $this->newLine();
         $this->command->info('=== 平台初始化完成 ===');
     }
 }

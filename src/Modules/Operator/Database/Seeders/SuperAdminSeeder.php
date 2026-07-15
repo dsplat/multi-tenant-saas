@@ -90,7 +90,6 @@ class SuperAdminSeeder extends Seeder
             ['tenant_id' => $platformTenantId, 'user_id' => $user->user_id],
             [
                 'tenant_user_id' => $idGenerator->generate(),
-                'role' => 'super_admin',
                 'role_id' => $superAdminRoleId,
                 'is_active' => true,
                 'joined_at' => $now,

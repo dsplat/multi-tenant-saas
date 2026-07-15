@@ -44,14 +44,33 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import axios from 'axios'
 
 const stats = ref({ memberCount: 0, availableCredits: 0, usedCredits: 0, monthlyUsage: 0 })
 const tenant = ref({ name: '', tenant_id: '', plan: '' })
 
-onMounted(() => {
-  stats.value = { memberCount: 5, availableCredits: 9000, usedCredits: 1000, monthlyUsage: 350 }
-  tenant.value = { name: '示例租户', tenant_id: '2432992121034120', plan: '专业版' }
-})
+const fetchDashboard = async () => {
+  try {
+    const membersRes = await axios.get('/tenant/members')
+    const members = membersRes.data.data || []
+    stats.value.memberCount = members.length
+
+    const creditsRes = await axios.get('/tenant/credits')
+    const credits = creditsRes.data.data || {}
+    stats.value.availableCredits = credits.balance ?? credits.available ?? 0
+    stats.value.usedCredits = credits.used ?? credits.consumed ?? 0
+
+    const settingsRes = await axios.get('/tenant/settings')
+    const settings = settingsRes.data.data || {}
+    tenant.value = {
+      name: settings.name || settings.tenant_name || '-',
+      tenant_id: settings.tenant_id || '-',
+      plan: settings.subscription_plan || settings.plan || '-',
+    }
+  } catch {}
+}
+
+onMounted(fetchDashboard)
 </script>
 
 <style scoped>

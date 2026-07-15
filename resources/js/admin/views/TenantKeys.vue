@@ -22,7 +22,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
-const API = '/v1/admin/tenant-keys'
+const API = '/api/v1/admin/tenant-keys'
 const keys = ref<any[]>([])
 
 const fetch = async () => { try { const r = await axios.get(API); keys.value = r.data.data || [] } catch {} }

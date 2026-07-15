@@ -36,7 +36,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
-const API = '/v1/admin/ip-whitelist'
+const API = '/api/v1/admin/ip-whitelist'
 const items = ref<any[]>([])
 const filterScope = ref('')
 const showAdd = ref(false)

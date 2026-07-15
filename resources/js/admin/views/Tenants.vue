@@ -77,7 +77,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
 
-const API = '/v1/admin/tenants'
+const API = '/api/v1/tenants'
 const tenants = ref<any[]>([])
 const dialogVisible = ref(false)
 const isEdit = ref(false)

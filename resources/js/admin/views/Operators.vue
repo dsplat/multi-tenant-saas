@@ -78,14 +78,14 @@ const inviteForm = ref({ email: '', name: '', scope: 'platform' })
 
 const fetchOperators = async () => {
   try {
-    const res = await axios.get('/v1/admin/operators', { params: { scope: filterScope.value || undefined } })
+    const res = await axios.get('/api/v1/operators', { params: { scope: filterScope.value || undefined } })
     operators.value = res.data.data || []
   } catch {}
 }
 
 const handleInvite = async () => {
   try {
-    await axios.post('/v1/admin/operators/invite', inviteForm.value)
+    await axios.post('/api/v1/operators/invite', inviteForm.value)
     showInvite.value = false
     inviteForm.value = { email: '', name: '', scope: 'platform' }
     await fetchOperators()

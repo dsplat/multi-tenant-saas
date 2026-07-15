@@ -36,7 +36,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
-const API = '/v1/admin/plugins'
+const API = '/v1/admin/admin/plugins'
 const plugins = ref<any[]>([])
 const showInstall = ref(false)
 const installName = ref('')

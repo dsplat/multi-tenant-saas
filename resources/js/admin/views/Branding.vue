@@ -25,7 +25,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
-const API = '/v1/admin/branding'
+const API = '/api/v1/admin/branding'
 const saving = ref(false)
 const form = ref({ logo_url: '', favicon_url: '', primary_color: '#1890ff', secondary_color: '#666666', login_page_style: 'default', email_template: 'default', custom_css: '', custom_domain_enabled: true })
 

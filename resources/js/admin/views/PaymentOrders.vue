@@ -65,7 +65,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
-const ADMIN_API = '/v1/admin/payments/orders'
+const ADMIN_API = '/api/v1/admin/payments/orders'
 const tenants = ref<any[]>([])
 const orders = ref<any[]>([])
 const selectedTenantId = ref('')
@@ -79,7 +79,7 @@ const statusClass = (s: string) => ({ paid: 'badge-success', pending: 'badge-war
 const statusLabel = (s: string) => ({ paid: '已支付', pending: '待支付', failed: '失败', cancelled: '已取消', refunded: '已退款' }[s] || s)
 const formatDate = (d: string) => d ? d.substring(0, 16) : '-'
 
-const fetchTenants = async () => { try { const r = await axios.get('/v1/admin/tenants', { params: { per_page: 100 } }); tenants.value = r.data.data || [] } catch {} }
+const fetchTenants = async () => { try { const r = await axios.get('/api/v1/tenants', { params: { per_page: 100 } }); tenants.value = r.data.data || [] } catch {} }
 
 const fetchOrders = async (page = 1) => {
   try {

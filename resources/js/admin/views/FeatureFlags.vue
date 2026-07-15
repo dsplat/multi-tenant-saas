@@ -45,7 +45,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
-const API = '/v1/admin/feature-flags'
+const API = '/api/v1/admin/feature-flags'
 const flags = ref<any[]>([])
 const dialog = ref(false)
 const isEdit = ref(false)

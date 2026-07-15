@@ -38,7 +38,7 @@
 import { ref } from 'vue'
 import axios from 'axios'
 
-const API = '/v1/admin/ssl'
+const API = '/api/v1/admin/ssl'
 const tenantId = ref('')
 const certInfo = ref<any>(null)
 const showUpload = ref(false)

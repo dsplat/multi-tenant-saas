@@ -24,7 +24,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
-const API = '/v1/admin/modules'
+const API = '/api/v1/admin/modules'
 const modules = ref<any[]>([])
 
 const fetchModules = async () => { try { const r = await axios.get(API); modules.value = r.data.data || [] } catch {} }

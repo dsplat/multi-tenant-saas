@@ -47,7 +47,7 @@ const formatDate = (d: string) => d ? d.substring(0, 10) : '-'
 
 const fetchDashboard = async () => {
   try {
-    const r = await axios.get('/v1/admin/tenants', { params: { per_page: 100 } })
+    const r = await axios.get('/api/v1/tenants', { params: { per_page: 100 } })
     const all = r.data.data || []
     stats.tenantCount = all.length
     stats.activeTenantCount = all.filter((t: any) => t.status === 'active').length

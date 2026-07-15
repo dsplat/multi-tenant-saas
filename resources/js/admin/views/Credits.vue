@@ -33,13 +33,13 @@ const rechargeForm = ref({ tenant_ids: '', amount: 0, remark: '' })
 const recharging = ref(false)
 const rechargeResult = ref<any>(null)
 
-const fetchOverview = async () => { try { const r = await axios.get('/v1/admin/billing/credits/overview'); overview.value = r.data.data || r.data } catch {} }
+const fetchOverview = async () => { try { const r = await axios.get('/v1/admin/admin/billing/credits/overview'); overview.value = r.data.data || r.data } catch {} }
 
 const handleBatchRecharge = async () => {
   recharging.value = true; rechargeResult.value = null
   try {
     const ids = rechargeForm.value.tenant_ids.split(',').map(s => parseInt(s.trim())).filter(Boolean)
-    const r = await axios.post('/v1/admin/billing/credits/batch-recharge', { tenant_ids: ids, amount: rechargeForm.value.amount, remark: rechargeForm.value.remark })
+    const r = await axios.post('/v1/admin/admin/billing/credits/batch-recharge', { tenant_ids: ids, amount: rechargeForm.value.amount, remark: rechargeForm.value.remark })
     rechargeResult.value = r.data.data || r.data; await fetchOverview()
   } catch (e: any) { rechargeResult.value = { error: e.response?.data?.message || e.message } } finally { recharging.value = false }
 }

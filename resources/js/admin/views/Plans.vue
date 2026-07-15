@@ -40,7 +40,7 @@
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 
-const API = '/v1/admin/billing/plans'
+const API = '/v1/admin/admin/billing/plans'
 const plans = ref<any[]>([])
 const dialogVisible = ref(false)
 const isEdit = ref(false)

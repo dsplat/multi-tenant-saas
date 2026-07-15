@@ -38,7 +38,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
-const API = '/v1/admin/retention-policies'
+const API = '/api/v1/admin/retention-policies'
 const policies = ref<any[]>([])
 const dialog = ref(false)
 const isEdit = ref(false)

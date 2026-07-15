@@ -23,7 +23,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
-const API = '/v1/admin/developer-portal/sandbox'
+const API = '/v1/admin/admin/developer-portal/sandbox'
 const sandboxes = ref<any[]>([])
 
 const fetch = async () => { try { const r = await axios.get(API); sandboxes.value = r.data.data || [] } catch {} }

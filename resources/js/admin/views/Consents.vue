@@ -27,7 +27,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
-const API = '/v1/admin/consents'
+const API = '/api/v1/admin/consents'
 const consents = ref<any[]>([])
 const filters = ref({ user_id: '', type: '' })
 

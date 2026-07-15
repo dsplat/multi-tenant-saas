@@ -47,7 +47,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
-const API = '/v1/admin/webhooks'
+const API = '/api/v1/admin/webhooks'
 const webhooks = ref<any[]>([])
 const dialogVisible = ref(false)
 const isEdit = ref(false)

@@ -23,7 +23,7 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
-const API = '/v1/admin/system-settings'
+const API = '/api/v1/admin/system-settings'
 const groups = ref<string[]>(['app', 'mail', 'cache', 'queue', 'session'])
 const activeGroup = ref('app')
 const settings = ref<any[]>([])

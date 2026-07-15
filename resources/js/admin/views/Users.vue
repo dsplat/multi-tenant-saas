@@ -72,7 +72,7 @@ const form = ref({ name: '', email: '', phone: '' })
 const formatDate = (d: string) => d ? d.substring(0, 10) : '-'
 
 const fetchTenants = async () => {
-  try { const r = await axios.get('/v1/admin/tenants', { params: { per_page: 100 } }); tenants.value = r.data.data || [] } catch {}
+  try { const r = await axios.get('/api/v1/tenants', { params: { per_page: 100 } }); tenants.value = r.data.data || [] } catch {}
 }
 
 const fetchUsers = async (page = 1) => {

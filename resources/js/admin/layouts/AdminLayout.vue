@@ -3,69 +3,24 @@
     <aside class="sidebar">
       <div class="logo">
         <div class="logo-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
-            <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
-          </svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
         </div>
         <div class="logo-text"><span class="logo-title">SaaS Admin</span><span class="logo-sub">管理后台</span></div>
       </div>
 
       <nav class="nav-menu">
+        <!-- ===== 系统管理 ===== -->
         <div class="nav-section">
-          <div class="nav-section-title">概览</div>
+          <div class="nav-section-title">系统管理</div>
+
           <a href="/admin/dashboard" :class="['nav-item', { active: isActive('/dashboard') }]">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
             <span>仪表盘</span>
           </a>
-        </div>
-
-        <div class="nav-section">
-          <div class="nav-section-title">业务管理</div>
           <a href="/admin/tenants" :class="['nav-item', { active: isActive('/tenants') }]">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z"/></svg>
             <span>租户管理</span>
           </a>
-          <a href="/admin/users" :class="['nav-item', { active: isActive('/users') }]">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
-            <span>用户管理</span>
-          </a>
-          <a href="/admin/domains" :class="['nav-item', { active: isActive('/domains') }]">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M4.083 9h1.946c.089-1.546.383-2.97.837-4.118A6.004 6.004 0 004.083 9zM10 2a8 8 0 100 16 8 8 0 000-16zm0 2c-.076 0-.232.032-.465.262-.238.234-.497.623-.737 1.182-.389.907-.673 2.142-.766 3.556h3.936c-.093-1.414-.377-2.649-.766-3.556-.24-.56-.5-.948-.737-1.182C10.232 4.032 10.076 4 10 4zm3.971 5c-.089-1.546-.383-2.97-.837-4.118A6.004 6.004 0 0115.917 9h-1.946zm-2.003 2H8.032c.093 1.414.377 2.649.766 3.556.24.56.5.948.737 1.182.233.23.389.262.465.262.076 0 .232-.032.465-.262.238-.234.497-.623.737-1.182.389-.907.673-2.142.766-3.556zm1.166 4.118c.454-1.147.748-2.572.837-4.118h1.946a6.004 6.004 0 01-2.783 4.118zm-6.268 0C6.412 13.97 6.118 12.546 6.03 11H4.083a6.004 6.004 0 002.783 4.118z"/></svg>
-            <span>域名管理</span>
-          </a>
-          <a href="/admin/oauth" :class="['nav-item', { active: isActive('/oauth') }]">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
-            <span>第三方登录</span>
-          </a>
-          <a href="/admin/audit-logs" :class="['nav-item', { active: isActive('/audit-logs') }]">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
-            <span>审计日志</span>
-          </a>
-        </div>
-
-        <div class="nav-section">
-          <div class="nav-section-title">支付与通信</div>
-          <a href="/admin/sms" :class="['nav-item', { active: isActive('/sms') }]">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/></svg>
-            <span>短信配置</span>
-          </a>
-          <a href="/admin/payments" :class="['nav-item', { active: isActive('/payments') }]">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/></svg>
-            <span>支付订单</span>
-          </a>
-          <a href="/admin/api-tokens" :class="['nav-item', { active: isActive('/api-tokens') }]">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/></svg>
-            <span>API Token</span>
-          </a>
-          <a href="/admin/quotas" :class="['nav-item', { active: isActive('/quotas') }]">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
-            <span>配额管理</span>
-          </a>
-        </div>
-
-        <div class="nav-section">
-          <div class="nav-section-title">权限与运营</div>
           <a href="/admin/operators" :class="['nav-item', { active: isActive('/operators') }]">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>
             <span>运营人员</span>
@@ -78,14 +33,11 @@
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
             <span>订阅计划</span>
           </a>
-          <a href="/admin/credits" :class="['nav-item', { active: isActive('/credits') }]">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
-            <span>积分总览</span>
-          </a>
         </div>
 
         <div class="nav-section">
-          <div class="nav-section-title">模块与扩展</div>
+          <div class="nav-section-title">平台配置</div>
+
           <a href="/admin/modules" :class="['nav-item', { active: isActive('/modules') }]">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"/></svg>
             <span>模块管理</span>
@@ -94,25 +46,9 @@
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
             <span>插件管理</span>
           </a>
-          <a href="/admin/ssl" :class="['nav-item', { active: isActive('/ssl') }]">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-            <span>SSL 证书</span>
-          </a>
-          <a href="/admin/webhooks" :class="['nav-item', { active: isActive('/webhooks') }]">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd"/></svg>
-            <span>Webhooks</span>
-          </a>
-        </div>
-
-        <div class="nav-section">
-          <div class="nav-section-title">安全与合规</div>
           <a href="/admin/feature-flags" :class="['nav-item', { active: isActive('/feature-flags') }]">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z" clip-rule="evenodd"/></svg>
             <span>功能开关</span>
-          </a>
-          <a href="/admin/ip-whitelist" :class="['nav-item', { active: isActive('/ip-whitelist') }]">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
-            <span>IP 白名单</span>
           </a>
           <a href="/admin/branding" :class="['nav-item', { active: isActive('/branding') }]">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a2 2 0 00-2 2v11a3 3 0 106 0V4a2 2 0 00-2-2H4zm1 14a1 1 0 100-2 1 1 0 000 2zm5-1.757l4.9-4.9a2 2 0 000-2.828L13.485 5.1a2 2 0 00-2.828 0L10 5.757v8.486zM16 18H9.071l6-6H16a2 2 0 012 2v2a2 2 0 01-2 2z" clip-rule="evenodd"/></svg>
@@ -122,25 +58,13 @@
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/></svg>
             <span>SSO 提供商</span>
           </a>
-        </div>
-
-        <div class="nav-section">
-          <div class="nav-section-title">系统</div>
           <a href="/admin/system-settings" :class="['nav-item', { active: isActive('/system-settings') }]">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
             <span>系统设置</span>
           </a>
-          <a href="/admin/tenant-keys" :class="['nav-item', { active: isActive('/tenant-keys') }]">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/></svg>
-            <span>租户密钥</span>
-          </a>
           <a href="/admin/retention-policies" :class="['nav-item', { active: isActive('/retention-policies') }]">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
             <span>数据保留</span>
-          </a>
-          <a href="/admin/consents" :class="['nav-item', { active: isActive('/consents') }]">
-            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
-            <span>合规同意</span>
           </a>
           <a href="/admin/sandbox" :class="['nav-item', { active: isActive('/sandbox') }]">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
@@ -149,6 +73,71 @@
           <a href="/admin/settings" :class="['nav-item', { active: isActive('/settings') }]">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z"/></svg>
             <span>配置中心</span>
+          </a>
+        </div>
+
+        <!-- ===== 租户管理 ===== -->
+        <div class="nav-section" :class="{ disabled: !tenantStore.hasTenant }">
+          <div class="nav-section-title">
+            租户管理
+            <span v-if="!tenantStore.hasTenant" class="section-hint">请先选择租户</span>
+          </div>
+
+          <a href="/admin/users" :class="['nav-item', { active: isActive('/users'), disabled: !tenantStore.hasTenant }]">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+            <span>用户管理</span>
+          </a>
+          <a href="/admin/domains" :class="['nav-item', { active: isActive('/domains'), disabled: !tenantStore.hasTenant }]">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M4.083 9h1.946c.089-1.546.383-2.97.837-4.118A6.004 6.004 0 004.083 9zM10 2a8 8 0 100 16 8 8 0 000-16zm0 2c-.076 0-.232.032-.465.262-.238.234-.497.623-.737 1.182-.389.907-.673 2.142-.766 3.556h3.936c-.093-1.414-.377-2.649-.766-3.556-.24-.56-.5-.948-.737-1.182C10.232 4.032 10.076 4 10 4zm3.971 5c-.089-1.546-.383-2.97-.837-4.118A6.004 6.004 0 0115.917 9h-1.946zm-2.003 2H8.032c.093 1.414.377 2.649.766 3.556.24.56.5.948.737 1.182.233.23.389.262.465.262.076 0 .232-.032.465-.262.238-.234.497-.623.737-1.182.389-.907.673-2.142.766-3.556zm1.166 4.118c.454-1.147.748-2.572.837-4.118h1.946a6.004 6.004 0 01-2.783 4.118zm-6.268 0C6.412 13.97 6.118 12.546 6.03 11H4.083a6.004 6.004 0 002.783 4.118z"/></svg>
+            <span>域名管理</span>
+          </a>
+          <a href="/admin/oauth" :class="['nav-item', { active: isActive('/oauth'), disabled: !tenantStore.hasTenant }]">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+            <span>第三方登录</span>
+          </a>
+          <a href="/admin/audit-logs" :class="['nav-item', { active: isActive('/audit-logs'), disabled: !tenantStore.hasTenant }]">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+            <span>审计日志</span>
+          </a>
+          <a href="/admin/sms" :class="['nav-item', { active: isActive('/sms'), disabled: !tenantStore.hasTenant }]">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/><path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/></svg>
+            <span>短信配置</span>
+          </a>
+          <a href="/admin/payments" :class="['nav-item', { active: isActive('/payments'), disabled: !tenantStore.hasTenant }]">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/></svg>
+            <span>支付订单</span>
+          </a>
+          <a href="/admin/api-tokens" :class="['nav-item', { active: isActive('/api-tokens'), disabled: !tenantStore.hasTenant }]">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/></svg>
+            <span>API Token</span>
+          </a>
+          <a href="/admin/quotas" :class="['nav-item', { active: isActive('/quotas'), disabled: !tenantStore.hasTenant }]">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+            <span>配额管理</span>
+          </a>
+          <a href="/admin/credits" :class="['nav-item', { active: isActive('/credits'), disabled: !tenantStore.hasTenant }]">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
+            <span>积分总览</span>
+          </a>
+          <a href="/admin/ssl" :class="['nav-item', { active: isActive('/ssl'), disabled: !tenantStore.hasTenant }]">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            <span>SSL 证书</span>
+          </a>
+          <a href="/admin/webhooks" :class="['nav-item', { active: isActive('/webhooks'), disabled: !tenantStore.hasTenant }]">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd"/></svg>
+            <span>Webhooks</span>
+          </a>
+          <a href="/admin/ip-whitelist" :class="['nav-item', { active: isActive('/ip-whitelist'), disabled: !tenantStore.hasTenant }]">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+            <span>IP 白名单</span>
+          </a>
+          <a href="/admin/tenant-keys" :class="['nav-item', { active: isActive('/tenant-keys'), disabled: !tenantStore.hasTenant }]">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/></svg>
+            <span>租户密钥</span>
+          </a>
+          <a href="/admin/consents" :class="['nav-item', { active: isActive('/consents'), disabled: !tenantStore.hasTenant }]">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+            <span>合规同意</span>
           </a>
         </div>
       </nav>
@@ -173,6 +162,17 @@
           <span v-if="route.meta.title" class="breadcrumb-current">{{ route.meta.title }}</span>
         </div>
         <div class="actions">
+          <!-- 租户切换器 -->
+          <div class="tenant-selector">
+            <svg class="tenant-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z"/></svg>
+            <select v-model="selectedTenantId" @change="onTenantChange" class="tenant-select">
+              <option value="">选择租户...</option>
+              <option v-for="t in tenantStore.tenants" :key="t.tenant_id" :value="t.tenant_id">
+                {{ t.name }}
+              </option>
+            </select>
+          </div>
+
           <ThemeSwitcher />
           <ColorPicker />
           <button class="icon-btn" @click="showThemeSettings = true" title="主题设置">
@@ -195,9 +195,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
+import { useTenantStore } from '../stores/tenant'
 import ThemeSwitcher from '@multi-tenant-saas/ui-core/components/ThemeSwitcher.vue'
 import ColorPicker from '@multi-tenant-saas/ui-core/components/ColorPicker.vue'
 import ThemeSettings from '@multi-tenant-saas/ui-core/components/ThemeSettings.vue'
@@ -205,9 +206,24 @@ import ThemeSettings from '@multi-tenant-saas/ui-core/components/ThemeSettings.v
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const tenantStore = useTenantStore()
 const showThemeSettings = ref(false)
+const selectedTenantId = ref('')
 
 const isActive = (path: string) => route.path.startsWith('/admin' + path)
+
+const onTenantChange = () => {
+  const tenant = tenantStore.tenants.find(t => t.tenant_id === selectedTenantId.value)
+  tenantStore.selectTenant(tenant || null)
+}
+
+onMounted(async () => {
+  await tenantStore.fetchTenants()
+  await tenantStore.restoreSelection()
+  selectedTenantId.value = tenantStore.tenantId
+})
+
+watch(() => tenantStore.tenantId, (id) => { selectedTenantId.value = id })
 
 const handleLogout = async () => {
   await userStore.logout()
@@ -233,234 +249,61 @@ const handleLogout = async () => {
   --accent-light: rgba(99,102,241,0.1);
   --radius: 8px;
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07);
 }
 
-.layout {
-  display: flex;
-  height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-}
+.layout { display: flex; height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
 
 /* ===== Sidebar ===== */
-.sidebar {
-  width: 260px;
-  background: var(--sidebar-bg);
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  overflow: hidden;
-}
+.sidebar { width: 260px; background: var(--sidebar-bg); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
 
-.logo {
-  height: 64px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-
-.logo-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  flex-shrink: 0;
-}
-
-.logo-icon svg { width: 20px; height: 20px; }
-
+.logo { height: 64px; display: flex; align-items: center; gap: 12px; padding: 0 20px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.logo-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; }
 .logo-text { display: flex; flex-direction: column; }
 .logo-title { font-size: 15px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.02em; }
 .logo-sub { font-size: 11px; color: var(--sidebar-section); margin-top: 1px; }
 
-.nav-menu {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 0;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.1) transparent;
-}
-
+.nav-menu { flex: 1; overflow-y: auto; padding: 8px 0; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
 .nav-section { margin-bottom: 4px; }
+.nav-section.disabled { opacity: 0.4; pointer-events: none; }
+.nav-section-title { padding: 16px 20px 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sidebar-section); display: flex; align-items: center; gap: 8px; }
+.section-hint { font-size: 10px; font-weight: 400; text-transform: none; letter-spacing: 0; color: #f59e0b; opacity: 0.8; }
 
-.nav-section-title {
-  padding: 16px 20px 6px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--sidebar-section);
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 20px;
-  margin: 1px 8px;
-  border-radius: 6px;
-  color: var(--sidebar-text);
-  text-decoration: none;
-  font-size: 13.5px;
-  font-weight: 450;
-  transition: all 0.15s ease;
-  position: relative;
-}
-
-.nav-item:hover {
-  background: var(--sidebar-hover);
-  color: var(--sidebar-text-active);
-}
-
-.nav-item.active {
-  background: var(--sidebar-active);
-  color: var(--sidebar-text-active);
-  font-weight: 500;
-}
-
-.nav-item.active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: var(--sidebar-active-border);
-}
-
-.nav-icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  opacity: 0.7;
-}
-
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 20px; margin: 1px 8px; border-radius: 6px; color: var(--sidebar-text); text-decoration: none; font-size: 13.5px; font-weight: 450; transition: all 0.15s ease; position: relative; }
+.nav-item:hover { background: var(--sidebar-hover); color: var(--sidebar-text-active); }
+.nav-item.active { background: var(--sidebar-active); color: var(--sidebar-text-active); font-weight: 500; }
+.nav-item.active::before { content: ''; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 0 3px 3px 0; background: var(--sidebar-active-border); }
+.nav-item.disabled { opacity: 0.35; cursor: not-allowed; }
+.nav-icon { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.7; }
 .nav-item.active .nav-icon { opacity: 1; }
 
-/* Sidebar footer */
-.sidebar-footer {
-  padding: 12px 16px;
-  border-top: 1px solid rgba(255,255,255,0.06);
-}
-
-.sidebar-user {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px;
-  border-radius: 8px;
-  transition: background 0.15s;
-}
-
+.sidebar-footer { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.06); }
+.sidebar-user { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; transition: background 0.15s; }
 .sidebar-user:hover { background: var(--sidebar-hover); }
-
-.avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
+.avatar { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
 .user-info { overflow: hidden; }
 .user-name { font-size: 13px; font-weight: 500; color: var(--sidebar-text-active); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .user-role { font-size: 11px; color: var(--sidebar-section); margin-top: 1px; }
 
 /* ===== Main area ===== */
-.main-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: var(--page-bg);
-  min-width: 0;
-}
-
-.top-bar {
-  height: 56px;
-  background: var(--topbar-bg);
-  border-bottom: 1px solid var(--topbar-border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  box-shadow: var(--shadow-sm);
-  z-index: 10;
-}
-
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
+.main-area { flex: 1; display: flex; flex-direction: column; background: var(--page-bg); min-width: 0; }
+.top-bar { height: 56px; background: var(--topbar-bg); border-bottom: 1px solid var(--topbar-border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; box-shadow: var(--shadow-sm); z-index: 10; }
+.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-secondary); }
 .breadcrumb-icon { width: 16px; height: 16px; opacity: 0.5; }
 .breadcrumb-sep { color: #cbd5e1; margin: 0 2px; }
 .breadcrumb-current { color: var(--text-primary); font-weight: 500; }
+.actions { display: flex; align-items: center; gap: 8px; }
 
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+/* Tenant selector */
+.tenant-selector { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border: 1px solid var(--topbar-border); border-radius: 8px; background: var(--accent-light); }
+.tenant-icon { width: 16px; height: 16px; color: var(--accent); flex-shrink: 0; }
+.tenant-select { border: none; background: transparent; font-size: 13px; font-weight: 500; color: var(--text-primary); outline: none; cursor: pointer; min-width: 140px; }
+.tenant-select option { background: #fff; color: var(--text-primary); }
 
-.icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid var(--topbar-border);
-  background: transparent;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  transition: all 0.15s;
-}
+.icon-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--topbar-border); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); transition: all 0.15s; }
+.icon-btn:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
 
-.icon-btn:hover {
-  background: var(--accent-light);
-  border-color: var(--accent);
-  color: var(--accent);
-}
+.logout-btn { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border: 1px solid var(--topbar-border); border-radius: 8px; background: transparent; cursor: pointer; font-size: 13px; color: var(--text-secondary); transition: all 0.15s; }
+.logout-btn:hover { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
 
-.logout-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border: 1px solid var(--topbar-border);
-  border-radius: 8px;
-  background: transparent;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--text-secondary);
-  transition: all 0.15s;
-}
-
-.logout-btn:hover {
-  color: #ef4444;
-  border-color: #fca5a5;
-  background: #fef2f2;
-}
-
-.content {
-  flex: 1;
-  padding: 24px;
-  overflow-y: auto;
-}
+.content { flex: 1; padding: 24px; overflow-y: auto; }
 </style>

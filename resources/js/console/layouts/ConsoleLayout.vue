@@ -144,8 +144,8 @@ const handleLogout = () => {
 </script>
 
 <style>
-.console-layout { --c-accent: var(--primary-color, #10b981); --c-accent-rgb: 16,185,129; --c-sidebar-bg: #0f172a; --c-sidebar-hover: rgba(255,255,255,0.06); --c-sidebar-text: #94a3b8; --c-sidebar-text-active: #e2e8f0; --c-sidebar-section: #475569; --c-topbar-bg: #ffffff; --c-topbar-border: #e2e8f0; --c-page-bg: #f1f5f9; --c-text: #0f172a; --c-text2: #64748b; }
-html.dark .console-layout { --c-sidebar-bg: #020617; --c-sidebar-hover: rgba(255,255,255,0.08); --c-sidebar-text: #94a3b8; --c-sidebar-text-active: #f1f5f9; --c-sidebar-section: #475569; --c-topbar-bg: #0f172a; --c-topbar-border: #1e293b; --c-page-bg: #0f172a; --c-text: #f1f5f9; --c-text2: #94a3b8; }
+:root { --c-accent: var(--primary-color, #10b981); --c-accent-rgb: 16,185,129; --c-sidebar-bg: #0f172a; --c-sidebar-hover: rgba(255,255,255,0.06); --c-sidebar-text: #94a3b8; --c-sidebar-text-active: #e2e8f0; --c-sidebar-section: #475569; --c-topbar-bg: #ffffff; --c-topbar-border: #e2e8f0; --c-page-bg: #f1f5f9; --c-text: #0f172a; --c-text2: #64748b; }
+html.dark { --c-sidebar-bg: #020617; --c-sidebar-hover: rgba(255,255,255,0.08); --c-sidebar-text: #94a3b8; --c-sidebar-text-active: #f1f5f9; --c-sidebar-section: #475569; --c-topbar-bg: #0f172a; --c-topbar-border: #1e293b; --c-page-bg: #0f172a; --c-text: #f1f5f9; --c-text2: #94a3b8; }
 </style>
 
 <style scoped>

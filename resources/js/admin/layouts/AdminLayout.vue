@@ -232,9 +232,8 @@ const handleLogout = async () => {
 </script>
 
 <style>
-/* Global theme variables — responds to theme-manager's --primary-color and .dark class */
-.admin-layout { --a-accent: var(--primary-color, #6366f1); --a-accent-rgb: 99,102,241; --a-sidebar-bg: #0f172a; --a-sidebar-hover: rgba(255,255,255,0.06); --a-sidebar-text: #94a3b8; --a-sidebar-text-active: #e2e8f0; --a-sidebar-section: #475569; --a-topbar-bg: #ffffff; --a-topbar-border: #e2e8f0; --a-page-bg: #f1f5f9; --a-text: #0f172a; --a-text2: #64748b; }
-html.dark .admin-layout { --a-sidebar-bg: #020617; --a-sidebar-hover: rgba(255,255,255,0.08); --a-sidebar-text: #94a3b8; --a-sidebar-text-active: #f1f5f9; --a-sidebar-section: #475569; --a-topbar-bg: #0f172a; --a-topbar-border: #1e293b; --a-page-bg: #0f172a; --a-text: #f1f5f9; --a-text2: #94a3b8; }
+:root { --a-accent: var(--primary-color, #6366f1); --a-accent-rgb: 99,102,241; --a-sidebar-bg: #0f172a; --a-sidebar-hover: rgba(255,255,255,0.06); --a-sidebar-text: #94a3b8; --a-sidebar-text-active: #e2e8f0; --a-sidebar-section: #475569; --a-topbar-bg: #ffffff; --a-topbar-border: #e2e8f0; --a-page-bg: #f1f5f9; --a-text: #0f172a; --a-text2: #64748b; }
+html.dark { --a-sidebar-bg: #020617; --a-sidebar-hover: rgba(255,255,255,0.08); --a-sidebar-text: #94a3b8; --a-sidebar-text-active: #f1f5f9; --a-sidebar-section: #475569; --a-topbar-bg: #0f172a; --a-topbar-border: #1e293b; --a-page-bg: #0f172a; --a-text: #f1f5f9; --a-text2: #94a3b8; }
 </style>
 
 <style scoped>

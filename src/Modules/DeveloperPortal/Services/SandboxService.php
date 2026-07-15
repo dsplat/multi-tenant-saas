@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Modules\DeveloperPortal\Services;
 
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -197,6 +198,28 @@ class SandboxService
     // ----------------------------------------
     // 内部辅助
     // ----------------------------------------
+
+    /**
+     * 列出所有活跃沙箱环境
+     */
+    public function listSandboxes(): Collection
+    {
+        return SandboxEnvironment::where('status', SandboxEnvironment::STATUS_ACTIVE)
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    /**
+     * 获取当前租户的沙箱环境
+     */
+    public function getTenantSandbox(): ?SandboxEnvironment
+    {
+        $tenantId = TenantContext::getId();
+
+        return SandboxEnvironment::where('sandbox_tenant_id', $tenantId)
+            ->where('status', SandboxEnvironment::STATUS_ACTIVE)
+            ->first();
+    }
 
     /**
      * 生成测试 API Key（前缀 sbx_ + 64 位随机字符串）

@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\DeveloperPortal\Services\SandboxService;
 
@@ -9,9 +10,10 @@ Route::prefix('admin/developer-portal')->group(function () {
 
         return response()->json(['success' => true, 'data' => $service->listSandboxes()]);
     });
-    Route::post('/sandbox', function () {
+    Route::post('/sandbox', function (Request $request) {
         $service = app(SandboxService::class);
+        $developerId = $request->user()?->user_id ?? $request->user()?->id;
 
-        return response()->json(['success' => true, 'data' => $service->createSandbox()]);
+        return response()->json(['success' => true, 'data' => $service->createSandbox((int) $developerId)]);
     });
 });

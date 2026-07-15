@@ -5,7 +5,7 @@ use MultiTenantSaas\Modules\Plugin\Services\PluginService;
 
 Route::prefix('admin/plugins')->group(function () {
     Route::get('/', function () {
-        return response()->json(['success' => true, 'data' => app(PluginService::class)->listPlugins()]);
+        return response()->json(['success' => true, 'data' => app(PluginService::class)->listInstalled()]);
     });
     Route::post('/{name}/install', function (string $name) {
         app(PluginService::class)->install($name);

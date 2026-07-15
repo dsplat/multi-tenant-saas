@@ -35,6 +35,30 @@
         <a href="/admin/quotas" :class="['nav-item', { active: isActive('/quotas') }]">
           <span>配额管理</span>
         </a>
+        <div class="nav-divider"></div>
+        <a href="/admin/operators" :class="['nav-item', { active: isActive('/operators') }]">
+          <span>运营人员</span>
+        </a>
+        <a href="/admin/roles" :class="['nav-item', { active: isActive('/roles') }]">
+          <span>角色权限</span>
+        </a>
+        <a href="/admin/plans" :class="['nav-item', { active: isActive('/plans') }]">
+          <span>订阅计划</span>
+        </a>
+        <div class="nav-divider"></div>
+        <a href="/admin/modules" :class="['nav-item', { active: isActive('/modules') }]">
+          <span>模块管理</span>
+        </a>
+        <a href="/admin/plugins" :class="['nav-item', { active: isActive('/plugins') }]">
+          <span>插件管理</span>
+        </a>
+        <a href="/admin/ssl" :class="['nav-item', { active: isActive('/ssl') }]">
+          <span>SSL 证书</span>
+        </a>
+        <a href="/admin/webhooks" :class="['nav-item', { active: isActive('/webhooks') }]">
+          <span>Webhooks</span>
+        </a>
+        <div class="nav-divider"></div>
         <a href="/admin/settings" :class="['nav-item', { active: isActive('/settings') }]">
           <span>系统设置</span>
         </a>
@@ -116,6 +140,12 @@ const handleLogout = async () => {
 .nav-menu {
   flex: 1;
   padding: 8px 0;
+}
+
+.nav-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+  margin: 4px 16px;
 }
 
 .nav-item {

@@ -28,6 +28,16 @@
           <span>API Token</span>
         </a>
         <div class="nav-divider"></div>
+        <a href="/console/workflows" :class="['nav-item', { active: isActive('/workflows') }]">
+          <span>工作流</span>
+        </a>
+        <a href="/console/ssl" :class="['nav-item', { active: isActive('/ssl') }]">
+          <span>SSL 证书</span>
+        </a>
+        <a href="/console/webhooks" :class="['nav-item', { active: isActive('/webhooks') }]">
+          <span>Webhooks</span>
+        </a>
+        <div class="nav-divider"></div>
         <a href="/console/tenant-settings" :class="['nav-item', { active: isActive('/tenant-settings') }]">
           <span>邮件/认证/注册</span>
         </a>

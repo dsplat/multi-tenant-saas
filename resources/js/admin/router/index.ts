@@ -83,6 +83,48 @@ const router = createRouter({
           meta: { title: '配额管理', requiresAuth: true },
         },
         {
+          path: 'operators',
+          name: 'Operators',
+          component: () => import('../views/Operators.vue'),
+          meta: { title: '运营人员', requiresAuth: true },
+        },
+        {
+          path: 'roles',
+          name: 'Roles',
+          component: () => import('../views/Roles.vue'),
+          meta: { title: '角色权限', requiresAuth: true },
+        },
+        {
+          path: 'plans',
+          name: 'Plans',
+          component: () => import('../views/Plans.vue'),
+          meta: { title: '订阅计划', requiresAuth: true },
+        },
+        {
+          path: 'modules',
+          name: 'Modules',
+          component: () => import('../views/Modules.vue'),
+          meta: { title: '模块管理', requiresAuth: true },
+        },
+        {
+          path: 'plugins',
+          name: 'Plugins',
+          component: () => import('../views/Plugins.vue'),
+          meta: { title: '插件管理', requiresAuth: true },
+        },
+        {
+          path: 'ssl',
+          name: 'SSL',
+          component: () => import('../views/SSL.vue'),
+          meta: { title: 'SSL 证书', requiresAuth: true },
+        },
+        {
+          path: 'webhooks',
+          name: 'Webhooks',
+          component: () => import('../views/Webhooks.vue'),
+          meta: { title: 'Webhooks', requiresAuth: true },
+        },
+        {
           path: 'settings',
           name: 'Settings',
           component: () => import('../views/Settings.vue'),

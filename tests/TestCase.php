@@ -12,6 +12,7 @@ use MultiTenantSaas\Modules\Auth\Http\Middleware\CheckRbacPermission;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\CheckFeatureFlag;
 use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\EnsureTenantContext;
+use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant;
 use MultiTenantSaas\TenancyServiceProvider;
 use MultiTenantSaas\Tests\Schema\CoreModule;
 use MultiTenantSaas\Tests\Schema\SchemaModuleInterface;
@@ -67,6 +68,7 @@ abstract class TestCase extends BaseTestCase
         }
 
         $router = $this->app['router'];
+        $router->aliasMiddleware('tenant.identify', IdentifyTenant::class);
         $router->aliasMiddleware('tenant.ensure', EnsureTenantContext::class);
         $router->aliasMiddleware('tenant.permission', CheckPermission::class);
         $router->aliasMiddleware('rbac.permission', CheckRbacPermission::class);

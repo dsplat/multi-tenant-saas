@@ -72,6 +72,16 @@ class InfrastructureControllersTest extends TestCase
             'accepted_at' => now(),
         ]);
 
+        // 确保 tenant_users 表有记录（ensureTenantAccess 需要）
+        DB::table('tenant_users')->insert([
+            'tenant_id' => $this->tenantId,
+            'user_id' => $this->admin->user_id,
+            'role' => 'tenant_admin',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         TenantContext::setTenantId($this->tenantId);
     }
 

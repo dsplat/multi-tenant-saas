@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Auth\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Context\TenantContext;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -147,13 +148,23 @@ class CheckPermission
     protected function unauthorized(Request $request): Response
     {
         $domainType = TenantContext::getDomainType();
+        $path = $request->getPathInfo();
 
-        // Admin/Console 域名始终返回 JSON（SPA 模式）
-        if ($request->expectsJson() || in_array($domainType, ['admin', 'console'])) {
+        // Admin/Console/API 路径始终返回 JSON（SPA 模式）
+        if ($request->expectsJson()
+            || in_array($domainType, ['admin', 'console', 'api'])
+            || str_starts_with($path, '/admin')
+            || str_starts_with($path, '/console')
+            || str_starts_with($path, '/api')) {
             return response()->json(['message' => trans('common.unauthenticated'), 'error' => 'Unauthenticated'], 401);
         }
 
-        return redirect()->guest(route('login'));
+        // 防御性检查：login 路由可能不存在
+        if (Route::has('login')) {
+            return redirect()->guest(route('login'));
+        }
+
+        return response()->json(['message' => 'Unauthenticated'], 401);
     }
 
     protected function forbidden(Request $request, ?string $message = null): Response

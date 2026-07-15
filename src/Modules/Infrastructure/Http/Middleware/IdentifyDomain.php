@@ -61,6 +61,10 @@ class IdentifyDomain
         }
 
         // 路径区分
+        if (str_starts_with($path, '/admin')) {
+            return self::DOMAIN_ADMIN;
+        }
+
         if (str_starts_with($path, '/console')) {
             return self::DOMAIN_CONSOLE;
         }

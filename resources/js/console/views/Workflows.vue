@@ -110,5 +110,5 @@ onMounted(fetchWorkflows)
 .form-group textarea { font-family: monospace; font-size: 12px; resize: vertical; }
 .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 .form-actions button { padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color, #ddd); background: #fff; cursor: pointer; }
-.result-output { background: #f5f5f5; padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; max-height: 300px; }
+.result-output { background: var(--fill-color, #f5f5f5); padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; max-height: 300px; }
 </style>

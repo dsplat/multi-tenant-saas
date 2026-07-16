@@ -96,5 +96,5 @@ onMounted(fetchWebhooks)
 .form-group input { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; box-sizing: border-box; }
 .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 .form-actions button { padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color, #ddd); background: #fff; cursor: pointer; }
-.test-output { background: #f5f5f5; padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; max-height: 300px; }
+.test-output { background: var(--fill-color, #f5f5f5); padding: 12px; border-radius: 6px; font-size: 12px; overflow-x: auto; max-height: 300px; }
 </style>

@@ -108,6 +108,11 @@ class TenancyServiceProvider extends ServiceProvider
             __DIR__ . '/../database/migrations' => database_path('migrations'),
         ], 'tenancy-migrations');
 
+        // server.php — PHP 内置服务器 SPA 路由修复
+        $this->publishes([
+            __DIR__ . '/../server.php' => base_path('server.php'),
+        ], 'tenancy-server');
+
         HealthService::registerChecks();
 
         // Artisan 命令

@@ -68,6 +68,6 @@ onMounted(fetchCredits)
 .badge-danger { background: var(--badge-danger-bg); color: var(--badge-danger-fg); }
 .badge-info { background: var(--badge-info-bg); color: var(--badge-info-fg); }
 .badge-warning { background: var(--badge-warning-bg); color: var(--badge-warning-fg); }
-.text-green { color: #52c41a; }
+.text-green { color: var(--badge-success-fg); }
 .text-red { color: var(--link-danger); }
 </style>

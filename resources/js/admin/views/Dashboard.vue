@@ -69,9 +69,10 @@ onMounted(fetchDashboard)
 .stat-value { font-size: 24px; font-weight: 600; color: var(--link-color); }
 .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .panel { background: var(--bg-color, #fff); border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-.panel h3 { margin: 0 0 16px; font-size: 15px; }
+.panel h3 { margin: 0 0 16px; font-size: 15px; color: var(--text-color-primary); }
 .data-table { width: 100%; border-collapse: collapse; }
-.data-table th, .data-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border-color, #eee); font-size: 13px; }
+.data-table th { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border-color, #eee); font-size: 13px; color: var(--text-color-secondary); font-weight: 500; }
+.data-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border-color, #eee); font-size: 13px; color: var(--text-color-primary); }
 .empty-row { text-align: center; color: var(--text-color-secondary, #999); padding: 24px; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
 .badge-success { background: var(--badge-success-bg); color: var(--badge-success-fg); }

@@ -73,6 +73,17 @@
           </a>
         </div>
 
+        <!-- 模块页面（自动发现） -->
+        <div v-if="modulePages.length > 0" class="a-nav-section">
+          <div class="a-nav-label">模块</div>
+          <a v-for="page in modulePages" :key="page.path"
+             :href="`/admin/${page.path}`"
+             :class="['a-nav-item', { active: isActive(`/${page.path}`) }]">
+            <svg class="a-nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"/></svg>
+            <span>{{ page.label }}</span>
+          </a>
+        </div>
+
         <div class="a-nav-section" :class="{ disabled: !tenantStore.hasTenant }">
           <div class="a-nav-label">
             租户管理
@@ -190,7 +201,10 @@ import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useTenantStore } from '../stores/tenant'
+import { getModulePageEntries } from '../module-loader'
 import ThemeSwitcher from '@multi-tenant-saas/ui-core/components/ThemeSwitcher.vue'
+
+const modulePages = ref(getModulePageEntries())
 import ColorPicker from '@multi-tenant-saas/ui-core/components/ColorPicker.vue'
 import ThemeSettings from '@multi-tenant-saas/ui-core/components/ThemeSettings.vue'
 

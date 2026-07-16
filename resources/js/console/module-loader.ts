@@ -91,3 +91,21 @@ export async function getAllModuleRoutes(): Promise<ModuleRoute[]> {
 
   return [...customRoutes, ...autoRoutes]
 }
+
+// Module pages discovered at build time — available for sidebar rendering
+export function getModulePageEntries(): Array<{ moduleName: string; pageName: string; path: string; label: string }> {
+  const entries: Array<{ moduleName: string; pageName: string; path: string; label: string }> = []
+
+  for (const [path] of Object.entries(moduleViews)) {
+    const moduleName = extractModuleName(path)
+    const pageName = extractPageName(path)
+    if (!moduleName || !pageName || pageName === 'Login') continue
+
+    const routePath = `${moduleName.toLowerCase()}/${pageName.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '')}`
+    const label = pageName.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim()
+
+    entries.push({ moduleName, pageName, path: routePath, label })
+  }
+
+  return entries
+}

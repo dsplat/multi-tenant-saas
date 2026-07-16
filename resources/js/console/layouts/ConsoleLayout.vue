@@ -72,6 +72,17 @@
             <span>邮件/认证/注册</span>
           </a>
         </div>
+
+        <!-- 模块页面（自动发现） -->
+        <div v-if="modulePages.length > 0" class="nav-section">
+          <div class="nav-section-title">模块</div>
+          <a v-for="page in modulePages" :key="page.path"
+             :href="`/console/${page.path}`"
+             :class="['nav-item', { active: isActive(`/${page.path}`) }]">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"/></svg>
+            <span>{{ page.label }}</span>
+          </a>
+        </div>
       </nav>
 
       <div class="sidebar-footer">
@@ -118,7 +129,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { getModulePageEntries } from '../module-loader'
 import ThemeSwitcher from '@multi-tenant-saas/ui-core/components/ThemeSwitcher.vue'
+
+const modulePages = ref(getModulePageEntries())
 import ColorPicker from '@multi-tenant-saas/ui-core/components/ColorPicker.vue'
 import ThemeSettings from '@multi-tenant-saas/ui-core/components/ThemeSettings.vue'
 

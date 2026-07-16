@@ -1,0 +1,23 @@
+{
+  "name": "dsplat/multi-tenant-saas-module-ticket",
+  "description": "工单管理模块 — 完整示例，展示如何从零构建一个框架模块",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\Ticket\\": ""
+    }
+  },
+  "extra": {
+    "saas": {
+      "name": "ticket",
+      "label": "工单管理",
+      "description": "租户工单系统，支持创建、分配、状态流转",
+      "version": "1.0.0",
+      "priority": 50,
+      "requires_core": ">=2.0.0",
+      "default_enabled": true,
+      "tenant_toggleable": false
+    }
+  }
+}

@@ -19,6 +19,7 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, '.'),
       '@multi-tenant-saas/ui-core': resolve(__dirname, '../ui-core'),
+      'axios': resolve(__dirname, 'node_modules/axios'),
     },
   },
   optimizeDeps: {

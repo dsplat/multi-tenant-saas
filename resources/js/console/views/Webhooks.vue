@@ -45,29 +45,32 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { useUserStore } from '../stores/user'
 
+const userStore = useUserStore()
+const apiBase = () => `/api/v1/tenants/${userStore.tenantId}/webhooks`
 const webhooks = ref<any[]>([])
 const dialogVisible = ref(false)
 const form = ref({ url: '', events: [] as string[], description: '' })
 const eventsInput = ref('')
 const testResult = ref<any>(null)
 
-const fetchWebhooks = async () => { try { const r = await axios.get('/tenant/webhooks'); webhooks.value = r.data.data || [] } catch {} }
+const fetchWebhooks = async () => { try { const r = await axios.get(apiBase()); webhooks.value = r.data.data || [] } catch {} }
 
 const openCreate = () => { form.value = { url: '', events: [], description: '' }; eventsInput.value = ''; dialogVisible.value = true }
 
 const handleSubmit = async () => {
   const payload = { ...form.value, events: eventsInput.value.split(',').map(s => s.trim()).filter(Boolean) }
-  try { await axios.post('/tenant/webhooks', payload); dialogVisible.value = false; await fetchWebhooks() } catch {}
+  try { await axios.post(apiBase(), payload); dialogVisible.value = false; await fetchWebhooks() } catch {}
 }
 
 const handleDelete = async (w: any) => {
   if (!confirm('确定删除该 Webhook？')) return
-  try { await axios.delete(`/tenant/webhooks/${w.webhook_id ?? w.id}`); await fetchWebhooks() } catch {}
+  try { await axios.delete(`${apiBase()}/${w.webhook_id ?? w.id}`); await fetchWebhooks() } catch {}
 }
 
 const testWebhook = async (w: any) => {
-  try { const r = await axios.post(`/tenant/webhooks/${w.webhook_id ?? w.id}/test`); testResult.value = r.data } catch (e: any) { testResult.value = { error: e.response?.data?.message || e.message } }
+  try { const r = await axios.post(`${apiBase()}/${w.webhook_id ?? w.id}/test`); testResult.value = r.data } catch (e: any) { testResult.value = { error: e.response?.data?.message || e.message } }
 }
 
 onMounted(fetchWebhooks)

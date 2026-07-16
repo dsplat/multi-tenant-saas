@@ -48,10 +48,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { useUserStore } from '../stores/user'
 
-const API = '/tenant/members'
+const userStore = useUserStore()
+const API = computed(() => `/api/v1/tenants/${userStore.tenantId}/members`)
 const members = ref<any[]>([])
 const showInvite = ref(false)
 const inviteForm = reactive({ email: '', role: 'end_user' })

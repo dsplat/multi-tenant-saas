@@ -30,7 +30,9 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
+import { useUserStore } from '../stores/user'
 
+const userStore = useUserStore()
 const balance = reactive({ total: 0, used: 0, available: 0 })
 const transactions = ref<any[]>([])
 const formatDate = (d: string) => d ? d.substring(0, 16) : '-'
@@ -39,7 +41,7 @@ const typeLabel = (t: string) => ({ recharge: '充值', consume: '消费', gift:
 
 const fetchCredits = async () => {
   try {
-    const r = await axios.get('/tenant/credits')
+    const r = await axios.get(`/api/v1/tenants/${userStore.tenantId}/credits`)
     const data = r.data.data || r.data
     balance.total = data.total ?? data.balance ?? 0
     balance.used = data.used ?? data.consumed ?? 0

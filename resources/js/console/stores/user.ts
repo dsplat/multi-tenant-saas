@@ -8,6 +8,7 @@ interface User {
   email: string
   role: string
   avatar?: string
+  tenant_id?: string
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -16,6 +17,7 @@ export const useUserStore = defineStore('user', () => {
   
   const isLoggedIn = computed(() => !!token.value)
   const isSuperAdmin = computed(() => user.value?.role === 'super_admin')
+  const tenantId = computed(() => user.value?.tenant_id || localStorage.getItem('console_tenant_id') || '')
   
   // 设置 token
   const setToken = (newToken: string) => {
@@ -43,9 +45,11 @@ export const useUserStore = defineStore('user', () => {
         password,
       })
 
-      const { user: userData, auth_token } = response.data.data
+      const { user: userData, auth_token, tenant_id } = response.data.data
       setToken(auth_token)
+      userData.tenant_id = tenant_id
       user.value = userData
+      if (tenant_id) localStorage.setItem('console_tenant_id', String(tenant_id))
 
       return response.data
     } catch (error) {
@@ -89,6 +93,7 @@ export const useUserStore = defineStore('user', () => {
     user,
     isLoggedIn,
     isSuperAdmin,
+    tenantId,
     setToken,
     fetchUser,
     login,

@@ -22,12 +22,6 @@ const router = createRouter({
           component: () => import('../views/Dashboard.vue'),
           meta: { title: '仪表盘', requiresAuth: true },
         },
-        {
-          path: 'tenants/:id',
-          name: 'TenantDetail',
-          component: () => import('../views/TenantDetail.vue'),
-          meta: { title: '租户详情', requiresAuth: true },
-        },
       ],
     },
   ],

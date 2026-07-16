@@ -60,8 +60,8 @@ const handleLogin = async () => {
 .form-group { margin-bottom: 16px; }
 .form-group label { display: block; margin-bottom: 6px; font-size: 14px; color: var(--text-color-secondary, #666); }
 .form-group input { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; font-size: 14px; background: var(--bg-color, #fff); color: var(--text-color-primary, #333); box-sizing: border-box; }
-.form-group input:focus { outline: none; border-color: var(--primary-color, #409eff); }
+.form-group input:focus { outline: none; border-color: var(--link-color); }
 .login-btn { width: 100%; padding: 10px; border: none; border-radius: 6px; background: var(--primary-color, #409eff); color: #fff; font-size: 15px; cursor: pointer; margin-top: 8px; }
 .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.error-msg { color: #f56c6c; font-size: 13px; text-align: center; margin-top: 12px; }
+.error-msg { color: var(--link-danger); font-size: 13px; text-align: center; margin-top: 12px; }
 </style>

@@ -173,7 +173,7 @@ onMounted(() => {
 .panel { background: var(--bg-color, #fff); border-radius: 8px; padding: 24px; max-width: 600px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border-color, #eee); margin-bottom: 20px; }
 .tab-btn { padding: 10px 20px; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--text-color-secondary, #666); border-bottom: 2px solid transparent; }
-.tab-btn.active { color: var(--primary-color, #409eff); border-bottom-color: var(--primary-color, #409eff); }
+.tab-btn.active { color: var(--link-color); border-bottom-color: var(--link-color); }
 .form-group { margin-bottom: 16px; }
 .form-group label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-color-secondary, #666); }
 .form-group input, .form-group textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; font-size: 14px; box-sizing: border-box; background: var(--bg-color, #fff); color: var(--text-color-primary, #333); }

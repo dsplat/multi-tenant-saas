@@ -152,6 +152,10 @@ html.dark input, html.dark select, html.dark textarea { background: var(--bg-col
 html.dark select option { background: #1e293b; color: #f1f5f9; }
 html.dark .page-header { background: var(--bg-color, #1e293b); padding: 16px 20px; border-radius: 8px; margin-bottom: 20px; }
 
+/* Badge variables */
+:root { --badge-success-bg: #e6ffed; --badge-success-fg: #52c41a; --badge-danger-bg: #fff1f0; --badge-danger-fg: #f5222d; --badge-warning-bg: #fff7e6; --badge-warning-fg: #fa8c16; --badge-info-bg: #f0f0f0; --badge-info-fg: #666666; --link-color: var(--primary-color, #10b981); --link-danger: #f5222d; --table-header-fg: #999999; }
+html.dark { --badge-success-bg: #0d3320; --badge-success-fg: #73e2a3; --badge-danger-bg: #3b1219; --badge-danger-fg: #fca5a5; --badge-warning-bg: #3b2e08; --badge-warning-fg: #fcd34d; --badge-info-bg: #1e293b; --badge-info-fg: #94a3b8; --link-color: #6ee7b7; --link-danger: #fca5a5; --table-header-fg: #94a3b8; }
+
 html.dark { --sb: #1e293b; --sb-h: #334155; --sb-t: #94a3b8; --sb-ta: #f1f5f9; --sb-l: #64748b; --sb-b: #334155; --tb: #1e293b; --tb-b: #334155; --pg: #0f172a; --tx: #f1f5f9; --tx2: #94a3b8; --bg-color: #1e293b; --bg-color-page: #0f172a; --border-color: #334155; --fill-color: #334155; --text-color-primary: #f1f5f9; --text-color-secondary: #94a3b8; --c-accent: var(--primary-color, #34d399); --c-accent-rgb: 52,211,153; }
 </style>
 

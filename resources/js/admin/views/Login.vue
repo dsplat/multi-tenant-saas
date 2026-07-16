@@ -99,7 +99,7 @@ const handleLogin = async () => {
 
 .form-group input:focus {
   outline: none;
-  border-color: var(--primary-color, #409eff);
+  border-color: var(--link-color);
 }
 
 .login-btn {
@@ -120,7 +120,7 @@ const handleLogin = async () => {
 }
 
 .error-msg {
-  color: #f56c6c;
+  color: var(--link-danger);
   font-size: 13px;
   text-align: center;
   margin-top: 12px;

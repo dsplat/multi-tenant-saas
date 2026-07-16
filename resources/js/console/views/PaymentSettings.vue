@@ -172,8 +172,8 @@ onMounted(loadConfig)
 .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; font-size: 13px; box-sizing: border-box; }
 .form-group textarea { font-family: monospace; resize: vertical; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.badge-success { background: #e8f5e9; color: #2e7d32; }
-.badge-info { background: #eee; color: #666; }
+.badge-success { background: var(--badge-success-bg); color: var(--badge-success-fg); }
+.badge-info { background: var(--badge-info-bg); color: var(--badge-info-fg); }
 .primary-btn { padding: 10px 24px; border: none; border-radius: 6px; background: var(--primary-color, #409eff); color: #fff; cursor: pointer; font-size: 14px; margin-top: 8px; }
 .primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>

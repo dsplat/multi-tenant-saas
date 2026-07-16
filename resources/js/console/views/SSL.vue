@@ -62,9 +62,9 @@ onMounted(fetchCert)
 .info-row.warning { color: #fa8c16; }
 .empty-row { text-align: center; color: var(--text-color-secondary, #999); padding: 24px; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.badge-info { background: #eee; color: #666; }
-.badge-success { background: #e6ffed; color: #52c41a; }
-.badge-danger { background: #fff1f0; color: #f5222d; }
+.badge-info { background: var(--badge-info-bg); color: var(--badge-info-fg); }
+.badge-success { background: var(--badge-success-bg); color: var(--badge-success-fg); }
+.badge-danger { background: var(--badge-danger-bg); color: var(--badge-danger-fg); }
 .actions-bar { display: flex; gap: 8px; }
 .primary-btn { padding: 8px 16px; background: var(--primary-color, #409eff); color: #fff; border: none; border-radius: 6px; cursor: pointer; }
 .danger-btn { padding: 8px 16px; background: #f5222d; color: #fff; border: none; border-radius: 6px; cursor: pointer; }

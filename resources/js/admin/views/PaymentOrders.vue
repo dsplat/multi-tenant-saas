@@ -116,11 +116,11 @@ onMounted(() => { fetchTenants(); fetchOrders() })
 .mono { font-family: monospace; font-size: 12px; }
 .empty-row { text-align: center; color: var(--text-color-secondary, #999); padding: 24px; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.badge-success { background: #e6ffed; color: #52c41a; }
-.badge-warning { background: #fff7e6; color: #fa8c16; }
-.badge-danger { background: #fff1f0; color: #f5222d; }
-.badge-info { background: #eee; color: #666; }
-.link-btn { background: none; border: none; color: var(--primary-color, #409eff); cursor: pointer; font-size: 13px; padding: 0 4px; }
+.badge-success { background: var(--badge-success-bg); color: var(--badge-success-fg); }
+.badge-warning { background: var(--badge-warning-bg); color: var(--badge-warning-fg); }
+.badge-danger { background: var(--badge-danger-bg); color: var(--badge-danger-fg); }
+.badge-info { background: var(--badge-info-bg); color: var(--badge-info-fg); }
+.link-btn { background: none; border: none; color: var(--link-color); cursor: pointer; font-size: 13px; padding: 0 4px; }
 .pagination { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 16px; }
 .pagination button { padding: 6px 14px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; background: #fff; cursor: pointer; font-size: 13px; }
 .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }

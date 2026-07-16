@@ -53,7 +53,7 @@ onMounted(fetchOverview)
 .panel { background: var(--bg-color, #fff); border-radius: 8px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
 .stat-card { background: var(--fill-color, #f5f7fa); border-radius: 8px; padding: 20px; text-align: center; }
-.stat-value { font-size: 28px; font-weight: 600; color: var(--primary-color, #409eff); }
+.stat-value { font-size: 28px; font-weight: 600; color: var(--link-color); }
 .stat-label { font-size: 13px; color: var(--text-color-secondary, #666); margin-top: 4px; }
 .recharge-form { max-width: 400px; }
 .form-group { margin-bottom: 14px; }

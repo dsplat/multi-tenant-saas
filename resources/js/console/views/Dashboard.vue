@@ -77,16 +77,16 @@ onMounted(fetchDashboard)
 .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
 .stat-card { background: var(--bg-color, #fff); border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 .stat-label { font-size: 13px; color: var(--text-color-secondary, #999); margin-bottom: 8px; }
-.stat-value { font-size: 28px; font-weight: bold; color: var(--primary-color, #409eff); }
+.stat-value { font-size: 28px; font-weight: bold; color: var(--link-color); }
 .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .panel { background: var(--bg-color, #fff); border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 .panel h3 { margin: 0 0 16px; font-size: 15px; }
 .quick-actions { display: flex; flex-direction: column; gap: 10px; }
 .action-btn { display: block; padding: 10px 16px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; text-decoration: none; color: var(--text-color-primary, #333); font-size: 13px; transition: all 0.15s; }
-.action-btn:hover { border-color: var(--primary-color, #409eff); color: var(--primary-color, #409eff); }
+.action-btn:hover { border-color: var(--link-color); color: var(--link-color); }
 .info-list { display: flex; flex-direction: column; gap: 12px; }
 .info-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-color-primary, #333); }
 .info-row span:first-child { color: var(--text-color-secondary, #999); }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.badge-success { background: #e8f5e9; color: #2e7d32; }
+.badge-success { background: var(--badge-success-bg); color: var(--badge-success-fg); }
 </style>

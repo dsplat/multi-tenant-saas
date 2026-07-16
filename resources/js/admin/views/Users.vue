@@ -114,10 +114,10 @@ watch(() => tenantStore.tenantId, () => { if (tenantStore.hasTenant) fetchUsers(
 .data-table th, .data-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border-color, #eee); font-size: 13px; }
 .empty-row { text-align: center; color: var(--text-color-secondary, #999); padding: 24px; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.badge-success { background: #e6ffed; color: #52c41a; }
-.badge-danger { background: #fff1f0; color: #f5222d; }
-.link-btn { background: none; border: none; color: var(--primary-color, #409eff); cursor: pointer; font-size: 13px; padding: 0 4px; }
-.link-btn.danger { color: #f5222d; }
+.badge-success { background: var(--badge-success-bg); color: var(--badge-success-fg); }
+.badge-danger { background: var(--badge-danger-bg); color: var(--badge-danger-fg); }
+.link-btn { background: none; border: none; color: var(--link-color); cursor: pointer; font-size: 13px; padding: 0 4px; }
+.link-btn.danger { color: var(--link-danger); }
 .pagination { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 16px; }
 .pagination button { padding: 6px 14px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; background: #fff; cursor: pointer; font-size: 13px; }
 .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }

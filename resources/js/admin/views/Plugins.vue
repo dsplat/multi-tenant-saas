@@ -68,12 +68,12 @@ onMounted(fetchPlugins)
 .data-table th, .data-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border-color, #eee); font-size: 13px; }
 .empty-row { text-align: center; color: var(--text-color-secondary, #999); padding: 24px; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.badge-info { background: #eee; color: #666; }
-.badge-success { background: #e6ffed; color: #52c41a; }
-.badge-warning { background: #fff7e6; color: #fa8c16; }
-.badge-danger { background: #fff1f0; color: #f5222d; }
-.link-btn { background: none; border: none; color: var(--primary-color, #409eff); cursor: pointer; font-size: 13px; padding: 0 4px; }
-.link-btn.danger { color: #f5222d; }
+.badge-info { background: var(--badge-info-bg); color: var(--badge-info-fg); }
+.badge-success { background: var(--badge-success-bg); color: var(--badge-success-fg); }
+.badge-warning { background: var(--badge-warning-bg); color: var(--badge-warning-fg); }
+.badge-danger { background: var(--badge-danger-bg); color: var(--badge-danger-fg); }
+.link-btn { background: none; border: none; color: var(--link-color); cursor: pointer; font-size: 13px; padding: 0 4px; }
+.link-btn.danger { color: var(--link-danger); }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
 .modal-content { background: var(--bg-color, #fff); border-radius: 8px; padding: 24px; min-width: 380px; }
 .modal-content h3 { margin: 0 0 20px; }

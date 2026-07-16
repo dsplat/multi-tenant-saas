@@ -57,17 +57,17 @@ onMounted(fetchCredits)
 .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
 .stat-card { background: var(--bg-color, #fff); border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 .stat-label { font-size: 13px; color: var(--text-color-secondary, #999); margin-bottom: 8px; }
-.stat-value { font-size: 28px; font-weight: 600; color: var(--primary-color, #409eff); }
+.stat-value { font-size: 28px; font-weight: 600; color: var(--link-color); }
 .panel { background: var(--bg-color, #fff); border-radius: 8px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 .panel h3 { margin: 0 0 16px; font-size: 15px; }
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th, .data-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border-color, #eee); font-size: 13px; }
 .empty-row { text-align: center; color: var(--text-color-secondary, #999); padding: 24px; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.badge-success { background: #e6ffed; color: #52c41a; }
-.badge-danger { background: #fff1f0; color: #f5222d; }
-.badge-info { background: #eee; color: #666; }
-.badge-warning { background: #fff7e6; color: #fa8c16; }
+.badge-success { background: var(--badge-success-bg); color: var(--badge-success-fg); }
+.badge-danger { background: var(--badge-danger-bg); color: var(--badge-danger-fg); }
+.badge-info { background: var(--badge-info-bg); color: var(--badge-info-fg); }
+.badge-warning { background: var(--badge-warning-bg); color: var(--badge-warning-fg); }
 .text-green { color: #52c41a; }
-.text-red { color: #f5222d; }
+.text-red { color: var(--link-danger); }
 </style>

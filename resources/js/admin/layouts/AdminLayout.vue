@@ -227,6 +227,10 @@ const handleLogout = async () => {
 :root { --ac: var(--primary-color, #6366f1); --ac-r: 99,102,241; --sb: #ffffff; --sb-h: #f1f5f9; --sb-t: #64748b; --sb-ta: #0f172a; --sb-l: #94a3b8; --sb-b: #e2e8f0; --tb: #ffffff; --tb-b: #e2e8f0; --pg: #f1f5f9; --tx: #0f172a; --tx2: #64748b; --bg-color: #ffffff; --bg-color-page: #f1f5f9; --border-color: #e2e8f0; --fill-color: #f8fafc; --text-color-primary: #0f172a; --text-color-secondary: #64748b; }
 
 /* ===== THEME: dark — global override ===== */
+/* Badge variables */
+:root { --badge-success-bg: #e6ffed; --badge-success-fg: #52c41a; --badge-danger-bg: #fff1f0; --badge-danger-fg: #f5222d; --badge-warning-bg: #fff7e6; --badge-warning-fg: #fa8c16; --badge-info-bg: #f0f0f0; --badge-info-fg: #666666; --link-color: var(--primary-color, #6366f1); --link-danger: #f5222d; --table-header-fg: #999999; }
+html.dark { --badge-success-bg: #0d3320; --badge-success-fg: #73e2a3; --badge-danger-bg: #3b1219; --badge-danger-fg: #fca5a5; --badge-warning-bg: #3b2e08; --badge-warning-fg: #fcd34d; --badge-info-bg: #1e293b; --badge-info-fg: #94a3b8; --link-color: #818cf8; --link-danger: #fca5a5; --table-header-fg: #94a3b8; }
+
 /* Global element overrides for dark mode */
 html.dark h1, html.dark h2, html.dark h3, html.dark h4 { color: var(--text-color-primary, #f1f5f9); }
 html.dark input, html.dark select, html.dark textarea { background: var(--bg-color, #1e293b); color: var(--text-color-primary, #f1f5f9); border-color: var(--border-color, #334155); }

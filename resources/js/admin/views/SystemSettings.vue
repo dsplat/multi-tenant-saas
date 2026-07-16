@@ -44,7 +44,7 @@ onMounted(fetchSettings)
 .page-header h2 { margin: 0; }
 .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
 .tab-btn { padding: 8px 16px; border: 1px solid var(--border-color, #ddd); border-radius: 6px 6px 0 0; background: var(--fill-color, #f5f5f5); cursor: pointer; font-size: 13px; color: var(--text-color-secondary, #666); }
-.tab-btn.active { background: var(--bg-color, #fff); border-bottom-color: var(--bg-color, #fff); color: var(--primary-color, #409eff); font-weight: 500; }
+.tab-btn.active { background: var(--bg-color, #fff); border-bottom-color: var(--bg-color, #fff); color: var(--link-color); font-weight: 500; }
 .panel { background: var(--bg-color, #fff); border-radius: 0 8px 8px 8px; padding: 24px; max-width: 600px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
 .setting-row { margin-bottom: 16px; }
 .setting-row label { display: block; font-size: 13px; font-weight: 500; color: var(--text-color-primary, #333); margin-bottom: 4px; }

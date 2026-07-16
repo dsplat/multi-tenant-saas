@@ -93,7 +93,7 @@ onMounted(fetchTenants)
 .data-table th, .data-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border-color, #eee); font-size: 13px; }
 .empty-row { text-align: center; color: var(--text-color-secondary, #999); padding: 24px; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.badge-info { background: #eee; color: #666; }
+.badge-info { background: var(--badge-info-bg); color: var(--badge-info-fg); }
 .progress-cell { display: flex; align-items: center; gap: 8px; }
 .progress-bar { flex: 1; height: 8px; background: var(--fill-color, #eee); border-radius: 4px; overflow: hidden; max-width: 160px; }
 .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }

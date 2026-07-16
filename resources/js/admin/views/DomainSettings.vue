@@ -168,11 +168,11 @@ onMounted(fetchTenants)
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th, .data-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border-color, #eee); font-size: 13px; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.badge-success { background: #e8f5e9; color: #2e7d32; }
-.badge-warning { background: #fff3e0; color: #e65100; }
-.badge-danger { background: #fce4ec; color: #c62828; }
-.badge-info { background: #eee; color: #666; }
-.link-btn { background: none; border: none; color: var(--primary-color, #409eff); cursor: pointer; font-size: 13px; margin-right: 8px; }
+.badge-success { background: var(--badge-success-bg); color: var(--badge-success-fg); }
+.badge-warning { background: var(--badge-warning-bg); color: var(--badge-warning-fg); }
+.badge-danger { background: var(--badge-danger-bg); color: var(--badge-danger-fg); }
+.badge-info { background: var(--badge-info-bg); color: var(--badge-info-fg); }
+.link-btn { background: none; border: none; color: var(--link-color); cursor: pointer; font-size: 13px; margin-right: 8px; }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 3000; }
 .modal-content { background: var(--bg-color, #fff); border-radius: 8px; padding: 24px; width: 500px; max-height: 80vh; overflow-y: auto; }
 .modal-content h3 { margin: 0 0 16px; }

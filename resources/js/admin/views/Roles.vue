@@ -82,8 +82,8 @@ onMounted(() => { fetchRoles(); fetchPerms() })
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th, .data-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border-color, #eee); font-size: 13px; }
 .empty-row { text-align: center; color: var(--text-color-secondary, #999); padding: 24px; }
-.link-btn { background: none; border: none; color: var(--primary-color, #409eff); cursor: pointer; font-size: 13px; padding: 0 4px; }
-.link-btn.danger { color: #f5222d; }
+.link-btn { background: none; border: none; color: var(--link-color); cursor: pointer; font-size: 13px; padding: 0 4px; }
+.link-btn.danger { color: var(--link-danger); }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
 .modal-content { background: var(--bg-color, #fff); border-radius: 8px; padding: 24px; min-width: 400px; max-width: 600px; max-height: 80vh; overflow-y: auto; }
 .modal-content h3 { margin: 0 0 20px; }

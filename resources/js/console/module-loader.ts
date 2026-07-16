@@ -66,7 +66,15 @@ export async function loadModuleViews(): Promise<ModuleRoute[]> {
     if (hasCustomRoutes.has(moduleName)) continue
     if (pageName === 'Login') continue
 
-    const routePath = pageName.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '')
+    const knownPaths: Record<string, string> = {
+      Members: 'members', Credits: 'credits', OAuthSettings: 'oauth',
+      SmsSettings: 'sms', ApiTokens: 'api-tokens', PaymentSettings: 'payment',
+      Workflows: 'workflows', SSL: 'ssl', Webhooks: 'webhooks',
+      TenantSettings: 'tenant-settings', TenantDetail: 'tenants/:id',
+      Tickets: 'tickets',
+    }
+    const routePath = knownPaths[pageName]
+      || pageName.replace(/([a-z])([A-Z])/g, '$1-$2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2').toLowerCase()
 
     routes.push({
       path: routePath,
@@ -101,8 +109,16 @@ export function getModulePageEntries(): Array<{ moduleName: string; pageName: st
     const pageName = extractPageName(path)
     if (!moduleName || !pageName || pageName === 'Login') continue
 
-    const routePath = pageName.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '')
-    const label = pageName.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim()
+    const knownPaths: Record<string, string> = {
+      Members: 'members', Credits: 'credits', OAuthSettings: 'oauth',
+      SmsSettings: 'sms', ApiTokens: 'api-tokens', PaymentSettings: 'payment',
+      Workflows: 'workflows', SSL: 'ssl', Webhooks: 'webhooks',
+      TenantSettings: 'tenant-settings', TenantDetail: 'tenants/:id',
+      Tickets: 'tickets',
+    }
+    const routePath = knownPaths[pageName]
+      || pageName.replace(/([a-z])([A-Z])/g, '$1-$2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2').toLowerCase()
+    const label = pageName.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').replace(/^./, s => s.toUpperCase()).trim()
 
     entries.push({ moduleName, pageName, path: routePath, label })
   }

@@ -78,7 +78,39 @@ export async function loadModuleViews(): Promise<ModuleRoute[]> {
     // 跳过 Login.vue（登录页在核心 SPA 中）
     if (pageName === 'Login') continue
 
-    const routePath = pageName.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '')
+    // 已知页面路径映射（覆盖自动生成）
+    const knownPaths: Record<string, string> = {
+      Tenants: 'tenants',
+      TenantDetail: 'tenants/:id',
+      Users: 'users',
+      Operators: 'operators',
+      Roles: 'roles',
+      Plans: 'plans',
+      DomainSettings: 'domains',
+      OAuthSettings: 'oauth',
+      AuditLogs: 'audit-logs',
+      SmsSettings: 'sms',
+      PaymentOrders: 'payments',
+      ApiTokens: 'api-tokens',
+      Quotas: 'quotas',
+      Modules: 'modules',
+      Plugins: 'plugins',
+      SSL: 'ssl',
+      Webhooks: 'webhooks',
+      FeatureFlags: 'feature-flags',
+      IpWhitelist: 'ip-whitelist',
+      Branding: 'branding',
+      SsoProviders: 'sso-providers',
+      Credits: 'credits',
+      SystemSettings: 'system-settings',
+      TenantKeys: 'tenant-keys',
+      RetentionPolicies: 'retention-policies',
+      Consents: 'consents',
+      Sandbox: 'sandbox',
+      Settings: 'settings',
+    }
+    const routePath = knownPaths[pageName]
+      || pageName.replace(/([a-z])([A-Z])/g, '$1-$2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2').toLowerCase()
 
     routes.push({
       path: routePath,
@@ -114,8 +146,19 @@ export function getModulePageEntries(): Array<{ moduleName: string; pageName: st
     const pageName = extractPageName(path)
     if (!moduleName || !pageName || pageName === 'Login') continue
 
-    const routePath = pageName.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '')
-    const label = pageName.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim()
+    const knownPaths: Record<string, string> = {
+      Tenants: 'tenants', TenantDetail: 'tenants/:id', Users: 'users', Operators: 'operators',
+      Roles: 'roles', Plans: 'plans', DomainSettings: 'domains', OAuthSettings: 'oauth',
+      AuditLogs: 'audit-logs', SmsSettings: 'sms', PaymentOrders: 'payments',
+      ApiTokens: 'api-tokens', Quotas: 'quotas', Modules: 'modules', Plugins: 'plugins',
+      SSL: 'ssl', Webhooks: 'webhooks', FeatureFlags: 'feature-flags', IpWhitelist: 'ip-whitelist',
+      Branding: 'branding', SsoProviders: 'sso-providers', Credits: 'credits',
+      SystemSettings: 'system-settings', TenantKeys: 'tenant-keys', RetentionPolicies: 'retention-policies',
+      Consents: 'consents', Sandbox: 'sandbox', Settings: 'settings',
+    }
+    const routePath = knownPaths[pageName]
+      || pageName.replace(/([a-z])([A-Z])/g, '$1-$2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2').toLowerCase()
+    const label = pageName.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').replace(/^./, s => s.toUpperCase()).trim()
 
     entries.push({ moduleName, pageName, path: routePath, label })
   }

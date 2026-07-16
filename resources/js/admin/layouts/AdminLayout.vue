@@ -232,10 +232,14 @@ const handleLogout = async () => {
 html.dark { --badge-success-bg: #0d3320; --badge-success-fg: #73e2a3; --badge-danger-bg: #3b1219; --badge-danger-fg: #fca5a5; --badge-warning-bg: #3b2e08; --badge-warning-fg: #fcd34d; --badge-info-bg: #1e293b; --badge-info-fg: #94a3b8; --link-color: #818cf8; --link-danger: #fca5a5; --table-header-fg: #94a3b8; }
 
 /* Global element overrides for dark mode */
+html.dark, html.dark body { color: var(--text-color-primary, #f1f5f9); background: var(--bg-color-page, #0f172a); }
 html.dark h1, html.dark h2, html.dark h3, html.dark h4 { color: var(--text-color-primary, #f1f5f9); }
+html.dark p, html.dark span, html.dark td, html.dark th, html.dark label, html.dark li { color: inherit; }
 html.dark input, html.dark select, html.dark textarea { background: var(--bg-color, #1e293b); color: var(--text-color-primary, #f1f5f9); border-color: var(--border-color, #334155); }
 html.dark select option { background: #1e293b; color: #f1f5f9; }
 html.dark .page-header { background: var(--bg-color, #1e293b); padding: 16px 20px; border-radius: 8px; margin-bottom: 20px; }
+html.dark .panel { background: var(--bg-color, #1e293b); }
+html.dark .stat-card { background: var(--bg-color, #1e293b); }
 
 html.dark { --sb: #1e293b; --sb-h: #334155; --sb-t: #94a3b8; --sb-ta: #f1f5f9; --sb-l: #64748b; --sb-b: #334155; --tb: #1e293b; --tb-b: #334155; --pg: #0f172a; --tx: #f1f5f9; --tx2: #94a3b8; --bg-color: #1e293b; --bg-color-page: #0f172a; --border-color: #334155; --fill-color: #334155; --text-color-primary: #f1f5f9; --text-color-secondary: #94a3b8; }
 

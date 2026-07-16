@@ -13,6 +13,7 @@ const router = createRouter({
     },
     {
       path: '/',
+      name: 'ConsoleRoot',
       component: () => import('../layouts/ConsoleLayout.vue'),
       redirect: '/dashboard',
       children: [

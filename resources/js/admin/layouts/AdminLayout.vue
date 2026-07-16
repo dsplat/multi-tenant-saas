@@ -224,20 +224,20 @@ const handleLogout = async () => {
 
 <style>
 /* ===== THEME: light (default) ===== */
-.admin-layout { --ac: var(--primary-color, #6366f1); --ac-r: 99,102,241; --sb: #0f172a; --sb-h: rgba(255,255,255,0.06); --sb-t: #94a3b8; --sb-ta: #e2e8f0; --sb-l: #475569; --tb: #ffffff; --tb-b: #e2e8f0; --pg: #f1f5f9; --tx: #0f172a; --tx2: #64748b; /* Page-level variables (used by all view components) */ --bg-color: #ffffff; --bg-color-page: #f1f5f9; --border-color: #e2e8f0; --fill-color: #f8fafc; --text-color-primary: #0f172a; --text-color-secondary: #64748b; }
+.admin-layout { --ac: var(--primary-color, #6366f1); --ac-r: 99,102,241; --sb: #ffffff; --sb-h: #f1f5f9; --sb-t: #64748b; --sb-ta: #0f172a; --sb-l: #94a3b8; --sb-b: #e2e8f0; --tb: #ffffff; --tb-b: #e2e8f0; --pg: #f1f5f9; --tx: #0f172a; --tx2: #64748b; --bg-color: #ffffff; --bg-color-page: #f1f5f9; --border-color: #e2e8f0; --fill-color: #f8fafc; --text-color-primary: #0f172a; --text-color-secondary: #64748b; }
 
 /* ===== THEME: dark ===== */
-html.dark .admin-layout { --sb: #1e293b; --sb-h: rgba(255,255,255,0.08); --sb-t: #94a3b8; --sb-ta: #f1f5f9; --sb-l: #64748b; --tb: #1e293b; --tb-b: #334155; --pg: #0f172a; --tx: #f1f5f9; --tx2: #94a3b8; --bg-color: #1e293b; --bg-color-page: #0f172a; --border-color: #334155; --fill-color: #334155; --text-color-primary: #f1f5f9; --text-color-secondary: #94a3b8; }
+html.dark .admin-layout { --sb: #1e293b; --sb-h: #334155; --sb-t: #94a3b8; --sb-ta: #f1f5f9; --sb-l: #64748b; --sb-b: #334155; --tb: #1e293b; --tb-b: #334155; --pg: #0f172a; --tx: #f1f5f9; --tx2: #94a3b8; --bg-color: #1e293b; --bg-color-page: #0f172a; --border-color: #334155; --fill-color: #334155; --text-color-primary: #f1f5f9; --text-color-secondary: #94a3b8; }
 
 /* ===== LAYOUT ===== */
 .admin-layout { display: flex; height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
 
 /* ===== SIDEBAR ===== */
-.admin-layout .a-sidebar { width: 260px; background: var(--sb); display: flex; flex-direction: column; flex-shrink: 0; }
-.admin-layout .a-logo { height: 64px; display: flex; align-items: center; gap: 12px; padding: 0 20px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.admin-layout .a-sidebar { width: 260px; background: var(--sb); display: flex; flex-direction: column; flex-shrink: 0; border-right: 1px solid var(--sb-b); }
+.admin-layout .a-logo { height: 64px; display: flex; align-items: center; gap: 12px; padding: 0 20px; border-bottom: 1px solid var(--sb-b); }
 .admin-layout .a-logo-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--ac), color-mix(in srgb, var(--ac) 70%, #fff)); display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; }
 .admin-layout .a-logo-text { display: flex; flex-direction: column; }
-.admin-layout .a-logo-title { font-size: 15px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.02em; }
+.admin-layout .a-logo-title { font-size: 15px; font-weight: 700; color: var(--sb-ta); letter-spacing: -0.02em; }
 .admin-layout .a-logo-sub { font-size: 11px; color: var(--sb-l); margin-top: 1px; }
 
 .admin-layout .a-nav { flex: 1; overflow-y: auto; padding: 8px 0; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
@@ -254,7 +254,7 @@ html.dark .admin-layout { --sb: #1e293b; --sb-h: rgba(255,255,255,0.08); --sb-t:
 .admin-layout .a-nav-icon { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.7; }
 .admin-layout .a-nav-item.active .a-nav-icon { opacity: 1; }
 
-.admin-layout .a-footer { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.06); }
+.admin-layout .a-footer { padding: 12px 16px; border-top: 1px solid var(--sb-b); }
 .admin-layout .a-user { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; }
 .admin-layout .a-user:hover { background: var(--sb-h); }
 .admin-layout .a-avatar { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--ac), color-mix(in srgb, var(--ac) 70%, #fff)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }

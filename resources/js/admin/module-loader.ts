@@ -78,7 +78,7 @@ export async function loadModuleViews(): Promise<ModuleRoute[]> {
     // 跳过 Login.vue（登录页在核心 SPA 中）
     if (pageName === 'Login') continue
 
-    const routePath = `${moduleName.toLowerCase()}/${pageName.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '')}`
+    const routePath = pageName.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '')
 
     routes.push({
       path: routePath,
@@ -114,7 +114,7 @@ export function getModulePageEntries(): Array<{ moduleName: string; pageName: st
     const pageName = extractPageName(path)
     if (!moduleName || !pageName || pageName === 'Login') continue
 
-    const routePath = `${moduleName.toLowerCase()}/${pageName.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '')}`
+    const routePath = pageName.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '')
     const label = pageName.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim()
 
     entries.push({ moduleName, pageName, path: routePath, label })

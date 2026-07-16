@@ -54,7 +54,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
 import axios from 'axios'
-import { useTenantStore } from '../stores/tenant'
+import { useTenantStore } from '@stores/tenant'
 
 const tenantStore = useTenantStore()
 const users = ref<any[]>([])

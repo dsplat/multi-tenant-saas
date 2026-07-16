@@ -18,8 +18,12 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, '.'),
+      '@stores': resolve(__dirname, 'stores'),
       '@multi-tenant-saas/ui-core': resolve(__dirname, '../ui-core'),
       'axios': resolve(__dirname, 'node_modules/axios'),
+      'vue': resolve(__dirname, 'node_modules/vue'),
+      'vue-router': resolve(__dirname, 'node_modules/vue-router'),
+      'pinia': resolve(__dirname, 'node_modules/pinia'),
     },
   },
   optimizeDeps: {

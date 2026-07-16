@@ -30,7 +30,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
-import { useUserStore } from '../stores/user'
+import { useUserStore } from '@stores/user'
 
 const userStore = useUserStore()
 const balance = reactive({ total: 0, used: 0, available: 0 })

@@ -50,7 +50,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
-import { useUserStore } from '../stores/user'
+import { useUserStore } from '@stores/user'
 
 const userStore = useUserStore()
 const API = computed(() => `/api/v1/tenants/${userStore.tenantId}/members`)

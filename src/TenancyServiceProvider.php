@@ -62,6 +62,10 @@ class TenancyServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/tenancy.php', 'tenancy');
         $this->mergeConfigFrom(__DIR__ . '/../config/channel.php', 'channel');
+        $this->mergeConfigFrom(__DIR__ . '/../config/ai.php', 'ai');
+        $this->mergeConfigFrom(__DIR__ . '/../config/pay.php', 'pay');
+        $this->mergeConfigFrom(__DIR__ . '/../config/id.php', 'id');
+        $this->mergeConfigFrom(__DIR__ . '/../config/socialite.php', 'socialite');
 
         // 模块基础设施
         $this->app->singleton(ModuleRegistry::class);
@@ -92,7 +96,10 @@ class TenancyServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // 发布资源
+        // 自动加载核心迁移（下游无需维护副本）
+        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+
+        // 发布资源（供需要自定义迁移/配置的项目使用）
         $this->publishes([
             __DIR__ . '/../config/tenancy.php' => config_path('tenancy.php'),
         ], 'tenancy-config');

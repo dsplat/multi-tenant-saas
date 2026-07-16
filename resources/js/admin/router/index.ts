@@ -31,7 +31,7 @@ const router = createRouter({
 // 动态加载模块路由
 getAllModuleRoutes().then(moduleRoutes => {
   if (moduleRoutes.length > 0) {
-    const mainRoute = router.getRoutes().find(r => r.name === undefined && r.path === '/')
+    const mainRoute = router.getRoutes().find(r => r.name === 'AdminRoot')
     if (mainRoute) {
       for (const route of moduleRoutes) {
         router.addRoute(mainRoute.name as string, {

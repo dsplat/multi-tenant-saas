@@ -17,6 +17,7 @@ use MultiTenantSaas\Jobs\SendPasswordResetJob;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Auth\Services\MfaService;
 use MultiTenantSaas\Modules\Auth\Services\PasswordPolicyService;
+use MultiTenantSaas\Modules\Auth\Services\RbacService;
 use MultiTenantSaas\Modules\Auth\Services\SessionService;
 use MultiTenantSaas\Modules\Auth\Services\SsoService;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
@@ -145,12 +146,12 @@ class AuthController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
+        $userData = $this->userToArray($request->user());
+        $userData['permissions'] = RbacService::getCurrentUserPermissions();
+
         return response()->json([
             'success' => true,
-            'data' => [
-                'user' => $this->userToArray($request->user()),
-                'tenant_id' => $request->attributes->get('tenant_id'),
-            ],
+            'data' => $userData,
         ]);
     }
 

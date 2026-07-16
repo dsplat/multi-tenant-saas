@@ -94,6 +94,44 @@ class RbacService
     }
 
     /**
+     * 获取当前用户的所有权限标识
+     *
+     * 基于 operator_tenants 的 role_id 查询，与 check() 逻辑一致。
+     */
+    public static function getCurrentUserPermissions(): array
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return [];
+        }
+
+        $tenantId = TenantContext::getId() ?? request()->route('tenantId');
+
+        if ($tenantId) {
+            $operatorTenant = OperatorTenant::where('user_id', $user->user_id)
+                ->where('tenant_id', $tenantId)
+                ->where('is_active', true)
+                ->first();
+
+            if (! $operatorTenant) {
+                $operatorTenant = OperatorTenant::where('user_id', $user->user_id)
+                    ->where('is_active', true)
+                    ->first();
+            }
+        } else {
+            $operatorTenant = OperatorTenant::where('user_id', $user->user_id)
+                ->where('is_active', true)
+                ->first();
+        }
+
+        if ($operatorTenant && $operatorTenant->role_id) {
+            return static::getRolePermissions($operatorTenant->role_id);
+        }
+
+        return [];
+    }
+
+    /**
      * 清除角色权限缓存
      */
     public static function clearRoleCache(int $roleId): void

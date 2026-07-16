@@ -5,7 +5,7 @@ Laravel 多租户 SaaS 基础框架 — 开箱即用的企业级项目骨架。
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP](https://img.shields.io/badge/PHP-%5E8.3-777BB4)](https://php.net)
 [![Laravel](https://img.shields.io/badge/Laravel-%5E13.0-FF2D20)](https://laravel.com)
-[![Tests](https://img.shields.io/badge/tests-2269%20passed-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-2351%20passed-brightgreen)](#)
 
 [Docs](docs/README.md) | [User Manual (中文)](docs/zh/user-manual.md) | [Quickstart](docs/en/guides/quickstart.md) | [安全审计](docs/zh/security/security-audit.md)
 
@@ -42,7 +42,22 @@ php artisan key:generate
 # Edit .env: DB_*, ADMIN_DOMAIN
 
 php artisan migrate
-php artisan db:seed   # Creates platform tenant (ID: 9007199254740991)
+php artisan platform:init --email=admin@example.com --password=your-password
+```
+
+### SPA Backends
+
+```bash
+# Build Admin SPA
+cd resources/js/admin && npx vite build
+
+# Build Console SPA
+cd resources/js/console && npx vite build
+
+# Start dev server
+php artisan serve
+# Admin: http://localhost:8000/admin/
+# Console: http://localhost:8000/console/
 ```
 
 ---
@@ -55,7 +70,41 @@ php artisan db:seed   # Creates platform tenant (ID: 9007199254740991)
 - **Global ID**: 16-digit random JS-safe IDs, no auto-increment
 - **Multi-Payment**: WeChat, Alipay, PayPal, Stripe, UnionPay
 - **AI Gateway**: Multi-provider (OpenAI/Claude/DeepSeek), Agent framework (8 templates)
-- **22 Modules**: Billing, Auth, Form, Lottery, Voting, SMS, Coupon, Workflow, Conversation, etc.
+- **SPA Backends**: 27 Admin pages + 12 Console pages with dark mode + theme system
+- **26 Modules**: Billing, Auth, Form, Lottery, Voting, SMS, Coupon, Workflow, Conversation, etc.
+
+---
+
+## SPA Backends
+
+### Admin (系统后台)
+
+27 pages with full CRUD, tenant selector, dark mode support:
+
+| Group | Pages |
+|-------|-------|
+| 概览 | 仪表盘, 租户管理, 运营人员, 角色权限, 订阅计划 |
+| 平台配置 | 模块管理, 插件管理, 功能开关, 品牌配置, SSO, 系统设置, 数据保留, 沙箱, 配置中心 |
+| 租户管理 | 用户, 域名, OAuth, 审计, 短信, 支付, Token, 配额, 积分, SSL, Webhooks, IP白名单, 租户密钥, 合规 |
+
+### Console (租户后台)
+
+12 pages with tenant-scoped operations:
+
+| Group | Pages |
+|-------|-------|
+| 概览 | 工作台 |
+| 团队与财务 | 成员管理, 积分管理 |
+| 集成与配置 | 第三方登录, 支付配置, 短信配置, API Token |
+| 自动化与安全 | 工作流, SSL 证书, Webhooks |
+| 设置 | 邮件/认证/注册 |
+
+### Theme System
+
+- Light/Dark mode toggle
+- Color picker (accent color flows through all UI)
+- CSS variables on `:root` with `html.dark` overrides
+- All badge/link/table colors use CSS variables (no hardcoded hex)
 
 ---
 
@@ -70,97 +119,70 @@ composer remove dsplat/multi-tenant-saas-module-lottery
 php artisan module:list
 php artisan module:enable billing
 php artisan module:disable ssl
-
-# Create + publish new module
-bin/module-publish demo --priority=500 --toggleable --description="Demo module"
 ```
 
-Each module is an independent Composer package on Packagist. Push to `main` triggers GitHub Actions to auto-split and update Packagist.
+Each module is an independent Composer package on Packagist.
 
 | Package | Type |
 |---|---|
 | `dsplat/multi-tenant-saas` | Core framework (includes `Contracts/ModuleServiceProvider` base class) |
-| `dsplat/multi-tenant-saas-module-{name}` | 22 independent modules |
+| `dsplat/multi-tenant-saas-module-{name}` | 26 independent modules |
 
-**Module types:**
-- **Self-contained** (10): Ai, ApiToken, Auth, Conversation, Coupon, Form, Lottery, Sms, Voting, Workflow — have Controllers, Routes, Models in module directory
-- **Thin wrappers** (12): Billing, Infrastructure, etc. — ServiceProvider only, business logic lives in core package
+---
 
-### Framework Architecture
+## Extending the Framework
+
+### Adding a New Module
+
+Create a complete module (database → API → frontend) without modifying the framework:
 
 ```
-dsplat/multi-tenant-saas (core package, type: library)
-│
-├── src/                          ← 框架库 (library layer)
-│   ├── Concerns/                 # 共享 Traits: BelongsToTenant, HasGlobalId, Searchable
-│   ├── Context/                  # TenantContext 租户上下文
-│   ├── Contracts/                # 接口定义 (18 个)
-│   ├── Events/                   # 框架事件
-│   ├── Exceptions/               # 异常类
-│   ├── Helpers/                  # 辅助函数 (tenant_id(), generate_id())
-│   ├── Http/                     # 核心中间件
-│   ├── Jobs/                     # 队列任务
-│   ├── Mail/                     # 邮件类 (TenantMail, PasswordResetMail)
-│   ├── Models/                   # 核心模型 (User, Tenant, TenantUser...)
-│   ├── Modules/                  # 22 个功能模块 (独立 Composer 包)
-│   │   ├── Contracts/            # ModuleServiceProvider 基类
-│   │   ├── Auth/                 # 认证模块 (Controller + Route + Service)
-│   │   ├── Ai/                   # AI 模块 (Agent + MCP + 能力引擎)
-│   │   ├── Billing/              # 计费模块 (薄包装, 只有 Service)
-│   │   └── ...                   # 其他 19 个模块
-│   └── Services/                 # 核心服务 (94 个)
-│
-├── app/                          ← 项目骨架 (skeleton layer)
-│   ├── Http/Controllers/Api/     # API 控制器 (调用框架 Services)
-│   ├── Http/Resources/           # API 响应格式化
-│   ├── Http/Requests/            # 表单验证规则
-│   └── Exceptions/               # 异常处理
-│
-├── config/                       # 配置文件
-├── database/                     # 迁移和种子
-├── routes/                       # 路由定义
-└── tests/                        # 测试 (2313 tests, 5751 assertions)
+src/Modules/MyModule/
+├── MyModuleServiceProvider.php    ← extends ModuleServiceProvider
+├── composer.json                  ← extra.saas config
+├── Database/migrations/           ← auto-loaded
+├── Models/                        ← HasGlobalId + BelongsToTenant
+├── Services/                      ← business logic
+├── Http/Controllers/              ← ApiResponse + AuthorizesTenantAccess
+├── Routes/
+│   ├── api.php                    → /api/v1/...  (auth + tenant)
+│   ├── admin.php                  → /v1/admin/... (auth)
+│   ├── tenant.php                 → /tenant/... (auth)
+│   └── public.php                 → /api/v1/...  (no auth)
+└── resources/
+    ├── admin/views/*.vue          → auto-discovered by sidebar
+    └── console/views/*.vue        → auto-discovered by sidebar
 ```
 
-**两层架构：**
-- `src/` = 框架库，包含所有业务逻辑、模型、服务、模块
-- `app/` = 项目骨架，包含 HTTP 接口层（控制器、资源、请求验证）
+**See `src/Modules/Ticket/` for a complete working example.**
 
-**模块独立安装：**
-```bash
-composer require dsplat/multi-tenant-saas-module-billing  # 按需安装
-composer require dsplat/multi-tenant-saas-module-ai        # 独立包
-```
+### Auto-Discovery
 
-**模块类型：**
-- 自包含模块：Controller + Route + Model + Service（开箱即用）
-- 薄包装模块：只有 Service（项目层按需调用）
-
-### Common Pitfalls
-
-**`base_path()` in Orchestra Testbench:** `base_path()` points to a temp directory during tests, not the real project root. Use `dirname(__DIR__)` or absolute paths when locating modules/services. This affects any code that scans `src/Modules/` or `vendor/` for module discovery.
+- **Backend**: `ModuleRegistry` scans `src/Modules/*/composer.json` `extra.saas`
+- **Frontend**: `module-loader.ts` discovers `*.vue` files and auto-generates routes + sidebar entries
+- **No framework modifications needed** — just create files in the right locations
 
 ---
 
 ## Architecture
 
 ```
-multi-tenant-saas/
-├── app/Http/Controllers/Api/  # Core API controllers (22)
-├── config/tenancy.php         # Framework config
-├── src/
-│   ├── Concerns/              # BelongsToTenant, HasGlobalId
-│   ├── Context/               # TenantContext
-│   ├── Contracts/             # 18 interfaces
-│   ├── Modules/               # 22 modules (split to Packagist)
-│   │   └── Contracts/         # ModuleServiceProvider base class
-│   ├── Services/              # 94 core services + ModuleRegistry/Manager/Bootstrapper
-│   └── TenancyServiceProvider.php
-├── composer.json              # type: library, path repo for modules
-└── bin/module-publish         # Module publish helper
+dsplat/multi-tenant-saas (core package, type: library)
+├── src/                          ← Framework library
+│   ├── Concerns/                 # BelongsToTenant, HasGlobalId
+│   ├── Context/                  # TenantContext
+│   ├── Contracts/                # Interfaces + ModuleServiceProvider base
+│   ├── Modules/                  # 26 modules (independent Composer packages)
+│   └── Services/                 # Core services
+├── resources/js/
+│   ├── admin/                    # Admin SPA (Vue 3 + TypeScript + Vite)
+│   ├── console/                  # Console SPA
+│   └── ui-core/                  # Shared UI components + theme system
+├── app/                          # Project skeleton (HTTP layer)
+├── config/                       # Configuration
+├── server.php                    # PHP built-in server SPA routing fix
+└── tests/                        # 2351 tests
 ```
-
-**Boot flow:** `TenancyServiceProvider::boot()` → `ModuleBootstrapper` → scan `composer.json extra.saas` → topological sort → register & boot enabled modules.
 
 ---
 
@@ -170,8 +192,8 @@ multi-tenant-saas/
 |---|---|
 | **Guides** | [Quickstart (en)](docs/en/guides/quickstart.md) · [快速开始 (zh)](docs/zh/guides/quickstart.md) · [RBAC](docs/zh/guides/rbac-guide.md) · [AI Module](docs/zh/guides/ai-module-guide.md) |
 | **Architecture** | [System Overview](docs/zh/architecture/system-overview.md) · [Tenant Isolation](docs/zh/architecture/tenant-isolation.md) · [Data Model](docs/zh/architecture/data-model.md) |
-| **Deployment** | [Deployment Guide](docs/zh/deployment/deployment-guide.md) · [Nginx](docs/zh/deployment/nginx-guide.md) · [Monitoring](docs/zh/deployment/monitoring-alerting.md) |
-| **API** | [API Overview](docs/zh/api/api-overview.md) · [Core API](docs/zh/api/core-api.md) · [OpenAPI Spec](docs/zh/api/openapi.yaml) |
+| **Deployment** | [Deployment Guide](docs/zh/deployment/deployment-guide.md) · [Nginx](docs/zh/deployment/nginx-guide.md) · [SPA Build](docs/spa-build-deploy.md) |
+| **API** | [API Overview](docs/zh/api/api-overview.md) · [Core API](docs/zh/api/core-api.md) |
 | **Full Index** | [docs/README.md](docs/README.md) (bilingual) |
 
 ---
@@ -183,8 +205,8 @@ PHP ^8.3 · Laravel ^13.0 · MySQL 8.0+ · Redis · Nginx + PHP-FPM · Vue.js 3 
 ## Testing
 
 ```bash
-composer test              # Parallel (~6s, 2269 tests, 5648 assertions)
-composer test:sequential   # Single-thread fallback
+php -d memory_limit=512M vendor/bin/phpunit    # 2351 tests, 5915 assertions
+vendor/bin/pint --test                          # Code style check
 ```
 
 ## License

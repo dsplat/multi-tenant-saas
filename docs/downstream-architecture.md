@@ -256,10 +256,46 @@ $users = User::where('name', 'like', '%John%')->get();
 
 ---
 
+## 扩展框架：添加自定义模块
+
+下游项目可以在不修改框架代码的情况下，通过添加自定义模块来扩展功能。
+
+### 目录结构
+
+```
+src/Modules/MyModule/
+├── MyModuleServiceProvider.php    ← 继承 ModuleServiceProvider
+├── composer.json                  ← extra.saas 配置
+├── Database/migrations/           ← 自动加载
+├── Models/                        ← 使用 HasGlobalId + BelongsToTenant
+├── Services/                      ← 业务逻辑
+├── Http/Controllers/              ← 使用 ApiResponse + AuthorizesTenantAccess
+├── Routes/
+│   ├── api.php                    → /api/v1/...  (auth + tenant)
+│   ├── admin.php                  → /v1/admin/... (auth)
+│   └── tenant.php                 → /tenant/... (auth)
+└── resources/
+    ├── admin/views/*.vue          → 自动发现，侧边栏显示
+    └── console/views/*.vue        → 自动发现，侧边栏显示
+```
+
+### 自动发现机制
+
+- **后端**: `ModuleRegistry` 扫描 `src/Modules/*/composer.json` 的 `extra.saas` 字段
+- **前端**: `module-loader.ts` 的 `getModulePageEntries()` 自动发现 Vue 文件并生成侧边栏入口
+- **路由**: `ModuleServiceProvider::loadModuleRoutes()` 自动加载 `Routes/` 下的路由文件
+
+### 完整示例
+
+参考 `src/Modules/Ticket/` — 从数据库迁移、模型、服务、控制器、路由到前端页面的完整工作流。
+
+---
+
 ## 总结
 
 - ✅ 下游有自己的 `App\Models\User`
 - ✅ 通过 `MultiTenantSaas\Contracts\UserContract` 访问框架
 - ✅ Service 层封装框架调用
+- ✅ 通过自定义模块扩展框架功能（无需修改框架代码）
 - ❌ 不直接 `use MultiTenantSaas\Modules\Auth\Models\User`
 - ❌ 不继承框架模型

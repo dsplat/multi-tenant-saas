@@ -231,6 +231,7 @@ const handleLogout = async () => {
 html.dark h1, html.dark h2, html.dark h3, html.dark h4 { color: var(--text-color-primary, #f1f5f9); }
 html.dark input, html.dark select, html.dark textarea { background: var(--bg-color, #1e293b); color: var(--text-color-primary, #f1f5f9); border-color: var(--border-color, #334155); }
 html.dark select option { background: #1e293b; color: #f1f5f9; }
+html.dark .page-header { background: var(--bg-color, #1e293b); padding: 16px 20px; border-radius: 8px; margin-bottom: 20px; }
 
 html.dark { --sb: #1e293b; --sb-h: #334155; --sb-t: #94a3b8; --sb-ta: #f1f5f9; --sb-l: #64748b; --sb-b: #334155; --tb: #1e293b; --tb-b: #334155; --pg: #0f172a; --tx: #f1f5f9; --tx2: #94a3b8; --bg-color: #1e293b; --bg-color-page: #0f172a; --border-color: #334155; --fill-color: #334155; --text-color-primary: #f1f5f9; --text-color-secondary: #94a3b8; }
 

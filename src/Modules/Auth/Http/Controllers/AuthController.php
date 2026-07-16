@@ -146,12 +146,13 @@ class AuthController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
-        $userData = $this->userToArray($request->user());
-        $userData['permissions'] = RbacService::getCurrentUserPermissions();
-
         return response()->json([
             'success' => true,
-            'data' => $userData,
+            'data' => [
+                'user' => $this->userToArray($request->user()),
+                'tenant_id' => $request->attributes->get('tenant_id'),
+                'permissions' => RbacService::getCurrentUserPermissions(),
+            ],
         ]);
     }
 

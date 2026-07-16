@@ -39,7 +39,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       const response = await axios.get('/api/v1/admin/auth/user')
       const data = response.data.data
-      user.value = data
+      user.value = data.user || data
       permissions.value = data.permissions || []
     } catch (error) {
       console.error('获取用户信息失败:', error)

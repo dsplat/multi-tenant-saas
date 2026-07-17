@@ -4,7 +4,7 @@ return [
     'default_tenant_id' => env('TENANCY_DEFAULT_TENANT_ID'),
 
     // 框架核心版本 (供模块 requires_core 校验)
-    'core_version' => env('TENANCY_CORE_VERSION', '2.4.0'),
+    'core_version' => env('TENANCY_CORE_VERSION', '2.6.0'),
 
     // 部署模式: saas (完整多租户) | standalone (独立部署, 等同于关闭注册的单租户)
     'deployment_mode' => env('DEPLOYMENT_MODE', 'saas'),

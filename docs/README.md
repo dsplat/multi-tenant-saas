@@ -89,4 +89,4 @@
 
 ---
 
-**Version**: v2.1.0 | **Last Updated**: 2026-07-10
+**Version**: v2.6.0 | **Last Updated**: 2026-07-16

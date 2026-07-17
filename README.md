@@ -48,16 +48,22 @@ php artisan platform:init --email=admin@example.com --password=your-password
 ### SPA Backends
 
 ```bash
-# Build Admin SPA
+# Build Admin SPA (Element Plus UI)
 cd resources/js/admin && npx vite build
 
-# Build Console SPA
+# Build Console SPA (Element Plus UI)
 cd resources/js/console && npx vite build
 
 # Start dev server
 php artisan serve
 # Admin: http://localhost:8000/admin/
 # Console: http://localhost:8000/console/
+
+# Development with hot reload
+cd resources/js/admin && npx vite     # Admin dev server (default :5174)
+cd resources/js/console && npx vite  # Console dev server (default :5173)
+# Admin: http://localhost:5174/admin/
+# Console: http://localhost:5173/console/
 ```
 
 ---
@@ -66,11 +72,11 @@ php artisan serve
 
 - **Four-Layer Access**: System admin → Tenant admin → End user → Guest
 - **Tenant Isolation**: Auto `WHERE tenant_id = ?` on all queries
-- **RBAC**: 60+ permission nodes, custom roles per tenant
+- **RBAC**: 89 permission nodes, custom roles per tenant
 - **Global ID**: 16-digit random JS-safe IDs, no auto-increment
 - **Multi-Payment**: WeChat, Alipay, PayPal, Stripe, UnionPay
 - **AI Gateway**: Multi-provider (OpenAI/Claude/DeepSeek), Agent framework (8 templates)
-- **SPA Backends**: 27 Admin pages + 12 Console pages with dark mode + theme system
+- **SPA Backends**: 27 Admin pages + 12 Console pages, dual UI framework (Element Plus + Bootstrap)
 - **26 Modules**: Billing, Auth, Form, Lottery, Voting, SMS, Coupon, Workflow, Conversation, etc.
 
 ---
@@ -150,8 +156,8 @@ src/Modules/MyModule/
 │   ├── tenant.php                 → /tenant/... (auth)
 │   └── public.php                 → /api/v1/...  (no auth)
 └── resources/
-    ├── admin/views/*.vue          → auto-discovered by sidebar
-    └── console/views/*.vue        → auto-discovered by sidebar
+    ├── admin/ui/element-plus/views/*.vue   → auto-discovered by sidebar
+    └── console/ui/element-plus/views/*.vue → auto-discovered by sidebar
 ```
 
 **See `src/Modules/Ticket/` for a complete working example.**
@@ -174,15 +180,41 @@ dsplat/multi-tenant-saas (core package, type: library)
 │   ├── Contracts/                # Interfaces + ModuleServiceProvider base
 │   ├── Modules/                  # 26 modules (independent Composer packages)
 │   └── Services/                 # Core services
-├── resources/js/
-│   ├── admin/                    # Admin SPA (Vue 3 + TypeScript + Vite)
-│   ├── console/                  # Console SPA
-│   └── ui-core/                  # Shared UI components + theme system
+├── resources/
+│   ├── pages/                    # SPA entry points + UI frameworks
+│   │   ├── admin/ui/{bootstrap,element-plus}/  # Admin pages
+│   │   ├── console/ui/{bootstrap,element-plus}/ # Console pages
+│   │   └── ui-core/              # Shared UI components + theme system
+│   └── js/                       # SPA build configs, stores, routers
+│       ├── admin/                # Admin SPA (Vite config, stores)
+│       └── console/              # Console SPA (Vite config, stores)
 ├── app/                          # Project skeleton (HTTP layer)
 ├── config/                       # Configuration
 ├── server.php                    # PHP built-in server SPA routing fix
 └── tests/                        # 2351 tests
 ```
+
+---
+
+## Screenshots
+
+### Admin 后台
+
+| Page | Screenshot |
+|------|------------|
+| 仪表盘 | ![Admin Dashboard](docs/screenshots/admin-dashboard.png) |
+| 租户管理 | ![Admin Tenants](docs/screenshots/admin-tenants.png) |
+| 模块管理 | ![Admin Modules](docs/screenshots/admin-modules.png) |
+| 运营人员 | ![Admin Operators](docs/screenshots/admin-operators.png) |
+| 系统设置 | ![Admin Settings](docs/screenshots/admin-system-settings.png) |
+
+### Console 租户后台
+
+| Page | Screenshot |
+|------|------------|
+| 工作台 | ![Console Dashboard](docs/screenshots/console-dashboard.png) |
+| 成员管理 | ![Console Members](docs/screenshots/console-members.png) |
+| 租户设置 | ![Console Settings](docs/screenshots/console-tenant-settings.png) |
 
 ---
 
@@ -200,7 +232,7 @@ dsplat/multi-tenant-saas (core package, type: library)
 
 ## Tech Stack
 
-PHP ^8.3 · Laravel ^13.0 · MySQL 8.0+ · Redis · Nginx + PHP-FPM · Vue.js 3 + TypeScript + Vite
+PHP ^8.3 · Laravel ^13.0 · MySQL 8.0+ · Redis · Nginx + PHP-FPM · Vue.js 3 + TypeScript + Vite + Element Plus
 
 ## Testing
 

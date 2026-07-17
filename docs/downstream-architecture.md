@@ -275,8 +275,8 @@ src/Modules/MyModule/
 │   ├── admin.php                  → /v1/admin/... (auth)
 │   └── tenant.php                 → /tenant/... (auth)
 └── resources/
-    ├── admin/views/*.vue          → 自动发现，侧边栏显示
-    └── console/views/*.vue        → 自动发现，侧边栏显示
+    ├── admin/ui/element-plus/views/*.vue   → 自动发现，侧边栏显示
+    └── console/ui/element-plus/views/*.vue → 自动发现，侧边栏显示
 ```
 
 ### 自动发现机制

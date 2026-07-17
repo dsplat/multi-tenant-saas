@@ -782,8 +782,8 @@ composer test:filter -- SomeTest  # Filtered
 - **Database**: MySQL 8.0+
 - **Cache**: Redis (recommended) / Database
 - **Web Server**: Nginx + PHP-FPM
-- **Frontend**: Vue.js 3 + TypeScript + Vite
-- **CSS**: Bootstrap
+- **Frontend**: Vue.js 3 + TypeScript + Vite + Element Plus
+- **UI Framework**: Element Plus (primary) + Bootstrap (alternative), dual UI framework support via directory isolation
 
 ### Integrations
 

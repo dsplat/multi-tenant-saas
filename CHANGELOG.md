@@ -2,6 +2,27 @@
 
 ## v2.6.0 (2026-07-16)
 
+### UI Framework Directory Isolation
+
+- **目录结构迁移**: Admin/Console 前端从 `resources/js/{admin,console}/views/` 迁移至 `resources/pages/{admin,console}/ui/{bootstrap,element-plus}/` 目录
+- **模块视图隔离**: 各模块视图从 `src/Modules/*/resources/{admin,console}/views/` 迁移至 `src/Modules/*/resources/{admin,console}/ui/{bootstrap,element-plus}/views/`
+- **双UI框架支持**: 同时支持 Bootstrap 和 Element Plus 两套 UI 框架，通过 Vite 配置动态切换
+- **Vite 配置更新**: 适配新目录结构，root 指向项目根目录，input 指向 `resources/pages/*/index.html`
+- **auto-imports**: 集成 `unplugin-auto-import` 和 `unplugin-vue-components`，Element Plus 组件按需自动导入
+
+### Console 种子数据可见性修复
+
+- **ensureTenantAccess**: 修复平台操作员被阻止访问平台租户数据的问题，允许 `scope=platform` 的操作员访问平台默认租户
+- **consoleLogin 自动检测租户**: Console 登录时自动从 `operator_tenants` 表查找操作员的活跃映射，无需手动指定 X-Tenant-ID
+- **绕过 TenantScope**: `OperatorTenant` 查询添加 `withoutGlobalScope(TenantScope::class)`，避免跨租户映射被全局作用域过滤
+- **TenantUserResource**: `role` 字段从返回对象改为返回字符串 `$this->role?->name`，新增 `role_display_name` 字段
+- **Bootstrap API.value 修复**: Members.vue 所有 axios 调用从 `API` 改为 `API.value`（Vue 3 ComputedRef）
+
+### Admin 交互改进
+
+- **Admin tenant store**: 自动选择第一个可用租户，无需手动选择
+- **Console 登录页**: 移除租户 ID 输入字段，简化登录流程
+
 ### UI Redesign
 
 - **Admin sidebar**: Modern design with SVG icons, section labels, system/tenant split
@@ -29,15 +50,18 @@
 
 ### Breaking Changes
 
+- **目录结构变更**: `resources/js/{admin,console}/views/` → `resources/pages/{admin,console}/ui/{bootstrap,element-plus}/`
+- **模块视图路径变更**: `src/Modules/*/resources/{admin,console}/views/` → `src/Modules/*/resources/{admin,console}/ui/{bootstrap,element-plus}/views/`
 - CSS variables moved from `.admin-layout`/`.console-layout` scoped selectors to `:root` (global)
 - Console layout now shares same variable names as Admin (`--sb`, `--tb`, `--pg`, etc.)
 - Module Vue files need `axios` import (resolved via Vite alias, no action needed)
 
 ### Stats
 
-- 23 commits since v2.5.0
+- 24 commits since v2.5.0
 - Tests: 2351 passed, 2 skipped
 - Modules: 26 + Ticket example
+- Files changed: 133 (+8,262 / -1,307)
 
 ---
 

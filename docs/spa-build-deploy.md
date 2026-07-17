@@ -14,26 +14,14 @@ cd resources/js/admin
 npm install
 npm run dev
 
-# Console 后台（默认 Bootstrap）
+# Console 后台（默认 Element Plus）
 cd resources/js/console
 npm install
 npm run dev
 ```
 
-### 指定 UI 框架启动
-
-```bash
-# Admin 使用 Bootstrap
-npm run dev:bootstrap
-
-# Admin 使用 Element Plus
-npm run dev:element-plus
-
-# Console 使用 Element Plus
-npm run dev:element-plus
-```
-
 开发服务器会代理 `/api` 请求到 `http://localhost:8000`（Laravel 后端）。
+Admin 开发服务器默认运行在 `:5174`，Console 在 `:5173`。
 
 ## 生产构建
 
@@ -42,21 +30,18 @@ npm run dev:element-plus
 ```bash
 # Admin 后台
 cd resources/js/admin
-npm run build              # 使用默认框架
-npm run build:element-plus # 使用 Element Plus
-npm run build:bootstrap    # 使用 Bootstrap
+npx vite build
 
 # Console 后台
 cd resources/js/console
-npm run build              # 使用默认框架
-npm run build:element-plus # 使用 Element Plus
-npm run build:bootstrap    # 使用 Bootstrap
+npx vite build
 ```
 
 ### 构建产物
 
-- Admin → `public/admin/`
-- Console → `public/console/`
+- Admin → `public/admin/` (含 `index.html` + 静态资源)
+- Console → `public/console/` (含 `index.html` + 静态资源)
+- Vite 配置中 `flatten-index-html` 插件自动扁平化输出路径
 
 ## 运行时切换 UI 框架
 
@@ -130,30 +115,47 @@ return [
 ## 目录结构
 
 ```
-src/Modules/
-├── Admin/                      # Admin 模块
-│   ├── resources/admin/        # Admin SPA 源码
-│   │   ├── layouts/            # 布局组件
-│   │   ├── views/              # 页面组件
-│   │   ├── router/             # 路由
-│   │   ├── stores/             # Pinia 状态
-│   │   ├── main.ts             # 入口
-│   │   └── vite.config.ts      # Vite 配置
-│   ├── Routes/admin.php        # Admin API 路由
-│   └── composer.json           # 模块配置
-├── Console/                    # Console 模块
-│   ├── resources/console/      # Console SPA 源码
-│   │   └── (同 Admin 结构)
-│   ├── Routes/api.php          # Console API 路由
-│   └── composer.json           # 模块配置
-└── ...
+resources/
+├── pages/                              # SPA 页面与 UI 框架
+│   ├── admin/
+│   │   ├── App.vue                     # Admin 根组件
+│   │   ├── index.html                  # Vite 入口 HTML
+│   │   └── ui/
+│   │       ├── element-plus/           # Element Plus UI 框架
+│   │       │   ├── layouts/            # 布局组件
+│   │       │   └── views/             # 页面组件
+│   │       └── bootstrap/             # Bootstrap UI 框架
+│   │           ├── layouts/            # 布局组件
+│   │           └── views/             # 页面组件
+│   ├── console/
+│   │   ├── App.vue                     # Console 根组件
+│   │   ├── index.html                  # Vite 入口 HTML
+│   │   └── ui/
+│   │       ├── element-plus/           # Element Plus UI 框架
+│   │       │   ├── layouts/            # 布局组件
+│   │       │   └── views/             # 页面组件
+│   │       └── bootstrap/             # Bootstrap UI 框架
+│   │           ├── layouts/            # 布局组件
+│   │           └── views/             # 页面组件
+│   └── ui-core/                        # 共享 UI 核心（组件、主题）
+└── js/                                 # SPA 构建配置与运行时
+    ├── admin/
+    │   ├── main.ts                     # Admin 入口
+    │   ├── module-loader.ts            # 模块自动发现
+    │   ├── router/                     # 路由
+    │   ├── stores/                     # Pinia 状态
+    │   └── vite.config.ts              # Vite 配置
+    ├── console/
+    │   ├── main.ts                     # Console 入口
+    │   ├── module-loader.ts            # 模块自动发现
+    │   ├── router/                     # 路由
+    │   ├── stores/                     # Pinia 状态
+    │   └── vite.config.ts              # Vite 配置
+    └── ui-core/                        # 共享 UI 核心（类型、工具）
 
-resources/js/
-└── ui-core/                    # 共享 UI 核心（框架级）
-    ├── adapters/               # UI 框架适配器
-    ├── components/             # 通用组件
-    ├── themes/                 # 主题配置
-    └── registry.ts             # 框架注册表
+src/Modules/*/resources/
+├── admin/ui/element-plus/views/*.vue  # 模块 Admin 页面（自动发现）
+└── console/ui/element-plus/views/*.vue # 模块 Console 页面（自动发现）
 ```
 
-**模块化原则**：Admin/Console 模块未安装时，其 SPA 资源不存在，不会被构建。
+**目录隔离原则**：Element Plus 和 Bootstrap 页面完全隔离在各自的 `ui/{framework}/` 目录下，通过 `module-loader.ts` 的路径解析自动发现当前框架的页面组件。

@@ -1,6 +1,6 @@
 # 系统架构概览
 
-**最后更新**: 2026-06-29
+**最后更新**: 2026-07-16
 
 ---
 
@@ -8,7 +8,7 @@
 
 1. **租户隔离优先**: 所有数据操作默认按租户隔离
 2. **四重访问架构**: admin/console/app/guest 四层访问控制
-3. **RBAC 细粒度权限**: 角色 + 权限节点，40+ 权限，中间件级路由保护
+3. **RBAC 细粒度权限**: 角色 + 权限节点，89 个权限，中间件级路由保护
 4. **模块化设计**: 核心能力 + 可选模块（ApiToken/Domain/Payment/SSL）
 5. **配置驱动**: 通过配置文件控制行为，无需修改代码
 6. **领域事件驱动**: 关键操作触发领域事件，异步处理审计/通知
@@ -122,40 +122,56 @@
 
 ## 模块系统
 
+框架内置 26 个模块，每个模块是独立的 Composer 包，通过 `ModuleServiceProvider` 基类自动注册路由、迁移和配置。
+
 ```
 src/Modules/
-├── ApiToken/        # API Token 模块（用户级 Token + abilities）
-│   ├── Controllers/
-│   └── Models/
-├── Domain/          # 域名管理模块
-│   ├── Services/
-│   ├── Commands/
-│   └── Config/
-├── Payment/         # 支付模块（多网关统一接口）
-│   ├── Controllers/
-│   └── Services/
-└── SSL/             # SSL证书模块
-    ├── Services/
-    └── Config/
+├── Ai/              # AI 网关（多提供商、Agent 框架、记忆系统）
+├── ApiToken/        # API Token 管理（用户级 Token + abilities）
+├── Auth/            # 认证（登录/注册/MFA/SSO/密码管理）
+├── Billing/         # 订阅计费（计划/历史/升降级）
+├── Conversation/    # 多渠道会话（消息路由/通道管理）
+├── Coupon/          # 优惠券系统（批量发放/推荐分享）
+├── Domain/          # 域名管理（自定义域名/ICP/Nginx）
+├── DeveloperPortal/ # 开发者门户（API 文档/沙箱/SDK）
+├── Event/           # 事件总线（异步分发/Webhook 投递）
+├── Form/            # 表单引擎（拖拽构建/数据收集/导出）
+├── Infrastructure/  # 基础设施（缓存/队列/限流/功能开关）
+├── Logging/         # 日志审计（结构化日志/安全日志）
+├── Lottery/         # 抽奖系统（奖品池/防刷/统计）
+├── Monitoring/      # 监控告警（指标/SLA/性能）
+├── Notification/    # 通知中心（应用内通知/偏好设置）
+├── Operator/        # 运营人员（管理后台权限）
+├── Payment/         # 支付网关（微信/支付宝/PayPal/Stripe/银联）
+├── Platform/        # 平台管理（导出/API 版本/租户档案/成本）
+├── Plugin/          # 插件系统（安装/卸载/生命周期）
+├── Sms/             # 短信服务（模板/批量发送/回执统计）
+├── SSL/             # SSL 证书（上传/续期/Nginx 配置）
+├── Storage/         # 文件存储（多磁盘/签名 URL/配额）
+├── Ticket/          # 工单示例模块（完整 CRUD 示例）
+├── User/            # 用户管理（档案/偏好/登录日志）
+├── Voting/          # 投票系统（排行榜/防作弊）
+└── Workflow/        # 工作流引擎（流程编排/条件分支）
 ```
 
 ### 模块注册
 
-在 `TenancyServiceProvider` 中注册模块：
+模块通过各自的 ServiceProvider 自动注册，`TenancyServiceProvider` 负责加载系统级模块：
 
 ```php
-public function register(): void
-{
-    // 注册域名管理模块
-    if (config('tenancy.modules.domain.enabled', true)) {
-        $this->app->register(\MultiTenantSaas\Modules\Domain\DomainServiceProvider::class);
-    }
-    
-    // 注册SSL模块
-    if (config('tenancy.modules.ssl.enabled', true)) {
-        $this->app->register(\MultiTenantSaas\Modules\SSL\SSLServiceProvider::class);
-    }
-}
+// 在 bootstrap/app.php 中间件配置
+$middleware->api(prepend: [
+    \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant::class,
+    \MultiTenantSaas\Modules\Operator\Http\Middleware\IdentifyOperator::class,
+    \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\SetLocale::class,
+]);
+
+// 中间件别名
+$middleware->alias([
+    'tenant.identify' => \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant::class,
+    'rbac.permission' => \MultiTenantSaas\Modules\Operator\Http\Middleware\CheckRbacPermission::class,
+    'tenant.permission' => \MultiTenantSaas\Modules\Operator\Http\Middleware\CheckPermission::class,
+]);
 ```
 
 ---
@@ -241,35 +257,43 @@ SESSION_LIFETIME=120
 multi-tenant-saas/
 ├── app/
 │   ├── Http/
-│   │   ├── Controllers/    # 控制器（18 个）
+│   │   ├── Controllers/    # 控制器（含 Concerns/Traits）
 │   │   ├── Middleware/     # 自定义中间件
-│   │   └── Resources/      # API Resource（5 个）
+│   │   └── Resources/      # API Resource
 │   ├── Models/             # 业务模型
-│   └── Notifications/      # 通知类（5 种）
-├── config/                 # 配置文件（12 个）
+│   └── Notifications/      # 通知类
+├── config/                 # 配置文件
 ├── database/
 │   ├── factories/          # 模型工厂
-│   ├── migrations/         # 数据库迁移（37 张表）
+│   ├── migrations/         # 数据库迁移（129 个迁移文件）
 │   └── seeders/            # 数据填充
-├── lang/                   # 国际化（zh_CN + en，13 个文件）
+├── lang/                   # 国际化（zh_CN + en）
+├── resources/
+│   ├── pages/              # SPA 页面与 UI 框架
+│   │   ├── admin/ui/{bootstrap,element-plus}/  # Admin 页面
+│   │   ├── console/ui/{bootstrap,element-plus}/ # Console 页面
+│   │   └── ui-core/        # 共享 UI 组件 + 主题系统
+│   └── js/                 # SPA 构建配置
+│       ├── admin/          # Admin Vite 配置、stores、router
+│       └── console/        # Console Vite 配置、stores、router
 ├── src/                    # 框架核心代码
 │   ├── Concerns/           # Traits（BelongsToTenant / HasGlobalId）
 │   ├── Context/            # 上下文管理（TenantContext）
-│   ├── Contracts/          # 接口定义
-│   ├── Enums/              # 枚举（ErrorCode）
-│   ├── Events/             # 领域事件（5 个）
-│   ├── Exceptions/         # 业务异常（4 个）
+│   ├── Contracts/          # 接口定义 + ModuleServiceProvider 基类
+│   ├── Enums/              # 枚举
+│   ├── Events/             # 领域事件
+│   ├── Exceptions/         # 业务异常
 │   ├── Helpers/            # 辅助函数
-│   ├── Jobs/               # 队列任务（2 个）
+│   ├── Jobs/               # 队列任务
 │   ├── Listeners/          # 事件监听器
-│   ├── Mail/               # 邮件类（2 个）
-│   ├── Middleware/          # 中间件（6 个）
-│   ├── Models/             # 框架模型（17 个）
-│   ├── Modules/            # 可选模块（4 个）
-│   ├── Scopes/             # 全局作用域
-│   ├── Services/           # 服务层（39 个）
+│   ├── Mail/               # 邮件类
+│   ├── Middleware/         # 中间件
+│   ├── Models/             # 框架模型
+│   ├── Modules/            # 26 个模块（独立 Composer 包）
+│   ├── Scopes/             # 全局作用域（TenantScope）
+│   ├── Services/           # 服务层
 │   └── TenancyServiceProvider.php
-└── tests/                  # 测试（25 个文件）
+└── tests/                  # 测试（2351 个测试）
 ```
 
 ### 领域事件系统
@@ -345,13 +369,15 @@ src/Services/
 
 ## 技术栈
 
-- **PHP**: ^8.2
-- **Laravel**: ^12.0
+- **PHP**: ^8.3
+- **Laravel**: ^13.0
 - **数据库**: MySQL 8.0+
 - **缓存**: Redis (推荐) / Database
 - **Web服务器**: Nginx + PHP-FPM
+- **前端**: Vue.js 3 + TypeScript + Vite + Element Plus
+- **UI 框架**: Element Plus (主) + Bootstrap (备选)，通过目录隔离支持双 UI 框架
 
 ---
 
-**文档版本**: v1.0.0  
-**最后更新**: 2026-06-29
+**文档版本**: v2.6.0
+**最后更新**: 2026-07-16

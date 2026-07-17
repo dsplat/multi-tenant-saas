@@ -1,5 +1,24 @@
 # Changelog
 
+## v2.7.0 (2026-07-17)
+
+### Documentation & Screenshots
+
+- **全面文档更新**: README、系统架构概览、用户手册、SPA构建部署指南、下游架构指南等 8 个文档文件更新
+- **浏览器截图**: 8 张真实数据截图（Admin 仪表盘/租户/模块/运营人员/系统设置，Console 工作台/成员管理/租户设置）
+- **core_version**: 配置版本升级至 2.7.0
+- **模块列表**: 系统架构文档补充完整 26 个模块说明
+- **目录结构**: 所有文档更新为 v2.6.0 新的 `ui/{element-plus,bootstrap}/` 隔离目录结构
+- **技术栈**: 更新为 PHP ^8.3 / Laravel ^13.0 / Element Plus
+
+### Stats
+
+- 1 commit since v2.6.0
+- Files changed: 16 (199 insertions, 115 deletions)
+- Screenshots: 8 (all with real data)
+
+---
+
 ## v2.6.0 (2026-07-16)
 
 ### UI Framework Directory Isolation

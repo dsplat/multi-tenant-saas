@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Domain\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Domain\Services\DomainService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
@@ -13,9 +14,13 @@ class TenantDomainController extends Controller
 {
     use AuthorizesTenantAccess;
 
-    public function index(Request $request, int $tenantId)
+    public function index(Request $request, ?int $tenantId = null)
     {
-        $this->ensureTenantAccess($request, $tenantId);
+        $tenantId = $tenantId ?? (int) TenantContext::getId();
+
+        if ($tenantId) {
+            $this->ensureTenantAccess($request, $tenantId);
+        }
 
         $service = new DomainService;
 

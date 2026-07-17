@@ -22,11 +22,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->web(prepend: [
+            \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\CastRouteParameters::class,
             \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant::class,
             \MultiTenantSaas\Modules\Operator\Http\Middleware\IdentifyOperator::class,
         ]);
 
         $middleware->api(prepend: [
+            \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\CastRouteParameters::class,
             \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant::class,
             \MultiTenantSaas\Modules\Operator\Http\Middleware\IdentifyOperator::class,
             \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\SetLocale::class,

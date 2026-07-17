@@ -3,7 +3,10 @@
 namespace MultiTenantSaas\Modules\Workflow;
 
 use Illuminate\Support\Facades\Route;
+use MultiTenantSaas\Contracts\WorkflowEngineContract;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
+use MultiTenantSaas\Modules\Workflow\Services\WorkflowEngine;
+use MultiTenantSaas\Modules\Workflow\Services\WorkflowService;
 
 class WorkflowServiceProvider extends ModuleServiceProvider
 {
@@ -11,7 +14,8 @@ class WorkflowServiceProvider extends ModuleServiceProvider
 
     protected function registerModuleBindings(): void
     {
-        //
+        $this->app->singleton(WorkflowEngineContract::class, WorkflowEngine::class);
+        $this->app->singleton(WorkflowService::class);
     }
 
     protected function bootModule(): void

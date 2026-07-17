@@ -45,7 +45,13 @@ export const useTenantStore = defineStore('tenant', () => {
         return
       }
     }
-    selectedTenant.value = null
+    // Auto-select first tenant if no saved selection
+    if (tenants.value.length > 0) {
+      selectedTenant.value = tenants.value[0]
+      localStorage.setItem('admin_selected_tenant', String(tenants.value[0].tenant_id))
+    } else {
+      selectedTenant.value = null
+    }
   }
 
   return {

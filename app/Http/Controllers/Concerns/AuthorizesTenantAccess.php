@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Concerns;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
+use MultiTenantSaas\Scopes\TenantScope;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
@@ -30,7 +31,7 @@ trait AuthorizesTenantAccess
 
         $user = $request->user();
 
-        // 检查是否是平台级 operator（平台 operator 不能直接访问租户数据）
+        // 检查是否是平台级 operator
         $isPlatformOperator = DB::table('operator_tenants')
             ->join('operators', 'operators.operator_id', '=', 'operator_tenants.operator_id')
             ->where('operator_tenants.user_id', $user->user_id)
@@ -39,11 +40,17 @@ trait AuthorizesTenantAccess
             ->exists();
 
         if ($isPlatformOperator) {
-            abort(403, '系统管理员不能访问租户数据');
+            // 平台 operator 可以访问平台默认租户（管理平台自身的成员）
+            $platformTenantId = config('id.platform_tenant_id', 9007199254740991);
+            if ((int) $tenantId === (int) $platformTenantId) {
+                return;
+            }
+            abort(403, '系统管理员不能访问租户私有数据');
         }
 
-        // 直接查询 tenant_users 表
-        $exists = TenantUser::where('user_id', $user->user_id)
+        // 直接查询 tenant_users 表（绕过 TenantScope，因为已显式指定 tenant_id）
+        $exists = TenantUser::withoutGlobalScope(TenantScope::class)
+            ->where('user_id', $user->user_id)
             ->where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->exists();

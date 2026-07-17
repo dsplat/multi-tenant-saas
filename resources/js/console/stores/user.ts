@@ -32,7 +32,7 @@ export const useUserStore = defineStore('user', () => {
 
   const fetchUser = async () => {
     try {
-      const response = await axios.get('/api/v1/admin/auth/user')
+      const response = await axios.get('/api/v1/console/auth/user')
       const data = response.data.data
       user.value = data.user || data
       permissions.value = data.permissions || []
@@ -43,15 +43,28 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, tenantId?: string) => {
     try {
-      const response = await axios.post('/api/v1/admin/auth/login', { email, password })
-      const { user: userData, auth_token, tenant_id } = response.data.data
+      const tid = tenantId || localStorage.getItem('console_tenant_id') || new URLSearchParams(window.location.search).get('tenant_id') || ''
+      const headers: Record<string, string> = {}
+      if (tid) headers['X-Tenant-ID'] = tid
+      const response = await axios.post('/api/v1/console/auth/login', { email, password }, { headers })
+      const data = response.data.data
+
+      // MFA required — return early without setting token
+      if (data.mfa_required) {
+        return response.data
+      }
+
+      const { user: userData, auth_token, tenant_id } = data
       setToken(auth_token)
       userData.tenant_id = tenant_id
       user.value = userData
       permissions.value = userData.permissions || []
-      if (tenant_id) localStorage.setItem('console_tenant_id', String(tenant_id))
+      if (tenant_id) {
+        localStorage.setItem('console_tenant_id', String(tenant_id))
+        axios.defaults.headers.common['X-Tenant-ID'] = String(tenant_id)
+      }
       return response.data
     } catch (error) {
       console.error('登录失败:', error)
@@ -60,17 +73,20 @@ export const useUserStore = defineStore('user', () => {
   }
 
   const logout = async () => {
-    try { await axios.post('/api/v1/admin/auth/logout') } catch {}
+    try { await axios.post('/api/v1/console/auth/logout') } catch {}
     finally {
       token.value = null; user.value = null; permissions.value = []
       localStorage.removeItem('console_token'); localStorage.removeItem('console_tenant_id')
       delete axios.defaults.headers.common['Authorization']
+      delete axios.defaults.headers.common['X-Tenant-ID']
     }
   }
 
   const init = async () => {
     if (token.value) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
+      const storedTid = localStorage.getItem('console_tenant_id')
+      if (storedTid) axios.defaults.headers.common['X-Tenant-ID'] = storedTid
       try { await fetchUser() } catch {
         token.value = null; user.value = null; permissions.value = []
         localStorage.removeItem('console_token')

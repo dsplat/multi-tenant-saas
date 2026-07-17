@@ -13,7 +13,8 @@ class TenantUserResource extends JsonResource
             'user_id' => $this->user_id,
             'name' => $this->name,
             'email' => $this->email,
-            'role' => $this->role,
+            'role' => $this->role?->name,
+            'role_display_name' => $this->role?->display_name,
             'is_active' => $this->is_active,
             'joined_at' => $this->joined_at,
         ];

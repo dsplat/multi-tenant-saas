@@ -45,3 +45,10 @@ runner.db
 *.sqlite-journal
 
 # Console Commands (framework commands are tracked)
+
+# Vite build artifacts
+.vite/
+auto-imports.d.ts
+components.d.ts
+dist/
+index.html

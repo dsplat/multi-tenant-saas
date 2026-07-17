@@ -1,8 +1,0 @@
-export { default as ThemeSwitcher } from './ThemeSwitcher.vue'
-export { default as ColorPicker } from './ColorPicker.vue'
-export { default as ThemeSettings } from './ThemeSettings.vue'
-export { default as UIFrameworkSelector } from './UIFrameworkSelector.vue'
-export { default as StatsCard } from './StatsCard.vue'
-export { default as CrudTable } from './CrudTable.vue'
-export { default as CrudForm } from './CrudForm.vue'
-export { default as DetailPanel } from './DetailPanel.vue'

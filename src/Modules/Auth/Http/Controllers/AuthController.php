@@ -23,6 +23,7 @@ use MultiTenantSaas\Modules\Auth\Services\SsoService;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
 use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
+use MultiTenantSaas\Scopes\TenantScope;
 
 class AuthController extends Controller
 {
@@ -269,18 +270,30 @@ class AuthController extends Controller
 
         $tenantId = $request->header('X-Tenant-ID') ?? $request->attributes->get('tenant_id');
 
-        if (! $tenantId) {
-            return response()->json(['success' => false, 'message' => trans('common.tenant_required')], 400);
+        // 优先使用显式提供的 tenantId 查找映射
+        $operatorTenant = null;
+        if ($tenantId) {
+            $operatorTenant = OperatorTenant::withoutGlobalScope(TenantScope::class)
+                ->where('operator_id', $operator->operator_id)
+                ->where('tenant_id', $tenantId)
+                ->where('is_active', true)
+                ->first();
         }
 
-        $operatorTenant = OperatorTenant::where('operator_id', $operator->operator_id)
-            ->where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->first();
+        // 若未找到，自动从 operator_tenants 查找任一活跃映射
+        if (! $operatorTenant) {
+            $operatorTenant = OperatorTenant::withoutGlobalScope(TenantScope::class)
+                ->where('operator_id', $operator->operator_id)
+                ->where('is_active', true)
+                ->first();
+        }
 
         if (! $operatorTenant) {
             return response()->json(['success' => false, 'message' => trans('common.admin_no_tenant_console')], 403);
         }
+
+        // 更新 request 的 tenant_id，确保后续中间件/控制器使用正确的租户
+        $request->attributes->set('tenant_id', $operatorTenant->tenant_id);
 
         $user = User::find($operatorTenant->user_id);
 

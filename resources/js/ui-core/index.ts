@@ -13,11 +13,8 @@ export type { ThemeMode, ThemeConfig, ThemePreset } from './theme-manager'
 // 适配器工厂
 export { createElementPlusAdapter, createBootstrapAdapter } from './adapters/index'
 
-// 组件
-export { default as ThemeSwitcher } from './components/ThemeSwitcher.vue'
-export { default as ColorPicker } from './components/ColorPicker.vue'
-export { default as ThemeSettings } from './components/ThemeSettings.vue'
-export { default as UIFrameworkSelector } from './components/UIFrameworkSelector.vue'
+// 组件已迁移至 resources/pages/ui-core/components/
+// 通过 @multi-tenant-saas/ui-core/components 别名导入
 
 /**
  * 初始化 UI 核心库

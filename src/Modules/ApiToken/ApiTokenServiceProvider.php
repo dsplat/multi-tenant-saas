@@ -28,10 +28,14 @@ class ApiTokenServiceProvider extends ModuleServiceProvider
 
         $moduleDir = dirname((new \ReflectionClass($this))->getFileName());
 
-        foreach (['admin.php', 'tenant.php'] as $file) {
+        foreach (['admin.php', 'api.php', 'tenant.php'] as $file) {
             $path = $moduleDir . '/Routes/' . $file;
             if (file_exists($path)) {
-                Route::middleware(['auth:sanctum', 'throttle:api'])
+                $middleware = ['auth:sanctum', 'throttle:api'];
+                if ($file !== 'admin.php') {
+                    $middleware[] = 'tenant.identify';
+                }
+                Route::middleware($middleware)
                     ->prefix('api/v1')
                     ->group($path);
             }

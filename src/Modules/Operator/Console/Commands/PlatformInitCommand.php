@@ -25,7 +25,8 @@ class PlatformInitCommand extends Command
         {--email= : 超级管理员邮箱}
         {--force : 强制重新执行 seeder}
         {--skip-migrate : 跳过迁移}
-        {--skip-server : 跳过 server.php 部署}';
+        {--skip-server : 跳过 server.php 部署}
+        {--with-test-data : 同时创建测试数据（TestSeeder）}';
 
     protected $description = '初始化平台：迁移 + 租户/角色/权限/管理员 + server.php';
 
@@ -79,6 +80,20 @@ class PlatformInitCommand extends Command
 
         // Step 3: server.php
         $this->deployServerPhp();
+
+        // Step 4: 测试数据（可选）
+        if ($this->option('with-test-data')) {
+            $this->info('[4/4] 创建测试数据...');
+            $testSeederClass = 'Database\Seeders\TestSeeder';
+            if (class_exists($testSeederClass)) {
+                Artisan::call('db:seed', ['--class' => $testSeederClass, '--force' => true]);
+                $this->info('  测试数据创建完成');
+                $this->info('  测试账号密码统一为: Test@123456');
+                $this->info('  详见: docs/test-accounts.md');
+            } else {
+                $this->warn('  TestSeeder 不存在（下游项目需创建）');
+            }
+        }
 
         $this->newLine();
         $this->info('=== 初始化完成 ===');

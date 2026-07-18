@@ -13,12 +13,11 @@
 
       <div class="sidebar-nav">
         <el-menu :default-active="activePath" :router="true" class="sidebar-menu"
-          v-for="section in navSections" :key="section.label">
+          v-for="section in sections" :key="section.label">
           <div class="nav-section-label">{{ section.label }}</div>
           <template v-for="item in section.items" :key="item.path">
-            <el-menu-item v-if="!item.perm || userStore.hasPermission(item.perm)"
-              :index="`/${item.path}`">
-              <el-icon><component :is="item.icon" /></el-icon>
+            <el-menu-item :index="`/${item.path}`">
+              <svg class="nav-svg-icon" viewBox="0 0 20 20" fill="currentColor"><path :d="item.icon"/></svg>
               <span>{{ item.label }}</span>
             </el-menu-item>
           </template>
@@ -30,7 +29,7 @@
           <el-avatar :size="32" class="user-avatar">{{ (userStore.user?.name || 'C')[0] }}</el-avatar>
           <div class="user-info">
             <div class="user-name">{{ userStore.user?.name || '租户管理员' }}</div>
-            <div class="user-role">租户管理员</div>
+            <div class="user-role">{{ userStore.user?.role === 'tenant_admin' ? '租户管理员' : userStore.user?.role === 'platform_admin' ? '超级管理员' : userStore.user?.role || '用户' }}</div>
           </div>
         </div>
       </div>
@@ -66,10 +65,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  Monitor, Odometer, User, Coin, Lock, CreditCard, ChatDotRound,
-  Key, Operation, Link, Setting, SwitchButton,
+  Monitor, Setting, SwitchButton,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/console/stores/user'
+import { getConsoleNavSections, type NavSection } from '@/console/module-loader'
 import ThemeSwitcher from '@multi-tenant-saas/ui-core/components/ThemeSwitcher.vue'
 import ColorPicker from '@multi-tenant-saas/ui-core/components/ColorPicker.vue'
 import ThemeSettings from '@multi-tenant-saas/ui-core/components/ThemeSettings.vue'
@@ -83,47 +82,12 @@ const showFrameworkSelector = ref(false)
 
 const activePath = computed(() => route.path)
 
-const navSections = [
-  {
-    label: '概览',
-    items: [
-      { path: 'dashboard', label: '工作台', icon: Odometer },
-    ],
-  },
-  {
-    label: '团队与财务',
-    items: [
-      { path: 'members', label: '成员管理', icon: User, perm: 'member.view' },
-      { path: 'credits', label: '积分管理', icon: Coin, perm: 'credit.view' },
-    ],
-  },
-  {
-    label: '集成与配置',
-    items: [
-      { path: 'oauth', label: '第三方登录', icon: Lock, perm: 'setting.view' },
-      { path: 'payment', label: '支付配置', icon: CreditCard, perm: 'payment.view' },
-      { path: 'sms', label: '短信配置', icon: ChatDotRound, perm: 'setting.view' },
-      { path: 'api-tokens', label: 'API Token', icon: Key, perm: 'setting.view' },
-    ],
-  },
-  {
-    label: '自动化与安全',
-    items: [
-      { path: 'workflows', label: '工作流', icon: Operation, perm: 'workflow.view' },
-      { path: 'ssl', label: 'SSL 证书', icon: Lock, perm: 'ssl.manage' },
-      { path: 'webhooks', label: 'Webhooks', icon: Link, perm: 'webhook.view' },
-    ],
-  },
-  {
-    label: '设置',
-    items: [
-      { path: 'tenant-settings', label: '邮件/认证/注册', icon: Setting, perm: 'setting.view' },
-    ],
-  },
-]
+// Auto-discovered navigation sections — populated from module routes at runtime
+const sections = ref<NavSection[]>([])
 
 onMounted(async () => {
   await userStore.init()
+  sections.value = await getConsoleNavSections()
 })
 
 const handleLogout = async () => {
@@ -157,6 +121,7 @@ html.dark { --sb: #1e293b; --sb-h: #334155; --sb-t: #94a3b8; --sb-ta: #f1f5f9; -
 .nav-section-label { padding: 16px 20px 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sb-l); }
 
 .sidebar-menu :deep(.el-menu-item) { color: var(--sb-t); border-radius: 6px; margin: 1px 8px; }
+.nav-svg-icon { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.7; }
 .sidebar-menu :deep(.el-menu-item:hover) { background: var(--sb-h); color: var(--sb-ta); }
 .sidebar-menu :deep(.el-menu-item.is-active) { background: rgba(var(--ac-r),0.15); color: var(--sb-ta); font-weight: 500; }
 

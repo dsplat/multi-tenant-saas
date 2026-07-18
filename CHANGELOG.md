@@ -1,86 +1,87 @@
 # Changelog
 
-## v2.7.0 (2026-07-17)
+## v2.8.0 (2026-07-18)
 
-### Documentation & Screenshots
+### Auto-Discovered Sidebar Navigation
 
-- **全面文档更新**: README、系统架构概览、用户手册、SPA构建部署指南、下游架构指南等 8 个文档文件更新
-- **浏览器截图**: 8 张真实数据截图（Admin 仪表盘/租户/模块/运营人员/系统设置，Console 工作台/成员管理/租户设置）
-- **core_version**: 配置版本升级至 2.7.0
-- **模块列表**: 系统架构文档补充完整 26 个模块说明
-- **目录结构**: 所有文档更新为 v2.6.0 新的 `ui/{element-plus,bootstrap}/` 隔离目录结构
-- **技术栈**: 更新为 PHP ^8.3 / Laravel ^13.0 / Element Plus
+- Module Vue pages in `src/Modules/*/resources/{admin,console}/views/` auto-register in sidebar
+- No need to manually edit sidebar layout — just add a `.vue` file to the module
+- `createConsoleConfig()` factory exported for downstream projects
+- `spa-fallback` middleware for proper SPA routing
+
+### glm5.2 Integration
+
+- **Tenant Applications**: `tenant_applications` table + admin approval + console apply flow
+- **Operator Auth**: `OperatorAuthController` for independent operator authentication
+- **Public SPA**: Login, register, apply, forgot password, email verification pages
+- **Mail Templates**: `scope` (system/project/tenant) + `locale` fields for three-level override
+- **Multi-UI Framework**: Pages organized under `ui/bootstrap/` and `ui/element-plus/` directories
+
+### Bug Fixes
+
+- `TenantMail::$locale` type conflict with parent `Mailable` class
+- `MailTemplateService::findTemplate()` fallback to default locale `zh_CN`
+- ConsoleLayout import paths (`@/console/stores` → `@/stores`)
+- `MailTemplateEditor.vue` Vue template parsing error with nested braces
+- Bootstrap sidebar nav label mapping for vendor modules
 
 ### Stats
 
-- 1 commit since v2.6.0
-- Files changed: 16 (199 insertions, 115 deletions)
-- Screenshots: 8 (all with real data)
+- Tests: 2351, Assertions: 5915, Skipped: 2
+- Modules: 26 + Ticket example
+- Admin views: 61 (bootstrap + element-plus)
+- Console views: 28 (bootstrap + element-plus)
+- Public views: 11
+- Migrations: 132
+- Contracts: 18
+
+---
+
+## v2.7.0 (2026-07-17)
+
+### Downstream Issue Fixes
+
+- **#4**: `CastRouteParameters` middleware — auto-casts numeric route params to int
+- **#5**: Migration for `deleted_at` on `broadcast_events` and `in_app_notifications`
+- **#6**: `WorkflowEngineContract` binding registered in `WorkflowServiceProvider`
+- **#7**: Monitoring routes use correct service methods (`getQps`/`getRpm`/`history`)
+- **#8**: `TenantDomainController::index()` tenantId made optional
+- **#9**: Migration for `resolved_at` on `alerts` table
+
+### Stats
+
+- Tests: 2351, Assertions: 5915, Skipped: 2
 
 ---
 
 ## v2.6.0 (2026-07-16)
 
-### UI Framework Directory Isolation
-
-- **目录结构迁移**: Admin/Console 前端从 `resources/js/{admin,console}/views/` 迁移至 `resources/pages/{admin,console}/ui/{bootstrap,element-plus}/` 目录
-- **模块视图隔离**: 各模块视图从 `src/Modules/*/resources/{admin,console}/views/` 迁移至 `src/Modules/*/resources/{admin,console}/ui/{bootstrap,element-plus}/views/`
-- **双UI框架支持**: 同时支持 Bootstrap 和 Element Plus 两套 UI 框架，通过 Vite 配置动态切换
-- **Vite 配置更新**: 适配新目录结构，root 指向项目根目录，input 指向 `resources/pages/*/index.html`
-- **auto-imports**: 集成 `unplugin-auto-import` 和 `unplugin-vue-components`，Element Plus 组件按需自动导入
-
-### Console 种子数据可见性修复
-
-- **ensureTenantAccess**: 修复平台操作员被阻止访问平台租户数据的问题，允许 `scope=platform` 的操作员访问平台默认租户
-- **consoleLogin 自动检测租户**: Console 登录时自动从 `operator_tenants` 表查找操作员的活跃映射，无需手动指定 X-Tenant-ID
-- **绕过 TenantScope**: `OperatorTenant` 查询添加 `withoutGlobalScope(TenantScope::class)`，避免跨租户映射被全局作用域过滤
-- **TenantUserResource**: `role` 字段从返回对象改为返回字符串 `$this->role?->name`，新增 `role_display_name` 字段
-- **Bootstrap API.value 修复**: Members.vue 所有 axios 调用从 `API` 改为 `API.value`（Vue 3 ComputedRef）
-
-### Admin 交互改进
-
-- **Admin tenant store**: 自动选择第一个可用租户，无需手动选择
-- **Console 登录页**: 移除租户 ID 输入字段，简化登录流程
-
 ### UI Redesign
 
 - **Admin sidebar**: Modern design with SVG icons, section labels, system/tenant split
 - **Console sidebar**: Matching design with green accent (#10b981)
-- **Global tenant selector**: Top bar dropdown, localStorage persistence, tenant management section disabled when no tenant selected
+- **Global tenant selector**: Top bar dropdown, localStorage persistence
 - **Dark mode**: Full support via CSS variables on `:root` with `html.dark` overrides
 - **Color picker**: Accent color flows through sidebar, logo, hover states, badges
-- **Theme settings**: Light/Dark/Auto mode, 6 color presets, border radius slider
 
-### Architecture
+### Module System
 
-- **CSS variables on `:root`**: All theme variables globally available, `html.dark` overrides everything
-- **Module auto-discovery**: `getModulePageEntries()` in `module-loader.ts` discovers `*.vue` files and renders sidebar entries under "模块" section
-- **Vite config**: `axios` alias for module Vue files outside SPA directory
-- **Ticket module**: Complete example module (migration → model → service → controller → routes → Vue page)
+- All 40 Vue pages migrated from `resources/js/` to module directories
+- Router simplified: only core pages hardcoded, module pages auto-discovered
+- Vite aliases for `@stores`, `vue`, `vue-router`, `pinia`, `axios`
+- `server.php` for PHP built-in server SPA routing fix
 
 ### Bug Fixes
 
-- Console API paths: `/tenant/*` → `/api/v1/tenants/{tenantId}/*` (Credits, Members, Webhooks)
-- Tenant selector: localStorage persistence type mismatch (`Number` vs `String`)
-- Dashboard: data-table and panel h3 use explicit CSS variables for dark mode
-- Console: Workflows/Webhooks output backgrounds use `--fill-color` variable
-- Dark mode: headings, form elements, page-header, panel backgrounds all respond correctly
-- All badge/link/table colors replaced with CSS variables (40 files, no hardcoded hex)
-
-### Breaking Changes
-
-- **目录结构变更**: `resources/js/{admin,console}/views/` → `resources/pages/{admin,console}/ui/{bootstrap,element-plus}/`
-- **模块视图路径变更**: `src/Modules/*/resources/{admin,console}/views/` → `src/Modules/*/resources/{admin,console}/ui/{bootstrap,element-plus}/views/`
-- CSS variables moved from `.admin-layout`/`.console-layout` scoped selectors to `:root` (global)
-- Console layout now shares same variable names as Admin (`--sb`, `--tb`, `--pg`, etc.)
-- Module Vue files need `axios` import (resolved via Vite alias, no action needed)
+- Console API paths: `/tenant/*` → `/api/v1/tenants/{tenantId}/*`
+- Tenant selector: localStorage persistence type mismatch
+- Dashboard: data-table and panel h3 use explicit CSS variables
+- All badge/link/table colors replaced with CSS variables (40 files)
+- Module-loader `mainRoute` lookup uses named route
 
 ### Stats
 
-- 24 commits since v2.5.0
-- Tests: 2351 passed, 2 skipped
-- Modules: 26 + Ticket example
-- Files changed: 133 (+8,262 / -1,307)
+- Tests: 2351, Assertions: 5915, Skipped: 2
 
 ---
 
@@ -102,15 +103,9 @@
 - Platform init seeder: `newLine()` calls and `role` column compatibility
 - Config: `core_version` default from `1.0.0` to `2.4.0`
 
-### Infrastructure
-
-- Feature Flags, IP Whitelist, Branding, System Settings, Tenant Keys, Retention Policies, Consents, SSO Providers, Credits, Sandbox pages added
-- All pages use CSS variables for theming
-
 ### Stats
 
-- 23 commits since v2.4.0
-- Tests: 2351 passed, 0 failures
+- Tests: 2351, Assertions: 5915, Skipped: 2
 
 ---
 
@@ -130,5 +125,5 @@
 
 ### Stats
 
-- Tests: 2351 passed, 0 failures
+- Tests: 2351, Assertions: 5878, Skipped: 10
 - Modules: 26 (including Contracts)

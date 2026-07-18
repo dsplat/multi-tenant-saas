@@ -285,6 +285,21 @@ src/Modules/MyModule/
 - **前端**: `module-loader.ts` 的 `getModulePageEntries()` 自动发现 Vue 文件并生成侧边栏入口
 - **路由**: `ModuleServiceProvider::loadModuleRoutes()` 自动加载 `Routes/` 下的路由文件
 
+### 多 UI 框架支持
+
+框架支持同一页面的多个 UI 框架变体：
+
+```
+src/Modules/MyModule/resources/admin/
+├── ui/
+│   ├── bootstrap/views/MyPage.vue    ← Bootstrap 版本
+│   └── element-plus/views/MyPage.vue ← Element Plus 版本
+├── routes.ts                         ← 可选：自定义路由定义
+└── views/                            ← 旧路径（自动发现仍支持）
+```
+
+构建时通过 `VITE_UI_FRAMEWORK` 环境变量选择框架变体。
+
 ### 完整示例
 
 参考 `src/Modules/Ticket/` — 从数据库迁移、模型、服务、控制器、路由到前端页面的完整工作流。

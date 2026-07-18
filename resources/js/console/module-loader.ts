@@ -159,10 +159,22 @@ const MODULE_LABELS: Record<string, string> = {
   analytics: '数据分析', staff: '团队管理', sms: '触达运营', product: '交易转化',
   knowledge: '知识库', lottery: '抽奖活动', distribution: '分销管理', coupon: '优惠券',
   voting: '投票活动',
-  // Vendor modules
+  // Vendor modules (PascalCase — framework standalone)
   User: '用户管理', Billing: '计费管理', Auth: '认证配置', ApiToken: 'API 管理',
   Payment: '支付配置', Platform: '平台管理', Sms: '短信配置', SSL: 'SSL 证书',
   Workflow: '工作流', Infrastructure: '基础设施', Ticket: '工单管理',
+  // Vendor modules (kebab-case — consumed by downstream projects)
+  'multi-tenant-saas-module-user': '用户管理',
+  'multi-tenant-saas-module-billing': '计费管理',
+  'multi-tenant-saas-module-auth': '认证配置',
+  'multi-tenant-saas-module-api-token': 'API 管理',
+  'multi-tenant-saas-module-payment': '支付配置',
+  'multi-tenant-saas-module-platform': '平台管理',
+  'multi-tenant-saas-module-sms': '短信配置',
+  'multi-tenant-saas-module-ssl': 'SSL 证书',
+  'multi-tenant-saas-module-workflow': '工作流',
+  'multi-tenant-saas-module-infrastructure': '基础设施',
+  'multi-tenant-saas-module-ticket': '工单管理',
 }
 
 // ---- Route loading ----
@@ -179,6 +191,11 @@ export async function loadModuleRoutes(): Promise<ModuleRoute[]> {
       const mod = await (loader as () => Promise<any>)()
       const moduleRoutes = mod.default || mod
       if (Array.isArray(moduleRoutes)) {
+        // Inject module name into meta for sidebar grouping
+        for (const route of moduleRoutes) {
+          if (!route.meta) route.meta = {}
+          if (!route.meta.module) route.meta.module = moduleName
+        }
         routes.push(...moduleRoutes)
       }
     } catch (e) {
@@ -343,7 +360,7 @@ export async function getConsoleNavSections(): Promise<NavSection[]> {
   const sections: NavSection[] = []
   for (const [moduleName, groupItems] of [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
     const label = MODULE_LABELS[moduleName]
-      || moduleName.replace(/-/g, ' ').replace(/^./, s => s.toUpperCase())
+      || moduleName.replace(/^multi-tenant-saas-module-/, '').replace(/-/g, ' ').replace(/^./, s => s.toUpperCase())
 
     sections.push({
       label,

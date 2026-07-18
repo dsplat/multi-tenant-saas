@@ -65,6 +65,21 @@ export function createConsoleConfig(options: {
           }
         },
       },
+      {
+        name: 'spa-fallback',
+        configureServer(server) {
+          server.middlewares.use((req, _res, next) => {
+            const url = req.url || ''
+            if (url.includes('/@') || url.includes('/.vite/') || url.includes('/node_modules/') ||
+                url.includes('/api/') || url.includes('/vendor/') || url.includes('/resources/') ||
+                /\.(js|ts|vue|css|json|png|jpg|svg|ico|woff|woff2|ttf)(\?|$)/.test(url)) {
+              return next()
+            }
+            req.url = '/console/resources/pages/console/index.html'
+            next()
+          })
+        },
+      },
     ],
     root,
     base: '/console/',

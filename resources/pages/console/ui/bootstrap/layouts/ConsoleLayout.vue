@@ -70,8 +70,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useUserStore } from '@/console/stores/user'
-import { getConsoleNavSections, type NavSection } from '@/console/module-loader'
+import { useUserStore } from '@/stores/user'
+import { getConsoleNavSections, type NavSection } from '@/module-loader'
 import ThemeSwitcher from '@multi-tenant-saas/ui-core/components/ThemeSwitcher.vue'
 import ColorPicker from '@multi-tenant-saas/ui-core/components/ColorPicker.vue'
 import ThemeSettings from '@multi-tenant-saas/ui-core/components/ThemeSettings.vue'

@@ -43,6 +43,23 @@
         </el-breadcrumb>
 
         <div class="actions">
+          <el-dropdown v-if="userStore.user?.tenants && userStore.user.tenants.length > 1" @command="handleSwitchTenant" trigger="click">
+            <el-button :icon="OfficeBuilding" circle title="切换租户" />
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  v-for="t in userStore.user.tenants"
+                  :key="t.tenant_id"
+                  :command="t.tenant_id"
+                  :disabled="String(t.tenant_id) === String(userStore.tenantId)"
+                >
+                  <el-icon><OfficeBuilding /></el-icon>
+                  {{ t.name }}
+                  <el-tag v-if="String(t.tenant_id) === String(userStore.tenantId)" size="small" type="success" style="margin-left: 8px">当前</el-tag>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <el-button :icon="Monitor" circle @click="showFrameworkSelector = true" title="UI 框架切换" />
           <ThemeSwitcher />
           <ColorPicker />
@@ -65,10 +82,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  Monitor, Setting, SwitchButton,
+  Monitor, Setting, SwitchButton, OfficeBuilding,
 } from '@element-plus/icons-vue'
-import { useUserStore } from '@/console/stores/user'
-import { getConsoleNavSections, type NavSection } from '@/console/module-loader'
+import { useUserStore } from '@/stores/user'
+import { getConsoleNavSections, type NavSection } from '@/module-loader'
 import ThemeSwitcher from '@multi-tenant-saas/ui-core/components/ThemeSwitcher.vue'
 import ColorPicker from '@multi-tenant-saas/ui-core/components/ColorPicker.vue'
 import ThemeSettings from '@multi-tenant-saas/ui-core/components/ThemeSettings.vue'
@@ -93,6 +110,10 @@ onMounted(async () => {
 const handleLogout = async () => {
   await userStore.logout()
   router.push('/login')
+}
+
+const handleSwitchTenant = async (tenantId: number) => {
+  await userStore.switchTenant(tenantId)
 }
 </script>
 

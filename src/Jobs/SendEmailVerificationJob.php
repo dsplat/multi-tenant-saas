@@ -8,10 +8,9 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use MultiTenantSaas\Mail\EmailVerificationMail;
 use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Services\MailerService;
 
 /**
  * 异步发送邮箱验证邮件
@@ -31,7 +30,7 @@ class SendEmailVerificationJob implements ShouldQueue
         public int $userId
     ) {}
 
-    public function handle(): void
+    public function handle(MailerService $mailer): void
     {
         $user = User::find($this->userId);
         if (! $user || $user->email_verified_at) {
@@ -48,6 +47,14 @@ class SendEmailVerificationJob implements ShouldQueue
             ]
         );
 
-        Mail::to($user->email)->send(new EmailVerificationMail($token, $user->email));
+        $verificationUrl = url('/public/verify-email?token=' . $token . '&email=' . urlencode($user->email));
+
+        $mailer->sendTemplate($user->email, 'verification', [
+            'name' => $user->name ?? $user->email,
+            'verification_url' => $verificationUrl,
+            'platform_name' => config('app.name'),
+            'expiry_hours' => 24,
+            'current_year' => date('Y'),
+        ], tenantId: (int) ($user->tenant_id ?? 0) ?: null);
     }
 }

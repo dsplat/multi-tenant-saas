@@ -8,10 +8,9 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use MultiTenantSaas\Mail\PasswordResetMail;
 use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Services\MailerService;
 
 /**
  * 异步发送密码重置邮件
@@ -30,7 +29,7 @@ class SendPasswordResetJob implements ShouldQueue
         public int $userId
     ) {}
 
-    public function handle(): void
+    public function handle(MailerService $mailer): void
     {
         $user = User::find($this->userId);
         if (! $user) {
@@ -47,6 +46,14 @@ class SendPasswordResetJob implements ShouldQueue
             ]
         );
 
-        Mail::to($user->email)->send(new PasswordResetMail($token, $user->email));
+        $resetUrl = url('/public/reset-password?token=' . $token . '&email=' . urlencode($user->email));
+
+        $mailer->sendTemplate($user->email, 'reset', [
+            'user_name' => $user->name ?? $user->email,
+            'reset_url' => $resetUrl,
+            'platform_name' => config('app.name'),
+            'expiry_minutes' => 60,
+            'current_year' => date('Y'),
+        ], tenantId: (int) ($user->tenant_id ?? 0) ?: null);
     }
 }

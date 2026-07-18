@@ -14,8 +14,8 @@ use MultiTenantSaas\Context\TenantContext;
 /**
  * 邮件模板模型
  *
- * 支持租户专属模板与系统默认模板（tenant_id IS NULL）。
- * 查询时默认返回当前租户模板 + 系统默认模板，便于租户覆盖系统默认值。
+ * 支持三级覆盖：system（系统默认）→ project（项目定制）→ tenant（租户定制）。
+ * 查询时按优先级返回：租户定制 > 项目定制 > 系统默认。
  */
 class MailTemplate extends Model
 {
@@ -25,6 +25,7 @@ class MailTemplate extends Model
 
     protected $table = 'mail_templates';
 
+    // 模板类型
     public const TYPE_BILLING = 'billing';
 
     public const TYPE_NOTIFICATION = 'notification';
@@ -33,11 +34,42 @@ class MailTemplate extends Model
 
     public const TYPE_RESET = 'reset';
 
+    public const TYPE_REGISTRATION = 'registration';
+
+    public const TYPE_VERIFICATION = 'verification';
+
+    public const TYPE_INVITATION = 'invitation';
+
+    public const TYPE_APPLICATION_SUBMITTED = 'application_submitted';
+
+    public const TYPE_APPLICATION_APPROVED = 'application_approved';
+
+    public const TYPE_APPLICATION_REJECTED = 'application_rejected';
+
     public const TYPES = [
         self::TYPE_BILLING,
         self::TYPE_NOTIFICATION,
         self::TYPE_WELCOME,
         self::TYPE_RESET,
+        self::TYPE_REGISTRATION,
+        self::TYPE_VERIFICATION,
+        self::TYPE_INVITATION,
+        self::TYPE_APPLICATION_SUBMITTED,
+        self::TYPE_APPLICATION_APPROVED,
+        self::TYPE_APPLICATION_REJECTED,
+    ];
+
+    // 模板层级
+    public const SCOPE_SYSTEM = 'system';
+
+    public const SCOPE_PROJECT = 'project';
+
+    public const SCOPE_TENANT = 'tenant';
+
+    public const SCOPES = [
+        self::SCOPE_SYSTEM,
+        self::SCOPE_PROJECT,
+        self::SCOPE_TENANT,
     ];
 
     public const STATUS_ACTIVATED = 'activated';
@@ -51,6 +83,7 @@ class MailTemplate extends Model
 
     protected $fillable = [
         'tenant_id',
+        'scope',
         'type',
         'name_key',
         'name',
@@ -58,6 +91,7 @@ class MailTemplate extends Model
         'html_body',
         'text_body',
         'variables',
+        'locale',
         'status',
     ];
 
@@ -70,7 +104,7 @@ class MailTemplate extends Model
 
     /**
      * 覆写 BelongsToTenant 的 boot：使用自定义全局作用域，
-     * 查询时同时返回当前租户模板 + tenant_id IS NULL 的系统默认模板
+     * 查询时同时返回当前租户模板 + project + system 模板
      */
     protected static function bootBelongsToTenant(): void
     {
@@ -80,14 +114,21 @@ class MailTemplate extends Model
                 $table = $builder->getModel()->getTable();
                 $builder->where(function ($q) use ($table, $tenantId) {
                     $q->where("{$table}.tenant_id", $tenantId)
-                        ->orWhereNull("{$table}.tenant_id");
+                        ->orWhere(function ($sub) use ($table) {
+                            $sub->whereNull("{$table}.tenant_id")
+                                ->whereIn("{$table}.scope", [self::SCOPE_SYSTEM, self::SCOPE_PROJECT]);
+                        });
                 });
             }
         });
 
-        // 创建时自动填充 tenant_id（无租户上下文时为 null，即系统默认模板）
+        // 创建时自动填充 tenant_id 和 scope
         static::creating(function (Model $model) {
-            if (empty($model->tenant_id)) {
+            if (empty($model->scope)) {
+                $model->scope = empty($model->tenant_id) ? self::SCOPE_SYSTEM : self::SCOPE_TENANT;
+            }
+            // 仅对 tenant scope 自动填充 tenant_id（system/project 级模板应保持 null）
+            if (empty($model->tenant_id) && $model->scope === self::SCOPE_TENANT) {
                 $model->tenant_id = TenantContext::getId();
             }
         });

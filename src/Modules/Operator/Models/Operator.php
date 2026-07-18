@@ -2,15 +2,17 @@
 
 namespace MultiTenantSaas\Modules\Operator\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
-class Operator extends Model
+class Operator extends Authenticatable
 {
-    use HasGlobalId, SoftDeletes;
+    use HasApiTokens, HasGlobalId, SoftDeletes;
 
     protected $primaryKey = 'operator_id';
 
@@ -22,12 +24,18 @@ class Operator extends Model
         'avatar',
         'scope',
         'is_active',
+        'email_verified_at',
+        'last_login_at',
+        'login_attempts',
+        'locked_until',
+        'password_changed_at',
         'invite_token',
         'invite_expires_at',
     ];
 
     protected $hidden = [
         'password',
+        'remember_token',
     ];
 
     protected function casts(): array

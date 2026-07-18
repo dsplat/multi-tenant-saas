@@ -3,12 +3,15 @@ import { ref, computed } from 'vue'
 import axios from 'axios'
 
 interface User {
-  user_id: string
+  user_id?: string
+  operator_id?: string
   name: string
   email: string
-  role: string
+  role?: string
+  scope?: string
   avatar?: string
   tenant_id?: string
+  tenants?: Array<{ tenant_id: number; name: string; role: string }>
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -56,6 +59,27 @@ export const useUserStore = defineStore('user', () => {
         return response.data
       }
 
+      // Operator login (new flow)
+      if (data.operator) {
+        const { operator, tenants, no_tenant } = data
+        setToken(data.auth_token)
+        user.value = { ...operator, tenants }
+        permissions.value = operator.permissions || []
+        if (no_tenant || !tenants?.length) {
+          // No tenant — will be redirected to /console/apply
+          if (user.value) user.value.tenant_id = undefined
+          return { ...response.data, no_tenant: true }
+        }
+        // Use first tenant
+        const firstTenant = tenants[0]
+        const effectiveTenantId = firstTenant.tenant_id
+        if (user.value) user.value.tenant_id = String(effectiveTenantId)
+        localStorage.setItem('console_tenant_id', String(effectiveTenantId))
+        axios.defaults.headers.common['X-Tenant-ID'] = String(effectiveTenantId)
+        return response.data
+      }
+
+      // Legacy User login
       const { user: userData, auth_token, tenant_id } = data
       setToken(auth_token)
       userData.tenant_id = tenant_id
@@ -82,6 +106,23 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  const switchTenant = async (tenantId: number) => {
+    // Update headers and storage
+    axios.defaults.headers.common['X-Tenant-ID'] = String(tenantId)
+    localStorage.setItem('console_tenant_id', String(tenantId))
+    if (user.value) user.value.tenant_id = String(tenantId)
+
+    // Reload user info for the new tenant context
+    try {
+      await fetchUser()
+      // Trigger a full page reload to ensure all data is refreshed
+      window.location.reload()
+    } catch (error) {
+      console.error('切换租户失败:', error)
+      throw error
+    }
+  }
+
   const init = async () => {
     if (token.value) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
@@ -95,5 +136,5 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  return { token, user, permissions, isLoggedIn, tenantId, hasPermission, setToken, fetchUser, login, logout, init }
+  return { token, user, permissions, isLoggedIn, tenantId, hasPermission, setToken, fetchUser, login, logout, switchTenant, init }
 })

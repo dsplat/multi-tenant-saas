@@ -32,6 +32,8 @@ class TenantMail extends Mailable
 
     public ?int $tenantId;
 
+    public $locale;
+
     /**
      * 构造函数接收的原始附件输入（字符串路径 / 数组配置 / Attachment 实例）。
      */
@@ -47,9 +49,11 @@ class TenantMail extends Mailable
         array $data = [],
         ?int $tenantId = null,
         array $attachments = [],
+        ?string $locale = null,
     ) {
         $this->templateType = $templateType;
         $this->tenantId = $tenantId;
+        $this->locale = $locale;
         $this->attachmentInput = $attachments;
         $this->data = $this->withTenantDefaults($data);
     }
@@ -97,7 +101,7 @@ class TenantMail extends Mailable
     {
         if ($this->rendered === null) {
             $this->rendered = app(MailTemplateService::class)
-                ->render($this->templateType, $this->data, $this->tenantId);
+                ->render($this->templateType, $this->data, $this->tenantId, $this->locale);
         }
 
         return $this->rendered;

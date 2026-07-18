@@ -169,6 +169,8 @@ class AuthController extends Controller
 
     /**
      * 管理员登录（仅 platform scope operator）。
+     *
+     * 直接认证 Operator，生成 Operator token。
      */
     public function adminLogin(Request $request): JsonResponse
     {
@@ -191,42 +193,23 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => trans('common.super_admin_only')], 403);
         }
 
-        $operatorTenant = OperatorTenant::where('operator_id', $operator->operator_id)
-            ->where('is_active', true)
-            ->first();
-
-        if (! $operatorTenant) {
-            return response()->json(['success' => false, 'message' => trans('auth.user_not_found')], 404);
-        }
-
-        $user = User::find($operatorTenant->user_id);
-
-        if (! $user) {
-            return response()->json(['success' => false, 'message' => trans('auth.user_not_found')], 404);
-        }
-
-        if ($this->passwordPolicy->isLocked($user)) {
+        // 检查账户锁定
+        if ($operator->locked_until && Carbon::parse($operator->locked_until)->isFuture()) {
             return response()->json([
                 'success' => false,
                 'message' => trans('auth.account_locked'),
-                'retry_after' => $this->passwordPolicy->getLockRemainingSeconds($user),
+                'retry_after' => Carbon::parse($operator->locked_until)->diffInSeconds(now()),
             ], 423);
         }
 
-        $this->passwordPolicy->recordSuccessfulLogin($user);
+        // 更新登录状态
+        $operator->update([
+            'login_attempts' => 0,
+            'locked_until' => null,
+            'last_login_at' => now(),
+        ]);
 
-        if ($this->mfaService->hasMfaEnabled($user->user_id)) {
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'mfa_required' => true,
-                    'user_id' => $user->user_id,
-                    'available_types' => $this->mfaService->getAvailableChallengeTypes($user->user_id),
-                ],
-            ]);
-        }
-
-        return $this->createTokenResponse($user, $request);
+        return $this->createOperatorTokenResponse($operator, $request);
     }
 
     /**
@@ -238,18 +221,31 @@ class AuthController extends Controller
     }
 
     /**
-     * 获取当前管理员信息。
+     * 获取当前管理员信息（Operator）。
      */
     public function adminUser(Request $request): JsonResponse
     {
+        $tokenable = $request->user();
+
+        if ($tokenable instanceof Operator) {
+            return response()->json([
+                'success' => true,
+                'data' => $this->operatorToArray($tokenable),
+            ]);
+        }
+
+        // 向后兼容：老 token 仍然是 User
         return response()->json([
             'success' => true,
-            'data' => $this->userToArray($request->user()),
+            'data' => $this->userToArray($tokenable),
         ]);
     }
 
     /**
-     * 租户管理员登录（通过 operator_tenants 验证租户权限）。
+     * 租户管理员登录（通过 Operator 认证，关联租户）。
+     *
+     * 直接认证 Operator，生成 Operator token。
+     * 如果 Operator 无租户关联，返回 403 引导申请。
      */
     public function consoleLogin(Request $request): JsonResponse
     {
@@ -266,6 +262,15 @@ class AuthController extends Controller
 
         if (! $operator->is_active) {
             return response()->json(['success' => false, 'message' => trans('auth.account_disabled')], 403);
+        }
+
+        // 检查账户锁定
+        if ($operator->locked_until && Carbon::parse($operator->locked_until)->isFuture()) {
+            return response()->json([
+                'success' => false,
+                'message' => trans('auth.account_locked'),
+                'retry_after' => Carbon::parse($operator->locked_until)->diffInSeconds(now()),
+            ], 423);
         }
 
         $tenantId = $request->header('X-Tenant-ID') ?? $request->attributes->get('tenant_id');
@@ -288,41 +293,32 @@ class AuthController extends Controller
                 ->first();
         }
 
+        // 无租户关联：返回成功但不带 token，前端引导申请
         if (! $operatorTenant) {
-            return response()->json(['success' => false, 'message' => trans('common.admin_no_tenant_console')], 403);
+            // 更新登录状态
+            $operator->update(['last_login_at' => now()]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'operator' => $this->operatorToArray($operator),
+                    'tenants' => [],
+                    'no_tenant' => true,
+                ],
+            ]);
         }
 
         // 更新 request 的 tenant_id，确保后续中间件/控制器使用正确的租户
         $request->attributes->set('tenant_id', $operatorTenant->tenant_id);
 
-        $user = User::find($operatorTenant->user_id);
+        // 更新登录状态
+        $operator->update([
+            'login_attempts' => 0,
+            'locked_until' => null,
+            'last_login_at' => now(),
+        ]);
 
-        if (! $user) {
-            return response()->json(['success' => false, 'message' => trans('auth.user_not_found')], 404);
-        }
-
-        if ($this->passwordPolicy->isLocked($user)) {
-            return response()->json([
-                'success' => false,
-                'message' => trans('auth.account_locked'),
-                'retry_after' => $this->passwordPolicy->getLockRemainingSeconds($user),
-            ], 423);
-        }
-
-        $this->passwordPolicy->recordSuccessfulLogin($user);
-
-        if ($this->mfaService->hasMfaEnabled($user->user_id)) {
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'mfa_required' => true,
-                    'user_id' => $user->user_id,
-                    'available_types' => $this->mfaService->getAvailableChallengeTypes($user->user_id),
-                ],
-            ]);
-        }
-
-        return $this->createTokenResponse($user, $request);
+        return $this->createOperatorTokenResponse($operator, $request);
     }
 
     /**
@@ -334,16 +330,26 @@ class AuthController extends Controller
     }
 
     /**
-     * 获取当前租户用户信息。
+     * 获取当前租户用户信息（Operator 或 User）。
      */
     public function consoleUser(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $tokenable = $request->user();
         $tenantId = $request->attributes->get('tenant_id');
 
+        if ($tokenable instanceof Operator) {
+            return response()->json([
+                'success' => true,
+                'data' => array_merge($this->operatorToArray($tokenable), [
+                    'tenant_id' => $tenantId,
+                ]),
+            ]);
+        }
+
+        // 向后兼容：老 token 仍然是 User
         return response()->json([
             'success' => true,
-            'data' => array_merge($this->userToArray($user), [
+            'data' => array_merge($this->userToArray($tokenable), [
                 'tenant_id' => $tenantId,
             ]),
         ]);
@@ -398,10 +404,10 @@ class AuthController extends Controller
             return response()->json(['success' => true, 'message' => trans('auth.email_already_verified')]);
         }
 
-        // 验证 token
+        // 验证 token（存储时已 hash，查询时也需 hash）
         $tokenRecord = DB::table('email_verification_tokens')
             ->where('email', $request->email)
-            ->where('token', $request->token)
+            ->where('token', hash('sha256', $request->token))
             ->first();
 
         if (! $tokenRecord) {
@@ -476,10 +482,10 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => trans('auth.user_not_found')], 404);
         }
 
-        // 验证 token
+        // 验证 token（存储时已 hash，查询时也需 hash）
         $tokenRecord = DB::table('password_reset_tokens')
             ->where('email', $request->email)
-            ->where('token', $request->token)
+            ->where('token', hash('sha256', $request->token))
             ->first();
 
         if (! $tokenRecord) {
@@ -496,7 +502,8 @@ class AuthController extends Controller
         }
 
         // 重置密码并删除 token
-        $user->update(['password' => Hash::make($request->password)]);
+        // User 模型有 'password' => 'hashed' cast，无需手动 Hash::make
+        $user->update(['password' => $request->password]);
         $user->tokens()->delete();
         DB::table('password_reset_tokens')
             ->where('email', $request->email)
@@ -673,6 +680,67 @@ class AuthController extends Controller
             'email' => $user->email,
             'role' => $role,
             'email_verified' => ! empty($user->email_verified_at),
+        ];
+    }
+
+    /**
+     * 基于 Operator 生成 Sanctum token 响应。
+     */
+    protected function createOperatorTokenResponse(Operator $operator, Request $request): JsonResponse
+    {
+        $newToken = $operator->createToken('operator_auth_token');
+        $token = $newToken->plainTextToken;
+
+        $tenants = $operator->tenants()
+            ->where('operator_tenants.is_active', true)
+            ->get()
+            ->map(fn ($tenant) => [
+                'tenant_id' => $tenant->tenant_id,
+                'name' => $tenant->name,
+                'role' => $tenant->pivot->role,
+            ])
+            ->toArray();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'operator' => [
+                    'operator_id' => $operator->operator_id,
+                    'name' => $operator->name,
+                    'email' => $operator->email,
+                    'scope' => $operator->scope,
+                    'email_verified' => ! empty($operator->email_verified_at),
+                ],
+                'tenants' => $tenants,
+                'tenant_id' => $request->attributes->get('tenant_id'),
+                'auth_token' => $token,
+                'auth_token_expires_in' => 1800,
+            ],
+        ]);
+    }
+
+    /**
+     * Operator 转数组。
+     */
+    protected function operatorToArray(Operator $operator): array
+    {
+        $tenants = $operator->tenants()
+            ->where('operator_tenants.is_active', true)
+            ->get()
+            ->map(fn ($tenant) => [
+                'tenant_id' => $tenant->tenant_id,
+                'name' => $tenant->name,
+                'role' => $tenant->pivot->role,
+            ])
+            ->toArray();
+
+        return [
+            'operator_id' => $operator->operator_id,
+            'name' => $operator->name,
+            'email' => $operator->email,
+            'scope' => $operator->scope,
+            'email_verified' => ! empty($operator->email_verified_at),
+            'tenants' => $tenants,
         ];
     }
 }

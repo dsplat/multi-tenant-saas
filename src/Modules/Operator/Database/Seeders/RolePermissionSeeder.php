@@ -40,9 +40,11 @@ class RolePermissionSeeder extends Seeder
                 'workflow.view', 'workflow.create', 'workflow.execute',
             ]))->values()->all(),
 
-            // 租户管理员：除 tenant CRUD 外的全部权限
+            // 租户管理员：除 tenant CRUD 和 platform 级审批外全部权限
             'tenant_admin' => $allPermIds->filter(fn ($_, $name) => ! in_array($name, [
                 'tenant.create', 'tenant.delete', 'tenant.suspend',
+                'application.approve', 'application.reject',
+                'apply_fields.update',
             ]))->values()->all(),
 
             // 普通用户：查看 + 基础操作

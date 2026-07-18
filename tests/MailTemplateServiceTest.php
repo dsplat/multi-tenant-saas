@@ -66,6 +66,7 @@ class MailTemplateServiceTest extends TestCase
             'text_body' => 'Hi {{user_name}}',
             'variables' => ['user_name'],
             'status' => 'activated',
+            'scope' => 'tenant',
         ]);
 
         $this->assertNotEmpty($template->template_id);
@@ -95,6 +96,7 @@ class MailTemplateServiceTest extends TestCase
             'html_body' => '<p>body</p>',
             'variables' => [],
             'status' => 'activated',
+            'scope' => 'tenant',
         ]);
 
         $fetched = $service->get($created->template_id);
@@ -115,6 +117,7 @@ class MailTemplateServiceTest extends TestCase
             'html_body' => '<p>原</p>',
             'variables' => [],
             'status' => 'activated',
+            'scope' => 'tenant',
         ]);
 
         $updated = $service->update($created->template_id, [
@@ -138,6 +141,7 @@ class MailTemplateServiceTest extends TestCase
             'html_body' => '<p>x</p>',
             'variables' => [],
             'status' => 'activated',
+            'scope' => 'tenant',
         ]);
 
         $this->assertTrue($service->delete($created->template_id));
@@ -192,6 +196,7 @@ class MailTemplateServiceTest extends TestCase
             'text_body' => 'tenant custom',
             'variables' => [],
             'status' => 'activated',
+            'scope' => 'tenant',
         ]);
 
         $found = $service->findTemplate('welcome', 1001);
@@ -228,6 +233,7 @@ class MailTemplateServiceTest extends TestCase
             'html_body' => '<p>billing</p>',
             'variables' => [],
             'status' => 'activated',
+            'scope' => 'tenant',
         ]);
         $service->create([
             'type' => 'notification',
@@ -236,6 +242,7 @@ class MailTemplateServiceTest extends TestCase
             'html_body' => '<p>notify</p>',
             'variables' => [],
             'status' => 'activated',
+            'scope' => 'tenant',
         ]);
 
         // 当前上下文 1001：返回租户 1001 模板 + 系统默认模板
@@ -260,6 +267,7 @@ class MailTemplateServiceTest extends TestCase
             'html_body' => '<p>x</p>',
             'variables' => [],
             'status' => 'activated',
+            'scope' => 'tenant',
         ]);
 
         $this->assertSame('activated', $created->status);
@@ -291,12 +299,12 @@ class MailTemplateServiceTest extends TestCase
             ->whereNull('tenant_id')
             ->get();
 
-        $this->assertCount(6, $all);
+        $this->assertCount(12, $all);
 
-        // 幂等：再调用一次仍为 6
+        // 幂等：再调用一次仍为 12
         $service->seedDefaultTemplates();
         $this->assertCount(
-            6,
+            12,
             MailTemplate::withoutGlobalScope('mailTemplateTenant')->whereNull('tenant_id')->get()
         );
 
@@ -308,6 +316,12 @@ class MailTemplateServiceTest extends TestCase
             'invoice_generated',
             'subscription_expiring',
             'tenant_suspended',
+            'operator_registration',
+            'operator_verification',
+            'tenant_application_submitted',
+            'tenant_application_approved',
+            'tenant_application_rejected',
+            'operator_invitation',
         ];
         $this->assertEqualsCanonicalizing($expected, $all->pluck('name_key')->all());
 
@@ -384,6 +398,7 @@ class MailTemplateServiceTest extends TestCase
             'html_body' => '<p>B</p>',
             'variables' => [],
             'status' => 'activated',
+            'scope' => 'tenant',
         ]);
 
         // 切换回租户 1001
@@ -397,8 +412,8 @@ class MailTemplateServiceTest extends TestCase
             $visible->every(fn ($t) => $t->tenant_id === null || (string) $t->tenant_id === '1001')
         );
 
-        // 系统默认模板可见（6 个）
+        // 系统默认模板可见（12 个）
         $systemDefaults = $visible->filter(fn ($t) => $t->tenant_id === null);
-        $this->assertCount(6, $systemDefaults);
+        $this->assertCount(12, $systemDefaults);
     }
 }

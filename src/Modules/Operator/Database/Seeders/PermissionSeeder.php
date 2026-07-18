@@ -51,6 +51,20 @@ class PermissionSeeder extends Seeder
             // 报表
             ['name' => 'report.view', 'display_name' => '查看报表', 'group' => 'report', 'description' => '查看数据报表'],
             ['name' => 'report.export', 'display_name' => '导出报表', 'group' => 'report', 'description' => '导出数据报表'],
+
+            // 租户申请审批
+            ['name' => 'application.view', 'display_name' => '查看申请', 'group' => 'application', 'description' => '查看租户申请列表和详情'],
+            ['name' => 'application.approve', 'display_name' => '审批申请', 'group' => 'application', 'description' => '审批通过租户申请'],
+            ['name' => 'application.reject', 'display_name' => '拒绝申请', 'group' => 'application', 'description' => '拒绝租户申请'],
+
+            // 申请字段配置
+            ['name' => 'apply_fields.view', 'display_name' => '查看申请字段', 'group' => 'apply_fields', 'description' => '查看申请表单字段配置'],
+            ['name' => 'apply_fields.update', 'display_name' => '编辑申请字段', 'group' => 'apply_fields', 'description' => '编辑申请表单字段配置'],
+
+            // 邮件模板管理
+            ['name' => 'mail_template.view', 'display_name' => '查看邮件模板', 'group' => 'mail_template', 'description' => '查看邮件模板列表和内容'],
+            ['name' => 'mail_template.update', 'display_name' => '编辑邮件模板', 'group' => 'mail_template', 'description' => '编辑邮件模板内容'],
+            ['name' => 'mail_template.create', 'display_name' => '创建邮件模板', 'group' => 'mail_template', 'description' => '创建邮件模板'],
         ];
 
         $created = 0;

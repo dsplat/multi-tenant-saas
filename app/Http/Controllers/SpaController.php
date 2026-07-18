@@ -17,11 +17,30 @@ class SpaController extends Controller
      */
     public function index(Request $request)
     {
+        // 如果有公开页面，重定向到 /public
+        $publicIndex = public_path('public/index.html');
+        if (file_exists($publicIndex)) {
+            return redirect('/public');
+        }
+
         return response()->json([
             'name' => config('app.name'),
             'version' => '1.0.0',
             'status' => 'ok',
         ]);
+    }
+
+    /**
+     * 公开页面 SPA（登录/注册/申请/进度查询）
+     */
+    public function publicPage(Request $request)
+    {
+        $indexPath = public_path('public/index.html');
+        if (file_exists($indexPath)) {
+            return response()->file($indexPath);
+        }
+
+        return response()->json(['message' => 'Public pages not built yet. Run: cd resources/js/public && npm run build'], 503);
     }
 
     /**

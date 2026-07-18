@@ -63,6 +63,8 @@ class NotificationModule implements SchemaModuleInterface
             $table->string('name_key', 50)->nullable();
             $table->string('name');
             $table->string('subject');
+            $table->string('scope', 20)->default('system');
+            $table->string('locale', 10)->default('zh_CN');
             $table->longText('html_body');
             $table->text('text_body')->nullable();
             $table->json('variables')->nullable();

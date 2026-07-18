@@ -30,10 +30,11 @@ class MailerService
      * 使用 TenantMail 渲染模板，自动注入品牌和租户变量。
      *
      * @param  string  $to  收件人
-     * @param  string  $type  模板类型 (welcome/reset/billing/notification)
+     * @param  string  $type  模板类型 (welcome/reset/billing/notification/registration/verification/invitation/application_*)
      * @param  array  $data  模板变量
      * @param  int|null  $tenantId  租户 ID (null = 使用当前上下文)
      * @param  array  $attachments  附件配置
+     * @param  string|null  $locale  语言标识 (null = 使用默认)
      * @return bool 是否发送成功
      */
     public function sendTemplate(
@@ -42,9 +43,10 @@ class MailerService
         array $data = [],
         ?int $tenantId = null,
         array $attachments = [],
+        ?string $locale = null,
     ): bool {
         try {
-            $mailable = new TenantMail($type, $data, $tenantId, $attachments);
+            $mailable = new TenantMail($type, $data, $tenantId, $attachments, $locale);
             Mail::to($to)->send($mailable);
 
             return true;

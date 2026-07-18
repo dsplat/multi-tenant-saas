@@ -9,12 +9,12 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Facades\Excel;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Modules\Infrastructure\Services\ExcelService;
 use MultiTenantSaas\Modules\Infrastructure\Services\PdfService;
 use MultiTenantSaas\Modules\Monitoring\Models\CustomReport;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use Throwable;
 
 /**
@@ -682,52 +682,53 @@ class ReportService
     }
 
     /**
-     * 导出 Excel（依赖 maatwebsite/excel）
+     * 导出 Excel（基于 phpoffice/phpspreadsheet 2.0）
      *
      * @param  array<int, array{section: string, key: string, value: string}>  $rows
      *
-     * @throws \RuntimeException 当 maatwebsite/excel 未安装
+     * @throws \RuntimeException 当导出失败
      */
     protected function exportExcel(array $rows): string
     {
-        if (! class_exists(Excel::class)) {
-            throw new \RuntimeException(trans('common.report_export_unavailable'));
-        }
-
         $headings = ['section', 'key', 'value'];
 
-        $export = new class($rows, $headings) implements FromCollection, WithHeadings
-        {
-            /** @var Collection */
-            private $data;
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
 
-            private $headings;
+        // 写入表头
+        $col = 1;
+        foreach ($headings as $heading) {
+            $sheet->setCellValue([$col, 1], $heading);
+            $col++;
+        }
 
-            public function __construct(array $data, array $headings)
-            {
-                $this->data = collect($data);
-                $this->headings = $headings;
+        // 写入数据行
+        $row = 2;
+        foreach ($rows as $item) {
+            $col = 1;
+            foreach (array_values($item) as $value) {
+                $sheet->setCellValue([$col, $row], $value);
+                $col++;
             }
+            $row++;
+        }
 
-            public function collection()
-            {
-                return $this->data;
-            }
-
-            public function headings(): array
-            {
-                return $this->headings;
-            }
-        };
-
+        // 写入临时文件并读取内容
+        $tempFile = tempnam(sys_get_temp_dir(), 'report_');
         try {
-            $response = Excel::download($export, 'report.xlsx');
-            $file = $response->getFile();
-
-            return (string) file_get_contents($file->getPathname());
+            $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+            $writer->save($tempFile);
+            $content = (string) file_get_contents($tempFile);
         } catch (Throwable $e) {
             throw new \RuntimeException(trans('common.report_export_unavailable'), 0, $e);
+        } finally {
+            $spreadsheet->disconnectWorksheets();
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
         }
+
+        return $content;
     }
 
     /**

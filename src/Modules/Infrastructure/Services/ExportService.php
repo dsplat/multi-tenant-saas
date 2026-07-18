@@ -8,7 +8,6 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Maatwebsite\Excel\Facades\Excel;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;

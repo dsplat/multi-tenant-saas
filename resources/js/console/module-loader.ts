@@ -23,6 +23,19 @@ export interface NavItem {
 
 // ---- Glob sources ----
 
+// Project-level module views (when framework is consumed by a downstream project)
+// Also covers framework standalone mode (its own src/Modules/)
+const projectModuleViews = import.meta.glob(
+  '/src/Modules/*/resources/console/ui/*/views/*.vue',
+  { eager: false }
+)
+
+// Project-level module view files (recursive, for framework-aware view resolution)
+const projectModuleViewFiles = import.meta.glob(
+  '/src/Modules/*/resources/console/ui/*/views/**/*.vue',
+  { eager: false }
+)
+
 // Vendor independent packages — broad pattern matches any vendor console module
 const frameworkModuleViews = import.meta.glob(
   '/vendor/dsplat/*/resources/console/ui/*/views/*.vue',
@@ -35,11 +48,8 @@ const frameworkCoreModuleViews = import.meta.glob(
   { eager: false }
 )
 
-// Project local modules
-const localModuleViews = import.meta.glob(
-  '/src/Modules/*/resources/console/ui/*/views/*.vue',
-  { eager: false }
-)
+// Project local modules (legacy alias — same as projectModuleViews)
+const localModuleViews = projectModuleViews
 
 // Module custom route definitions
 const moduleRoutesFiles = import.meta.glob(
@@ -96,6 +106,24 @@ function pageNameToLabel(pageName: string): string {
     .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
     .replace(/^./, s => s.toUpperCase())
     .trim()
+}
+
+/**
+ * Framework-aware view resolver for module routes.ts.
+ * Tries the current UI framework first, falls back to element-plus.
+ * Usage in routes.ts: view('customer', 'customers/CustomerList')
+ */
+export function view(moduleName: string, viewPath: string): () => Promise<any> {
+  return () => {
+    const fw = getFramework()
+    for (const tryFw of [fw, 'element-plus']) {
+      const key = `/src/Modules/${moduleName}/resources/console/ui/${tryFw}/views/${viewPath}.vue`
+      if (projectModuleViewFiles[key]) {
+        return (projectModuleViewFiles[key] as () => Promise<any>)()
+      }
+    }
+    return import(/* @vite-ignore */ `/src/Modules/${moduleName}/resources/console/ui/element-plus/views/${viewPath}.vue`)
+  }
 }
 
 // SVG path data for common module icons (20x20 viewBox)

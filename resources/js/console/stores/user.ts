@@ -20,7 +20,7 @@ export const useUserStore = defineStore('user', () => {
   const tenantId = computed(() => user.value?.tenant_id || localStorage.getItem('console_tenant_id') || '')
 
   const hasPermission = (perm: string): boolean => {
-    if (user.value?.role === 'super_admin' || user.value?.role === 'tenant_admin') return true
+    if (['super_admin', 'tenant_admin', 'platform_admin'].includes(user.value?.role || '')) return true
     return permissions.value.includes(perm)
   }
 

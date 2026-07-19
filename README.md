@@ -7,7 +7,7 @@ Laravel 多租户 SaaS 基础框架 — 开箱即用的企业级项目骨架。
 [![Laravel](https://img.shields.io/badge/Laravel-%5E13.0-FF2D20)](https://laravel.com)
 [![Tests](https://img.shields.io/badge/tests-2351%20passed-brightgreen)](#)
 
-[文档](docs/zh/README.md) | [快速开始](docs/zh/guides/quickstart.md) | [SPA 架构](docs/console-spa-architecture.md) | [更新日志](CHANGELOG.md) | [English](docs/en/README.md)
+[文档](docs/zh/README.md) | [快速开始](docs/zh/guides/quickstart.md) | [SPA 架构](docs/spa-architecture.md) | [更新日志](CHANGELOG.md) | [English](docs/en/README.md)
 
 ---
 
@@ -16,7 +16,9 @@ Laravel 多租户 SaaS 基础框架 — 开箱即用的企业级项目骨架。
 - **四层权限体系**：系统管理员 → 租户管理员 → 终端用户 → 访客
 - **租户隔离**：所有查询自动 `WHERE tenant_id = ?`
 - **RBAC 权限**：60+ 权限节点，每租户自定义角色
-- **SPA 后台**：27 个 Admin 页面 + 12 个 Console 页面，支持暗色模式 + 主题切换
+- **三种 SPA 模式**：Public（Scaffold 模式，vendor:publish 拉取后自有）/ Console（继承模式）/ Admin（继承模式）
+- **SPA 后台**：27 个 Admin 页面 + 12 个 Console 页面 + 11 个 Public 页面，支持暗色模式 + 主题切换
+- **首屏防闪烁**：三层注入机制（index.html inline + localStorage + 组件同步读取），品牌名零延迟显示
 - **模块自动发现**：Vue 页面放在 `src/Modules/*/resources/{admin,console}/views/` 自动注册到侧边栏
 - **多 UI 框架**：每个页面支持 Bootstrap 和 Element Plus 两套变体
 - **26 个模块**：计费、认证、表单、抽奖、投票、短信、优惠券、工作流、对话等
@@ -40,6 +42,11 @@ php artisan platform:init --email=admin@example.com --password=your-password
 # 构建前端
 cd resources/js/admin && npm install && npx vite build && cd ../../..
 cd resources/js/console && npm install && npx vite build && cd ../../..
+
+# Public SPA（composer require 引入框架时，先拉取源码）
+# composer require dsplat/multi-tenant-saas
+# php artisan vendor:publish --tag=dsplat-public-spa
+cd resources/js/public && npm install && npx vite build && cd ../../..
 
 php artisan serve
 ```

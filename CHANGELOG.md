@@ -1,5 +1,46 @@
 # Changelog
 
+## v2.9.0 (2026-07-19)
+
+### Public SPA Scaffold 模式
+
+- `vendor:publish --tag=dsplat-public-spa` 机制：下游拉取框架 Public SPA 源码后完全自主定制
+- 与 Console/Admin 继承模式解耦：100% 下游定制 Landing 页，避免继承覆盖的多余负担
+- 两条引入路径统一：`composer create-project` 直接包含 / `composer require` 后 `vendor:publish` 拉取
+- TenancyServiceProvider 注册 `dsplat-public-spa` 发布标签
+
+### 首屏防闪烁三层注入机制
+
+- `index.html` inline script 预注入 `window.__SITE_CONFIG__`（同步执行，Vue 加载前就绪）
+- localStorage 缓存站点配置，二次访问首屏同步读取
+- App.vue / index.vue 初始值 `ref<any>((window as any).__SITE_CONFIG__ || {})` 同步读取
+- 消除「先显示框架默认名，fetch 返回后再覆盖」的闪烁问题
+
+### 重构
+
+- `Landing.vue` → `index.vue`：Landing 概念已删除，组件名语义化
+- 路由 name `'landing'` → `'home'`
+
+### 架构文档
+
+- `docs/console-spa-architecture.md` → `docs/spa-architecture.md`（重命名，保留 git 历史）
+- 新增 §0 三种 SPA 模式总览（Public Scaffold / Console 继承 / Admin 继承）
+- 新增 §9 Public SPA Scaffold 模式详解
+- 新增 §10 首屏防闪烁三层注入机制（时序图 + 兜底默认值约定）
+
+### Bug Fixes
+
+- N:N operator-tenant 关系修复（AttachTenantAdminOnActivated 移除未使用 import）
+- TenantController import 简化（FQPN → use 导入）
+
+### Stats
+
+- Tests: 2351, Assertions: 5915, Skipped: 2
+- Modules: 26 + Ticket example
+- Public views: 11（index.vue 重命名）
+
+---
+
 ## v2.8.0 (2026-07-18)
 
 ### Auto-Discovered Sidebar Navigation

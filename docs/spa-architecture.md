@@ -1,6 +1,27 @@
-# Console SPA 架构设计文档
+# SPA 架构设计文档
 
-> 版本: v2.8.0 | 日期: 2025-07-18
+> 版本: v2.9.0 | 日期: 2026-07-19
+
+## 0. 三种 SPA 模式总览
+
+框架提供三套 SPA，分别采用两种引入机制：
+
+| SPA | 路径 | 引入模式 | 理由 |
+|------|------|---------|------|
+| **Public** | `/` | **Scaffold** — `vendor:publish` 拉取后项目自有 | 100% 下游会定制 Landing 页，继承覆盖是多余负担 |
+| **Console** | `/console/` | **继承** — alias 引用 vendor | 共享 router/stores/module-loader 基础设施 |
+| **Admin** | `/admin/` | **继承** — alias 引用 vendor | 共享框架管理后台基础设施 |
+
+**决策依据**：
+- 继承模式适合「多数项目不修改」的基础设施（Console/Admin 的路由、状态管理、布局）
+- Scaffold 模式适合「100% 项目会定制」的面向用户页面（Public 的 Landing/Login/Register 等品牌强相关页面）
+
+**引入路径统一性**：
+- `composer create-project` 创建的项目直接包含 Public SPA 源码
+- `composer require` 安装框架的项目通过 `php artisan vendor:publish --tag=dsplat-public-spa` 拉取
+- 两种路径最终效果一致：项目拥有完整的 Public SPA 源码控制权
+
+---
 
 ## 1. 设计原则
 
@@ -227,3 +248,178 @@ src/Modules/customer/resources/console/ui/
 | `stores/user.ts` | 框架 | ~100 | 用户认证状态管理 |
 | `ConsoleLayout.vue` | 框架×2 | ~163 | Bootstrap 布局（自发现侧边栏） |
 | `ConsoleLayout.vue` | 框架×2 | ~140 | Element Plus 布局（自发现侧边栏） |
+
+---
+
+## 9. Public SPA Scaffold 模式
+
+### 9.1 设计原则
+
+Public SPA（面向终端用户的 `/` 路径下的页面：首页、登录、注册、申请团队、忘记密码等）采用 **Scaffold 模式**，而非 Console/Admin 的继承模式。
+
+| 原则 | 说明 |
+|------|------|
+| **项目完全自有** | 框架通过 `vendor:publish` 把源码一次性交付给项目，项目拥有完整控制权 |
+| **零耦合** | 拉取后与框架解耦，可自由修改任意文件，不受框架版本演进影响 |
+| **明确边界** | Public SPA 的演进由项目主导，框架不再通过继承覆盖机制介入 |
+| **渐进式定制** | 框架提供可用的默认实现，项目按需替换页面或字段配置 |
+
+**为何不沿用继承模式？**
+- Console/Admin 的继承模式假设「多数项目不修改」，通过 alias 引用 vendor 共享基础设施
+- Public SPA 的 Landing 页 100% 项目会定制品牌、文案、视觉，继承 + 覆盖机制是多余的复杂度
+- Scaffold 一次拉取、长期自主，避免了「框架升级时覆盖了项目定制」的风险
+
+### 9.2 vendor:publish 机制
+
+在 `src/TenancyServiceProvider.php` 的 `boot()` 中注册发布标签：
+
+```php
+$this->publishes([
+    __DIR__.'/../resources/pages/public' => resource_path('pages/public'),
+    __DIR__.'/../resources/js/public' => resource_path('js/public'),
+], 'dsplat-public-spa');
+```
+
+下游项目执行：
+```bash
+php artisan vendor:publish --tag=dsplat-public-spa
+```
+
+源码即被复制到项目的 `resources/{pages,js}/public/`，之后完全自主。
+
+### 9.3 两条引入路径
+
+| 场景 | Public SPA 源码来源 |
+|------|---------------------|
+| `composer create-project dsplat/multi-tenant-saas my-app` | 项目模板直接包含源码 |
+| `composer require dsplat/multi-tenant-saas` + `vendor:publish --tag=dsplat-public-spa` | 从框架 vendor 拉取 |
+
+两种路径最终效果一致：项目拥有完整的 Public SPA 源码控制权。
+
+### 9.4 项目集成清单
+
+```
+项目根/
+├── resources/js/public/
+│   ├── vite.config.ts     ← Vite 配置（base: '/'，outDir: public/）
+│   ├── main.ts            ← Vue 应用初始化 + 路由注册
+│   ├── package.json       ← 依赖声明（vue, vue-router, element-plus）
+│   └── node_modules/      ← 项目自管（不通过 vendor）
+├── resources/pages/public/
+│   ├── index.html         ← 入口 HTML（含 §10 防闪烁注入）
+│   ├── App.vue            ← 根组件（导航栏 + router-view）
+│   └── views/             ← 页面组件
+│       ├── index.vue      ← 首页（路由 name: 'home'）
+│       ├── Login.vue
+│       ├── Register.vue
+│       ├── Apply.vue      ← 申请团队（onMounted 校验登录态）
+│       └── ...
+└── public/                ← 构建产物（vite build 输出）
+    ├── index.html
+    └── assets/
+```
+
+---
+
+## 10. 首屏防闪烁三层注入机制
+
+### 10.1 问题背景
+
+SPA 首屏渲染流程：
+1. 浏览器解析 HTML（含 `<title>` 静态值）
+2. 加载 Vue 主 bundle（异步）
+3. Vue 挂载、组件 `onMounted` 触发 `fetch('/api/v1/public/site-config')`
+4. fetch 返回后更新 `siteConfig.value`，品牌名从 fallback 变成 API 值
+
+**闪烁现象**：步骤 1-3 之间，页面先显示 fallback 默认值（如 'Multi-Tenant SaaS'），fetch 返回后才被覆盖成实际值（如 'SCRM Platform'）。在网络慢时尤为明显。
+
+### 10.2 三层注入方案
+
+| 层 | 时机 | 作用 |
+|----|------|------|
+| **① index.html inline script** | HTML 解析阶段，同步执行 | 预注入 `window.__SITE_CONFIG__`，Vue 加载前就绪 |
+| **② localStorage 缓存** | fetch 成功后写入，下次访问读取 | 二次访问首屏同步可用正确值 |
+| **③ 组件初始值** | Vue 组件 setup 阶段 | `ref<any>((window as any).__SITE_CONFIG__ \|\| {})` 同步读取 |
+
+### 10.3 index.html inline script
+
+```html
+<body>
+  <script>
+    (function () {
+      try {
+        var cached = localStorage.getItem('__site_config__');
+        if (cached) {
+          window.__SITE_CONFIG__ = JSON.parse(cached);
+        }
+      } catch (e) {}
+      if (!window.__SITE_CONFIG__) {
+        // 兜底默认值：框架用 'Multi-Tenant SaaS'，项目改为自己的品牌名
+        window.__SITE_CONFIG__ = { platform_name: 'SCRM Platform', registration_enabled: true, apply_enabled: true };
+      }
+    })();
+  </script>
+  <div id="app"></div>
+  <script type="module" src="/resources/js/public/main.ts"></script>
+</body>
+```
+
+关键点：
+- inline `<script>` 是同步执行的普通脚本，不阻塞 HTML 解析但先于主 bundle 完成
+- 优先读 localStorage（上次 fetch 缓存的正确值），兜底才是硬编码默认值
+- 首次访问：读不到 localStorage，用兜底默认值（已是正确品牌名，无闪烁）
+- 二次访问：读到 localStorage 缓存，直接用 API 返回的正确值
+
+### 10.4 组件初始值同步读取
+
+```vue
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+
+// 初始值优先读 index.html 预注入的 window.__SITE_CONFIG__，避免首屏闪烁
+const siteConfig = ref<any>((window as any).__SITE_CONFIG__ || {})
+
+onMounted(async () => {
+  try {
+    const res = await fetch('/api/v1/public/site-config')
+    const data = await res.json()
+    if (data.success) {
+      siteConfig.value = data.data
+      // 缓存到 localStorage，下次首屏即可同步读取
+      try { localStorage.setItem('__site_config__', JSON.stringify(data.data)) } catch {}
+    }
+  } catch {}
+})
+</script>
+```
+
+关键点：
+- `ref` 初始值直接读 `window.__SITE_CONFIG__`，setup 阶段同步完成
+- `onMounted` 仍然 fetch 更新配置（用于动态调整 + 写 localStorage 缓存）
+- 即使 fetch 失败，首屏已显示正确值（来自 inline 注入或 localStorage）
+
+### 10.5 时序图
+
+```
+浏览器加载 HTML
+  ├─ 解析 <title>SCRM Platform</title>  ← 静态标题已正确
+  ├─ 执行 inline <script>  ← 同步：window.__SITE_CONFIG__ 就绪
+  │    ├─ 优先读 localStorage 缓存
+  │    └─ 兜底默认值 { platform_name: 'SCRM Platform' }
+  ├─ 加载主 bundle JS（异步）
+  └─ Vue 挂载
+       ├─ App.vue setup: siteConfig = ref(window.__SITE_CONFIG__)  ← 同步读取，已是正确值
+       ├─ 首屏渲染：品牌名直接显示 'SCRM Platform'  ← 无闪烁
+       └─ onMounted: fetch /api/v1/public/site-config
+            ├─ 成功：更新 siteConfig + 写 localStorage（下次访问用）
+            └─ 失败：保持 inline 注入值，首屏仍正确
+```
+
+### 10.6 兜底默认值约定
+
+| 项目阶段 | `index.html` 兜底 `platform_name` |
+|---------|----------------------------------|
+| 框架（multi_tenant_saas） | `'Multi-Tenant SaaS'` |
+| 下游项目（如 scrm-platform） | `'SCRM Platform'` |
+
+项目通过 `vendor:publish` 拉取 Public SPA 源码后，需把 `index.html` 中的兜底默认值改为自己的品牌名。这是 Scaffold 模式的明确约定：项目拥有 `index.html` 完全控制权。

@@ -24,6 +24,7 @@
 | Document | 中文 | English |
 |---|---|---|
 | System Overview | [zh](zh/architecture/system-overview.md) | — |
+| **SPA Architecture** | [zh](spa-architecture.md) | — |
 | AI Module Architecture | [zh](zh/architecture/ai-module.md) | — |
 | Multi-Domain Architecture | [zh](zh/architecture/multi-domain.md) | — |
 | Tenant Isolation | [zh](zh/architecture/tenant-isolation.md) | — |
@@ -89,4 +90,4 @@
 
 ---
 
-**Version**: v2.6.0 | **Last Updated**: 2026-07-16
+**Version**: v2.9.0 | **Last Updated**: 2026-07-19

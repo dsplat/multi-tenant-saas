@@ -12,7 +12,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-const siteConfig = ref<any>({})
+// 优先读预注入配置，避免首屏闪烁
+const siteConfig = ref<any>((window as any).__SITE_CONFIG__ || {})
 
 onMounted(async () => {
   try {

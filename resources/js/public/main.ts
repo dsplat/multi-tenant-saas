@@ -5,7 +5,7 @@ import 'element-plus/dist/index.css'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import App from '../../pages/public/App.vue'
-import Landing from '../../pages/public/views/Landing.vue'
+import Home from '../../pages/public/views/index.vue'
 import Login from '../../pages/public/views/Login.vue'
 import Register from '../../pages/public/views/Register.vue'
 import VerifyEmail from '../../pages/public/views/VerifyEmail.vue'
@@ -19,7 +19,7 @@ import AcceptInvite from '../../pages/public/views/AcceptInvite.vue'
 const router = createRouter({
   history: createWebHistory('/'),
   routes: [
-    { path: '/', name: 'landing', component: Landing },
+    { path: '/', name: 'home', component: Home },
     { path: '/login', name: 'login', component: Login },
     { path: '/register', name: 'register', component: Register },
     { path: '/verify-email', name: 'verify-email', component: VerifyEmail },

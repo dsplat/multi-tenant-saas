@@ -46,6 +46,20 @@
   </style>
 </head>
 <body>
+  <!-- 预注入站点配置：首屏同步可用，避免品牌名闪烁。fetch 更新后缓存到 localStorage，下次访问优先读 localStorage -->
+  <script>
+    (function () {
+      try {
+        var cached = localStorage.getItem('__site_config__');
+        if (cached) {
+          window.__SITE_CONFIG__ = JSON.parse(cached);
+        }
+      } catch (e) {}
+      if (!window.__SITE_CONFIG__) {
+        window.__SITE_CONFIG__ = { platform_name: 'Multi-Tenant SaaS', registration_enabled: true, apply_enabled: true };
+      }
+    })();
+  </script>
   <div id="app"></div>
   <script type="module" src="/resources/js/public/main.ts"></script>
 </body>

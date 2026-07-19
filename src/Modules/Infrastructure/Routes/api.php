@@ -7,6 +7,7 @@ use MultiTenantSaas\Modules\Infrastructure\Http\Controllers\DataRetentionPolicyC
 use MultiTenantSaas\Modules\Infrastructure\Http\Controllers\FeatureFlagController;
 use MultiTenantSaas\Modules\Infrastructure\Http\Controllers\IpWhitelistController;
 use MultiTenantSaas\Modules\Infrastructure\Http\Controllers\ModuleController;
+use MultiTenantSaas\Modules\Infrastructure\Http\Controllers\QueueController;
 use MultiTenantSaas\Modules\Infrastructure\Http\Controllers\SystemSettingController;
 use MultiTenantSaas\Modules\Infrastructure\Http\Controllers\TenantKeyController;
 use MultiTenantSaas\Modules\Infrastructure\Http\Controllers\WebhookController;
@@ -113,4 +114,16 @@ Route::middleware('rbac.permission:setting.view')->group(function () {
 Route::middleware('rbac.permission:setting.update')->group(function () {
     Route::post('/admin/consents', [ConsentController::class, 'store']);
     Route::post('/admin/consents/{id}/revoke', [ConsentController::class, 'revoke']);
+});
+
+// 队列失败任务管理 (使用 setting 权限)
+Route::middleware('rbac.permission:setting.view')->group(function () {
+    Route::get('/admin/queue/failed', [QueueController::class, 'index']);
+});
+
+Route::middleware('rbac.permission:setting.update')->group(function () {
+    Route::post('/admin/queue/failed/{id}/retry', [QueueController::class, 'retry']);
+    Route::delete('/admin/queue/failed/{id}', [QueueController::class, 'destroy']);
+    Route::post('/admin/queue/failed/retry-all', [QueueController::class, 'retryAll']);
+    Route::delete('/admin/queue/failed', [QueueController::class, 'flush']);
 });

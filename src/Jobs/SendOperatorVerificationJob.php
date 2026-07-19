@@ -46,14 +46,12 @@ class SendOperatorVerificationJob implements ShouldQueue
             ]
         );
 
-        $verificationUrl = url('/public/verify-email?token=' . $token . '&email=' . urlencode($operator->email));
+        $verificationUrl = url('/verify-email?token=' . $token . '&email=' . urlencode($operator->email));
 
         $mailer->sendTemplate($operator->email, 'registration', [
-            'name' => $operator->name,
+            'user_name' => $operator->name,
             'verification_url' => $verificationUrl,
-            'platform_name' => config('app.name'),
-            'expiry_hours' => 24,
-            'current_year' => date('Y'),
+            'app_name' => config('app.name'),
         ]);
     }
 }

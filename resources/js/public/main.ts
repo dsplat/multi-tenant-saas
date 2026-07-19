@@ -17,7 +17,7 @@ import Onboarding from '../../pages/public/views/Onboarding.vue'
 import AcceptInvite from '../../pages/public/views/AcceptInvite.vue'
 
 const router = createRouter({
-  history: createWebHistory('/public'),
+  history: createWebHistory('/landing'),
   routes: [
     { path: '/', name: 'landing', component: Landing },
     { path: '/login', name: 'login', component: Login },

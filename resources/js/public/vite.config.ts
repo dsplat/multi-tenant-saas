@@ -33,6 +33,8 @@ export default defineConfig({
       'vue': resolve(__dirname, 'node_modules/vue'),
       'vue-router': resolve(__dirname, 'node_modules/vue-router'),
       'axios': resolve(__dirname, 'node_modules/axios'),
+      'element-plus': resolve(__dirname, 'node_modules/element-plus'),
+      '@element-plus/icons-vue': resolve(__dirname, 'node_modules/@element-plus/icons-vue'),
     },
   },
   server: {

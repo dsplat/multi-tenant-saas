@@ -1,0 +1,123 @@
+# 多入口 SPA 架构 Nginx 配置模板
+#
+# 架构原则：
+#   /           → 平台首页 SPA (public/index.html)
+#   /admin/*    → Admin SPA (public/admin/index.html)
+#   /console/*  → Console SPA (public/console/index.html)
+#   /api/*      → Laravel API (PHP-FPM)
+#   静态资源     → 直接服务（带哈希的 JS/CSS）
+#
+# 部署说明：
+#   1. 复制此文件到 /usr/local/nginx/conf/vhost/your-domain.conf
+#   2. 修改 server_name 和 root 路径
+#   3. SSL 证书路径按实际配置
+#   4. PHP-FPM 端口按实际配置（默认 9001）
+
+# 平台主域名
+server {
+    listen 443 ssl http2;
+    server_name www.example.com;  # 修改为实际域名
+
+    root /var/www/platform/public;  # 修改为实际部署路径
+    index index.php;
+
+    # SSL 配置
+    ssl_certificate     /etc/letsencrypt/live/www.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/www.example.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    # 日志
+    access_log /var/log/nginx/platform-access.log;
+    error_log  /var/log/nginx/platform-error.log;
+
+    # 1. 静态资源（带哈希的 JS/CSS，长期缓存）
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|map)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    # 2. Admin SPA（系统管理后台）
+    location /admin {
+        try_files $uri $uri/ /admin/index.html;
+    }
+
+    # 3. Console SPA（租户管理后台）
+    location /console {
+        try_files $uri $uri/ /console/index.html;
+    }
+
+    # 4. PHP-FPM 处理 .php 文件
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_pass 127.0.0.1:9001;  # 修改为实际 PHP-FPM 端口
+        fastcgi_index index.php;
+        include fastcgi.conf;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param HTTPS on;
+    }
+
+    # 5. 其他所有请求交给 Laravel（API + SPA fallback）
+    #    Laravel 的 Route::fallback() 会返回 public/index.html
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # 安全：禁止访问 .htaccess 和隐藏文件
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+}
+
+# HTTP 跳转 HTTPS
+server {
+    listen 80;
+    server_name www.example.com;
+    return 301 https://$host$request_uri;
+}
+
+# 租户独立域名（通配符，可选）
+# 每个租户可以有自己的独立域名，如 tenant1.example.com
+server {
+    listen 443 ssl http2;
+    server_name ~^(?<tenant>[^.]+)\.example\.com$;
+
+    root /var/www/tenants/$tenant/public;
+    index index.php;
+
+    # SSL 通配符证书
+    ssl_certificate     /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+
+    # 同上 location 配置
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|map)$ {
+        expires 30d;
+        try_files $uri =404;
+    }
+
+    location /admin {
+        try_files $uri $uri/ /admin/index.html;
+    }
+
+    location /console {
+        try_files $uri $uri/ /console/index.html;
+    }
+
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_pass 127.0.0.1:9001;
+        fastcgi_index index.php;
+        include fastcgi.conf;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param HTTPS on;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+}

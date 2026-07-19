@@ -68,6 +68,12 @@ const router = createRouter({
           component: resolveView('Dashboard'),
           meta: { title: '仪表盘', requiresAuth: true },
         },
+        {
+          path: 'queue-failed',
+          name: 'QueueFailed',
+          component: resolveView('QueueFailed'),
+          meta: { title: '失败队列', requiresAuth: true, permission: 'setting.view' },
+        },
       ],
     },
   ],

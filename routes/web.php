@@ -3,22 +3,31 @@
 use App\Http\Controllers\SpaController;
 use Illuminate\Support\Facades\Route;
 
-// 平台首页
+/*
+|--------------------------------------------------------------------------
+| SPA 入口路由
+|--------------------------------------------------------------------------
+|
+| 架构原则：
+|  - /           → 平台首页 SPA (public/index.html)
+|  - /admin/*    → Admin SPA (public/admin/index.html)
+|  - /console/*  → Console SPA (public/console/index.html)
+|  - /api/*      → Laravel API（在 routes/api.php 中定义）
+|  - 其他 GET    → 兜底到平台 SPA（Vue Router 接管前端路由）
+|
+*/
+
+// 平台首页 + 兜底（前端路由如 /login、/register 由 Vue Router 接管）
 Route::get('/', [SpaController::class, 'index']);
+Route::fallback([SpaController::class, 'index']);
 
-// 公开页面 SPA（登录/注册/申请/进度查询）
-Route::prefix('public')->group(function () {
-    Route::get('/', [SpaController::class, 'publicPage']);
-    Route::get('/{any}', [SpaController::class, 'publicPage'])->where('any', '.*');
-});
-
-// 系统后台路由（admin 域名专用）
+// 系统后台 SPA（admin 域名专用）
 Route::prefix('admin')->group(function () {
     Route::get('/', [SpaController::class, 'admin']);
     Route::get('/{any}', [SpaController::class, 'admin'])->where('any', '.*');
 });
 
-// 租户后台路由
+// 租户后台 SPA
 Route::middleware(['tenant.ensure'])->prefix('console')->group(function () {
     Route::get('/', [SpaController::class, 'console']);
     Route::get('/{any}', [SpaController::class, 'console'])->where('any', '.*');

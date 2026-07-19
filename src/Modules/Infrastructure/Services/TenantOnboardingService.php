@@ -156,6 +156,24 @@ class TenantOnboardingService
     }
 
     /**
+     * 获取基本信息（步骤1数据）
+     *
+     * 用于 Onboarding 完成后查询管理员邮箱、姓名等信息。
+     *
+     * @param  string  $token  会话 token
+     * @return array|null 返回 admin_email、name、password 等，不存在返回 null
+     */
+    public function getBasicInfo(string $token): ?array
+    {
+        $session = $this->loadSession($token);
+        if (! $session) {
+            return null;
+        }
+
+        return $session['data'][self::STEP_BASIC_INFO] ?? null;
+    }
+
+    /**
      * 查询注册进度
      *
      * @param  string  $token  会话 token

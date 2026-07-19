@@ -4,6 +4,11 @@ node_modules
 /public/storage
 /public/admin/
 /public/console/
+
+# 平台 SPA 构建产物（由 resources/js/public 构建生成，不入库）
+/public/index.html
+/public/assets/
+/public/public/
 /storage/*.key
 /vendor
 .env

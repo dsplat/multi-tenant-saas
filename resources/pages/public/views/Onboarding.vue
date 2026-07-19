@@ -150,6 +150,17 @@ const saveStep2 = async () => {
       auth_token: authToken.value,
     })
     if (res.data.success) {
+      // 保存后端返回的 auth_token，实现自动登录
+      const data = res.data.data || {}
+      if (data.auth_token) {
+        localStorage.setItem('user_token', data.auth_token)
+        localStorage.setItem('user', JSON.stringify(data.user || {}))
+        localStorage.setItem('current_tenant', JSON.stringify({
+          tenant_id: data.tenant_id,
+          name: data.name,
+          slug: data.slug,
+        }))
+      }
       currentStep.value = 3
     }
   } catch (err: any) {
@@ -160,7 +171,12 @@ const saveStep2 = async () => {
 }
 
 const goToConsole = () => {
-  window.location.href = '/console/'
+  // 如果有 auth_token，直接进入 console；否则跳转登录页
+  if (localStorage.getItem('user_token')) {
+    window.location.href = '/console/'
+  } else {
+    window.location.href = '/login'
+  }
 }
 </script>
 

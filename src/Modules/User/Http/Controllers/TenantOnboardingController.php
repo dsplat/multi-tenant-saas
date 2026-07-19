@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Services\TenantOnboardingService;
 
 /**
@@ -142,6 +143,16 @@ class TenantOnboardingController extends Controller
         $token = $request->input('auth_token');
         $tenant = $this->onboardingService->complete($token, $request->ip());
 
+        // 为新创建的管理员 User 生成 Sanctum token，实现自动登录
+        $basic = $this->onboardingService->getBasicInfo($token);
+        $adminUser = $basic ? User::where('email', $basic['admin_email'])->first() : null;
+
+        $authToken = null;
+        if ($adminUser) {
+            $newToken = $adminUser->createToken('tenant_admin_token');
+            $authToken = $newToken->plainTextToken;
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -151,6 +162,12 @@ class TenantOnboardingController extends Controller
                 'onboarding_step' => $tenant->onboarding_step,
                 'onboarding_completed' => (bool) $tenant->onboarding_completed,
                 'trial_active' => $tenant->trial_ends_at !== null && $tenant->trial_ends_at->isFuture(),
+                'auth_token' => $authToken,
+                'user' => $adminUser ? [
+                    'user_id' => $adminUser->user_id,
+                    'name' => $adminUser->name,
+                    'email' => $adminUser->email,
+                ] : null,
             ],
         ], 201);
     }

@@ -1,7 +1,7 @@
 <template>
   <div class="login-page">
     <div class="login-card">
-      <h2>租户后台登录</h2>
+      <h2>团队后台登录</h2>
       <form @submit.prevent="handleLogin">
         <div class="form-group">
           <label>邮箱</label>

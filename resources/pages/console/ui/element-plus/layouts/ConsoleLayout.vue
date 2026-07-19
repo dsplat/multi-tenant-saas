@@ -7,7 +7,7 @@
         </div>
         <div class="logo-text">
           <span class="logo-title">Console</span>
-          <span class="logo-sub">租户后台</span>
+          <span class="logo-sub">团队后台</span>
         </div>
       </div>
 
@@ -28,8 +28,8 @@
         <div class="user-block">
           <el-avatar :size="32" class="user-avatar">{{ (userStore.user?.name || 'C')[0] }}</el-avatar>
           <div class="user-info">
-            <div class="user-name">{{ userStore.user?.name || '租户管理员' }}</div>
-            <div class="user-role">{{ userStore.user?.role === 'tenant_admin' ? '租户管理员' : userStore.user?.role === 'platform_admin' ? '超级管理员' : userStore.user?.role || '用户' }}</div>
+            <div class="user-name">{{ userStore.user?.name || '团队管理员' }}</div>
+            <div class="user-role">{{ userStore.user?.role === 'tenant_admin' ? '团队管理员' : userStore.user?.role === 'platform_admin' ? '超级管理员' : userStore.user?.role || '用户' }}</div>
           </div>
         </div>
       </div>
@@ -44,7 +44,7 @@
 
         <div class="actions">
           <el-dropdown v-if="userStore.user?.tenants && userStore.user.tenants.length > 1" @command="handleSwitchTenant" trigger="click">
-            <el-button :icon="OfficeBuilding" circle title="切换租户" />
+            <el-button :icon="OfficeBuilding" circle title="切换团队" />
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item

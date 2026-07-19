@@ -69,7 +69,7 @@ return [
     'sso_provider_type_invalid' => 'SSO 提供方类型无效',
     'sso_provider_saved' => 'SSO 提供方配置已保存',
     'sso_provider_deleted' => 'SSO 提供方已删除',
-    'sso_tenant_required' => '无法识别租户上下文',
+    'sso_tenant_required' => '无法识别团队上下文',
     'sso_external_id_missing' => 'IdP 未返回可用的用户标识',
     'sso_user_linked' => 'SSO 账号已关联',
     'saml_response_missing' => '缺少 SAML 响应',

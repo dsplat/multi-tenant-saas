@@ -16,7 +16,7 @@
       >
         <template #extra>
           <el-button type="primary" @click="$router.push('/login')">前往登录</el-button>
-          <el-button @click="$router.push('/apply')">申请租户</el-button>
+          <el-button @click="$router.push('/apply')">申请团队</el-button>
         </template>
       </el-result>
 

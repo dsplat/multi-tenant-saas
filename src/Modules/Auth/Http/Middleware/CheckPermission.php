@@ -7,24 +7,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * 权限控制中间件
- *
- * 根据域名类型和用户角色进行权限控制
+ * 权限控制中间件（Operator 直连团队模式）
  *
  * 安全原则：
- * - super_admin 仅可访问系统后台 (admin)
- * - 租户私有数据对 super_admin 不可访问
- * - 租户后台仅 tenant_admin 可访问
- * - 用户前台 tenant_admin + end_user 可访问
+ * - 平台 admin 后台仅 scope=platform 的 Operator 可访问
+ * - 团队 console 后台仅 tenant_admin 角色 Operator 可访问
+ * - 团队前台 /app 由 Operator（tenant_admin/end_user）或 User（开放注册后）访问
  */
 class CheckPermission
 {
-    /**
-     * Handle an incoming request.
-     */
     public function handle(Request $request, Closure $next, ?string $role = null): Response
     {
         $user = $request->user();
@@ -44,18 +39,11 @@ class CheckPermission
     }
 
     /**
-     * 检查管理后台访问权限（仅 platform scope operator）
+     * 检查平台 admin 后台访问权限：仅 scope=platform 的 Operator 可访问
      */
     protected function checkAdminAccess(Request $request, $user, Closure $next, ?string $role): Response
     {
-        $isPlatformOperator = DB::table('operator_tenants')
-            ->join('operators', 'operators.operator_id', '=', 'operator_tenants.operator_id')
-            ->where('operator_tenants.user_id', $user->getKey())
-            ->where('operator_tenants.is_active', true)
-            ->where('operators.scope', 'platform')
-            ->exists();
-
-        if (! $isPlatformOperator) {
+        if (! ($user instanceof Operator) || $user->scope !== 'platform') {
             return $this->forbidden($request, trans('common.super_admin_only'));
         }
 
@@ -63,7 +51,7 @@ class CheckPermission
     }
 
     /**
-     * 检查租户后台访问权限（仅 tenant_admin，通过 operator_tenants 验证）
+     * 检查团队 console 后台访问权限：仅通过 operator_tenants 关联的 tenant_admin 可访问
      */
     protected function checkConsoleAccess(Request $request, $user, Closure $next, ?string $role): Response
     {
@@ -73,34 +61,41 @@ class CheckPermission
             return $this->forbidden($request, trans('common.missing_tenant'));
         }
 
-        // 通过 operator_tenants 查找当前用户在当前租户的 active mapping
-        $operatorTenant = DB::table('operator_tenants')
-            ->where('user_id', $user->getKey())
-            ->where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->first();
+        // Operator 直连路径
+        if ($user instanceof Operator) {
+            $operatorTenant = DB::table('operator_tenants')
+                ->where('operator_id', $user->operator_id)
+                ->where('tenant_id', $tenantId)
+                ->where('is_active', true)
+                ->first();
 
-        if (! $operatorTenant) {
-            return $this->forbidden($request, trans('common.not_in_tenant'));
+            if (! $operatorTenant) {
+                return $this->forbidden($request, trans('common.not_in_tenant'));
+            }
+
+            // console 仅允许 tenant_admin 角色
+            $tenantAdminRoleId = DB::table('roles')
+                ->where('name', 'tenant_admin')
+                ->where(function ($q) use ($tenantId) {
+                    $q->whereNull('tenant_id')->orWhere('tenant_id', $tenantId);
+                })
+                ->value('role_id');
+
+            if ($operatorTenant->role_id !== $tenantAdminRoleId) {
+                return $this->forbidden($request, trans('common.tenant_admin_only'));
+            }
+
+            TenantContext::setTenantRole('tenant_admin');
+
+            return $next($request);
         }
 
-        // console 仅允许 tenant_admin
-        $tenantAdminRoleId = DB::table('roles')
-            ->where('name', 'tenant_admin')
-            ->whereNull('tenant_id')
-            ->value('role_id');
-
-        if ($operatorTenant->role_id !== $tenantAdminRoleId) {
-            return $this->forbidden($request, trans('common.tenant_admin_only'));
-        }
-
-        TenantContext::setTenantRole('tenant_admin');
-
-        return $next($request);
+        // User 路径（开放注册后的业务用户，原则上不允许进 console）
+        return $this->forbidden($request, trans('common.tenant_admin_only'));
     }
 
     /**
-     * 检查租户访问权限（operator_tenants 优先，tenant_users 兜底）
+     * 检查团队访问权限：Operator 通过 operator_tenants，User 通过 tenant_users
      */
     protected function checkTenantAccess(Request $request, $user, Closure $next, ?string $role): Response
     {
@@ -110,18 +105,23 @@ class CheckPermission
             return $this->forbidden($request, trans('common.missing_tenant'));
         }
 
-        // 优先通过 operator_tenants 查找
-        $operatorTenant = DB::table('operator_tenants')
-            ->where('user_id', $user->getKey())
-            ->where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->first();
+        $tenantRoleName = null;
 
-        if ($operatorTenant) {
-            $tenantRoleId = $operatorTenant->role_id;
-            $tenantRoleName = DB::table('roles')->where('role_id', $tenantRoleId)->value('name');
+        // Operator 直连路径
+        if ($user instanceof Operator) {
+            $operatorTenant = DB::table('operator_tenants')
+                ->where('operator_id', $user->operator_id)
+                ->where('tenant_id', $tenantId)
+                ->where('is_active', true)
+                ->first();
+
+            if (! $operatorTenant) {
+                return $this->forbidden($request, trans('common.not_in_tenant'));
+            }
+
+            $tenantRoleName = DB::table('roles')->where('role_id', $operatorTenant->role_id)->value('name');
         } else {
-            // fallback: 通过 tenant_users (users.tenants relationship)
+            // User 路径
             $tenantUser = $user->tenants()
                 ->where('tenants.tenant_id', $tenantId)
                 ->wherePivot('is_active', true)
@@ -131,13 +131,11 @@ class CheckPermission
                 return $this->forbidden($request, trans('common.not_in_tenant'));
             }
 
-            $tenantRoleId = $tenantUser->pivot->role_id;
-            $tenantRoleName = DB::table('roles')->where('role_id', $tenantRoleId)->value('name');
+            $tenantRoleName = DB::table('roles')->where('role_id', $tenantUser->pivot->role_id)->value('name');
         }
 
         TenantContext::setTenantRole($tenantRoleName);
 
-        // 检查指定角色
         if ($role && $tenantRoleName !== $role) {
             return $this->forbidden($request, trans('common.role_required', ['role' => $role]));
         }
@@ -150,7 +148,6 @@ class CheckPermission
         $domainType = TenantContext::getDomainType();
         $path = $request->getPathInfo();
 
-        // Admin/Console/API 路径始终返回 JSON（SPA 模式）
         if ($request->expectsJson()
             || in_array($domainType, ['admin', 'console', 'api'])
             || str_starts_with($path, '/admin')
@@ -159,7 +156,6 @@ class CheckPermission
             return response()->json(['message' => trans('common.unauthenticated'), 'error' => 'Unauthenticated'], 401);
         }
 
-        // 防御性检查：login 路由可能不存在
         if (Route::has('login')) {
             return redirect()->guest(route('login'));
         }

@@ -12,7 +12,7 @@
         <div v-for="section in navSections" :key="section.label" class="a-nav-section" :class="{ disabled: section.needsTenant && !tenantStore.hasTenant }">
           <div class="a-nav-label">
             {{ section.label }}
-            <span v-if="section.needsTenant && !tenantStore.hasTenant" class="a-section-hint">请先选择租户</span>
+            <span v-if="section.needsTenant && !tenantStore.hasTenant" class="a-section-hint">请先选择团队</span>
           </div>
           <template v-for="item in section.items" :key="item.path">
             <router-link v-if="!item.perm || userStore.hasPermission(item.perm)"
@@ -48,7 +48,7 @@
           <div class="a-tenant-sel">
             <svg class="a-tenant-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z"/></svg>
             <select v-model="selectedTenantId" @change="onTenantChange" class="a-tenant-select">
-              <option value="">选择租户...</option>
+              <option value="">选择团队...</option>
               <option v-for="t in tenantStore.tenants" :key="t.tenant_id" :value="t.tenant_id">{{ t.name }}</option>
             </select>
           </div>
@@ -131,7 +131,7 @@ const navSections = [
     label: '系统管理',
     items: [
       { path: 'dashboard', label: '仪表盘', icon: I.dashboard },
-      { path: 'tenants', label: '租户管理', icon: I.tenants, perm: 'tenant.view' },
+      { path: 'tenants', label: '团队管理', icon: I.tenants, perm: 'tenant.view' },
       { path: 'operators', label: '运营人员', icon: I.operators, perm: 'member.view' },
       { path: 'roles', label: '角色权限', icon: I.shield, perm: 'rbac.manage' },
       { path: 'plans', label: '订阅计划', icon: I.calendar, perm: 'subscription.manage' },
@@ -152,7 +152,7 @@ const navSections = [
     ],
   },
   {
-    label: '租户管理',
+    label: '团队管理',
     needsTenant: true,
     items: [
       { path: 'users', label: '用户管理', icon: I.users, perm: 'user.view' },
@@ -167,7 +167,7 @@ const navSections = [
       { path: 'ssl', label: 'SSL 证书', icon: I.shield2, perm: 'ssl.manage' },
       { path: 'webhooks', label: 'Webhooks', icon: I.webhook, perm: 'webhook.view' },
       { path: 'ip-whitelist', label: 'IP 白名单', icon: I.lock, perm: 'security.view' },
-      { path: 'tenant-keys', label: '租户密钥', icon: I.key, perm: 'security.view' },
+      { path: 'tenant-keys', label: '团队密钥', icon: I.key, perm: 'security.view' },
       { path: 'consents', label: '合规同意', icon: I.docs, perm: 'compliance.view' },
     ],
   },

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Tenant SaaS</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; line-height: 1.6; }
+    a { color: #409eff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: 480px; margin: 0 auto; padding: 20px; }
+    .card { background: #fff; border-radius: 8px; padding: 32px; box-shadow: 0 2px 12px rgba(0,0,0,.08); margin-top: 40px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 14px; margin-bottom: 4px; font-weight: 500; }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid #dcdfe6; border-radius: 4px; font-size: 14px; }
+    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #409eff; }
+    .btn { display: inline-block; padding: 10px 24px; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; text-align: center; }
+    .btn-primary { background: #409eff; color: #fff; width: 100%; }
+    .btn-primary:hover { background: #66b1ff; }
+    .btn-primary:disabled { background: #a0cfff; cursor: not-allowed; }
+    .btn-link { background: none; color: #409eff; padding: 0; }
+    .msg { padding: 10px; border-radius: 4px; margin-bottom: 16px; font-size: 14px; }
+    .msg-error { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
+    .msg-success { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
+    .msg-info { background: #f4f4f5; color: #909399; border: 1px solid #e9e9eb; }
+    .nav { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; }
+    .nav-brand { font-size: 18px; font-weight: 600; color: #303133; }
+    .nav-links { display: flex; gap: 16px; }
+    h1 { font-size: 28px; text-align: center; margin-bottom: 8px; }
+    h2 { font-size: 22px; text-align: center; margin-bottom: 24px; color: #606266; }
+    .text-center { text-align: center; }
+    .mt-16 { margin-top: 16px; }
+    .hero { text-align: center; padding: 80px 20px; }
+    .hero h1 { font-size: 36px; margin-bottom: 16px; }
+    .hero p { font-size: 18px; color: #909399; margin-bottom: 32px; }
+    .hero-actions { display: flex; gap: 12px; justify-content: center; }
+    .hero-actions .btn { min-width: 120px; }
+    .btn-outline { border: 1px solid #409eff; color: #409eff; background: #fff; }
+    .btn-outline:hover { background: #ecf5ff; }
+    .timeline { margin: 24px 0; }
+    .timeline-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; }
+    .timeline-dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+    .timeline-dot.completed { background: #67c23a; }
+    .timeline-dot.pending { background: #e4e7ed; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="/resources/js/public/main.ts"></script>
+</body>
+</html>

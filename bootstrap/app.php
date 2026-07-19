@@ -43,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.permission' => \MultiTenantSaas\Modules\Auth\Http\Middleware\CheckPermission::class,
             'rbac.permission' => \MultiTenantSaas\Modules\Auth\Http\Middleware\CheckRbacPermission::class,
             'mcp.auth' => \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\McpMiddleware::class,
+            'operator.auth' => \MultiTenantSaas\Modules\Operator\Http\Middleware\EnsureOperator::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

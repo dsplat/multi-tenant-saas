@@ -3,12 +3,12 @@
     <el-row :gutter="16" class="stat-row">
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
-          <el-statistic title="租户总数" :value="stats.tenantCount" />
+          <el-statistic title="团队总数" :value="stats.tenantCount" />
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
-          <el-statistic title="活跃租户" :value="stats.activeTenantCount" />
+          <el-statistic title="活跃团队" :value="stats.activeTenantCount" />
         </el-card>
       </el-col>
       <el-col :span="6">
@@ -27,7 +27,7 @@
     <el-row :gutter="16" class="content-row">
       <el-col :span="14">
         <el-card shadow="hover">
-          <template #header>最近租户</template>
+          <template #header>最近团队</template>
           <el-table :data="recentTenants" stripe style="width: 100%" empty-text="暂无数据">
             <el-table-column prop="name" label="名称" />
             <el-table-column prop="subscription_plan" label="套餐">

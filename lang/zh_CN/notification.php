@@ -1,8 +1,8 @@
 <?php
 
 return [
-    'tenant_suspended_title' => '租户已暂停',
-    'tenant_suspended_body' => '您所在的租户已被暂停',
+    'tenant_suspended_title' => '团队已暂停',
+    'tenant_suspended_body' => '您所在的团队已被暂停',
     'credit_low_title' => '积分余额不足',
     'credit_low_body' => '当前剩余积分 :remaining，低于预警阈值 :threshold',
     'subscription_expiring_title' => '订阅即将过期',
@@ -32,7 +32,7 @@ return [
             'payment_success' => '支付成功通知',
             'invoice_generated' => '账单生成通知',
             'subscription_expiring' => '订阅到期提醒',
-            'tenant_suspended' => '租户暂停通知',
+            'tenant_suspended' => '团队暂停通知',
         ],
     ],
 ];

@@ -1,15 +1,15 @@
 <template>
   <div class="dashboard">
     <div class="stat-grid">
-      <div class="stat-card"><div class="stat-label">租户总数</div><div class="stat-value">{{ stats.tenantCount }}</div></div>
-      <div class="stat-card"><div class="stat-label">活跃租户</div><div class="stat-value">{{ stats.activeTenantCount }}</div></div>
+      <div class="stat-card"><div class="stat-label">团队总数</div><div class="stat-value">{{ stats.tenantCount }}</div></div>
+      <div class="stat-card"><div class="stat-label">活跃团队</div><div class="stat-value">{{ stats.activeTenantCount }}</div></div>
       <div class="stat-card"><div class="stat-label">已暂停</div><div class="stat-value">{{ stats.suspendedCount }}</div></div>
       <div class="stat-card"><div class="stat-label">套餐分布</div><div class="stat-value">{{ stats.planBreakdown }}</div></div>
     </div>
 
     <div class="content-grid">
       <div class="panel">
-        <h3>最近租户</h3>
+        <h3>最近团队</h3>
         <table class="data-table">
           <thead><tr><th>名称</th><th>套餐</th><th>状态</th><th>创建时间</th></tr></thead>
           <tbody>

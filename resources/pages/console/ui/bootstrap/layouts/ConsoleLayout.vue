@@ -5,7 +5,7 @@
         <div class="logo-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
         </div>
-        <div class="logo-text"><span class="logo-title">Console</span><span class="logo-sub">租户后台</span></div>
+        <div class="logo-text"><span class="logo-title">Console</span><span class="logo-sub">团队后台</span></div>
       </div>
 
       <nav class="nav-menu">
@@ -26,8 +26,8 @@
         <div class="sidebar-user">
           <div class="avatar">{{ (userStore.user?.name || 'C')[0] }}</div>
           <div class="user-info">
-            <div class="user-name">{{ userStore.user?.name || '租户管理员' }}</div>
-            <div class="user-role">{{ userStore.user?.role === 'tenant_admin' ? '租户管理员' : userStore.user?.role === 'platform_admin' ? '超级管理员' : userStore.user?.role || '用户' }}</div>
+            <div class="user-name">{{ userStore.user?.name || '团队管理员' }}</div>
+            <div class="user-role">{{ userStore.user?.role === 'tenant_admin' ? '团队管理员' : userStore.user?.role === 'platform_admin' ? '超级管理员' : userStore.user?.role || '用户' }}</div>
           </div>
         </div>
       </div>

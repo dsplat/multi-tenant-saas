@@ -25,15 +25,15 @@
         <div class="quick-actions">
           <router-link to="/members" class="action-btn">管理成员</router-link>
           <router-link to="/credits" class="action-btn">查看积分</router-link>
-          <router-link to="/tenant-settings" class="action-btn">租户设置</router-link>
+          <router-link to="/tenant-settings" class="action-btn">团队设置</router-link>
         </div>
       </div>
 
       <div class="panel">
-        <h3>租户信息</h3>
+        <h3>团队信息</h3>
         <div class="info-list">
-          <div class="info-row"><span>租户名称</span><span>{{ tenant.name }}</span></div>
-          <div class="info-row"><span>租户ID</span><span>{{ tenant.tenant_id }}</span></div>
+          <div class="info-row"><span>团队名称</span><span>{{ tenant.name }}</span></div>
+          <div class="info-row"><span>团队ID</span><span>{{ tenant.tenant_id }}</span></div>
           <div class="info-row"><span>套餐</span><span>{{ tenant.plan }}</span></div>
           <div class="info-row"><span>状态</span><span class="badge badge-success">活跃</span></div>
         </div>

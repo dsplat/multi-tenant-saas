@@ -32,7 +32,7 @@ class AgentController extends Controller
     /**
      * @OA\Get(
      *     path="/v1/agents",
-     *     summary="获取当前租户的所有 Agent",
+     *     summary="获取当前团队的所有 Agent",
      *     tags={"Agent 管理"},
      *     security={{"sanctum":{}}},
      *
@@ -43,7 +43,7 @@ class AgentController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=403, description="无法识别当前租户")
+     *     @OA\Response(response=403, description="无法识别当前团队")
      * )
      */
     public function index(Request $request): JsonResponse
@@ -74,7 +74,7 @@ class AgentController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前团队")
      * )
      */
     public function show(Request $request, int $agentId): JsonResponse
@@ -86,7 +86,7 @@ class AgentController extends Controller
         if ($agent === null || (int) $agent->tenant_id !== $tenantId) {
             return response()->json([
                 'success' => false,
-                'message' => 'Agent 不存在或不属于当前租户',
+                'message' => 'Agent 不存在或不属于当前团队',
             ], 404);
         }
 
@@ -182,7 +182,7 @@ class AgentController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户"),
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前团队"),
      *     @OA\Response(response=422, description="参数校验失败")
      * )
      */
@@ -217,7 +217,7 @@ class AgentController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前团队")
      * )
      */
     public function destroy(Request $request, int $agentId): JsonResponse
@@ -250,7 +250,7 @@ class AgentController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前团队")
      * )
      */
     public function enable(Request $request, int $agentId): JsonResponse
@@ -283,7 +283,7 @@ class AgentController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前团队")
      * )
      */
     public function disable(Request $request, int $agentId): JsonResponse
@@ -403,7 +403,7 @@ class AgentController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户"),
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前团队"),
      *     @OA\Response(response=422, description="参数校验失败（如 temperature > 2）")
      * )
      */
@@ -443,7 +443,7 @@ class AgentController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户"),
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前团队"),
      *     @OA\Response(response=422, description="参数校验失败")
      * )
      */
@@ -483,7 +483,7 @@ class AgentController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户"),
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前团队"),
      *     @OA\Response(response=422, description="参数校验失败")
      * )
      */
@@ -509,7 +509,7 @@ class AgentController extends Controller
         if ($e instanceof ModelNotFoundException) {
             return response()->json([
                 'success' => false,
-                'message' => 'Agent 不存在或不属于当前租户',
+                'message' => 'Agent 不存在或不属于当前团队',
             ], 404);
         }
 
@@ -527,14 +527,14 @@ class AgentController extends Controller
     }
 
     /**
-     * 从 TenantContext 解析当前租户 ID
+     * 从 TenantContext 解析当前团队 ID
      */
     private function resolveTenantId(): int
     {
         $tenantId = $this->tenantContext->resolveId();
 
         if ($tenantId === null) {
-            abort(403, '无法识别当前租户');
+            abort(403, '无法识别当前团队');
         }
 
         return (int) $tenantId;

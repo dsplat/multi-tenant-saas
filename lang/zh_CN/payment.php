@@ -23,7 +23,7 @@ return [
     'missing_tenant_callback' => '退款回调缺少 tenant_id 参数',
     'signature_invalid' => '签名验证失败',
     'default_subject' => '支付订单',
-    'driver_not_configured' => '租户 :tenant 未配置 :driver 支付驱动',
+    'driver_not_configured' => '团队 :tenant 未配置 :driver 支付驱动',
     'missing_field' => '支付驱动 :driver 缺少必填字段 :field',
     'password_feature_disabled' => '支付密码功能未启用',
     'password_too_short' => '支付密码长度不足',

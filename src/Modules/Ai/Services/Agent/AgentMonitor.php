@@ -185,14 +185,14 @@ class AgentMonitor implements AgentMonitorContract
     }
 
     /**
-     * 解析当前租户 ID
+     * 解析当前团队 ID
      */
     private function resolveTenantId(): int
     {
         $tenantId = $this->tenantContext->resolveId();
 
         if ($tenantId === null) {
-            throw new \RuntimeException('无法从租户上下文解析 tenant_id');
+            throw new \RuntimeException('无法从团队上下文解析 tenant_id');
         }
 
         return (int) $tenantId;

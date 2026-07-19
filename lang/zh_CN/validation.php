@@ -30,7 +30,7 @@ return [
         'email' => '邮箱',
         'password' => '密码',
         'phone' => '手机号',
-        'tenant_id' => '租户ID',
+        'tenant_id' => '团队ID',
         'role' => '角色',
         'role_id' => '角色ID',
         'plan_id' => '计划ID',

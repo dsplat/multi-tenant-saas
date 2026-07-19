@@ -3,7 +3,7 @@
 框架提供三个独立的前端模块，可选择安装：
 
 - `@multi-tenant-saas/admin` - 系统后台
-- `@multi-tenant-saas/console` - 租户后台
+- `@multi-tenant-saas/console` - 团队后台
 - `@multi-tenant-saas/app` - 用户前台
 
 ---
@@ -18,7 +18,7 @@ npm install
 npm run build
 ```
 
-### 租户后台 (console)
+### 团队后台 (console)
 
 ```bash
 cd resources/js/console
@@ -62,7 +62,7 @@ resources/js/
 │   ├── App.vue             # 主组件
 │   ├── main.ts             # 入口文件
 │   └── package.json        # 依赖配置
-├── console/                  # 租户后台
+├── console/                  # 团队后台
 │   └── ...
 └── app/                      # 用户前台
     └── ...
@@ -79,7 +79,7 @@ resources/js/
 ```typescript
 import axios from 'axios'
 
-// 获取租户列表
+// 获取团队列表
 const response = await axios.get('/api/v1/tenants', {
   params: {
     page: 1,
@@ -87,7 +87,7 @@ const response = await axios.get('/api/v1/tenants', {
   },
 })
 
-// 创建租户
+// 创建团队
 const response = await axios.post('/api/v1/tenants', {
   name: '新企业',
   slug: 'new-company',

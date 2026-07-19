@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loading...</title>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module">
+    // Dev server entry — dispatches to admin or console based on URL path
+    // In build mode, Vite uses rollupOptions.input instead, so this file is ignored
+    const isConsole = window.location.pathname.startsWith('/console')
+    const base = isConsole ? '/console/' : '/admin/'
+    const file = isConsole ? 'resources/js/console/main.ts' : 'resources/js/admin/main.ts'
+    // Prepend base prefix so Vite dev server can resolve the module
+    const fullSrc = base + file
+    // Use new Function to bypass Vite static analysis of dynamic import
+    new Function('s', 'return import(s)')(fullSrc)
+  </script>
+</body>
+</html>

@@ -14,8 +14,10 @@ use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Infrastructure\Services\IdGenerator;
 use MultiTenantSaas\Modules\Infrastructure\Services\ModuleManager;
+use MultiTenantSaas\Modules\Infrastructure\Services\TenantOnboardingService;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\Notification\Services\NotificationService;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
 use MultiTenantSaas\Modules\User\Http\Resources\TenantResource;
 
 /**
@@ -33,21 +35,30 @@ class TenantController extends Controller
     {
         $user = $request->user();
 
-        // 检查是否是平台级 operator
-        $isPlatformOperator = \DB::table('operator_tenants')
-            ->join('operators', 'operators.operator_id', '=', 'operator_tenants.operator_id')
-            ->where('operator_tenants.user_id', $user->user_id)
-            ->where('operators.scope', 'platform')
-            ->where('operator_tenants.is_active', true)
-            ->exists();
-
-        if ($isPlatformOperator) {
+        // 平台级 Operator 直接放行
+        if ($user instanceof Operator && $user->scope === 'platform') {
             return;
         }
 
+        // Operator 直连路径：通过 operator_tenants 查团队角色
+        if ($user instanceof Operator) {
+            $isMember = \DB::table('operator_tenants')
+                ->where('operator_id', $user->operator_id)
+                ->where('tenant_id', $tenantId)
+                ->where('is_active', true)
+                ->exists();
+
+            if ($isMember) {
+                return;
+            }
+
+            abort(403, trans('common.not_in_tenant'));
+        }
+
+        // User 路径：通过 tenant_users 查关联
         $isMember = \DB::table('tenant_users')
             ->where('tenant_id', $tenantId)
-            ->where('user_id', $user->id)
+            ->where('user_id', $user->user_id)
             ->exists();
 
         if (! $isMember) {
@@ -285,7 +296,11 @@ class TenantController extends Controller
     }
 
     /**
-     * 恢复租户
+     * 激活/恢复团队
+     *
+     * - pending_approval → active：平台审核通过 onboarding 申请，触发 TenantActivated 事件
+     *   （由 AttachTenantAdminOnActivated 监听器写入 operator_tenants 关联，把发起者 Operator 设为团队管理员）
+     * - suspended → active：从暂停中恢复，不触发 TenantActivated
      */
     public function activate(Request $request, ?int $tenantId = null)
     {
@@ -302,12 +317,27 @@ class TenantController extends Controller
         }
 
         $oldStatus = $tenant->status;
+
+        // pending_approval 路径：调用 OnboardingService::approveTenant，触发 TenantActivated
+        // suspended 路径：直接改 status，不走审核事件
+        if ($oldStatus === 'pending_approval') {
+            $operator = $request->user();
+            $approverId = $operator instanceof Operator
+                ? (int) $operator->operator_id
+                : 0;
+
+            app(TenantOnboardingService::class)
+                ->approveTenant($tenant, $approverId);
+
+            AuditService::log('approve', 'tenant', $tenantId, ['status' => $oldStatus], ['status' => 'active']);
+
+            return response()->json(['success' => true, 'message' => trans('tenant.activated')]);
+        }
+
         $tenant->status = 'active';
         $tenant->save();
 
-        AuditService::log('activate', 'tenant', $tenantId, ['status' => $oldStatus], [
-            'status' => 'active',
-        ]);
+        AuditService::log('activate', 'tenant', $tenantId, ['status' => $oldStatus], ['status' => 'active']);
 
         return response()->json(['success' => true, 'message' => trans('tenant.resumed')]);
     }

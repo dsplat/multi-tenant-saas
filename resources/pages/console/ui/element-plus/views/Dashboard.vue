@@ -30,17 +30,17 @@
           <div class="quick-actions">
             <el-button type="primary" plain @click="$router.push('/members')">管理成员</el-button>
             <el-button type="primary" plain @click="$router.push('/credits')">查看积分</el-button>
-            <el-button type="primary" plain @click="$router.push('/tenant-settings')">租户设置</el-button>
+            <el-button type="primary" plain @click="$router.push('/tenant-settings')">团队设置</el-button>
           </div>
         </el-card>
       </el-col>
 
       <el-col :span="12">
         <el-card shadow="hover">
-          <template #header>租户信息</template>
+          <template #header>团队信息</template>
           <el-descriptions :column="1" border>
-            <el-descriptions-item label="租户名称">{{ tenant.name }}</el-descriptions-item>
-            <el-descriptions-item label="租户ID">{{ tenant.tenant_id }}</el-descriptions-item>
+            <el-descriptions-item label="团队名称">{{ tenant.name }}</el-descriptions-item>
+            <el-descriptions-item label="团队ID">{{ tenant.tenant_id }}</el-descriptions-item>
             <el-descriptions-item label="套餐">{{ tenant.plan }}</el-descriptions-item>
             <el-descriptions-item label="状态">
               <el-tag type="success" size="small">活跃</el-tag>

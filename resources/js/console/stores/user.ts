@@ -118,7 +118,7 @@ export const useUserStore = defineStore('user', () => {
       // Trigger a full page reload to ensure all data is refreshed
       window.location.reload()
     } catch (error) {
-      console.error('切换租户失败:', error)
+      console.error('切换团队失败:', error)
       throw error
     }
   }

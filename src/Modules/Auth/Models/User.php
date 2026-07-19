@@ -7,7 +7,6 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -16,8 +15,6 @@ use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Concerns\Searchable;
 use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
-use MultiTenantSaas\Modules\Operator\Models\Operator;
-use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 
 class User extends Authenticatable
 {
@@ -84,22 +81,5 @@ class User extends Authenticatable
     public function creditAccounts(): HasMany
     {
         return $this->hasMany(CreditAccount::class, 'user_id', 'user_id');
-    }
-
-    public function operatorTenants(): HasMany
-    {
-        return $this->hasMany(OperatorTenant::class, 'user_id', 'user_id');
-    }
-
-    public function operator(): HasOneThrough
-    {
-        return $this->hasOneThrough(
-            Operator::class,
-            OperatorTenant::class,
-            'user_id',   // Foreign key on operator_tenants table
-            'operator_id', // Foreign key on operators table
-            'user_id',    // Local key on users table
-            'operator_id' // Local key on operator_tenants table
-        );
     }
 }

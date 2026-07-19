@@ -32,6 +32,7 @@ use MultiTenantSaas\Events\TenantCreated;
 use MultiTenantSaas\Events\TenantSuspended;
 use MultiTenantSaas\Events\UserLoggedIn;
 use MultiTenantSaas\Events\UserRegistered;
+use MultiTenantSaas\Listeners\AttachTenantAdminOnActivated;
 use MultiTenantSaas\Listeners\LogEventListener;
 use MultiTenantSaas\Modules\Auth\Services\PasswordService;
 use MultiTenantSaas\Modules\Infrastructure\Services\BackupService;
@@ -113,6 +114,12 @@ class TenancyServiceProvider extends ServiceProvider
             __DIR__ . '/../server.php' => base_path('server.php'),
         ], 'tenancy-server');
 
+        // Public SPA scaffold — 下游拉取后完全自主定制
+        $this->publishes([
+            __DIR__ . '/../resources/pages/public' => resource_path('pages/public'),
+            __DIR__ . '/../resources/js/public' => resource_path('js/public'),
+        ], 'dsplat-public-spa');
+
         HealthService::registerChecks();
 
         // Artisan 命令
@@ -157,6 +164,8 @@ class TenancyServiceProvider extends ServiceProvider
         Event::listen(TenantCreated::class, [LogEventListener::class, 'handleTenantCreated']);
         Event::listen(TenantSuspended::class, [LogEventListener::class, 'handleTenantSuspended']);
         Event::listen(TenantActivated::class, [LogEventListener::class, 'handleTenantActivated']);
+        // Operator 直连租户模式：审核通过时写入 operator_tenants 关联
+        Event::listen(TenantActivated::class, AttachTenantAdminOnActivated::class);
         Event::listen(UserRegistered::class, [LogEventListener::class, 'handleUserRegistered']);
         Event::listen(UserLoggedIn::class, [LogEventListener::class, 'handleUserLoggedIn']);
 

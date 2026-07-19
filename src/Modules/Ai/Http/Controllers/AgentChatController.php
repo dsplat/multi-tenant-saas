@@ -58,7 +58,7 @@ class AgentChatController extends Controller
      *
      *     @OA\Response(response=200, description="SSE 流式响应（Content-Type: text/event-stream）"),
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户"),
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前团队"),
      *     @OA\Response(response=422, description="参数校验失败")
      * )
      */
@@ -111,7 +111,7 @@ class AgentChatController extends Controller
      *     @OA\Response(response=200, description="SSE 流式响应（Content-Type: text/event-stream）"),
      *     @OA\Response(response=400, description="会话已结束"),
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="Agent/会话不存在或不属于当前租户"),
+     *     @OA\Response(response=404, description="Agent/会话不存在或不属于当前团队"),
      *     @OA\Response(response=422, description="参数校验失败")
      * )
      */
@@ -120,7 +120,7 @@ class AgentChatController extends Controller
         $tenantId = $this->resolveTenantId();
         $this->ensureAgentForTenant($agentId, $tenantId);
 
-        // 验证会话存在、属于当前租户且关联指定 Agent
+        // 验证会话存在、属于当前团队且关联指定 Agent
         $conversation = AgentConversation::where('conversation_id', $conversationId)
             ->where('tenant_id', $tenantId)
             ->where('agent_id', $agentId)
@@ -129,7 +129,7 @@ class AgentChatController extends Controller
         if ($conversation === null) {
             return response()->json([
                 'success' => false,
-                'message' => '会话不存在或不属于当前租户',
+                'message' => '会话不存在或不属于当前团队',
             ], 404);
         }
 
@@ -169,7 +169,7 @@ class AgentChatController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前团队")
      * )
      */
     public function conversations(Request $request, int $agentId): JsonResponse
@@ -210,7 +210,7 @@ class AgentChatController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="会话不存在或不属于当前租户")
+     *     @OA\Response(response=404, description="会话不存在或不属于当前团队")
      * )
      */
     public function showConversation(Request $request, int $conversationId): JsonResponse
@@ -224,7 +224,7 @@ class AgentChatController extends Controller
         if ($conversation === null) {
             return response()->json([
                 'success' => false,
-                'message' => '会话不存在或不属于当前租户',
+                'message' => '会话不存在或不属于当前团队',
             ], 404);
         }
 
@@ -257,14 +257,14 @@ class AgentChatController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="会话不存在或不属于当前租户")
+     *     @OA\Response(response=404, description="会话不存在或不属于当前团队")
      * )
      */
     public function messages(Request $request, int $conversationId): JsonResponse
     {
         $tenantId = $this->resolveTenantId();
 
-        // 验证会话存在且属于当前租户
+        // 验证会话存在且属于当前团队
         $conversation = AgentConversation::where('conversation_id', $conversationId)
             ->where('tenant_id', $tenantId)
             ->first();
@@ -272,7 +272,7 @@ class AgentChatController extends Controller
         if ($conversation === null) {
             return response()->json([
                 'success' => false,
-                'message' => '会话不存在或不属于当前租户',
+                'message' => '会话不存在或不属于当前团队',
             ], 404);
         }
 
@@ -308,7 +308,7 @@ class AgentChatController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="会话不存在或不属于当前租户")
+     *     @OA\Response(response=404, description="会话不存在或不属于当前团队")
      * )
      */
     public function deleteConversation(Request $request, int $conversationId): JsonResponse
@@ -322,7 +322,7 @@ class AgentChatController extends Controller
         if ($conversation === null) {
             return response()->json([
                 'success' => false,
-                'message' => '会话不存在或不属于当前租户',
+                'message' => '会话不存在或不属于当前团队',
             ], 404);
         }
 
@@ -396,27 +396,27 @@ class AgentChatController extends Controller
     }
 
     /**
-     * 从 TenantContext 解析当前租户 ID
+     * 从 TenantContext 解析当前团队 ID
      */
     private function resolveTenantId(): int
     {
         $tenantId = $this->tenantContext->resolveId();
 
         if ($tenantId === null) {
-            abort(403, '无法识别当前租户');
+            abort(403, '无法识别当前团队');
         }
 
         return (int) $tenantId;
     }
 
     /**
-     * 验证 Agent 存在且属于当前租户，否则中止请求
+     * 验证 Agent 存在且属于当前团队，否则中止请求
      */
     private function ensureAgentForTenant(int $agentId, int $tenantId): object
     {
         $agent = $this->agentService->find($agentId);
         if ($agent === null || (int) $agent->tenant_id !== $tenantId) {
-            abort(404, 'Agent 不存在或不属于当前租户');
+            abort(404, 'Agent 不存在或不属于当前团队');
         }
 
         return $agent;

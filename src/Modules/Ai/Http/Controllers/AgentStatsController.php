@@ -44,7 +44,7 @@ class AgentStatsController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前团队")
      * )
      */
     public function stats(Request $request, int $agentId): JsonResponse
@@ -81,7 +81,7 @@ class AgentStatsController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前团队")
      * )
      */
     public function tokenUsage(Request $request, int $agentId): JsonResponse
@@ -123,7 +123,7 @@ class AgentStatsController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前团队")
      * )
      */
     public function cost(Request $request, int $agentId): JsonResponse
@@ -171,7 +171,7 @@ class AgentStatsController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="Agent 不存在或不属于当前租户")
+     *     @OA\Response(response=404, description="Agent 不存在或不属于当前团队")
      * )
      */
     public function toolLogs(Request $request, int $agentId): JsonResponse
@@ -182,7 +182,7 @@ class AgentStatsController extends Controller
         $query = AgentToolLog::where('agent_id', $agentId)
             ->orderBy('created_at', 'desc');
 
-        // 通过 agent_conversations 表关联过滤当前租户的会话
+        // 通过 agent_conversations 表关联过滤当前团队的会话
         $query->whereIn('conversation_id', function ($subQuery) use ($agentId, $tenantId) {
             $subQuery->select('conversation_id')
                 ->from('agent_conversations')
@@ -206,7 +206,7 @@ class AgentStatsController extends Controller
     }
 
     /**
-     * 校验 Agent 存在且属于当前租户
+     * 校验 Agent 存在且属于当前团队
      */
     private function validateAgentOwnership(int $agentId): void
     {
@@ -214,19 +214,19 @@ class AgentStatsController extends Controller
         $agent = $this->agentService->find($agentId);
 
         if ($agent === null || (int) $agent->tenant_id !== $tenantId) {
-            abort(404, 'Agent 不存在或不属于当前租户');
+            abort(404, 'Agent 不存在或不属于当前团队');
         }
     }
 
     /**
-     * 从 TenantContext 解析当前租户 ID
+     * 从 TenantContext 解析当前团队 ID
      */
     private function resolveTenantId(): int
     {
         $tenantId = $this->tenantContext->resolveId();
 
         if ($tenantId === null) {
-            abort(403, '无法识别当前租户');
+            abort(403, '无法识别当前团队');
         }
 
         return (int) $tenantId;

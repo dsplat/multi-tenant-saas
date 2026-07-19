@@ -29,8 +29,8 @@ class ToolController extends Controller
     /**
      * @OA\Get(
      *     path="/v1/tools",
-     *     summary="获取当前租户可用的所有工具",
-     *     description="包含全局工具（tenant_id=0）和当前租户私有工具。",
+     *     summary="获取当前团队可用的所有工具",
+     *     description="包含全局工具（tenant_id=0）和当前团队私有工具。",
      *     tags={"工具管理"},
      *     security={{"sanctum":{}}},
      *
@@ -66,7 +66,7 @@ class ToolController extends Controller
      * @OA\Get(
      *     path="/v1/tools/{slug}",
      *     summary="获取指定工具详情",
-     *     description="按 slug 查询，返回当前租户可见的工具（全局或私有）。",
+     *     description="按 slug 查询，返回当前团队可见的工具（全局或私有）。",
      *     tags={"工具管理"},
      *     security={{"sanctum":{}}},
      *
@@ -79,7 +79,7 @@ class ToolController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="工具不存在或不属于当前租户")
+     *     @OA\Response(response=404, description="工具不存在或不属于当前团队")
      * )
      */
     public function show(Request $request, string $slug): JsonResponse
@@ -97,7 +97,7 @@ class ToolController extends Controller
         if ($tool === null) {
             return response()->json([
                 'success' => false,
-                'message' => '工具不存在或不属于当前租户',
+                'message' => '工具不存在或不属于当前团队',
             ], 404);
         }
 
@@ -174,7 +174,7 @@ class ToolController extends Controller
      * @OA\Put(
      *     path="/v1/tools/{slug}",
      *     summary="更新工具",
-     *     description="仅允许更新当前租户私有的工具，全局工具不可修改。",
+     *     description="仅允许更新当前团队私有的工具，全局工具不可修改。",
      *     tags={"工具管理"},
      *     security={{"sanctum":{}}},
      *
@@ -198,7 +198,7 @@ class ToolController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="工具不存在或不属于当前租户"),
+     *     @OA\Response(response=404, description="工具不存在或不属于当前团队"),
      *     @OA\Response(response=422, description="参数校验失败")
      * )
      */
@@ -214,7 +214,7 @@ class ToolController extends Controller
         if ($tool === null) {
             return response()->json([
                 'success' => false,
-                'message' => '工具不存在或不属于当前租户',
+                'message' => '工具不存在或不属于当前团队',
             ], 404);
         }
 
@@ -238,7 +238,7 @@ class ToolController extends Controller
      * @OA\Delete(
      *     path="/v1/tools/{slug}",
      *     summary="删除工具",
-     *     description="仅允许删除当前租户私有的工具，全局工具不可删除。",
+     *     description="仅允许删除当前团队私有的工具，全局工具不可删除。",
      *     tags={"工具管理"},
      *     security={{"sanctum":{}}},
      *
@@ -251,7 +251,7 @@ class ToolController extends Controller
      *     )),
      *
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=404, description="工具不存在或不属于当前租户")
+     *     @OA\Response(response=404, description="工具不存在或不属于当前团队")
      * )
      */
     public function destroy(Request $request, string $slug): JsonResponse
@@ -266,7 +266,7 @@ class ToolController extends Controller
         if ($tool === null) {
             return response()->json([
                 'success' => false,
-                'message' => '工具不存在或不属于当前租户',
+                'message' => '工具不存在或不属于当前团队',
             ], 404);
         }
 
@@ -279,14 +279,14 @@ class ToolController extends Controller
     }
 
     /**
-     * 从 TenantContext 解析当前租户 ID
+     * 从 TenantContext 解析当前团队 ID
      */
     private function resolveTenantId(): int
     {
         $tenantId = $this->tenantContext->resolveId();
 
         if ($tenantId === null) {
-            abort(403, '无法识别当前租户');
+            abort(403, '无法识别当前团队');
         }
 
         return (int) $tenantId;

@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use MultiTenantSaas\Concerns\HasGlobalId;
-use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
 class Operator extends Authenticatable
@@ -52,14 +51,7 @@ class Operator extends Authenticatable
     public function tenants(): BelongsToMany
     {
         return $this->belongsToMany(Tenant::class, 'operator_tenants', 'operator_id', 'tenant_id', 'operator_id')
-            ->withPivot('user_id', 'role', 'role_id', 'is_active', 'invited_at', 'accepted_at')
-            ->withTimestamps();
-    }
-
-    public function users(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'operator_tenants', 'operator_id', 'user_id', 'operator_id')
-            ->withPivot('tenant_id', 'role', 'role_id', 'is_active', 'invited_at', 'accepted_at')
+            ->withPivot('role', 'role_id', 'is_active', 'invited_at', 'accepted_at')
             ->withTimestamps();
     }
 

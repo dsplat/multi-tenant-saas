@@ -15,7 +15,7 @@
 <body>
     <div class="container">
         <h1>Multi-Tenant SaaS</h1>
-        <p>Laravel 多租户 SaaS 基础框架</p>
+        <p>Laravel 多团队 SaaS 基础框架</p>
         <span class="badge">Tenant ID: {{ tenant_id() ?? '未识别' }}</span>
     </div>
 </body>

@@ -125,7 +125,7 @@ class AgentService implements AgentServiceContract
     }
 
     /**
-     * 获取当前租户的所有 Agent（tenant_id 强制来自上下文）
+     * 获取当前团队的所有 Agent（tenant_id 强制来自上下文）
      */
     public function listForTenant(int $tenantId): EloquentCollection
     {
@@ -316,21 +316,21 @@ class AgentService implements AgentServiceContract
     }
 
     /**
-     * 从 TenantContextContract 解析当前租户 ID
+     * 从 TenantContextContract 解析当前团队 ID
      */
     private function resolveTenantId(): int
     {
         $tenantId = $this->tenantContext->resolveId();
 
         if ($tenantId === null) {
-            throw new \RuntimeException('无法从租户上下文解析 tenant_id');
+            throw new \RuntimeException('无法从团队上下文解析 tenant_id');
         }
 
         return (int) $tenantId;
     }
 
     /**
-     * 在当前租户范围内查找 Agent（防止跨租户访问）
+     * 在当前团队范围内查找 Agent（防止跨租户访问）
      */
     private function findAgentForCurrentTenant(int $agentId): Agent
     {
@@ -342,7 +342,7 @@ class AgentService implements AgentServiceContract
 
         if ($agent === null) {
             throw new ModelNotFoundException(
-                "Agent [{$agentId}] 在当前租户 [{$tenantId}] 下不存在"
+                "Agent [{$agentId}] 在当前团队 [{$tenantId}] 下不存在"
             );
         }
 

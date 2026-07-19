@@ -1,11 +1,11 @@
 <?php
 
 return [
-    'already_used' => '该域名已被其他租户使用',
-    'not_configured' => '租户未配置自定义域名',
-    'tenant_not_found_by_domain' => '未找到 custom_domain = :domain 的租户。',
+    'already_used' => '该域名已被其他团队使用',
+    'not_configured' => '团队未配置自定义域名',
+    'tenant_not_found_by_domain' => '未找到 custom_domain = :domain 的团队。',
     'existing_custom_domains' => '现有自定义域名：',
-    'tenant_info' => '租户：:name（ID: :id）',
+    'tenant_info' => '团队：:name（ID: :id）',
     'old_domain' => '旧域名',
     'new_domain' => '新域名',
     'confirm_update' => '确认更新？',

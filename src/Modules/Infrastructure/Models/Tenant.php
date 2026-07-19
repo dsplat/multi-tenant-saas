@@ -68,6 +68,7 @@ class Tenant extends Model
         'status',
         'ssl_uploaded_at',
         'ssl_cert_expires_at',
+        'onboarding_operator_id',
     ];
 
     /**

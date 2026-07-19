@@ -3,7 +3,7 @@
     <el-card class="login-card" shadow="always">
       <div class="login-header">
         <el-icon :size="32" color="var(--el-color-primary)"><Monitor /></el-icon>
-        <h2>租户后台登录</h2>
+        <h2>团队后台登录</h2>
       </div>
 
       <el-form :model="form" label-position="top" @submit.prevent="handleLogin">

@@ -1,7 +1,7 @@
 <template>
   <div class="container" style="max-width: 560px;">
     <div class="card">
-      <h2>申请租户</h2>
+      <h2>申请团队</h2>
       <div v-if="error" class="msg msg-error">{{ error }}</div>
       <div v-if="submitted" class="msg msg-success">
         申请已提交！编号: {{ submitted.code }}

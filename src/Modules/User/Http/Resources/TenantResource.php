@@ -4,7 +4,7 @@ namespace MultiTenantSaas\Modules\User\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\DB;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
 
 class TenantResource extends JsonResource
 {
@@ -42,12 +42,9 @@ class TenantResource extends JsonResource
             return false;
         }
 
-        return DB::table('operator_tenants')
-            ->join('operators', 'operators.operator_id', '=', 'operator_tenants.operator_id')
-            ->where('operator_tenants.user_id', $user->user_id)
-            ->where('operators.scope', 'platform')
-            ->where('operator_tenants.is_active', true)
-            ->exists();
+        // Operator 直连路径：仅 scope=platform 的 Operator 才是平台运营人员
+        return $user instanceof Operator
+            && $user->scope === 'platform';
     }
 
     private function maskPhone(string $phone): string

@@ -6,6 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 
+/**
+ * Operator-Tenant 关联表模型（Operator 直连租户模式）
+ *
+ * 字段：operator_id、tenant_id、role、role_id、is_active、invited_at、accepted_at
+ * 不再有 user_id 字段——Operator 直接通过本表关联到 Tenant，
+ * 而非通过 users/tenant_users。
+ */
 class OperatorTenant extends Model
 {
     use BelongsToTenant;
@@ -15,7 +22,6 @@ class OperatorTenant extends Model
     protected $fillable = [
         'operator_id',
         'tenant_id',
-        'user_id',
         'role',
         'role_id',
         'is_active',
@@ -35,10 +41,5 @@ class OperatorTenant extends Model
     public function operator(): BelongsTo
     {
         return $this->belongsTo(Operator::class, 'operator_id', 'operator_id');
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 }

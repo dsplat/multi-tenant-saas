@@ -17,7 +17,7 @@
           v-for="section in navSections" :key="section.label">
           <div class="nav-section-label">
             {{ section.label }}
-            <span v-if="section.needsTenant && !tenantStore.hasTenant" class="section-hint">请先选择租户</span>
+            <span v-if="section.needsTenant && !tenantStore.hasTenant" class="section-hint">请先选择团队</span>
           </div>
           <template v-for="item in section.items" :key="item.path">
             <el-menu-item v-if="!item.perm || userStore.hasPermission(item.perm)"
@@ -49,7 +49,7 @@
         </el-breadcrumb>
 
         <div class="actions">
-          <el-select v-model="selectedTenantId" @change="onTenantChange" placeholder="选择租户..."
+          <el-select v-model="selectedTenantId" @change="onTenantChange" placeholder="选择团队..."
             size="default" style="width: 160px">
             <el-option v-for="t in tenantStore.tenants" :key="t.tenant_id" :label="t.name" :value="t.tenant_id" />
           </el-select>
@@ -102,7 +102,7 @@ const navSections = [
     label: '系统管理',
     items: [
       { path: 'dashboard', label: '仪表盘', icon: HomeFilled },
-      { path: 'tenants', label: '租户管理', icon: OfficeBuilding, perm: 'tenant.view' },
+      { path: 'tenants', label: '团队管理', icon: OfficeBuilding, perm: 'tenant.view' },
       { path: 'operators', label: '运营人员', icon: UserFilled, perm: 'member.view' },
       { path: 'roles', label: '角色权限', icon: Lock, perm: 'rbac.manage' },
       { path: 'plans', label: '订阅计划', icon: Calendar, perm: 'subscription.manage' },
@@ -123,7 +123,7 @@ const navSections = [
     ],
   },
   {
-    label: '租户管理',
+    label: '团队管理',
     needsTenant: true,
     items: [
       { path: 'users', label: '用户管理', icon: User, perm: 'user.view' },
@@ -138,7 +138,7 @@ const navSections = [
       { path: 'ssl', label: 'SSL 证书', icon: Lock, perm: 'ssl.manage' },
       { path: 'webhooks', label: 'Webhooks', icon: Link, perm: 'webhook.view' },
       { path: 'ip-whitelist', label: 'IP 白名单', icon: Lock, perm: 'security.view' },
-      { path: 'tenant-keys', label: '租户密钥', icon: Key, perm: 'security.view' },
+      { path: 'tenant-keys', label: '团队密钥', icon: Key, perm: 'security.view' },
       { path: 'consents', label: '合规同意', icon: Document, perm: 'compliance.view' },
     ],
   },

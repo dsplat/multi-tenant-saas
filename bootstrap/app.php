@@ -21,6 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
             \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyDomain::class,
         ]);
 
+        // API 请求未认证时返回 401 JSON，不重定向到 login 路由
+        $middleware->redirectTo(null);
+
         $middleware->web(prepend: [
             \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\CastRouteParameters::class,
             \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant::class,

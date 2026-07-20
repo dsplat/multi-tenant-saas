@@ -15,19 +15,26 @@ class TenantOAuthController extends Controller
 
     /**
      * 从请求解析租户 ID（支持 domain 查询参数）
+     *
+     * 优先级：domain 查询参数 > TenantContext
+     * OAuth 公开端点需要显式指定租户域名
      */
     protected function resolveTenantId(Request $request): ?int
     {
-        // 优先从 TenantContext 获取
-        if ($id = TenantContext::getId()) {
-            return (int) $id;
-        }
-
-        // 从 domain 查询参数解析
+        // 优先从 domain 查询参数解析（OAuth 公开端点显式指定租户）
         if ($domain = $request->query('domain')) {
-            return Tenant::where('custom_domain', $domain)
+            $tenantId = Tenant::where('custom_domain', $domain)
                 ->where('status', 'active')
                 ->value('tenant_id');
+
+            if ($tenantId) {
+                return (int) $tenantId;
+            }
+        }
+
+        // 回退到 TenantContext
+        if ($id = TenantContext::getId()) {
+            return (int) $id;
         }
 
         return null;

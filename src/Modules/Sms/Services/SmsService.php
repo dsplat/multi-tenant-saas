@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Sms\Models\SmsBatchTask;
 use MultiTenantSaas\Modules\Sms\Models\SmsDeliveryStat;
 use MultiTenantSaas\Modules\Sms\Models\SmsTemplate;
@@ -14,8 +15,11 @@ use MultiTenantSaas\Modules\Sms\Models\SmsUnsubscribe;
 /**
  * 短信发送服务
  *
+ * 配置读取优先级：租户级 TenantSetting > 系统级 config（当前不兖底）
+ *
  * driver=log → 仅写日志（本地/测试默认）
  * driver=ww  → 调用网建短信网关
+ * driver=aliyun → 阿里云 dysmsapi
  * driver=http→ 通用 HTTP 短信网关（自定义 endpoint）
  *
  * 扩展功能：模板管理、批量发送、到达率统计、退订管理
@@ -24,12 +28,46 @@ class SmsService
 {
     /**
      * 发送验证码短信，成功返回传入的 $code，失败返回 false。
+     *
+     * 配置从当前租户 TenantSetting(group=sms) 读取，未配置则返回 false。
      */
     public static function send(string $phone, string $code, string $type = 'register'): string|false
     {
-        $driver = config('services.sms.driver', 'log');
+        $tenantId = TenantContext::getId();
 
-        return static::sendUsingDriver($driver, $phone, $code, $type);
+        // 租户级配置
+        if ($tenantId) {
+            $driver = TenantSetting::get((int) $tenantId, 'sms', 'driver', '');
+
+            if ($driver) {
+                return static::sendWithTenantConfig((int) $tenantId, $driver, $phone, $code, $type);
+            }
+        }
+
+        // 系统级兖底（当前不兖底，返回 false）
+        Log::warning('SmsService: no tenant SMS config', [
+            'tenant_id' => $tenantId,
+            'phone' => static::maskPhone($phone),
+            'type' => $type,
+        ]);
+
+        return false;
+    }
+
+    /**
+     * 使用租户级配置发送
+     */
+    protected static function sendWithTenantConfig(int $tenantId, string $driver, string $phone, string $code, string $type): string|false
+    {
+        $driver = trim($driver);
+
+        return match ($driver) {
+            'aliyun' => static::sendViaAliyunTenant($tenantId, $phone, $code, $type),
+            'ww' => static::sendViaWw($phone, $code, $type),
+            'http' => static::sendViaHttp($phone, $code, $type),
+            'log' => static::sendViaLog($phone, $code, $type),
+            default => static::sendViaLog($phone, $code, $type),
+        };
     }
 
     public static function sendUsingDriver(string $driver, string $phone, string $code, string $type = 'register'): string|false
@@ -264,6 +302,83 @@ class SmsService
             return false;
         } catch (\Throwable $e) {
             Log::error('SmsService aliyun exception', [
+                'phone' => static::maskPhone($phone),
+                'message' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * 阿里云短信（租户级配置）
+     *
+     * 从 TenantSetting(group=sms) 读取：
+     *   aliyun_access_key_id, aliyun_access_key_secret, aliyun_sign_name, aliyun_template_code
+     */
+    private static function sendViaAliyunTenant(int $tenantId, string $phone, string $code, string $type): string|false
+    {
+        $accessKeyId = TenantSetting::get($tenantId, 'sms', 'aliyun_access_key_id', '');
+        $accessKeySecret = TenantSetting::get($tenantId, 'sms', 'aliyun_access_key_secret', '');
+        $signName = TenantSetting::get($tenantId, 'sms', 'aliyun_sign_name', '');
+        $templateCode = TenantSetting::get($tenantId, 'sms', 'aliyun_template_code', '');
+
+        if ($accessKeyId === '' || $accessKeySecret === '' || $signName === '' || $templateCode === '') {
+            Log::error('SmsService aliyun tenant config missing', [
+                'tenant_id' => $tenantId,
+                'phone' => static::maskPhone($phone),
+                'type' => $type,
+            ]);
+
+            return false;
+        }
+
+        try {
+            $params = [
+                'AccessKeyId' => $accessKeyId,
+                'Action' => 'SendSms',
+                'Format' => 'JSON',
+                'PhoneNumbers' => $phone,
+                'RegionId' => 'cn-hangzhou',
+                'SignName' => $signName,
+                'SignatureMethod' => 'HMAC-SHA1',
+                'SignatureNonce' => uniqid((string) mt_rand(), true),
+                'SignatureVersion' => '1.0',
+                'TemplateCode' => $templateCode,
+                'TemplateParam' => json_encode(['code' => $code], JSON_UNESCAPED_UNICODE),
+                'Timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
+                'Version' => '2017-05-25',
+            ];
+
+            $params['Signature'] = static::computeAliyunSignature($params, $accessKeySecret);
+
+            $response = Http::timeout(10)->post('https://dysmsapi.aliyuncs.com/', $params);
+
+            $body = $response->json();
+
+            if ($response->successful() && ($body['Code'] ?? '') === 'OK') {
+                Log::info('SmsService aliyun tenant send ok', [
+                    'tenant_id' => $tenantId,
+                    'phone' => static::maskPhone($phone),
+                    'type' => $type,
+                    'biz_id' => $body['BizId'] ?? null,
+                ]);
+
+                return $code;
+            }
+
+            Log::error('SmsService aliyun tenant send failed', [
+                'tenant_id' => $tenantId,
+                'phone' => static::maskPhone($phone),
+                'type' => $type,
+                'code' => $body['Code'] ?? null,
+                'message' => $body['Message'] ?? null,
+            ]);
+
+            return false;
+        } catch (\Throwable $e) {
+            Log::error('SmsService aliyun tenant exception', [
+                'tenant_id' => $tenantId,
                 'phone' => static::maskPhone($phone),
                 'message' => $e->getMessage(),
             ]);

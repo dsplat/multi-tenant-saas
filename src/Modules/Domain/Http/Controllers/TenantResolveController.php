@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Domain\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Auth\Services\SocialiteService;
 use MultiTenantSaas\Modules\Auth\Services\SsoService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
@@ -21,21 +22,11 @@ class TenantResolveController extends Controller
      * 按域名解析租户
      *
      * GET /api/v1/tenant/resolve?domain={host}
+     * domain 参数可选：无参数时从请求 Host 自动解析（IdentifyTenant 中间件已设置 TenantContext）
      */
     public function resolve(Request $request): JsonResponse
     {
-        $domain = $request->query('domain');
-
-        if (! $domain) {
-            return response()->json([
-                'success' => false,
-                'message' => 'domain parameter is required',
-            ], 422);
-        }
-
-        $tenant = Tenant::where('custom_domain', $domain)
-            ->where('status', 'active')
-            ->first(['tenant_id', 'name', 'slug', 'logo', 'branding', 'custom_domain']);
+        $tenant = $this->resolveTenant($request);
 
         if (! $tenant) {
             return response()->json([
@@ -67,23 +58,11 @@ class TenantResolveController extends Controller
      * 获取租户登录配置
      *
      * GET /api/v1/tenant/login-config?domain={host}
-     *
-     * 返回该租户可用的登录方式、OAuth 提供商、注册开关等。
+     * domain 参数可选：无参数时从请求 Host 自动解析
      */
     public function loginConfig(Request $request): JsonResponse
     {
-        $domain = $request->query('domain');
-
-        if (! $domain) {
-            return response()->json([
-                'success' => false,
-                'message' => 'domain parameter is required',
-            ], 422);
-        }
-
-        $tenant = Tenant::where('custom_domain', $domain)
-            ->where('status', 'active')
-            ->first(['tenant_id']);
+        $tenant = $this->resolveTenant($request);
 
         if (! $tenant) {
             return response()->json([
@@ -135,5 +114,32 @@ class TenantResolveController extends Controller
                 'email_domain_restriction' => $emailDomainRestriction,
             ],
         ]);
+    }
+
+    /**
+     * 解析租户（domain 参数 > TenantContext > 请求 Host）
+     */
+    protected function resolveTenant(Request $request): ?Tenant
+    {
+        // 1. 显式 domain 参数
+        if ($domain = $request->query('domain')) {
+            return Tenant::where('custom_domain', $domain)
+                ->where('status', 'active')
+                ->first(['tenant_id', 'name', 'slug', 'logo', 'branding', 'custom_domain']);
+        }
+
+        // 2. TenantContext（IdentifyTenant 中间件已从请求 Host 解析）
+        if ($tenantId = TenantContext::getId()) {
+            return Tenant::where('tenant_id', $tenantId)
+                ->where('status', 'active')
+                ->first(['tenant_id', 'name', 'slug', 'logo', 'branding', 'custom_domain']);
+        }
+
+        // 3. 直接从请求 Host 查找
+        $host = $request->header('X-Original-Host') ?? $request->getHost();
+
+        return Tenant::where('custom_domain', $host)
+            ->where('status', 'active')
+            ->first(['tenant_id', 'name', 'slug', 'logo', 'branding', 'custom_domain']);
     }
 }

@@ -62,7 +62,11 @@ class WechatWorkOAuthService
             'corp_id' => $corpId,
             'agent_id' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_agent_id', ''),
             'secret' => $secret,
-            'redirect' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_redirect', '/auth/wechat_work/callback'),
+            'redirect' => SocialiteService::resolveRedirectUrl(
+                $tenantId,
+                'wechat_work',
+                TenantSetting::get($tenantId, 'oauth', 'wechat_work_redirect', '')
+            ),
         ];
     }
 

@@ -56,7 +56,11 @@ class WechatOAuthService
         return [
             'app_id' => $appId,
             'secret' => $secret,
-            'redirect' => TenantSetting::get($tenantId, 'oauth', 'wechat_redirect', '/auth/wechat/callback'),
+            'redirect' => SocialiteService::resolveRedirectUrl(
+                $tenantId,
+                'wechat',
+                TenantSetting::get($tenantId, 'oauth', 'wechat_redirect', '')
+            ),
         ];
     }
 

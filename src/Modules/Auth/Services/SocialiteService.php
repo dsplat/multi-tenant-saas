@@ -7,6 +7,7 @@ use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
 use MultiTenantSaas\Modules\Auth\Models\OauthAccount;
 use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 
@@ -30,14 +31,43 @@ class SocialiteService
     }
 
     /**
+     * 解析租户 OAuth 回调完整 URL
+     *
+     * 优先使用 TenantSetting 中存储的值：
+     * - 已是完整 URL（http 开头）→ 直接使用
+     * - 相对路径或未设置 → 基于租户 custom_domain 动态拼接
+     */
+    public static function resolveRedirectUrl(int $tenantId, string $provider, string $storedRedirect = ''): string
+    {
+        // 已存储完整 URL
+        if ($storedRedirect && str_starts_with($storedRedirect, 'http')) {
+            return $storedRedirect;
+        }
+
+        // 基于租户域名动态拼接
+        $domain = Tenant::where('tenant_id', $tenantId)->value('custom_domain');
+
+        if (! $domain) {
+            // 无自定义域名，回退到相对路径（平台域名场景）
+            return $storedRedirect ?: "/auth/{$provider}/callback";
+        }
+
+        $path = $storedRedirect ?: "/auth/{$provider}/callback";
+
+        return "https://{$domain}{$path}";
+    }
+
+    /**
      * 获取租户 OAuth 配置
      */
     protected static function getOAuthConfig(int $tenantId, string $provider): array
     {
+        $storedRedirect = TenantSetting::get($tenantId, 'oauth', "{$provider}_redirect", '');
+
         return [
             'client_id' => TenantSetting::get($tenantId, 'oauth', "{$provider}_client_id", ''),
             'client_secret' => TenantSetting::get($tenantId, 'oauth', "{$provider}_client_secret", ''),
-            'redirect' => TenantSetting::get($tenantId, 'oauth', "{$provider}_redirect", "/auth/{$provider}/callback"),
+            'redirect' => self::resolveRedirectUrl($tenantId, $provider, $storedRedirect),
         ];
     }
 
@@ -261,7 +291,7 @@ class SocialiteService
                     'configured' => app(AlipayOAuthService::class)->isConfigured($tenantId),
                     'app_id' => $appId,
                     'mode' => TenantSetting::get($tenantId, 'oauth', 'alipay_mode', 'production'),
-                    'redirect' => TenantSetting::get($tenantId, 'oauth', 'alipay_redirect', '/auth/alipay/callback'),
+                    'redirect' => self::resolveRedirectUrl($tenantId, 'alipay', TenantSetting::get($tenantId, 'oauth', 'alipay_redirect', '')),
                 ];
 
                 continue;
@@ -273,7 +303,7 @@ class SocialiteService
                     'configured' => app(WechatWorkOAuthService::class)->isConfigured($tenantId),
                     'corp_id' => $corpId,
                     'agent_id' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_agent_id', ''),
-                    'redirect' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_redirect', '/auth/wechat_work/callback'),
+                    'redirect' => self::resolveRedirectUrl($tenantId, 'wechat_work', TenantSetting::get($tenantId, 'oauth', 'wechat_work_redirect', '')),
                 ];
 
                 continue;
@@ -283,7 +313,7 @@ class SocialiteService
                 $result[$provider] = [
                     'configured' => app(WechatOAuthService::class)->isConfigured($tenantId),
                     'client_id' => TenantSetting::get($tenantId, 'oauth', 'wechat_client_id', ''),
-                    'redirect' => TenantSetting::get($tenantId, 'oauth', 'wechat_redirect', '/auth/wechat/callback'),
+                    'redirect' => self::resolveRedirectUrl($tenantId, 'wechat', TenantSetting::get($tenantId, 'oauth', 'wechat_redirect', '')),
                 ];
 
                 continue;

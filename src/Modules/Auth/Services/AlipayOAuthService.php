@@ -73,7 +73,7 @@ class AlipayOAuthService
             'private_key' => $privateKey,
             'public_key' => TenantSetting::get($tenantId, 'oauth', 'alipay_public_key', ''),
             'mode' => TenantSetting::get($tenantId, 'oauth', 'alipay_mode', 'production'),
-            'redirect' => TenantSetting::get($tenantId, 'oauth', 'alipay_redirect', '/auth/alipay/callback'),
+            'redirect' => SocialiteService::resolveRedirectUrl($tenantId, 'alipay', TenantSetting::get($tenantId, 'oauth', 'alipay_redirect', '')),
         ];
     }
 

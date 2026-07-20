@@ -141,10 +141,18 @@ class AdminApplicationController extends Controller
             ]);
 
             // 2. 创建 OperatorTenant 关联
+            $tenantAdminRoleId = DB::table('roles')
+                ->where('name', 'tenant_admin')
+                ->where(function ($q) use ($tenant) {
+                    $q->whereNull('tenant_id')->orWhere('tenant_id', $tenant->tenant_id);
+                })
+                ->value('role_id');
+
             OperatorTenant::create([
                 'operator_id' => $application->operator_id,
                 'tenant_id' => $tenant->tenant_id,
                 'role' => 'tenant_admin',
+                'role_id' => $tenantAdminRoleId,
                 'is_active' => true,
                 'accepted_at' => now(),
             ]);

@@ -79,17 +79,20 @@ class RbacService
 
     /**
      * 检查 Operator 在指定团队（租户）中是否拥有指定权限
+     *
+     * 当 $tenantId 为 null（如平台 admin 路由无租户上下文）时，
+     * 回退到查找该 Operator 的任意活跃 operator_tenant 记录。
      */
     protected static function checkOperatorPermission(Operator $operator, ?int $tenantId, string $permission): bool
     {
-        if (! $tenantId) {
-            return false;
+        $query = OperatorTenant::where('operator_id', $operator->operator_id)
+            ->where('is_active', true);
+
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
         }
 
-        $operatorTenant = OperatorTenant::where('operator_id', $operator->operator_id)
-            ->where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->first();
+        $operatorTenant = $query->first();
 
         if (! $operatorTenant || ! $operatorTenant->role_id) {
             return false;
@@ -131,10 +134,14 @@ class RbacService
         $tenantId = TenantContext::getId() ?? request()->route('tenantId');
 
         if ($user instanceof Operator) {
-            $operatorTenant = OperatorTenant::where('operator_id', $user->operator_id)
-                ->where('tenant_id', $tenantId)
-                ->where('is_active', true)
-                ->first();
+            $query = OperatorTenant::where('operator_id', $user->operator_id)
+                ->where('is_active', true);
+
+            if ($tenantId) {
+                $query->where('tenant_id', $tenantId);
+            }
+
+            $operatorTenant = $query->first();
 
             if ($operatorTenant && $operatorTenant->role_id) {
                 return static::getRolePermissions($operatorTenant->role_id);

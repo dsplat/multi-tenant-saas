@@ -4,7 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Workflow\Services\WorkflowService;
 
-Route::prefix('admin/workflows')->group(function () {
+Route::prefix('workflows')->group(function () {
     Route::get('/', function () {
         $service = app(WorkflowService::class);
 

@@ -4,7 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\DeveloperPortal\Services\SandboxService;
 
-Route::prefix('admin/developer-portal')->group(function () {
+Route::prefix('developer-portal')->group(function () {
     Route::get('/sandbox', function () {
         $service = app(SandboxService::class);
 

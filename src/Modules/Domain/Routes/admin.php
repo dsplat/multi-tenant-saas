@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Domain\Http\Controllers\TenantDomainController;
 
-Route::prefix('admin/domains')->group(function () {
+Route::prefix('domains')->group(function () {
     Route::get('/', [TenantDomainController::class, 'index'])->middleware('rbac.permission:domain.manage');
     Route::post('/{tenantId}', [TenantDomainController::class, 'store'])->middleware('rbac.permission:domain.manage');
     Route::put('/{tenantId}', [TenantDomainController::class, 'update'])->middleware('rbac.permission:domain.manage');

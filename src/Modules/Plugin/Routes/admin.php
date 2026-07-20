@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Plugin\Services\PluginService;
 
-Route::prefix('admin/plugins')->group(function () {
+Route::prefix('plugins')->group(function () {
     Route::get('/', function () {
         return response()->json(['success' => true, 'data' => app(PluginService::class)->listInstalled()]);
     });

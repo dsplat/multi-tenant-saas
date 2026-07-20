@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Infrastructure\Services\AlertService;
 use MultiTenantSaas\Modules\Infrastructure\Services\MetricsService;
 
-Route::prefix('admin/monitoring')->group(function () {
+Route::prefix('monitoring')->group(function () {
     Route::get('/metrics', function () {
         $service = app(MetricsService::class);
 

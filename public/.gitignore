@@ -1,0 +1,10 @@
+# SPA 子目录只允许 index.html + assets/
+# 禁止递归嵌套和 PHP 入口文件
+console/index.php
+console/admin/
+console/console/
+console/public/
+admin/index.php
+admin/admin/
+admin/console/
+admin/public/

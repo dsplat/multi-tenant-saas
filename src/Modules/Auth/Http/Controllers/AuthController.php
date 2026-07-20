@@ -293,10 +293,16 @@ class AuthController extends Controller
                 ->first();
         }
 
-        // 无租户关联：返回成功但不带 token，前端引导申请
+        // 无租户关联：仍签发 token（供 /operator/apply 等接口认证），前端引导申请
         if (! $operatorTenant) {
             // 更新登录状态
-            $operator->update(['last_login_at' => now()]);
+            $operator->update([
+                'login_attempts' => 0,
+                'locked_until' => null,
+                'last_login_at' => now(),
+            ]);
+
+            $token = $operator->createToken('operator_no_tenant')->plainTextToken;
 
             return response()->json([
                 'success' => true,
@@ -304,6 +310,8 @@ class AuthController extends Controller
                     'operator' => $this->operatorToArray($operator),
                     'tenants' => [],
                     'no_tenant' => true,
+                    'auth_token' => $token,
+                    'auth_token_expires_in' => 1800,
                 ],
             ]);
         }

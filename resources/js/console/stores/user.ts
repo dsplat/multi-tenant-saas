@@ -62,12 +62,14 @@ export const useUserStore = defineStore('user', () => {
       // Operator login (new flow)
       if (data.operator) {
         const { operator, tenants, no_tenant } = data
-        setToken(data.auth_token)
+        if (data.auth_token) setToken(data.auth_token)
         user.value = { ...operator, tenants }
         permissions.value = operator.permissions || []
         if (no_tenant || !tenants?.length) {
           // No tenant — will be redirected to /console/apply
           if (user.value) user.value.tenant_id = undefined
+          localStorage.removeItem('console_tenant_id')
+          delete axios.defaults.headers.common['X-Tenant-ID']
           return { ...response.data, no_tenant: true }
         }
         // Use first tenant

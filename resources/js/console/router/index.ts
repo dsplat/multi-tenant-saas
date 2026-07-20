@@ -50,6 +50,12 @@ const router = createRouter({
       meta: { title: '登录', requiresAuth: false },
     },
     {
+      path: '/apply',
+      name: 'ApplyTeam',
+      component: resolveView('ApplyTeam'),
+      meta: { title: '申请创建团队', requiresAuth: true, requiresTenant: false },
+    },
+    {
       path: '/',
       name: 'ConsoleRoot',
       component: resolveLayout('ConsoleLayout'),
@@ -99,6 +105,13 @@ router.beforeEach(async (to, _from, next) => {
         next({ name: 'Login', query: { redirect: to.fullPath } })
         return
       }
+    }
+    // 无租户用户只能访问申请页，其余页面引导去申请创建团队
+    const needsTenant = to.meta.requiresTenant !== false
+    const hasTenant = !!userStore.tenantId
+    if (needsTenant && !hasTenant && to.name !== 'ApplyTeam') {
+      next({ name: 'ApplyTeam' })
+      return
     }
   }
   next()

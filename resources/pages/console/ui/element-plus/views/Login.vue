@@ -75,6 +75,10 @@ const handleLogin = async () => {
       error.value = '需要多因素认证，请联系管理员'
       return
     }
+    if (res.no_tenant || res.data?.no_tenant) {
+      router.push('/apply')
+      return
+    }
     const redirect = (route.query.redirect as string) || '/dashboard'
     router.push(redirect)
   } catch (e: any) {

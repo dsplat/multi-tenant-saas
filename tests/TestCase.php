@@ -13,6 +13,7 @@ use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\CheckFeatureFlag;
 use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\EnsureTenantContext;
 use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant;
+use MultiTenantSaas\Modules\Operator\Http\Middleware\EnsureOperator;
 use MultiTenantSaas\TenancyServiceProvider;
 use MultiTenantSaas\Tests\Schema\CoreModule;
 use MultiTenantSaas\Tests\Schema\SchemaModuleInterface;
@@ -73,6 +74,7 @@ abstract class TestCase extends BaseTestCase
         $router->aliasMiddleware('tenant.permission', CheckPermission::class);
         $router->aliasMiddleware('rbac.permission', CheckRbacPermission::class);
         $router->aliasMiddleware('feature.flag', CheckFeatureFlag::class);
+        $router->aliasMiddleware('operator.auth', EnsureOperator::class);
 
         $router->prefix('api')->group(function () {
             require __DIR__ . '/../routes/api.php';

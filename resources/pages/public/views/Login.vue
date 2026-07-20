@@ -26,6 +26,11 @@
         </div>
       </div>
 
+      <!-- MFA 提示 -->
+      <div v-if="mfaRequired" class="msg msg-info">
+        需要二次验证，正在跳转...
+      </div>
+
       <div v-if="error" class="msg msg-error">{{ error }}</div>
 
       <form @submit.prevent="handleLogin">
@@ -103,7 +108,10 @@ const showUnverifiedBanner = ref(false)
 const resendLoading = ref(false)
 const resendMsg = ref('')
 const resendSuccess = ref(false)
-const lastOperator = reactive({ email: '', token: '' })
+const lastUser = reactive({ email: '', token: '' })
+
+// MFA 状态
+const mfaRequired = ref(false)
 
 // 当前域名
 const currentHost = window.location.host
@@ -153,9 +161,10 @@ async function handleLogin() {
   loading.value = true
   error.value = ''
   showUnverifiedBanner.value = false
+  mfaRequired.value = false
 
   try {
-    const res = await fetch('/api/v1/operator-auth/login', {
+    const res = await fetch('/api/v1/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
@@ -163,24 +172,39 @@ async function handleLogin() {
     const data = await res.json()
 
     if (data.success) {
-      const operator = data.data.operator || {}
-      const token = data.data.auth_token || data.data.token  // 兼容字段名
-      lastOperator.email = operator.email || form.email
-      lastOperator.token = token
+      const payload = data.data || {}
+
+      // MFA 二次验证
+      if (payload.mfa_required) {
+        mfaRequired.value = true
+        router.push({
+          name: 'mfa-verify',
+          query: {
+            user_id: String(payload.user_id),
+            types: (payload.available_types || []).join(','),
+          },
+        })
+        return
+      }
+
+      const user = payload.user || {}
+      const token = payload.token || ''
+      lastUser.email = user.email || form.email
+      lastUser.token = token
 
       // 检测邮箱是否已验证
-      if (operator.email_verified === false) {
-        // 保存 token 但不跳转，显示未验证提示
-        localStorage.setItem('operator_token', token)
-        localStorage.setItem('operator', JSON.stringify(operator))
+      if (user.email_verified_at === null || user.email_verified_at === undefined) {
+        localStorage.setItem('user_token', token)
+        localStorage.setItem('user_info', JSON.stringify(user))
         showUnverifiedBanner.value = true
         return
       }
 
       // 已验证，正常跳转
-      localStorage.setItem('operator_token', token)
-      localStorage.setItem('operator', JSON.stringify(operator))
-      window.location.href = '/console'
+      localStorage.setItem('user_token', token)
+      localStorage.setItem('user_info', JSON.stringify(user))
+      const redirect = (router.currentRoute.value.query.redirect as string) || '/dashboard'
+      window.location.href = redirect
     } else {
       error.value = data.message || '登录失败'
     }
@@ -192,15 +216,15 @@ async function handleLogin() {
 }
 
 async function resendVerification() {
-  if (!lastOperator.email) return
+  if (!lastUser.email) return
   resendLoading.value = true
   resendMsg.value = ''
 
   try {
-    const res = await fetch('/api/v1/operator-auth/resend-verification', {
+    const res = await fetch('/api/v1/auth/resend-verification', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: lastOperator.email }),
+      body: JSON.stringify({ email: lastUser.email }),
     })
     const data = await res.json()
     if (data.success) {
@@ -219,8 +243,8 @@ async function resendVerification() {
 }
 
 function continueAnyway() {
-  // 用户选择仍然继续，跳转到 console
-  window.location.href = '/console'
+  // 用户选择仍然继续，跳转到用户中心
+  window.location.href = '/dashboard'
 }
 </script>
 

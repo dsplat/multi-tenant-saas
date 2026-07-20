@@ -127,12 +127,12 @@ class TenantOnboardingService
      * @throws \InvalidArgumentException 字段校验失败
      * @throws \RuntimeException 同一 Operator 存在未完成会话
      */
-    public function startRegistration(array $data, int $operatorId, ?string $clientIp = null): string
+    public function startRegistration(array $data, ?int $operatorId = null, ?string $clientIp = null): string
     {
         $this->validateData($data, $this->stepRules(self::STEP_BASIC_INFO));
 
         // 同一 Operator 同时只允许一个进行中的会话
-        if (Cache::has(self::OPERATOR_INDEX_PREFIX . $operatorId)) {
+        if ($operatorId && Cache::has(self::OPERATOR_INDEX_PREFIX . $operatorId)) {
             throw new \RuntimeException(trans('tenant.onboarding.registration_failed'));
         }
 

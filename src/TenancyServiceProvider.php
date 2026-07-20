@@ -118,6 +118,7 @@ class TenancyServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../resources/pages/public' => resource_path('pages/public'),
             __DIR__ . '/../resources/js/public' => resource_path('js/public'),
+            __DIR__ . '/../resources/js/user-core' => resource_path('js/user-core'),
         ], 'dsplat-public-spa');
 
         HealthService::registerChecks();

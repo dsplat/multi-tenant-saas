@@ -78,4 +78,13 @@ return [
     'oidc_code_missing' => 'Missing OIDC authorization code',
     'oidc_token_exchange_failed' => 'OIDC token exchange failed',
     'oidc_userinfo_failed' => 'OIDC userinfo retrieval failed',
+
+    // User profile management
+    'invalid_credentials' => 'Invalid email or password',
+    'account_disabled' => 'Account has been disabled',
+    'logged_out' => 'Logged out',
+    'current_password_incorrect' => 'Current password is incorrect',
+    'oauth_not_bound' => 'This OAuth account is not bound',
+    'cannot_unbind_last' => 'Cannot unbind the only login method. Please set a password first',
+    'oauth_unbound' => 'OAuth account unbound',
 ];

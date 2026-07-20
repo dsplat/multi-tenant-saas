@@ -169,7 +169,7 @@ class CoreModule implements SchemaModuleInterface
             $table->id();
             $table->unsignedBigInteger('operator_id');
             $table->unsignedBigInteger('tenant_id');
-            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('user_id')->nullable();
             $table->string('role', 50);
             $table->unsignedBigInteger('role_id')->nullable();
             $table->boolean('is_active')->default(true);
@@ -179,7 +179,6 @@ class CoreModule implements SchemaModuleInterface
 
             $table->unique(['operator_id', 'tenant_id']);
             $table->index('tenant_id');
-            $table->index('user_id');
         });
     }
 

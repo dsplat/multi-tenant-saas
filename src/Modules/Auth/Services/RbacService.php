@@ -42,7 +42,23 @@ class RbacService
             return static::checkOperatorPermission($user, $tenantId, $permission);
         }
 
-        // 2) User 路径（租户开放注册后的业务用户，走 tenant_users）
+        // 2) User 路径：先查 operator_tenants（运营员），再查 tenant_users（业务用户）
+        if ($tenantId) {
+            $operatorTenant = $user->operatorTenants()
+                ->where('is_active', true)
+                ->where('tenant_id', $tenantId)
+                ->first();
+        } else {
+            $operatorTenant = $user->operatorTenants()
+                ->where('is_active', true)
+                ->first();
+        }
+
+        if ($operatorTenant && $operatorTenant->role_id) {
+            return static::checkRolePermission($operatorTenant->role_id, $permission);
+        }
+
+        // 回退到 tenant_users 路径
         if ($tenantId) {
             $tenantUser = $user->tenants()
                 ->wherePivot('is_active', true)

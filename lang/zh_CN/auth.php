@@ -81,4 +81,13 @@ return [
     'sso_state_invalid' => 'SSO 状态验证失败，请重试',
     'saml_certificate_missing' => 'SAML 签名证书缺失',
     'oidc_jwt_invalid' => 'OIDC 令牌格式无效',
+
+    // 用户资料管理
+    'invalid_credentials' => '邮箱或密码错误',
+    'account_disabled' => '账号已被禁用',
+    'logged_out' => '已退出登录',
+    'current_password_incorrect' => '当前密码不正确',
+    'oauth_not_bound' => '未绑定该第三方账号',
+    'cannot_unbind_last' => '不能解绑唯一的登录方式，请先设置密码',
+    'oauth_unbound' => '第三方账号已解绑',
 ];

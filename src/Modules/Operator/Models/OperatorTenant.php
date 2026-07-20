@@ -22,6 +22,7 @@ class OperatorTenant extends Model
     protected $fillable = [
         'operator_id',
         'tenant_id',
+        'user_id',
         'role',
         'role_id',
         'is_active',

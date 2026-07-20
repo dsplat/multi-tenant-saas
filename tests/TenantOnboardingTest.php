@@ -55,7 +55,7 @@ class TenantOnboardingTest extends TestCase
 
     public function test_can_start_registration(): void
     {
-        $response = $this->postJson('/api/v1/tenants/register', [
+        $response = $this->postJson('/api/v1/tenants/onboarding/start', [
             'name' => 'Acme Corp',
             'admin_email' => 'admin@acme.test',
             'password' => 'Password123',
@@ -63,13 +63,13 @@ class TenantOnboardingTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJson(['success' => true])
-            ->assertJsonStructure(['data' => ['auth_token', 'current_step']])
+            ->assertJsonStructure(['data' => ['onboarding_token', 'current_step']])
             ->assertJson(['data' => ['current_step' => 1]]);
     }
 
     public function test_register_validates_required_fields(): void
     {
-        $response = $this->postJson('/api/v1/tenants/register', []);
+        $response = $this->postJson('/api/v1/tenants/onboarding/start', []);
 
         $response->assertStatus(422);
     }
@@ -81,7 +81,7 @@ class TenantOnboardingTest extends TestCase
         $token = $this->startRegistration();
 
         $response = $this->postJson('/api/v1/tenants/onboarding/2', [
-            'auth_token' => $token,
+            'onboarding_token' => $token,
             'domain_type' => 'subdomain',
             'subdomain' => 'acme',
         ]);
@@ -97,7 +97,7 @@ class TenantOnboardingTest extends TestCase
 
         // 选择带试用天数的 basic 套餐并启用试用
         $response = $this->postJson('/api/v1/tenants/onboarding/3', [
-            'auth_token' => $token,
+            'onboarding_token' => $token,
             'plan_id' => 2,
             'start_trial' => true,
         ]);
@@ -114,7 +114,7 @@ class TenantOnboardingTest extends TestCase
 
         // 试用场景跳过支付
         $response = $this->postJson('/api/v1/tenants/onboarding/4', [
-            'auth_token' => $token,
+            'onboarding_token' => $token,
             'payment_method' => 'none',
         ]);
 
@@ -128,7 +128,7 @@ class TenantOnboardingTest extends TestCase
     {
         $token = $this->startRegistration();
 
-        $response = $this->postJson('/api/v1/tenants/onboarding/status', ['auth_token' => $token]);
+        $response = $this->postJson('/api/v1/tenants/onboarding/status', ['onboarding_token' => $token]);
 
         $response->assertSuccessful()
             ->assertJson(['success' => true])
@@ -140,7 +140,7 @@ class TenantOnboardingTest extends TestCase
         // 仅完成 step1（注册启动），查询进度应从 step2 恢复
         $token = $this->startRegistration();
 
-        $response = $this->postJson('/api/v1/tenants/onboarding/status', ['auth_token' => $token]);
+        $response = $this->postJson('/api/v1/tenants/onboarding/status', ['onboarding_token' => $token]);
 
         $response->assertSuccessful();
         $this->assertEquals(2, $response->json('data.current_step'));
@@ -154,7 +154,7 @@ class TenantOnboardingTest extends TestCase
 
         // 直接提交 step3，跳过 step2，应被拒绝
         $response = $this->postJson('/api/v1/tenants/onboarding/3', [
-            'auth_token' => $token,
+            'onboarding_token' => $token,
             'plan_id' => 2,
         ]);
 
@@ -166,7 +166,7 @@ class TenantOnboardingTest extends TestCase
         $token = $this->startRegistration(); // 仅 step1，未完成全部步骤
 
         $response = $this->postJson('/api/v1/tenants/onboarding/complete', [
-            'auth_token' => $token,
+            'onboarding_token' => $token,
         ]);
 
         $this->assertGreaterThanOrEqual(400, $response->status());
@@ -176,7 +176,7 @@ class TenantOnboardingTest extends TestCase
     {
         $this->startRegistration(['admin_email' => 'dup@acme.test']);
 
-        $response = $this->postJson('/api/v1/tenants/register', [
+        $response = $this->postJson('/api/v1/tenants/onboarding/start', [
             'name' => 'Another Corp',
             'admin_email' => 'dup@acme.test',
             'password' => 'Password123',
@@ -188,7 +188,7 @@ class TenantOnboardingTest extends TestCase
     public function test_expired_token_rejected(): void
     {
         // 使用不存在的 token 模拟过期/失效
-        $response = $this->postJson('/api/v1/tenants/onboarding/status', ['auth_token' => 'expired-or-invalid-token']);
+        $response = $this->postJson('/api/v1/tenants/onboarding/status', ['onboarding_token' => 'expired-or-invalid-token']);
 
         $response->assertStatus(404);
     }
@@ -202,7 +202,7 @@ class TenantOnboardingTest extends TestCase
         $token = $this->runFullFlowWithoutTrial();
 
         $response = $this->postJson('/api/v1/tenants/onboarding/complete', [
-            'auth_token' => $token,
+            'onboarding_token' => $token,
         ]);
 
         $response->assertStatus(201)
@@ -249,7 +249,7 @@ class TenantOnboardingTest extends TestCase
         $token = $this->runFullFlowWithTrial();
 
         $response = $this->postJson('/api/v1/tenants/onboarding/complete', [
-            'auth_token' => $token,
+            'onboarding_token' => $token,
         ]);
 
         $response->assertStatus(201)
@@ -271,7 +271,7 @@ class TenantOnboardingTest extends TestCase
         $token = $this->runFullFlowWithoutTrial();
 
         $this->postJson('/api/v1/tenants/onboarding/complete', [
-            'auth_token' => $token,
+            'onboarding_token' => $token,
         ]);
 
         Event::assertDispatched(TenantCreated::class);
@@ -281,7 +281,7 @@ class TenantOnboardingTest extends TestCase
 
     private function startRegistration(array $overrides = []): string
     {
-        $response = $this->postJson('/api/v1/tenants/register', array_merge([
+        $response = $this->postJson('/api/v1/tenants/onboarding/start', array_merge([
             'name' => 'Acme Corp',
             'admin_email' => 'admin@acme.test',
             'password' => 'Password123',
@@ -289,13 +289,13 @@ class TenantOnboardingTest extends TestCase
 
         $response->assertSuccessful();
 
-        return $response->json('data.auth_token');
+        return $response->json('data.onboarding_token');
     }
 
     private function submitStep(string $token, int $step, array $data): array
     {
         $response = $this->postJson("/api/v1/tenants/onboarding/{$step}", array_merge([
-            'auth_token' => $token,
+            'onboarding_token' => $token,
         ], $data));
 
         $response->assertSuccessful();

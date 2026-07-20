@@ -38,7 +38,7 @@ class TenantOnboardingController extends Controller
      */
     public function register(Request $request): JsonResponse
     {
-        /** @var Operator $operator */
+        /** @var Operator|null $operator */
         $operator = $request->user();
 
         $validator = Validator::make($request->all(), [
@@ -58,7 +58,7 @@ class TenantOnboardingController extends Controller
 
         $token = $this->onboardingService->startRegistration(
             $validator->validated(),
-            $operator->operator_id,
+            $operator?->operator_id,
             $request->ip()
         );
 

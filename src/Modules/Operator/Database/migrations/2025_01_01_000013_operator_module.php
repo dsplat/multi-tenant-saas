@@ -50,12 +50,13 @@ CREATE TABLE `operators` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL);
 
-        // Table: operator_tenants（Operator 直连 Tenant，无 user_id）
+        // Table: operator_tenants（Operator 直连 Tenant，通过 user_id 关联 User）
         DB::statement(<<<'SQL'
 CREATE TABLE `operator_tenants` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `operator_id` bigint unsigned NOT NULL,
   `tenant_id` bigint unsigned NOT NULL,
+  `user_id` bigint unsigned DEFAULT NULL,
   `role` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   `role_id` bigint unsigned DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
@@ -66,6 +67,7 @@ CREATE TABLE `operator_tenants` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `operator_tenants_operator_id_tenant_id_unique` (`operator_id`,`tenant_id`),
   KEY `operator_tenants_tenant_id_index` (`tenant_id`),
+  KEY `operator_tenants_user_id_index` (`user_id`),
   CONSTRAINT `operator_tenants_operator_id_foreign` FOREIGN KEY (`operator_id`) REFERENCES `operators` (`operator_id`) ON DELETE CASCADE,
   CONSTRAINT `operator_tenants_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`tenant_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci

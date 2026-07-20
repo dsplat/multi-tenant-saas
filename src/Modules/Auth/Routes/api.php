@@ -3,12 +3,19 @@
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Auth\Http\Controllers\AuthController;
 use MultiTenantSaas\Modules\Auth\Http\Controllers\MfaController;
+use MultiTenantSaas\Modules\Auth\Http\Controllers\UserProfileController;
 
 // 认证路由（需要 auth:sanctum）
 Route::prefix('auth')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/mfa/verify', [AuthController::class, 'mfaVerify']);
+
+    // 用户资料管理
+    Route::put('/profile', [UserProfileController::class, 'updateProfile']);
+    Route::put('/password', [UserProfileController::class, 'changePassword']);
+    Route::get('/oauth-bindings', [UserProfileController::class, 'oauthBindings']);
+    Route::delete('/oauth-bindings/{provider}', [UserProfileController::class, 'unbindOAuth']);
 });
 
 // 管理员认证路由（需要 auth:sanctum）

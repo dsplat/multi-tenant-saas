@@ -50,10 +50,11 @@ export const useUserStore = defineStore('user', () => {
   const login = async (email: string, password: string) => {
     try {
       const response = await axios.post('/api/v1/admin/auth/login', { email, password })
-      const { user: userData, auth_token } = response.data.data
+      const { operator, user: userData, auth_token } = response.data.data
       setToken(auth_token)
-      user.value = userData
-      permissions.value = userData.permissions || []
+      const userInfo = operator || userData
+      user.value = userInfo
+      permissions.value = userInfo?.permissions || []
       return response.data
     } catch (error) {
       console.error('登录失败:', error)

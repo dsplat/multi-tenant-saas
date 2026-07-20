@@ -7,10 +7,31 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Auth\Services\SocialiteService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
 class TenantOAuthController extends Controller
 {
     use AuthorizesTenantAccess;
+
+    /**
+     * 从请求解析租户 ID（支持 domain 查询参数）
+     */
+    protected function resolveTenantId(Request $request): ?int
+    {
+        // 优先从 TenantContext 获取
+        if ($id = TenantContext::getId()) {
+            return (int) $id;
+        }
+
+        // 从 domain 查询参数解析
+        if ($domain = $request->query('domain')) {
+            return Tenant::where('custom_domain', $domain)
+                ->where('status', 'active')
+                ->value('tenant_id');
+        }
+
+        return null;
+    }
 
     public function getOAuthConfig(Request $request)
     {
@@ -40,7 +61,12 @@ class TenantOAuthController extends Controller
 
     public function redirect(Request $request, string $provider)
     {
-        $tenantId = $request->attributes->get('tenant_id');
+        $tenantId = $this->resolveTenantId($request);
+
+        if (! $tenantId) {
+            return response()->json(['success' => false, 'message' => 'tenant_not_found'], 404);
+        }
+
         $url = SocialiteService::getRedirectUrl($provider, $tenantId);
 
         return response()->json(['success' => true, 'data' => ['url' => $url]]);
@@ -48,7 +74,12 @@ class TenantOAuthController extends Controller
 
     public function callback(Request $request, string $provider)
     {
-        $tenantId = $request->attributes->get('tenant_id');
+        $tenantId = $this->resolveTenantId($request);
+
+        if (! $tenantId) {
+            return response()->json(['success' => false, 'message' => 'tenant_not_found'], 404);
+        }
+
         $result = SocialiteService::handleCallback($provider, $tenantId);
 
         return response()->json(['success' => true, 'data' => $result]);

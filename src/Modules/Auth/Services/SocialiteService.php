@@ -96,6 +96,10 @@ class SocialiteService
             return app(WechatWorkOAuthService::class)->getAuthorizeUrl($tenantId);
         }
 
+        if ($provider === 'wechat') {
+            return app(WechatOAuthService::class)->getAuthorizeUrl($tenantId);
+        }
+
         self::configureDriver($provider, $tenantId);
 
         try {
@@ -121,6 +125,10 @@ class SocialiteService
 
         if ($provider === 'wechat_work') {
             return app(WechatWorkOAuthService::class)->handleCallback($tenantId);
+        }
+
+        if ($provider === 'wechat') {
+            return app(WechatOAuthService::class)->handleCallback($tenantId);
         }
 
         self::configureDriver($provider, $tenantId);
@@ -229,6 +237,10 @@ class SocialiteService
             return app(WechatWorkOAuthService::class)->isConfigured($tenantId);
         }
 
+        if ($provider === 'wechat') {
+            return app(WechatOAuthService::class)->isConfigured($tenantId);
+        }
+
         $config = self::getOAuthConfig($tenantId, $provider);
 
         return ! empty($config['client_id']) && ! empty($config['client_secret']);
@@ -262,6 +274,16 @@ class SocialiteService
                     'corp_id' => $corpId,
                     'agent_id' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_agent_id', ''),
                     'redirect' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_redirect', '/auth/wechat_work/callback'),
+                ];
+
+                continue;
+            }
+
+            if ($provider === 'wechat') {
+                $result[$provider] = [
+                    'configured' => app(WechatOAuthService::class)->isConfigured($tenantId),
+                    'client_id' => TenantSetting::get($tenantId, 'oauth', 'wechat_client_id', ''),
+                    'redirect' => TenantSetting::get($tenantId, 'oauth', 'wechat_redirect', '/auth/wechat/callback'),
                 ];
 
                 continue;

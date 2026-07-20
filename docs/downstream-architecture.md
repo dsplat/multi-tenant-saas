@@ -1,10 +1,28 @@
 # 下游项目架构指南
 
+**最后更新**: 2026-07-19
+
 ## 核心原则
 
 **下游项目不应直接 import 框架模块的模型**。
 
 框架模块是可插拔的，内部结构可能随版本变化。下游应通过 Service 层访问框架功能。
+
+## 快速开始
+
+```bash
+# 创建新项目
+composer create-project dsplat/multi-tenant-saas my-app
+cd my-app
+
+# 初始化
+php artisan migrate
+php artisan platform:init --email=admin@example.com --password=your-password
+
+# 构建前端
+cd resources/js/admin && npm install && npx vite build && cd ../../..
+cd resources/js/console && npm install && npx vite build && cd ../../..
+```
 
 ---
 

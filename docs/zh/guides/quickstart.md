@@ -1,6 +1,6 @@
 # 快速开始（5 分钟上手）
 
-**最后更新**: 2026-06-29
+**最后更新**: 2026-07-19
 
 > 目标：5 分钟内完成安装、配置、迁移并验证服务可用。
 
@@ -60,19 +60,22 @@ PLATFORM_DOMAIN=ai.example.com
 
 ---
 
-## 数据库迁移
+## 数据库迁移与初始化
 
-### 运行迁移
+### 一键初始化（推荐）
 
 ```bash
 php artisan migrate
+php artisan platform:init --email=admin@example.com --password=your-password
 ```
 
-### 创建测试数据
+`platform:init` 自动完成：
+- 创建平台默认租户
+- 创建系统角色和权限
+- 创建超级管理员账号
+- 部署 server.php（PHP 内置服务器 SPA 路由修复）
 
-```bash
-php artisan tinker
-```
+### 手动创建测试数据（可选）
 
 ```php
 use MultiTenantSaas\Models\Tenant;

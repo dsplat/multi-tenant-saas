@@ -60,6 +60,7 @@
 | OAuth SDK Integration | [zh](zh/guides/oauth-sdk-guide.md) | — |
 | Payment SDK Integration | [zh](zh/guides/payment-sdk-guide.md) | — |
 | SaaS Module Extension | [zh](zh/guides/saas-extension-guide.md) | — |
+| Auth Guide | [zh](auth.md) | — |
 
 ### API Reference
 | Document | 中文 | English |

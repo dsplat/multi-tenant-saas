@@ -28,14 +28,37 @@
 - 新增 §9 Public SPA Scaffold 模式详解
 - 新增 §10 首屏防闪烁三层注入机制（时序图 + 兜底默认值约定）
 
+### 认证体系改进 (Phase 1-4)
+
+- 企业微信 OAuth 登录支持（WechatWorkOAuthService）
+- 支付宝 OAuth 服务增强
+- SocialiteService 扩展（67行新增）
+- OauthAccount 模型更新
+- Auth 路由新增（public.php, tenant.php）
+- TenantMailConfigController 新增
+- AuthImprovementsTest 新增
+
+### 租户域名解析
+
+- TenantResolveController 新增
+- BindSessionDomain 中间件新增
+- IdentifyTenant + EnsureTenantContext 更新
+- NginxConfigService + domain.php 配置更新
+
+### 邮件系统
+
+- MailerService 大幅重构（150行变更）
+
 ### Bug Fixes
 
 - N:N operator-tenant 关系修复（AttachTenantAdminOnActivated 移除未使用 import）
 - TenantController import 简化（FQPN → use 导入）
+- jobs/failed_jobs 表合并到 framework_core 迁移
+- operator_direct_attach_tenant 迁移删除，内容合入 operator_module 迁移
 
 ### Stats
 
-- Tests: 2351, Assertions: 5915, Skipped: 2
+- Tests: 2379, Assertions: 5039
 - Modules: 26 + Ticket example
 - Public views: 11（index.vue 重命名）
 

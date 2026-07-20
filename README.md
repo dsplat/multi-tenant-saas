@@ -5,7 +5,7 @@ Laravel 多租户 SaaS 基础框架 — 开箱即用的企业级项目骨架。
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP](https://img.shields.io/badge/PHP-%5E8.3-777BB4)](https://php.net)
 [![Laravel](https://img.shields.io/badge/Laravel-%5E13.0-FF2D20)](https://laravel.com)
-[![Tests](https://img.shields.io/badge/tests-2351%20passed-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-2379%20passed-brightgreen)](#)
 
 [文档](docs/zh/README.md) | [快速开始](docs/zh/guides/quickstart.md) | [SPA 架构](docs/spa-architecture.md) | [更新日志](CHANGELOG.md) | [English](docs/en/README.md)
 
@@ -16,13 +16,13 @@ Laravel 多租户 SaaS 基础框架 — 开箱即用的企业级项目骨架。
 - **四层权限体系**：系统管理员 → 租户管理员 → 终端用户 → 访客
 - **租户隔离**：所有查询自动 `WHERE tenant_id = ?`
 - **RBAC 权限**：60+ 权限节点，每租户自定义角色
-- **三种 SPA 模式**：Public（Scaffold 模式，vendor:publish 拉取后自有）/ Console（继承模式）/ Admin（继承模式）
-- **SPA 后台**：27 个 Admin 页面 + 12 个 Console 页面 + 11 个 Public 页面，支持暗色模式 + 主题切换
-- **首屏防闪烁**：三层注入机制（index.html inline + localStorage + 组件同步读取），品牌名零延迟显示
+- **SPA 后台**：27 个 Admin 页面 + 12 个 Console 页面，支持暗色模式 + 主题切换
 - **模块自动发现**：Vue 页面放在 `src/Modules/*/resources/{admin,console}/views/` 自动注册到侧边栏
 - **多 UI 框架**：每个页面支持 Bootstrap 和 Element Plus 两套变体
 - **26 个模块**：计费、认证、表单、抽奖、投票、短信、优惠券、工作流、对话等
 - **18 个接口**：面向接口架构，下游项目可自由扩展
+- **认证增强**：支持企业微信 OAuth、支付宝 OAuth、SSO 等多种登录方式
+- **租户域名解析**：支持多域名自动识别租户
 
 ---
 
@@ -42,11 +42,6 @@ php artisan platform:init --email=admin@example.com --password=your-password
 # 构建前端
 cd resources/js/admin && npm install && npx vite build && cd ../../..
 cd resources/js/console && npm install && npx vite build && cd ../../..
-
-# Public SPA（composer require 引入框架时，先拉取源码）
-# composer require dsplat/multi-tenant-saas
-# php artisan vendor:publish --tag=dsplat-public-spa
-cd resources/js/public && npm install && npx vite build && cd ../../..
 
 php artisan serve
 ```
@@ -113,7 +108,7 @@ src/Modules/{Name}/
 | 分类 | 链接 |
 |------|------|
 | **指南** | [快速开始](docs/zh/guides/quickstart.md) · [RBAC](docs/zh/guides/rbac-guide.md) · [AI 模块](docs/zh/guides/ai-module-guide.md) |
-| **架构** | [系统概览](docs/zh/architecture/system-overview.md) · [SPA 架构](docs/console-spa-architecture.md) · [租户隔离](docs/zh/architecture/tenant-isolation.md) |
+| **架构** | [系统概览](docs/zh/architecture/system-overview.md) · [SPA 架构](docs/spa-architecture.md) · [租户隔离](docs/zh/architecture/tenant-isolation.md) |
 | **部署** | [部署指南](docs/zh/deployment/deployment-guide.md) · [Nginx](docs/zh/deployment/nginx-guide.md) |
 | **API** | [API 概览](docs/zh/api/api-overview.md) · [核心 API](docs/zh/api/core-api.md) |
 | **完整索引** | [docs/README.md](docs/README.md) |
@@ -127,7 +122,7 @@ PHP ^8.3 · Laravel ^13.0 · MySQL 8.0+ · Redis · Nginx + PHP-FPM · Vue.js 3 
 ## 测试
 
 ```bash
-composer test              # 并行测试（~50s，2351 tests，5915 assertions）
+composer test              # 并行测试（~50s，2379 tests，5039 assertions）
 composer test:sequential   # 单线程回退
 vendor/bin pint --test     # 代码风格检查
 ```

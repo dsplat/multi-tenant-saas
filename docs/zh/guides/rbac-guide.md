@@ -1,17 +1,32 @@
 # 权限控制指南
 
-**最后更新**: 2026-06-18
+**最后更新**: 2026-07-20
+
+---
+
+## 双账户体系
+
+系统存在两种独立身份：
+
+| 维度 | Operator（运营者） | User（终端用户） |
+|------|-------------------|-----------------|
+| 数据表 | `operators` | `users` |
+| 含义 | 平台管理员 / 租户管理员 / 团队成员 | 租户的终端业务用户 |
+| 关联租户 | `operator_tenants`（N:N，含 role_id） | `tenant_users`（N:N，含 role_id） |
+| Token | Sanctum `tokenable_type=Operator::class` | Sanctum `tokenable_type=User::class` |
+| 权限模型 | RBAC（`operator_tenants.role_id` → `roles` → `permissions`） | RBAC（`tenant_users.role_id` → `roles` → `permissions`） |
 
 ---
 
 ## 角色体系
 
-### 平台级角色（users.role）
+### 平台级角色（operator_tenants.role）
 
 | 角色 | 说明 | 访问权限 |
 |------|------|----------|
 | `super_admin` | 超级管理员 | 系统后台 + 所有租户后台 |
-| `platform_user` | 普通用户（默认） | 租户后台 + 用户前台 |
+| `tenant_admin` | 租户管理员 | 租户后台 |
+| `member` | 普通成员 | 租户后台（受限） |
 
 ### 租户内角色（tenant_users.role）
 

@@ -56,9 +56,30 @@
 - jobs/failed_jobs 表合并到 framework_core 迁移
 - operator_direct_attach_tenant 迁移删除，内容合入 operator_module 迁移
 
+### 测试修复
+
+- OperatorTenant::$fillable 添加 user_id（根因：create() 时被静默忽略）
+- User::operatorTenants() 关联恢复
+- RbacService::check() 增加 operatorTenants() 回退路径
+- CoreModule 测试 schema 添加 user_id 列
+- operator_module 迁移添加 user_id 列
+- TestCase 注册 operator.auth 中间件
+- TenantOnboardingController 支持公开注册
+- TenantOnboardingTest URL 修正
+- 结果: 217 errors → 0 errors, 23 failures → 21 failures
+
+### 用户个人中心
+
+- user-core 共享库（19 个文件：types, composables, api clients）
+- 用户页面：Dashboard, Profile, Security, OAuthBindings
+- 通知系统：notifications/Index.vue, Preferences.vue
+- MFA：MfaVerify.vue, Login.vue 支持 MFA 流程
+- OAuth：OAuthCallback.vue, 企业微信 OAuth
+- UserProfileController：后端用户资料 API
+
 ### Stats
 
-- Tests: 2379, Assertions: 5039
+- Tests: 2379, Assertions: 5039, Errors: 0, Failures: 21
 - Modules: 26 + Ticket example
 - Public views: 11（index.vue 重命名）
 

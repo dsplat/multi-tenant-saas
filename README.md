@@ -5,7 +5,7 @@ Laravel 多租户 SaaS 基础框架 — 开箱即用的企业级项目骨架。
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP](https://img.shields.io/badge/PHP-%5E8.3-777BB4)](https://php.net)
 [![Laravel](https://img.shields.io/badge/Laravel-%5E13.0-FF2D20)](https://laravel.com)
-[![Tests](https://img.shields.io/badge/tests-2379%20passed-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-2379%20tests-brightgreen)](#)
 
 [文档](docs/zh/README.md) | [快速开始](docs/zh/guides/quickstart.md) | [SPA 架构](docs/spa-architecture.md) | [更新日志](CHANGELOG.md) | [English](docs/en/README.md)
 

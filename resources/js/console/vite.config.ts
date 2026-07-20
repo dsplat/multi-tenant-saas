@@ -86,6 +86,7 @@ export function createConsoleConfig(options: {
     build: {
       outDir: resolve(root, 'public/console'),
       emptyOutDir: true,
+      copyPublicDir: false, // 禁止复制 root/public/ 到 outDir，否则会产生递归嵌套
       rollupOptions: {
         input: resolve(FW_RESOURCES, 'pages/console/index.html'),
       },

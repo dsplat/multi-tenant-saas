@@ -33,6 +33,7 @@ export default defineConfig({
   build: {
     outDir: resolve(__dirname, '../../../public/admin'),
     emptyOutDir: true,
+    copyPublicDir: false, // 禁止复制 root/public/ 到 outDir，否则会产生递归嵌套
     rollupOptions: {
       input: resolve(__dirname, '../../pages/admin/index.html'),
     },

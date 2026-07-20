@@ -48,6 +48,7 @@ export default defineConfig({
     outDir: resolve(__dirname, '../../../public'),
     // 不能清空 public/，否则会删除 index.php
     emptyOutDir: false,
+    copyPublicDir: false, // 禁止复制 root/public/ 到 outDir，否则会产生递归嵌套
     rollupOptions: {
       input: resolve(__dirname, '../../pages/public/index.html'),
     },

@@ -268,7 +268,7 @@ class SmsService
                 'SignatureNonce' => uniqid((string) mt_rand(), true),
                 'SignatureVersion' => '1.0',
                 'TemplateCode' => $templateCode,
-                'TemplateParam' => json_encode(['code' => $code], JSON_UNESCAPED_UNICODE),
+                'TemplateParam' => json_encode(['code' => $code, 'time' => 5], JSON_UNESCAPED_UNICODE),
                 'Timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
                 'Version' => '2017-05-25',
             ];
@@ -277,6 +277,7 @@ class SmsService
             $params['Signature'] = static::computeAliyunSignature($params, $accessKeySecret);
 
             $response = Http::timeout((int) config('services.sms.aliyun_timeout', 10))
+                ->asForm()
                 ->post('https://dysmsapi.aliyuncs.com/', $params);
 
             $body = $response->json();
@@ -318,10 +319,10 @@ class SmsService
      */
     private static function sendViaAliyunTenant(int $tenantId, string $phone, string $code, string $type): string|false
     {
-        $accessKeyId = TenantSetting::get($tenantId, 'sms', 'aliyun_access_key_id', '');
-        $accessKeySecret = TenantSetting::get($tenantId, 'sms', 'aliyun_access_key_secret', '');
-        $signName = TenantSetting::get($tenantId, 'sms', 'aliyun_sign_name', '');
-        $templateCode = TenantSetting::get($tenantId, 'sms', 'aliyun_template_code', '');
+        $accessKeyId = TenantSetting::get($tenantId, 'sms', 'access_key_id', '');
+        $accessKeySecret = TenantSetting::get($tenantId, 'sms', 'access_key_secret', '');
+        $signName = TenantSetting::get($tenantId, 'sms', 'sign_name', '');
+        $templateCode = TenantSetting::get($tenantId, 'sms', 'template_code', '');
 
         if ($accessKeyId === '' || $accessKeySecret === '' || $signName === '' || $templateCode === '') {
             Log::error('SmsService aliyun tenant config missing', [
@@ -345,14 +346,14 @@ class SmsService
                 'SignatureNonce' => uniqid((string) mt_rand(), true),
                 'SignatureVersion' => '1.0',
                 'TemplateCode' => $templateCode,
-                'TemplateParam' => json_encode(['code' => $code], JSON_UNESCAPED_UNICODE),
+                'TemplateParam' => json_encode(['code' => $code, 'time' => 5], JSON_UNESCAPED_UNICODE),
                 'Timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
                 'Version' => '2017-05-25',
             ];
 
             $params['Signature'] = static::computeAliyunSignature($params, $accessKeySecret);
 
-            $response = Http::timeout(10)->post('https://dysmsapi.aliyuncs.com/', $params);
+            $response = Http::timeout(10)->asForm()->post('https://dysmsapi.aliyuncs.com/', $params);
 
             $body = $response->json();
 

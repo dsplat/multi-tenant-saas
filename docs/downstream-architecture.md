@@ -324,6 +324,26 @@ src/Modules/MyModule/resources/admin/
 
 ---
 
+## 已知问题（深度审查发现）
+
+### 安全问题
+
+1. **IdentifyTenant URL 参数注入** — `?tenant_id=xxx` 允许任意用户指定租户 ID，缺少对普通 User 的租户归属校验
+2. **OperatorAuthController 登录锁定形同虚设** — `login_attempts` 从未在失败时递增，`locked_until` 从未被设置
+3. **IdentifyOperator 中间件不阻断无效请求** — 无效 token 不会返回 401，请求继续以匿名身份执行
+4. **Login.vue redirect 开放重定向** — 未验证 redirect 是否为内部路径
+5. **MfaVerify.vue user_id 暴露在 URL 中** — 可被篡改绕过 MFA
+
+### 设计问题
+
+6. **Operator 模型 `$incrementing` 未设为 false** — 使用雪花 ID 但未声明非自增
+7. **OperatorService::acceptInvite 双重 Hash** — 手动 `Hash::make()` + `hashed` cast 冲突
+8. **OAuth 服务静态方法设计** — 无法通过依赖注入 mock 测试
+9. **MailerService SMTP 密码明文存储** — 需确认 TenantSetting 是否支持加密
+10. **admin.php 和 api.php 路由权限粒度不一致** — api 用 `setting.view`，admin 用 `webhook.view` 等
+
+---
+
 ## 总结
 
 - ✅ 下游有自己的 `App\Models\User`

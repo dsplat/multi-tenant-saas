@@ -423,3 +423,23 @@ onMounted(async () => {
 | 下游项目（如 scrm-platform） | `'SCRM Platform'` |
 
 项目通过 `vendor:publish` 拉取 Public SPA 源码后，需把 `index.html` 中的兜底默认值改为自己的品牌名。这是 Scaffold 模式的明确约定：项目拥有 `index.html` 完全控制权。
+
+---
+
+## 11. 已知问题（深度审查发现）
+
+### 安全问题
+
+1. **Login.vue redirect 开放重定向** — `window.location.href = redirect` 未验证 redirect 是否为内部路径，可构造 `https://evil.com` 进行钓鱼攻击
+2. **MfaVerify.vue user_id 暴露在 URL 中** — `route.query.user_id` 可被篡改，后端应关联到待验证的临时 session
+3. **OAuthCallback.vue 使用 GET 传递 code** — OAuth code 在 URL 中会被浏览器历史和服务器日志记录
+4. **Token 存储在 localStorage** — 容易受到 XSS 攻击，建议使用 httpOnly cookie
+
+### 设计问题
+
+5. **HTTP 客户端不统一** — Login.vue 使用原生 fetch，其他页面使用 axios
+6. **Dashboard.vue email_verified 字段名不一致** — 后端返回 `email_verified_at`，前端检查 `email_verified`
+7. **Profile.vue 缺少头像上传** — 后端支持但前端未实现
+8. **Security.vue 缺少"添加 MFA 设备"入口** — 功能不完整
+9. **notifications/Index.vue filterType 未实现** — "按类型筛选"功能为空
+10. **FormRequest 类未被使用** — `StoreMemberRequest`、`StoreTenantRequest`、`UpdateTenantRequest` 是死代码

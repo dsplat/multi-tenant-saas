@@ -302,7 +302,31 @@ POST /api/v1/tenant/auth/mail/test     → 发送测试邮件
 
 ---
 
-## 十、配置索引
+## 十、已知问题（深度审查发现）
+
+### 严重问题
+
+1. **OAuth `role` 字段 Bug** — `SocialiteService`、`AlipayOAuthService`、`WechatOAuthService`、`WechatWorkOAuthService` 的 `findOrCreateUser()` 中，`User::create(['role' => 'platform_user'])` 使用了不存在的字段（User 模型无 `role` fillable）。`TenantUser::create(['role' => 'end_user'])` 期望 `role_id`（整数）而非 `role`（字符串）。**OAuth 注册流程的角色分配可能失效**。
+
+2. **PasswordService 双重 Hash** — `doReset()` 中 `Hash::make($newPassword)` + User 模型 `'password' => 'hashed'` cast 导致密码被 hash 两次，用户将无法登录。
+
+3. **OauthAccount 缺少 Tenant import** — `OauthAccount::tenant()` 关系引用了 `Tenant::class` 但文件头未导入。
+
+### 中等问题
+
+4. **控制器基类不一致** — `AuthController`/`MfaController`/`UserProfileController` 继承 `Illuminate\Routing\Controller`；`RbacController`/`TenantOAuthController`/`TenantMailConfigController` 继承 `App\Http\Controllers\Controller`。
+
+5. **FormRequest 未使用** — `LoginRequest`、`RegisterRequest`、`ResetPasswordRequest` 已定义但未被控制器引用。
+
+6. **User 模型缺少关系定义** — 缺少 `mfaDevices()`、`sessions()`、`trustedDevices()`、`passwordHistories()` 等 HasMany 关系。
+
+7. **RbacService::deleteRole()** — 删除角色时未清理 `operator_tenants` 中的 `role_id` 引用。
+
+8. **PasswordService::cleanupHistory()** — 使用 `pluck('id')` 但主键是 `password_history_id`。
+
+---
+
+## 十一、配置索引
 
 | 配置文件 | 关键项 |
 |---|---|

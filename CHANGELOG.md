@@ -77,6 +77,30 @@
 - OAuth：OAuthCallback.vue, 企业微信 OAuth
 - UserProfileController：后端用户资料 API
 
+### 深度代码审查发现
+
+**严重问题：**
+- OAuth `role` 字段 Bug — SocialiteService/AlipayOAuthService/WechatOAuthService/WechatWorkOAuthService 使用不存在的 `role` 字段
+- PasswordService 双重 Hash — `Hash::make()` + `hashed` cast 冲突
+- OauthAccount 缺少 Tenant import
+- Operator 模型 `$incrementing` 未设为 false
+- OperatorAuthController 登录锁定形同虚设
+- IdentifyOperator 中间件不阻断无效请求
+
+**中等问题：**
+- 控制器基类不一致（Illuminate\Routing\Controller vs App\Http\Controllers\Controller）
+- FormRequest 未使用（LoginRequest/RegisterRequest/ResetPasswordRequest）
+- User 模型缺少关系定义（mfaDevices/sessions/trustedDevices/passwordHistories）
+- RbacService::deleteRole() 未清理 operator_tenants.role_id
+- MailerService SMTP 密码明文存储
+- admin.php 和 api.php 路由权限粒度不一致
+
+**前端问题：**
+- Login.vue redirect 开放重定向
+- MfaVerify.vue user_id 暴露在 URL 中
+- Token 存储在 localStorage（XSS 风险）
+- HTTP 客户端不统一（fetch vs axios）
+
 ### Stats
 
 - Tests: 2379, Assertions: 5039, Errors: 0, Failures: 21

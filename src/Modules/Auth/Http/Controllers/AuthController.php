@@ -711,6 +711,7 @@ class AuthController extends Controller
                     'email' => $operator->email,
                     'scope' => $operator->scope,
                     'email_verified' => ! empty($operator->email_verified_at),
+                    'permissions' => $this->getOperatorPermissions($operator),
                 ],
                 'tenants' => $tenants,
                 'tenant_id' => $request->attributes->get('tenant_id'),
@@ -742,6 +743,24 @@ class AuthController extends Controller
             'scope' => $operator->scope,
             'email_verified' => ! empty($operator->email_verified_at),
             'tenants' => $tenants,
+            'permissions' => $this->getOperatorPermissions($operator),
         ];
+    }
+
+    /**
+     * 获取 Operator 的权限列表（通过其活跃 operator_tenant 关联的 role）
+     */
+    protected function getOperatorPermissions(Operator $operator): array
+    {
+        $operatorTenant = OperatorTenant::where('operator_id', $operator->operator_id)
+            ->where('is_active', true)
+            ->whereNotNull('role_id')
+            ->first();
+
+        if ($operatorTenant && $operatorTenant->role_id) {
+            return RbacService::getRolePermissions($operatorTenant->role_id);
+        }
+
+        return [];
     }
 }

@@ -659,19 +659,12 @@ class AuthController extends Controller
     {
         $role = null;
 
-        $operatorTenant = $user->operatorTenants()->where('is_active', true)->first();
-        if ($operatorTenant) {
-            $role = $operatorTenant->role;
-        }
-
-        if (! $role) {
-            $tenantId = request()->attributes->get('tenant_id');
-            if ($tenantId) {
-                $tenantUser = TenantUser::where('user_id', $user->user_id)
-                    ->where('tenant_id', $tenantId)
-                    ->first();
-                $role = $tenantUser?->role;
-            }
+        $tenantId = request()->attributes->get('tenant_id');
+        if ($tenantId) {
+            $tenantUser = TenantUser::where('user_id', $user->user_id)
+                ->where('tenant_id', $tenantId)
+                ->first();
+            $role = $tenantUser?->role;
         }
 
         return [

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Modules\Auth\Models\OauthAccount;
 use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Auth\Services\Concerns\ManagesOAuthState;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -31,6 +32,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  */
 class AlipayOAuthService
 {
+    use ManagesOAuthState;
+
     /**
      * 授权端点基础地址
      */
@@ -81,8 +84,7 @@ class AlipayOAuthService
     {
         $config = $this->getConfig($tenantId);
 
-        $state = Str::random(40);
-        session(['alipay_oauth_state' => $state]);
+        $state = $this->generateState($tenantId, 'alipay');
 
         $params = [
             'app_id' => $config['app_id'],
@@ -107,7 +109,7 @@ class AlipayOAuthService
         $authCode = (string) request()->input('auth_code', '');
         $state = (string) request()->input('state', '');
 
-        $this->verifyState($state);
+        $this->verifyState($state, $tenantId, 'alipay');
 
         if ($authCode === '') {
             throw new \RuntimeException(trans('common.invalid_request'));
@@ -128,19 +130,6 @@ class AlipayOAuthService
             ],
             'token' => $user->createToken('alipay-login')->plainTextToken,
         ];
-    }
-
-    /**
-     * 校验回调 state（与 session 中存储的比对，不匹配 abort(403)）
-     */
-    protected function verifyState(string $state): void
-    {
-        $sessionState = session('alipay_oauth_state');
-        session()->forget('alipay_oauth_state');
-
-        if ($state === '' || $sessionState === null || ! hash_equals((string) $sessionState, $state)) {
-            abort(403, trans('common.oauth_state_invalid'));
-        }
     }
 
     /**
@@ -331,7 +320,9 @@ class AlipayOAuthService
             throw new \RuntimeException('Alipay user_id missing');
         }
 
-        $oauthAccount = OauthAccount::where('provider', 'alipay')
+        $nsProvider = SocialiteService::namespacedProvider('alipay', $tenantId);
+
+        $oauthAccount = OauthAccount::where('provider', $nsProvider)
             ->where('provider_id', $providerId)
             ->first();
 
@@ -389,10 +380,12 @@ class AlipayOAuthService
      */
     protected function recordOAuthAccount(User $user, array $userInfo, array $tokenData, int $tenantId): void
     {
+        $nsProvider = SocialiteService::namespacedProvider('alipay', $tenantId);
+
         OauthAccount::updateOrCreate(
             [
                 'user_id' => $user->user_id,
-                'provider' => 'alipay',
+                'provider' => $nsProvider,
                 'provider_id' => $userInfo['user_id'] ?? '',
             ],
             [

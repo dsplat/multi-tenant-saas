@@ -50,12 +50,12 @@ class EnsureTenantContext
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => false,
-                'message' => trans('common.missing_tenant'),
-                'error' => 'MissingTenant',
-            ], 400);
+                'message' => trans('common.domain_not_recognized'),
+                'error' => 'DomainNotRecognized',
+            ], 403);
         }
 
-        abort(400, trans('common.missing_tenant'));
+        abort(403, trans('common.domain_not_recognized'));
     }
 
     /**

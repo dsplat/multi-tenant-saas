@@ -23,7 +23,16 @@ class TenantOAuthController extends Controller
     {
         $tenantId = TenantContext::getId();
 
-        $allowed = ['enabled', 'client_id', 'client_secret', 'redirect'];
+        // wechat_work 使用 corp_id/agent_id/secret 模式
+        $allowed = $provider === 'wechat_work'
+            ? ['enabled', 'corp_id', 'agent_id', 'secret', 'redirect']
+            : ['enabled', 'client_id', 'client_secret', 'redirect'];
+
+        // alipay 使用 app_id/private_key/public_key/mode 模式
+        if ($provider === 'alipay') {
+            $allowed = ['enabled', 'app_id', 'private_key', 'public_key', 'mode', 'redirect'];
+        }
+
         SocialiteService::updateOAuthConfig($tenantId, $provider, $request->only($allowed));
 
         return response()->json(['success' => true, 'message' => trans('common.updated')]);

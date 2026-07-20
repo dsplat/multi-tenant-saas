@@ -19,6 +19,17 @@ use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 class SocialiteService
 {
     /**
+     * 生成命名空间化的 provider 标识
+     *
+     * 格式: {provider}:tenant:{tenantId}
+     * 确保同一 OAuth 应用在不同租户间隔离
+     */
+    public static function namespacedProvider(string $provider, int $tenantId): string
+    {
+        return "{$provider}:tenant:{$tenantId}";
+    }
+
+    /**
      * 获取租户 OAuth 配置
      */
     protected static function getOAuthConfig(int $tenantId, string $provider): array
@@ -81,6 +92,10 @@ class SocialiteService
             return app(AlipayOAuthService::class)->getAuthorizeUrl($tenantId);
         }
 
+        if ($provider === 'wechat_work') {
+            return app(WechatWorkOAuthService::class)->getAuthorizeUrl($tenantId);
+        }
+
         self::configureDriver($provider, $tenantId);
 
         try {
@@ -102,6 +117,10 @@ class SocialiteService
     {
         if ($provider === 'alipay') {
             return app(AlipayOAuthService::class)->handleCallback($tenantId);
+        }
+
+        if ($provider === 'wechat_work') {
+            return app(WechatWorkOAuthService::class)->handleCallback($tenantId);
         }
 
         self::configureDriver($provider, $tenantId);
@@ -136,8 +155,10 @@ class SocialiteService
      */
     protected static function findOrCreateUser($socialUser, string $provider, int $tenantId): User
     {
-        // 先通过 OAuth 账号查找
-        $oauthAccount = OauthAccount::where('provider', $provider)
+        $nsProvider = self::namespacedProvider($provider, $tenantId);
+
+        // 先通过 OAuth 账号查找（命名空间化 provider）
+        $oauthAccount = OauthAccount::where('provider', $nsProvider)
             ->where('provider_id', $socialUser->getId())
             ->first();
 
@@ -175,10 +196,12 @@ class SocialiteService
      */
     protected static function recordOAuthAccount(User $user, $socialUser, string $provider, int $tenantId): void
     {
+        $nsProvider = self::namespacedProvider($provider, $tenantId);
+
         OauthAccount::updateOrCreate(
             [
                 'user_id' => $user->user_id,
-                'provider' => $provider,
+                'provider' => $nsProvider,
                 'provider_id' => $socialUser->getId(),
             ],
             [
@@ -198,6 +221,14 @@ class SocialiteService
      */
     public static function isConfigured(int $tenantId, string $provider): bool
     {
+        if ($provider === 'alipay') {
+            return app(AlipayOAuthService::class)->isConfigured($tenantId);
+        }
+
+        if ($provider === 'wechat_work') {
+            return app(WechatWorkOAuthService::class)->isConfigured($tenantId);
+        }
+
         $config = self::getOAuthConfig($tenantId, $provider);
 
         return ! empty($config['client_id']) && ! empty($config['client_secret']);
@@ -208,10 +239,34 @@ class SocialiteService
      */
     public static function getOAuthConfigForDisplay(int $tenantId): array
     {
-        $providers = ['wechat', 'dingtalk', 'feishu', 'github', 'google', 'alipay'];
+        $providers = ['wechat', 'wechat_work', 'dingtalk', 'feishu', 'github', 'google', 'alipay'];
         $result = [];
 
         foreach ($providers as $provider) {
+            if ($provider === 'alipay') {
+                $appId = TenantSetting::get($tenantId, 'oauth', 'alipay_app_id', '');
+                $result[$provider] = [
+                    'configured' => app(AlipayOAuthService::class)->isConfigured($tenantId),
+                    'app_id' => $appId,
+                    'mode' => TenantSetting::get($tenantId, 'oauth', 'alipay_mode', 'production'),
+                    'redirect' => TenantSetting::get($tenantId, 'oauth', 'alipay_redirect', '/auth/alipay/callback'),
+                ];
+
+                continue;
+            }
+
+            if ($provider === 'wechat_work') {
+                $corpId = TenantSetting::get($tenantId, 'oauth', 'wechat_work_corp_id', '');
+                $result[$provider] = [
+                    'configured' => app(WechatWorkOAuthService::class)->isConfigured($tenantId),
+                    'corp_id' => $corpId,
+                    'agent_id' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_agent_id', ''),
+                    'redirect' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_redirect', '/auth/wechat_work/callback'),
+                ];
+
+                continue;
+            }
+
             $config = self::getOAuthConfig($tenantId, $provider);
             $result[$provider] = [
                 'configured' => ! empty($config['client_id']) && ! empty($config['client_secret']),
@@ -228,7 +283,10 @@ class SocialiteService
      */
     public static function updateOAuthConfig(int $tenantId, string $provider, array $config): void
     {
-        $sensitiveKeys = ['client_secret'];
+        // wechat_work 使用 corp_id/agent_id/secret 模式，非标准 client_id/client_secret
+        $sensitiveKeys = $provider === 'wechat_work'
+            ? ['secret']
+            : ['client_secret'];
 
         foreach ($config as $key => $value) {
             if (in_array($key, $sensitiveKeys) && $value === '********') {
@@ -246,6 +304,7 @@ class SocialiteService
     {
         return [
             'wechat' => ['name' => trans('common.wechat'), 'icon' => 'wechat'],
+            'wechat_work' => ['name' => trans('common.wechat_work'), 'icon' => 'wechat_work'],
             'dingtalk' => ['name' => trans('common.dingtalk'), 'icon' => 'dingtalk'],
             'feishu' => ['name' => trans('common.feishu'), 'icon' => 'feishu'],
             'github' => ['name' => 'GitHub', 'icon' => 'github'],

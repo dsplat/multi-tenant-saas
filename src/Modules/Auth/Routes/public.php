@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Auth\Http\Controllers\AuthController;
+use MultiTenantSaas\Modules\Auth\Http\Controllers\TenantOAuthController;
 
 // 公开路由（无需认证）
 Route::prefix('auth')->group(function () {
@@ -22,6 +23,12 @@ Route::prefix('auth')->group(function () {
     Route::get('/sso/{provider}/redirect', [AuthController::class, 'ssoRedirect']);
     Route::get('/sso/{provider}/callback', [AuthController::class, 'ssoCallback']);
     Route::post('/sso/{provider}/callback', [AuthController::class, 'ssoCallback']);
+
+    // OAuth（Socialite + 独立驱动：alipay / wechat_work）
+    Route::get('/{provider}/redirect', [TenantOAuthController::class, 'redirect'])
+        ->middleware('throttle:30,1');
+    Route::get('/{provider}/callback', [TenantOAuthController::class, 'callback'])
+        ->middleware('throttle:30,1');
 });
 
 // 管理员登录（公开，无需认证）

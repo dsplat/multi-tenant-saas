@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend([
             \App\Http\Middleware\AddSecurityHeaders::class,
             \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyDomain::class,
+            \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\BindSessionDomain::class,
         ]);
 
         // API 请求未认证时返回 401 JSON，不重定向到 login 路由

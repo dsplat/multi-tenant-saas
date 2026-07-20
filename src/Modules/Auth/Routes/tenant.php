@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Auth\Http\Controllers\MfaController;
+use MultiTenantSaas\Modules\Auth\Http\Controllers\TenantMailConfigController;
 use MultiTenantSaas\Modules\Auth\Http\Controllers\TenantOAuthController;
 
 // 租户后台 - MFA 管理（用户管理自己的 MFA，无需权限中间件）
@@ -21,4 +22,11 @@ Route::prefix('tenant/auth')->group(function () {
 Route::prefix('tenant/auth/oauth')->group(function () {
     Route::get('/config', [TenantOAuthController::class, 'getOAuthConfig'])->middleware('rbac.permission:setting.update');
     Route::put('/{provider}', [TenantOAuthController::class, 'updateOAuthConfig'])->middleware('rbac.permission:setting.update');
+});
+
+// 租户后台 - 邮件 SMTP 配置
+Route::prefix('tenant/auth/mail')->group(function () {
+    Route::get('/config', [TenantMailConfigController::class, 'getConfig'])->middleware('rbac.permission:setting.update');
+    Route::put('/config', [TenantMailConfigController::class, 'updateConfig'])->middleware('rbac.permission:setting.update');
+    Route::post('/test', [TenantMailConfigController::class, 'sendTest'])->middleware('rbac.permission:setting.update');
 });

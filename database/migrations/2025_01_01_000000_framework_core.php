@@ -276,11 +276,36 @@ CREATE TABLE `tenant_modules` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL);
 
+        // Table: jobs（Laravel 队列）
+        Schema::create('jobs', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->string('queue')->index();
+            $table->longText('payload');
+            $table->unsignedSmallInteger('attempts');
+            $table->unsignedInteger('reserved_at')->nullable();
+            $table->unsignedInteger('available_at');
+            $table->unsignedInteger('created_at');
+        });
+
+        // Table: failed_jobs（Laravel 失败队列）
+        Schema::create('failed_jobs', function (Blueprint $table) {
+            $table->id();
+            $table->string('uuid')->unique();
+            $table->string('connection');
+            $table->string('queue');
+            $table->longText('payload');
+            $table->longText('exception');
+            $table->timestamp('failed_at')->useCurrent();
+            $table->index(['connection', 'queue', 'failed_at']);
+        });
+
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('failed_jobs');
+        Schema::dropIfExists('jobs');
         Schema::dropIfExists('alert_rules');
         Schema::dropIfExists('alerts');
         Schema::dropIfExists('api_versions');

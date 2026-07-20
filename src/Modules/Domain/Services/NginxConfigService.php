@@ -63,6 +63,9 @@ class NginxConfigService
             sprintf('    %-30s 1;', config('domain.platform_domains.admin', 'admin.example.com')),
             sprintf('    %-30s 1;', config('domain.platform_domains.app', 'app.example.com')),
             '',
+            '    # ===== 个人用户子域名（通配） =====',
+            $this->wildcardEntry(),
+            '',
             '    # ===== 内部服务通信 =====',
             '    127.0.0.1               1;',
             '    localhost               1;',
@@ -125,5 +128,23 @@ class NginxConfigService
         }
 
         file_put_contents($this->sslMapFile, $mapContent);
+    }
+
+    /**
+     * 生成通配子域名 Nginx map 条目
+     *
+     * 例: ~^.*\.scrm\.com$  1;  # 个人用户子域名通配
+     */
+    protected function wildcardEntry(): string
+    {
+        $wildcardBase = config('domain.wildcard_base');
+
+        if (! $wildcardBase) {
+            return '    # (未配置通配基础域名)';
+        }
+
+        $escaped = str_replace('.', '\\.', $wildcardBase);
+
+        return sprintf('    ~^.*\\.%s$  1;  # 个人用户子域名通配', $escaped);
     }
 }

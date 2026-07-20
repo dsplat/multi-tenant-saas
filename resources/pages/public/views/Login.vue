@@ -1,7 +1,15 @@
 <template>
   <div class="container">
     <div class="card">
-      <h2>登录</h2>
+      <!-- 租户品牌 -->
+      <div v-if="tenant" class="tenant-brand">
+        <img v-if="tenant.logo" :src="tenant.logo" alt="logo" class="tenant-logo" />
+        <h2>{{ tenant.name }}</h2>
+        <p v-if="tenant.branding?.login_page_message" class="tenant-message">
+          {{ tenant.branding.login_page_message }}
+        </p>
+      </div>
+      <h2 v-else>登录</h2>
 
       <!-- 邮箱未验证提示 -->
       <div v-if="showUnverifiedBanner" class="msg msg-warning">
@@ -34,17 +42,49 @@
         </button>
       </form>
 
+      <!-- OAuth 登录按钮 -->
+      <div v-if="oauthProviders.length > 0" class="oauth-section">
+        <div class="divider"><span>或</span></div>
+        <div class="oauth-buttons">
+          <button
+            v-for="provider in oauthProviders"
+            :key="provider.provider"
+            class="btn btn-oauth"
+            @click="handleOAuthLogin(provider.provider)"
+          >
+            {{ provider.name }} 登录
+          </button>
+        </div>
+      </div>
+
+      <!-- SSO 登录按钮 -->
+      <div v-if="ssoProviders.length > 0" class="oauth-section">
+        <div class="divider"><span>企业 SSO</span></div>
+        <div class="oauth-buttons">
+          <button
+            v-for="provider in ssoProviders"
+            :key="provider.provider"
+            class="btn btn-oauth"
+            @click="handleSsoLogin(provider.provider)"
+          >
+            {{ provider.name }}
+          </button>
+        </div>
+      </div>
+
       <div class="text-center mt-16">
         <router-link to="/forgot-password">忘记密码？</router-link>
-        &nbsp;|&nbsp;
-        <router-link to="/register">注册账号</router-link>
+        <template v-if="allowRegister">
+          &nbsp;|&nbsp;
+          <router-link to="/register">注册账号</router-link>
+        </template>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -52,12 +92,62 @@ const loading = ref(false)
 const error = ref('')
 const form = reactive({ email: '', password: '' })
 
+// 租户品牌信息
+const tenant = ref<any>(null)
+const oauthProviders = ref<any[]>([])
+const ssoProviders = ref<any[]>([])
+const allowRegister = ref(true)
+
 // 邮箱未验证状态
 const showUnverifiedBanner = ref(false)
 const resendLoading = ref(false)
 const resendMsg = ref('')
 const resendSuccess = ref(false)
 const lastOperator = reactive({ email: '', token: '' })
+
+// 当前域名
+const currentHost = window.location.host
+
+onMounted(async () => {
+  await resolveTenant()
+  await loadLoginConfig()
+})
+
+async function resolveTenant() {
+  try {
+    const res = await fetch(`/api/v1/tenant/resolve?domain=${encodeURIComponent(currentHost)}`)
+    const data = await res.json()
+    if (data.success) {
+      tenant.value = data.data
+    }
+  } catch {
+    // 租户解析失败不阻断登录
+  }
+}
+
+async function loadLoginConfig() {
+  try {
+    const res = await fetch(`/api/v1/tenant/login-config?domain=${encodeURIComponent(currentHost)}`)
+    const data = await res.json()
+    if (data.success) {
+      oauthProviders.value = data.data.oauth_providers || []
+      ssoProviders.value = data.data.sso_providers || []
+      allowRegister.value = data.data.allow_register ?? true
+    }
+  } catch {
+    // 配置加载失败不阻断登录
+  }
+}
+
+function handleOAuthLogin(provider: string) {
+  // 跳转到 OAuth 授权端点
+  window.location.href = `/api/v1/auth/${provider}/redirect?tenant_id=${tenant.value?.tenant_id || ''}`
+}
+
+function handleSsoLogin(provider: string) {
+  const ssoName = provider.replace('sso:', '')
+  window.location.href = `/api/v1/auth/sso/${ssoName}/redirect`
+}
 
 async function handleLogin() {
   loading.value = true
@@ -135,6 +225,56 @@ function continueAnyway() {
 </script>
 
 <style scoped>
+.tenant-brand {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.tenant-logo {
+  max-height: 48px;
+  margin-bottom: 12px;
+}
+.tenant-message {
+  color: #666;
+  font-size: 14px;
+  margin-top: 8px;
+}
+.oauth-section {
+  margin-top: 20px;
+}
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+  color: #999;
+  font-size: 13px;
+}
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid #e0e0e0;
+}
+.divider span {
+  padding: 0 12px;
+}
+.oauth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.btn-oauth {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+.btn-oauth:hover {
+  background: #f5f5f5;
+}
 .msg-warning {
   background: #fff8e1;
   border: 1px solid #ffe082;

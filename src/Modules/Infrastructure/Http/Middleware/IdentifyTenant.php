@@ -94,8 +94,14 @@ class IdentifyTenant
             return (string) $tokenable->current_tenant_id;
         }
 
-        // 7. 默认租户（仅限单租户/独立部署模式）
-        return config('tenancy.default_tenant_id') ? (string) config('tenancy.default_tenant_id') : null;
+        // 7. 通配子域名兜底到默认租户（如 *.scrm.com → 个人用户）
+        $host = $request->header('X-Original-Host') ?? $request->getHost();
+        if ($this->isWildcardSubdomain($host)) {
+            return config('tenancy.default_tenant_id') ? (string) config('tenancy.default_tenant_id') : null;
+        }
+
+        // 未识别域名不兜底，由 EnsureTenantContext 返回 403
+        return null;
     }
 
     /**
@@ -141,6 +147,20 @@ class IdentifyTenant
             ->value('tenant_id');
 
         return $tenantId ? (string) $tenantId : null;
+    }
+
+    /**
+     * 判断是否为平台通配子域名（如 arthur.scrm.com）
+     */
+    protected function isWildcardSubdomain(string $host): bool
+    {
+        $wildcardBase = config('domain.wildcard_base');
+
+        if (! $wildcardBase) {
+            return false;
+        }
+
+        return str_ends_with($host, ".{$wildcardBase}") && $host !== $wildcardBase;
     }
 
     /**

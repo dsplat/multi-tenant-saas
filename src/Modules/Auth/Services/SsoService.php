@@ -489,7 +489,8 @@ class SsoService
     public function findOrCreateUser(SsoProvider $provider, array $attributes): array
     {
         return DB::transaction(function () use ($provider, $attributes) {
-            $providerKey = $provider->type . ':' . $provider->name;
+            // 命名空间化 provider，确保跨租户隔离
+            $providerKey = $provider->type . ':' . $provider->name . ':tenant:' . $provider->tenant_id;
             $externalId = (string) ($attributes['external_id'] ?? '');
             $email = $attributes['email'] ? strtolower(trim($attributes['email'])) : null;
 

@@ -62,16 +62,26 @@ class OauthAccount extends Model
 
     public function isWechatWork(): bool
     {
-        return $this->provider === 'wechat_work';
+        return str_starts_with($this->provider, 'wechat_work');
     }
 
     public function isDingTalk(): bool
     {
-        return $this->provider === 'dingtalk';
+        return str_starts_with($this->provider, 'dingtalk');
     }
 
     public function isFeishu(): bool
     {
-        return $this->provider === 'feishu';
+        return str_starts_with($this->provider, 'feishu');
+    }
+
+    /**
+     * 获取裸 provider 名（去除命名空间后缀）
+     *
+     * 例: 'wechat_work:tenant:123' → 'wechat_work'
+     */
+    public function getBaseProvider(): string
+    {
+        return explode(':', $this->provider)[0];
     }
 }

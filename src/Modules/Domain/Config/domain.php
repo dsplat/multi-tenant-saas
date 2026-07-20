@@ -49,4 +49,25 @@ return [
     |--------------------------------------------------------------------------
     */
     'ssl_nginx_map_file' => env('DOMAIN_SSL_NGINX_MAP_FILE', '/etc/nginx/conf.d/ssl-map.conf'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | 域名归属文件验证（Domain Ownership Verification）
+    |--------------------------------------------------------------------------
+    |
+    | 租户绑定自定义域名时，需在域名根目录放置验证文件：
+    |   https://{domain}/.well-known/tenant-verify/{token}.txt
+    | 文件内容为平台生成的 token 字符串。
+    |
+    */
+    'verification' => [
+        // 验证文件路径前缀
+        'path_prefix' => env('DOMAIN_VERIFY_PATH_PREFIX', '.well-known/tenant-verify'),
+        // token 长度
+        'token_length' => (int) env('DOMAIN_VERIFY_TOKEN_LENGTH', 32),
+        // HTTP 检查超时（秒）
+        'http_timeout' => (int) env('DOMAIN_VERIFY_HTTP_TIMEOUT', 10),
+        // 最大验证尝试次数（超过后需重新生成 token）
+        'max_attempts' => (int) env('DOMAIN_VERIFY_MAX_ATTEMPTS', 5),
+    ],
 ];

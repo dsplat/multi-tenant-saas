@@ -92,4 +92,78 @@ class TenantDomainController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
     }
+
+    // ========================================
+    // 域名归属文件验证
+    // ========================================
+
+    /**
+     * 生成/重新生成验证 token
+     *
+     * POST /api/v1/tenant/domain/verify-token
+     */
+    public function generateVerifyToken(Request $request, ?int $tenantId = null)
+    {
+        $tenantId = $tenantId ?? (int) TenantContext::getId();
+        $this->ensureTenantAccess($request, $tenantId);
+
+        $service = new DomainService;
+        $token = $service->generateVerificationToken($tenantId);
+
+        return response()->json([
+            'success' => true,
+            'data' => $service->getVerificationInstructions($tenantId),
+        ]);
+    }
+
+    /**
+     * 执行域名归属验证（HTTP 文件检查）
+     *
+     * POST /api/v1/tenant/domain/verify
+     */
+    public function verify(Request $request, ?int $tenantId = null)
+    {
+        $tenantId = $tenantId ?? (int) TenantContext::getId();
+        $this->ensureTenantAccess($request, $tenantId);
+
+        $service = new DomainService;
+
+        try {
+            $verified = $service->verifyDomainOwnership($tenantId);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        if ($verified) {
+            return response()->json([
+                'success' => true,
+                'message' => trans('domain.verified'),
+                'data' => ['status' => 'approved', 'verified_at' => now()->toDateTimeString()],
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => trans('domain.verify_failed'),
+            'data' => $service->getVerificationInstructions($tenantId),
+        ], 422);
+    }
+
+    /**
+     * 获取验证指引信息
+     *
+     * GET /api/v1/tenant/domain/verify-info
+     */
+    public function verifyInfo(Request $request, ?int $tenantId = null)
+    {
+        $tenantId = $tenantId ?? (int) TenantContext::getId();
+        $this->ensureTenantAccess($request, $tenantId);
+
+        $service = new DomainService;
+
+        return response()->json([
+            'success' => true,
+            'data' => $service->getVerificationInstructions($tenantId),
+        ]);
+    }
 }

@@ -38,6 +38,7 @@ class SmsService
 
         return match ($driver) {
             'ww' => static::sendViaWw($phone, $code, $type),
+            'aliyun' => static::sendViaAliyun($phone, $code, $type),
             'http' => static::sendViaHttp($phone, $code, $type),
             default => static::sendViaLog($phone, $code, $type),
         };
@@ -191,6 +192,113 @@ class SmsService
         ]);
 
         return $code;
+    }
+
+    /**
+     * 阿里云短信驱动（dysmsapi HTTP API, SignatureVersion 1.0, HMAC-SHA1）
+     *
+     * 配置项（services.sms）：
+     *   aliyun_access_key_id, aliyun_access_key_secret,
+     *   aliyun_sign_name, aliyun_template_code
+     */
+    private static function sendViaAliyun(string $phone, string $code, string $type): string|false
+    {
+        $accessKeyId = (string) config('services.sms.aliyun_access_key_id');
+        $accessKeySecret = (string) config('services.sms.aliyun_access_key_secret');
+        $signName = (string) config('services.sms.aliyun_sign_name');
+        $templateCode = (string) config('services.sms.aliyun_template_code');
+
+        if ($accessKeyId === '' || $accessKeySecret === '' || $signName === '' || $templateCode === '') {
+            Log::error('SmsService aliyun config missing', [
+                'phone' => static::maskPhone($phone),
+                'type' => $type,
+            ]);
+
+            return false;
+        }
+
+        try {
+            // 构造阿里云 API 请求参数
+            $params = [
+                'AccessKeyId' => $accessKeyId,
+                'Action' => 'SendSms',
+                'Format' => 'JSON',
+                'PhoneNumbers' => $phone,
+                'RegionId' => 'cn-hangzhou',
+                'SignName' => $signName,
+                'SignatureMethod' => 'HMAC-SHA1',
+                'SignatureNonce' => uniqid((string) mt_rand(), true),
+                'SignatureVersion' => '1.0',
+                'TemplateCode' => $templateCode,
+                'TemplateParam' => json_encode(['code' => $code], JSON_UNESCAPED_UNICODE),
+                'Timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
+                'Version' => '2017-05-25',
+            ];
+
+            // 计算签名
+            $params['Signature'] = static::computeAliyunSignature($params, $accessKeySecret);
+
+            $response = Http::timeout((int) config('services.sms.aliyun_timeout', 10))
+                ->post('https://dysmsapi.aliyuncs.com/', $params);
+
+            $body = $response->json();
+
+            if ($response->successful() && ($body['Code'] ?? '') === 'OK') {
+                Log::info('SmsService aliyun send ok', [
+                    'phone' => static::maskPhone($phone),
+                    'type' => $type,
+                    'biz_id' => $body['BizId'] ?? null,
+                ]);
+
+                return $code;
+            }
+
+            Log::error('SmsService aliyun send failed', [
+                'phone' => static::maskPhone($phone),
+                'type' => $type,
+                'code' => $body['Code'] ?? null,
+                'message' => $body['Message'] ?? null,
+                'request_id' => $body['RequestId'] ?? null,
+            ]);
+
+            return false;
+        } catch (\Throwable $e) {
+            Log::error('SmsService aliyun exception', [
+                'phone' => static::maskPhone($phone),
+                'message' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * 计算阿里云 API 签名（SignatureVersion 1.0, HMAC-SHA1）
+     */
+    private static function computeAliyunSignature(array $params, string $accessKeySecret): string
+    {
+        ksort($params);
+
+        $canonicalized = '';
+        foreach ($params as $key => $value) {
+            $canonicalized .= '&' . static::aliyunPercentEncode($key) . '=' . static::aliyunPercentEncode($value);
+        }
+
+        $stringToSign = 'POST&' . static::aliyunPercentEncode('/') . '&' . static::aliyunPercentEncode(substr($canonicalized, 1));
+
+        return base64_encode(hash_hmac('sha1', $stringToSign, $accessKeySecret . '&', true));
+    }
+
+    /**
+     * 阿里云特殊 URL 编码（RFC 3986）
+     */
+    private static function aliyunPercentEncode(string $value): string
+    {
+        return str_replace(
+            ['+', '*', '%7E'],
+            ['%20', '%2A', '~'],
+            urlencode($value)
+        );
     }
 
     private static function extractXmlValue(string $xml, string $tag): ?string

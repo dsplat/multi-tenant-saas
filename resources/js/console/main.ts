@@ -4,7 +4,7 @@ import { initUICore, uiRegistry } from '@multi-tenant-saas/ui-core'
 import { createBootstrapAdapter } from '@multi-tenant-saas/ui-core/adapters/index'
 import { useUserStore } from './stores/user'
 import App from '../../pages/console/App.vue'
-import router from './router'
+import router, { routesReady } from './router'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 
 const fw = localStorage.getItem('multi-tenant-saas-ui-framework')
@@ -96,6 +96,7 @@ async function main() {
   const userStore = useUserStore()
   await userStore.init()
 
+  await routesReady
   app.use(router)
   app.mount('#app')
 }

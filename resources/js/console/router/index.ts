@@ -72,8 +72,8 @@ const router = createRouter({
   ],
 })
 
-// 动态加载模块路由
-getAllModuleRoutes().then(moduleRoutes => {
+// 动态加载模块路由（导出 Promise 供 main.ts 等待）
+export const routesReady = getAllModuleRoutes().then(moduleRoutes => {
   if (moduleRoutes.length > 0) {
     const mainRoute = router.getRoutes().find(r => r.name === 'ConsoleRoot')
     if (mainRoute) {
@@ -87,6 +87,8 @@ getAllModuleRoutes().then(moduleRoutes => {
       }
     }
   }
+}).catch(e => {
+  console.warn('[Router] 模块路由加载失败:', e)
 })
 
 router.beforeEach(async (to, _from, next) => {

@@ -60,9 +60,18 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 422);
         });
 
-        // 生产环境隐藏详细错误
+        // 生产环境隐藏详细错误（保留 HttpException 原始状态码，如 403/404）
         $exceptions->renderable(function (\Throwable $e) {
             if (app()->environment('production')) {
+                // HttpException（abort() 抛出的 403/404/429 等）保留原状态码和消息
+                if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $e->getMessage() ?: 'Request failed',
+                    ], $e->getStatusCode());
+                }
+
+                // 其他未知异常统一 500，不暴露细节
                 return response()->json([
                     'success' => false,
                     'message' => '服务器内部错误',

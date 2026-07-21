@@ -18,11 +18,11 @@ Route::post('/operator/accept-invite', [OperatorController::class, 'acceptInvite
 // Operator 认证公开路由
 Route::prefix('operator-auth')->group(function () {
     Route::post('/register', [OperatorAuthController::class, 'register'])
-        ->middleware('throttle:3,1');
+        ->middleware('throttle:10,1');
     Route::post('/login', [OperatorAuthController::class, 'login'])
-        ->middleware('throttle:5,1');
+        ->middleware('throttle:20,1');
     Route::post('/verify-email', [OperatorAuthController::class, 'verifyEmail'])
-        ->middleware('throttle:5,1');
+        ->middleware('throttle:20,1');
     Route::post('/resend-verification', [OperatorAuthController::class, 'resendVerification'])
         ->middleware('throttle:3,1');
     Route::post('/forgot-password', [OperatorAuthController::class, 'forgotPassword'])

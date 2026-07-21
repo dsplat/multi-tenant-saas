@@ -115,6 +115,14 @@ class OperatorAuthController extends Controller
             return response()->json(['success' => false, 'message' => trans('auth.account_disabled')], 403);
         }
 
+        // 邮箱未验证时拒绝登录
+        if (empty($operator->email_verified_at)) {
+            return response()->json([
+                'success' => false,
+                'message' => trans('auth.email_not_verified'),
+            ], 403);
+        }
+
         // 成功登录，重置登录尝试
         $operator->update([
             'login_attempts' => 0,

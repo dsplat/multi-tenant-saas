@@ -24,9 +24,9 @@ Route::prefix('operator-auth')->group(function () {
     Route::post('/verify-email', [OperatorAuthController::class, 'verifyEmail'])
         ->middleware('throttle:20,1');
     Route::post('/resend-verification', [OperatorAuthController::class, 'resendVerification'])
-        ->middleware('throttle:3,1');
+        ->middleware('throttle:10,1');
     Route::post('/forgot-password', [OperatorAuthController::class, 'forgotPassword'])
-        ->middleware('throttle:3,1');
+        ->middleware('throttle:10,1');
     Route::post('/reset-password', [OperatorAuthController::class, 'resetPassword'])
-        ->middleware('throttle:3,1');
+        ->middleware('throttle:10,1');
 });

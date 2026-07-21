@@ -10,7 +10,7 @@
         <div class="info-item"><span>租户ID</span><span>{{ tenant.tenant_id }}</span></div>
         <div class="info-item"><span>名称</span><span>{{ tenant.name }}</span></div>
         <div class="info-item"><span>标识</span><span>{{ tenant.slug }}</span></div>
-        <div class="info-item"><span>自定义域名</span><span>{{ tenant.custom_domain || '-' }}</span></div>
+        <div class="info-item"><span>自定义域名</span><span>{{ tenant.domain || '-' }}</span></div>
         <div class="info-item"><span>状态</span><span :class="['badge', tenant.status === 'active' ? 'badge-success' : 'badge-info']">{{ tenant.status === 'active' ? '活跃' : '未激活' }}</span></div>
         <div class="info-item"><span>套餐</span><span>{{ tenant.subscription_plan }}</span></div>
         <div class="info-item"><span>总积分</span><span>{{ tenant.total_credits }}</span></div>

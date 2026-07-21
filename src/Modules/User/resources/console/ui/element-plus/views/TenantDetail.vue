@@ -10,7 +10,7 @@
         <el-descriptions-item label="租户ID">{{ tenant.tenant_id }}</el-descriptions-item>
         <el-descriptions-item label="名称">{{ tenant.name }}</el-descriptions-item>
         <el-descriptions-item label="标识">{{ tenant.slug }}</el-descriptions-item>
-        <el-descriptions-item label="自定义域名">{{ tenant.custom_domain || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="自定义域名">{{ tenant.domain || '-' }}</el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="tenant.status === 'active' ? 'success' : 'info'" size="small">{{ tenant.status === 'active' ? '活跃' : '未激活' }}</el-tag>
         </el-descriptions-item>

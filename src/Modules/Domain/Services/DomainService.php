@@ -26,7 +26,7 @@ class DomainService
         $tenant = Tenant::findOrFail($tenantId);
 
         return [
-            'custom_domain' => $tenant->custom_domain,
+            'domain' => $tenant->domain,
             'domain_status' => TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'domain_status', self::STATUS_PENDING),
             'icp_verified' => (bool) TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'icp_verified', false),
             'icp_verified_at' => TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'icp_verified_at', null),
@@ -48,7 +48,7 @@ class DomainService
         // 平台保留域名黑名单校验（绝对禁止绑定）
         $this->assertDomainNotReserved($domain);
 
-        $existing = Tenant::where('custom_domain', $domain)
+        $existing = Tenant::where('domain', $domain)
             ->where('tenant_id', '!=', $tenantId)
             ->first();
 
@@ -59,7 +59,7 @@ class DomainService
         }
 
         $tenant = Tenant::findOrFail($tenantId);
-        $tenant->custom_domain = $domain;
+        $tenant->domain = $domain;
         $tenant->save();
 
         TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'domain_status', self::STATUS_PENDING);
@@ -73,7 +73,7 @@ class DomainService
     {
         $tenant = Tenant::findOrFail($tenantId);
 
-        if (empty($tenant->custom_domain)) {
+        if (empty($tenant->domain)) {
             throw new \RuntimeException(trans('domain.not_configured'));
         }
 
@@ -97,7 +97,7 @@ class DomainService
         }
 
         $tenant = Tenant::findOrFail($tenantId);
-        $domain = $tenant->custom_domain;
+        $domain = $tenant->domain;
 
         if (empty($domain)) {
             return false;
@@ -161,7 +161,7 @@ class DomainService
     public function verifyDomainOwnership(int $tenantId): bool
     {
         $tenant = Tenant::findOrFail($tenantId);
-        $domain = $tenant->custom_domain;
+        $domain = $tenant->domain;
 
         if (empty($domain)) {
             throw new \RuntimeException(trans('domain.not_configured'));
@@ -238,7 +238,7 @@ class DomainService
     public function getVerificationInstructions(int $tenantId): array
     {
         $tenant = Tenant::findOrFail($tenantId);
-        $domain = $tenant->custom_domain;
+        $domain = $tenant->domain;
         $token = TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'verification_token');
         $pathPrefix = config('domain.verification.path_prefix', '.well-known/tenant-verify');
 

@@ -325,7 +325,7 @@ class TenantCloneService
             'custom_css' => $source->custom_css,
             'login_page_style' => $source->login_page_style,
             'email_template' => $source->email_template,
-            // 不复制 custom_domain（避免冲突）
+            // 不复制 domain（避免冲突）
         ]);
     }
 

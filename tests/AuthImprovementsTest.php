@@ -47,7 +47,7 @@ class AuthImprovementsTest extends TestCase
             'name' => 'Test Tenant',
             'slug' => 'test-tenant',
             'status' => 'active',
-            'custom_domain' => 'crm.test.com',
+            'domain' => 'crm.test.com',
         ], $overrides));
     }
 
@@ -119,7 +119,7 @@ class AuthImprovementsTest extends TestCase
     // Phase 1: 未识别域名 403 + 通配子域名
     // =============================================
 
-    public function test_identify_tenant_resolves_custom_domain(): void
+    public function test_identify_tenant_resolves_domain(): void
     {
         $this->createTestTenant();
 
@@ -194,11 +194,13 @@ class AuthImprovementsTest extends TestCase
             ->assertJsonPath('success', false);
     }
 
-    public function test_tenant_resolve_api_requires_domain_param(): void
+    public function test_tenant_resolve_api_falls_back_to_host_without_domain_param(): void
     {
+        // domain 参数可选：缺省时从请求 Host 解析，测试环境 Host 无对应租户 → 404
         $response = $this->getJson('/api/v1/tenant/resolve');
 
-        $response->assertStatus(422);
+        $response->assertNotFound()
+            ->assertJsonPath('success', false);
     }
 
     public function test_login_config_api_returns_oauth_providers(): void

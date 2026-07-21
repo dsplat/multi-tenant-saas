@@ -35,7 +35,7 @@ class SocialiteService
      *
      * 优先使用 TenantSetting 中存储的值：
      * - 已是完整 URL（http 开头）→ 直接使用
-     * - 相对路径或未设置 → 基于租户 custom_domain 动态拼接
+     * - 相对路径或未设置 → 基于租户 domain 动态拼接
      */
     public static function resolveRedirectUrl(int $tenantId, string $provider, string $storedRedirect = ''): string
     {
@@ -45,7 +45,7 @@ class SocialiteService
         }
 
         // 基于租户域名动态拼接
-        $domain = Tenant::where('tenant_id', $tenantId)->value('custom_domain');
+        $domain = Tenant::where('tenant_id', $tenantId)->value('domain');
 
         if (! $domain) {
             // 无自定义域名，回退到相对路径（平台域名场景）

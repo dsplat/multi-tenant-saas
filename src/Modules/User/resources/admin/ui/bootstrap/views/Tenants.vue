@@ -24,7 +24,7 @@
         <tbody>
           <tr v-for="t in tenants" :key="t.tenant_id">
             <td>{{ t.tenant_id }}</td><td>{{ t.name }}</td><td>{{ t.slug }}</td>
-            <td>{{ t.custom_domain || '-' }}</td>
+            <td>{{ t.domain || '-' }}</td>
             <td><span :class="['badge', statusClass(t.status)]">{{ statusLabel(t.status) }}</span></td>
             <td>{{ t.subscription_plan || '-' }}</td><td>{{ formatDate(t.created_at) }}</td>
             <td>
@@ -51,7 +51,7 @@
         <form @submit.prevent="handleSubmit">
           <div class="form-group"><label>名称</label><input v-model="form.name" required /></div>
           <div class="form-group"><label>标识</label><input v-model="form.slug" required :disabled="isEdit" /></div>
-          <div class="form-group"><label>自定义域名</label><input v-model="form.custom_domain" placeholder="example.com" /></div>
+          <div class="form-group"><label>自定义域名</label><input v-model="form.domain" placeholder="example.com" /></div>
           <div class="form-group"><label>套餐</label>
             <select v-model="form.subscription_plan">
               <option value="free">免费版</option><option value="basic">基础版</option>
@@ -87,7 +87,7 @@ const totalPages = ref(1)
 const perPage = 20
 
 const filters = reactive({ search: '', status: '' })
-const form = reactive({ name: '', slug: '', custom_domain: '', status: 'active', subscription_plan: 'free' })
+const form = reactive({ name: '', slug: '', domain: '', status: 'active', subscription_plan: 'free' })
 
 const statusClass = (s: string) => ({ active: 'badge-success', inactive: 'badge-info', suspended: 'badge-danger' }[s] || 'badge-info')
 const statusLabel = (s: string) => ({ active: '活跃', inactive: '未激活', suspended: '已暂停' }[s] || s)
@@ -104,8 +104,8 @@ const fetchTenants = async (page = 1) => {
 
 const goPage = (p: number) => fetchTenants(p)
 
-const openCreate = () => { isEdit.value = false; Object.assign(form, { name: '', slug: '', custom_domain: '', status: 'active', subscription_plan: 'free' }); dialogVisible.value = true }
-const openEdit = (t: any) => { isEdit.value = true; editId.value = t.tenant_id; Object.assign(form, { name: t.name, slug: t.slug, custom_domain: t.custom_domain || '', status: t.status, subscription_plan: t.subscription_plan || 'free' }); dialogVisible.value = true }
+const openCreate = () => { isEdit.value = false; Object.assign(form, { name: '', slug: '', domain: '', status: 'active', subscription_plan: 'free' }); dialogVisible.value = true }
+const openEdit = (t: any) => { isEdit.value = true; editId.value = t.tenant_id; Object.assign(form, { name: t.name, slug: t.slug, domain: t.domain || '', status: t.status, subscription_plan: t.subscription_plan || 'free' }); dialogVisible.value = true }
 
 const handleSubmit = async () => {
   try {

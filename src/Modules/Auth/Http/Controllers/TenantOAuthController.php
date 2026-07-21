@@ -23,7 +23,7 @@ class TenantOAuthController extends Controller
     {
         // 优先从 domain 查询参数解析（OAuth 公开端点显式指定租户）
         if ($domain = $request->query('domain')) {
-            $tenantId = Tenant::where('custom_domain', $domain)
+            $tenantId = Tenant::where('domain', $domain)
                 ->where('status', 'active')
                 ->value('tenant_id');
 

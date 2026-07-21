@@ -24,7 +24,7 @@
         <el-table-column prop="name" label="名称" />
         <el-table-column prop="slug" label="标识" />
         <el-table-column label="自定义域名">
-          <template #default="{ row }">{{ row.custom_domain || '-' }}</template>
+          <template #default="{ row }">{{ row.domain || '-' }}</template>
         </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
@@ -56,7 +56,7 @@
       <el-form :model="form" label-width="100px">
         <el-form-item label="名称"><el-input v-model="form.name" /></el-form-item>
         <el-form-item label="标识"><el-input v-model="form.slug" :disabled="isEdit" /></el-form-item>
-        <el-form-item label="自定义域名"><el-input v-model="form.custom_domain" placeholder="example.com" /></el-form-item>
+        <el-form-item label="自定义域名"><el-input v-model="form.domain" placeholder="example.com" /></el-form-item>
         <el-form-item label="套餐">
           <el-select v-model="form.subscription_plan" style="width: 100%">
             <el-option label="免费版" value="free" />
@@ -96,7 +96,7 @@ const totalPages = ref(1)
 const perPage = 20
 
 const filters = reactive({ search: '', status: '' })
-const form = reactive({ name: '', slug: '', custom_domain: '', status: 'active', subscription_plan: 'free' })
+const form = reactive({ name: '', slug: '', domain: '', status: 'active', subscription_plan: 'free' })
 
 const statusTagType = (s: string) => ({ active: 'success', inactive: 'info', suspended: 'danger' }[s] || 'info') as any
 const statusLabel = (s: string) => ({ active: '活跃', inactive: '未激活', suspended: '已暂停' }[s] || s)
@@ -113,14 +113,14 @@ const fetchTenants = async (page = 1) => {
 
 const openCreate = () => {
   isEdit.value = false
-  Object.assign(form, { name: '', slug: '', custom_domain: '', status: 'active', subscription_plan: 'free' })
+  Object.assign(form, { name: '', slug: '', domain: '', status: 'active', subscription_plan: 'free' })
   dialogVisible.value = true
 }
 
 const openEdit = (t: any) => {
   isEdit.value = true
   editId.value = t.tenant_id
-  Object.assign(form, { name: t.name, slug: t.slug, custom_domain: t.custom_domain || '', status: t.status, subscription_plan: t.subscription_plan || 'free' })
+  Object.assign(form, { name: t.name, slug: t.slug, domain: t.domain || '', status: t.status, subscription_plan: t.subscription_plan || 'free' })
   dialogVisible.value = true
 }
 

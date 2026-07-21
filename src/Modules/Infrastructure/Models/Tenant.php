@@ -46,7 +46,6 @@ class Tenant extends Model
         'name',
         'slug',
         'domain',
-        'custom_domain',
         'logo',
         'description',
         'admin_id',
@@ -171,8 +170,8 @@ class Tenant extends Model
      */
     public function getConsoleUrlAttribute(): string
     {
-        if ($this->custom_domain) {
-            return 'https://' . $this->custom_domain;
+        if ($this->domain) {
+            return 'https://' . $this->domain;
         }
 
         return config('app.url') . '/console?tenant_id=' . $this->tenant_id;

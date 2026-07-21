@@ -346,7 +346,7 @@ class TenantProfileService
 
         return [
             'tenant' => $tenant->only([
-                'name', 'slug', 'custom_domain', 'subscription_plan', 'status',
+                'name', 'slug', 'domain', 'subscription_plan', 'status',
                 'settings', 'branding', 'contact_name', 'contact_email', 'contact_phone',
             ]),
             'settings' => $settings,

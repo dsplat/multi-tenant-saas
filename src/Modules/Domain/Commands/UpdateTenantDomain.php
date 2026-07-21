@@ -22,13 +22,13 @@ class UpdateTenantDomain extends Command
         $old = strtolower(trim($this->argument('old_domain')));
         $new = strtolower(trim($this->argument('new_domain')));
 
-        $tenant = Tenant::where('custom_domain', $old)->first();
+        $tenant = Tenant::where('domain', $old)->first();
 
         if (! $tenant) {
             $this->error(trans('domain.tenant_not_found_by_domain', ['domain' => $old]));
             $this->line(trans('domain.existing_custom_domains'));
-            Tenant::whereNotNull('custom_domain')->get(['name', 'custom_domain'])->each(
-                fn ($t) => $this->line("  [{$t->name}] {$t->custom_domain}")
+            Tenant::whereNotNull('domain')->get(['name', 'domain'])->each(
+                fn ($t) => $this->line("  [{$t->name}] {$t->domain}")
             );
 
             return self::FAILURE;
@@ -44,7 +44,7 @@ class UpdateTenantDomain extends Command
             return self::SUCCESS;
         }
 
-        $tenant->update(['custom_domain' => $new]);
+        $tenant->update(['domain' => $new]);
         $this->info(trans('domain.db_updated'));
 
         if ($this->option('regenerate-map')) {

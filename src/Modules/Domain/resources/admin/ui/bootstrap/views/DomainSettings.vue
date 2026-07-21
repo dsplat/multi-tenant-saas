@@ -12,7 +12,7 @@
           <tr v-for="t in tenants" :key="t.tenant_id">
             <td>{{ t.tenant_id }}</td>
             <td>{{ t.name }}</td>
-            <td>{{ t.custom_domain || '-' }}</td>
+            <td>{{ t.domain || '-' }}</td>
             <td>
               <span :class="['badge', domainStatusClass(t.domain_status)]">
                 {{ domainStatusLabel(t.domain_status) }}
@@ -41,7 +41,7 @@
     <div class="modal-backdrop" v-if="showApprove" @click="showApprove = false">
       <div class="modal-content" @click.stop>
         <h3>域名审核 - {{ currentTenant?.name }}</h3>
-        <div class="info-row"><span>域名</span><span>{{ currentTenant?.custom_domain }}</span></div>
+        <div class="info-row"><span>域名</span><span>{{ currentTenant?.domain }}</span></div>
         <div class="form-actions">
           <button class="btn-danger" @click="handleReject">拒绝</button>
           <button class="primary-btn" @click="handleApproveConfirm">通过</button>
@@ -52,7 +52,7 @@
     <!-- SSL 对话框 -->
     <div class="modal-backdrop" v-if="showSsl" @click="showSsl = false">
       <div class="modal-content" @click.stop>
-        <h3>SSL 证书 - {{ currentTenant?.custom_domain }}</h3>
+        <h3>SSL 证书 - {{ currentTenant?.domain }}</h3>
         <div class="info-row"><span>证书状态</span><span>{{ sslInfo.has_certificate ? '已配置' : '未配置' }}</span></div>
         <div class="info-row" v-if="sslInfo.expires_at"><span>过期时间</span><span>{{ sslInfo.expires_at }}</span></div>
         <div class="info-row" v-if="sslInfo.is_expired"><span>状态</span><span class="badge badge-danger">已过期</span></div>

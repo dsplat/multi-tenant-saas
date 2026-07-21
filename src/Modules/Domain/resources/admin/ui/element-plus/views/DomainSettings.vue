@@ -8,7 +8,7 @@
         <el-table-column prop="tenant_id" label="租户ID" width="100" />
         <el-table-column prop="name" label="租户名称" width="120" />
         <el-table-column label="自定义域名">
-          <template #default="{ row }">{{ row.custom_domain || '-' }}</template>
+          <template #default="{ row }">{{ row.domain || '-' }}</template>
         </el-table-column>
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
@@ -37,7 +37,7 @@
     <!-- 审核对话框 -->
     <el-dialog v-model="showApprove" :title="`域名审核 - ${currentTenant?.name ?? ''}`" width="440px">
       <el-descriptions :column="1" border>
-        <el-descriptions-item label="域名">{{ currentTenant?.custom_domain }}</el-descriptions-item>
+        <el-descriptions-item label="域名">{{ currentTenant?.domain }}</el-descriptions-item>
       </el-descriptions>
       <template #footer>
         <el-button type="danger" @click="handleReject">拒绝</el-button>
@@ -46,7 +46,7 @@
     </el-dialog>
 
     <!-- SSL 对话框 -->
-    <el-dialog v-model="showSsl" :title="`SSL 证书 - ${currentTenant?.custom_domain ?? ''}`" width="540px">
+    <el-dialog v-model="showSsl" :title="`SSL 证书 - ${currentTenant?.domain ?? ''}`" width="540px">
       <el-descriptions :column="1" border style="margin-bottom: 16px">
         <el-descriptions-item label="证书状态">{{ sslInfo.has_certificate ? '已配置' : '未配置' }}</el-descriptions-item>
         <el-descriptions-item v-if="sslInfo.expires_at" label="过期时间">{{ sslInfo.expires_at }}</el-descriptions-item>

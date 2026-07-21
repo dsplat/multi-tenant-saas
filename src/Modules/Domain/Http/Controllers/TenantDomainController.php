@@ -80,7 +80,7 @@ class TenantDomainController extends Controller
 
         try {
             $tenant = Tenant::findOrFail($tenantId);
-            $tenant->custom_domain = null;
+            $tenant->domain = null;
             $tenant->save();
 
             TenantSetting::where('tenant_id', $tenantId)

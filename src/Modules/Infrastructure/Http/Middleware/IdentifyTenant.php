@@ -105,7 +105,9 @@ class IdentifyTenant
     }
 
     /**
-     * 从自定义域名识别租户
+     * 从租户域名识别租户
+     *
+     * 统一使用 tenants.domain 字段（custom_domain 已废弃合并）。
      */
     protected function resolveFromCustomDomain(Request $request): ?string
     {
@@ -117,7 +119,7 @@ class IdentifyTenant
             return null;
         }
 
-        return Tenant::where('custom_domain', $host)
+        return Tenant::where('domain', $host)
             ->where('status', 'active')
             ->value('tenant_id');
     }

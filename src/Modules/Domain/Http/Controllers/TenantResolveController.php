@@ -44,7 +44,7 @@ class TenantResolveController extends Controller
                 'name' => $tenant->name,
                 'slug' => $tenant->slug,
                 'logo' => $tenant->logo,
-                'custom_domain' => $tenant->custom_domain,
+                'domain' => $tenant->domain,
                 'branding' => [
                     'primary_color' => $branding['primary_color'] ?? null,
                     'secondary_color' => $branding['secondary_color'] ?? null,
@@ -123,23 +123,23 @@ class TenantResolveController extends Controller
     {
         // 1. 显式 domain 参数
         if ($domain = $request->query('domain')) {
-            return Tenant::where('custom_domain', $domain)
+            return Tenant::where('domain', $domain)
                 ->where('status', 'active')
-                ->first(['tenant_id', 'name', 'slug', 'logo', 'branding', 'custom_domain']);
+                ->first(['tenant_id', 'name', 'slug', 'logo', 'branding', 'domain']);
         }
 
         // 2. TenantContext（IdentifyTenant 中间件已从请求 Host 解析）
         if ($tenantId = TenantContext::getId()) {
             return Tenant::where('tenant_id', $tenantId)
                 ->where('status', 'active')
-                ->first(['tenant_id', 'name', 'slug', 'logo', 'branding', 'custom_domain']);
+                ->first(['tenant_id', 'name', 'slug', 'logo', 'branding', 'domain']);
         }
 
         // 3. 直接从请求 Host 查找
         $host = $request->header('X-Original-Host') ?? $request->getHost();
 
-        return Tenant::where('custom_domain', $host)
+        return Tenant::where('domain', $host)
             ->where('status', 'active')
-            ->first(['tenant_id', 'name', 'slug', 'logo', 'branding', 'custom_domain']);
+            ->first(['tenant_id', 'name', 'slug', 'logo', 'branding', 'domain']);
     }
 }

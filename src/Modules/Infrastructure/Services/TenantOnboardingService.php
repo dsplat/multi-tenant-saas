@@ -95,8 +95,7 @@ class TenantOnboardingService
             self::STEP_DOMAIN => [
                 'domain_type' => 'nullable|in:subdomain,custom',
                 'subdomain' => 'nullable|string|max:100',
-                'domain' => 'nullable|string|max:100',
-                'custom_domain' => 'nullable|string|max:255',
+                'domain' => 'nullable|string|max:255',
             ],
             self::STEP_PLAN => [
                 'plan' => 'nullable|string|exists:subscription_plans,name',
@@ -352,7 +351,7 @@ class TenantOnboardingService
     protected function createTenant(array $basic, array $domain, SubscriptionPlan $plan): Tenant
     {
         $subdomain = $domain['subdomain'] ?? $domain['domain'] ?? null;
-        $customDomain = $domain['custom_domain'] ?? null;
+        $customDomain = $domain['domain'] ?? null;
         $domainType = $domain['domain_type']
             ?? (! empty($customDomain) ? 'custom' : 'subdomain');
 
@@ -365,7 +364,7 @@ class TenantOnboardingService
         return Tenant::create([
             'name' => $basic['name'],
             'slug' => $slug,
-            'custom_domain' => $customDomain,
+            'domain' => $customDomain,
             'subscription_plan' => $plan->name,
             'subscription_plan_id' => $plan->subscription_plan_id,
             'subscription_started_at' => now(),

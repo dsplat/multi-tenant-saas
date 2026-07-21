@@ -74,7 +74,7 @@
             </el-input>
           </el-form-item>
           <el-form-item v-if="orgForm.domain_type === 'custom'" label="独立域名">
-            <el-input v-model="orgForm.custom_domain" placeholder="如：www.mycompany.com" />
+            <el-input v-model="orgForm.domain" placeholder="如：www.mycompany.com" />
           </el-form-item>
           <el-form-item>
             <el-button @click="currentStep = 1">上一步</el-button>
@@ -145,7 +145,7 @@ const form = ref({
 const orgForm = ref({
   domain_type: 'subdomain',
   subdomain: '',
-  custom_domain: '',
+  domain: '',
 })
 
 const planForm = ref({

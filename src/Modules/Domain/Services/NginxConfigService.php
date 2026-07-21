@@ -25,17 +25,17 @@ class NginxConfigService
         $outputPath = $outputPath ?? $this->domainMapFile;
 
         $tenants = Tenant::query()
-            ->whereNotNull('custom_domain')
+            ->whereNotNull('domain')
             ->where('status', 'active')
-            ->orderBy('custom_domain')
-            ->get(['tenant_id', 'name', 'custom_domain']);
+            ->orderBy('domain')
+            ->get(['tenant_id', 'name', 'domain']);
 
         $domainLines = [];
         foreach ($tenants as $tenant) {
-            if ($tenant->custom_domain) {
+            if ($tenant->domain) {
                 $domainLines[] = sprintf(
                     '    %-30s 1;  # %s (tenant_id: %s)',
-                    $tenant->custom_domain,
+                    $tenant->domain,
                     $tenant->name,
                     $tenant->tenant_id
                 );
@@ -89,11 +89,11 @@ class NginxConfigService
     public function generateSslMap(): void
     {
         $entries = Tenant::query()
-            ->whereNotNull('custom_domain')
+            ->whereNotNull('domain')
             ->whereNotNull('ssl_uploaded_at')
-            ->get(['custom_domain'])
-            ->filter(fn ($t) => file_exists("{$this->certsPath}/{$t->custom_domain}.crt"))
-            ->map(fn ($t) => $t->custom_domain)
+            ->get(['domain'])
+            ->filter(fn ($t) => file_exists("{$this->certsPath}/{$t->domain}.crt"))
+            ->map(fn ($t) => $t->domain)
             ->values();
 
         $certLines = implode("\n", $entries->map(

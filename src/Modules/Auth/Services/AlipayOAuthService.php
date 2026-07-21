@@ -338,7 +338,6 @@ class AlipayOAuthService
                 TenantUser::create([
                     'tenant_id' => $tenantId,
                     'user_id' => $existingUser->user_id,
-                    'role' => 'end_user',
                     'is_active' => true,
                     'joined_at' => now(),
                 ]);
@@ -360,13 +359,11 @@ class AlipayOAuthService
                 'email' => $email,
                 'password' => bcrypt(Str::random(32)),
                 'avatar' => $alipayUser['avatar'] ?? null,
-                'role' => 'platform_user',
             ]);
 
             TenantUser::create([
                 'tenant_id' => $tenantId,
                 'user_id' => $user->user_id,
-                'role' => 'end_user',
                 'is_active' => true,
                 'joined_at' => now(),
             ]);

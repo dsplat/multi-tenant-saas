@@ -22,28 +22,33 @@ class ConversationService
      */
     public function createConversation(int $tenantId, string $type, array $participantIds): Conversation
     {
+        $prevTenantId = TenantContext::getId();
         TenantContext::setTenantId((string) $tenantId);
 
-        $conversation = Conversation::create([
-            'conversation_id' => $this->idGenerator->generate(),
-            'tenant_id' => $tenantId,
-            'type' => $type,
-            'status' => 'active',
-            'message_count' => 0,
-        ]);
-
-        foreach ($participantIds as $userId) {
-            Participant::create([
-                'participant_id' => $this->idGenerator->generate(),
+        try {
+            $conversation = Conversation::create([
+                'conversation_id' => $this->idGenerator->generate(),
                 'tenant_id' => $tenantId,
-                'conversation_id' => $conversation->conversation_id,
-                'user_id' => $userId,
-                'role' => 'member',
-                'joined_at' => now(),
+                'type' => $type,
+                'status' => 'active',
+                'message_count' => 0,
             ]);
-        }
 
-        return $conversation->fresh();
+            foreach ($participantIds as $userId) {
+                Participant::create([
+                    'participant_id' => $this->idGenerator->generate(),
+                    'tenant_id' => $tenantId,
+                    'conversation_id' => $conversation->conversation_id,
+                    'user_id' => $userId,
+                    'role' => 'member',
+                    'joined_at' => now(),
+                ]);
+            }
+
+            return $conversation->fresh();
+        } finally {
+            TenantContext::setTenantId($prevTenantId);
+        }
     }
 
     /**
@@ -51,11 +56,16 @@ class ConversationService
      */
     public function getConversation(int $tenantId, string $conversationId): Conversation
     {
+        $prevTenantId = TenantContext::getId();
         TenantContext::setTenantId((string) $tenantId);
 
-        return Conversation::where('conversation_id', $conversationId)
-            ->where('tenant_id', $tenantId)
-            ->firstOrFail();
+        try {
+            return Conversation::where('conversation_id', $conversationId)
+                ->where('tenant_id', $tenantId)
+                ->firstOrFail();
+        } finally {
+            TenantContext::setTenantId($prevTenantId);
+        }
     }
 
     /**
@@ -63,23 +73,28 @@ class ConversationService
      */
     public function listConversations(int $tenantId, array $filters, int $page = 1, int $perPage = 20): LengthAwarePaginator
     {
+        $prevTenantId = TenantContext::getId();
         TenantContext::setTenantId((string) $tenantId);
 
-        $query = Conversation::where('tenant_id', $tenantId);
+        try {
+            $query = Conversation::where('tenant_id', $tenantId);
 
-        if (! empty($filters['type'])) {
-            $query->where('type', $filters['type']);
-        }
-        if (! empty($filters['status'])) {
-            $query->where('status', $filters['status']);
-        }
-        if (! empty($filters['channel'])) {
-            $query->where('channel', $filters['channel']);
-        }
+            if (! empty($filters['type'])) {
+                $query->where('type', $filters['type']);
+            }
+            if (! empty($filters['status'])) {
+                $query->where('status', $filters['status']);
+            }
+            if (! empty($filters['channel'])) {
+                $query->where('channel', $filters['channel']);
+            }
 
-        return $query->orderByDesc('last_message_at')
-            ->orderByDesc('created_at')
-            ->paginate($perPage, ['*'], 'page', $page);
+            return $query->orderByDesc('last_message_at')
+                ->orderByDesc('created_at')
+                ->paginate($perPage, ['*'], 'page', $page);
+        } finally {
+            TenantContext::setTenantId($prevTenantId);
+        }
     }
 
     /**
@@ -87,13 +102,18 @@ class ConversationService
      */
     public function deleteConversation(int $tenantId, string $conversationId): bool
     {
+        $prevTenantId = TenantContext::getId();
         TenantContext::setTenantId((string) $tenantId);
 
-        $conversation = Conversation::where('conversation_id', $conversationId)
-            ->where('tenant_id', $tenantId)
-            ->firstOrFail();
+        try {
+            $conversation = Conversation::where('conversation_id', $conversationId)
+                ->where('tenant_id', $tenantId)
+                ->firstOrFail();
 
-        return $conversation->update(['status' => 'archived']) > 0;
+            return $conversation->update(['status' => 'archived']) > 0;
+        } finally {
+            TenantContext::setTenantId($prevTenantId);
+        }
     }
 
     /**
@@ -101,17 +121,22 @@ class ConversationService
      */
     public function getRecentConversations(int $tenantId, int $userId, int $limit = 20): Collection
     {
+        $prevTenantId = TenantContext::getId();
         TenantContext::setTenantId((string) $tenantId);
 
-        $conversationIds = Participant::where('tenant_id', $tenantId)
-            ->where('user_id', $userId)
-            ->pluck('conversation_id');
+        try {
+            $conversationIds = Participant::where('tenant_id', $tenantId)
+                ->where('user_id', $userId)
+                ->pluck('conversation_id');
 
-        return Conversation::whereIn('conversation_id', $conversationIds)
-            ->where('tenant_id', $tenantId)
-            ->where('status', 'active')
-            ->orderByDesc('last_message_at')
-            ->limit($limit)
-            ->get();
+            return Conversation::whereIn('conversation_id', $conversationIds)
+                ->where('tenant_id', $tenantId)
+                ->where('status', 'active')
+                ->orderByDesc('last_message_at')
+                ->limit($limit)
+                ->get();
+        } finally {
+            TenantContext::setTenantId($prevTenantId);
+        }
     }
 }

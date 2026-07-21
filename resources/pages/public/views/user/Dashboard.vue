@@ -4,8 +4,8 @@
     <div class="cards">
       <div class="card">
         <div class="card-label">账户状态</div>
-        <div class="card-value" :class="user?.email_verified ? 'text-success' : 'text-warning'">
-          {{ user?.email_verified ? '已验证' : '未验证' }}
+        <div class="card-value" :class="user?.email_verified_at ? 'text-success' : 'text-warning'">
+          {{ user?.email_verified_at ? '已验证' : '未验证' }}
         </div>
       </div>
       <div class="card">
@@ -18,7 +18,7 @@
       </div>
     </div>
 
-    <div class="section" v-if="user && !user.email_verified">
+    <div class="section" v-if="user && !user.email_verified_at">
       <div class="alert alert-warning">
         您的邮箱尚未验证，部分功能可能受限。
         <button class="btn-link" @click="resendVerification">重新发送验证邮件</button>

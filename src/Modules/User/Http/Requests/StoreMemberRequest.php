@@ -14,9 +14,8 @@ class StoreMemberRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => 'required|email',
-            'role' => 'required|string|in:tenant_admin,end_user',
-            'credits' => 'nullable|integer|min:0',
+            'user_id' => 'required',
+            'role_id' => 'required|exists:roles,role_id',
         ];
     }
 }

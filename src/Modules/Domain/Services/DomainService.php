@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 
@@ -43,6 +44,9 @@ class DomainService
         if ($validator->fails()) {
             throw new ValidationException($validator);
         }
+
+        // 平台保留域名黑名单校验（绝对禁止绑定）
+        $this->assertDomainNotReserved($domain);
 
         $existing = Tenant::where('custom_domain', $domain)
             ->where('tenant_id', '!=', $tenantId)
@@ -254,5 +258,47 @@ class DomainService
             'attempts' => (int) TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'verification_attempts', 0),
             'max_attempts' => (int) config('domain.verification.max_attempts', 5),
         ];
+    }
+
+    /**
+     * 校验域名是否在平台保留黑名单中
+     *
+     * 黑名单来源（取并集）：
+     * 1. config('domain.reserved_domains') — 从 .env 读取的平台域名
+     * 2. config('tenancy.platform_domains') — 平台域名数组
+     * 3. system_settings 动态配置（Admin 后台管理）
+     * 4. 通配符基础域名（wildcard_base）及其子域名
+     *
+     * @throws ValidationException
+     */
+    protected function assertDomainNotReserved(string $domain): void
+    {
+        $domain = strtolower(trim($domain));
+
+        // 合并所有保留域名源（静态配置 + 动态配置）
+        $dynamicReserved = SystemSetting::get('domain', 'reserved_domains', []);
+        $reserved = array_map('strtolower', array_filter(array_merge(
+            (array) config('domain.reserved_domains', []),
+            (array) config('tenancy.platform_domains', []),
+            is_array($dynamicReserved) ? $dynamicReserved : [],
+        )));
+
+        // 精确匹配
+        if (in_array($domain, $reserved, true)) {
+            throw ValidationException::withMessages([
+                'domain' => trans('domain.reserved', ['domain' => $domain]),
+            ]);
+        }
+
+        // 通配符基础域名检查（如 *.scrm.com 不允许绑定 scrm.com 或其子域）
+        $wildcardBase = config('domain.wildcard_base');
+        if ($wildcardBase) {
+            $wildcardBase = strtolower($wildcardBase);
+            if ($domain === $wildcardBase || str_ends_with($domain, ".{$wildcardBase}")) {
+                throw ValidationException::withMessages([
+                    'domain' => trans('domain.reserved_wildcard', ['domain' => $domain]),
+                ]);
+            }
+        }
     }
 }

@@ -14,11 +14,14 @@ return [
 
     'admin_domain' => env('ADMIN_DOMAIN', 'admin.example.com'),
 
-    'platform_domains' => [
+    'platform_domains' => array_filter([
         'localhost',
         '127.0.0.1',
+        env('PLATFORM_MAIN_DOMAIN'),
         env('ADMIN_DOMAIN', 'admin.example.com'),
-    ],
+        env('PLATFORM_ADMIN_DOMAIN'),
+        env('PLATFORM_APP_DOMAIN'),
+    ]),
 
     'cache' => [
         'prefix' => 'tenant:',

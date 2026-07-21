@@ -19,4 +19,7 @@ return [
     'reloading_nginx' => '正在reload Nginx配置...',
     'nginx_reloaded' => '✓ Nginx已reload: :result',
     'nginx_test_failed' => '✗ Nginx配置测试失败，未执行reload',
+    'reserved' => '域名 :domain 是平台保留域名，禁止绑定到租户',
+    'reserved_wildcard' => '域名 :domain 属于平台通配域名范围，禁止绑定到租户',
+    'reserved_domains_updated' => '保留域名黑名单已更新',
 ];

@@ -24,6 +24,7 @@ use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
 use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 use MultiTenantSaas\Scopes\TenantScope;
+use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
@@ -94,7 +95,7 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => $request->password,  // Model casts auto-hashes
+            'password' => Hash::make($request->password), // 业务层显式 hash
         ]);
 
         // 自动加入当前租户
@@ -509,9 +510,8 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => trans('auth.token_expired')], 400);
         }
 
-        // 重置密码并删除 token
-        // User 模型有 'password' => 'hashed' cast，无需手动 Hash::make
-        $user->update(['password' => $request->password]);
+        // 重置密码并删除 token（业务层显式 hash）
+        $user->update(['password' => Hash::make($request->password)]);
         $user->tokens()->delete();
         DB::table('password_reset_tokens')
             ->where('email', $request->email)
@@ -569,7 +569,7 @@ class AuthController extends Controller
     /**
      * SAML SP 元数据。
      */
-    public function samlMetadata(Request $request): JsonResponse
+    public function samlMetadata(Request $request): Response
     {
         $ssoService = app(SsoService::class);
         $spEntityId = url('/api/v1/sso/saml/metadata');

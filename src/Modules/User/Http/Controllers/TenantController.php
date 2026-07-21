@@ -18,6 +18,8 @@ use MultiTenantSaas\Modules\Infrastructure\Services\TenantOnboardingService;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\Notification\Services\NotificationService;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
+use MultiTenantSaas\Modules\User\Http\Requests\StoreTenantRequest;
+use MultiTenantSaas\Modules\User\Http\Requests\UpdateTenantRequest;
 use MultiTenantSaas\Modules\User\Http\Resources\TenantResource;
 
 /**
@@ -146,23 +148,11 @@ class TenantController extends Controller
      *     @OA\Response(response=422, description="参数错误")
      * )
      */
-    public function store(Request $request)
+    public function store(StoreTenantRequest $request)
     {
         if (! RbacService::check('tenant.create')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
-
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:tenants,slug',
-            'domain' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'contact_name' => 'nullable|string|max:255',
-            'contact_email' => 'nullable|email',
-            'contact_phone' => 'nullable|string|max:20',
-            'subscription_plan' => 'nullable|in:free,basic,pro,enterprise',
-            'welcome_credits' => 'nullable|integer|min:0',
-        ]);
 
         $tenant = Tenant::create([
             'tenant_id' => app(IdGenerator::class)->generate(),
@@ -201,7 +191,7 @@ class TenantController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, ?int $tenantId = null)
+    public function update(UpdateTenantRequest $request, ?int $tenantId = null)
     {
         $tenantId = $tenantId ?? TenantContext::getId();
 
@@ -211,16 +201,7 @@ class TenantController extends Controller
 
         $this->ensureTenantAccessOrSuperAdmin($request, $tenantId);
 
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'status' => 'sometimes|in:active,suspended,inactive',
-            'subscription_plan' => 'sometimes|in:free,basic,pro,enterprise',
-            'custom_domain' => 'nullable|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'contact_name' => 'nullable|string|max:255',
-            'contact_email' => 'nullable|email|max:255',
-            'contact_phone' => 'nullable|string|max:20',
-        ]);
+        $validated = $request->validated();
 
         $tenant = Tenant::findOrFail($tenantId);
         $oldValues = $tenant->only(array_keys($validated));

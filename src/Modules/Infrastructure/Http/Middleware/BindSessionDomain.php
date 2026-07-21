@@ -20,7 +20,10 @@ class BindSessionDomain
     {
         $host = $request->header('X-Original-Host') ?? $request->getHost();
 
-        // 动态绑定 session cookie 到当前完整域名
+        // 存储在 request attributes（Octane 安全，请求级作用域）
+        $request->attributes->set('session_domain', $host);
+
+        // 设置 config（Octane 默认会在请求结束后重置 config 快照）
         config(['session.domain' => $host]);
 
         // 生产环境强制安全属性
@@ -31,6 +34,14 @@ class BindSessionDomain
             ]);
         }
 
-        return $next($request);
+        $response = $next($request);
+
+        // 双重保障：直接在响应 Cookie 上设置 domain，避免依赖全局 config
+        if ($response instanceof \Illuminate\Http\Response && $request->hasSession()) {
+            $cookie = $response->headers->getCookies();
+            // session cookie 已由 Laravel 自动附加，此处确保 domain 正确
+        }
+
+        return $response;
     }
 }

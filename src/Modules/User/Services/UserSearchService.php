@@ -30,9 +30,11 @@ class UserSearchService
             }]);
 
         if ($query !== '') {
-            $builder->where(function ($q) use ($query) {
-                $q->where('name', 'like', "%{$query}%")
-                    ->orWhere('email', 'like', "%{$query}%");
+            // 转义 LIKE 通配符，防止 % 和 _ 被当作通配符
+            $escaped = str_replace(['%', '_'], ['\%', '\_'], $query);
+            $builder->where(function ($q) use ($escaped) {
+                $q->where('name', 'like', "%{$escaped}%")
+                    ->orWhere('email', 'like', "%{$escaped}%");
             });
         }
 

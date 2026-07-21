@@ -213,14 +213,12 @@ class SocialiteService
                 'name' => $socialUser->getName() ?? $socialUser->getNickname(),
                 'email' => $socialUser->getEmail(),
                 'password' => bcrypt(Str::random(32)),
-                'role' => 'platform_user',
             ]);
 
             // 关联到租户
             TenantUser::create([
                 'tenant_id' => $tenantId,
                 'user_id' => $user->user_id,
-                'role' => 'end_user',
                 'is_active' => true,
                 'joined_at' => now(),
             ]);

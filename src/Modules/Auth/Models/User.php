@@ -54,7 +54,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'phone_verified_at' => 'datetime',
-            'password' => 'hashed',
+            // ⚠️ 禁止对 password 使用 'hashed' cast —— 哈希属于业务层逻辑，
+            // 必须由 Service/Controller 显式调用 Hash::make()，不允许模型隐式处理。
             'last_active_at' => 'datetime',
         ];
     }

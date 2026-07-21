@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
+use MultiTenantSaas\Modules\User\Http\Requests\StoreMemberRequest;
 use MultiTenantSaas\Modules\User\Http\Resources\TenantUserResource;
 
 class TenantMemberController extends Controller
@@ -30,15 +31,10 @@ class TenantMemberController extends Controller
         return response()->json(['success' => true, 'data' => TenantUserResource::collection($members)]);
     }
 
-    public function store(Request $request, ?int $tenantId = null)
+    public function store(StoreMemberRequest $request, ?int $tenantId = null)
     {
         $tenantId = $tenantId ?? TenantContext::getId();
         $this->ensureTenantAccess($request, $tenantId);
-
-        $request->validate([
-            'user_id' => 'required',
-            'role_id' => 'required|exists:roles,role_id',
-        ]);
 
         TenantUser::updateOrCreate(
             ['tenant_id' => $tenantId, 'user_id' => $request->user_id],

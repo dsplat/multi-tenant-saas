@@ -45,7 +45,7 @@ class PasswordService
             'password_hash' => $user->password,
         ]);
 
-        // 更新密码
+        // 更新密码（业务层显式 hash，不依赖模型 cast）
         $user->update(['password' => Hash::make($newPassword)]);
 
         // 清理旧密码历史（保留最近 5 个）
@@ -63,8 +63,8 @@ class PasswordService
             ->orderBy('created_at', 'desc')
             ->skip($keep)
             ->limit(1000)
-            ->pluck('id');
+            ->pluck('password_history_id');
 
-        PasswordHistory::whereIn('id', $ids)->delete();
+        PasswordHistory::whereIn('password_history_id', $ids)->delete();
     }
 }

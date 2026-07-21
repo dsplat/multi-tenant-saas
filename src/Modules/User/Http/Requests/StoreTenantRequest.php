@@ -15,8 +15,14 @@ class StoreTenantRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:100|unique:tenants,slug',
+            'slug' => 'required|string|max:255|unique:tenants,slug',
+            'domain' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'contact_name' => 'nullable|string|max:255',
             'contact_email' => 'nullable|email',
+            'contact_phone' => 'nullable|string|max:20',
+            'subscription_plan' => 'nullable|in:free,basic,pro,enterprise',
+            'welcome_credits' => 'nullable|integer|min:0',
         ];
     }
 }

@@ -28,30 +28,35 @@ class MessageService
         string $content,
         string $type = 'text',
     ): Message {
+        $prevTenantId = TenantContext::getId();
         TenantContext::setTenantId((string) $tenantId);
 
-        $message = Message::create([
-            'message_id' => $this->idGenerator->generate(),
-            'tenant_id' => $tenantId,
-            'conversation_id' => $conversationId,
-            'sender_id' => $senderId,
-            'sender_type' => 'user',
-            'content' => $content,
-            'type' => $type,
-        ]);
-
-        // 更新会话统计
-        Conversation::where('conversation_id', $conversationId)
-            ->where('tenant_id', $tenantId)
-            ->update([
-                'last_message_at' => now(),
-                'message_count' => \DB::raw('message_count + 1'),
+        try {
+            $message = Message::create([
+                'message_id' => $this->idGenerator->generate(),
+                'tenant_id' => $tenantId,
+                'conversation_id' => $conversationId,
+                'sender_id' => $senderId,
+                'sender_type' => 'user',
+                'content' => $content,
+                'type' => $type,
             ]);
 
-        // 触发事件
-        event(new MessageReceived($message, 'web'));
+            // 更新会话统计
+            Conversation::where('conversation_id', $conversationId)
+                ->where('tenant_id', $tenantId)
+                ->update([
+                    'last_message_at' => now(),
+                    'message_count' => \DB::raw('message_count + 1'),
+                ]);
 
-        return $message;
+            // 触发事件
+            event(new MessageReceived($message, 'web'));
+
+            return $message;
+        } finally {
+            TenantContext::setTenantId($prevTenantId);
+        }
     }
 
     /**
@@ -59,11 +64,16 @@ class MessageService
      */
     public function getMessage(int $tenantId, string $messageId): Message
     {
+        $prevTenantId = TenantContext::getId();
         TenantContext::setTenantId((string) $tenantId);
 
-        return Message::where('message_id', $messageId)
-            ->where('tenant_id', $tenantId)
-            ->firstOrFail();
+        try {
+            return Message::where('message_id', $messageId)
+                ->where('tenant_id', $tenantId)
+                ->firstOrFail();
+        } finally {
+            TenantContext::setTenantId($prevTenantId);
+        }
     }
 
     /**
@@ -71,12 +81,17 @@ class MessageService
      */
     public function listMessages(int $tenantId, string $conversationId, int $page = 1, int $perPage = 50): LengthAwarePaginator
     {
+        $prevTenantId = TenantContext::getId();
         TenantContext::setTenantId((string) $tenantId);
 
-        return Message::where('conversation_id', $conversationId)
-            ->where('tenant_id', $tenantId)
-            ->orderByDesc('created_at')
-            ->paginate($perPage, ['*'], 'page', $page);
+        try {
+            return Message::where('conversation_id', $conversationId)
+                ->where('tenant_id', $tenantId)
+                ->orderByDesc('created_at')
+                ->paginate($perPage, ['*'], 'page', $page);
+        } finally {
+            TenantContext::setTenantId($prevTenantId);
+        }
     }
 
     /**
@@ -84,22 +99,27 @@ class MessageService
      */
     public function revokeMessage(int $tenantId, string $messageId, int $userId): bool
     {
+        $prevTenantId = TenantContext::getId();
         TenantContext::setTenantId((string) $tenantId);
 
-        $message = Message::where('message_id', $messageId)
-            ->where('tenant_id', $tenantId)
-            ->where('sender_id', $userId)
-            ->firstOrFail();
+        try {
+            $message = Message::where('message_id', $messageId)
+                ->where('tenant_id', $tenantId)
+                ->where('sender_id', $userId)
+                ->firstOrFail();
 
-        // 30分钟内可撤回
-        if ($message->created_at->diffInMinutes(now()) > 30) {
-            return false;
+            // 30分钟内可撤回
+            if ($message->created_at->diffInMinutes(now()) > 30) {
+                return false;
+            }
+
+            return $message->update([
+                'content' => '[消息已撤回]',
+                'type' => 'revoked',
+            ]) > 0;
+        } finally {
+            TenantContext::setTenantId($prevTenantId);
         }
-
-        return $message->update([
-            'content' => '[消息已撤回]',
-            'type' => 'revoked',
-        ]) > 0;
     }
 
     /**
@@ -107,22 +127,27 @@ class MessageService
      */
     public function searchMessages(int $tenantId, string $keyword, array $filters = []): Collection
     {
+        $prevTenantId = TenantContext::getId();
         TenantContext::setTenantId((string) $tenantId);
 
-        $query = Message::where('tenant_id', $tenantId)
-            ->where('type', '!=', 'revoked')
-            ->where('content', 'like', '%' . $keyword . '%');
+        try {
+            $query = Message::where('tenant_id', $tenantId)
+                ->where('type', '!=', 'revoked')
+                ->where('content', 'like', '%' . $keyword . '%');
 
-        if (! empty($filters['conversation_id'])) {
-            $query->where('conversation_id', $filters['conversation_id']);
-        }
-        if (! empty($filters['sender_id'])) {
-            $query->where('sender_id', $filters['sender_id']);
-        }
-        if (! empty($filters['since'])) {
-            $query->where('created_at', '>=', $filters['since']);
-        }
+            if (! empty($filters['conversation_id'])) {
+                $query->where('conversation_id', $filters['conversation_id']);
+            }
+            if (! empty($filters['sender_id'])) {
+                $query->where('sender_id', $filters['sender_id']);
+            }
+            if (! empty($filters['since'])) {
+                $query->where('created_at', '>=', $filters['since']);
+            }
 
-        return $query->orderByDesc('created_at')->limit(100)->get();
+            return $query->orderByDesc('created_at')->limit(100)->get();
+        } finally {
+            TenantContext::setTenantId($prevTenantId);
+        }
     }
 }

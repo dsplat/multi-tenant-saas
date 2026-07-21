@@ -36,6 +36,29 @@
           <span v-if="device.is_primary" class="badge-primary">主设备</span>
         </div>
       </div>
+
+      <!-- 添加 MFA 设备 -->
+      <div class="mfa-setup">
+        <button v-if="!mfaSetupActive" class="btn btn-primary" @click="startMfaSetup">添加 TOTP 设备</button>
+
+        <div v-if="mfaSetupActive" class="mfa-setup-flow">
+          <p class="hint">使用 Google Authenticator 或其他 TOTP 应用扫描以下密钥：</p>
+          <div class="mfa-secret">
+            <code>{{ mfaSecret }}</code>
+          </div>
+          <p class="hint">或手动输入以上密钥到应用中，然后输入生成的 6 位验证码：</p>
+          <div class="form-group">
+            <input v-model="mfaCode" type="text" maxlength="6" placeholder="输入 6 位验证码" class="mfa-input" />
+          </div>
+          <div v-if="mfaMsg" :class="['alert', mfaSuccess ? 'alert-success' : 'alert-error']">{{ mfaMsg }}</div>
+          <div class="mfa-actions">
+            <button class="btn btn-primary" :disabled="mfaConfirming" @click="confirmMfaSetup">
+              {{ mfaConfirming ? '验证中...' : '确认绑定' }}
+            </button>
+            <button class="btn btn-cancel" @click="mfaSetupActive = false">取消</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 活跃会话 -->
@@ -65,6 +88,12 @@ const pwdSuccess = ref(false)
 const pwdForm = reactive({ current_password: '', password: '', password_confirmation: '' })
 const devices = ref<any[]>([])
 const sessions = ref<any[]>([])
+const mfaSetupActive = ref(false)
+const mfaSecret = ref('')
+const mfaCode = ref('')
+const mfaMsg = ref('')
+const mfaSuccess = ref(false)
+const mfaConfirming = ref(false)
 
 onMounted(async () => {
   const token = localStorage.getItem('user_token')
@@ -119,6 +148,63 @@ async function revoke(id: number) {
     sessions.value = sessions.value.filter(s => s.id !== id)
   } catch {}
 }
+
+async function startMfaSetup() {
+  const token = localStorage.getItem('user_token')
+  mfaMsg.value = ''
+  mfaCode.value = ''
+  try {
+    const res = await fetch('/api/v1/mfa/totp/setup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    })
+    const data = await res.json()
+    if (data.success) {
+      mfaSecret.value = data.data.secret
+      mfaSetupActive.value = true
+    } else {
+      mfaMsg.value = data.message || '初始化失败'
+    }
+  } catch {
+    mfaMsg.value = '网络错误'
+  }
+}
+
+async function confirmMfaSetup() {
+  if (mfaCode.value.length !== 6) {
+    mfaMsg.value = '请输入 6 位验证码'
+    mfaSuccess.value = false
+    return
+  }
+  mfaConfirming.value = true
+  mfaMsg.value = ''
+  const token = localStorage.getItem('user_token')
+  try {
+    const res = await fetch('/api/v1/mfa/totp/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ code: mfaCode.value, secret: mfaSecret.value, label: 'TOTP' }),
+    })
+    const data = await res.json()
+    if (data.success) {
+      mfaSuccess.value = true
+      mfaMsg.value = 'MFA 设备绑定成功'
+      mfaSetupActive.value = false
+      // 刷新设备列表
+      const listRes = await fetch('/api/v1/mfa/devices', { headers: { Authorization: `Bearer ${token}` } })
+      const listData = await listRes.json()
+      if (listData.success) devices.value = listData.data || []
+    } else {
+      mfaSuccess.value = false
+      mfaMsg.value = data.message || '验证码错误'
+    }
+  } catch {
+    mfaSuccess.value = false
+    mfaMsg.value = '网络错误'
+  } finally {
+    mfaConfirming.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -143,4 +229,12 @@ async function revoke(id: number) {
 .badge-current { background: #e8f5e9; color: #2e7d32; font-size: 11px; padding: 2px 8px; border-radius: 4px; }
 .session-info { flex: 1; display: flex; flex-direction: column; }
 .session-agent { font-size: 12px; color: #999; }
+.mfa-setup { margin-top: 16px; }
+.mfa-setup-flow { margin-top: 12px; padding: 16px; background: #f9f9f9; border-radius: 8px; }
+.mfa-secret { margin: 12px 0; padding: 12px; background: #fff; border: 1px dashed #ccc; border-radius: 6px; text-align: center; }
+.mfa-secret code { font-size: 16px; letter-spacing: 2px; word-break: break-all; }
+.mfa-input { width: 160px; text-align: center; font-size: 18px; letter-spacing: 4px; }
+.mfa-actions { display: flex; gap: 12px; margin-top: 12px; }
+.btn-cancel { background: #eee; color: #333; }
+.hint { font-size: 13px; color: #666; margin-bottom: 8px; }
 </style>

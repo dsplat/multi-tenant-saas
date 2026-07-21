@@ -217,7 +217,7 @@ class SecurityTest extends TestCase
     {
         $plain = 'MySecretPassword123';
 
-        $user = User::factory()->create(['password' => $plain]);
+        $user = User::factory()->create(['password' => Hash::make($plain)]);
 
         $stored = DB::table('users')->where('user_id', $user->user_id)->value('password');
 

@@ -21,21 +21,26 @@ class TimelineService
      */
     public function getTimeline(int $tenantId, string $conversationId, ?string $before = null, int $limit = 50): Collection
     {
+        $prevTenantId = TenantContext::getId();
         TenantContext::setTenantId((string) $tenantId);
 
-        $query = Message::where('conversation_id', $conversationId)
-            ->where('tenant_id', $tenantId)
-            ->with(['reactions', 'mentions']);
+        try {
+            $query = Message::where('conversation_id', $conversationId)
+                ->where('tenant_id', $tenantId)
+                ->with(['reactions', 'mentions']);
 
-        if ($before) {
-            $query->where('message_id', '<', $before);
+            if ($before) {
+                $query->where('message_id', '<', $before);
+            }
+
+            return $query->orderByDesc('created_at')
+                ->limit($limit)
+                ->get()
+                ->reverse()
+                ->values();
+        } finally {
+            TenantContext::setTenantId($prevTenantId);
         }
-
-        return $query->orderByDesc('created_at')
-            ->limit($limit)
-            ->get()
-            ->reverse()
-            ->values();
     }
 
     /**
@@ -43,18 +48,23 @@ class TimelineService
      */
     public function markRead(int $tenantId, string $conversationId, int $userId, string $messageId): void
     {
+        $prevTenantId = TenantContext::getId();
         TenantContext::setTenantId((string) $tenantId);
 
-        ReadState::updateOrCreate(
-            [
-                'tenant_id' => $tenantId,
-                'conversation_id' => $conversationId,
-                'user_id' => $userId,
-            ],
-            [
-                'last_read_message_id' => $messageId,
-                'last_read_at' => now(),
-            ],
-        );
+        try {
+            ReadState::updateOrCreate(
+                [
+                    'tenant_id' => $tenantId,
+                    'conversation_id' => $conversationId,
+                    'user_id' => $userId,
+                ],
+                [
+                    'last_read_message_id' => $messageId,
+                    'last_read_at' => now(),
+                ],
+            );
+        } finally {
+            TenantContext::setTenantId($prevTenantId);
+        }
     }
 }

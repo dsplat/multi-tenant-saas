@@ -19,4 +19,7 @@ return [
     'reloading_nginx' => 'Reloading Nginx config...',
     'nginx_reloaded' => '✓ Nginx reloaded: :result',
     'nginx_test_failed' => '✗ Nginx config test failed, reload not executed',
+    'reserved' => 'Domain :domain is a reserved platform domain and cannot be bound to a tenant',
+    'reserved_wildcard' => 'Domain :domain falls under the platform wildcard domain and cannot be bound to a tenant',
+    'reserved_domains_updated' => 'Reserved domains blacklist updated',
 ];

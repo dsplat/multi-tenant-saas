@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\Auth\Services;
 
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Hash;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Auth\Models\PasswordHistory;
 use MultiTenantSaas\Modules\Auth\Models\User;
@@ -239,8 +240,8 @@ class PasswordPolicyService
             $this->recordPasswordHistory($user->user_id, $currentHash);
         }
 
-        // 设置新密码（'hashed' cast 自动加密）
-        $user->password = $newPassword;
+        // 设置新密码（业务层显式 hash，不依赖模型 cast）
+        $user->password = Hash::make($newPassword);
         $user->password_changed_at = now();
         $user->login_attempts = 0;
         $user->locked_until = null;

@@ -45,7 +45,7 @@ class OperatorAuthController extends Controller
             'operator_id' => $idGenerator->generate(),
             'name' => $request->name,
             'email' => $request->email,
-            'password' => $request->password,
+            'password' => Hash::make($request->password), // 业务层显式 hash
             'scope' => 'tenant',
             'is_active' => true,
         ]);
@@ -76,21 +76,43 @@ class OperatorAuthController extends Controller
 
         $operator = Operator::where('email', $request->email)->first();
 
-        if (! $operator || ! Hash::check($request->password, $operator->password)) {
+        if (! $operator) {
             return response()->json(['success' => false, 'message' => trans('auth.invalid_credentials')], 401);
         }
 
-        if (! $operator->is_active) {
-            return response()->json(['success' => false, 'message' => trans('auth.account_disabled')], 403);
-        }
-
-        // 检查账户锁定
+        // 检查账户锁定（优先于密码校验）
         if ($operator->locked_until && Carbon::parse($operator->locked_until)->isFuture()) {
             return response()->json([
                 'success' => false,
                 'message' => trans('auth.account_locked'),
                 'retry_after' => Carbon::parse($operator->locked_until)->diffInSeconds(now()),
             ], 423);
+        }
+
+        if (! Hash::check($request->password, $operator->password)) {
+            // 登录失败：递增尝试次数，达到阈值则锁定
+            $attempts = (int) ($operator->login_attempts ?? 0) + 1;
+            $maxAttempts = 5;
+
+            $updateData = ['login_attempts' => $attempts];
+            if ($attempts >= $maxAttempts) {
+                $updateData['locked_until'] = now()->addMinutes(15);
+            }
+            $operator->update($updateData);
+
+            $message = $attempts >= $maxAttempts
+                ? trans('auth.account_locked')
+                : trans('auth.invalid_credentials');
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+                'remaining_attempts' => max(0, $maxAttempts - $attempts),
+            ], $attempts >= $maxAttempts ? 423 : 401);
+        }
+
+        if (! $operator->is_active) {
+            return response()->json(['success' => false, 'message' => trans('auth.account_disabled')], 403);
         }
 
         // 成功登录，重置登录尝试
@@ -259,8 +281,8 @@ class OperatorAuthController extends Controller
             return response()->json(['success' => false, 'message' => trans('auth.token_expired')], 400);
         }
 
-        // 重置密码并删除 token
-        $operator->update(['password' => $request->password]);
+        // 重置密码并删除 token（业务层显式 hash）
+        $operator->update(['password' => Hash::make($request->password)]);
         $operator->tokens()->delete();
         DB::table('password_reset_tokens')
             ->where('email', $request->email)

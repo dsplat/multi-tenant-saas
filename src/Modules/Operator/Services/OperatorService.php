@@ -116,7 +116,7 @@ class OperatorService
             }
 
             $operator->update([
-                'password' => Hash::make($password),
+                'password' => Hash::make($password), // 业务层显式 hash，不依赖模型 cast
                 'is_active' => true,
                 'invite_token' => null,
                 'invite_expires_at' => null,

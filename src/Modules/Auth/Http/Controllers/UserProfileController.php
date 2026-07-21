@@ -61,7 +61,7 @@ class UserProfileController extends Controller
             ], 422);
         }
 
-        $user->update(['password' => $request->password]);
+        $user->update(['password' => Hash::make($request->password)]);
 
         // 撤销所有其他 token（保留当前会话）
         $currentTokenId = $user->currentAccessToken()->id;

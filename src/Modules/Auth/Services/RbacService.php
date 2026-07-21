@@ -85,6 +85,11 @@ class RbacService
      */
     protected static function checkOperatorPermission(Operator $operator, ?int $tenantId, string $permission): bool
     {
+        // 平台管理员 (scope=platform) 拥有所有权限，无需逐一检查
+        if ($operator->scope === 'platform') {
+            return true;
+        }
+
         $query = OperatorTenant::where('operator_id', $operator->operator_id)
             ->where('is_active', true);
 

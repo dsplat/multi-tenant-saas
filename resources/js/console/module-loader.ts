@@ -57,9 +57,25 @@ const moduleRoutesFiles = import.meta.glob(
   { eager: false }
 )
 
+// Downstream project modules (self-contained: frontend colocated under app/Modules/<Name>/resources/console)
+const appModuleViews = import.meta.glob(
+  '/app/Modules/*/resources/console/ui/*/views/*.vue',
+  { eager: false }
+)
+
+const appModuleViewFiles = import.meta.glob(
+  '/app/Modules/*/resources/console/ui/*/views/**/*.vue',
+  { eager: false }
+)
+
+const appModuleRoutesFiles = import.meta.glob(
+  '/app/Modules/*/resources/console/routes.ts',
+  { eager: false }
+)
+
 // ---- Helpers ----
 
-type SourceType = 'local' | 'vendor' | 'vendor-core'
+type SourceType = 'local' | 'app' | 'vendor' | 'vendor-core'
 
 function getFramework(): string {
   return localStorage.getItem('multi-tenant-saas-ui-framework')
@@ -69,7 +85,8 @@ function getFramework(): string {
 
 function extractModuleName(path: string, type: SourceType): string | null {
   const patterns: Record<SourceType, RegExp> = {
-    'local': /src\/Modules\/([^/]+)\/resources\/console\//,
+    'local': /(?:src|app)\/Modules\/([^/]+)\/resources\/console\//,
+    'app': /app\/Modules\/([^/]+)\/resources\/console\//,
     'vendor': /vendor\/dsplat\/([^/]+)\//,
     'vendor-core': /vendor\/dsplat\/multi-tenant-saas\/src\/Modules\/([^/]+)\//,
   }
@@ -121,6 +138,10 @@ export function view(moduleName: string, viewPath: string): () => Promise<any> {
       if (projectModuleViewFiles[key]) {
         return (projectModuleViewFiles[key] as () => Promise<any>)()
       }
+      const appKey = `/app/Modules/${moduleName}/resources/console/ui/${tryFw}/views/${viewPath}.vue`
+      if (appModuleViewFiles[appKey]) {
+        return (appModuleViewFiles[appKey] as () => Promise<any>)()
+      }
     }
     return import(/* @vite-ignore */ `/src/Modules/${moduleName}/resources/console/ui/element-plus/views/${viewPath}.vue`)
   }
@@ -159,6 +180,12 @@ const MODULE_LABELS: Record<string, string> = {
   analytics: '数据分析', staff: '团队管理', sms: '触达运营', product: '交易转化',
   knowledge: '知识库', lottery: '抽奖活动', distribution: '分销管理', coupon: '优惠券',
   voting: '投票活动',
+  // Downstream project business modules (PascalCase — self-contained under app/Modules)
+  Customer: '客户运营', Ai: 'AI 能力', AI: 'AI 能力', Channel: '渠道与获客', Community: '社群运营',
+  Content: '内容管理', Marketing: '营销活动', Membership: '会员运营', Analytics: '数据分析',
+  Staff: '团队管理', Product: '交易转化', Knowledge: '知识库', Lottery: '抽奖活动',
+  Distribution: '分销管理', Coupon: '优惠券', Voting: '投票活动', Event: '活动管理',
+  ChatArchive: '会话存档', Mcp: 'MCP 协议',
   // Vendor modules (PascalCase — framework standalone)
   User: '用户管理', Billing: '计费管理', Auth: '认证配置', ApiToken: 'API 管理',
   Payment: '支付配置', Platform: '平台管理', Sms: '短信配置', SSL: 'SSL 证书',
@@ -183,7 +210,7 @@ const MODULE_LABELS: Record<string, string> = {
 export async function loadModuleRoutes(): Promise<ModuleRoute[]> {
   const routes: ModuleRoute[] = []
 
-  for (const [path, loader] of Object.entries(moduleRoutesFiles)) {
+  for (const [path, loader] of Object.entries({ ...moduleRoutesFiles, ...appModuleRoutesFiles })) {
     const moduleName = extractModuleName(path, 'local')
     if (!moduleName) continue
 
@@ -214,6 +241,7 @@ export async function loadModuleViews(): Promise<ModuleRoute[]> {
   type PageMap = Map<string, { path: string; type: SourceType }>
   const sources: Array<{ views: Record<string, unknown>; type: SourceType; fwMap: PageMap; bsMap: PageMap }> = [
     { views: localModuleViews, type: 'local', fwMap: new Map(), bsMap: new Map() },
+    { views: appModuleViews, type: 'app', fwMap: new Map(), bsMap: new Map() },
     { views: frameworkModuleViews, type: 'vendor', fwMap: new Map(), bsMap: new Map() },
     { views: frameworkCoreModuleViews, type: 'vendor-core', fwMap: new Map(), bsMap: new Map() },
   ]
@@ -229,7 +257,7 @@ export async function loadModuleViews(): Promise<ModuleRoute[]> {
   }
 
   const hasCustomRoutes = new Set<string>()
-  for (const [path] of Object.entries(moduleRoutesFiles)) {
+  for (const [path] of Object.entries({ ...moduleRoutesFiles, ...appModuleRoutesFiles })) {
     const name = extractModuleName(path, 'local')
     if (name) hasCustomRoutes.add(name)
   }
@@ -245,6 +273,7 @@ export async function loadModuleViews(): Promise<ModuleRoute[]> {
       seen.add(pageName)
 
       const views = type === 'local' ? localModuleViews
+        : type === 'app' ? appModuleViews
         : type === 'vendor' ? frameworkModuleViews
         : frameworkCoreModuleViews
       const loader = views[path]
@@ -280,6 +309,7 @@ export function getModulePageEntries(): Array<{ moduleName: string; pageName: st
 
   const sources: Array<{ views: Record<string, () => Promise<any>>; type: SourceType }> = [
     { views: localModuleViews, type: 'local' },
+    { views: appModuleViews, type: 'app' },
     { views: frameworkModuleViews, type: 'vendor' },
     { views: frameworkCoreModuleViews, type: 'vendor-core' },
   ]

@@ -1,0 +1,5 @@
+#!/bin/sh
+# multi_tenant_saas 架构守卫 pre-commit 钩子
+# 由 scripts/install-hooks.sh 通过 core.hooksPath 启用（随仓库版本化，团队共享）。
+# 阻断式：违规 exit 1 拦截提交；紧急绕过用 git commit --no-verify。
+exec python3 "$(git rev-parse --show-toplevel)/scripts/architecture_guard.py"

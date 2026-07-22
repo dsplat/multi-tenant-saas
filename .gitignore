@@ -56,3 +56,7 @@ runner.db
 auto-imports.d.ts
 components.d.ts
 dist/
+
+# 部署本地配置（含服务器凭证，勿提交）
+deploy/config.env
+deploy/__pycache__/

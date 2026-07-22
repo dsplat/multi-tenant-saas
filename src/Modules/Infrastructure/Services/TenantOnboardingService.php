@@ -358,7 +358,9 @@ class TenantOnboardingService
         $slug = $subdomain ?: $this->generateUniqueSlug($basic['name']);
 
         if ($domainType !== 'custom' || empty($customDomain)) {
-            $customDomain = null;
+            // 子域名模式：自动生成 {slug}.{wildcard_base} 作为 domain
+            $wildcardBase = config('domain.wildcard_base');
+            $customDomain = $wildcardBase ? "{$slug}.{$wildcardBase}" : null;
         }
 
         return Tenant::create([

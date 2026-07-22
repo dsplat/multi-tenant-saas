@@ -94,9 +94,15 @@ class IdentifyTenant
             return (string) $tokenable->current_tenant_id;
         }
 
-        // 7. 通配子域名兜底到默认租户（如 *.scrm.com → 个人用户）
+        // 7. 通配子域名解析（如 lanyantu.dsplat.com → slug=lanyantu）
         $host = $request->header('X-Original-Host') ?? $request->getHost();
         if ($this->isWildcardSubdomain($host)) {
+            // 提取子域名前缀作为 slug 查找租户
+            if ($tenantId = $this->resolveFromSubdomain($host)) {
+                return $tenantId;
+            }
+
+            // 未匹配到租户，兜底到默认租户
             return config('tenancy.default_tenant_id') ? (string) config('tenancy.default_tenant_id') : null;
         }
 
@@ -163,6 +169,34 @@ class IdentifyTenant
         }
 
         return str_ends_with($host, ".{$wildcardBase}") && $host !== $wildcardBase;
+    }
+
+    /**
+     * 从通配子域名提取 slug 并解析租户
+     *
+     * 例：lanyantu.dsplat.com → 提取 "lanyantu" → 查 tenants.slug
+     * 带缓存，避免每次请求查库。
+     */
+    protected function resolveFromSubdomain(string $host): ?string
+    {
+        $wildcardBase = config('domain.wildcard_base');
+        $slug = substr($host, 0, -(strlen($wildcardBase) + 1)); // 去掉 ".dsplat.com"
+
+        if (empty($slug) || str_contains($slug, '.')) {
+            return null; // 多级子域名（如 a.b.dsplat.com）不支持
+        }
+
+        $cacheKey = config('tenancy.cache.prefix', 'tenant:') . 'slug:' . $slug;
+
+        $tenantId = cache()->remember(
+            $cacheKey,
+            config('tenancy.cache.ttl', 3600),
+            fn () => Tenant::where('slug', $slug)
+                ->where('status', 'active')
+                ->value('tenant_id')
+        );
+
+        return $tenantId ? (string) $tenantId : null;
     }
 
     /**

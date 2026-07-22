@@ -151,6 +151,65 @@ class AuthImprovementsTest extends TestCase
         });
     }
 
+    public function test_identify_tenant_wildcard_subdomain_resolves_by_slug(): void
+    {
+        config(['tenancy.default_tenant_id' => 9999]);
+        config(['domain.wildcard_base' => 'dsplat.com']);
+
+        // 创建 slug=lanyantu 的租户
+        Tenant::create([
+            'tenant_id' => 2001,
+            'name' => 'LanYanTu',
+            'slug' => 'lanyantu',
+            'status' => 'active',
+            'domain' => 'lanyantu.dsplat.com',
+        ]);
+
+        $middleware = new IdentifyTenant;
+        $request = Request::create('https://lanyantu.dsplat.com/h5/');
+        $request->headers->set('X-Original-Host', 'lanyantu.dsplat.com');
+
+        $middleware->handle($request, function () {
+            // 应解析到 slug 对应的租户 2001，而非默认 9999
+            $this->assertEquals('2001', TenantContext::getId());
+
+            return new Response;
+        });
+    }
+
+    public function test_identify_tenant_wildcard_subdomain_unknown_slug_falls_back_default(): void
+    {
+        config(['tenancy.default_tenant_id' => 9999]);
+        config(['domain.wildcard_base' => 'dsplat.com']);
+
+        // 创建一个不相关的租户
+        Tenant::create([
+            'tenant_id' => 2001,
+            'name' => 'LanYanTu',
+            'slug' => 'lanyantu',
+            'status' => 'active',
+            'domain' => 'lanyantu.dsplat.com',
+        ]);
+        // 默认租户
+        Tenant::create([
+            'tenant_id' => 9999,
+            'name' => 'Default',
+            'slug' => 'default',
+            'status' => 'active',
+        ]);
+
+        $middleware = new IdentifyTenant;
+        $request = Request::create('https://unknown-opc.dsplat.com/h5/');
+        $request->headers->set('X-Original-Host', 'unknown-opc.dsplat.com');
+
+        $middleware->handle($request, function () {
+            // slug "unknown-opc" 不存在，应 fallback 到默认租户
+            $this->assertEquals('9999', TenantContext::getId());
+
+            return new Response;
+        });
+    }
+
     public function test_identify_tenant_unrecognized_domain_returns_null(): void
     {
         config(['domain.wildcard_base' => 'scrm.com']);

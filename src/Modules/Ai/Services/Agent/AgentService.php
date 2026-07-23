@@ -41,7 +41,7 @@ class AgentService implements AgentServiceContract
                 'name' => $data['name'],
                 'role' => $data['role'],
                 'avatar' => $data['avatar'] ?? null,
-                'system_prompt' => $data['system_prompt'],
+                'system_prompt' => $data['system_prompt'] ?? '',
                 'description' => $data['description'] ?? null,
                 'tools' => $data['tools'] ?? [],
                 'kb_ids' => $data['kb_ids'] ?? [],

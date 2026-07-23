@@ -73,6 +73,35 @@ const appModuleRoutesFiles = import.meta.glob(
   { eager: false }
 )
 
+// ---- Case-insensitive glob lookup ----
+// Vite import.meta.glob keys preserve filesystem case (PascalCase on disk).
+// Module routes.ts may pass lowercase names (e.g. view('channel', ...)).
+// Build lowercase→original maps once for O(1) case-insensitive resolution.
+
+function buildCaseInsensitiveMap(glob: Record<string, any>): Map<string, string> {
+  const map = new Map<string, string>()
+  for (const key of Object.keys(glob)) {
+    map.set(key.toLowerCase(), key)
+  }
+  return map
+}
+
+const projectViewsCI = buildCaseInsensitiveMap(projectModuleViewFiles)
+const appViewsCI = buildCaseInsensitiveMap(appModuleViewFiles)
+
+/** Resolve a glob key case-insensitively; returns the loader or undefined. */
+function resolveGlobLoader(
+  glob: Record<string, any>,
+  ciMap: Map<string, string>,
+  key: string
+): (() => Promise<any>) | undefined {
+  // Exact match first (fast path)
+  if (glob[key]) return glob[key] as () => Promise<any>
+  // Case-insensitive fallback
+  const realKey = ciMap.get(key.toLowerCase())
+  return realKey ? (glob[realKey] as () => Promise<any>) : undefined
+}
+
 // ---- Helpers ----
 
 type SourceType = 'local' | 'app' | 'vendor' | 'vendor-core'
@@ -128,6 +157,8 @@ function pageNameToLabel(pageName: string): string {
 /**
  * Framework-aware view resolver for module routes.ts.
  * Tries the current UI framework first, falls back to element-plus.
+ * Performs case-insensitive glob key matching to handle PascalCase directories
+ * with lowercase module names in routes.ts (e.g. view('channel', ...) → /app/Modules/Channel/...).
  * Usage in routes.ts: view('customer', 'customers/CustomerList')
  */
 export function view(moduleName: string, viewPath: string): () => Promise<any> {
@@ -135,14 +166,14 @@ export function view(moduleName: string, viewPath: string): () => Promise<any> {
     const fw = getFramework()
     for (const tryFw of [fw, 'element-plus']) {
       const key = `/src/Modules/${moduleName}/resources/console/ui/${tryFw}/views/${viewPath}.vue`
-      if (projectModuleViewFiles[key]) {
-        return (projectModuleViewFiles[key] as () => Promise<any>)()
-      }
+      const loader = resolveGlobLoader(projectModuleViewFiles, projectViewsCI, key)
+      if (loader) return loader()
+
       const appKey = `/app/Modules/${moduleName}/resources/console/ui/${tryFw}/views/${viewPath}.vue`
-      if (appModuleViewFiles[appKey]) {
-        return (appModuleViewFiles[appKey] as () => Promise<any>)()
-      }
+      const appLoader = resolveGlobLoader(appModuleViewFiles, appViewsCI, appKey)
+      if (appLoader) return appLoader()
     }
+    // Last resort: runtime dynamic import (will 404 in production if path is wrong)
     return import(/* @vite-ignore */ `/src/Modules/${moduleName}/resources/console/ui/element-plus/views/${viewPath}.vue`)
   }
 }
@@ -265,6 +296,19 @@ export async function loadModuleViews(): Promise<ModuleRoute[]> {
   const allSources = sources.flatMap(s => [s.fwMap, s.bsMap])
   const seen = new Set<string>()
 
+  // Chinese title mapping for framework auto-discovered pages
+  const pageTitleMap: Record<string, string> = {
+    Members: '成员管理',
+    Workflows: '工作流',
+    ApiTokens: 'API Token',
+    TenantSettings: '租户设置',
+    Webhooks: 'Webhooks',
+    SslCertificates: 'SSL 证书',
+    OAuthSettings: '第三方登录',
+    PaymentSettings: '支付配置',
+    PointsManagement: '积分管理',
+  }
+
   for (const source of allSources) {
     for (const [pageName, { path, type }] of source) {
       if (seen.has(pageName)) continue
@@ -283,7 +327,7 @@ export async function loadModuleViews(): Promise<ModuleRoute[]> {
         path: pageNameToPath(pageName),
         name: `${moduleName}${pageName}`,
         component: () => (loader as () => Promise<any>)(),
-        meta: { title: pageName, requiresAuth: true, module: moduleName },
+        meta: { title: pageTitleMap[pageName] || pageName, requiresAuth: true, module: moduleName },
       })
     }
   }

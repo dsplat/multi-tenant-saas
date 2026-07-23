@@ -58,7 +58,7 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-const API = '/tenant/workflows'
+const API = '/api/v1/tenant/workflows'
 const workflows = ref<any[]>([])
 const dialogVisible = ref(false)
 const isEdit = ref(false)

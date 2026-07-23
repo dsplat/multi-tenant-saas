@@ -17,7 +17,7 @@ class CreateAgentRequest extends FormRequest
             'name' => 'required|string|max:100',
             'role' => 'required|string|max:50',
             'avatar' => 'nullable|string|max:500',
-            'system_prompt' => 'required|string',
+            'system_prompt' => 'nullable|string',
             'description' => 'nullable|string',
             'tools' => 'nullable|array',
             'tools.*' => 'string',

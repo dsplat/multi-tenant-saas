@@ -10,7 +10,7 @@ use App\Notifications\TenantSuspendedNotification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
 use MultiTenantSaas\Contracts\TenantContextContract;
-use MultiTenantSaas\Modules\Auth\Models\User;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Notification\Models\NotificationPreference;
 
@@ -33,7 +33,7 @@ class NotificationService
      */
     protected function filterByPreference(Collection $users, string $channel, ?string $type = null): Collection
     {
-        return $users->filter(function (User $user) use ($channel, $type) {
+        return $users->filter(function (Authenticatable $user) use ($channel, $type) {
             return NotificationPreference::isEnabled($user->id, $channel, $type);
         });
     }
@@ -42,7 +42,7 @@ class NotificationService
      * 发送通用通知给指定用户
      */
     public function sendToUser(
-        User $user,
+        Authenticatable $user,
         string $title,
         string $message,
         string $type = 'info',
@@ -176,7 +176,7 @@ class NotificationService
     /**
      * 通知支付成功
      */
-    public function notifyPaymentSuccess(User $user, string $orderNo, int $amount, string $paymentMethod): void
+    public function notifyPaymentSuccess(Authenticatable $user, string $orderNo, int $amount, string $paymentMethod): void
     {
         if (! NotificationPreference::isEnabled($user->id, 'database', 'payment_success')) {
             return;
@@ -187,7 +187,7 @@ class NotificationService
     /**
      * 获取用户未读通知数
      */
-    public function getUnreadCount(User $user): int
+    public function getUnreadCount(Authenticatable $user): int
     {
         return $user->unreadNotifications()->count();
     }

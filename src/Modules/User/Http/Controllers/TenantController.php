@@ -83,7 +83,7 @@ class TenantController extends Controller
      */
     public function index(Request $request)
     {
-        if (! RbacService::check('tenant.view')) {
+        if (! app(RbacService::class)->check('tenant.view')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
@@ -105,7 +105,7 @@ class TenantController extends Controller
     {
         $tenantId = $tenantId ?? TenantContext::getId();
 
-        if (! RbacService::check('tenant.view')) {
+        if (! app(RbacService::class)->check('tenant.view')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
@@ -150,7 +150,7 @@ class TenantController extends Controller
      */
     public function store(StoreTenantRequest $request)
     {
-        if (! RbacService::check('tenant.create')) {
+        if (! app(RbacService::class)->check('tenant.create')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
@@ -178,7 +178,7 @@ class TenantController extends Controller
         );
 
         Event::dispatch(new TenantCreated($tenant));
-        AuditService::log('create', 'tenant', $tenant->tenant_id, null, [
+        app(AuditService::class)->log('create', 'tenant', $tenant->tenant_id, null, [
             'name' => $tenant->name,
             'slug' => $tenant->slug,
             'plan' => $tenant->subscription_plan,
@@ -195,7 +195,7 @@ class TenantController extends Controller
     {
         $tenantId = $tenantId ?? TenantContext::getId();
 
-        if (! RbacService::check('tenant.update')) {
+        if (! app(RbacService::class)->check('tenant.update')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
@@ -207,7 +207,7 @@ class TenantController extends Controller
         $oldValues = $tenant->only(array_keys($validated));
         $tenant->update($validated);
 
-        AuditService::log('update', 'tenant', $tenantId, $oldValues, $validated);
+        app(AuditService::class)->log('update', 'tenant', $tenantId, $oldValues, $validated);
 
         return response()->json(['success' => true, 'data' => new TenantResource($tenant)]);
     }
@@ -216,7 +216,7 @@ class TenantController extends Controller
     {
         $tenantId = $tenantId ?? TenantContext::getId();
 
-        if (! RbacService::check('tenant.delete')) {
+        if (! app(RbacService::class)->check('tenant.delete')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
@@ -224,7 +224,7 @@ class TenantController extends Controller
 
         $tenant = Tenant::findOrFail($tenantId);
 
-        AuditService::log('delete', 'tenant', $tenantId, ['name' => $tenant->name], null);
+        app(AuditService::class)->log('delete', 'tenant', $tenantId, ['name' => $tenant->name], null);
 
         $tenant->delete();
 
@@ -238,7 +238,7 @@ class TenantController extends Controller
     {
         $tenantId = $tenantId ?? TenantContext::getId();
 
-        if (! RbacService::check('tenant.suspend')) {
+        if (! app(RbacService::class)->check('tenant.suspend')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
@@ -265,13 +265,13 @@ class TenantController extends Controller
             })
             ->delete();
 
-        AuditService::log('suspend', 'tenant', $tenantId, ['status' => $oldStatus], [
+        app(AuditService::class)->log('suspend', 'tenant', $tenantId, ['status' => $oldStatus], [
             'status' => 'suspended',
             'reason' => $request->reason,
         ]);
 
         // 通知租户所有成员
-        NotificationService::notifyTenantSuspended($tenant, $request->reason);
+        app(NotificationService::class)->notifyTenantSuspended($tenant, $request->reason);
 
         return response()->json(['success' => true, 'message' => trans('tenant.suspended')]);
     }
@@ -287,7 +287,7 @@ class TenantController extends Controller
     {
         $tenantId = $tenantId ?? TenantContext::getId();
 
-        if (! RbacService::check('tenant.activate')) {
+        if (! app(RbacService::class)->check('tenant.activate')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
@@ -310,7 +310,7 @@ class TenantController extends Controller
             app(TenantOnboardingService::class)
                 ->approveTenant($tenant, $approverId);
 
-            AuditService::log('approve', 'tenant', $tenantId, ['status' => $oldStatus], ['status' => 'active']);
+            app(AuditService::class)->log('approve', 'tenant', $tenantId, ['status' => $oldStatus], ['status' => 'active']);
 
             return response()->json(['success' => true, 'message' => trans('tenant.activated')]);
         }
@@ -318,7 +318,7 @@ class TenantController extends Controller
         $tenant->status = 'active';
         $tenant->save();
 
-        AuditService::log('activate', 'tenant', $tenantId, ['status' => $oldStatus], ['status' => 'active']);
+        app(AuditService::class)->log('activate', 'tenant', $tenantId, ['status' => $oldStatus], ['status' => 'active']);
 
         return response()->json(['success' => true, 'message' => trans('tenant.resumed')]);
     }

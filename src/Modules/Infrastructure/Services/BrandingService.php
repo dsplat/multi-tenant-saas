@@ -238,9 +238,9 @@ class BrandingService
     private function storeAsset(int $tenantId, UploadedFile $file, string $category): string
     {
         if (class_exists(FileService::class)) {
-            $upload = FileService::upload($file, $tenantId, null, 'branding', null, true);
+            $upload = app(FileService::class)->upload($file, $tenantId, null, 'branding', null, true);
 
-            return FileService::getUrl($upload);
+            return app(FileService::class)->getUrl($upload);
         }
 
         $disk = config('tenancy.file_storage_disk', 'local');

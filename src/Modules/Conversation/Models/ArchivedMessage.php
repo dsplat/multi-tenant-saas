@@ -4,11 +4,12 @@ namespace MultiTenantSaas\Modules\Conversation\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 
 class ArchivedMessage extends Model
 {
-    use HasGlobalId;
+    use BelongsToTenant, HasGlobalId;
 
     protected $primaryKey = 'archived_message_id';
 

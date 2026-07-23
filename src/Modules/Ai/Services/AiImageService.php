@@ -413,7 +413,7 @@ class AiImageService
 
             $stored[] = [
                 'file_upload_id' => (int) $fileUpload->file_upload_id,
-                'url' => FileService::getUrl($fileUpload),
+                'url' => app(FileService::class)->getUrl($fileUpload),
                 'size' => (int) $fileUpload->size,
                 'mime_type' => (string) $fileUpload->mime_type,
                 'width' => $metadata['width'] ?? null,
@@ -464,7 +464,7 @@ class AiImageService
             true,
         );
 
-        $fileUpload = FileService::upload(
+        $fileUpload = app(FileService::class)->upload(
             $uploadedFile,
             $this->currentTenantIntId(),
             $this->currentUserId(),

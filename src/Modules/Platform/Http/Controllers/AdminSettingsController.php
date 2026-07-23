@@ -11,7 +11,7 @@ class AdminSettingsController extends Controller
 {
     public function index(Request $request)
     {
-        if (! RbacService::check('system.settings')) {
+        if (! app(RbacService::class)->check('system.settings')) {
             return response()->json(['success' => false, 'message' => trans('common.forbidden')], 403);
         }
 
@@ -22,7 +22,7 @@ class AdminSettingsController extends Controller
 
     public function update(Request $request, string $group)
     {
-        if (! RbacService::check('system.settings')) {
+        if (! app(RbacService::class)->check('system.settings')) {
             return response()->json(['success' => false, 'message' => trans('common.forbidden')], 403);
         }
 

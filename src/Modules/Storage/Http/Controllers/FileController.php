@@ -56,7 +56,7 @@ class FileController extends Controller
         $category = $request->input('category');
         $perPage = min((int) $request->input('per_page', 20), 100);
 
-        $files = FileService::listFiles($tenantId, $category, $perPage);
+        $files = app(FileService::class)->listFiles($tenantId, $category, $perPage);
 
         return response()->json([
             'success' => true,
@@ -90,8 +90,8 @@ class FileController extends Controller
         return response()->json([
             'success' => true,
             'data' => $file,
-            'url' => FileService::getUrl($file),
-            'preview_url' => FileService::getPreviewUrl($file),
+            'url' => app(FileService::class)->getUrl($file),
+            'preview_url' => app(FileService::class)->getPreviewUrl($file),
         ]);
     }
 
@@ -107,7 +107,7 @@ class FileController extends Controller
         }
 
         try {
-            return FileService::download($file)
+            return app(FileService::class)->download($file)
                 ->header('Content-Type', $file->mime_type)
                 ->header('Content-Disposition', 'inline; filename="' . addcslashes($file->filename, '\\"') . '"');
         } catch (\RuntimeException $e) {
@@ -159,7 +159,7 @@ class FileController extends Controller
         }
 
         try {
-            $file = FileService::upload(
+            $file = app(FileService::class)->upload(
                 $request->file('file'),
                 TenantContext::getId(),
                 $request->user()?->id,
@@ -168,7 +168,7 @@ class FileController extends Controller
                 $request->boolean('is_public', false)
             );
 
-            AuditService::log('upload', 'file', $file->id, null, [
+            app(AuditService::class)->log('upload', 'file', $file->id, null, [
                 'filename' => $file->filename,
                 'size' => $file->size,
                 'category' => $file->category,
@@ -178,7 +178,7 @@ class FileController extends Controller
                 'success' => true,
                 'message' => trans('file.upload_success'),
                 'data' => $file,
-                'url' => FileService::getUrl($file),
+                'url' => app(FileService::class)->getUrl($file),
             ], 201);
         } catch (\RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
@@ -193,7 +193,7 @@ class FileController extends Controller
         $file = $this->findFileForCurrentTenant($id);
 
         try {
-            return FileService::download($file);
+            return app(FileService::class)->download($file);
         } catch (\RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 404);
         }
@@ -206,12 +206,12 @@ class FileController extends Controller
     {
         $file = $this->findFileForCurrentTenant($id);
 
-        AuditService::log('delete', 'file', $id, null, [
+        app(AuditService::class)->log('delete', 'file', $id, null, [
             'filename' => $file->filename,
             'size' => $file->size,
         ]);
 
-        FileService::delete($file);
+        app(FileService::class)->delete($file);
 
         return response()->json(['success' => true, 'message' => trans('file.deleted')]);
     }
@@ -228,9 +228,9 @@ class FileController extends Controller
         ]);
 
         $expiresIn = (int) $request->input('expires_in', 60);
-        $shareUrl = FileService::createShareUrl($file, $expiresIn);
+        $shareUrl = app(FileService::class)->createShareUrl($file, $expiresIn);
 
-        AuditService::log('share', 'file', $id, null, [
+        app(AuditService::class)->log('share', 'file', $id, null, [
             'expires_in' => $expiresIn,
         ]);
 
@@ -251,14 +251,14 @@ class FileController extends Controller
         $token = $request->query('token', '');
         $signature = $request->query('sig', '');
 
-        if (! FileService::verifyShareUrl($id, $token, $signature)) {
+        if (! app(FileService::class)->verifyShareUrl($id, $token, $signature)) {
             return response()->json(['success' => false, 'message' => trans('common.token_invalid')], 403);
         }
 
         $file = FileUpload::findOrFail($id);
 
         try {
-            return FileService::download($file);
+            return app(FileService::class)->download($file);
         } catch (\RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 404);
         }
@@ -271,7 +271,7 @@ class FileController extends Controller
     {
         $tenantId = TenantContext::getId();
 
-        $quotaInfo = FileService::getStorageQuotaInfo($tenantId);
+        $quotaInfo = app(FileService::class)->getStorageQuotaInfo($tenantId);
         $fileCount = FileUpload::when($tenantId, fn ($q) => $q->where('tenant_id', $tenantId))->count();
 
         return response()->json([
@@ -298,7 +298,7 @@ class FileController extends Controller
         }
 
         try {
-            $file = FileService::uploadForEntity(
+            $file = app(FileService::class)->uploadForEntity(
                 file: $request->file('file'),
                 module: $module,
                 entityId: $entityId,
@@ -307,7 +307,7 @@ class FileController extends Controller
                 replace: $request->boolean('replace', true)
             );
 
-            AuditService::log('upload', 'file', $file->id, null, [
+            app(AuditService::class)->log('upload', 'file', $file->id, null, [
                 'filename' => $file->filename,
                 'module' => $module,
                 'entity_id' => $entityId,
@@ -317,7 +317,7 @@ class FileController extends Controller
                 'success' => true,
                 'message' => trans('file.upload_success'),
                 'data' => $file,
-                'url' => FileService::getUrl($file),
+                'url' => app(FileService::class)->getUrl($file),
             ], 201);
         } catch (\RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
@@ -331,7 +331,7 @@ class FileController extends Controller
     {
         $this->validateModule($module);
 
-        $file = FileService::getForEntity($module, $entityId, TenantContext::getId());
+        $file = app(FileService::class)->getForEntity($module, $entityId, TenantContext::getId());
 
         if (! $file) {
             return response()->json(['success' => false, 'message' => trans('file.not_found')], 404);
@@ -340,8 +340,8 @@ class FileController extends Controller
         return response()->json([
             'success' => true,
             'data' => $file,
-            'url' => FileService::getUrl($file),
-            'preview_url' => FileService::getPreviewUrl($file),
+            'url' => app(FileService::class)->getUrl($file),
+            'preview_url' => app(FileService::class)->getPreviewUrl($file),
         ]);
     }
 
@@ -352,7 +352,7 @@ class FileController extends Controller
     {
         $this->validateModule($module);
 
-        $url = FileService::getUrlForEntity($module, $entityId, TenantContext::getId());
+        $url = app(FileService::class)->getUrlForEntity($module, $entityId, TenantContext::getId());
 
         if (! $url) {
             return response()->json(['success' => false, 'message' => trans('file.not_found')], 404);
@@ -371,19 +371,19 @@ class FileController extends Controller
     {
         $this->validateModule($module);
 
-        $file = FileService::getForEntity($module, $entityId, TenantContext::getId());
+        $file = app(FileService::class)->getForEntity($module, $entityId, TenantContext::getId());
 
         if (! $file) {
             return response()->json(['success' => false, 'message' => trans('file.not_found')], 404);
         }
 
-        AuditService::log('delete', 'file', $file->id, null, [
+        app(AuditService::class)->log('delete', 'file', $file->id, null, [
             'filename' => $file->filename,
             'module' => $module,
             'entity_id' => $entityId,
         ]);
 
-        FileService::delete($file);
+        app(FileService::class)->delete($file);
 
         return response()->json(['success' => true, 'message' => trans('file.deleted')]);
     }
@@ -459,13 +459,13 @@ class FileController extends Controller
 
         $file = FileUpload::findOrFail($id);
 
-        AuditService::log('admin_delete', 'file', $id, null, [
+        app(AuditService::class)->log('admin_delete', 'file', $id, null, [
             'filename' => $file->filename,
             'tenant_id' => $file->tenant_id,
             'size' => $file->size,
         ]);
 
-        FileService::delete($file);
+        app(FileService::class)->delete($file);
 
         return response()->json(['success' => true, 'message' => trans('file.deleted')]);
     }

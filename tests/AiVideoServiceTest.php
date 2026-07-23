@@ -33,6 +33,8 @@ use RuntimeException;
  */
 class AiVideoServiceTest extends TestCase
 {
+    protected FileService $fileService;
+
     protected array $uses = [AiModule::class, BillingModule::class, PluginModule::class];
 
     protected ?AiVideoService $service = null;
@@ -50,6 +52,9 @@ class AiVideoServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->fileService = $this->app->make(FileService::class);
+
 
         // size 0x18=24, "ftyp", major "mp42", minor 0, compat "mp42","mp41","isom"
         $this->mp4Bin = "\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42mp41isom";
@@ -129,7 +134,7 @@ class AiVideoServiceTest extends TestCase
 
         $uploaded = new UploadedFile($tempPath, $filename, 'image/png', null, true);
 
-        $file = FileService::upload($uploaded, 2001, null, 'general', 'local', false);
+        $file = $this->fileService->upload($uploaded, 2001, null, 'general', 'local', false);
 
         @unlink($tempPath);
 
@@ -146,7 +151,7 @@ class AiVideoServiceTest extends TestCase
 
         $uploaded = new UploadedFile($tempPath, $filename, 'video/mp4', null, true);
 
-        $file = FileService::upload($uploaded, 2001, null, 'general', 'local', false);
+        $file = $this->fileService->upload($uploaded, 2001, null, 'general', 'local', false);
 
         @unlink($tempPath);
 
@@ -247,7 +252,7 @@ class AiVideoServiceTest extends TestCase
         $this->fakeSubmits();
 
         $input = $this->createInputImage();
-        $expectedUrl = FileService::getUrl($input);
+        $expectedUrl = $this->fileService->getUrl($input);
 
         $result = $this->service->imageToVideo($input->file_upload_id, 'make the cat dance', [
             'provider' => 'runway',
@@ -277,7 +282,7 @@ class AiVideoServiceTest extends TestCase
         $this->fakeSubmits();
 
         $input = $this->createInputVideo();
-        $expectedUrl = FileService::getUrl($input);
+        $expectedUrl = $this->fileService->getUrl($input);
 
         $result = $this->service->editVideo($input->file_upload_id, 'apply cyberpunk style', [
             'provider' => 'runway',

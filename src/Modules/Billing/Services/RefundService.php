@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Billing\Services;
 use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Billing\Models\FinancialRecord;
 use MultiTenantSaas\Modules\Billing\Models\PaymentOrder;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
@@ -17,6 +18,18 @@ use Yansongda\Pay\Pay;
  */
 class RefundService
 {
+    public function __construct(private readonly TenantContextContract $tenantContext) {}
+
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 发起退款
      *
@@ -26,7 +39,7 @@ class RefundService
      * @param  string  $reason  退款原因
      * @return array 退款结果
      */
-    public static function refund(int $tenantId, string $orderNo, float $refundAmount, string $reason = ''): array
+    public function refund(int $tenantId, string $orderNo, float $refundAmount, string $reason = ''): array
     {
         // 查找原订单
         $order = PaymentOrder::where('tenant_id', $tenantId)
@@ -48,14 +61,14 @@ class RefundService
         $driver = $order->driver;
 
         try {
-            $pay = PayService::createPayInstancePublic($tenantId, $driver);
+            $pay = app(PayService::class)->createPayInstancePublic($tenantId, $driver);
 
             $refundNo = 'RFD' . date('YmdHis') . rand(1000, 9999);
 
             if ($driver === 'wechat') {
-                $result = self::wechatRefund($pay, $order, $refundNo, $refundAmount, $reason);
+                $result = $this->wechatRefund($pay, $order, $refundNo, $refundAmount, $reason);
             } elseif ($driver === 'alipay') {
-                $result = self::alipayRefund($pay, $order, $refundNo, $refundAmount, $reason);
+                $result = $this->alipayRefund($pay, $order, $refundNo, $refundAmount, $reason);
             } else {
                 throw new \RuntimeException(trans('payment.unsupported_driver') . ": {$driver}");
             }
@@ -84,7 +97,7 @@ class RefundService
                 ],
             ]);
 
-            AuditService::log('refund', 'payment_order', $order->id, null, [
+            app(AuditService::class)->log('refund', 'payment_order', $order->id, null, [
                 'order_no' => $orderNo,
                 'refund_no' => $refundNo,
                 'amount' => $refundAmount,
@@ -112,7 +125,7 @@ class RefundService
     /**
      * 微信退款
      */
-    protected static function wechatRefund($pay, PaymentOrder $order, string $refundNo, float $amount, string $reason): array
+    protected function wechatRefund($pay, PaymentOrder $order, string $refundNo, float $amount, string $reason): array
     {
         $params = [
             'out_trade_no' => $order->order_no,
@@ -130,7 +143,7 @@ class RefundService
     /**
      * 支付宝退款
      */
-    protected static function alipayRefund($pay, PaymentOrder $order, string $refundNo, float $amount, string $reason): array
+    protected function alipayRefund($pay, PaymentOrder $order, string $refundNo, float $amount, string $reason): array
     {
         $params = [
             'out_trade_no' => $order->order_no,
@@ -150,7 +163,7 @@ class RefundService
      * @param  string  $orderNo  原订单号
      * @return array 退款状态信息
      */
-    public static function queryRefundStatus(int $tenantId, string $orderNo): array
+    public function queryRefundStatus(int $tenantId, string $orderNo): array
     {
         $order = PaymentOrder::where('tenant_id', $tenantId)
             ->where('order_no', $orderNo)
@@ -182,7 +195,7 @@ class RefundService
         $gatewayStatus = null;
 
         try {
-            $pay = PayService::createPayInstancePublic($tenantId, $driver);
+            $pay = app(PayService::class)->createPayInstancePublic($tenantId, $driver);
 
             if ($driver === 'wechat') {
                 $result = $pay->query([
@@ -227,7 +240,7 @@ class RefundService
     /**
      * 处理退款回调
      */
-    public static function handleRefundCallback(string $driver, Request $request): array
+    public function handleRefundCallback(string $driver, Request $request): array
     {
         $tenantId = $request->query('tenant_id');
 
@@ -235,7 +248,7 @@ class RefundService
             throw new \RuntimeException(trans('payment.missing_tenant_callback'));
         }
 
-        $pay = PayService::createPayInstancePublic((int) $tenantId, $driver);
+        $pay = app(PayService::class)->createPayInstancePublic((int) $tenantId, $driver);
         $result = $pay->callback($request->all());
 
         $orderNo = $result->out_trade_no ?? '';
@@ -253,7 +266,7 @@ class RefundService
                 ->where('type', 'refund')
                 ->update(['status' => 'completed']);
 
-            AuditService::log('refund_callback', 'payment_order', $order->id, null, [
+            app(AuditService::class)->log('refund_callback', 'payment_order', $order->id, null, [
                 'order_no' => $orderNo,
                 'refund_no' => $refundNo,
                 'status' => $refundStatus,

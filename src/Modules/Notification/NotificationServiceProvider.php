@@ -3,7 +3,9 @@
 namespace MultiTenantSaas\Modules\Notification;
 
 use Illuminate\Support\Facades\Route;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
+use MultiTenantSaas\Modules\Notification\Services\NotificationService;
 
 class NotificationServiceProvider extends ModuleServiceProvider
 {
@@ -11,7 +13,7 @@ class NotificationServiceProvider extends ModuleServiceProvider
 
     protected function registerModuleBindings(): void
     {
-        //
+        $this->app->singleton(NotificationService::class, fn ($app) => new NotificationService($app->make(TenantContextContract::class)));
     }
 
     protected function bootModule(): void

@@ -6,25 +6,46 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use MultiTenantSaas\Events\TenantCreated;
 use MultiTenantSaas\Modules\Auth\Models\Role;
-use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\TenantOnboardingService;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
 use MultiTenantSaas\Tests\Schema\BillingModule;
 use MultiTenantSaas\Tests\Schema\RbacModule;
 
 /**
  * 租户引导式注册（Onboarding）验收测试
  *
- * 覆盖 5 步注册流程、断点续填、自动初始化、试用期调用、欢迎事件等场景。
- * 依赖 TenantOnboardingService（TASK-009a）与 Controller/路由（TASK-009b）已就位。
+ * 覆盖 5 步注册流程、断点续填、自动初始化、欢迎事件等场景。
+ * 流程：start(step1) → step2(domain) → step3(plan) → step4(payment) → complete
+ *
+ * 路由认证模型：
+ *   POST /start   — 公开（无需认证）
+ *   POST /{step}  — operator.auth（Bearer token）
+ *   POST /status  — operator.auth
+ *   POST /complete — operator.auth
  */
 class TenantOnboardingTest extends TestCase
 {
     protected array $uses = [BillingModule::class, RbacModule::class];
 
+    private Operator $operator;
+
+    private string $operatorToken;
+
     protected function setUp(): void
     {
         parent::setUp();
+
+        // 创建 Operator 并生成 Sanctum token（operator.auth 中间件需要 Bearer token）
+        $this->operator = Operator::create([
+            'email' => 'onboarding@platform.com',
+            'name' => 'Onboarding Operator',
+            'scope' => 'platform',
+            'is_active' => true,
+            'email_verified_at' => now(),
+        ]);
+        $this->operatorToken = $this->operator->createToken('onboarding-test')->plainTextToken;
 
         // 试用期流程依赖 SubscriptionPlan，预先创建
         SubscriptionPlan::unguarded(function () {
@@ -57,14 +78,12 @@ class TenantOnboardingTest extends TestCase
     {
         $response = $this->postJson('/api/v1/tenants/onboarding/start', [
             'name' => 'Acme Corp',
-            'admin_email' => 'admin@acme.test',
-            'password' => 'Password123',
         ]);
 
         $response->assertStatus(201)
             ->assertJson(['success' => true])
             ->assertJsonStructure(['data' => ['onboarding_token', 'current_step']])
-            ->assertJson(['data' => ['current_step' => 1]]);
+            ->assertJson(['data' => ['current_step' => 2]]);
     }
 
     public function test_register_validates_required_fields(): void
@@ -80,7 +99,7 @@ class TenantOnboardingTest extends TestCase
     {
         $token = $this->startRegistration();
 
-        $response = $this->postJson('/api/v1/tenants/onboarding/2', [
+        $response = $this->withOperatorAuth()->postJson('/api/v1/tenants/onboarding/2', [
             'onboarding_token' => $token,
             'domain_type' => 'subdomain',
             'subdomain' => 'acme',
@@ -96,7 +115,7 @@ class TenantOnboardingTest extends TestCase
         $this->submitStep($token, 2, ['domain_type' => 'subdomain', 'subdomain' => 'acme']);
 
         // 选择带试用天数的 basic 套餐并启用试用
-        $response = $this->postJson('/api/v1/tenants/onboarding/3', [
+        $response = $this->withOperatorAuth()->postJson('/api/v1/tenants/onboarding/3', [
             'onboarding_token' => $token,
             'plan_id' => 2,
             'start_trial' => true,
@@ -113,7 +132,7 @@ class TenantOnboardingTest extends TestCase
         $this->submitStep($token, 3, ['plan_id' => 2, 'start_trial' => true]);
 
         // 试用场景跳过支付
-        $response = $this->postJson('/api/v1/tenants/onboarding/4', [
+        $response = $this->withOperatorAuth()->postJson('/api/v1/tenants/onboarding/4', [
             'onboarding_token' => $token,
             'payment_method' => 'none',
         ]);
@@ -128,11 +147,13 @@ class TenantOnboardingTest extends TestCase
     {
         $token = $this->startRegistration();
 
-        $response = $this->postJson('/api/v1/tenants/onboarding/status', ['onboarding_token' => $token]);
+        $response = $this->withOperatorAuth()->postJson('/api/v1/tenants/onboarding/status', [
+            'onboarding_token' => $token,
+        ]);
 
         $response->assertSuccessful()
             ->assertJson(['success' => true])
-            ->assertJsonStructure(['data' => ['current_step']]);
+            ->assertJsonStructure(['data' => ['current_step', 'completed_steps', 'step_names']]);
     }
 
     public function test_can_resume_from_interrupted_step(): void
@@ -140,7 +161,9 @@ class TenantOnboardingTest extends TestCase
         // 仅完成 step1（注册启动），查询进度应从 step2 恢复
         $token = $this->startRegistration();
 
-        $response = $this->postJson('/api/v1/tenants/onboarding/status', ['onboarding_token' => $token]);
+        $response = $this->withOperatorAuth()->postJson('/api/v1/tenants/onboarding/status', [
+            'onboarding_token' => $token,
+        ]);
 
         $response->assertSuccessful();
         $this->assertEquals(2, $response->json('data.current_step'));
@@ -153,7 +176,7 @@ class TenantOnboardingTest extends TestCase
         $token = $this->startRegistration(); // 仅 step1
 
         // 直接提交 step3，跳过 step2，应被拒绝
-        $response = $this->postJson('/api/v1/tenants/onboarding/3', [
+        $response = $this->withOperatorAuth()->postJson('/api/v1/tenants/onboarding/3', [
             'onboarding_token' => $token,
             'plan_id' => 2,
         ]);
@@ -165,7 +188,7 @@ class TenantOnboardingTest extends TestCase
     {
         $token = $this->startRegistration(); // 仅 step1，未完成全部步骤
 
-        $response = $this->postJson('/api/v1/tenants/onboarding/complete', [
+        $response = $this->withOperatorAuth()->postJson('/api/v1/tenants/onboarding/complete', [
             'onboarding_token' => $token,
         ]);
 
@@ -174,21 +197,20 @@ class TenantOnboardingTest extends TestCase
 
     public function test_duplicate_registration_rejected(): void
     {
-        $this->startRegistration(['admin_email' => 'dup@acme.test']);
+        // 同一 Operator 同时只允许一个进行中的会话（服务层校验）
+        $service = $this->app->make(TenantOnboardingService::class);
+        $service->startRegistration(['name' => 'First Corp'], $this->operator->operator_id);
 
-        $response = $this->postJson('/api/v1/tenants/onboarding/start', [
-            'name' => 'Another Corp',
-            'admin_email' => 'dup@acme.test',
-            'password' => 'Password123',
-        ]);
-
-        $this->assertGreaterThanOrEqual(400, $response->status());
+        $this->expectException(\RuntimeException::class);
+        $service->startRegistration(['name' => 'Second Corp'], $this->operator->operator_id);
     }
 
     public function test_expired_token_rejected(): void
     {
         // 使用不存在的 token 模拟过期/失效
-        $response = $this->postJson('/api/v1/tenants/onboarding/status', ['onboarding_token' => 'expired-or-invalid-token']);
+        $response = $this->withOperatorAuth()->postJson('/api/v1/tenants/onboarding/status', [
+            'onboarding_token' => 'expired-or-invalid-token',
+        ]);
 
         $response->assertStatus(404);
     }
@@ -201,38 +223,27 @@ class TenantOnboardingTest extends TestCase
 
         $token = $this->runFullFlowWithoutTrial();
 
-        $response = $this->postJson('/api/v1/tenants/onboarding/complete', [
+        $response = $this->withOperatorAuth()->postJson('/api/v1/tenants/onboarding/complete', [
             'onboarding_token' => $token,
         ]);
 
         $response->assertStatus(201)
             ->assertJson(['success' => true])
-            ->assertJsonStructure(['data' => ['onboarding_step', 'onboarding_completed', 'trial_active']])
-            ->assertJson(['data' => ['trial_active' => false]]);
+            ->assertJsonStructure(['data' => ['tenant_id', 'name', 'slug', 'status', 'onboarding_step', 'onboarding_completed']])
+            ->assertJson(['data' => ['status' => 'pending_approval', 'onboarding_completed' => true]]);
 
         $tenantId = $response->json('data.tenant_id');
         $this->assertNotNull($tenantId, '应返回创建的租户 ID');
 
         $tenant = Tenant::find($tenantId);
         $this->assertNotNull($tenant, '租户记录应被创建');
+        $this->assertEquals('pending_approval', $tenant->status);
 
-        // 默认角色（admin / user）
+        // 默认角色（tenant_admin / end_user）
         $this->assertGreaterThanOrEqual(
             2,
             Role::where('tenant_id', $tenantId)->count(),
             '默认角色应被创建'
-        );
-
-        // 默认管理员用户
-        $this->assertNotNull(
-            User::where('email', 'admin@acme.test')->first(),
-            '管理员用户应被创建'
-        );
-
-        // 管理员应关联到租户
-        $this->assertTrue(
-            DB::table('tenant_users')->where('tenant_id', $tenantId)->exists(),
-            'TenantUser 关联应被创建'
         );
 
         // 租户初始化设置
@@ -242,26 +253,23 @@ class TenantOnboardingTest extends TestCase
         );
     }
 
-    public function test_complete_with_trial_calls_trial_service(): void
+    public function test_complete_with_trial_plan(): void
     {
         Event::fake([TenantCreated::class]);
 
         $token = $this->runFullFlowWithTrial();
 
-        $response = $this->postJson('/api/v1/tenants/onboarding/complete', [
+        $response = $this->withOperatorAuth()->postJson('/api/v1/tenants/onboarding/complete', [
             'onboarding_token' => $token,
         ]);
 
         $response->assertStatus(201)
-            ->assertJson(['data' => ['trial_active' => true]]);
+            ->assertJson(['success' => true, 'data' => ['status' => 'pending_approval']]);
 
         $tenant = Tenant::find($response->json('data.tenant_id'));
         $this->assertNotNull($tenant);
-        $this->assertNotNull($tenant->trial_ends_at, 'TrialService::startTrial 应设置 trial_ends_at');
-        $this->assertTrue(
-            $tenant->trial_ends_at->isFuture(),
-            'trial_ends_at 应为未来时间'
-        );
+        // 试用在审核通过后由平台激活，onboarding 阶段仅记录 plan
+        $this->assertEquals('basic', $tenant->subscription_plan);
     }
 
     public function test_complete_fires_tenant_created_event(): void
@@ -270,7 +278,7 @@ class TenantOnboardingTest extends TestCase
 
         $token = $this->runFullFlowWithoutTrial();
 
-        $this->postJson('/api/v1/tenants/onboarding/complete', [
+        $this->withOperatorAuth()->postJson('/api/v1/tenants/onboarding/complete', [
             'onboarding_token' => $token,
         ]);
 
@@ -279,12 +287,21 @@ class TenantOnboardingTest extends TestCase
 
     // ---------- 辅助方法 ----------
 
+    /**
+     * 设置 Operator Bearer token 认证头
+     */
+    private function withOperatorAuth(): static
+    {
+        return $this->withHeader('Authorization', "Bearer {$this->operatorToken}");
+    }
+
+    /**
+     * 启动注册流程（公开接口，无需认证）
+     */
     private function startRegistration(array $overrides = []): string
     {
         $response = $this->postJson('/api/v1/tenants/onboarding/start', array_merge([
             'name' => 'Acme Corp',
-            'admin_email' => 'admin@acme.test',
-            'password' => 'Password123',
         ], $overrides));
 
         $response->assertSuccessful();
@@ -292,9 +309,12 @@ class TenantOnboardingTest extends TestCase
         return $response->json('data.onboarding_token');
     }
 
+    /**
+     * 提交指定步骤（需 operator.auth）
+     */
     private function submitStep(string $token, int $step, array $data): array
     {
-        $response = $this->postJson("/api/v1/tenants/onboarding/{$step}", array_merge([
+        $response = $this->withOperatorAuth()->postJson("/api/v1/tenants/onboarding/{$step}", array_merge([
             'onboarding_token' => $token,
         ], $data));
 

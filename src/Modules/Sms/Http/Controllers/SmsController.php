@@ -25,7 +25,7 @@ class SmsController extends Controller
             'status' => $request->query('status'),
         ]);
 
-        $templates = SmsService::getTemplates($filters);
+        $templates = app(SmsService::class)->getTemplates($filters);
 
         return response()->json(['success' => true, 'data' => $templates]);
     }
@@ -45,7 +45,7 @@ class SmsController extends Controller
         $data['tenant_id'] = $tenantId;
         $data['status'] = $data['status'] ?? SmsTemplate::STATUS_PENDING_APPROVAL;
 
-        $template = SmsService::createTemplate($data);
+        $template = app(SmsService::class)->createTemplate($data);
 
         return response()->json(['success' => true, 'data' => $template], 201);
     }
@@ -78,7 +78,7 @@ class SmsController extends Controller
             'provider_template_id' => ['nullable', 'string', 'max:128'],
         ]);
 
-        $template = SmsService::updateTemplate($templateId, $data);
+        $template = app(SmsService::class)->updateTemplate($templateId, $data);
 
         return response()->json(['success' => true, 'data' => $template]);
     }
@@ -105,7 +105,7 @@ class SmsController extends Controller
             ->where('tenant_id', $tenantId)
             ->firstOrFail();
 
-        $template = SmsService::submitForApproval($templateId);
+        $template = app(SmsService::class)->submitForApproval($templateId);
 
         return response()->json(['success' => true, 'data' => $template]);
     }
@@ -120,7 +120,7 @@ class SmsController extends Controller
             ->firstOrFail();
 
         $variables = $request->input('variables', []);
-        $content = SmsService::renderContent($templateId, $variables);
+        $content = app(SmsService::class)->renderContent($templateId, $variables);
 
         return response()->json(['success' => true, 'data' => ['content' => $content]]);
     }
@@ -142,7 +142,7 @@ class SmsController extends Controller
             ->where('tenant_id', $tenantId)
             ->firstOrFail();
 
-        $task = SmsService::batchSend($data['template_id'], $data['phones']);
+        $task = app(SmsService::class)->batchSend($data['template_id'], $data['phones']);
 
         return response()->json(['success' => true, 'data' => $task], 201);
     }
@@ -163,7 +163,7 @@ class SmsController extends Controller
             ->where('tenant_id', $tenantId)
             ->firstOrFail();
 
-        $task = SmsService::scheduledSend($data['template_id'], $data['phones'], $data['scheduled_at']);
+        $task = app(SmsService::class)->scheduledSend($data['template_id'], $data['phones'], $data['scheduled_at']);
 
         return response()->json(['success' => true, 'data' => $task], 201);
     }
@@ -188,7 +188,7 @@ class SmsController extends Controller
             ->where('tenant_id', $tenantId)
             ->firstOrFail();
 
-        $task = SmsService::cancelBatchTask($taskId);
+        $task = app(SmsService::class)->cancelBatchTask($taskId);
 
         return response()->json(['success' => true, 'data' => $task]);
     }
@@ -204,7 +204,7 @@ class SmsController extends Controller
             ->where('tenant_id', $tenantId)
             ->firstOrFail();
 
-        $stats = SmsService::getDeliveryStats($taskId);
+        $stats = app(SmsService::class)->getDeliveryStats($taskId);
 
         return response()->json(['success' => true, 'data' => $stats]);
     }
@@ -216,7 +216,7 @@ class SmsController extends Controller
         $from = $request->query('from');
         $to = $request->query('to');
 
-        $stats = SmsService::getOverallStats($tenantId, $from, $to);
+        $stats = app(SmsService::class)->getOverallStats($tenantId, $from, $to);
 
         return response()->json(['success' => true, 'data' => $stats]);
     }
@@ -227,7 +227,7 @@ class SmsController extends Controller
     {
         $this->ensureTenantAccess($request, $tenantId);
 
-        $unsubscribes = SmsService::getUnsubscribes($tenantId);
+        $unsubscribes = app(SmsService::class)->getUnsubscribes($tenantId);
 
         return response()->json(['success' => true, 'data' => $unsubscribes]);
     }
@@ -241,7 +241,7 @@ class SmsController extends Controller
             'reason' => ['nullable', 'string', 'max:512'],
         ]);
 
-        $unsubscribe = SmsService::unsubscribe(
+        $unsubscribe = app(SmsService::class)->unsubscribe(
             $data['phone'],
             $tenantId,
             $request->user()->id,
@@ -259,7 +259,7 @@ class SmsController extends Controller
             'phone' => ['required', 'string', 'regex:/^1[3-9]\d{9}$/'],
         ]);
 
-        $isUnsubscribed = SmsService::isUnsubscribed($request->phone, $tenantId);
+        $isUnsubscribed = app(SmsService::class)->isUnsubscribed($request->phone, $tenantId);
 
         return response()->json(['success' => true, 'data' => ['is_unsubscribed' => $isUnsubscribed]]);
     }

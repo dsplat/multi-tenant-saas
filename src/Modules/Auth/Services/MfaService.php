@@ -163,7 +163,7 @@ class MfaService
         $target = $phone ?: ($user->phone ?? null);
 
         if ($target) {
-            SmsService::send($target, $code, 'mfa');
+            app(SmsService::class)->send($target, $code, 'mfa');
         }
 
         return $code;

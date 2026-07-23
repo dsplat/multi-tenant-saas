@@ -73,7 +73,7 @@ class AlipayOAuthService
             'private_key' => $privateKey,
             'public_key' => TenantSetting::get($tenantId, 'oauth', 'alipay_public_key', ''),
             'mode' => TenantSetting::get($tenantId, 'oauth', 'alipay_mode', 'production'),
-            'redirect' => SocialiteService::resolveRedirectUrl($tenantId, 'alipay', TenantSetting::get($tenantId, 'oauth', 'alipay_redirect', '')),
+            'redirect' => app(SocialiteService::class)->resolveRedirectUrl($tenantId, 'alipay', TenantSetting::get($tenantId, 'oauth', 'alipay_redirect', '')),
         ];
     }
 
@@ -320,7 +320,7 @@ class AlipayOAuthService
             throw new \RuntimeException('Alipay user_id missing');
         }
 
-        $nsProvider = SocialiteService::namespacedProvider('alipay', $tenantId);
+        $nsProvider = app(SocialiteService::class)->namespacedProvider('alipay', $tenantId);
 
         $oauthAccount = OauthAccount::where('provider', $nsProvider)
             ->where('provider_id', $providerId)
@@ -377,7 +377,7 @@ class AlipayOAuthService
      */
     protected function recordOAuthAccount(User $user, array $userInfo, array $tokenData, int $tenantId): void
     {
-        $nsProvider = SocialiteService::namespacedProvider('alipay', $tenantId);
+        $nsProvider = app(SocialiteService::class)->namespacedProvider('alipay', $tenantId);
 
         OauthAccount::updateOrCreate(
             [

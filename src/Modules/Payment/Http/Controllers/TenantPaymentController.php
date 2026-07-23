@@ -19,7 +19,7 @@ class TenantPaymentController extends Controller
     {
         $tenantId = TenantContext::getId();
 
-        return response()->json(['success' => true, 'data' => PayService::getPaymentConfig($tenantId)]);
+        return response()->json(['success' => true, 'data' => app(PayService::class)->getPaymentConfig($tenantId)]);
     }
 
     public function updatePaymentConfig(Request $request, string $driver)
@@ -34,9 +34,9 @@ class TenantPaymentController extends Controller
             ? ['app_id', 'mch_id', 'serial_no', 'private_key', 'notify_url']
             : ['app_id', 'ali_public_key', 'private_key', 'notify_url', 'mode'];
 
-        PayService::updatePaymentConfig($tenantId, $driver, $request->only($allowed));
+        app(PayService::class)->updatePaymentConfig($tenantId, $driver, $request->only($allowed));
 
-        AuditService::log('update', 'payment_config', $tenantId, null, [
+        app(AuditService::class)->log('update', 'payment_config', $tenantId, null, [
             'driver' => $driver,
             'fields' => $allowed,
         ]);
@@ -47,11 +47,11 @@ class TenantPaymentController extends Controller
     public function wechatNotify(Request $request)
     {
         try {
-            $result = PayService::handleCallback('wechat', $request);
+            $result = app(PayService::class)->handleCallback('wechat', $request);
             \Log::info('WeChat payment callback success', $result);
 
             if (isset($result['order_id'])) {
-                AuditService::log('payment_callback', 'payment_order', $result['order_id'], null, $result);
+                app(AuditService::class)->log('payment_callback', 'payment_order', $result['order_id'], null, $result);
             }
 
             return response('success');
@@ -68,11 +68,11 @@ class TenantPaymentController extends Controller
     public function alipayNotify(Request $request)
     {
         try {
-            $result = PayService::handleCallback('alipay', $request);
+            $result = app(PayService::class)->handleCallback('alipay', $request);
             \Log::info('Alipay callback success', $result);
 
             if (isset($result['order_id'])) {
-                AuditService::log('payment_callback', 'payment_order', $result['order_id'], null, $result);
+                app(AuditService::class)->log('payment_callback', 'payment_order', $result['order_id'], null, $result);
             }
 
             return response('success');
@@ -132,7 +132,7 @@ class TenantPaymentController extends Controller
             'status' => 'pending',
         ]);
 
-        AuditService::log('create', 'payment_order', $order->id, null, [
+        app(AuditService::class)->log('create', 'payment_order', $order->id, null, [
             'order_no' => $order->order_no,
             'driver' => $order->driver,
             'amount' => $order->amount,
@@ -163,7 +163,7 @@ class TenantPaymentController extends Controller
         }
 
         try {
-            $result = RefundService::refund(
+            $result = app(RefundService::class)->refund(
                 $tenantId,
                 $validated['order_no'],
                 $validated['amount'],
@@ -199,7 +199,7 @@ class TenantPaymentController extends Controller
         }
 
         try {
-            $result = RefundService::queryRefundStatus($tenantId, $request->input('order_no'));
+            $result = app(RefundService::class)->queryRefundStatus($tenantId, $request->input('order_no'));
 
             return response()->json([
                 'success' => true,
@@ -219,7 +219,7 @@ class TenantPaymentController extends Controller
     public function wechatRefundNotify(Request $request)
     {
         try {
-            $result = RefundService::handleRefundCallback('wechat', $request);
+            $result = app(RefundService::class)->handleRefundCallback('wechat', $request);
             \Log::info('WeChat refund callback success', $result);
 
             return response('success');
@@ -236,7 +236,7 @@ class TenantPaymentController extends Controller
     public function alipayRefundNotify(Request $request)
     {
         try {
-            $result = RefundService::handleRefundCallback('alipay', $request);
+            $result = app(RefundService::class)->handleRefundCallback('alipay', $request);
             \Log::info('Alipay refund callback success', $result);
 
             return response('success');

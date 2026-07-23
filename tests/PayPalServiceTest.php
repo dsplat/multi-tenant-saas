@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\Modules\Billing\Services\PayPalService;
+use MultiTenantSaas\Modules\Billing\Services\PayService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Tests\Schema\WebhookModule;
@@ -18,6 +19,8 @@ use MultiTenantSaas\Tests\Schema\WebhookModule;
  */
 class PayPalServiceTest extends TestCase
 {
+    protected PayService $payService;
+
     protected array $uses = [WebhookModule::class];
 
     private const TENANT_ID = 1001;
@@ -27,6 +30,9 @@ class PayPalServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->payService = $this->app->make(PayService::class);
+
 
         Tenant::create([
             'tenant_id' => self::TENANT_ID,

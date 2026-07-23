@@ -76,7 +76,7 @@ class UserProfileService
                 'phone' => $data['phone'] ?? $user->phone,
             ]);
 
-            AuditService::log(
+            app(AuditService::class)->log(
                 action: 'profile_update',
                 resourceType: 'user',
                 resourceId: $userId,
@@ -156,7 +156,7 @@ class UserProfileService
                 ]);
             }
 
-            AuditService::log(
+            app(AuditService::class)->log(
                 action: 'preferences_update',
                 resourceType: 'user',
                 resourceId: $userId,
@@ -189,7 +189,7 @@ class UserProfileService
                 ->where('user_id', $userId)
                 ->delete();
 
-            AuditService::log(
+            app(AuditService::class)->log(
                 action: 'preferences_reset',
                 resourceType: 'user',
                 resourceId: $userId

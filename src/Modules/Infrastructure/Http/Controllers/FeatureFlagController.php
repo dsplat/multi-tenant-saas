@@ -52,7 +52,7 @@ class FeatureFlagController extends Controller
             'status' => FeatureFlag::STATUS_INACTIVE,
         ]);
 
-        AuditService::log('create', 'feature_flag', $flag->feature_flag_id, null, [
+        app(AuditService::class)->log('create', 'feature_flag', $flag->feature_flag_id, null, [
             'name' => $validated['name'],
             'scope' => $validated['scope'] ?? FeatureFlag::SCOPE_GLOBAL,
         ]);
@@ -90,7 +90,7 @@ class FeatureFlagController extends Controller
         $old = $flag->toArray();
         $flag->update($validated);
 
-        AuditService::log('update', 'feature_flag', $id, $old, $validated);
+        app(AuditService::class)->log('update', 'feature_flag', $id, $old, $validated);
 
         return $this->successResponse($flag->fresh());
     }
@@ -109,7 +109,7 @@ class FeatureFlagController extends Controller
 
         $flag->update(['status' => $newStatus]);
 
-        AuditService::log('toggle', 'feature_flag', $id, ['status' => $oldStatus], ['status' => $newStatus]);
+        app(AuditService::class)->log('toggle', 'feature_flag', $id, ['status' => $oldStatus], ['status' => $newStatus]);
 
         return $this->successResponse($flag->fresh(), "Feature flag {$newStatus}");
     }

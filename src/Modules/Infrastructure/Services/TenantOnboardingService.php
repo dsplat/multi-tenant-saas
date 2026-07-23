@@ -67,7 +67,7 @@ class TenantOnboardingService
     /**
      * 步骤名称映射
      */
-    public static function stepNames(): array
+    public function stepNames(): array
     {
         return [
             self::STEP_BASIC_INFO => trans('tenant.onboarding.step_names.1'),
@@ -465,7 +465,7 @@ class TenantOnboardingService
             'tenant_id' => $session['tenant_id'],
             'operator_id' => $session['operator_id'] ?? null,
             'data' => $session['data'],
-            'step_names' => self::stepNames(),
+            'step_names' => $this->stepNames(),
         ];
     }
 

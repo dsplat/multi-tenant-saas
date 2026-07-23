@@ -146,7 +146,7 @@ class QueueService
             // Horizon 提供 artisan horizon:retry，无直接 API；这里通过命令调用
             Artisan::call('horizon:retry', ['id' => (string) $jobId]);
 
-            AuditService::log(
+            app(AuditService::class)->log(
                 action: 'job_retried',
                 resourceType: 'job',
                 resourceId: is_int($jobId) ? $jobId : null,

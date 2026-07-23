@@ -26,7 +26,7 @@ class LogEventListener
     public function handleTenantCreated(TenantCreated $event): void
     {
         Log::info('Tenant created', ['tenant_id' => $event->tenant->tenant_id]);
-        AuditService::log('create', 'tenant', $event->tenant->tenant_id, null, [
+        app(AuditService::class)->log('create', 'tenant', $event->tenant->tenant_id, null, [
             'name' => $event->tenant->name,
             'slug' => $event->tenant->slug,
         ]);
@@ -35,19 +35,19 @@ class LogEventListener
     public function handleTenantSuspended(TenantSuspended $event): void
     {
         Log::info('Tenant suspended', ['tenant_id' => $event->tenant->tenant_id]);
-        AuditService::log('suspend', 'tenant', $event->tenant->tenant_id);
+        app(AuditService::class)->log('suspend', 'tenant', $event->tenant->tenant_id);
     }
 
     public function handleTenantActivated(TenantActivated $event): void
     {
         Log::info('Tenant activated', ['tenant_id' => $event->tenant->tenant_id]);
-        AuditService::log('activate', 'tenant', $event->tenant->tenant_id);
+        app(AuditService::class)->log('activate', 'tenant', $event->tenant->tenant_id);
     }
 
     public function handleUserRegistered(UserRegistered $event): void
     {
         Log::info('User registered', ['user_id' => $event->user->user_id, 'tenant_id' => $event->tenantId]);
-        AuditService::log('register', 'user', $event->user->user_id, null, [
+        app(AuditService::class)->log('register', 'user', $event->user->user_id, null, [
             'email' => $event->user->email,
             'tenant_id' => $event->tenantId,
         ]);
@@ -56,7 +56,7 @@ class LogEventListener
     public function handleUserLoggedIn(UserLoggedIn $event): void
     {
         Log::info('User logged in', ['user_id' => $event->user->user_id, 'ip' => $event->ip]);
-        AuditService::log('login', 'user', $event->user->user_id, null, [
+        app(AuditService::class)->log('login', 'user', $event->user->user_id, null, [
             'ip' => $event->ip,
         ]);
     }

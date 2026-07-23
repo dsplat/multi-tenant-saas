@@ -17,11 +17,16 @@ use MultiTenantSaas\Tests\Schema\EventModule;
  */
 class DunningServiceTest extends TestCase
 {
+    protected DunningService $dunningService;
+
     protected array $uses = [BillingModule::class, EventModule::class];
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->dunningService = $this->app->make(DunningService::class);
+
 
         Tenant::create([
             'tenant_id' => 1001,
@@ -47,7 +52,7 @@ class DunningServiceTest extends TestCase
 
     public function test_process_failed_payment_returns_none_without_failed_order(): void
     {
-        $result = DunningService::processFailedPayment(1001);
+        $result = $this->dunningService->processFailedPayment(1001);
 
         $this->assertEquals('none', $result['action']);
         $this->assertNull($result['next_retry_at']);
@@ -59,7 +64,7 @@ class DunningServiceTest extends TestCase
     {
         $this->createFailedOrder(1001);
 
-        $result = DunningService::processFailedPayment(1001);
+        $result = $this->dunningService->processFailedPayment(1001);
 
         $this->assertEquals('retry', $result['action']);
         $this->assertNotNull($result['next_retry_at']);
@@ -70,7 +75,7 @@ class DunningServiceTest extends TestCase
     {
         $this->createFailedOrder(1001, ['retry_count' => 1]);
 
-        $result = DunningService::processFailedPayment(1001);
+        $result = $this->dunningService->processFailedPayment(1001);
 
         $this->assertEquals('retry', $result['action']);
         $this->assertEqualsWithDelta(3, now()->diffInDays($result['next_retry_at']), 0.01);
@@ -80,7 +85,7 @@ class DunningServiceTest extends TestCase
     {
         $this->createFailedOrder(1001, ['retry_count' => 2]);
 
-        $result = DunningService::processFailedPayment(1001);
+        $result = $this->dunningService->processFailedPayment(1001);
 
         $this->assertEquals('retry', $result['action']);
         $this->assertEqualsWithDelta(7, now()->diffInDays($result['next_retry_at']), 0.01);
@@ -92,7 +97,7 @@ class DunningServiceTest extends TestCase
     {
         $this->createFailedOrder(1001, ['retry_count' => 0]);
 
-        $result = DunningService::processFailedPayment(1001);
+        $result = $this->dunningService->processFailedPayment(1001);
 
         $this->assertEquals('retry', $result['action']);
         $this->assertEquals('active', Tenant::find(1001)->status);
@@ -102,7 +107,7 @@ class DunningServiceTest extends TestCase
     {
         $this->createFailedOrder(1001, ['retry_count' => 1]);
 
-        DunningService::processFailedPayment(1001);
+        $this->dunningService->processFailedPayment(1001);
 
         $this->assertEquals('active', Tenant::find(1001)->status);
     }
@@ -113,7 +118,7 @@ class DunningServiceTest extends TestCase
     {
         $this->createFailedOrder(1001, ['retry_count' => DunningService::DEFAULT_MAX_RETRIES]);
 
-        $result = DunningService::processFailedPayment(1001);
+        $result = $this->dunningService->processFailedPayment(1001);
 
         $this->assertEquals('suspend', $result['action']);
         $this->assertNull($result['next_retry_at']);
@@ -121,14 +126,14 @@ class DunningServiceTest extends TestCase
 
     public function test_suspend_tenant_sets_status_suspended(): void
     {
-        DunningService::suspendTenant(1001);
+        $this->dunningService->suspendTenant(1001);
 
         $this->assertEquals('suspended', Tenant::find(1001)->status);
     }
 
     public function test_suspend_tenant_disables_auto_renew(): void
     {
-        DunningService::suspendTenant(1001);
+        $this->dunningService->suspendTenant(1001);
 
         $this->assertFalse(Tenant::find(1001)->auto_renew);
     }
@@ -139,7 +144,7 @@ class DunningServiceTest extends TestCase
         $tenant->status = 'suspended';
         $tenant->save();
 
-        DunningService::suspendTenant(1001);
+        $this->dunningService->suspendTenant(1001);
 
         $this->assertEquals('suspended', Tenant::find(1001)->status);
         $this->assertEquals(0, AuditLog::where('action', 'tenant_suspended')->count());
@@ -147,7 +152,7 @@ class DunningServiceTest extends TestCase
 
     public function test_suspend_tenant_skips_unknown_tenant(): void
     {
-        DunningService::suspendTenant(9999);
+        $this->dunningService->suspendTenant(9999);
 
         $this->assertEquals(0, AuditLog::where('action', 'tenant_suspended')->count());
     }
@@ -158,7 +163,7 @@ class DunningServiceTest extends TestCase
     {
         $order = $this->createFailedOrder(1001, ['retry_count' => 1]);
 
-        DunningService::processFailedPayment(1001);
+        $this->dunningService->processFailedPayment(1001);
 
         $order->refresh();
         $this->assertEquals(2, $order->extra['retry_count']);
@@ -168,7 +173,7 @@ class DunningServiceTest extends TestCase
     {
         $order = $this->createFailedOrder(1001);
 
-        $result = DunningService::processFailedPayment(1001);
+        $result = $this->dunningService->processFailedPayment(1001);
 
         $order->refresh();
         $this->assertNotEmpty($order->extra['next_retry_at']);
@@ -182,7 +187,7 @@ class DunningServiceTest extends TestCase
     {
         $order = $this->createFailedOrder(1001);
 
-        DunningService::processFailedPayment(1001);
+        $this->dunningService->processFailedPayment(1001);
 
         $order->refresh();
         $this->assertEquals('retrying', $order->extra['dunning_status']);
@@ -190,7 +195,7 @@ class DunningServiceTest extends TestCase
 
     public function test_suspend_tenant_records_audit_log(): void
     {
-        DunningService::suspendTenant(1001);
+        $this->dunningService->suspendTenant(1001);
 
         $log = AuditLog::where('action', 'tenant_suspended')->first();
 
@@ -205,7 +210,7 @@ class DunningServiceTest extends TestCase
 
     public function test_get_dunning_status_active_without_failed_order(): void
     {
-        $status = DunningService::getDunningStatus(1001);
+        $status = $this->dunningService->getDunningStatus(1001);
 
         $this->assertEquals('active', $status['status']);
         $this->assertEquals(0, $status['retry_count']);
@@ -218,7 +223,7 @@ class DunningServiceTest extends TestCase
     {
         $this->createFailedOrder(1001, ['retry_count' => 1, 'next_retry_at' => now()->addDays(3)->toDateTimeString()]);
 
-        $status = DunningService::getDunningStatus(1001);
+        $status = $this->dunningService->getDunningStatus(1001);
 
         $this->assertEquals('retrying', $status['status']);
         $this->assertEquals(1, $status['retry_count']);
@@ -231,14 +236,14 @@ class DunningServiceTest extends TestCase
         $tenant->status = 'suspended';
         $tenant->save();
 
-        $status = DunningService::getDunningStatus(1001);
+        $status = $this->dunningService->getDunningStatus(1001);
 
         $this->assertEquals('suspended', $status['status']);
     }
 
     public function test_get_dunning_status_returns_none_for_unknown_tenant(): void
     {
-        $status = DunningService::getDunningStatus(9999);
+        $status = $this->dunningService->getDunningStatus(9999);
 
         $this->assertEquals('none', $status['status']);
     }

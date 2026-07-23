@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Modules\Billing\Services;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Billing\Models\TaxRule;
 
 /**
@@ -44,6 +45,18 @@ class TaxService
         ],
     ];
 
+    public function __construct(private readonly TenantContextContract $tenantContext) {}
+
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 计算税额
      *
@@ -52,15 +65,15 @@ class TaxService
      * @param  string|null  $productType  商品类型（影响 CN 多档税率）
      * @return array{tax_rate: float, tax_amount: float, total: float, is_exempt: bool}
      */
-    public static function calculateTax(string $region, float $amount, ?string $productType = null): array
+    public function calculateTax(string $region, float $amount, ?string $productType = null): array
     {
         $region = strtoupper($region);
 
-        if (! static::isSupportedRegion($region)) {
+        if (! $this->isSupportedRegion($region)) {
             throw new \RuntimeException(trans('payment.tax_region_unsupported'));
         }
 
-        if (static::isExempt($region, $productType)) {
+        if ($this->isExempt($region, $productType)) {
             return [
                 'tax_rate' => 0.0,
                 'tax_amount' => 0.0,
@@ -69,7 +82,7 @@ class TaxService
             ];
         }
 
-        $rate = static::resolveRate($region, $productType);
+        $rate = $this->resolveRate($region, $productType);
         $taxAmount = round($amount * $rate, 2);
         $total = round($amount + $taxAmount, 2);
 
@@ -87,16 +100,16 @@ class TaxService
      * @param  string  $region  地区代码（CN/US/EU/UK）
      * @param  string  $taxNumber  税号
      */
-    public static function validateTaxNumber(string $region, string $taxNumber): bool
+    public function validateTaxNumber(string $region, string $taxNumber): bool
     {
         $region = strtoupper($region);
         $taxNumber = strtoupper(trim($taxNumber));
 
         return match ($region) {
-            'CN' => static::validateChineseTaxNumber($taxNumber),
-            'EU' => static::validateEuVatNumber($taxNumber),
-            'UK' => static::validateUkVatNumber($taxNumber),
-            'US' => static::validateUsEinNumber($taxNumber),
+            'CN' => $this->validateChineseTaxNumber($taxNumber),
+            'EU' => $this->validateEuVatNumber($taxNumber),
+            'UK' => $this->validateUkVatNumber($taxNumber),
+            'US' => $this->validateUsEinNumber($taxNumber),
             default => throw new \RuntimeException(trans('payment.tax_region_unsupported')),
         };
     }
@@ -110,7 +123,7 @@ class TaxService
      * @param  string  $region  地区代码
      * @param  Carbon|null  $date  生效日期，默认当前
      */
-    public static function getApplicableRate(string $region, ?Carbon $date = null): TaxRule
+    public function getApplicableRate(string $region, ?Carbon $date = null): TaxRule
     {
         $region = strtoupper($region);
         $date = $date ?? now();
@@ -131,7 +144,7 @@ class TaxService
             return $rule;
         }
 
-        return static::buildDefaultRule($region, $date);
+        return $this->buildDefaultRule($region, $date);
     }
 
     /**
@@ -140,7 +153,7 @@ class TaxService
      * @param  string  $region  地区代码
      * @param  string|null  $productType  商品类型
      */
-    public static function isExempt(string $region, ?string $productType = null): bool
+    public function isExempt(string $region, ?string $productType = null): bool
     {
         $region = strtoupper($region);
 
@@ -148,7 +161,7 @@ class TaxService
             return false;
         }
 
-        $rates = static::PRODUCT_RATES[$region] ?? [];
+        $rates = self::PRODUCT_RATES[$region] ?? [];
 
         if (array_key_exists($productType, $rates)) {
             return (float) $rates[$productType] <= 0.0;
@@ -160,32 +173,32 @@ class TaxService
     /**
      * 判断地区是否受支持
      */
-    protected static function isSupportedRegion(string $region): bool
+    protected function isSupportedRegion(string $region): bool
     {
-        return in_array($region, static::SUPPORTED_REGIONS, true);
+        return in_array($region, self::SUPPORTED_REGIONS, true);
     }
 
     /**
      * 解析适用税率：优先商品类型对应税率，回退到生效税率规则
      */
-    protected static function resolveRate(string $region, ?string $productType): float
+    protected function resolveRate(string $region, ?string $productType): float
     {
         if ($productType !== null) {
-            $productRates = static::PRODUCT_RATES[$region] ?? [];
+            $productRates = self::PRODUCT_RATES[$region] ?? [];
             if (array_key_exists($productType, $productRates)) {
                 return (float) $productRates[$productType];
             }
         }
 
-        return (float) static::getApplicableRate($region)->tax_rate;
+        return (float) $this->getApplicableRate($region)->tax_rate;
     }
 
     /**
      * 构建默认税率规则（无 DB 记录时回退）
      */
-    protected static function buildDefaultRule(string $region, Carbon $date): TaxRule
+    protected function buildDefaultRule(string $region, Carbon $date): TaxRule
     {
-        $config = static::getDefaultRateConfig($region);
+        $config = $this->getDefaultRateConfig($region);
 
         $rule = new TaxRule;
         $rule->region_code = $region;
@@ -203,7 +216,7 @@ class TaxService
      *
      * @return array{rate: float, name: string}
      */
-    protected static function getDefaultRateConfig(string $region): array
+    protected function getDefaultRateConfig(string $region): array
     {
         $config = config("pay.invoice.tax_rules.{$region}");
 
@@ -216,8 +229,8 @@ class TaxService
             ];
         }
 
-        if (isset(static::DEFAULT_RATE_CONFIG[$region])) {
-            return static::DEFAULT_RATE_CONFIG[$region];
+        if (isset(self::DEFAULT_RATE_CONFIG[$region])) {
+            return self::DEFAULT_RATE_CONFIG[$region];
         }
 
         throw new \RuntimeException(trans('payment.tax_rule_not_found'));
@@ -226,7 +239,7 @@ class TaxService
     /**
      * 中国税号校验：15/18/20 位字母数字（统一社会信用代码/纳税人识别号）
      */
-    protected static function validateChineseTaxNumber(string $taxNumber): bool
+    protected function validateChineseTaxNumber(string $taxNumber): bool
     {
         $pattern = config('pay.invoice.tax_rules.CN.number_pattern', '/^[0-9A-Z]{15}$|^[0-9A-Z]{18}$|^[0-9A-Z]{20}$/');
 
@@ -236,7 +249,7 @@ class TaxService
     /**
      * 欧盟 VAT 校验：2 位国家代码 + 2~12 位字母数字
      */
-    protected static function validateEuVatNumber(string $taxNumber): bool
+    protected function validateEuVatNumber(string $taxNumber): bool
     {
         $pattern = config('pay.invoice.tax_rules.EU.number_pattern', '/^[A-Z]{2}[0-9A-Z]{2,12}$/');
 
@@ -246,7 +259,7 @@ class TaxService
     /**
      * 英国 VAT 校验：GB/GD/HA + 9 或 12 位数字
      */
-    protected static function validateUkVatNumber(string $taxNumber): bool
+    protected function validateUkVatNumber(string $taxNumber): bool
     {
         $pattern = config('pay.invoice.tax_rules.UK.number_pattern', '/^(GB|GD|HA)[0-9]{9}$|^(GB|GD|HA)[0-9]{12}$/');
 
@@ -256,7 +269,7 @@ class TaxService
     /**
      * 美国 EIN 校验：9 位数字（可选连字符 XX-XXXXXXX）
      */
-    protected static function validateUsEinNumber(string $taxNumber): bool
+    protected function validateUsEinNumber(string $taxNumber): bool
     {
         $pattern = config('pay.invoice.tax_rules.US.number_pattern', '/^[0-9]{9}$|^[0-9]{2}-[0-9]{7}$/');
 

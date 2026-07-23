@@ -46,7 +46,7 @@ class DataRetentionPolicyController extends Controller
             $validated['description'] ?? null,
         );
 
-        AuditService::log('create', 'data_retention_policy', $policy->data_retention_policy_id, null, $validated);
+        app(AuditService::class)->log('create', 'data_retention_policy', $policy->data_retention_policy_id, null, $validated);
 
         return $this->createdResponse($policy);
     }
@@ -69,7 +69,7 @@ class DataRetentionPolicyController extends Controller
         $old = $policy->toArray();
         $policy->update($validated);
 
-        AuditService::log('update', 'data_retention_policy', $id, $old, $validated);
+        app(AuditService::class)->log('update', 'data_retention_policy', $id, $old, $validated);
 
         return $this->successResponse($policy->fresh());
     }
@@ -80,7 +80,7 @@ class DataRetentionPolicyController extends Controller
             return $this->notFoundResponse('Data retention policy not found');
         }
 
-        AuditService::log('delete', 'data_retention_policy', $id, null, null);
+        app(AuditService::class)->log('delete', 'data_retention_policy', $id, null, null);
 
         return $this->deletedResponse();
     }

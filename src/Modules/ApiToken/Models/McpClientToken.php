@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 
 /**
@@ -15,7 +16,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class McpClientToken extends Model
 {
-    use HasFactory, HasGlobalId;
+    use BelongsToTenant, HasFactory, HasGlobalId;
 
     protected $primaryKey = 'mcp_client_token_id';
 

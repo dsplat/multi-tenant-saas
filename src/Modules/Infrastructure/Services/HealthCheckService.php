@@ -241,8 +241,8 @@ class HealthCheckService
             $tenantId = (int) (TenantContext::getId() ?? config('tenancy.default_tenant_id') ?? 0);
 
             if ($tenantId > 0) {
-                $wechatConfigured = PayService::isConfigured($tenantId, 'wechat');
-                $alipayConfigured = PayService::isConfigured($tenantId, 'alipay');
+                $wechatConfigured = app(PayService::class)->isConfigured($tenantId, 'wechat');
+                $alipayConfigured = app(PayService::class)->isConfigured($tenantId, 'alipay');
 
                 $latency = (int) ((microtime(true) - $start) * 1000);
 
@@ -287,7 +287,7 @@ class HealthCheckService
             $tenantId = (int) (TenantContext::getId() ?? 0);
 
             if ($tenantId > 0) {
-                $providers = SocialiteService::getOAuthConfigForDisplay($tenantId);
+                $providers = app(SocialiteService::class)->getOAuthConfigForDisplay($tenantId);
                 $configuredCount = collect($providers)->filter(fn ($p) => $p['configured'] ?? false)->count();
                 $latency = (int) ((microtime(true) - $start) * 1000);
 

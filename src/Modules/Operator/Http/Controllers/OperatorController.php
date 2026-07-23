@@ -70,7 +70,7 @@ class OperatorController extends Controller
             ], 422);
         }
 
-        AuditService::log('invite', 'operator', $result['operator_id'] ?? null, null, [
+        app(AuditService::class)->log('invite', 'operator', $result['operator_id'] ?? null, null, [
             'email' => $request->email,
             'tenant_id' => $tenantId,
             'role' => $request->role,
@@ -123,7 +123,7 @@ class OperatorController extends Controller
         $tenantId = (int) TenantContext::getId();
         $this->operatorService->updateRole($operatorId, $tenantId, $request->role);
 
-        AuditService::log('update', 'operator', $operatorId, null, [
+        app(AuditService::class)->log('update', 'operator', $operatorId, null, [
             'tenant_id' => $tenantId,
             'new_role' => $request->role,
         ]);
@@ -142,7 +142,7 @@ class OperatorController extends Controller
         $tenantId = (int) TenantContext::getId();
         $this->operatorService->removeFromTenant($operatorId, $tenantId);
 
-        AuditService::log('remove', 'operator', $operatorId, null, [
+        app(AuditService::class)->log('remove', 'operator', $operatorId, null, [
             'tenant_id' => $tenantId,
         ]);
 
@@ -180,7 +180,7 @@ class OperatorController extends Controller
             'name', 'phone', 'avatar',
         ]));
 
-        AuditService::log('update', 'operator', $operatorId, null, [
+        app(AuditService::class)->log('update', 'operator', $operatorId, null, [
             'fields' => array_keys($request->only(['name', 'phone', 'avatar'])),
         ]);
 
@@ -198,7 +198,7 @@ class OperatorController extends Controller
     {
         $operator = $this->operatorService->toggleStatus($operatorId);
 
-        AuditService::log('toggle_status', 'operator', $operatorId, null, [
+        app(AuditService::class)->log('toggle_status', 'operator', $operatorId, null, [
             'is_active' => $operator->is_active,
         ]);
 
@@ -225,7 +225,7 @@ class OperatorController extends Controller
             ], 422);
         }
 
-        AuditService::log('resend_invite', 'operator', $operatorId);
+        app(AuditService::class)->log('resend_invite', 'operator', $operatorId);
 
         return response()->json([
             'success' => true,

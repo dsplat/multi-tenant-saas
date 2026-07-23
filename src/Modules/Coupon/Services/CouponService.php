@@ -8,6 +8,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Coupon\Models\Coupon;
 use MultiTenantSaas\Modules\Coupon\Models\CouponShare;
 use MultiTenantSaas\Modules\Coupon\Models\CouponUsage;
@@ -31,6 +32,18 @@ class CouponService
     /** 优惠码可选字符集（已去除易混淆字符 O/0/I/1） */
     protected const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
+    public function __construct(private readonly TenantContextContract $tenantContext) {}
+
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 创建优惠券
      *
@@ -43,14 +56,14 @@ class CouponService
      *
      * @throws \RuntimeException 优惠码重复
      */
-    public static function createCoupon(array $data): Coupon
+    public function createCoupon(array $data): Coupon
     {
-        $code = $data['code'] ?? static::generateCode($data['prefix'] ?? '');
+        $code = $data['code'] ?? $this->generateCode($data['prefix'] ?? '');
 
         try {
-            return Coupon::create(static::buildAttributes($data, $code));
+            return Coupon::create($this->buildAttributes($data, $code));
         } catch (QueryException $e) {
-            if (static::isDuplicateException($e)) {
+            if ($this->isDuplicateException($e)) {
                 throw new \RuntimeException(trans('subscription.coupon_code_exists'), 0, $e);
             }
             throw $e;
@@ -64,9 +77,9 @@ class CouponService
      *
      * @throws \RuntimeException 超过最大尝试次数
      */
-    public static function generateCode(string $prefix = '', int $length = 8, int $maxAttempts = 100): string
+    public function generateCode(string $prefix = '', int $length = 8, int $maxAttempts = 100): string
     {
-        $alphabet = static::CODE_ALPHABET;
+        $alphabet = self::CODE_ALPHABET;
         $max = strlen($alphabet) - 1;
         $prefix = strtoupper($prefix);
         $attempts = 0;
@@ -94,7 +107,7 @@ class CouponService
      * @param  array  $attributes  优惠券模板属性（type, value, ...）
      * @return array<string> 生成的优惠码列表
      */
-    public static function generateCodes(string $prefix, int $quantity, array $attributes = []): array
+    public function generateCodes(string $prefix, int $quantity, array $attributes = []): array
     {
         if ($quantity <= 0) {
             return [];
@@ -106,17 +119,17 @@ class CouponService
 
         while (count($codes) < $quantity && $attempts < $maxAttempts) {
             $attempts++;
-            $code = static::generateCode($prefix);
+            $code = $this->generateCode($prefix);
 
             try {
                 Coupon::create(array_merge(
-                    static::buildAttributes($attributes, $code),
+                    $this->buildAttributes($attributes, $code),
                     ['used_count' => 0]
                 ));
                 $codes[] = $code;
             } catch (QueryException $e) {
                 // 唯一约束冲突（并发码重复），跳过继续
-                if (! static::isDuplicateException($e)) {
+                if (! $this->isDuplicateException($e)) {
                     throw $e;
                 }
             }
@@ -135,7 +148,7 @@ class CouponService
      *
      * @throws \RuntimeException 优惠券不可用
      */
-    public static function validate(string $code, ?int $tenantId, ?float $amount = null, int|string|null $planId = null): Coupon
+    public function validate(string $code, ?int $tenantId, ?float $amount = null, int|string|null $planId = null): Coupon
     {
         $coupon = Coupon::byCode($code)->first();
 
@@ -159,7 +172,7 @@ class CouponService
             throw new \RuntimeException(trans('subscription.coupon_usage_limit_reached'));
         }
 
-        if ($tenantId && ! static::checkTenantQuota($coupon, $tenantId)) {
+        if ($tenantId && ! $this->checkTenantQuota($coupon, $tenantId)) {
             throw new \RuntimeException(trans('subscription.coupon_per_tenant_limit_reached'));
         }
 
@@ -190,11 +203,11 @@ class CouponService
      *
      * @throws \RuntimeException 优惠券不可用或已达使用上限
      */
-    public static function redeem(string $code, ?int $tenantId, array $context = []): CouponUsage
+    public function redeem(string $code, ?int $tenantId, array $context = []): CouponUsage
     {
         $amount = (float) ($context['amount'] ?? 0);
-        $coupon = static::validate($code, $tenantId, $amount, $context['subscription_plan_id'] ?? null);
-        $discount = static::calculateDiscount($coupon, $amount);
+        $coupon = $this->validate($code, $tenantId, $amount, $context['subscription_plan_id'] ?? null);
+        $discount = $this->calculateDiscount($coupon, $amount);
 
         return DB::transaction(function () use ($coupon, $discount, $tenantId, $context, $amount) {
             $locked = Coupon::where('coupon_id', $coupon->coupon_id)->lockForUpdate()->first();
@@ -203,7 +216,7 @@ class CouponService
                 throw new \RuntimeException(trans('subscription.coupon_invalid'));
             }
 
-            $discount = static::calculateDiscount($locked, $amount);
+            $discount = $this->calculateDiscount($locked, $amount);
 
             if ($tenantId) {
                 $usedByTenant = CouponUsage::where('coupon_id', $locked->coupon_id)
@@ -235,7 +248,7 @@ class CouponService
      * - fixed: 固定金额，不超过订单金额
      * - percentage: 按比例计算，受 max_discount 上限约束，不超过订单金额
      */
-    public static function calculateDiscount(Coupon $coupon, float $amount): float
+    public function calculateDiscount(Coupon $coupon, float $amount): float
     {
         if ($amount <= 0) {
             return 0.0;
@@ -261,7 +274,7 @@ class CouponService
     /**
      * 检查租户使用配额
      */
-    public static function checkTenantQuota(Coupon $coupon, $tenantId): bool
+    public function checkTenantQuota(Coupon $coupon, $tenantId): bool
     {
         $used = CouponUsage::where('coupon_id', $coupon->coupon_id)
             ->where('tenant_id', $tenantId)
@@ -278,7 +291,7 @@ class CouponService
      * @param  int|null  $perPage  每页数量，null=不分页返回全量
      * @return Collection<int, Coupon>|LengthAwarePaginator
      */
-    public static function getCoupons(array $filters = [], ?int $perPage = null): Collection|LengthAwarePaginator
+    public function getCoupons(array $filters = [], ?int $perPage = null): Collection|LengthAwarePaginator
     {
         $query = Coupon::query();
 
@@ -324,7 +337,7 @@ class CouponService
      * @param  int|null  $tenantId  租户ID，null=全部租户
      * @return Collection<int, CouponUsage>
      */
-    public static function getUsages(int $couponId, ?int $tenantId = null): Collection
+    public function getUsages(int $couponId, ?int $tenantId = null): Collection
     {
         $query = CouponUsage::query()
             ->with('coupon')
@@ -342,9 +355,9 @@ class CouponService
      *
      * @return array{used_count: int, total_discount: float, max_uses: int|null, ...}
      */
-    public static function getStatistics(int $couponId): array
+    public function getStatistics(int $couponId): array
     {
-        $coupon = static::findCoupon($couponId);
+        $coupon = $this->findCoupon($couponId);
 
         $usageQuery = CouponUsage::where('coupon_id', $couponId);
 
@@ -363,9 +376,9 @@ class CouponService
     /**
      * 启用优惠券
      */
-    public static function activate(int $couponId): Coupon
+    public function activate(int $couponId): Coupon
     {
-        $coupon = static::findCoupon($couponId);
+        $coupon = $this->findCoupon($couponId);
         $coupon->is_active = true;
         $coupon->save();
 
@@ -375,9 +388,9 @@ class CouponService
     /**
      * 停用优惠券
      */
-    public static function deactivate(int $couponId): Coupon
+    public function deactivate(int $couponId): Coupon
     {
-        $coupon = static::findCoupon($couponId);
+        $coupon = $this->findCoupon($couponId);
         $coupon->is_active = false;
         $coupon->save();
 
@@ -398,13 +411,13 @@ class CouponService
      *                       max_uses, max_uses_per_tenant, starts_at,
      *                       expires_at, metadata
      */
-    public static function createTemplate(array $data): Coupon
+    public function createTemplate(array $data): Coupon
     {
         // 模板需要唯一 code，但模板码不用于实际兑换，使用 TPL- 前缀自动生成
-        $code = $data['code'] ?? static::generateCode('TPL-');
+        $code = $data['code'] ?? $this->generateCode('TPL-');
 
         return Coupon::create(array_merge(
-            static::buildAttributes($data, $code),
+            $this->buildAttributes($data, $code),
             [
                 'is_template' => true,
                 'is_active' => $data['is_active'] ?? true,
@@ -415,9 +428,9 @@ class CouponService
     /**
      * 更新优惠券模板
      */
-    public static function updateTemplate(int $templateId, array $data): Coupon
+    public function updateTemplate(int $templateId, array $data): Coupon
     {
-        $template = static::findCoupon($templateId);
+        $template = $this->findCoupon($templateId);
 
         if (! $template->isTemplate()) {
             throw new \RuntimeException('指定优惠券不是模板');
@@ -449,9 +462,9 @@ class CouponService
      *
      * 仅允许删除无关联优惠券的模板
      */
-    public static function deleteTemplate(int $templateId): bool
+    public function deleteTemplate(int $templateId): bool
     {
-        $template = static::findCoupon($templateId);
+        $template = $this->findCoupon($templateId);
 
         if (! $template->isTemplate()) {
             throw new \RuntimeException('指定优惠券不是模板');
@@ -472,7 +485,7 @@ class CouponService
      * @param  int|null  $perPage  每页数量，null=不分页返回全量
      * @return Collection<int, Coupon>|LengthAwarePaginator
      */
-    public static function getTemplates(array $filters = [], ?int $perPage = null): Collection|LengthAwarePaginator
+    public function getTemplates(array $filters = [], ?int $perPage = null): Collection|LengthAwarePaginator
     {
         $query = Coupon::templates();
 
@@ -509,9 +522,9 @@ class CouponService
      * @param  string  $prefix  优惠码前缀
      * @return array<string> 生成的优惠码列表
      */
-    public static function generateFromTemplate(int $templateId, int $quantity, string $prefix = ''): array
+    public function generateFromTemplate(int $templateId, int $quantity, string $prefix = ''): array
     {
-        $template = static::findCoupon($templateId);
+        $template = $this->findCoupon($templateId);
 
         if (! $template->isTemplate()) {
             throw new \RuntimeException('指定优惠券不是模板');
@@ -540,15 +553,15 @@ class CouponService
             'is_template' => false,
         ];
 
-        return static::generateCodes($prefix, $quantity, $attributes);
+        return $this->generateCodes($prefix, $quantity, $attributes);
     }
 
     /**
      * 启用模板
      */
-    public static function activateTemplate(int $templateId): Coupon
+    public function activateTemplate(int $templateId): Coupon
     {
-        $template = static::findCoupon($templateId);
+        $template = $this->findCoupon($templateId);
 
         if (! $template->isTemplate()) {
             throw new \RuntimeException('指定优惠券不是模板');
@@ -563,9 +576,9 @@ class CouponService
     /**
      * 停用模板
      */
-    public static function deactivateTemplate(int $templateId): Coupon
+    public function deactivateTemplate(int $templateId): Coupon
     {
-        $template = static::findCoupon($templateId);
+        $template = $this->findCoupon($templateId);
 
         if (! $template->isTemplate()) {
             throw new \RuntimeException('指定优惠券不是模板');
@@ -589,13 +602,13 @@ class CouponService
      * @param  int  $tenantId  租户ID
      * @return array ['issued' => int, 'codes' => array]
      */
-    public static function bulkDistribute(int $templateId, array $userIds, int $tenantId): array
+    public function bulkDistribute(int $templateId, array $userIds, int $tenantId): array
     {
         if (empty($userIds)) {
             return ['issued' => 0, 'codes' => []];
         }
 
-        $template = static::findCoupon($templateId);
+        $template = $this->findCoupon($templateId);
 
         if (! $template->isTemplate()) {
             throw new \RuntimeException('指定优惠券不是模板');
@@ -615,8 +628,8 @@ class CouponService
         return DB::transaction(function () use ($template, $userIds, $tenantId, $templateId, &$issued, &$codes) {
             foreach ($userIds as $userId) {
                 try {
-                    $code = static::generateCode('BD-');
-                    Coupon::create(static::buildCouponFromTemplate($template, [
+                    $code = $this->generateCode('BD-');
+                    Coupon::create($this->buildCouponFromTemplate($template, [
                         'code' => $code,
                         'max_uses' => 1,
                         'max_uses_per_tenant' => 1,
@@ -631,7 +644,7 @@ class CouponService
                     $codes[] = $code;
                     $issued++;
                 } catch (QueryException $e) {
-                    if (! static::isDuplicateException($e)) {
+                    if (! $this->isDuplicateException($e)) {
                         throw $e;
                     }
                 }
@@ -648,9 +661,9 @@ class CouponService
     /**
      * 生成分享链接并记录分享关系
      */
-    public static function shareCoupon(int $sharerId, int $couponTemplateId, int $tenantId): CouponShare
+    public function shareCoupon(int $sharerId, int $couponTemplateId, int $tenantId): CouponShare
     {
-        $template = static::findCoupon($couponTemplateId);
+        $template = $this->findCoupon($couponTemplateId);
 
         if (! $template->isTemplate()) {
             throw new \RuntimeException('指定优惠券不是模板');
@@ -679,7 +692,7 @@ class CouponService
      * @param  int  $tenantId  租户ID
      * @return array ['sharer_coupon' => Coupon, 'receiver_coupon' => Coupon, 'share' => CouponShare]
      */
-    public static function acceptShare(string $shareCode, int $receiverId, int $tenantId): array
+    public function acceptShare(string $shareCode, int $receiverId, int $tenantId): array
     {
         return DB::transaction(function () use ($shareCode, $receiverId, $tenantId) {
             // 事务内加行锁，防止并发竞态
@@ -701,15 +714,15 @@ class CouponService
                 throw new \RuntimeException('不能接受自己的分享');
             }
 
-            $template = static::findCoupon($share->coupon_template_id);
+            $template = $this->findCoupon($share->coupon_template_id);
 
             if (! $template->isActive()) {
                 throw new \RuntimeException('优惠券模板已停用');
             }
 
             // 向被分享人发券
-            $receiverCoupon = Coupon::create(static::buildCouponFromTemplate($template, [
-                'code' => static::generateCode('FS-'),
+            $receiverCoupon = Coupon::create($this->buildCouponFromTemplate($template, [
+                'code' => $this->generateCode('FS-'),
                 'description' => $template->description . '（裂变分享）',
                 'max_uses' => 1,
                 'max_uses_per_tenant' => 1,
@@ -722,8 +735,8 @@ class CouponService
             ]));
 
             // 向分享人发券
-            $sharerCoupon = Coupon::create(static::buildCouponFromTemplate($template, [
-                'code' => static::generateCode('FS-'),
+            $sharerCoupon = Coupon::create($this->buildCouponFromTemplate($template, [
+                'code' => $this->generateCode('FS-'),
                 'description' => $template->description . '（裂变奖励）',
                 'max_uses' => 1,
                 'max_uses_per_tenant' => 1,
@@ -753,7 +766,7 @@ class CouponService
     /**
      * 查询分享记录
      */
-    public static function getShareRecords(int $tenantId, array $filters = [], ?int $perPage = null): Collection|LengthAwarePaginator
+    public function getShareRecords(int $tenantId, array $filters = [], ?int $perPage = null): Collection|LengthAwarePaginator
     {
         $query = CouponShare::where('tenant_id', $tenantId);
 
@@ -776,7 +789,7 @@ class CouponService
     /**
      * 从模板构建优惠券属性（提取公共逻辑，避免重复）
      */
-    protected static function buildCouponFromTemplate(Coupon $template, array $overrides = []): array
+    protected function buildCouponFromTemplate(Coupon $template, array $overrides = []): array
     {
         return array_merge([
             'description' => $template->description,
@@ -797,7 +810,7 @@ class CouponService
     /**
      * 构造优惠券属性
      */
-    protected static function buildAttributes(array $data, ?string $code = null): array
+    protected function buildAttributes(array $data, ?string $code = null): array
     {
         return [
             'code' => $code ?? ($data['code'] ?? null),
@@ -823,7 +836,7 @@ class CouponService
     /**
      * 查找优惠券
      */
-    protected static function findCoupon(int $couponId): Coupon
+    protected function findCoupon(int $couponId): Coupon
     {
         $coupon = Coupon::find($couponId);
 
@@ -837,7 +850,7 @@ class CouponService
     /**
      * 判断是否为唯一约束冲突异常
      */
-    protected static function isDuplicateException(QueryException $e): bool
+    protected function isDuplicateException(QueryException $e): bool
     {
         $driverCode = (string) ($e->errorInfo[1] ?? '');
         $message = $e->getMessage() ?? '';

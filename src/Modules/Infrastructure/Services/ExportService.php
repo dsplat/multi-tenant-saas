@@ -49,7 +49,7 @@ class ExportService
      */
     public function exportExcel(array $data, array $headings, string $filename): BinaryFileResponse
     {
-        return ExcelService::exportArray($data, $headings, $filename);
+        return app(ExcelService::class)->exportArray($data, $headings, $filename);
     }
 
     /**
@@ -229,7 +229,7 @@ class ExportService
         }
 
         if ($count > 0) {
-            AuditService::log(
+            app(AuditService::class)->log(
                 action: 'export_tasks_cleaned',
                 resourceType: 'export_task',
                 newValues: ['count' => $count]

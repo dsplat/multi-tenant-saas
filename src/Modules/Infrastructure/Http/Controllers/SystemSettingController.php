@@ -40,7 +40,7 @@ class SystemSettingController extends Controller
 
         SystemSetting::setGroup($group, $validated['settings']);
 
-        AuditService::log('update', 'system_setting', null, ['group' => $group, 'old' => $oldSettings], ['group' => $group, 'new' => $validated['settings']]);
+        app(AuditService::class)->log('update', 'system_setting', null, ['group' => $group, 'old' => $oldSettings], ['group' => $group, 'new' => $validated['settings']]);
 
         $updated = SystemSetting::getGroup($group);
 

@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Modules\Sms\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 
 /**
@@ -13,7 +14,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class SmsTemplate extends Model
 {
-    use HasFactory, HasGlobalId;
+    use BelongsToTenant, HasFactory, HasGlobalId;
 
     // 渠道类型
     const CHANNEL_MARKETING = 'marketing';

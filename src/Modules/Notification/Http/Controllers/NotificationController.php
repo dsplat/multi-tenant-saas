@@ -41,7 +41,7 @@ class NotificationController extends Controller
                 'last_page' => $notifications->lastPage(),
                 'per_page' => $notifications->perPage(),
                 'total' => $notifications->total(),
-                'unread_count' => NotificationService::getUnreadCount($user),
+                'unread_count' => app(NotificationService::class)->getUnreadCount($user),
             ],
         ]);
     }
@@ -51,7 +51,7 @@ class NotificationController extends Controller
      */
     public function unreadCount(Request $request)
     {
-        $count = NotificationService::getUnreadCount($request->user());
+        $count = app(NotificationService::class)->getUnreadCount($request->user());
 
         return response()->json(['success' => true, 'unread_count' => $count]);
     }
@@ -79,7 +79,7 @@ class NotificationController extends Controller
     {
         $request->user()->unreadNotifications->markAsRead();
 
-        AuditService::log('update', 'notification', null, null, ['action' => 'mark_all_read']);
+        app(AuditService::class)->log('update', 'notification', null, null, ['action' => 'mark_all_read']);
 
         return response()->json(['success' => true, 'message' => trans('notification.all_marked_read')]);
     }
@@ -145,7 +145,7 @@ class NotificationController extends Controller
             $request->boolean('enabled')
         );
 
-        AuditService::log('update', 'notification_preference', $userId, null, $request->only(['channel', 'type', 'enabled']));
+        app(AuditService::class)->log('update', 'notification_preference', $userId, null, $request->only(['channel', 'type', 'enabled']));
 
         return response()->json([
             'success' => true,

@@ -113,7 +113,7 @@ class AlertService
             'updated_at' => now(),
         ]);
 
-        AuditService::log(
+        app(AuditService::class)->log(
             action: 'alert_rule_configured',
             resourceType: 'alert_rule',
             resourceId: $id,

@@ -51,7 +51,7 @@ class ConsentController extends Controller
             $request->userAgent(),
         );
 
-        AuditService::log('grant', 'consent', $consent->consent_id, null, [
+        app(AuditService::class)->log('grant', 'consent', $consent->consent_id, null, [
             'user_id' => $validated['user_id'],
             'type' => $validated['type'],
             'version' => $validated['version'] ?? $this->consentService->getCurrentTermsVersion(),
@@ -81,7 +81,7 @@ class ConsentController extends Controller
             return $this->errorResponse('Failed to revoke consent');
         }
 
-        AuditService::log('revoke', 'consent', $id, ['is_granted' => true], ['is_granted' => false]);
+        app(AuditService::class)->log('revoke', 'consent', $id, ['is_granted' => true], ['is_granted' => false]);
 
         return $this->successResponse(null, 'Consent revoked');
     }

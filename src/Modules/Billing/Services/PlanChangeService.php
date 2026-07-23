@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionHistory;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Services\Traits\ResolvesPlan;
 
@@ -27,6 +28,18 @@ class PlanChangeService
 {
     use ResolvesPlan;
 
+    public function __construct(private readonly TenantContextContract $tenantContext) {}
+
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 计算按比例差价
      *
@@ -43,20 +56,20 @@ class PlanChangeService
      *   effective_at: Carbon
      * }
      */
-    public static function calculateProration(int $tenantId, int $newPlanId, string $effectiveTiming = 'immediate'): array
+    public function calculateProration(int $tenantId, int $newPlanId, string $effectiveTiming = 'immediate'): array
     {
         $tenant = Tenant::findOrFail($tenantId);
         $newPlan = SubscriptionPlan::findOrFail($newPlanId);
 
-        return static::computeProrationResult($tenant, $newPlan, $effectiveTiming);
+        return $this->computeProrationResult($tenant, $newPlan, $effectiveTiming);
     }
 
     /**
      * 计算按比例差价（内部方法，接受已加载的模型实例）
      */
-    protected static function computeProrationResult(Tenant $tenant, SubscriptionPlan $newPlan, string $effectiveTiming): array
+    protected function computeProrationResult(Tenant $tenant, SubscriptionPlan $newPlan, string $effectiveTiming): array
     {
-        $oldPlan = static::resolveCurrentPlan($tenant->tenant_id);
+        $oldPlan = $this->resolveCurrentPlan($tenant->tenant_id);
 
         $effectiveAt = $effectiveTiming === 'period_end' && $tenant->subscription_expires_at
             ? $tenant->subscription_expires_at
@@ -70,7 +83,7 @@ class PlanChangeService
             ];
         }
 
-        $proration = static::computeProrationAmount($tenant, $oldPlan, $newPlan);
+        $proration = $this->computeProrationAmount($tenant, $oldPlan, $newPlan);
         $direction = $proration >= 0 ? 'charge' : 'credit';
 
         return [
@@ -88,7 +101,7 @@ class PlanChangeService
      *
      * 记录到 subscription_histories 并返回新建的历史记录。
      */
-    public static function changePlan(int $tenantId, int $newPlanId, string $effectiveTiming = 'immediate'): SubscriptionHistory
+    public function changePlan(int $tenantId, int $newPlanId, string $effectiveTiming = 'immediate'): SubscriptionHistory
     {
         $tenant = Tenant::findOrFail($tenantId);
         $newPlan = SubscriptionPlan::findOrFail($newPlanId);
@@ -101,14 +114,14 @@ class PlanChangeService
             throw new \RuntimeException('subscription.tenant_suspended');
         }
 
-        $oldPlan = static::resolveCurrentPlan($tenant->tenant_id);
-        $prorationResult = static::computeProrationResult($tenant, $newPlan, $effectiveTiming);
+        $oldPlan = $this->resolveCurrentPlan($tenant->tenant_id);
+        $prorationResult = $this->computeProrationResult($tenant, $newPlan, $effectiveTiming);
 
         if ($oldPlan && $oldPlan->getKey() === $newPlan->getKey()) {
             throw new \RuntimeException('subscription.plan_unchanged');
         }
 
-        $action = static::resolveAction($oldPlan, $newPlan);
+        $action = $this->resolveAction($oldPlan, $newPlan);
         $now = now();
 
         return DB::transaction(function () use ($tenant, $newPlan, $oldPlan, $effectiveTiming, $prorationResult, $action, $now) {
@@ -164,7 +177,7 @@ class PlanChangeService
      *
      * @return Collection<int, SubscriptionHistory>
      */
-    public static function getChangeHistory(int $tenantId): Collection
+    public function getChangeHistory(int $tenantId): Collection
     {
         return SubscriptionHistory::where('tenant_id', $tenantId)
             ->orderByDesc('created_at')
@@ -174,7 +187,7 @@ class PlanChangeService
     /**
      * 计算按比例差价金额（带符号：正数为补差，负数为退差）
      */
-    protected static function computeProrationAmount(Tenant $tenant, ?SubscriptionPlan $oldPlan, SubscriptionPlan $newPlan): float
+    protected function computeProrationAmount(Tenant $tenant, ?SubscriptionPlan $oldPlan, SubscriptionPlan $newPlan): float
     {
         if (! $oldPlan || $oldPlan->getKey() === $newPlan->getKey()) {
             return 0.0;
@@ -210,7 +223,7 @@ class PlanChangeService
     /**
      * 根据价格比较解析变更动作
      */
-    protected static function resolveAction(?SubscriptionPlan $oldPlan, SubscriptionPlan $newPlan): string
+    protected function resolveAction(?SubscriptionPlan $oldPlan, SubscriptionPlan $newPlan): string
     {
         $oldPrice = (float) ($oldPlan?->price_monthly ?? 0);
         $newPrice = (float) $newPlan->price_monthly;

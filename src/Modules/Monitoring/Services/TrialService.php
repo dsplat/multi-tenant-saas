@@ -6,6 +6,7 @@ use Carbon\Carbon;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Billing\Models\FinancialRecord;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionHistory;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
@@ -33,6 +34,18 @@ class TrialService
      */
     public const REMINDER_THRESHOLDS = [3, 1, 0];
 
+    public function __construct(private readonly TenantContextContract $tenantContext) {}
+
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 开始试用
      *
@@ -40,7 +53,7 @@ class TrialService
      * @param  int  $planId  订阅计划ID
      * @param  int|null  $trialDays  试用期天数，null 时取计划配置或默认值
      */
-    public static function startTrial(int $tenantId, int $planId, ?int $trialDays = null): Tenant
+    public function startTrial(int $tenantId, int $planId, ?int $trialDays = null): Tenant
     {
         $tenant = Tenant::findOrFail($tenantId);
         $plan = SubscriptionPlan::findOrFail($planId);
@@ -49,13 +62,13 @@ class TrialService
             throw new \RuntimeException(trans('subscription.plan_not_available'));
         }
 
-        if (static::isInTrial($tenant)) {
+        if ($this->isInTrial($tenant)) {
             throw new \RuntimeException(trans('subscription.trial_already_active'));
         }
 
-        $days = $trialDays ?? ($plan->hasTrial() ? $plan->trial_days : static::DEFAULT_TRIAL_DAYS);
+        $days = $trialDays ?? ($plan->hasTrial() ? $plan->trial_days : self::DEFAULT_TRIAL_DAYS);
         if ($days <= 0) {
-            $days = static::DEFAULT_TRIAL_DAYS;
+            $days = self::DEFAULT_TRIAL_DAYS;
         }
 
         return DB::transaction(function () use ($tenant, $plan, $days) {
@@ -86,7 +99,7 @@ class TrialService
     /**
      * 判断是否在试用期内
      */
-    public static function isInTrial(Tenant $tenant): bool
+    public function isInTrial(Tenant $tenant): bool
     {
         return $tenant->trial_ends_at !== null
             && $tenant->trial_ends_at->isFuture();
@@ -97,7 +110,7 @@ class TrialService
      *
      * @return array{in_trial: bool, trial_ends_at: Carbon|null, days_remaining: int, is_extended: bool, status: string}
      */
-    public static function getTrialStatus(int $tenantId): array
+    public function getTrialStatus(int $tenantId): array
     {
         $tenant = Tenant::find($tenantId);
 
@@ -111,7 +124,7 @@ class TrialService
             ];
         }
 
-        $inTrial = static::isInTrial($tenant);
+        $inTrial = $this->isInTrial($tenant);
         $daysRemaining = $inTrial ? (int) ceil(now()->diffInDays($tenant->trial_ends_at)) : 0;
 
         return [
@@ -133,7 +146,7 @@ class TrialService
      * @param  int  $days  延长天数
      * @param  string|null  $reason  延长原因
      */
-    public static function extendTrial(int $tenantId, int $days, ?string $reason = null): Tenant
+    public function extendTrial(int $tenantId, int $days, ?string $reason = null): Tenant
     {
         if ($days <= 0) {
             throw new \RuntimeException(trans('subscription.trial_extend_invalid_days'));
@@ -145,7 +158,7 @@ class TrialService
             throw new \RuntimeException(trans('subscription.trial_not_in_trial'));
         }
 
-        $base = static::isInTrial($tenant) ? $tenant->trial_ends_at : now();
+        $base = $this->isInTrial($tenant) ? $tenant->trial_ends_at : now();
         $newEndsAt = $base->copy()->addDays($days);
         $previousEndsAt = $tenant->trial_ends_at;
 
@@ -177,7 +190,7 @@ class TrialService
         $count = 0;
         $today = now()->toDateString();
 
-        foreach (static::REMINDER_THRESHOLDS as $days) {
+        foreach (self::REMINDER_THRESHOLDS as $days) {
             $start = $days === 0 ? now()->copy()->startOfDay() : now()->copy()->addDays($days)->startOfDay();
             $end = $days === 0 ? now()->copy()->endOfDay() : now()->copy()->addDays($days)->endOfDay();
 
@@ -195,7 +208,7 @@ class TrialService
                             ? trans('subscription.trial_expiring_today')
                             : trans('subscription.trial_expiring_body', ['days' => $days]);
 
-                        NotificationService::sendToTenantAdmins(
+                        app(NotificationService::class)->sendToTenantAdmins(
                             $tenant->tenant_id,
                             $title,
                             $message,
@@ -252,7 +265,7 @@ class TrialService
      */
     protected function convertToPaidSubscription(Tenant $tenant): void
     {
-        $plan = SubscriptionService::getCurrentPlan($tenant->tenant_id);
+        $plan = app(SubscriptionService::class)->getCurrentPlan($tenant->tenant_id);
 
         if (! $plan || $plan->isFree()) {
             $this->suspendOnTrialExpiry($tenant);
@@ -298,7 +311,7 @@ class TrialService
                 );
             });
 
-            NotificationService::sendToTenantAdmins(
+            app(NotificationService::class)->sendToTenantAdmins(
                 $tenant->tenant_id,
                 trans('subscription.trial_converted_to_paid'),
                 trans('subscription.trial_converted_to_paid'),
@@ -341,6 +354,6 @@ class TrialService
             );
         });
 
-        NotificationService::notifyTenantSuspended($tenant, $reason);
+        app(NotificationService::class)->notifyTenantSuspended($tenant, $reason);
     }
 }

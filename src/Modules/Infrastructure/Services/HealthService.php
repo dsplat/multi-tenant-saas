@@ -16,19 +16,28 @@ use Spatie\Health\Checks\Checks\UsedDiskSpaceCheck;
 use Spatie\Health\Facades\Health;
 
 /**
- * 健康检查服务
+ * 健康检查服务（DI 实例方法）。
  *
  * 集成 spatie/laravel-health
  *
- * 访问：GET /up (Laravel 内置)
- * 详情：php artisan health:list
+ * 向后兼容：保留 __callStatic 代理，新代码应通过构造器注入使用。
  */
 class HealthService
 {
     /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
+    /**
      * 注册默认健康检查
      */
-    public static function registerChecks(): void
+    public function registerChecks(): void
     {
         if (! class_exists(Health::class)) {
             return;
@@ -50,7 +59,7 @@ class HealthService
     /**
      * 注册 Horizon 检查（如果安装了 Horizon）
      */
-    public static function registerHorizonCheck(): void
+    public function registerHorizonCheck(): void
     {
         if (class_exists(HorizonServiceProvider::class)) {
             Health::checks([
@@ -62,7 +71,7 @@ class HealthService
     /**
      * 获取健康状态
      */
-    public static function getStatus(): array
+    public function getStatus(): array
     {
         $result = Health::registeredChecks()->run();
 

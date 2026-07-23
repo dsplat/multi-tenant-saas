@@ -18,7 +18,7 @@ use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
  *  3. captureOrder：用户回到 return_url 后，后端调用 capture 完成交易
  *  4. webhook：PayPal 异步通知交易状态
  *
- * 租户级配置：复用 PayService::getConfig($tenantId, 'paypal')
+ * 租户级配置：复用 app(PayService::class)->getConfig($tenantId, 'paypal')
  */
 class PayPalService
 {
@@ -41,7 +41,7 @@ class PayPalService
      */
     public function getAccessToken(int $tenantId): string
     {
-        $config = PayService::exportPaymentConfig($tenantId)['paypal'] ?? [];
+        $config = app(PayService::class)->exportPaymentConfig($tenantId)['paypal'] ?? [];
 
         if (empty($config['client_id']) || empty($config['client_secret'])) {
             throw new \RuntimeException(trans('payment.driver_not_configured', ['driver' => 'paypal', 'tenant' => $tenantId]));

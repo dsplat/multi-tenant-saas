@@ -747,7 +747,7 @@ class ReportService
         $view = (string) config('tenancy.reports.pdf_view', 'pdf.report');
 
         try {
-            return (string) PdfService::generate($view, $data);
+            return (string) app(PdfService::class)->generate($view, $data);
         } catch (Throwable $e) {
             throw new \RuntimeException(trans('common.report_export_unavailable'), 0, $e);
         }

@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Modules\Billing\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 
 /**
@@ -11,7 +12,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class PaymentOrder extends Model
 {
-    use HasGlobalId, SoftDeletes;
+    use BelongsToTenant, HasGlobalId, SoftDeletes;
 
     protected $primaryKey = 'id';
 

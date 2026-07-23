@@ -57,7 +57,7 @@ class SubscriptionController extends Controller
      */
     public function storePlan(Request $request)
     {
-        if (! RbacService::check('subscription.manage')) {
+        if (! app(RbacService::class)->check('subscription.manage')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
@@ -76,7 +76,7 @@ class SubscriptionController extends Controller
 
         $plan = SubscriptionPlan::create($validated);
 
-        AuditService::log('create', 'subscription_plan', $plan->subscription_plan_id, null, ['name' => $plan->display_name]);
+        app(AuditService::class)->log('create', 'subscription_plan', $plan->subscription_plan_id, null, ['name' => $plan->display_name]);
 
         return response()->json(['success' => true, 'data' => $plan], 201);
     }
@@ -86,7 +86,7 @@ class SubscriptionController extends Controller
      */
     public function updatePlan(Request $request, int $planId)
     {
-        if (! RbacService::check('subscription.manage')) {
+        if (! app(RbacService::class)->check('subscription.manage')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
@@ -106,7 +106,7 @@ class SubscriptionController extends Controller
 
         $plan->update($validated);
 
-        AuditService::log('update', 'subscription_plan', $plan->subscription_plan_id, null, ['name' => $plan->display_name]);
+        app(AuditService::class)->log('update', 'subscription_plan', $plan->subscription_plan_id, null, ['name' => $plan->display_name]);
 
         return response()->json(['success' => true, 'data' => $plan]);
     }
@@ -116,7 +116,7 @@ class SubscriptionController extends Controller
      */
     public function destroyPlan(Request $request, int $planId)
     {
-        if (! RbacService::check('subscription.manage')) {
+        if (! app(RbacService::class)->check('subscription.manage')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
@@ -128,7 +128,7 @@ class SubscriptionController extends Controller
 
         $plan->delete();
 
-        AuditService::log('delete', 'subscription_plan', $planId, null, ['name' => $plan->display_name]);
+        app(AuditService::class)->log('delete', 'subscription_plan', $planId, null, ['name' => $plan->display_name]);
 
         return response()->json(['success' => true, 'message' => trans('common.deleted')]);
     }
@@ -143,7 +143,7 @@ class SubscriptionController extends Controller
         $tenantId = TenantContext::getId();
 
         $tenant = Tenant::findOrFail($tenantId);
-        $plan = SubscriptionService::getCurrentPlan($tenantId);
+        $plan = app(SubscriptionService::class)->getCurrentPlan($tenantId);
 
         return response()->json([
             'success' => true,
@@ -154,7 +154,7 @@ class SubscriptionController extends Controller
                 'trial_ends_at' => $tenant->trial_ends_at,
                 'auto_renew' => $tenant->auto_renew,
                 'is_active' => $tenant->isSubscriptionActive(),
-                'is_in_trial' => SubscriptionService::isInTrial($tenant),
+                'is_in_trial' => app(SubscriptionService::class)->isInTrial($tenant),
             ],
         ]);
     }
@@ -175,20 +175,20 @@ class SubscriptionController extends Controller
         ]);
 
         try {
-            $tenant = SubscriptionService::subscribe(
+            $tenant = app(SubscriptionService::class)->subscribe(
                 $tenantId,
                 $validated['plan_id'],
                 $validated['billing_cycle'] ?? 'monthly',
                 $validated['start_trial'] ?? false
             );
 
-            AuditService::log('subscribe', 'tenant', $tenantId, null, ['plan_id' => $validated['plan_id']]);
+            app(AuditService::class)->log('subscribe', 'tenant', $tenantId, null, ['plan_id' => $validated['plan_id']]);
 
             return response()->json([
                 'success' => true,
                 'message' => trans('subscription.subscribe_success'),
                 'data' => [
-                    'plan' => SubscriptionService::getCurrentPlan($tenantId),
+                    'plan' => app(SubscriptionService::class)->getCurrentPlan($tenantId),
                     'subscription_expires_at' => $tenant->subscription_expires_at,
                     'trial_ends_at' => $tenant->trial_ends_at,
                 ],
@@ -207,9 +207,9 @@ class SubscriptionController extends Controller
 
         $tenantId = TenantContext::getId();
 
-        $tenant = SubscriptionService::cancel($tenantId);
+        $tenant = app(SubscriptionService::class)->cancel($tenantId);
 
-        AuditService::log('cancel_subscription', 'tenant', $tenantId, null, ['auto_renew' => false]);
+        app(AuditService::class)->log('cancel_subscription', 'tenant', $tenantId, null, ['auto_renew' => false]);
 
         return response()->json(['success' => true, 'message' => trans('subscription.cancel_success')]);
     }
@@ -229,19 +229,19 @@ class SubscriptionController extends Controller
         ]);
 
         try {
-            $tenant = SubscriptionService::changePlan(
+            $tenant = app(SubscriptionService::class)->changePlan(
                 $tenantId,
                 $validated['plan_id'],
                 $validated['billing_cycle'] ?? 'monthly'
             );
 
-            AuditService::log('change_plan', 'tenant', $tenantId, null, ['plan_id' => $validated['plan_id']]);
+            app(AuditService::class)->log('change_plan', 'tenant', $tenantId, null, ['plan_id' => $validated['plan_id']]);
 
             return response()->json([
                 'success' => true,
                 'message' => trans('subscription.change_success'),
                 'data' => [
-                    'plan' => SubscriptionService::getCurrentPlan($tenantId),
+                    'plan' => app(SubscriptionService::class)->getCurrentPlan($tenantId),
                     'subscription_expires_at' => $tenant->subscription_expires_at,
                 ],
             ]);
@@ -260,7 +260,7 @@ class SubscriptionController extends Controller
         $tenantId = TenantContext::getId();
 
         $perPage = min((int) $request->input('per_page', 15), 100);
-        $history = SubscriptionService::getHistory($tenantId, $perPage);
+        $history = app(SubscriptionService::class)->getHistory($tenantId, $perPage);
 
         return response()->json([
             'success' => true,

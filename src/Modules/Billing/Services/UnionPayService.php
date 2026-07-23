@@ -16,7 +16,7 @@ use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
  *  2. 用户在银联页面完成支付
  *  3. 银联异步通知 notify_url，同步跳回 return_url
  *
- * 租户级配置：复用 PayService::getConfig($tenantId, 'unionpay')
+ * 租户级配置：复用 app(PayService::class)->getConfig($tenantId, 'unionpay')
  *
  * 注意：真实生产部署需使用银联提供的 SDK 与证书签名；
  * 本实现提供基础参数构造与签名占位，签名细节由派生项目填充。

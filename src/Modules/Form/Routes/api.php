@@ -14,6 +14,6 @@ Route::prefix('/tenants/{tenantId}/forms')->group(function () {
     Route::get('/{formId}/export', [FormController::class, 'export'])->middleware('rbac.permission:form.export');
 });
 
-Route::prefix('v1/forms')->group(function () {
+Route::prefix('/forms/public')->group(function () {
     Route::post('/{formId}/submit', [FormController::class, 'submit'])->middleware('throttle:10,1');
 });

@@ -21,7 +21,7 @@ class RbacController extends Controller
      */
     public function permissions(Request $request)
     {
-        $grouped = RbacService::getAllPermissionsGrouped();
+        $grouped = app(RbacService::class)->getAllPermissionsGrouped();
 
         return response()->json(['success' => true, 'data' => $grouped]);
     }
@@ -32,7 +32,7 @@ class RbacController extends Controller
     public function roles(Request $request)
     {
         $tenantId = TenantContext::getId();
-        $roles = RbacService::getTenantRoles($tenantId);
+        $roles = app(RbacService::class)->getTenantRoles($tenantId);
 
         return response()->json(['success' => true, 'data' => $roles]);
     }
@@ -52,7 +52,7 @@ class RbacController extends Controller
             'permission_ids.*' => 'integer|exists:permissions,permission_id',
         ]);
 
-        $role = RbacService::createRole(
+        $role = app(RbacService::class)->createRole(
             $tenantId,
             $validated['name'],
             $validated['display_name'],
@@ -60,7 +60,7 @@ class RbacController extends Controller
             $validated['permission_ids'] ?? []
         );
 
-        AuditService::log('create', 'role', $role->role_id, null, [
+        app(AuditService::class)->log('create', 'role', $role->role_id, null, [
             'name' => $validated['name'],
             'tenant_id' => $tenantId,
         ]);
@@ -83,9 +83,9 @@ class RbacController extends Controller
         ]);
 
         try {
-            RbacService::updateRolePermissions($roleId, $validated['permission_ids']);
+            app(RbacService::class)->updateRolePermissions($roleId, $validated['permission_ids']);
 
-            AuditService::log('update', 'role', $roleId, null, [
+            app(AuditService::class)->log('update', 'role', $roleId, null, [
                 'permission_ids' => $validated['permission_ids'],
             ]);
 
@@ -107,9 +107,9 @@ class RbacController extends Controller
     public function destroyRole(Request $request, int $roleId)
     {
         try {
-            RbacService::deleteRole($roleId);
+            app(RbacService::class)->deleteRole($roleId);
 
-            AuditService::log('delete', 'role', $roleId, null, null);
+            app(AuditService::class)->log('delete', 'role', $roleId, null, null);
 
             return response()->json([
                 'success' => true,
@@ -151,7 +151,7 @@ class RbacController extends Controller
             ->where('user_id', $userId)
             ->update(['role_id' => $validated['role_id']]);
 
-        AuditService::log('update', 'tenant_user', $userId, [
+        app(AuditService::class)->log('update', 'tenant_user', $userId, [
             'role_id' => $tenantUser->role_id,
         ], [
             'role_id' => $validated['role_id'],

@@ -47,7 +47,7 @@ class BrandingConfigController extends Controller
 
         $config = $this->brandingService->updateConfig((int) $tenantId, $validated);
 
-        AuditService::log('update', 'branding_config', $config->branding_config_id, null, $validated);
+        app(AuditService::class)->log('update', 'branding_config', $config->branding_config_id, null, $validated);
 
         return $this->successResponse($config);
     }

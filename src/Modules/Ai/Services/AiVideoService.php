@@ -171,7 +171,7 @@ class AiVideoService
             ? (float) $metadata['duration']
             : (float) ($options['duration'] ?? config('ai.video.default_duration', 5));
 
-        $url = FileService::getUrl($file);
+        $url = app(FileService::class)->getUrl($file);
 
         $frames = [];
         for ($i = 0; $i < $count; $i++) {
@@ -522,7 +522,7 @@ class AiVideoService
 
             return [
                 'file_upload_id' => (int) $fileUpload->file_upload_id,
-                'url' => FileService::getUrl($fileUpload),
+                'url' => app(FileService::class)->getUrl($fileUpload),
                 'size' => (int) $fileUpload->size,
                 'mime_type' => (string) $fileUpload->mime_type,
             ];
@@ -552,7 +552,7 @@ class AiVideoService
                 true,
             );
 
-            $fileUpload = FileService::upload(
+            $fileUpload = app(FileService::class)->upload(
                 $uploadedFile,
                 $this->currentTenantIntId(),
                 $this->currentUserId(),
@@ -605,7 +605,7 @@ class AiVideoService
      */
     protected function resolveFileUrl(FileUpload $file): string
     {
-        return FileService::getUrl($file);
+        return app(FileService::class)->getUrl($file);
     }
 
     // ----------------------------------------------------------------

@@ -16,11 +16,16 @@ use MultiTenantSaas\Tests\Schema\BillingModule;
  */
 class SubscriptionServiceTest extends TestCase
 {
+    protected SubscriptionService $subscriptionService;
+
     protected array $uses = [BillingModule::class];
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->subscriptionService = $this->app->make(SubscriptionService::class);
+
 
         // 创建订阅计划
         SubscriptionPlan::unguarded(function () {
@@ -71,7 +76,7 @@ class SubscriptionServiceTest extends TestCase
 
     public function test_subscribe_to_free_plan(): void
     {
-        $tenant = SubscriptionService::subscribe(1001, 1, 'monthly');
+        $tenant = $this->subscriptionService->subscribe(1001, 1, 'monthly');
 
         $this->assertEquals('free', $tenant->subscription_plan);
         $this->assertTrue($tenant->auto_renew);
@@ -85,7 +90,7 @@ class SubscriptionServiceTest extends TestCase
 
     public function test_subscribe_to_paid_plan_monthly(): void
     {
-        $tenant = SubscriptionService::subscribe(1001, 2, 'monthly');
+        $tenant = $this->subscriptionService->subscribe(1001, 2, 'monthly');
 
         $this->assertEquals('basic', $tenant->subscription_plan);
         $this->assertTrue($tenant->auto_renew);
@@ -97,7 +102,7 @@ class SubscriptionServiceTest extends TestCase
 
     public function test_subscribe_to_paid_plan_yearly(): void
     {
-        $tenant = SubscriptionService::subscribe(1001, 3, 'yearly');
+        $tenant = $this->subscriptionService->subscribe(1001, 3, 'yearly');
 
         $this->assertEquals('pro', $tenant->subscription_plan);
 
@@ -109,7 +114,7 @@ class SubscriptionServiceTest extends TestCase
 
     public function test_subscribe_with_trial(): void
     {
-        $tenant = SubscriptionService::subscribe(1001, 2, 'monthly', true);
+        $tenant = $this->subscriptionService->subscribe(1001, 2, 'monthly', true);
 
         $this->assertEquals('basic', $tenant->subscription_plan);
         $this->assertNotNull($tenant->trial_ends_at);
@@ -123,7 +128,7 @@ class SubscriptionServiceTest extends TestCase
 
     public function test_start_trial(): void
     {
-        $tenant = SubscriptionService::startTrial(1001, 2);
+        $tenant = $this->subscriptionService->startTrial(1001, 2);
 
         $this->assertEquals('basic', $tenant->subscription_plan);
         $this->assertNotNull($tenant->trial_ends_at);
@@ -142,16 +147,16 @@ class SubscriptionServiceTest extends TestCase
         });
 
         $this->expectException(\RuntimeException::class);
-        SubscriptionService::subscribe(1001, 4);
+        $this->subscriptionService->subscribe(1001, 4);
     }
 
     // ---------- 订阅取消 ----------
 
     public function test_cancel_subscription(): void
     {
-        SubscriptionService::subscribe(1001, 2, 'monthly');
+        $this->subscriptionService->subscribe(1001, 2, 'monthly');
 
-        $tenant = SubscriptionService::cancel(1001);
+        $tenant = $this->subscriptionService->cancel(1001);
 
         $this->assertFalse($tenant->auto_renew);
 
@@ -165,9 +170,9 @@ class SubscriptionServiceTest extends TestCase
 
     public function test_change_plan_upgrade(): void
     {
-        SubscriptionService::subscribe(1001, 2, 'monthly');
+        $this->subscriptionService->subscribe(1001, 2, 'monthly');
 
-        $tenant = SubscriptionService::changePlan(1001, 3, 'monthly');
+        $tenant = $this->subscriptionService->changePlan(1001, 3, 'monthly');
 
         $this->assertEquals('pro', $tenant->subscription_plan);
 
@@ -179,9 +184,9 @@ class SubscriptionServiceTest extends TestCase
 
     public function test_change_plan_downgrade(): void
     {
-        SubscriptionService::subscribe(1001, 3, 'monthly');
+        $this->subscriptionService->subscribe(1001, 3, 'monthly');
 
-        $tenant = SubscriptionService::changePlan(1001, 2, 'monthly');
+        $tenant = $this->subscriptionService->changePlan(1001, 2, 'monthly');
 
         $this->assertEquals('basic', $tenant->subscription_plan);
 
@@ -195,10 +200,10 @@ class SubscriptionServiceTest extends TestCase
 
     public function test_get_history_returns_paginated_results(): void
     {
-        SubscriptionService::subscribe(1001, 2, 'monthly');
-        SubscriptionService::cancel(1001);
+        $this->subscriptionService->subscribe(1001, 2, 'monthly');
+        $this->subscriptionService->cancel(1001);
 
-        $history = SubscriptionService::getHistory(1001);
+        $history = $this->subscriptionService->getHistory(1001);
 
         $this->assertGreaterThan(0, $history->total());
         $this->assertContains($history->items()[0]->action, ['subscribe', 'cancel']);
@@ -208,7 +213,7 @@ class SubscriptionServiceTest extends TestCase
     {
         Tenant::create(['tenant_id' => 1002, 'name' => 'Empty', 'slug' => 'empty', 'status' => 'active']);
 
-        $history = SubscriptionService::getHistory(1002);
+        $history = $this->subscriptionService->getHistory(1002);
 
         $this->assertEquals(0, $history->total());
     }
@@ -217,7 +222,7 @@ class SubscriptionServiceTest extends TestCase
 
     public function test_get_current_plan_returns_free_by_default(): void
     {
-        $plan = SubscriptionService::getCurrentPlan(1001);
+        $plan = $this->subscriptionService->getCurrentPlan(1001);
 
         $this->assertNotNull($plan);
         $this->assertEquals('free', $plan->name);
@@ -225,9 +230,9 @@ class SubscriptionServiceTest extends TestCase
 
     public function test_get_current_plan_returns_subscribed_plan(): void
     {
-        SubscriptionService::subscribe(1001, 2, 'monthly');
+        $this->subscriptionService->subscribe(1001, 2, 'monthly');
 
-        $plan = SubscriptionService::getCurrentPlan(1001);
+        $plan = $this->subscriptionService->getCurrentPlan(1001);
 
         $this->assertEquals('basic', $plan->name);
     }
@@ -236,16 +241,16 @@ class SubscriptionServiceTest extends TestCase
 
     public function test_is_in_trial_returns_true_during_trial(): void
     {
-        $tenant = SubscriptionService::startTrial(1001, 2);
+        $tenant = $this->subscriptionService->startTrial(1001, 2);
 
-        $this->assertTrue(SubscriptionService::isInTrial($tenant));
+        $this->assertTrue($this->subscriptionService->isInTrial($tenant));
     }
 
     public function test_is_in_trial_returns_false_without_trial(): void
     {
-        $tenant = SubscriptionService::subscribe(1001, 2, 'monthly', false);
+        $tenant = $this->subscriptionService->subscribe(1001, 2, 'monthly', false);
 
-        $this->assertFalse(SubscriptionService::isInTrial($tenant));
+        $this->assertFalse($this->subscriptionService->isInTrial($tenant));
     }
 
     // ---------- 按比例计算 ----------
@@ -255,7 +260,7 @@ class SubscriptionServiceTest extends TestCase
         $tenant = Tenant::find(1001);
         $plan = SubscriptionPlan::find(2);
 
-        $proration = SubscriptionService::calculateProration($tenant, $plan, $plan);
+        $proration = $this->subscriptionService->calculateProration($tenant, $plan, $plan);
 
         $this->assertEquals(0.0, $proration);
     }
@@ -267,7 +272,7 @@ class SubscriptionServiceTest extends TestCase
         $newPlan = SubscriptionPlan::find(3);
 
         // subscription_expires_at is null for a fresh tenant
-        $proration = SubscriptionService::calculateProration($tenant, $oldPlan, $newPlan);
+        $proration = $this->subscriptionService->calculateProration($tenant, $oldPlan, $newPlan);
 
         $this->assertEquals(0.0, $proration);
     }

@@ -13,9 +13,9 @@ use MultiTenantSaas\Modules\Sms\Models\SmsTemplate;
 use MultiTenantSaas\Modules\Sms\Models\SmsUnsubscribe;
 
 /**
- * 短信发送服务
+ * 短信发送服务（DI 实例方法）。
  *
- * 配置读取优先级：租户级 TenantSetting > 系统级 config（当前不兖底）
+ * 配置读取优先级：租户级 TenantSetting > 系统级 config（当前不兑底）
  *
  * driver=log → 仅写日志（本地/测试默认）
  * driver=ww  → 调用网建短信网关
@@ -23,15 +23,27 @@ use MultiTenantSaas\Modules\Sms\Models\SmsUnsubscribe;
  * driver=http→ 通用 HTTP 短信网关（自定义 endpoint）
  *
  * 扩展功能：模板管理、批量发送、到达率统计、退订管理
+ *
+ * 向后兼容：保留 __callStatic 代理，新代码应通过构造器注入使用。
  */
 class SmsService
 {
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 发送验证码短信，成功返回传入的 $code，失败返回 false。
      *
      * 配置从当前租户 TenantSetting(group=sms) 读取，未配置则返回 false。
      */
-    public static function send(string $phone, string $code, string $type = 'register'): string|false
+    public function send(string $phone, string $code, string $type = 'register'): string|false
     {
         $tenantId = TenantContext::getId();
 
@@ -40,14 +52,14 @@ class SmsService
             $driver = TenantSetting::get((int) $tenantId, 'sms', 'driver', '');
 
             if ($driver) {
-                return static::sendWithTenantConfig((int) $tenantId, $driver, $phone, $code, $type);
+                return $this->sendWithTenantConfig((int) $tenantId, $driver, $phone, $code, $type);
             }
         }
 
         // 系统级兖底（当前不兖底，返回 false）
         Log::warning('SmsService: no tenant SMS config', [
             'tenant_id' => $tenantId,
-            'phone' => static::maskPhone($phone),
+            'phone' => $this->maskPhone($phone),
             'type' => $type,
         ]);
 
@@ -57,28 +69,28 @@ class SmsService
     /**
      * 使用租户级配置发送
      */
-    protected static function sendWithTenantConfig(int $tenantId, string $driver, string $phone, string $code, string $type): string|false
+    protected function sendWithTenantConfig(int $tenantId, string $driver, string $phone, string $code, string $type): string|false
     {
         $driver = trim($driver);
 
         return match ($driver) {
-            'aliyun' => static::sendViaAliyunTenant($tenantId, $phone, $code, $type),
-            'ww' => static::sendViaWw($phone, $code, $type),
-            'http' => static::sendViaHttp($phone, $code, $type),
-            'log' => static::sendViaLog($phone, $code, $type),
-            default => static::sendViaLog($phone, $code, $type),
+            'aliyun' => $this->sendViaAliyunTenant($tenantId, $phone, $code, $type),
+            'ww' => $this->sendViaWw($phone, $code, $type),
+            'http' => $this->sendViaHttp($phone, $code, $type),
+            'log' => $this->sendViaLog($phone, $code, $type),
+            default => $this->sendViaLog($phone, $code, $type),
         };
     }
 
-    public static function sendUsingDriver(string $driver, string $phone, string $code, string $type = 'register'): string|false
+    public function sendUsingDriver(string $driver, string $phone, string $code, string $type = 'register'): string|false
     {
         $driver = trim($driver);
 
         return match ($driver) {
-            'ww' => static::sendViaWw($phone, $code, $type),
-            'aliyun' => static::sendViaAliyun($phone, $code, $type),
-            'http' => static::sendViaHttp($phone, $code, $type),
-            default => static::sendViaLog($phone, $code, $type),
+            'ww' => $this->sendViaWw($phone, $code, $type),
+            'aliyun' => $this->sendViaAliyun($phone, $code, $type),
+            'http' => $this->sendViaHttp($phone, $code, $type),
+            default => $this->sendViaLog($phone, $code, $type),
         };
     }
 
@@ -86,7 +98,7 @@ class SmsService
     // Private drivers
     // ----------------------------------------
 
-    private static function sendViaWw(string $phone, string $code, string $type): string|false
+    private function sendViaWw(string $phone, string $code, string $type): string|false
     {
         $endpoint = (string) config('services.sms.ww_endpoint');
         $account = (string) config('services.sms.ww_account');
@@ -127,13 +139,13 @@ class SmsService
                 return false;
             }
 
-            $state = static::extractXmlValue($response->body(), 'State');
-            $msgId = static::extractXmlValue($response->body(), 'MsgID');
-            $msgState = static::extractXmlValue($response->body(), 'MsgState');
+            $state = $this->extractXmlValue($response->body(), 'State');
+            $msgId = $this->extractXmlValue($response->body(), 'MsgID');
+            $msgState = $this->extractXmlValue($response->body(), 'MsgState');
 
             if ($state === '0') {
                 Log::info('SmsService ww send ok', [
-                    'phone' => static::maskPhone($phone),
+                    'phone' => $this->maskPhone($phone),
                     'type' => $type,
                     'msg_id' => $msgId,
                     'sign' => config('services.sms.ww_sign'),
@@ -144,7 +156,7 @@ class SmsService
             }
 
             Log::error('SmsService ww send failed', [
-                'phone' => static::maskPhone($phone),
+                'phone' => $this->maskPhone($phone),
                 'type' => $type,
                 'state' => $state,
                 'msg_id' => $msgId,
@@ -155,7 +167,7 @@ class SmsService
             return false;
         } catch (\Throwable $e) {
             Log::error('SmsService ww exception', [
-                'phone' => static::maskPhone($phone),
+                'phone' => $this->maskPhone($phone),
                 'message' => $e->getMessage(),
             ]);
 
@@ -170,7 +182,7 @@ class SmsService
      *   http_endpoint: 网关地址
      *   http_timeout:  超时秒数（默认 5）
      */
-    private static function sendViaHttp(string $phone, string $code, string $type): string|false
+    private function sendViaHttp(string $phone, string $code, string $type): string|false
     {
         $endpoint = config('services.sms.http_endpoint');
 
@@ -194,7 +206,7 @@ class SmsService
             $body = $response->json();
 
             Log::info('SmsService http response', [
-                'phone' => static::maskPhone($phone),
+                'phone' => $this->maskPhone($phone),
                 'type' => $type,
                 'http_status' => $response->status(),
                 'response' => $body,
@@ -205,7 +217,7 @@ class SmsService
             }
 
             Log::warning('SmsService http send failed', [
-                'phone' => static::maskPhone($phone),
+                'phone' => $this->maskPhone($phone),
                 'type' => $type,
                 'response' => $body,
             ]);
@@ -213,7 +225,7 @@ class SmsService
             return false;
         } catch (\Throwable $e) {
             Log::error('SmsService http exception', [
-                'phone' => static::maskPhone($phone),
+                'phone' => $this->maskPhone($phone),
                 'message' => $e->getMessage(),
             ]);
 
@@ -221,10 +233,10 @@ class SmsService
         }
     }
 
-    private static function sendViaLog(string $phone, string $code, string $type): string
+    private function sendViaLog(string $phone, string $code, string $type): string
     {
         Log::info('SmsService [log driver] send code', [
-            'phone' => static::maskPhone($phone),
+            'phone' => $this->maskPhone($phone),
             'code' => $code,
             'type' => $type,
         ]);
@@ -239,7 +251,7 @@ class SmsService
      *   aliyun_access_key_id, aliyun_access_key_secret,
      *   aliyun_sign_name, aliyun_template_code
      */
-    private static function sendViaAliyun(string $phone, string $code, string $type): string|false
+    private function sendViaAliyun(string $phone, string $code, string $type): string|false
     {
         $accessKeyId = (string) config('services.sms.aliyun_access_key_id');
         $accessKeySecret = (string) config('services.sms.aliyun_access_key_secret');
@@ -248,7 +260,7 @@ class SmsService
 
         if ($accessKeyId === '' || $accessKeySecret === '' || $signName === '' || $templateCode === '') {
             Log::error('SmsService aliyun config missing', [
-                'phone' => static::maskPhone($phone),
+                'phone' => $this->maskPhone($phone),
                 'type' => $type,
             ]);
 
@@ -274,7 +286,7 @@ class SmsService
             ];
 
             // 计算签名
-            $params['Signature'] = static::computeAliyunSignature($params, $accessKeySecret);
+            $params['Signature'] = $this->computeAliyunSignature($params, $accessKeySecret);
 
             $response = Http::timeout((int) config('services.sms.aliyun_timeout', 10))
                 ->asForm()
@@ -284,7 +296,7 @@ class SmsService
 
             if ($response->successful() && ($body['Code'] ?? '') === 'OK') {
                 Log::info('SmsService aliyun send ok', [
-                    'phone' => static::maskPhone($phone),
+                    'phone' => $this->maskPhone($phone),
                     'type' => $type,
                     'biz_id' => $body['BizId'] ?? null,
                 ]);
@@ -293,7 +305,7 @@ class SmsService
             }
 
             Log::error('SmsService aliyun send failed', [
-                'phone' => static::maskPhone($phone),
+                'phone' => $this->maskPhone($phone),
                 'type' => $type,
                 'code' => $body['Code'] ?? null,
                 'message' => $body['Message'] ?? null,
@@ -303,7 +315,7 @@ class SmsService
             return false;
         } catch (\Throwable $e) {
             Log::error('SmsService aliyun exception', [
-                'phone' => static::maskPhone($phone),
+                'phone' => $this->maskPhone($phone),
                 'message' => $e->getMessage(),
             ]);
 
@@ -317,7 +329,7 @@ class SmsService
      * 从 TenantSetting(group=sms) 读取：
      *   aliyun_access_key_id, aliyun_access_key_secret, aliyun_sign_name, aliyun_template_code
      */
-    private static function sendViaAliyunTenant(int $tenantId, string $phone, string $code, string $type): string|false
+    private function sendViaAliyunTenant(int $tenantId, string $phone, string $code, string $type): string|false
     {
         $accessKeyId = TenantSetting::get($tenantId, 'sms', 'access_key_id', '');
         $accessKeySecret = TenantSetting::get($tenantId, 'sms', 'access_key_secret', '');
@@ -327,7 +339,7 @@ class SmsService
         if ($accessKeyId === '' || $accessKeySecret === '' || $signName === '' || $templateCode === '') {
             Log::error('SmsService aliyun tenant config missing', [
                 'tenant_id' => $tenantId,
-                'phone' => static::maskPhone($phone),
+                'phone' => $this->maskPhone($phone),
                 'type' => $type,
             ]);
 
@@ -351,7 +363,7 @@ class SmsService
                 'Version' => '2017-05-25',
             ];
 
-            $params['Signature'] = static::computeAliyunSignature($params, $accessKeySecret);
+            $params['Signature'] = $this->computeAliyunSignature($params, $accessKeySecret);
 
             $response = Http::timeout(10)->asForm()->post('https://dysmsapi.aliyuncs.com/', $params);
 
@@ -360,7 +372,7 @@ class SmsService
             if ($response->successful() && ($body['Code'] ?? '') === 'OK') {
                 Log::info('SmsService aliyun tenant send ok', [
                     'tenant_id' => $tenantId,
-                    'phone' => static::maskPhone($phone),
+                    'phone' => $this->maskPhone($phone),
                     'type' => $type,
                     'biz_id' => $body['BizId'] ?? null,
                 ]);
@@ -370,7 +382,7 @@ class SmsService
 
             Log::error('SmsService aliyun tenant send failed', [
                 'tenant_id' => $tenantId,
-                'phone' => static::maskPhone($phone),
+                'phone' => $this->maskPhone($phone),
                 'type' => $type,
                 'code' => $body['Code'] ?? null,
                 'message' => $body['Message'] ?? null,
@@ -380,7 +392,7 @@ class SmsService
         } catch (\Throwable $e) {
             Log::error('SmsService aliyun tenant exception', [
                 'tenant_id' => $tenantId,
-                'phone' => static::maskPhone($phone),
+                'phone' => $this->maskPhone($phone),
                 'message' => $e->getMessage(),
             ]);
 
@@ -391,16 +403,16 @@ class SmsService
     /**
      * 计算阿里云 API 签名（SignatureVersion 1.0, HMAC-SHA1）
      */
-    private static function computeAliyunSignature(array $params, string $accessKeySecret): string
+    private function computeAliyunSignature(array $params, string $accessKeySecret): string
     {
         ksort($params);
 
         $canonicalized = '';
         foreach ($params as $key => $value) {
-            $canonicalized .= '&' . static::aliyunPercentEncode($key) . '=' . static::aliyunPercentEncode($value);
+            $canonicalized .= '&' . $this->aliyunPercentEncode($key) . '=' . $this->aliyunPercentEncode($value);
         }
 
-        $stringToSign = 'POST&' . static::aliyunPercentEncode('/') . '&' . static::aliyunPercentEncode(substr($canonicalized, 1));
+        $stringToSign = 'POST&' . $this->aliyunPercentEncode('/') . '&' . $this->aliyunPercentEncode(substr($canonicalized, 1));
 
         return base64_encode(hash_hmac('sha1', $stringToSign, $accessKeySecret . '&', true));
     }
@@ -408,7 +420,7 @@ class SmsService
     /**
      * 阿里云特殊 URL 编码（RFC 3986）
      */
-    private static function aliyunPercentEncode(string $value): string
+    private function aliyunPercentEncode(string $value): string
     {
         return str_replace(
             ['+', '*', '%7E'],
@@ -417,7 +429,7 @@ class SmsService
         );
     }
 
-    private static function extractXmlValue(string $xml, string $tag): ?string
+    private function extractXmlValue(string $xml, string $tag): ?string
     {
         if (preg_match('/<' . preg_quote($tag, '/') . '>(.*?)<\/' . preg_quote($tag, '/') . '>/s', $xml, $matches) !== 1) {
             return null;
@@ -426,7 +438,7 @@ class SmsService
         return trim(html_entity_decode($matches[1], ENT_QUOTES | ENT_XML1, 'UTF-8'));
     }
 
-    private static function maskPhone(string $phone): string
+    private function maskPhone(string $phone): string
     {
         if (strlen($phone) !== 11) {
             return $phone;
@@ -442,7 +454,7 @@ class SmsService
     /**
      * 创建短信模板
      */
-    public static function createTemplate(array $data): SmsTemplate
+    public function createTemplate(array $data): SmsTemplate
     {
         return SmsTemplate::create($data);
     }
@@ -450,7 +462,7 @@ class SmsService
     /**
      * 更新短信模板
      */
-    public static function updateTemplate(int $templateId, array $data): SmsTemplate
+    public function updateTemplate(int $templateId, array $data): SmsTemplate
     {
         $template = SmsTemplate::findOrFail($templateId);
         $template->update($data);
@@ -461,7 +473,7 @@ class SmsService
     /**
      * 提交模板审核
      */
-    public static function submitForApproval(int $templateId): SmsTemplate
+    public function submitForApproval(int $templateId): SmsTemplate
     {
         $template = SmsTemplate::findOrFail($templateId);
         $template->update(['status' => SmsTemplate::STATUS_PENDING_APPROVAL]);
@@ -472,7 +484,7 @@ class SmsService
     /**
      * 渲染模板内容（变量替换）
      */
-    public static function renderContent(int $templateId, array $variables = []): string
+    public function renderContent(int $templateId, array $variables = []): string
     {
         $template = SmsTemplate::findOrFail($templateId);
         $content = $template->content;
@@ -487,7 +499,7 @@ class SmsService
     /**
      * 获取模板列表
      */
-    public static function getTemplates(array $filters = []): Collection
+    public function getTemplates(array $filters = []): Collection
     {
         $query = SmsTemplate::query();
 
@@ -514,7 +526,7 @@ class SmsService
     /**
      * 批量发送短信
      */
-    public static function batchSend(int $templateId, array $phones, array $globalVars = []): SmsBatchTask
+    public function batchSend(int $templateId, array $phones, array $globalVars = []): SmsBatchTask
     {
         $template = SmsTemplate::findOrFail($templateId);
 
@@ -534,7 +546,7 @@ class SmsService
     /**
      * 定时发送短信
      */
-    public static function scheduledSend(int $templateId, array $phones, string $scheduledAt): SmsBatchTask
+    public function scheduledSend(int $templateId, array $phones, string $scheduledAt): SmsBatchTask
     {
         $template = SmsTemplate::findOrFail($templateId);
 
@@ -555,7 +567,7 @@ class SmsService
     /**
      * 获取批量任务详情
      */
-    public static function getBatchTask(int $taskId): SmsBatchTask
+    public function getBatchTask(int $taskId): SmsBatchTask
     {
         return SmsBatchTask::findOrFail($taskId);
     }
@@ -563,7 +575,7 @@ class SmsService
     /**
      * 取消批量任务
      */
-    public static function cancelBatchTask(int $taskId): SmsBatchTask
+    public function cancelBatchTask(int $taskId): SmsBatchTask
     {
         $task = SmsBatchTask::findOrFail($taskId);
 
@@ -581,7 +593,7 @@ class SmsService
     /**
      * 记录到达率统计结果
      */
-    public static function recordDeliveryResult(int $batchTaskId, array $result): SmsDeliveryStat
+    public function recordDeliveryResult(int $batchTaskId, array $result): SmsDeliveryStat
     {
         return SmsDeliveryStat::create([
             'tenant_id' => $result['tenant_id'] ?? null,
@@ -599,7 +611,7 @@ class SmsService
     /**
      * 获取批量任务的到达率统计
      */
-    public static function getDeliveryStats(int $batchTaskId): Collection
+    public function getDeliveryStats(int $batchTaskId): Collection
     {
         return SmsDeliveryStat::where('sms_batch_task_id', $batchTaskId)
             ->orderByDesc('recorded_at')
@@ -609,7 +621,7 @@ class SmsService
     /**
      * 获取租户整体到达率统计
      */
-    public static function getOverallStats(int $tenantId, ?string $from = null, ?string $to = null): array
+    public function getOverallStats(int $tenantId, ?string $from = null, ?string $to = null): array
     {
         $query = SmsDeliveryStat::where('tenant_id', $tenantId);
 
@@ -646,7 +658,7 @@ class SmsService
     /**
      * 退订短信
      */
-    public static function unsubscribe(string $phone, ?int $tenantId = null, ?int $userId = null, ?string $reason = null): SmsUnsubscribe
+    public function unsubscribe(string $phone, ?int $tenantId = null, ?int $userId = null, ?string $reason = null): SmsUnsubscribe
     {
         return SmsUnsubscribe::create([
             'tenant_id' => $tenantId,
@@ -660,7 +672,7 @@ class SmsService
     /**
      * 检查手机号是否已退订
      */
-    public static function isUnsubscribed(string $phone, ?int $tenantId = null): bool
+    public function isUnsubscribed(string $phone, ?int $tenantId = null): bool
     {
         return SmsUnsubscribe::where('phone', $phone)
             ->where(function ($query) use ($tenantId) {
@@ -674,7 +686,7 @@ class SmsService
     /**
      * 获取退订列表
      */
-    public static function getUnsubscribes(?int $tenantId = null): Collection
+    public function getUnsubscribes(?int $tenantId = null): Collection
     {
         $query = SmsUnsubscribe::query();
 

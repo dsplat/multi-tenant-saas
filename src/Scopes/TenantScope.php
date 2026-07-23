@@ -8,27 +8,72 @@ use Illuminate\Database\Eloquent\Scope;
 use MultiTenantSaas\Context\TenantContext;
 
 /**
- * 租户全局作用域
+ * 租户全局作用域（fail-closed）
  *
- * 自动为查询添加 tenant_id 过滤条件
- * 确保数据隔离，防止跨租户数据泄露
+ * 自动为查询添加 tenant_id 过滤条件，确保数据隔离。
+ * 当无租户上下文时，追加 WHERE 1=0 阻止任何数据返回（fail-closed）。
  *
  * 安全原则：
  * - 所有查询默认按租户过滤
+ * - 无租户上下文时拒绝返回数据（fail-closed）
  * - withoutTenantScope/forAllTenants 仅允许在 admin 域名下使用
- * - 租户上下文内禁止绕过隔离
+ * - 队列/CLI 等无 HTTP 上下文场景需显式调用 allowUnscoped()
  */
 class TenantScope implements Scope
 {
     /**
+     * 标记当前执行上下文允许无租户查询（队列、CLI、系统任务）。
+     * 使用闭包包装，执行完毕自动恢复。
+     */
+    protected static bool $unscopedAllowed = false;
+
+    /**
+     * 在允许无租户上下文的场景中执行回调。
+     * 用于队列 Job、Artisan Command 等系统级操作。
+     *
+     * @template T
+     *
+     * @param  callable(): T  $callback
+     * @return T
+     */
+    public static function allowUnscoped(callable $callback): mixed
+    {
+        $previous = static::$unscopedAllowed;
+        static::$unscopedAllowed = true;
+
+        try {
+            return $callback();
+        } finally {
+            static::$unscopedAllowed = $previous;
+        }
+    }
+
+    /**
+     * 当前是否允许无租户查询。
+     */
+    public static function isUnscopedAllowed(): bool
+    {
+        return static::$unscopedAllowed;
+    }
+
+    /**
      * Apply the scope to a given Eloquent query builder.
+     *
+     * Fail-closed：无租户上下文且未显式豁免时，追加 WHERE 1=0。
      */
     public function apply(Builder $builder, Model $model): void
     {
         $tenantId = TenantContext::getId();
 
         if ($tenantId) {
-            $builder->where($model->getTable() . '.tenant_id', $tenantId);
+            $builder->where($model->getTable().'.tenant_id', $tenantId);
+
+            return;
+        }
+
+        // 无租户上下文：系统级豁免 or 阻断
+        if (! static::$unscopedAllowed) {
+            $builder->whereRaw('1 = 0');
         }
     }
 

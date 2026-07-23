@@ -14,17 +14,22 @@ use MultiTenantSaas\Tests\Schema\PluginModule;
  * 覆盖：
  *  - AlipayOAuthService 容器解析（singleton 注册验证）
  *  - isConfigured() 未配置时返回 false
- *  - SocialiteService::getSupportedProviders() 包含 alipay
+ *  - $this->socialiteService->getSupportedProviders() 包含 alipay
  *
  * 注意：不测试实际 HTTP 调用（需要 mock），只测试服务解析与配置逻辑。
  */
 class AlipayOAuthTest extends TestCase
 {
+    protected SocialiteService $socialiteService;
+
     protected array $uses = [PluginModule::class];
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->socialiteService = $this->app->make(SocialiteService::class);
+
 
         Tenant::create([
             'tenant_id' => 1001,
@@ -52,7 +57,7 @@ class AlipayOAuthTest extends TestCase
 
     public function test_alipay_is_in_supported_providers(): void
     {
-        $providers = SocialiteService::getSupportedProviders();
+        $providers = $this->socialiteService->getSupportedProviders();
 
         $this->assertArrayHasKey('alipay', $providers);
     }

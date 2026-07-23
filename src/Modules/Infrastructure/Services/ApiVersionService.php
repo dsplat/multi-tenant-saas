@@ -84,7 +84,7 @@ class ApiVersionService
                 'updated_at' => now(),
             ]);
 
-        AuditService::log(
+        app(AuditService::class)->log(
             action: 'api_version_deprecated',
             resourceType: 'api_version',
             newValues: ['version' => $version, 'sunset_date' => $sunsetDate]

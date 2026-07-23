@@ -153,7 +153,7 @@ class AuthController extends Controller
             'data' => [
                 'user' => $this->userToArray($request->user()),
                 'tenant_id' => $request->attributes->get('tenant_id'),
-                'permissions' => RbacService::getCurrentUserPermissions(),
+                'permissions' => app(RbacService::class)->getCurrentUserPermissions(),
             ],
         ]);
     }
@@ -758,7 +758,7 @@ class AuthController extends Controller
             ->first();
 
         if ($operatorTenant && $operatorTenant->role_id) {
-            return RbacService::getRolePermissions($operatorTenant->role_id);
+            return app(RbacService::class)->getRolePermissions($operatorTenant->role_id);
         }
 
         return [];

@@ -16,7 +16,7 @@ use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
  *  2. 用户在 Stripe 托管页面完成支付
  *  3. Stripe 跳回 return_url；同时异步 webhook 通知交易状态
  *
- * 租户级配置：复用 PayService::getConfig($tenantId, 'stripe')
+ * 租户级配置：复用 app(PayService::class)->getConfig($tenantId, 'stripe')
  */
 class StripeService
 {

@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\Billing\Services;
 
 use Illuminate\Http\Request;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use Yansongda\Pay\Pay;
 
@@ -14,10 +15,22 @@ use Yansongda\Pay\Pay;
  */
 class PayService
 {
+    public function __construct(private readonly TenantContextContract $tenantContext) {}
+
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 获取租户支付配置
      */
-    protected static function getConfig(int $tenantId, string $driver): array
+    protected function getConfig(int $tenantId, string $driver): array
     {
         $group = 'payment';
 
@@ -49,9 +62,9 @@ class PayService
     /**
      * 动态创建 Pay 实例（租户级）
      */
-    protected static function createPayInstance(int $tenantId, string $driver): Pay
+    protected function createPayInstance(int $tenantId, string $driver): Pay
     {
-        $config = self::getConfig($tenantId, $driver);
+        $config = $this->getConfig($tenantId, $driver);
 
         // 过滤空值
         $config = array_filter($config, fn ($v) => $v !== '' && $v !== null);
@@ -66,15 +79,15 @@ class PayService
     /**
      * 公开的 Pay 实例创建方法（供 RefundService 等使用）
      */
-    public static function createPayInstancePublic(int $tenantId, string $driver): Pay
+    public function createPayInstancePublic(int $tenantId, string $driver): Pay
     {
-        return self::createPayInstance($tenantId, $driver);
+        return $this->createPayInstance($tenantId, $driver);
     }
 
     /**
      * 微信支付 - JSAPI
      */
-    public static function wechatJsapi(int $tenantId, float $amount, string $orderNo, string $openId): array
+    public function wechatJsapi(int $tenantId, float $amount, string $orderNo, string $openId): array
     {
         $order = [
             'out_trade_no' => $orderNo,
@@ -83,13 +96,13 @@ class PayService
             'openid' => $openId,
         ];
 
-        return self::createPayInstance($tenantId, 'wechat')->jsapi($order)->toArray();
+        return $this->createPayInstance($tenantId, 'wechat')->jsapi($order)->toArray();
     }
 
     /**
      * 微信支付 - H5
      */
-    public static function wechatH5(int $tenantId, float $amount, string $orderNo): array
+    public function wechatH5(int $tenantId, float $amount, string $orderNo): array
     {
         $order = [
             'out_trade_no' => $orderNo,
@@ -97,13 +110,13 @@ class PayService
             'body' => '积分充值',
         ];
 
-        return self::createPayInstance($tenantId, 'wechat')->h5($order)->toArray();
+        return $this->createPayInstance($tenantId, 'wechat')->h5($order)->toArray();
     }
 
     /**
      * 支付宝 - 电脑网站
      */
-    public static function alipayWeb(int $tenantId, float $amount, string $orderNo): string
+    public function alipayWeb(int $tenantId, float $amount, string $orderNo): string
     {
         $order = [
             'out_trade_no' => $orderNo,
@@ -111,13 +124,13 @@ class PayService
             'subject' => '积分充值',
         ];
 
-        return self::createPayInstance($tenantId, 'alipay')->web($order)->getContent();
+        return $this->createPayInstance($tenantId, 'alipay')->web($order)->getContent();
     }
 
     /**
      * 支付宝 - 手机网站
      */
-    public static function alipayWap(int $tenantId, float $amount, string $orderNo): string
+    public function alipayWap(int $tenantId, float $amount, string $orderNo): string
     {
         $order = [
             'out_trade_no' => $orderNo,
@@ -125,7 +138,7 @@ class PayService
             'subject' => '积分充值',
         ];
 
-        return self::createPayInstance($tenantId, 'alipay')->wap($order)->getContent();
+        return $this->createPayInstance($tenantId, 'alipay')->wap($order)->getContent();
     }
 
     /**
@@ -135,7 +148,7 @@ class PayService
      * 1. 从 URL 参数或请求体获取 tenant_id
      * 2. 使用租户配置验证签名
      */
-    public static function handleCallback(string $driver, Request $request): array
+    public function handleCallback(string $driver, Request $request): array
     {
         // 从 URL 参数获取 tenant_id
         $tenantId = $request->query('tenant_id');
@@ -145,7 +158,7 @@ class PayService
         }
 
         // 使用租户配置创建 Pay 实例（包含验签）
-        $pay = self::createPayInstance((int) $tenantId, $driver);
+        $pay = $this->createPayInstance((int) $tenantId, $driver);
         $result = $pay->callback($request->all());
 
         return [
@@ -160,9 +173,9 @@ class PayService
     /**
      * 检查租户是否已配置支付
      */
-    public static function isConfigured(int $tenantId, string $driver): bool
+    public function isConfigured(int $tenantId, string $driver): bool
     {
-        $config = self::getConfig($tenantId, $driver);
+        $config = $this->getConfig($tenantId, $driver);
 
         return ! empty(array_filter($config, fn ($v) => $v !== '' && $v !== null));
     }
@@ -170,16 +183,16 @@ class PayService
     /**
      * 获取租户支付配置（用于后台展示）
      */
-    public static function getPaymentConfig(int $tenantId): array
+    public function getPaymentConfig(int $tenantId): array
     {
         return [
             'wechat' => [
-                'configured' => self::isConfigured($tenantId, 'wechat'),
+                'configured' => $this->isConfigured($tenantId, 'wechat'),
                 'app_id' => TenantSetting::get($tenantId, 'payment', 'wechat_app_id', ''),
                 'mch_id' => TenantSetting::get($tenantId, 'payment', 'wechat_mch_id', ''),
             ],
             'alipay' => [
-                'configured' => self::isConfigured($tenantId, 'alipay'),
+                'configured' => $this->isConfigured($tenantId, 'alipay'),
                 'app_id' => TenantSetting::get($tenantId, 'payment', 'alipay_app_id', ''),
             ],
         ];
@@ -188,7 +201,7 @@ class PayService
     /**
      * 更新租户支付配置
      */
-    public static function updatePaymentConfig(int $tenantId, string $driver, array $config): void
+    public function updatePaymentConfig(int $tenantId, string $driver, array $config): void
     {
         $prefix = $driver === 'wechat' ? 'wechat' : 'alipay';
         $sensitiveKeys = ['private_key', 'public_key_path', 'secret'];

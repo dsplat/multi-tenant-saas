@@ -89,7 +89,7 @@ class PluginService
         // 触发插件初始化钩子
         $this->triggerHook($pluginName, 'install');
 
-        AuditService::log(
+        app(AuditService::class)->log(
             action: 'plugin_installed',
             resourceType: 'plugin',
             resourceId: $id,
@@ -123,7 +123,7 @@ class PluginService
             DB::table(self::TABLE_PLUGINS)->where('id', $plugin->id)->delete();
             DB::table(self::TABLE_DEPENDENCIES)->where('plugin_id', $plugin->id)->delete();
 
-            AuditService::log(
+            app(AuditService::class)->log(
                 action: 'plugin_uninstalled',
                 resourceType: 'plugin',
                 resourceId: $plugin->id
@@ -160,7 +160,7 @@ class PluginService
             ->where('id', $plugin->id)
             ->update(['status' => self::STATUS_ENABLED, 'enabled_at' => now(), 'updated_at' => now()]);
 
-        AuditService::log(
+        app(AuditService::class)->log(
             action: 'plugin_enabled',
             resourceType: 'plugin',
             resourceId: $plugin->id
@@ -189,7 +189,7 @@ class PluginService
             ->where('id', $plugin->id)
             ->update(['status' => self::STATUS_DISABLED, 'updated_at' => now()]);
 
-        AuditService::log(
+        app(AuditService::class)->log(
             action: 'plugin_disabled',
             resourceType: 'plugin',
             resourceId: $plugin->id

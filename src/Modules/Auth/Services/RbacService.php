@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Auth\Services;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Auth\Models\Permission;
 use MultiTenantSaas\Modules\Auth\Models\Role;
@@ -25,10 +26,22 @@ class RbacService
 
     private const CACHE_TTL = 3600;
 
+    public function __construct(private readonly TenantContextContract $tenantContext) {}
+
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 检查当前用户（Operator 或 User）是否拥有指定权限
      */
-    public static function check(string $permission): bool
+    public function check(string $permission): bool
     {
         $user = auth()->user();
         if (! $user) {
@@ -39,7 +52,7 @@ class RbacService
 
         // 1) Operator 直连路径
         if ($user instanceof Operator) {
-            return static::checkOperatorPermission($user, $tenantId, $permission);
+            return $this->checkOperatorPermission($user, $tenantId, $permission);
         }
 
         // 2) User 路径：先查 operator_tenants（运营员），再查 tenant_users（业务用户）
@@ -55,7 +68,7 @@ class RbacService
         }
 
         if ($operatorTenant && $operatorTenant->role_id) {
-            return static::checkRolePermission($operatorTenant->role_id, $permission);
+            return $this->checkRolePermission($operatorTenant->role_id, $permission);
         }
 
         // 回退到 tenant_users 路径
@@ -74,7 +87,7 @@ class RbacService
             return false;
         }
 
-        return static::checkRolePermission($tenantUser->pivot->role_id, $permission);
+        return $this->checkRolePermission($tenantUser->pivot->role_id, $permission);
     }
 
     /**
@@ -83,7 +96,7 @@ class RbacService
      * 当 $tenantId 为 null（如平台 admin 路由无租户上下文）时，
      * 回退到查找该 Operator 的任意活跃 operator_tenant 记录。
      */
-    protected static function checkOperatorPermission(Operator $operator, ?int $tenantId, string $permission): bool
+    protected function checkOperatorPermission(Operator $operator, ?int $tenantId, string $permission): bool
     {
         // 平台管理员 (scope=platform) 拥有所有权限，无需逐一检查
         if ($operator->scope === 'platform') {
@@ -103,17 +116,17 @@ class RbacService
             return false;
         }
 
-        return static::checkRolePermission($operatorTenant->role_id, $permission);
+        return $this->checkRolePermission($operatorTenant->role_id, $permission);
     }
 
-    public static function checkRolePermission(int $roleId, string $permission): bool
+    public function checkRolePermission(int $roleId, string $permission): bool
     {
-        $permissions = static::getRolePermissions($roleId);
+        $permissions = $this->getRolePermissions($roleId);
 
         return in_array($permission, $permissions);
     }
 
-    public static function getRolePermissions(int $roleId): array
+    public function getRolePermissions(int $roleId): array
     {
         return Cache::remember(
             self::CACHE_PREFIX . $roleId,
@@ -129,7 +142,7 @@ class RbacService
     /**
      * 获取当前用户（Operator 或 User）的所有权限标识
      */
-    public static function getCurrentUserPermissions(): array
+    public function getCurrentUserPermissions(): array
     {
         $user = auth()->user();
         if (! $user) {
@@ -149,7 +162,7 @@ class RbacService
             $operatorTenant = $query->first();
 
             if ($operatorTenant && $operatorTenant->role_id) {
-                return static::getRolePermissions($operatorTenant->role_id);
+                return $this->getRolePermissions($operatorTenant->role_id);
             }
 
             return [];
@@ -168,16 +181,16 @@ class RbacService
         }
 
         return $tenantUser && $tenantUser->pivot->role_id
-            ? static::getRolePermissions($tenantUser->pivot->role_id)
+            ? $this->getRolePermissions($tenantUser->pivot->role_id)
             : [];
     }
 
-    public static function clearRoleCache(int $roleId): void
+    public function clearRoleCache(int $roleId): void
     {
         Cache::forget(self::CACHE_PREFIX . $roleId);
     }
 
-    public static function createRole(int $tenantId, string $name, string $displayName, ?string $description = null, array $permissionIds = []): Role
+    public function createRole(int $tenantId, string $name, string $displayName, ?string $description = null, array $permissionIds = []): Role
     {
         $role = Role::create([
             'tenant_id' => $tenantId,
@@ -194,7 +207,7 @@ class RbacService
         return $role;
     }
 
-    public static function updateRolePermissions(int $roleId, array $permissionIds): void
+    public function updateRolePermissions(int $roleId, array $permissionIds): void
     {
         $role = Role::findOrFail($roleId);
 
@@ -203,10 +216,10 @@ class RbacService
         }
 
         $role->permissions()->sync($permissionIds);
-        static::clearRoleCache($roleId);
+        $this->clearRoleCache($roleId);
     }
 
-    public static function deleteRole(int $roleId): void
+    public function deleteRole(int $roleId): void
     {
         $role = Role::findOrFail($roleId);
 
@@ -221,7 +234,7 @@ class RbacService
         $role->delete();
     }
 
-    public static function getAllPermissionsGrouped(): array
+    public function getAllPermissionsGrouped(): array
     {
         return Permission::orderBy('group')->orderBy('name')
             ->get()
@@ -229,7 +242,7 @@ class RbacService
             ->toArray();
     }
 
-    public static function getTenantRoles(int $tenantId): Collection
+    public function getTenantRoles(int $tenantId): Collection
     {
         return Role::where(function ($q) use ($tenantId) {
             $q->whereNull('tenant_id')->orWhere('tenant_id', $tenantId);

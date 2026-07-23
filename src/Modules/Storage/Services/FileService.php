@@ -6,6 +6,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Storage\Models\FileUpload;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -27,10 +28,22 @@ class FileService
 
     private const IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
 
+    public function __construct(private readonly TenantContextContract $tenantContext) {}
+
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 检查存储配额
      */
-    public static function checkStorageQuota(?int $tenantId, int $fileSize): bool
+    public function checkStorageQuota(?int $tenantId, int $fileSize): bool
     {
         if (! $tenantId) {
             return true;
@@ -51,7 +64,7 @@ class FileService
             return true;
         }
 
-        $currentUsage = static::getStorageUsage($tenantId);
+        $currentUsage = $this->getStorageUsage($tenantId);
         $maxStorageBytes = $maxStorageMb * 1024 * 1024;
 
         return ($currentUsage + $fileSize) <= $maxStorageBytes;
@@ -60,7 +73,7 @@ class FileService
     /**
      * 上传文件
      */
-    public static function upload(
+    public function upload(
         UploadedFile $file,
         ?int $tenantId = null,
         ?int $userId = null,
@@ -83,7 +96,7 @@ class FileService
         }
 
         // 检查存储配额
-        if (! static::checkStorageQuota($tenantId, $file->getSize())) {
+        if (! $this->checkStorageQuota($tenantId, $file->getSize())) {
             throw new \RuntimeException(trans('file.quota_exceeded'));
         }
 
@@ -143,7 +156,7 @@ class FileService
      *
      * 存储路径: uploads/{tenantId}/{module}/{entityId}/{filename}
      */
-    public static function uploadForEntity(
+    public function uploadForEntity(
         UploadedFile $file,
         string $module,
         string $entityId,
@@ -155,9 +168,9 @@ class FileService
 
         // 替换模式：删除旧文件
         if ($replace) {
-            $oldFile = static::getForEntity($module, $entityId, $tenantId);
+            $oldFile = $this->getForEntity($module, $entityId, $tenantId);
             if ($oldFile) {
-                static::delete($oldFile);
+                $this->delete($oldFile);
             }
         }
 
@@ -175,7 +188,7 @@ class FileService
         }
 
         // 检查存储配额
-        if (! static::checkStorageQuota($tenantId, $file->getSize())) {
+        if (! $this->checkStorageQuota($tenantId, $file->getSize())) {
             throw new \RuntimeException(trans('file.quota_exceeded'));
         }
 
@@ -231,7 +244,7 @@ class FileService
     /**
      * 获取业务实体的文件
      */
-    public static function getForEntity(
+    public function getForEntity(
         string $module,
         string $entityId,
         ?int $tenantId = null
@@ -248,20 +261,20 @@ class FileService
     /**
      * 获取业务实体文件的访问 URL
      */
-    public static function getUrlForEntity(
+    public function getUrlForEntity(
         string $module,
         string $entityId,
         ?int $tenantId = null
     ): ?string {
-        $file = static::getForEntity($module, $entityId, $tenantId);
+        $file = $this->getForEntity($module, $entityId, $tenantId);
 
-        return $file ? static::getUrl($file) : null;
+        return $file ? $this->getUrl($file) : null;
     }
 
     /**
      * 生成文件分享签名 URL（限时访问）
      */
-    public static function createShareUrl(FileUpload $file, int $expiresInMinutes = 60): string
+    public function createShareUrl(FileUpload $file, int $expiresInMinutes = 60): string
     {
         // S3/OSS 使用临时 URL
         if (in_array($file->disk, ['s3', 'oss'])) {
@@ -285,7 +298,7 @@ class FileService
     /**
      * 验证分享签名 URL
      */
-    public static function verifyShareUrl(int $fileId, string $token, string $signature): bool
+    public function verifyShareUrl(int $fileId, string $token, string $signature): bool
     {
         $expected = hash_hmac('sha256', $token, config('app.key'));
         if (! hash_equals($expected, $signature)) {
@@ -303,19 +316,19 @@ class FileService
     /**
      * 获取图片预览（缩略图 URL）
      */
-    public static function getPreviewUrl(FileUpload $file): ?string
+    public function getPreviewUrl(FileUpload $file): ?string
     {
         if (! in_array($file->mime_type, self::IMAGE_MIME_TYPES)) {
             return null;
         }
 
-        return static::getUrl($file);
+        return $this->getUrl($file);
     }
 
     /**
      * 获取文件下载 URL
      */
-    public static function getUrl(FileUpload $file): string
+    public function getUrl(FileUpload $file): string
     {
         if ($file->is_public) {
             return Storage::disk($file->disk)->url($file->path);
@@ -336,7 +349,7 @@ class FileService
     /**
      * 下载文件内容
      */
-    public static function download(FileUpload $file): StreamedResponse
+    public function download(FileUpload $file): StreamedResponse
     {
         if (! Storage::disk($file->disk)->exists($file->path)) {
             throw new \RuntimeException(trans('file.not_found'));
@@ -348,7 +361,7 @@ class FileService
     /**
      * 删除文件
      */
-    public static function delete(FileUpload $file): bool
+    public function delete(FileUpload $file): bool
     {
         // 删除存储中的文件
         if (Storage::disk($file->disk)->exists($file->path)) {
@@ -362,7 +375,7 @@ class FileService
     /**
      * 获取租户文件列表
      */
-    public static function listFiles(
+    public function listFiles(
         ?int $tenantId = null,
         ?string $category = null,
         int $perPage = 20
@@ -381,7 +394,7 @@ class FileService
     /**
      * 获取租户存储用量
      */
-    public static function getStorageUsage(?int $tenantId = null): int
+    public function getStorageUsage(?int $tenantId = null): int
     {
         $tenantId = $tenantId ?? TenantContext::getId();
 
@@ -391,7 +404,7 @@ class FileService
     /**
      * 获取租户存储配额信息
      */
-    public static function getStorageQuotaInfo(?int $tenantId = null): array
+    public function getStorageQuotaInfo(?int $tenantId = null): array
     {
         $tenantId = $tenantId ?? TenantContext::getId();
         $tenant = Tenant::where('tenant_id', $tenantId)->first();
@@ -400,7 +413,7 @@ class FileService
         $plansConfig = config('tenancy.plans', []);
         $maxStorageMb = $plansConfig[$planName]['limits']['max_storage_mb'] ?? 1024;
 
-        $used = static::getStorageUsage($tenantId);
+        $used = $this->getStorageUsage($tenantId);
         $maxBytes = $maxStorageMb * 1024 * 1024;
 
         return [

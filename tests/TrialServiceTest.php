@@ -13,6 +13,8 @@ use MultiTenantSaas\Tests\Schema\RbacModule;
 
 class TrialServiceTest extends TestCase
 {
+    protected TrialService $trialService;
+
     protected array $uses = [BillingModule::class, RbacModule::class];
 
     private TrialService $service;
@@ -21,7 +23,10 @@ class TrialServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->service = new TrialService;
+        $this->trialService = $this->app->make(TrialService::class);
+
+
+        $this->service = $this->app->make(TrialService::class);
 
         SubscriptionPlan::unguarded(function () {
             SubscriptionPlan::create([
@@ -78,7 +83,7 @@ class TrialServiceTest extends TestCase
 
     public function test_start_trial_default_days(): void
     {
-        $tenant = TrialService::startTrial(1001, 1);
+        $tenant = $this->trialService->startTrial(1001, 1);
 
         $this->assertNotNull($tenant->trial_ends_at);
         $this->assertEqualsWithDelta(14, now()->diffInDays(Carbon::parse($tenant->trial_ends_at)), 1);
@@ -86,14 +91,14 @@ class TrialServiceTest extends TestCase
 
     public function test_start_trial_custom_days(): void
     {
-        $tenant = TrialService::startTrial(1001, 1, 30);
+        $tenant = $this->trialService->startTrial(1001, 1, 30);
 
         $this->assertEqualsWithDelta(30, now()->diffInDays(Carbon::parse($tenant->trial_ends_at)), 1);
     }
 
     public function test_start_trial_plan_based_days(): void
     {
-        $tenant = TrialService::startTrial(1001, 2);
+        $tenant = $this->trialService->startTrial(1001, 2);
 
         $this->assertNotNull($tenant->trial_ends_at);
         $this->assertEqualsWithDelta(7, now()->diffInDays(Carbon::parse($tenant->trial_ends_at)), 1);
@@ -101,7 +106,7 @@ class TrialServiceTest extends TestCase
 
     public function test_start_trial_pro_plan_fourteen_days(): void
     {
-        $tenant = TrialService::startTrial(1001, 3);
+        $tenant = $this->trialService->startTrial(1001, 3);
 
         $this->assertEqualsWithDelta(14, now()->diffInDays(Carbon::parse($tenant->trial_ends_at)), 1);
     }
@@ -111,7 +116,7 @@ class TrialServiceTest extends TestCase
         $tenant = Tenant::find(1001);
         $this->assertNull($tenant->trial_ends_at);
 
-        $tenant = TrialService::startTrial(1001, 1);
+        $tenant = $this->trialService->startTrial(1001, 1);
 
         $this->assertNotNull($tenant->trial_ends_at);
         $this->assertTrue(Carbon::parse($tenant->trial_ends_at)->isFuture());
@@ -120,35 +125,35 @@ class TrialServiceTest extends TestCase
     public function test_start_trial_throws_for_unknown_tenant(): void
     {
         $this->expectException(ModelNotFoundException::class);
-        TrialService::startTrial(9999, 1);
+        $this->trialService->startTrial(9999, 1);
     }
 
     // ---------- 试用延长 ----------
 
     public function test_extend_trial(): void
     {
-        TrialService::startTrial(1001, 1, 7);
+        $this->trialService->startTrial(1001, 1, 7);
 
-        $tenant = TrialService::extendTrial(1001, 7);
+        $tenant = $this->trialService->extendTrial(1001, 7);
 
         $this->assertTrue(Carbon::parse($tenant->trial_ends_at)->isFuture());
     }
 
     public function test_extend_trial_marks_extended(): void
     {
-        TrialService::startTrial(1001, 1, 7);
+        $this->trialService->startTrial(1001, 1, 7);
 
-        $tenant = TrialService::extendTrial(1001, 7);
+        $tenant = $this->trialService->extendTrial(1001, 7);
 
         $this->assertTrue($tenant->trial_extended);
     }
 
     public function test_extend_trial_adds_days(): void
     {
-        $tenant = TrialService::startTrial(1001, 1, 7);
+        $tenant = $this->trialService->startTrial(1001, 1, 7);
         $originalEnd = Carbon::parse($tenant->trial_ends_at);
 
-        $tenant = TrialService::extendTrial(1001, 5);
+        $tenant = $this->trialService->extendTrial(1001, 5);
         $newEnd = Carbon::parse($tenant->trial_ends_at);
 
         $this->assertEquals(5, $originalEnd->diffInDays($newEnd));
@@ -157,23 +162,23 @@ class TrialServiceTest extends TestCase
     public function test_extend_trial_throws_without_active_trial(): void
     {
         $this->expectException(\RuntimeException::class);
-        TrialService::extendTrial(1001, 7);
+        $this->trialService->extendTrial(1001, 7);
     }
 
     // ---------- 状态查询 ----------
 
     public function test_is_in_trial_true_during_trial(): void
     {
-        TrialService::startTrial(1001, 1, 14);
+        $this->trialService->startTrial(1001, 1, 14);
 
         $tenant = Tenant::find(1001);
-        $this->assertTrue(TrialService::isInTrial($tenant));
+        $this->assertTrue($this->trialService->isInTrial($tenant));
     }
 
     public function test_is_in_trial_false_without_trial(): void
     {
         $tenant = Tenant::find(1001);
-        $this->assertFalse(TrialService::isInTrial($tenant));
+        $this->assertFalse($this->trialService->isInTrial($tenant));
     }
 
     public function test_is_in_trial_false_when_expired(): void
@@ -182,14 +187,14 @@ class TrialServiceTest extends TestCase
         $tenant->trial_ends_at = now()->subDay();
         $tenant->save();
 
-        $this->assertFalse(TrialService::isInTrial($tenant));
+        $this->assertFalse($this->trialService->isInTrial($tenant));
     }
 
     public function test_get_trial_status_during_trial(): void
     {
-        TrialService::startTrial(1001, 1, 14);
+        $this->trialService->startTrial(1001, 1, 14);
 
-        $status = TrialService::getTrialStatus(1001);
+        $status = $this->trialService->getTrialStatus(1001);
 
         $this->assertTrue($status['in_trial']);
         $this->assertFalse($status['is_extended']);
@@ -199,7 +204,7 @@ class TrialServiceTest extends TestCase
 
     public function test_get_trial_status_without_trial(): void
     {
-        $status = TrialService::getTrialStatus(1001);
+        $status = $this->trialService->getTrialStatus(1001);
 
         $this->assertFalse($status['in_trial']);
         $this->assertEquals(0, $status['days_remaining']);
@@ -308,7 +313,7 @@ class TrialServiceTest extends TestCase
 
     public function test_process_expired_trials_skips_active_trials(): void
     {
-        TrialService::startTrial(1001, 1, 14);
+        $this->trialService->startTrial(1001, 1, 14);
 
         $count = $this->service->processExpiredTrials();
 

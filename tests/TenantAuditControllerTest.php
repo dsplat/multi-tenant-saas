@@ -8,7 +8,16 @@ use MultiTenantSaas\Tests\Schema\MfaModule;
 
 class TenantAuditControllerTest extends TestCase
 {
+    protected AuditService $auditService;
+
     protected array $uses = [MfaModule::class];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->auditService = $this->app->make(AuditService::class);
+    }
 
     public function test_service_exists(): void
     {
@@ -23,7 +32,7 @@ class TenantAuditControllerTest extends TestCase
             'status' => 'active',
         ]);
 
-        $log = AuditService::log('test_action', 'test_resource', 123, null, ['key' => 'value']);
+        $log = $this->auditService->log('test_action', 'test_resource', 123, null, ['key' => 'value']);
 
         $this->assertNotNull($log->log_id);
         $this->assertEquals('test_action', $log->action);

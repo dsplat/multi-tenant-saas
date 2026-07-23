@@ -5,19 +5,28 @@ namespace MultiTenantSaas\Modules\Infrastructure\Services;
 use Laravel\Horizon\Horizon;
 
 /**
- * 队列监控服务
+ * 队列监控服务（DI 实例方法）。
  *
  * 集成 laravel/horizon
  *
- * 访问：/horizon (需要 super_admin 权限)
- * 命令：php artisan horizon
+ * 向后兼容：保留 __callStatic 代理，新代码应通过构造器注入使用。
  */
 class HorizonService
 {
     /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
+    /**
      * 获取 Horizon 状态
      */
-    public static function getStatus(): array
+    public function getStatus(): array
     {
         if (! class_exists(Horizon::class)) {
             return ['status' => 'not_installed'];
@@ -32,7 +41,7 @@ class HorizonService
     /**
      * 获取队列统计
      */
-    public static function getStats(): array
+    public function getStats(): array
     {
         if (! class_exists(Horizon::class)) {
             return [];

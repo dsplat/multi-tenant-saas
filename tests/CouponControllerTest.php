@@ -12,13 +12,19 @@ use MultiTenantSaas\Tests\Schema\RbacModule;
 
 class CouponControllerTest extends TestCase
 {
+    protected CouponService $couponService;
+
     protected array $uses = [CouponModule::class, RbacModule::class];
 
     private User $user;
 
+    private Operator $operator;
+
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->couponService = $this->app->make(CouponService::class);
 
         $this->user = User::create([
             'user_id' => 11001,
@@ -28,7 +34,7 @@ class CouponControllerTest extends TestCase
         ]);
 
         // 创建平台级 operator
-        $operator = Operator::create([
+        $this->operator = Operator::create([
             'email' => 'coupon@example.com',
             'name' => 'Test User',
             'scope' => 'platform',
@@ -44,7 +50,7 @@ class CouponControllerTest extends TestCase
 
         // 创建 operator_tenants 映射
         OperatorTenant::create([
-            'operator_id' => $operator->operator_id,
+            'operator_id' => $this->operator->operator_id,
             'tenant_id' => 9007199254740991,
             'user_id' => $this->user->user_id,
             'role' => 'super_admin',
@@ -60,13 +66,13 @@ class CouponControllerTest extends TestCase
 
     public function test_index_coupons(): void
     {
-        CouponService::createCoupon([
+        $this->couponService->createCoupon([
             'code' => 'TEST001',
             'type' => 'fixed',
             'value' => 10,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson('/api/v1/coupons');
 
         $response->assertStatus(200)
@@ -75,7 +81,7 @@ class CouponControllerTest extends TestCase
 
     public function test_store_coupon(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson('/api/v1/coupons', [
                 'type' => 'fixed',
                 'value' => 10,
@@ -88,13 +94,13 @@ class CouponControllerTest extends TestCase
 
     public function test_show_coupon(): void
     {
-        $coupon = CouponService::createCoupon([
+        $coupon = $this->couponService->createCoupon([
             'code' => 'TEST002',
             'type' => 'fixed',
             'value' => 20,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/coupons/{$coupon->coupon_id}");
 
         $response->assertStatus(200)
@@ -103,14 +109,14 @@ class CouponControllerTest extends TestCase
 
     public function test_activate_coupon(): void
     {
-        $coupon = CouponService::createCoupon([
+        $coupon = $this->couponService->createCoupon([
             'code' => 'TEST003',
             'type' => 'fixed',
             'value' => 10,
             'is_active' => false,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->putJson("/api/v1/coupons/{$coupon->coupon_id}/activate");
 
         $response->assertStatus(200)
@@ -119,14 +125,14 @@ class CouponControllerTest extends TestCase
 
     public function test_deactivate_coupon(): void
     {
-        $coupon = CouponService::createCoupon([
+        $coupon = $this->couponService->createCoupon([
             'code' => 'TEST004',
             'type' => 'fixed',
             'value' => 10,
             'is_active' => true,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->putJson("/api/v1/coupons/{$coupon->coupon_id}/deactivate");
 
         $response->assertStatus(200)
@@ -137,7 +143,7 @@ class CouponControllerTest extends TestCase
 
     public function test_redeem_coupon(): void
     {
-        $coupon = CouponService::createCoupon([
+        $coupon = $this->couponService->createCoupon([
             'code' => 'REDEEM01',
             'type' => 'fixed',
             'value' => 10,
@@ -145,7 +151,7 @@ class CouponControllerTest extends TestCase
             'max_uses_per_tenant' => 10,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson('/api/v1/coupons/redeem', [
                 'code' => 'REDEEM01',
                 'amount' => 100,
@@ -158,14 +164,14 @@ class CouponControllerTest extends TestCase
 
     public function test_validate_coupon(): void
     {
-        $coupon = CouponService::createCoupon([
+        $coupon = $this->couponService->createCoupon([
             'code' => 'VALID01',
             'type' => 'fixed',
             'value' => 10,
             'max_uses' => 100,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson('/api/v1/coupons/validate', [
                 'code' => 'VALID01',
                 'amount' => 100,
@@ -179,13 +185,13 @@ class CouponControllerTest extends TestCase
 
     public function test_usages(): void
     {
-        $coupon = CouponService::createCoupon([
+        $coupon = $this->couponService->createCoupon([
             'code' => 'USAGE01',
             'type' => 'fixed',
             'value' => 10,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/coupons/{$coupon->coupon_id}/usages");
 
         $response->assertStatus(200)
@@ -194,13 +200,13 @@ class CouponControllerTest extends TestCase
 
     public function test_statistics(): void
     {
-        $coupon = CouponService::createCoupon([
+        $coupon = $this->couponService->createCoupon([
             'code' => 'STAT01',
             'type' => 'fixed',
             'value' => 10,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/coupons/{$coupon->coupon_id}/statistics");
 
         $response->assertStatus(200)
@@ -212,13 +218,13 @@ class CouponControllerTest extends TestCase
 
     public function test_index_templates(): void
     {
-        CouponService::createTemplate([
+        $this->couponService->createTemplate([
             'name' => '测试模板',
             'type' => 'fixed',
             'value' => 10,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson('/api/v1/coupon-templates');
 
         $response->assertStatus(200)
@@ -227,7 +233,7 @@ class CouponControllerTest extends TestCase
 
     public function test_store_template(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson('/api/v1/coupon-templates', [
                 'name' => '新模板',
                 'type' => 'fixed',
@@ -243,7 +249,7 @@ class CouponControllerTest extends TestCase
 
     public function test_store_coupon_validation_error(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson('/api/v1/coupons', [
                 'type' => 'invalid_type',
                 'value' => -10,

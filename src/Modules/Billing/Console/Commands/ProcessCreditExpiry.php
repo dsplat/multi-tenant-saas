@@ -180,7 +180,7 @@ class ProcessCreditExpiry extends Command
                 // 发送通知
                 $tenant = $account->tenant;
                 if ($tenant && $tenant->isActive()) {
-                    NotificationService::sendToTenantAdmins(
+                    app(NotificationService::class)->sendToTenantAdmins(
                         $account->tenant_id,
                         trans('credit.auto_recharge_triggered'),
                         trans('credit.auto_recharge_detail', [
@@ -221,7 +221,7 @@ class ProcessCreditExpiry extends Command
         foreach ($accounts as $account) {
             $tenant = $account->tenant;
             if ($tenant && $tenant->isActive()) {
-                NotificationService::notifyCreditLow(
+                app(NotificationService::class)->notifyCreditLow(
                     $tenant,
                     $account->balance,
                     $threshold

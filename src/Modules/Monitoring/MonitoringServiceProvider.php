@@ -3,7 +3,9 @@
 namespace MultiTenantSaas\Modules\Monitoring;
 
 use Illuminate\Support\Facades\Route;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
+use MultiTenantSaas\Modules\Monitoring\Services\TrialService;
 
 class MonitoringServiceProvider extends ModuleServiceProvider
 {
@@ -11,7 +13,7 @@ class MonitoringServiceProvider extends ModuleServiceProvider
 
     protected function registerModuleBindings(): void
     {
-        //
+        $this->app->singleton(TrialService::class, fn ($app) => new TrialService($app->make(TenantContextContract::class)));
     }
 
     protected function bootModule(): void

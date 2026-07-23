@@ -44,7 +44,7 @@ class TenantOAuthController extends Controller
     {
         $tenantId = TenantContext::getId();
 
-        return response()->json(['success' => true, 'data' => SocialiteService::getOAuthConfigForDisplay($tenantId)]);
+        return response()->json(['success' => true, 'data' => app(SocialiteService::class)->getOAuthConfigForDisplay($tenantId)]);
     }
 
     public function updateOAuthConfig(Request $request, string $provider)
@@ -61,7 +61,7 @@ class TenantOAuthController extends Controller
             $allowed = ['enabled', 'app_id', 'private_key', 'public_key', 'mode', 'redirect'];
         }
 
-        SocialiteService::updateOAuthConfig($tenantId, $provider, $request->only($allowed));
+        app(SocialiteService::class)->updateOAuthConfig($tenantId, $provider, $request->only($allowed));
 
         return response()->json(['success' => true, 'message' => trans('common.updated')]);
     }
@@ -74,7 +74,7 @@ class TenantOAuthController extends Controller
             return response()->json(['success' => false, 'message' => 'tenant_not_found'], 404);
         }
 
-        $url = SocialiteService::getRedirectUrl($provider, $tenantId);
+        $url = app(SocialiteService::class)->getRedirectUrl($provider, $tenantId);
 
         return response()->json(['success' => true, 'data' => ['url' => $url]]);
     }
@@ -87,7 +87,7 @@ class TenantOAuthController extends Controller
             return response()->json(['success' => false, 'message' => 'tenant_not_found'], 404);
         }
 
-        $result = SocialiteService::handleCallback($provider, $tenantId);
+        $result = app(SocialiteService::class)->handleCallback($provider, $tenantId);
 
         return response()->json(['success' => true, 'data' => $result]);
     }

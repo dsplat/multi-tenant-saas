@@ -75,13 +75,13 @@ class TenantResolveController extends Controller
 
         // 聚合 OAuth 提供商（Socialite 驱动）
         $oauthProviders = [];
-        $oauthConfig = SocialiteService::getOAuthConfigForDisplay($tenantId);
+        $oauthConfig = app(SocialiteService::class)->getOAuthConfigForDisplay($tenantId);
         foreach ($oauthConfig as $provider => $config) {
             if ($config['configured']) {
                 $oauthProviders[] = [
                     'provider' => $provider,
-                    'name' => SocialiteService::getSupportedProviders()[$provider]['name'] ?? $provider,
-                    'icon' => SocialiteService::getSupportedProviders()[$provider]['icon'] ?? $provider,
+                    'name' => app(SocialiteService::class)->getSupportedProviders()[$provider]['name'] ?? $provider,
+                    'icon' => app(SocialiteService::class)->getSupportedProviders()[$provider]['icon'] ?? $provider,
                 ];
             }
         }
@@ -100,9 +100,9 @@ class TenantResolveController extends Controller
         }
 
         // 登录方式配置
-        $loginMethods = TenantSettingService::get($tenantId, 'sso', 'login_methods', ['email']);
-        $allowRegister = (bool) TenantSettingService::get($tenantId, 'sso', 'allow_register', false);
-        $emailDomainRestriction = TenantSettingService::get($tenantId, 'sso', 'email_domain_restriction');
+        $loginMethods = app(TenantSettingService::class)->get($tenantId, 'sso', 'login_methods', ['email']);
+        $allowRegister = (bool) app(TenantSettingService::class)->get($tenantId, 'sso', 'allow_register', false);
+        $emailDomainRestriction = app(TenantSettingService::class)->get($tenantId, 'sso', 'email_domain_restriction');
 
         return response()->json([
             'success' => true,

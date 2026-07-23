@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Exceptions\QuotaExceededException;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
@@ -11,10 +12,22 @@ use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
  */
 class QuotaService
 {
+    public function __construct(private readonly TenantContextContract $tenantContext) {}
+
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 检查配额
      */
-    public static function check(string $resource, ?int $tenantId = null): void
+    public function check(string $resource, ?int $tenantId = null): void
     {
         $tenantId = $tenantId ?? TenantContext::getId();
         $tenant = Tenant::find($tenantId);
@@ -23,8 +36,8 @@ class QuotaService
             return;
         }
 
-        $limit = static::getLimit($resource, $tenant);
-        $current = static::getCurrent($resource, $tenantId);
+        $limit = $this->getLimit($resource, $tenant);
+        $current = $this->getCurrent($resource, $tenantId);
 
         if ($current >= $limit) {
             throw new QuotaExceededException(
@@ -36,7 +49,7 @@ class QuotaService
     /**
      * 获取配额限制
      */
-    protected static function getLimit(string $resource, Tenant $tenant): int
+    protected function getLimit(string $resource, Tenant $tenant): int
     {
         $plan = $tenant->subscription_plan;
 
@@ -46,7 +59,7 @@ class QuotaService
     /**
      * 获取当前使用量
      */
-    protected static function getCurrent(string $resource, int $tenantId): int
+    protected function getCurrent(string $resource, int $tenantId): int
     {
         $counterClass = config("tenancy.resources.{$resource}.counter");
 
@@ -60,7 +73,7 @@ class QuotaService
     /**
      * 获取配额信息
      */
-    public static function getQuota(string $resource, ?int $tenantId = null): array
+    public function getQuota(string $resource, ?int $tenantId = null): array
     {
         $tenantId = $tenantId ?? TenantContext::getId();
         $tenant = Tenant::find($tenantId);
@@ -69,8 +82,8 @@ class QuotaService
             return ['limit' => 0, 'current' => 0, 'remaining' => 0];
         }
 
-        $limit = static::getLimit($resource, $tenant);
-        $current = static::getCurrent($resource, $tenantId);
+        $limit = $this->getLimit($resource, $tenant);
+        $current = $this->getCurrent($resource, $tenantId);
 
         return [
             'limit' => $limit,

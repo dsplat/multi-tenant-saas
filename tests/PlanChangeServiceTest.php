@@ -16,11 +16,16 @@ use MultiTenantSaas\Tests\Schema\BillingModule;
  */
 class PlanChangeServiceTest extends TestCase
 {
+    protected PlanChangeService $planChangeService;
+
     protected array $uses = [BillingModule::class];
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->planChangeService = $this->app->make(PlanChangeService::class);
+
 
         SubscriptionPlan::unguarded(function () {
             SubscriptionPlan::create([
@@ -88,7 +93,7 @@ class PlanChangeServiceTest extends TestCase
     {
         $this->subscribeTenant(1001, 2, 20, 10);
 
-        $result = PlanChangeService::calculateProration(1001, 3, 'immediate');
+        $result = $this->planChangeService->calculateProration(1001, 3, 'immediate');
 
         $this->assertEquals('charge', $result['direction']);
         $this->assertGreaterThan(0, $result['proration_amount']);
@@ -98,7 +103,7 @@ class PlanChangeServiceTest extends TestCase
     {
         $this->subscribeTenant(1001, 2, 20, 10);
 
-        $result = PlanChangeService::calculateProration(1001, 3, 'immediate');
+        $result = $this->planChangeService->calculateProration(1001, 3, 'immediate');
 
         // (299/30 - 99/30) * 10 = 66.67
         $this->assertEqualsWithDelta(66.67, $result['proration_amount'], 0.05);
@@ -108,7 +113,7 @@ class PlanChangeServiceTest extends TestCase
     {
         $this->subscribeTenant(1001, 2, 20, 10);
 
-        $result = PlanChangeService::calculateProration(1001, 3, 'immediate');
+        $result = $this->planChangeService->calculateProration(1001, 3, 'immediate');
 
         $this->assertEqualsWithDelta(0, now()->diffInSeconds($result['effective_at']), 1);
     }
@@ -119,7 +124,7 @@ class PlanChangeServiceTest extends TestCase
     {
         $this->subscribeTenant(1001, 3, 20, 10);
 
-        $result = PlanChangeService::calculateProration(1001, 2, 'immediate');
+        $result = $this->planChangeService->calculateProration(1001, 2, 'immediate');
 
         $this->assertEquals('credit', $result['direction']);
         $this->assertGreaterThan(0, $result['proration_amount']);
@@ -129,7 +134,7 @@ class PlanChangeServiceTest extends TestCase
     {
         $this->subscribeTenant(1001, 3, 20, 10);
 
-        $result = PlanChangeService::calculateProration(1001, 2, 'immediate');
+        $result = $this->planChangeService->calculateProration(1001, 2, 'immediate');
 
         // (99/30 - 299/30) * 10 = -66.67, abs = 66.67
         $this->assertEqualsWithDelta(66.67, $result['proration_amount'], 0.05);
@@ -141,7 +146,7 @@ class PlanChangeServiceTest extends TestCase
     {
         $this->subscribeTenant(1001, 2, 20, 10);
 
-        $result = PlanChangeService::calculateProration(1001, 3, 'period_end');
+        $result = $this->planChangeService->calculateProration(1001, 3, 'period_end');
 
         $this->assertEquals(0.0, $result['proration_amount']);
     }
@@ -153,7 +158,7 @@ class PlanChangeServiceTest extends TestCase
         $tenant->subscription_expires_at = $expiresAt;
         $tenant->save();
 
-        $result = PlanChangeService::calculateProration(1001, 3, 'period_end');
+        $result = $this->planChangeService->calculateProration(1001, 3, 'period_end');
 
         $this->assertEqualsWithDelta(0, $expiresAt->diffInSeconds($result['effective_at']), 1);
     }
@@ -162,7 +167,7 @@ class PlanChangeServiceTest extends TestCase
     {
         $this->subscribeTenant(1001, 2, 20, 10);
 
-        $result = PlanChangeService::calculateProration(1001, 3, 'period_end');
+        $result = $this->planChangeService->calculateProration(1001, 3, 'period_end');
 
         $this->assertEquals('charge', $result['direction']);
     }
@@ -173,7 +178,7 @@ class PlanChangeServiceTest extends TestCase
     {
         $this->subscribeTenant(1001, 2, 20, 10);
 
-        PlanChangeService::changePlan(1001, 3, 'immediate');
+        $this->planChangeService->changePlan(1001, 3, 'immediate');
 
         $tenant = Tenant::find(1001);
         $this->assertEquals(3, (int) $tenant->subscription_plan_id);
@@ -185,7 +190,7 @@ class PlanChangeServiceTest extends TestCase
         $this->subscribeTenant(1001, 2, 20, 10);
         $originalStarted = Tenant::find(1001)->subscription_started_at;
 
-        PlanChangeService::changePlan(1001, 3, 'immediate');
+        $this->planChangeService->changePlan(1001, 3, 'immediate');
 
         $tenant = Tenant::find(1001);
         $this->assertGreaterThan($originalStarted, $tenant->subscription_started_at);
@@ -196,7 +201,7 @@ class PlanChangeServiceTest extends TestCase
     {
         $this->subscribeTenant(1001, 2, 20, 10);
 
-        $history = PlanChangeService::changePlan(1001, 3, 'immediate');
+        $history = $this->planChangeService->changePlan(1001, 3, 'immediate');
 
         $this->assertEquals('upgrade', $history->action);
         $this->assertEquals('basic', $history->from_plan);
@@ -211,7 +216,7 @@ class PlanChangeServiceTest extends TestCase
     {
         $this->subscribeTenant(1001, 2, 20, 10);
 
-        PlanChangeService::changePlan(1001, 3, 'period_end');
+        $this->planChangeService->changePlan(1001, 3, 'period_end');
 
         $tenant = Tenant::find(1001);
         $this->assertEquals(3, (int) $tenant->subscription_plan_id);
@@ -224,7 +229,7 @@ class PlanChangeServiceTest extends TestCase
         $originalStarted = Tenant::find(1001)->subscription_started_at;
         $originalExpires = Tenant::find(1001)->subscription_expires_at;
 
-        PlanChangeService::changePlan(1001, 3, 'period_end');
+        $this->planChangeService->changePlan(1001, 3, 'period_end');
 
         $tenant = Tenant::find(1001);
         $this->assertEquals($originalStarted->timestamp, $tenant->subscription_started_at->timestamp);
@@ -236,7 +241,7 @@ class PlanChangeServiceTest extends TestCase
         $this->subscribeTenant(1001, 2, 20, 10);
         $originalExpires = Tenant::find(1001)->subscription_expires_at;
 
-        $history = PlanChangeService::changePlan(1001, 3, 'period_end');
+        $history = $this->planChangeService->changePlan(1001, 3, 'period_end');
 
         $this->assertEquals('upgrade', $history->action);
         $this->assertEquals('period_end', $history->metadata['effective_timing']);
@@ -248,7 +253,7 @@ class PlanChangeServiceTest extends TestCase
     {
         $this->subscribeTenant(1001, 3, 20, 10);
 
-        $history = PlanChangeService::changePlan(1001, 2, 'immediate');
+        $history = $this->planChangeService->changePlan(1001, 2, 'immediate');
 
         $this->assertEquals('downgrade', $history->action);
         $this->assertEquals('pro', $history->from_plan);
@@ -262,7 +267,7 @@ class PlanChangeServiceTest extends TestCase
         $this->subscribeTenant(1001, 2, 20, 10);
 
         $this->expectException(\RuntimeException::class);
-        PlanChangeService::changePlan(1001, 2, 'immediate');
+        $this->planChangeService->changePlan(1001, 2, 'immediate');
     }
 
     public function test_change_plan_throws_for_inactive_plan(): void
@@ -270,7 +275,7 @@ class PlanChangeServiceTest extends TestCase
         $this->subscribeTenant(1001, 2, 20, 10);
 
         $this->expectException(\RuntimeException::class);
-        PlanChangeService::changePlan(1001, 4, 'immediate');
+        $this->planChangeService->changePlan(1001, 4, 'immediate');
     }
 
     public function test_change_plan_throws_for_suspended_tenant(): void
@@ -281,13 +286,13 @@ class PlanChangeServiceTest extends TestCase
         $tenant->save();
 
         $this->expectException(\RuntimeException::class);
-        PlanChangeService::changePlan(1001, 3, 'immediate');
+        $this->planChangeService->changePlan(1001, 3, 'immediate');
     }
 
     public function test_change_plan_throws_for_unknown_tenant(): void
     {
         $this->expectException(ModelNotFoundException::class);
-        PlanChangeService::changePlan(9999, 3, 'immediate');
+        $this->planChangeService->changePlan(9999, 3, 'immediate');
     }
 
     // ---------- 变更历史记录 ----------
@@ -295,10 +300,10 @@ class PlanChangeServiceTest extends TestCase
     public function test_get_change_history_returns_records(): void
     {
         $this->subscribeTenant(1001, 2, 20, 10);
-        PlanChangeService::changePlan(1001, 3, 'immediate');
-        PlanChangeService::changePlan(1001, 2, 'immediate');
+        $this->planChangeService->changePlan(1001, 3, 'immediate');
+        $this->planChangeService->changePlan(1001, 2, 'immediate');
 
-        $history = PlanChangeService::getChangeHistory(1001);
+        $history = $this->planChangeService->getChangeHistory(1001);
 
         $this->assertEquals(2, $history->count());
         $this->assertContains($history->first()->action, ['upgrade', 'downgrade']);
@@ -306,7 +311,7 @@ class PlanChangeServiceTest extends TestCase
 
     public function test_get_change_history_returns_empty_for_new_tenant(): void
     {
-        $history = PlanChangeService::getChangeHistory(1002);
+        $history = $this->planChangeService->getChangeHistory(1002);
 
         $this->assertEquals(0, $history->count());
     }
@@ -314,7 +319,7 @@ class PlanChangeServiceTest extends TestCase
     public function test_get_change_history_isolates_by_tenant(): void
     {
         $this->subscribeTenant(1001, 2, 20, 10);
-        PlanChangeService::changePlan(1001, 3, 'immediate');
+        $this->planChangeService->changePlan(1001, 3, 'immediate');
 
         Tenant::create([
             'tenant_id' => 1003,
@@ -328,14 +333,14 @@ class PlanChangeServiceTest extends TestCase
         ]);
         TenantContext::setTenantId('1003');
         $this->subscribeTenant(1003, 2, 20, 10);
-        PlanChangeService::changePlan(1003, 3, 'immediate');
+        $this->planChangeService->changePlan(1003, 3, 'immediate');
 
         TenantContext::setTenantId('1001');
-        $history1001 = PlanChangeService::getChangeHistory(1001);
+        $history1001 = $this->planChangeService->getChangeHistory(1001);
         $this->assertEquals(1, $history1001->count());
 
         TenantContext::setTenantId('1003');
-        $history1003 = PlanChangeService::getChangeHistory(1003);
+        $history1003 = $this->planChangeService->getChangeHistory(1003);
         $this->assertEquals(1, $history1003->count());
     }
 

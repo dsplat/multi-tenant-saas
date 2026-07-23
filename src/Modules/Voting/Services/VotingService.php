@@ -134,7 +134,7 @@ class VotingService
 
             // 记录审计日志
             try {
-                AuditService::log('voting.cast', 'vote', $voteId, null, [
+                app(AuditService::class)->log('voting.cast', 'vote', $voteId, null, [
                     'user_id' => $userId,
                     'option_ids' => $optionIds,
                 ]);

@@ -34,6 +34,7 @@ class CoreModule implements SchemaModuleInterface
             $table->timestamp('trial_notification_sent_at')->nullable();
             $table->unsignedSmallInteger('onboarding_step')->default(0);
             $table->boolean('onboarding_completed')->default(false);
+            $table->unsignedBigInteger('onboarding_operator_id')->nullable();
             $table->integer('total_credits')->default(0);
             $table->integer('used_credits')->default(0);
             $table->string('contact_name', 255)->nullable();

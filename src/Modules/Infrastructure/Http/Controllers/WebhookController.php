@@ -47,7 +47,7 @@ class WebhookController extends Controller
             $validated['description'] ?? null,
         );
 
-        AuditService::log('create', 'webhook', $webhook->webhook_id, null, [
+        app(AuditService::class)->log('create', 'webhook', $webhook->webhook_id, null, [
             'url' => $validated['url'],
             'events' => $validated['events'],
         ]);
@@ -86,7 +86,7 @@ class WebhookController extends Controller
             return $this->notFoundResponse('Webhook not found');
         }
 
-        AuditService::log('update', 'webhook', $id, null, $validated);
+        app(AuditService::class)->log('update', 'webhook', $id, null, $validated);
 
         return $this->successResponse($webhook);
     }
@@ -100,7 +100,7 @@ class WebhookController extends Controller
             return $this->notFoundResponse('Webhook not found');
         }
 
-        AuditService::log('delete', 'webhook', $id, null, null);
+        app(AuditService::class)->log('delete', 'webhook', $id, null, null);
 
         return $this->deletedResponse();
     }
@@ -120,7 +120,7 @@ class WebhookController extends Controller
             'test' => true,
         ]);
 
-        AuditService::log('webhook.test', 'webhook', $id, null, ['deliveries_created' => $count]);
+        app(AuditService::class)->log('webhook.test', 'webhook', $id, null, ['deliveries_created' => $count]);
 
         return $this->successResponse(['deliveries_created' => $count], 'Test webhook dispatched');
     }

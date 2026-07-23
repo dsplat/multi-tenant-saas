@@ -127,7 +127,7 @@ class RateLimitService
             'updated_at' => now(),
         ]);
 
-        AuditService::log(
+        app(AuditService::class)->log(
             action: 'rate_limit_rule_configured',
             resourceType: 'rate_limit_rule',
             resourceId: $id,

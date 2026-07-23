@@ -31,6 +31,8 @@ use MultiTenantSaas\Tests\TestCase;
  */
 class PermissionModelIntegrationTest extends TestCase
 {
+    protected RbacService $rbacService;
+
     protected array $uses = [CoreModule::class, RbacModule::class];
 
     // 测试数据
@@ -61,6 +63,9 @@ class PermissionModelIntegrationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->rbacService = $this->app->make(RbacService::class);
+
 
         $this->seedRolesAndPermissions();
         $this->seedPlatformData();
@@ -374,6 +379,7 @@ class PermissionModelIntegrationTest extends TestCase
         $this->assertTrue($this->superAdminOperator->is_active);
 
         // 验证 operator_tenants 映射
+        TenantContext::setTenantId(9007199254740991);
         $mapping = OperatorTenant::where('operator_id', $this->superAdminOperator->operator_id)
             ->where('tenant_id', 9007199254740991)
             ->first();
@@ -561,16 +567,16 @@ class PermissionModelIntegrationTest extends TestCase
         $this->actingAs($this->superAdminUser);
         TenantContext::setTenantId(9007199254740991);
 
-        $this->assertTrue(RbacService::check('tenant.view'));
-        $this->assertTrue(RbacService::check('tenant.create'));
-        $this->assertTrue(RbacService::check('member.create'));
+        $this->assertTrue($this->rbacService->check('tenant.view'));
+        $this->assertTrue($this->rbacService->check('tenant.create'));
+        $this->assertTrue($this->rbacService->check('member.create'));
 
         // 租户管理员应该有租户权限
         $this->actingAs($this->tenantAAdminUser);
         TenantContext::setTenantId($this->tenantA->tenant_id);
 
-        $this->assertTrue(RbacService::check('tenant.view'));
-        $this->assertFalse(RbacService::check('tenant.create'));
+        $this->assertTrue($this->rbacService->check('tenant.view'));
+        $this->assertFalse($this->rbacService->check('tenant.create'));
     }
 
     /**

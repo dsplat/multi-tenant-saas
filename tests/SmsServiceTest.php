@@ -37,7 +37,7 @@ class SmsServiceTest extends TestCase
 
     public function test_create_template(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '验证码模板',
             'content' => '您的验证码是{code}，5分钟内有效。',
@@ -53,14 +53,14 @@ class SmsServiceTest extends TestCase
 
     public function test_update_template(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '原名称',
             'content' => '原内容',
             'channel' => SmsTemplate::CHANNEL_MARKETING,
         ]);
 
-        $updated = SmsService::updateTemplate($template->sms_template_id, [
+        $updated = app(SmsService::class)->updateTemplate($template->sms_template_id, [
             'name' => '新名称',
             'content' => '新内容',
         ]);
@@ -71,28 +71,28 @@ class SmsServiceTest extends TestCase
 
     public function test_submit_for_approval(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '待审核模板',
             'content' => '测试内容',
             'status' => SmsTemplate::STATUS_REJECTED,
         ]);
 
-        $result = SmsService::submitForApproval($template->sms_template_id);
+        $result = app(SmsService::class)->submitForApproval($template->sms_template_id);
 
         $this->assertEquals(SmsTemplate::STATUS_PENDING_APPROVAL, $result->status);
     }
 
     public function test_render_content(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '渲染模板',
             'content' => '您好{name}，您的验证码是{code}。',
             'channel' => SmsTemplate::CHANNEL_VERIFICATION,
         ]);
 
-        $rendered = SmsService::renderContent($template->sms_template_id, [
+        $rendered = app(SmsService::class)->renderContent($template->sms_template_id, [
             'name' => '张三',
             'code' => '123456',
         ]);
@@ -102,57 +102,57 @@ class SmsServiceTest extends TestCase
 
     public function test_render_content_without_variables(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '固定内容',
             'content' => '这是一条固定短信。',
             'channel' => SmsTemplate::CHANNEL_NOTIFICATION,
         ]);
 
-        $rendered = SmsService::renderContent($template->sms_template_id);
+        $rendered = app(SmsService::class)->renderContent($template->sms_template_id);
 
         $this->assertEquals('这是一条固定短信。', $rendered);
     }
 
     public function test_get_templates(): void
     {
-        SmsService::createTemplate([
+        app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '营销模板',
             'content' => '营销内容',
             'channel' => SmsTemplate::CHANNEL_MARKETING,
         ]);
-        SmsService::createTemplate([
+        app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '验证码模板',
             'content' => '验证码内容',
             'channel' => SmsTemplate::CHANNEL_VERIFICATION,
         ]);
 
-        $all = SmsService::getTemplates();
+        $all = app(SmsService::class)->getTemplates();
         $this->assertCount(2, $all);
 
-        $marketing = SmsService::getTemplates(['channel' => SmsTemplate::CHANNEL_MARKETING]);
+        $marketing = app(SmsService::class)->getTemplates(['channel' => SmsTemplate::CHANNEL_MARKETING]);
         $this->assertCount(1, $marketing);
         $this->assertEquals('营销模板', $marketing->first()->name);
     }
 
     public function test_get_templates_filters_by_status(): void
     {
-        SmsService::createTemplate([
+        app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '已审核',
             'content' => '内容',
             'status' => SmsTemplate::STATUS_APPROVED,
         ]);
-        SmsService::createTemplate([
+        app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '待审核',
             'content' => '内容',
             'status' => SmsTemplate::STATUS_PENDING_APPROVAL,
         ]);
 
-        $approved = SmsService::getTemplates(['status' => SmsTemplate::STATUS_APPROVED]);
+        $approved = app(SmsService::class)->getTemplates(['status' => SmsTemplate::STATUS_APPROVED]);
         $this->assertCount(1, $approved);
         $this->assertEquals('已审核', $approved->first()->name);
     }
@@ -161,7 +161,7 @@ class SmsServiceTest extends TestCase
 
     public function test_batch_send(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '批量模板',
             'content' => '批量内容',
@@ -170,7 +170,7 @@ class SmsServiceTest extends TestCase
         ]);
 
         $phones = ['13800000001', '13800000002', '13800000003'];
-        $task = SmsService::batchSend($template->sms_template_id, $phones);
+        $task = app(SmsService::class)->batchSend($template->sms_template_id, $phones);
 
         $this->assertNotNull($task->batch_task_id);
         $this->assertEquals(SmsBatchTask::TYPE_BATCH_SEND, $task->type);
@@ -181,7 +181,7 @@ class SmsServiceTest extends TestCase
 
     public function test_scheduled_send(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '定时模板',
             'content' => '定时内容',
@@ -190,7 +190,7 @@ class SmsServiceTest extends TestCase
         ]);
 
         $scheduledAt = '2026-07-08 10:00:00';
-        $task = SmsService::scheduledSend($template->sms_template_id, ['13800000001'], $scheduledAt);
+        $task = app(SmsService::class)->scheduledSend($template->sms_template_id, ['13800000001'], $scheduledAt);
 
         $this->assertEquals(SmsBatchTask::TYPE_SCHEDULED, $task->type);
         $this->assertEquals($scheduledAt, $task->scheduled_at->format('Y-m-d H:i:s'));
@@ -198,47 +198,47 @@ class SmsServiceTest extends TestCase
 
     public function test_get_batch_task(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '查询模板',
             'content' => '内容',
             'status' => SmsTemplate::STATUS_APPROVED,
         ]);
 
-        $task = SmsService::batchSend($template->sms_template_id, ['13800000001']);
-        $found = SmsService::getBatchTask($task->batch_task_id);
+        $task = app(SmsService::class)->batchSend($template->sms_template_id, ['13800000001']);
+        $found = app(SmsService::class)->getBatchTask($task->batch_task_id);
 
         $this->assertEquals($task->batch_task_id, $found->batch_task_id);
     }
 
     public function test_cancel_batch_task(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '取消模板',
             'content' => '内容',
             'status' => SmsTemplate::STATUS_APPROVED,
         ]);
 
-        $task = SmsService::batchSend($template->sms_template_id, ['13800000001']);
-        $cancelled = SmsService::cancelBatchTask($task->batch_task_id);
+        $task = app(SmsService::class)->batchSend($template->sms_template_id, ['13800000001']);
+        $cancelled = app(SmsService::class)->cancelBatchTask($task->batch_task_id);
 
         $this->assertEquals(SmsBatchTask::STATUS_CANCELLED, $cancelled->status);
     }
 
     public function test_cancel_non_pending_task_does_nothing(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '完成模板',
             'content' => '内容',
             'status' => SmsTemplate::STATUS_APPROVED,
         ]);
 
-        $task = SmsService::batchSend($template->sms_template_id, ['13800000001']);
+        $task = app(SmsService::class)->batchSend($template->sms_template_id, ['13800000001']);
         $task->update(['status' => SmsBatchTask::STATUS_COMPLETED]);
 
-        $result = SmsService::cancelBatchTask($task->batch_task_id);
+        $result = app(SmsService::class)->cancelBatchTask($task->batch_task_id);
         $this->assertEquals(SmsBatchTask::STATUS_COMPLETED, $result->status);
     }
 
@@ -246,16 +246,16 @@ class SmsServiceTest extends TestCase
 
     public function test_record_delivery_result(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '统计模板',
             'content' => '内容',
             'status' => SmsTemplate::STATUS_APPROVED,
         ]);
 
-        $task = SmsService::batchSend($template->sms_template_id, ['13800000001']);
+        $task = app(SmsService::class)->batchSend($template->sms_template_id, ['13800000001']);
 
-        $stat = SmsService::recordDeliveryResult($task->batch_task_id, [
+        $stat = app(SmsService::class)->recordDeliveryResult($task->batch_task_id, [
             'tenant_id' => 1001,
             'sent_count' => 100,
             'delivered_count' => 95,
@@ -274,16 +274,16 @@ class SmsServiceTest extends TestCase
 
     public function test_get_delivery_stats(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '统计查询模板',
             'content' => '内容',
             'status' => SmsTemplate::STATUS_APPROVED,
         ]);
 
-        $task = SmsService::batchSend($template->sms_template_id, ['13800000001']);
+        $task = app(SmsService::class)->batchSend($template->sms_template_id, ['13800000001']);
 
-        SmsService::recordDeliveryResult($task->batch_task_id, [
+        app(SmsService::class)->recordDeliveryResult($task->batch_task_id, [
             'tenant_id' => 1001,
             'sent_count' => 100,
             'delivered_count' => 95,
@@ -291,7 +291,7 @@ class SmsServiceTest extends TestCase
             'recorded_at' => now(),
         ]);
 
-        $stats = SmsService::getDeliveryStats($task->batch_task_id);
+        $stats = app(SmsService::class)->getDeliveryStats($task->batch_task_id);
 
         $this->assertCount(1, $stats);
         $this->assertEquals(100, $stats->first()->sent_count);
@@ -299,16 +299,16 @@ class SmsServiceTest extends TestCase
 
     public function test_get_overall_stats(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '整体统计模板',
             'content' => '内容',
             'status' => SmsTemplate::STATUS_APPROVED,
         ]);
 
-        $task = SmsService::batchSend($template->sms_template_id, ['13800000001']);
+        $task = app(SmsService::class)->batchSend($template->sms_template_id, ['13800000001']);
 
-        SmsService::recordDeliveryResult($task->batch_task_id, [
+        app(SmsService::class)->recordDeliveryResult($task->batch_task_id, [
             'tenant_id' => 1001,
             'sent_count' => 100,
             'delivered_count' => 90,
@@ -317,7 +317,7 @@ class SmsServiceTest extends TestCase
             'recorded_at' => now(),
         ]);
 
-        SmsService::recordDeliveryResult($task->batch_task_id, [
+        app(SmsService::class)->recordDeliveryResult($task->batch_task_id, [
             'tenant_id' => 1001,
             'sent_count' => 200,
             'delivered_count' => 180,
@@ -326,7 +326,7 @@ class SmsServiceTest extends TestCase
             'recorded_at' => now(),
         ]);
 
-        $overall = SmsService::getOverallStats(1001);
+        $overall = app(SmsService::class)->getOverallStats(1001);
 
         $this->assertEquals(300, $overall['total_sent']);
         $this->assertEquals(270, $overall['total_delivered']);
@@ -336,16 +336,16 @@ class SmsServiceTest extends TestCase
 
     public function test_get_overall_stats_with_date_range(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '日期范围统计',
             'content' => '内容',
             'status' => SmsTemplate::STATUS_APPROVED,
         ]);
 
-        $task = SmsService::batchSend($template->sms_template_id, ['13800000001']);
+        $task = app(SmsService::class)->batchSend($template->sms_template_id, ['13800000001']);
 
-        SmsService::recordDeliveryResult($task->batch_task_id, [
+        app(SmsService::class)->recordDeliveryResult($task->batch_task_id, [
             'tenant_id' => 1001,
             'sent_count' => 100,
             'delivered_count' => 90,
@@ -353,7 +353,7 @@ class SmsServiceTest extends TestCase
             'recorded_at' => '2026-07-01 10:00:00',
         ]);
 
-        SmsService::recordDeliveryResult($task->batch_task_id, [
+        app(SmsService::class)->recordDeliveryResult($task->batch_task_id, [
             'tenant_id' => 1001,
             'sent_count' => 200,
             'delivered_count' => 180,
@@ -361,7 +361,7 @@ class SmsServiceTest extends TestCase
             'recorded_at' => '2026-07-07 10:00:00',
         ]);
 
-        $overall = SmsService::getOverallStats(1001, '2026-07-05 00:00:00');
+        $overall = app(SmsService::class)->getOverallStats(1001, '2026-07-05 00:00:00');
 
         $this->assertEquals(200, $overall['total_sent']);
     }
@@ -370,7 +370,7 @@ class SmsServiceTest extends TestCase
 
     public function test_unsubscribe(): void
     {
-        $result = SmsService::unsubscribe('13800000001', 1001, null, '不感兴趣');
+        $result = app(SmsService::class)->unsubscribe('13800000001', 1001, null, '不感兴趣');
 
         $this->assertNotNull($result->unsubscribe_id);
         $this->assertEquals('13800000001', $result->phone);
@@ -379,34 +379,34 @@ class SmsServiceTest extends TestCase
 
     public function test_is_unsubscribed_returns_true(): void
     {
-        SmsService::unsubscribe('13800000001', 1001);
+        app(SmsService::class)->unsubscribe('13800000001', 1001);
 
-        $this->assertTrue(SmsService::isUnsubscribed('13800000001', 1001));
+        $this->assertTrue(app(SmsService::class)->isUnsubscribed('13800000001', 1001));
     }
 
     public function test_is_unsubscribed_returns_false(): void
     {
-        $this->assertFalse(SmsService::isUnsubscribed('13800000001', 1001));
+        $this->assertFalse(app(SmsService::class)->isUnsubscribed('13800000001', 1001));
     }
 
     public function test_is_unsubscribed_different_tenant(): void
     {
-        SmsService::unsubscribe('13800000001', 1001);
+        app(SmsService::class)->unsubscribe('13800000001', 1001);
 
         // 租户 B 未退订
-        $this->assertFalse(SmsService::isUnsubscribed('13800000001', 1002));
+        $this->assertFalse(app(SmsService::class)->isUnsubscribed('13800000001', 1002));
     }
 
     public function test_get_unsubscribes(): void
     {
-        SmsService::unsubscribe('13800000001', 1001);
-        SmsService::unsubscribe('13800000002', 1001);
-        SmsService::unsubscribe('13800000003', 1002);
+        app(SmsService::class)->unsubscribe('13800000001', 1001);
+        app(SmsService::class)->unsubscribe('13800000002', 1001);
+        app(SmsService::class)->unsubscribe('13800000003', 1002);
 
-        $tenantA = SmsService::getUnsubscribes(1001);
+        $tenantA = app(SmsService::class)->getUnsubscribes(1001);
         $this->assertCount(2, $tenantA);
 
-        $all = SmsService::getUnsubscribes();
+        $all = app(SmsService::class)->getUnsubscribes();
         $this->assertCount(3, $all);
     }
 
@@ -414,7 +414,7 @@ class SmsServiceTest extends TestCase
 
     public function test_templates_isolated_by_tenant(): void
     {
-        SmsService::createTemplate([
+        app(SmsService::class)->createTemplate([
             'tenant_id' => 1001,
             'name' => '租户A模板',
             'content' => '内容',
@@ -423,7 +423,7 @@ class SmsServiceTest extends TestCase
 
         TenantContext::setTenantId(1002);
 
-        SmsService::createTemplate([
+        app(SmsService::class)->createTemplate([
             'tenant_id' => 1002,
             'name' => '租户B模板',
             'content' => '内容',
@@ -432,7 +432,7 @@ class SmsServiceTest extends TestCase
 
         // 租户A只能看到自己的模板
         TenantContext::setTenantId(1001);
-        $templates = SmsService::getTemplates();
+        $templates = app(SmsService::class)->getTemplates();
         $this->assertCount(1, $templates);
         $this->assertEquals('租户A模板', $templates->first()->name);
     }
@@ -441,14 +441,16 @@ class SmsServiceTest extends TestCase
 
     public function test_send_via_log_driver(): void
     {
-        $result = SmsService::send('13800000001', '123456', 'register');
+        \MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting::set(1001, 'sms', 'driver', 'log');
+
+        $result = app(SmsService::class)->send('13800000001', '123456', 'register');
 
         $this->assertEquals('123456', $result);
     }
 
     public function test_send_via_log_driver_returns_code(): void
     {
-        $result = SmsService::sendUsingDriver('log', '13800000001', '654321', 'login');
+        $result = app(SmsService::class)->sendUsingDriver('log', '13800000001', '654321', 'login');
 
         $this->assertEquals('654321', $result);
     }

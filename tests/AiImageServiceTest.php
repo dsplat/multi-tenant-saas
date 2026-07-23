@@ -30,6 +30,8 @@ use RuntimeException;
  */
 class AiImageServiceTest extends TestCase
 {
+    protected FileService $fileService;
+
     protected array $uses = [AiModule::class, BillingModule::class, PluginModule::class];
 
     protected ?AiImageService $service = null;
@@ -42,6 +44,9 @@ class AiImageServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->fileService = $this->app->make(FileService::class);
+
 
         Tenant::create(['tenant_id' => 1001, 'name' => 'Image Tenant', 'slug' => 'image-tenant', 'status' => 'active']);
 
@@ -134,7 +139,7 @@ class AiImageServiceTest extends TestCase
 
         $uploaded = new UploadedFile($tempPath, $filename, 'image/png', null, true);
 
-        $file = FileService::upload($uploaded, 1001, null, 'general', 'local', false);
+        $file = $this->fileService->upload($uploaded, 1001, null, 'general', 'local', false);
 
         @unlink($tempPath);
 

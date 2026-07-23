@@ -6,20 +6,28 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * PDF 服务
+ * PDF 服务（DI 实例方法）。
  *
  * 集成 barryvdh/laravel-dompdf
  *
- * 用法：
- * PdfService::generate('invoice', $data, 'invoice.pdf');
- * PdfService::download('invoice', $data, 'invoice.pdf');
+ * 向后兼容：保留 __callStatic 代理，新代码应通过构造器注入使用。
  */
 class PdfService
 {
     /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
+    /**
      * 生成 PDF 文件
      */
-    public static function generate(string $view, array $data = [], ?string $outputPath = null): string
+    public function generate(string $view, array $data = [], ?string $outputPath = null): string
     {
         try {
             $pdf = Pdf::loadView($view, $data);
@@ -39,7 +47,7 @@ class PdfService
     /**
      * 下载 PDF
      */
-    public static function download(string $view, array $data = [], string $filename = 'document.pdf'): Response
+    public function download(string $view, array $data = [], string $filename = 'document.pdf'): Response
     {
         $pdf = Pdf::loadView($view, $data);
 
@@ -49,7 +57,7 @@ class PdfService
     /**
      * 在浏览器中显示 PDF
      */
-    public static function stream(string $view, array $data = [], string $filename = 'document.pdf'): Response
+    public function stream(string $view, array $data = [], string $filename = 'document.pdf'): Response
     {
         $pdf = Pdf::loadView($view, $data);
 
@@ -59,16 +67,16 @@ class PdfService
     /**
      * 生成发票 PDF
      */
-    public static function generateInvoice(array $invoiceData, string $outputPath): string
+    public function generateInvoice(array $invoiceData, string $outputPath): string
     {
-        return self::generate('pdf.invoice', $invoiceData, $outputPath);
+        return $this->generate('pdf.invoice', $invoiceData, $outputPath);
     }
 
     /**
      * 生成报表 PDF
      */
-    public static function generateReport(array $reportData, string $template = 'pdf.report'): string
+    public function generateReport(array $reportData, string $template = 'pdf.report'): string
     {
-        return self::generate($template, $reportData);
+        return $this->generate($template, $reportData);
     }
 }

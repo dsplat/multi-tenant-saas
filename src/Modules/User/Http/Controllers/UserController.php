@@ -91,7 +91,7 @@ class UserController extends Controller
         $oldValues = $user->only(array_keys($validated));
         $user = $this->userService->update($userId, $validated);
 
-        AuditService::log('update', 'user', $userId, $oldValues, $validated);
+        app(AuditService::class)->log('update', 'user', $userId, $oldValues, $validated);
 
         return response()->json([
             'success' => true,
@@ -115,7 +115,7 @@ class UserController extends Controller
 
         $this->userService->delete($userId);
 
-        AuditService::log('deactivate', 'user', $userId, ['is_active' => true], ['is_active' => false]);
+        app(AuditService::class)->log('deactivate', 'user', $userId, ['is_active' => true], ['is_active' => false]);
 
         return response()->json([
             'success' => true,

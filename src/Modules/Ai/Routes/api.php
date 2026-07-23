@@ -5,6 +5,7 @@ use MultiTenantSaas\Http\Controllers\ConversationController;
 use MultiTenantSaas\Modules\Ai\Http\Controllers\AgentChatController;
 use MultiTenantSaas\Modules\Ai\Http\Controllers\AgentController;
 use MultiTenantSaas\Modules\Ai\Http\Controllers\AgentStatsController;
+use MultiTenantSaas\Modules\Ai\Http\Controllers\AssistantController;
 use MultiTenantSaas\Modules\Ai\Http\Controllers\ToolController;
 
 // ========== Agent 管理 ==========
@@ -99,3 +100,7 @@ Route::prefix('/capabilities')->middleware('rbac.permission:member.view')->group
     Route::post('/execute', [CapabilityController::class, 'execute']);
     Route::post('/batch', [CapabilityController::class, 'batch']);
 });
+
+// ========== AI 页面助手 ==========
+Route::post('/ai/assistant', [AssistantController::class, 'handle'])
+    ->middleware('tenant.ensure');

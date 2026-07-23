@@ -6,14 +6,26 @@ use MultiTenantSaas\Context\TenantConfigStore;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 
 /**
- * 租户配置服务
+ * 租户配置服务（DI 实例方法）。
+ *
+ * 向后兼容：保留 __callStatic 代理，新代码应通过构造器注入使用。
  */
 class TenantSettingService
 {
     /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
+    /**
      * 获取配置
      */
-    public static function get(int $tenantId, string $group, string $key, mixed $default = null): mixed
+    public function get(int $tenantId, string $group, string $key, mixed $default = null): mixed
     {
         // 先从内存缓存读取
         $memoryValue = TenantConfigStore::get($group, $key);
@@ -28,7 +40,7 @@ class TenantSettingService
     /**
      * 设置配置
      */
-    public static function set(int $tenantId, string $group, string $key, mixed $value, bool $encrypted = false, string $description = ''): void
+    public function set(int $tenantId, string $group, string $key, mixed $value, bool $encrypted = false, string $description = ''): void
     {
         TenantSetting::set($tenantId, $group, $key, $value, $encrypted, $description);
         TenantConfigStore::set($group, $key, $value);
@@ -37,7 +49,7 @@ class TenantSettingService
     /**
      * 获取配置组
      */
-    public static function getGroup(int $tenantId, string $group): array
+    public function getGroup(int $tenantId, string $group): array
     {
         return TenantSetting::getGroup($tenantId, $group);
     }
@@ -45,7 +57,7 @@ class TenantSettingService
     /**
      * 获取所有配置
      */
-    public static function getAll(int $tenantId): array
+    public function getAll(int $tenantId): array
     {
         return TenantSetting::where('tenant_id', $tenantId)
             ->get()
@@ -59,7 +71,7 @@ class TenantSettingService
     /**
      * 预加载配置到内存
      */
-    public static function preload(int $tenantId): void
+    public function preload(int $tenantId): void
     {
         $configs = TenantSetting::where('tenant_id', $tenantId)
             ->get()
@@ -74,7 +86,7 @@ class TenantSettingService
     /**
      * 清除缓存
      */
-    public static function flushCache(int $tenantId): void
+    public function flushCache(int $tenantId): void
     {
         TenantSetting::flushCache($tenantId);
         TenantConfigStore::clear();

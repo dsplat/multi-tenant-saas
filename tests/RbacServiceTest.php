@@ -17,6 +17,8 @@ class RbacServiceTest extends TestCase
 {
     protected array $uses = [RbacModule::class];
 
+    protected RbacService $service;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -40,13 +42,15 @@ class RbacServiceTest extends TestCase
                 ['display_name' => 'Manage Members', 'group' => 'member']
             );
         });
+
+        $this->service = $this->app->make(RbacService::class);
     }
 
     // ---------- 角色创建 ----------
 
     public function test_create_role_for_tenant(): void
     {
-        $role = RbacService::createRole(1001, 'editor', 'Editor', 'Content editor role');
+        $role = $this->service->createRole(1001, 'editor', 'Editor', 'Content editor role');
 
         $this->assertNotNull($role);
         $this->assertEquals('editor', $role->name);
@@ -56,7 +60,7 @@ class RbacServiceTest extends TestCase
 
     public function test_create_role_without_permissions(): void
     {
-        $role = RbacService::createRole(1002, 'viewer', 'Viewer', 'Read-only role');
+        $role = $this->service->createRole(1002, 'viewer', 'Viewer', 'Read-only role');
 
         $this->assertEquals('viewer', $role->name);
         $this->assertEquals(1002, $role->tenant_id);
@@ -82,7 +86,7 @@ class RbacServiceTest extends TestCase
 
     public function test_assign_permissions_to_role(): void
     {
-        $role = RbacService::createRole(1001, 'editor2', 'Editor2', '');
+        $role = $this->service->createRole(1001, 'editor2', 'Editor2', '');
 
         // 使用实际的 permission_id 而非硬编码
         $tenantViewId = DB::table('permissions')->where('name', 'tenant.view')->value('permission_id');
@@ -91,7 +95,7 @@ class RbacServiceTest extends TestCase
         $role->grantPermission($tenantViewId);
         $role->grantPermission($memberViewId);
 
-        $permissions = RbacService::getRolePermissions($role->role_id);
+        $permissions = $this->service->getRolePermissions($role->role_id);
         $this->assertCount(2, $permissions);
         $this->assertContains('tenant.view', $permissions);
         $this->assertContains('member.view', $permissions);
@@ -112,16 +116,16 @@ class RbacServiceTest extends TestCase
         $permId = DB::table('permissions')->where('name', 'tenant.view')->value('permission_id');
 
         $this->expectException(\RuntimeException::class);
-        RbacService::updateRolePermissions(200, [$permId]);
+        $this->service->updateRolePermissions(200, [$permId]);
     }
 
     // ---------- 角色删除 ----------
 
     public function test_delete_custom_role(): void
     {
-        $role = RbacService::createRole(1001, 'deletable', 'Deletable', 'To be deleted');
+        $role = $this->service->createRole(1001, 'deletable', 'Deletable', 'To be deleted');
 
-        RbacService::deleteRole($role->role_id);
+        $this->service->deleteRole($role->role_id);
 
         $this->assertNull(Role::find($role->role_id));
     }
@@ -139,12 +143,12 @@ class RbacServiceTest extends TestCase
         });
 
         $this->expectException(\RuntimeException::class);
-        RbacService::deleteRole(300);
+        $this->service->deleteRole(300);
     }
 
     public function test_delete_role_clears_user_assignments(): void
     {
-        $role = RbacService::createRole(1001, 'assignable', 'Assignable', 'To be deleted');
+        $role = $this->service->createRole(1001, 'assignable', 'Assignable', 'To be deleted');
 
         DB::table('tenant_users')->insert([
             'tenant_user_id' => 9001,
@@ -154,7 +158,7 @@ class RbacServiceTest extends TestCase
             'is_active' => true,
         ]);
 
-        RbacService::deleteRole($role->role_id);
+        $this->service->deleteRole($role->role_id);
 
         $tenantUser = DB::table('tenant_users')->where('tenant_user_id', 9001)->first();
         $this->assertNull($tenantUser->role_id);
@@ -164,7 +168,7 @@ class RbacServiceTest extends TestCase
 
     public function test_get_role_permissions_returns_permission_names(): void
     {
-        $role = RbacService::createRole(1001, 'perms_test', 'Perms Test', '');
+        $role = $this->service->createRole(1001, 'perms_test', 'Perms Test', '');
 
         $tenantViewId = DB::table('permissions')->where('name', 'tenant.view')->value('permission_id');
         $memberViewId = DB::table('permissions')->where('name', 'member.view')->value('permission_id');
@@ -172,7 +176,7 @@ class RbacServiceTest extends TestCase
         $role->grantPermission($tenantViewId);
         $role->grantPermission($memberViewId);
 
-        $permissions = RbacService::getRolePermissions($role->role_id);
+        $permissions = $this->service->getRolePermissions($role->role_id);
 
         $this->assertIsArray($permissions);
         $this->assertCount(2, $permissions);
@@ -182,9 +186,9 @@ class RbacServiceTest extends TestCase
 
     public function test_get_role_permissions_returns_empty_for_role_without_permissions(): void
     {
-        $role = RbacService::createRole(1001, 'no_perms', 'No Perms', '');
+        $role = $this->service->createRole(1001, 'no_perms', 'No Perms', '');
 
-        $permissions = RbacService::getRolePermissions($role->role_id);
+        $permissions = $this->service->getRolePermissions($role->role_id);
 
         $this->assertIsArray($permissions);
         $this->assertEmpty($permissions);
@@ -192,22 +196,22 @@ class RbacServiceTest extends TestCase
 
     public function test_clear_role_cache_refreshes_permissions(): void
     {
-        $role = RbacService::createRole(1001, 'cached', 'Cached', '');
+        $role = $this->service->createRole(1001, 'cached', 'Cached', '');
 
         $tenantViewId = DB::table('permissions')->where('name', 'tenant.view')->value('permission_id');
         $memberViewId = DB::table('permissions')->where('name', 'member.view')->value('permission_id');
 
         $role->grantPermission($tenantViewId);
 
-        $permissions = RbacService::getRolePermissions($role->role_id);
+        $permissions = $this->service->getRolePermissions($role->role_id);
         $this->assertContains('tenant.view', $permissions);
 
         // Add another permission without refreshing cache
         $role->grantPermission($memberViewId);
 
         // Clear cache and re-fetch
-        RbacService::clearRoleCache($role->role_id);
-        $permissions = RbacService::getRolePermissions($role->role_id);
+        $this->service->clearRoleCache($role->role_id);
+        $permissions = $this->service->getRolePermissions($role->role_id);
         $this->assertCount(2, $permissions);
         $this->assertContains('member.view', $permissions);
     }
@@ -226,16 +230,16 @@ class RbacServiceTest extends TestCase
             ]);
         });
 
-        RbacService::createRole(1001, 'tenant_role_a', 'Tenant Role A');
-        RbacService::createRole(1002, 'tenant_role_b', 'Tenant Role B');
+        $this->service->createRole(1001, 'tenant_role_a', 'Tenant Role A');
+        $this->service->createRole(1002, 'tenant_role_b', 'Tenant Role B');
 
-        $roles1001 = RbacService::getTenantRoles(1001);
+        $roles1001 = $this->service->getTenantRoles(1001);
         $names = $roles1001->pluck('name')->toArray();
         $this->assertContains('system_role', $names);
         $this->assertContains('tenant_role_a', $names);
         $this->assertNotContains('tenant_role_b', $names);
 
-        $roles1002 = RbacService::getTenantRoles(1002);
+        $roles1002 = $this->service->getTenantRoles(1002);
         $this->assertContains('tenant_role_b', $roles1002->pluck('name')->toArray());
         $this->assertNotContains('tenant_role_a', $roles1002->pluck('name')->toArray());
     }
@@ -244,7 +248,7 @@ class RbacServiceTest extends TestCase
 
     public function test_check_role_permission_with_role_id(): void
     {
-        $role = RbacService::createRole(1001, 'checker', 'Checker', '');
+        $role = $this->service->createRole(1001, 'checker', 'Checker', '');
 
         $tenantViewId = DB::table('permissions')->where('name', 'tenant.view')->value('permission_id');
         $memberViewId = DB::table('permissions')->where('name', 'member.view')->value('permission_id');
@@ -252,26 +256,26 @@ class RbacServiceTest extends TestCase
         $role->grantPermission($tenantViewId);
         $role->grantPermission($memberViewId);
 
-        $this->assertTrue(RbacService::checkRolePermission($role->role_id, 'tenant.view'));
-        $this->assertTrue(RbacService::checkRolePermission($role->role_id, 'member.view'));
-        $this->assertFalse(RbacService::checkRolePermission($role->role_id, 'tenant.create'));
+        $this->assertTrue($this->service->checkRolePermission($role->role_id, 'tenant.view'));
+        $this->assertTrue($this->service->checkRolePermission($role->role_id, 'member.view'));
+        $this->assertFalse($this->service->checkRolePermission($role->role_id, 'tenant.create'));
     }
 
     public function test_check_role_permission_returns_false_for_unknown_permission(): void
     {
-        $role = RbacService::createRole(1001, 'checker2', 'Checker2', '');
+        $role = $this->service->createRole(1001, 'checker2', 'Checker2', '');
 
         $tenantViewId = DB::table('permissions')->where('name', 'tenant.view')->value('permission_id');
         $role->grantPermission($tenantViewId);
 
-        $this->assertFalse(RbacService::checkRolePermission($role->role_id, 'nonexistent.permission'));
+        $this->assertFalse($this->service->checkRolePermission($role->role_id, 'nonexistent.permission'));
     }
 
     // ---------- 权限分组查询 ----------
 
     public function test_get_all_permissions_grouped(): void
     {
-        $grouped = RbacService::getAllPermissionsGrouped();
+        $grouped = $this->service->getAllPermissionsGrouped();
 
         $this->assertArrayHasKey('tenant', $grouped);
         $this->assertArrayHasKey('member', $grouped);

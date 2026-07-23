@@ -13,7 +13,7 @@ class HealthServiceTestNew extends TestCase
 
     public function test_register_horizon_check_does_not_throw(): void
     {
-        HealthService::registerHorizonCheck();
+        app(HealthService::class)->registerHorizonCheck();
         $this->assertTrue(true);
     }
 }

@@ -12,11 +12,16 @@ use MultiTenantSaas\Tests\Schema\BillingModule;
 
 class CouponServiceTest extends TestCase
 {
+    protected CouponService $couponService;
+
     protected array $uses = [BillingModule::class];
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->couponService = $this->app->make(CouponService::class);
+
 
         Tenant::create([
             'tenant_id' => 1001,
@@ -38,7 +43,7 @@ class CouponServiceTest extends TestCase
 
     public function test_create_fixed_coupon(): void
     {
-        $coupon = CouponService::createCoupon([
+        $coupon = $this->couponService->createCoupon([
             'code' => 'FIXED10',
             'description' => '满100减10',
             'type' => Coupon::TYPE_FIXED,
@@ -59,7 +64,7 @@ class CouponServiceTest extends TestCase
 
     public function test_create_percent_coupon(): void
     {
-        $coupon = CouponService::createCoupon([
+        $coupon = $this->couponService->createCoupon([
             'code' => 'PCT20',
             'type' => Coupon::TYPE_PERCENTAGE,
             'value' => 20,
@@ -74,7 +79,7 @@ class CouponServiceTest extends TestCase
 
     public function test_create_coupon_with_auto_generated_code(): void
     {
-        $coupon = CouponService::createCoupon([
+        $coupon = $this->couponService->createCoupon([
             'type' => Coupon::TYPE_FIXED,
             'value' => 5,
         ]);
@@ -84,14 +89,14 @@ class CouponServiceTest extends TestCase
 
     public function test_create_coupon_throws_for_duplicate_code(): void
     {
-        CouponService::createCoupon([
+        $this->couponService->createCoupon([
             'code' => 'DUP',
             'type' => Coupon::TYPE_FIXED,
             'value' => 5,
         ]);
 
         $this->expectException(\RuntimeException::class);
-        CouponService::createCoupon([
+        $this->couponService->createCoupon([
             'code' => 'DUP',
             'type' => Coupon::TYPE_FIXED,
             'value' => 8,
@@ -104,7 +109,7 @@ class CouponServiceTest extends TestCase
     {
         $coupon = $this->makeCoupon(['type' => Coupon::TYPE_FIXED, 'value' => 15]);
 
-        $discount = CouponService::calculateDiscount($coupon, 200);
+        $discount = $this->couponService->calculateDiscount($coupon, 200);
 
         $this->assertEquals(15.00, $discount);
     }
@@ -113,7 +118,7 @@ class CouponServiceTest extends TestCase
     {
         $coupon = $this->makeCoupon(['type' => Coupon::TYPE_PERCENTAGE, 'value' => 20]);
 
-        $discount = CouponService::calculateDiscount($coupon, 200);
+        $discount = $this->couponService->calculateDiscount($coupon, 200);
 
         $this->assertEquals(40.00, $discount);
     }
@@ -126,7 +131,7 @@ class CouponServiceTest extends TestCase
             'max_discount' => 30,
         ]);
 
-        $discount = CouponService::calculateDiscount($coupon, 200);
+        $discount = $this->couponService->calculateDiscount($coupon, 200);
 
         $this->assertEquals(30.00, $discount);
     }
@@ -135,7 +140,7 @@ class CouponServiceTest extends TestCase
     {
         $coupon = $this->makeCoupon(['type' => Coupon::TYPE_FIXED, 'value' => 500]);
 
-        $discount = CouponService::calculateDiscount($coupon, 100);
+        $discount = $this->couponService->calculateDiscount($coupon, 100);
 
         $this->assertEquals(100.00, $discount);
     }
@@ -152,7 +157,7 @@ class CouponServiceTest extends TestCase
             'is_active' => true,
         ]);
 
-        $coupon = CouponService::validate('VALID', 1001, 100);
+        $coupon = $this->couponService->validate('VALID', 1001, 100);
 
         $this->assertEquals('VALID', $coupon->code);
     }
@@ -160,7 +165,7 @@ class CouponServiceTest extends TestCase
     public function test_validate_throws_for_unknown_code(): void
     {
         $this->expectException(\RuntimeException::class);
-        CouponService::validate('NOTEXIST', 1001);
+        $this->couponService->validate('NOTEXIST', 1001);
     }
 
     public function test_validate_throws_for_inactive_coupon(): void
@@ -173,7 +178,7 @@ class CouponServiceTest extends TestCase
         ]);
 
         $this->expectException(\RuntimeException::class);
-        CouponService::validate('OFF', 1001);
+        $this->couponService->validate('OFF', 1001);
     }
 
     public function test_validate_throws_for_expired_coupon(): void
@@ -186,7 +191,7 @@ class CouponServiceTest extends TestCase
         ]);
 
         $this->expectException(\RuntimeException::class);
-        CouponService::validate('EXPIRED', 1001);
+        $this->couponService->validate('EXPIRED', 1001);
     }
 
     public function test_validate_throws_for_not_started_coupon(): void
@@ -199,7 +204,7 @@ class CouponServiceTest extends TestCase
         ]);
 
         $this->expectException(\RuntimeException::class);
-        CouponService::validate('FUTURE', 1001);
+        $this->couponService->validate('FUTURE', 1001);
     }
 
     public function test_validate_throws_for_max_uses_reached(): void
@@ -213,7 +218,7 @@ class CouponServiceTest extends TestCase
         ]);
 
         $this->expectException(\RuntimeException::class);
-        CouponService::validate('MAXUSED', 1001);
+        $this->couponService->validate('MAXUSED', 1001);
     }
 
     public function test_validate_throws_for_min_amount_not_met(): void
@@ -226,7 +231,7 @@ class CouponServiceTest extends TestCase
         ]);
 
         $this->expectException(\RuntimeException::class);
-        CouponService::validate('MIN100', 1001, 50);
+        $this->couponService->validate('MIN100', 1001, 50);
     }
 
     public function test_validate_throws_for_plan_restriction(): void
@@ -239,7 +244,7 @@ class CouponServiceTest extends TestCase
         ]);
 
         $this->expectException(\RuntimeException::class);
-        CouponService::validate('PLANONLY', 1001, null, 9);
+        $this->couponService->validate('PLANONLY', 1001, null, 9);
     }
 
     public function test_validate_passes_for_matching_plan(): void
@@ -251,7 +256,7 @@ class CouponServiceTest extends TestCase
             'subscription_plan_id' => 5,
         ]);
 
-        $coupon = CouponService::validate('PLANOK', 1001, null, 5);
+        $coupon = $this->couponService->validate('PLANOK', 1001, null, 5);
 
         $this->assertEquals('PLANOK', $coupon->code);
     }
@@ -268,7 +273,7 @@ class CouponServiceTest extends TestCase
             'currency' => 'CNY',
         ]);
 
-        $usage = CouponService::redeem('REDEEM10', 1001, ['amount' => 100]);
+        $usage = $this->couponService->redeem('REDEEM10', 1001, ['amount' => 100]);
 
         $this->assertEquals(10.00, (float) $usage->discount_amount);
         $this->assertEquals(1001, $usage->tenant_id);
@@ -283,7 +288,7 @@ class CouponServiceTest extends TestCase
             'value' => 20,
         ]);
 
-        $usage = CouponService::redeem('REDEEM20', 1001, ['amount' => 200]);
+        $usage = $this->couponService->redeem('REDEEM20', 1001, ['amount' => 200]);
 
         $this->assertEquals(40.00, (float) $usage->discount_amount);
     }
@@ -296,7 +301,7 @@ class CouponServiceTest extends TestCase
             'value' => 10,
         ]);
 
-        CouponService::redeem('COUNT', 1001, ['amount' => 100]);
+        $this->couponService->redeem('COUNT', 1001, ['amount' => 100]);
 
         $coupon = Coupon::where('code', 'COUNT')->first();
         $this->assertEquals(1, $coupon->used_count);
@@ -310,7 +315,7 @@ class CouponServiceTest extends TestCase
             'value' => 10,
         ]);
 
-        CouponService::redeem('REC', 1001, [
+        $this->couponService->redeem('REC', 1001, [
             'amount' => 100,
             'user_id' => 55,
             'invoice_id' => 77,
@@ -334,7 +339,7 @@ class CouponServiceTest extends TestCase
         ]);
 
         $this->expectException(\RuntimeException::class);
-        CouponService::redeem('BAD', 1001, ['amount' => 100]);
+        $this->couponService->redeem('BAD', 1001, ['amount' => 100]);
     }
 
     public function test_redeem_throws_when_per_tenant_limit_reached(): void
@@ -346,10 +351,10 @@ class CouponServiceTest extends TestCase
             'max_uses_per_tenant' => 1,
         ]);
 
-        CouponService::redeem('PERLIMIT', 1001, ['amount' => 100]);
+        $this->couponService->redeem('PERLIMIT', 1001, ['amount' => 100]);
 
         $this->expectException(\RuntimeException::class);
-        CouponService::redeem('PERLIMIT', 1001, ['amount' => 100]);
+        $this->couponService->redeem('PERLIMIT', 1001, ['amount' => 100]);
     }
 
     public function test_redeem_does_not_consume_count_for_different_tenants(): void
@@ -361,8 +366,8 @@ class CouponServiceTest extends TestCase
             'max_uses_per_tenant' => 1,
         ]);
 
-        CouponService::redeem('MULTI', 1001, ['amount' => 100]);
-        $usage = CouponService::redeem('MULTI', 1002, ['amount' => 100]);
+        $this->couponService->redeem('MULTI', 1001, ['amount' => 100]);
+        $usage = $this->couponService->redeem('MULTI', 1002, ['amount' => 100]);
 
         $this->assertNotNull($usage);
         $this->assertEquals(1002, $usage->tenant_id);
@@ -382,14 +387,14 @@ class CouponServiceTest extends TestCase
         DB::table('coupons')->where('coupon_id', $couponId)->update(['used_count' => 1]);
 
         $this->expectException(\RuntimeException::class);
-        CouponService::redeem('ATOMIC', 1001, ['amount' => 100]);
+        $this->couponService->redeem('ATOMIC', 1001, ['amount' => 100]);
     }
 
     // ---------- 批量生成优惠码 ----------
 
     public function test_generate_codes_returns_requested_count(): void
     {
-        $codes = CouponService::generateCodes('SALE', 5, [
+        $codes = $this->couponService->generateCodes('SALE', 5, [
             'type' => Coupon::TYPE_FIXED,
             'value' => 5,
         ]);
@@ -399,7 +404,7 @@ class CouponServiceTest extends TestCase
 
     public function test_generate_codes_with_prefix(): void
     {
-        $codes = CouponService::generateCodes('PROMO', 3, [
+        $codes = $this->couponService->generateCodes('PROMO', 3, [
             'type' => Coupon::TYPE_FIXED,
             'value' => 5,
         ]);
@@ -411,7 +416,7 @@ class CouponServiceTest extends TestCase
 
     public function test_generate_codes_are_unique(): void
     {
-        $codes = CouponService::generateCodes('UNIQ', 20, [
+        $codes = $this->couponService->generateCodes('UNIQ', 20, [
             'type' => Coupon::TYPE_FIXED,
             'value' => 5,
         ]);
@@ -421,7 +426,7 @@ class CouponServiceTest extends TestCase
 
     public function test_generate_codes_excludes_confusing_chars(): void
     {
-        $codes = CouponService::generateCodes('SAFE', 10, [
+        $codes = $this->couponService->generateCodes('SAFE', 10, [
             'type' => Coupon::TYPE_FIXED,
             'value' => 5,
         ]);
@@ -433,7 +438,7 @@ class CouponServiceTest extends TestCase
 
     public function test_generate_codes_persists_coupons(): void
     {
-        $codes = CouponService::generateCodes('DB', 3, [
+        $codes = $this->couponService->generateCodes('DB', 3, [
             'type' => Coupon::TYPE_FIXED,
             'value' => 5,
         ]);
@@ -448,7 +453,7 @@ class CouponServiceTest extends TestCase
         $this->makeCoupon(['code' => 'L1', 'type' => Coupon::TYPE_FIXED, 'value' => 5]);
         $this->makeCoupon(['code' => 'L2', 'type' => Coupon::TYPE_PERCENTAGE, 'value' => 10]);
 
-        $coupons = CouponService::getCoupons();
+        $coupons = $this->couponService->getCoupons();
 
         $this->assertGreaterThanOrEqual(2, $coupons->count());
     }
@@ -458,8 +463,8 @@ class CouponServiceTest extends TestCase
         $this->makeCoupon(['code' => 'A1', 'type' => Coupon::TYPE_FIXED, 'value' => 5, 'is_active' => true]);
         $this->makeCoupon(['code' => 'A2', 'type' => Coupon::TYPE_FIXED, 'value' => 5, 'is_active' => false]);
 
-        $active = CouponService::getCoupons(['is_active' => true]);
-        $inactive = CouponService::getCoupons(['is_active' => false]);
+        $active = $this->couponService->getCoupons(['is_active' => true]);
+        $inactive = $this->couponService->getCoupons(['is_active' => false]);
 
         $this->assertTrue($active->contains('code', 'A1'));
         $this->assertFalse($active->contains('code', 'A2'));
@@ -469,10 +474,10 @@ class CouponServiceTest extends TestCase
     public function test_get_usages_for_coupon(): void
     {
         $coupon = $this->makeCoupon(['code' => 'U1', 'type' => Coupon::TYPE_FIXED, 'value' => 10]);
-        CouponService::redeem('U1', 1001, ['amount' => 100]);
-        CouponService::redeem('U1', 1002, ['amount' => 100]);
+        $this->couponService->redeem('U1', 1001, ['amount' => 100]);
+        $this->couponService->redeem('U1', 1002, ['amount' => 100]);
 
-        $usages = CouponService::getUsages($coupon->coupon_id);
+        $usages = $this->couponService->getUsages($coupon->coupon_id);
 
         $this->assertGreaterThanOrEqual(2, $usages->count());
     }
@@ -480,10 +485,10 @@ class CouponServiceTest extends TestCase
     public function test_get_usages_for_tenant(): void
     {
         $coupon = $this->makeCoupon(['code' => 'U2', 'type' => Coupon::TYPE_FIXED, 'value' => 10]);
-        CouponService::redeem('U2', 1001, ['amount' => 100]);
-        CouponService::redeem('U2', 1002, ['amount' => 100]);
+        $this->couponService->redeem('U2', 1001, ['amount' => 100]);
+        $this->couponService->redeem('U2', 1002, ['amount' => 100]);
 
-        $usages = CouponService::getUsages($coupon->coupon_id, 1001);
+        $usages = $this->couponService->getUsages($coupon->coupon_id, 1001);
 
         $this->assertCount(1, $usages);
         $this->assertEquals(1001, $usages->first()->tenant_id);
@@ -498,10 +503,10 @@ class CouponServiceTest extends TestCase
             'max_uses' => 100,
             'max_uses_per_tenant' => 100,
         ]);
-        CouponService::redeem('STAT', 1001, ['amount' => 100]);
-        CouponService::redeem('STAT', 1002, ['amount' => 200]);
+        $this->couponService->redeem('STAT', 1001, ['amount' => 100]);
+        $this->couponService->redeem('STAT', 1002, ['amount' => 200]);
 
-        $stats = CouponService::getStatistics($coupon->coupon_id);
+        $stats = $this->couponService->getStatistics($coupon->coupon_id);
 
         $this->assertEquals(2, $stats['used_count']);
         $this->assertEquals(20.00, (float) $stats['total_discount']);

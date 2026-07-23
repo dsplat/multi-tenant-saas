@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\Logging\Services;
 
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Logging\Models\AuditLog;
 
 /**
@@ -10,10 +11,22 @@ use MultiTenantSaas\Modules\Logging\Models\AuditLog;
  */
 class AuditService
 {
+    public function __construct(private readonly TenantContextContract $tenantContext) {}
+
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 记录操作
      */
-    public static function log(
+    public function log(
         string $action,
         string $resourceType,
         ?int $resourceId = null,
@@ -36,7 +49,7 @@ class AuditService
     /**
      * 查询审计日志
      */
-    public static function query(?int $tenantId = null)
+    public function query(?int $tenantId = null)
     {
         return AuditLog::where('tenant_id', $tenantId ?? TenantContext::getId());
     }

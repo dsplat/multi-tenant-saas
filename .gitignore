@@ -60,3 +60,7 @@ dist/
 # 部署本地配置（含服务器凭证，勿提交）
 deploy/config.env
 deploy/__pycache__/
+
+# IDE/AI 工具配置
+.qoder/
+.verify_lanyantu_login.png

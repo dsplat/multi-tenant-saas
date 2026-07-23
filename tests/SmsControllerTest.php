@@ -74,13 +74,16 @@ class SmsControllerTest extends TestCase
         ]);
 
         TenantContext::setTenantId($this->tenantId);
+
+        // BelongsToTenant 全局作用域需要 HTTP 请求中携带租户标识
+        $this->withHeader('X-Tenant-ID', (string) $this->tenantId);
     }
 
     // ========== 模板管理 API ==========
 
     public function test_index_templates(): void
     {
-        SmsService::createTemplate([
+        app(SmsService::class)->createTemplate([
             'tenant_id' => $this->tenantId,
             'name' => '测试模板',
             'content' => '测试内容',
@@ -97,13 +100,13 @@ class SmsControllerTest extends TestCase
 
     public function test_index_templates_filter_by_channel(): void
     {
-        SmsService::createTemplate([
+        app(SmsService::class)->createTemplate([
             'tenant_id' => $this->tenantId,
             'name' => '营销模板',
             'content' => '营销内容',
             'channel' => SmsTemplate::CHANNEL_MARKETING,
         ]);
-        SmsService::createTemplate([
+        app(SmsService::class)->createTemplate([
             'tenant_id' => $this->tenantId,
             'name' => '验证码模板',
             'content' => '验证码内容',
@@ -144,7 +147,7 @@ class SmsControllerTest extends TestCase
 
     public function test_show_template(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => $this->tenantId,
             'name' => '查看模板',
             'content' => '查看内容',
@@ -160,7 +163,7 @@ class SmsControllerTest extends TestCase
 
     public function test_update_template(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => $this->tenantId,
             'name' => '原名称',
             'content' => '原内容',
@@ -178,7 +181,7 @@ class SmsControllerTest extends TestCase
 
     public function test_destroy_template(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => $this->tenantId,
             'name' => '删除模板',
             'content' => '删除内容',
@@ -194,7 +197,7 @@ class SmsControllerTest extends TestCase
 
     public function test_submit_for_approval(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => $this->tenantId,
             'name' => '审核模板',
             'content' => '审核内容',
@@ -210,7 +213,7 @@ class SmsControllerTest extends TestCase
 
     public function test_render_content(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => $this->tenantId,
             'name' => '渲染模板',
             'content' => '您好{name}，验证码是{code}。',
@@ -230,7 +233,7 @@ class SmsControllerTest extends TestCase
 
     public function test_batch_send(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => $this->tenantId,
             'name' => '批量模板',
             'content' => '批量内容',
@@ -261,7 +264,7 @@ class SmsControllerTest extends TestCase
 
     public function test_scheduled_send(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => $this->tenantId,
             'name' => '定时模板',
             'content' => '定时内容',
@@ -282,14 +285,14 @@ class SmsControllerTest extends TestCase
 
     public function test_show_batch_task(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => $this->tenantId,
             'name' => '查询模板',
             'content' => '内容',
             'status' => SmsTemplate::STATUS_APPROVED,
         ]);
 
-        $task = SmsService::batchSend($template->sms_template_id, ['13800000001']);
+        $task = app(SmsService::class)->batchSend($template->sms_template_id, ['13800000001']);
 
         $response = $this->actingAs($this->user)
             ->getJson("/api/v1/tenants/{$this->tenantId}/sms/batch-tasks/{$task->batch_task_id}");
@@ -300,14 +303,14 @@ class SmsControllerTest extends TestCase
 
     public function test_cancel_batch_task(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => $this->tenantId,
             'name' => '取消模板',
             'content' => '内容',
             'status' => SmsTemplate::STATUS_APPROVED,
         ]);
 
-        $task = SmsService::batchSend($template->sms_template_id, ['13800000001']);
+        $task = app(SmsService::class)->batchSend($template->sms_template_id, ['13800000001']);
 
         $response = $this->actingAs($this->user)
             ->postJson("/api/v1/tenants/{$this->tenantId}/sms/batch-tasks/{$task->batch_task_id}/cancel");
@@ -320,16 +323,16 @@ class SmsControllerTest extends TestCase
 
     public function test_delivery_stats(): void
     {
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => $this->tenantId,
             'name' => '统计模板',
             'content' => '内容',
             'status' => SmsTemplate::STATUS_APPROVED,
         ]);
 
-        $task = SmsService::batchSend($template->sms_template_id, ['13800000001']);
+        $task = app(SmsService::class)->batchSend($template->sms_template_id, ['13800000001']);
 
-        SmsService::recordDeliveryResult($task->batch_task_id, [
+        app(SmsService::class)->recordDeliveryResult($task->batch_task_id, [
             'tenant_id' => $this->tenantId,
             'sent_count' => 100,
             'delivered_count' => 95,
@@ -357,7 +360,7 @@ class SmsControllerTest extends TestCase
 
     public function test_index_unsubscribes(): void
     {
-        SmsService::unsubscribe('13800000001', $this->tenantId);
+        app(SmsService::class)->unsubscribe('13800000001', $this->tenantId);
 
         $response = $this->actingAs($this->user)
             ->getJson("/api/v1/tenants/{$this->tenantId}/sms/unsubscribes");
@@ -391,7 +394,7 @@ class SmsControllerTest extends TestCase
 
     public function test_check_unsubscribed(): void
     {
-        SmsService::unsubscribe('13800000001', $this->tenantId);
+        app(SmsService::class)->unsubscribe('13800000001', $this->tenantId);
 
         $response = $this->actingAs($this->user)
             ->postJson("/api/v1/tenants/{$this->tenantId}/sms/unsubscribes/check", [
@@ -425,7 +428,7 @@ class SmsControllerTest extends TestCase
             'status' => 'active',
         ]);
 
-        $template = SmsService::createTemplate([
+        $template = app(SmsService::class)->createTemplate([
             'tenant_id' => $otherTenantId,
             'name' => '其他租户模板',
             'content' => '内容',

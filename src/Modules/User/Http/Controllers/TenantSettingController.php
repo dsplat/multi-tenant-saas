@@ -48,7 +48,7 @@ class TenantSettingController extends Controller
             }
 
             if (! empty($changes)) {
-                AuditService::log('update', 'tenant_settings', $tenantId, null, ['group' => 'sms', 'changes' => $changes]);
+                app(AuditService::class)->log('update', 'tenant_settings', $tenantId, null, ['group' => 'sms', 'changes' => $changes]);
             }
 
             return response()->json(['success' => true, 'message' => trans('common.updated')]);
@@ -81,7 +81,7 @@ class TenantSettingController extends Controller
         }
 
         if (! empty($changes)) {
-            AuditService::log('update', 'tenant_settings', $tenantId, null, ['group' => $group, 'changes' => $changes]);
+            app(AuditService::class)->log('update', 'tenant_settings', $tenantId, null, ['group' => $group, 'changes' => $changes]);
         }
 
         return response()->json(['success' => true, 'message' => trans('common.updated')]);
@@ -94,7 +94,7 @@ class TenantSettingController extends Controller
 
         $request->validate(['phone' => 'required|string|regex:/^1[3-9]\d{9}$/']);
         $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        $result = SmsService::send($request->phone, $code, 'test');
+        $result = app(SmsService::class)->send($request->phone, $code, 'test');
 
         if ($result) {
             return response()->json(['success' => true, 'message' => trans('common.success')]);

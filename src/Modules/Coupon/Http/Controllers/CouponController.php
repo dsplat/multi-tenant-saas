@@ -28,7 +28,7 @@ class CouponController extends Controller
             'keyword' => $request->query('keyword'),
         ]);
 
-        $coupons = CouponService::getCoupons($filters, $request->query('per_page'));
+        $coupons = app(CouponService::class)->getCoupons($filters, $request->query('per_page'));
 
         return response()->json(['success' => true, 'data' => $coupons]);
     }
@@ -55,7 +55,7 @@ class CouponController extends Controller
         ]);
 
         try {
-            $coupon = CouponService::createCoupon($data);
+            $coupon = app(CouponService::class)->createCoupon($data);
 
             return response()->json(['success' => true, 'data' => $coupon], 201);
         } catch (\RuntimeException $e) {
@@ -79,7 +79,7 @@ class CouponController extends Controller
     {
         $this->ensureTenantAccess($request, TenantContext::getId());
 
-        $coupon = CouponService::activate($couponId);
+        $coupon = app(CouponService::class)->activate($couponId);
 
         return response()->json(['success' => true, 'data' => $coupon]);
     }
@@ -88,7 +88,7 @@ class CouponController extends Controller
     {
         $this->ensureTenantAccess($request, TenantContext::getId());
 
-        $coupon = CouponService::deactivate($couponId);
+        $coupon = app(CouponService::class)->deactivate($couponId);
 
         return response()->json(['success' => true, 'data' => $coupon]);
     }
@@ -108,7 +108,7 @@ class CouponController extends Controller
         ]);
 
         try {
-            $usage = CouponService::redeem(
+            $usage = app(CouponService::class)->redeem(
                 $data['code'],
                 $data['tenant_id'] ?? null,
                 $data
@@ -133,7 +133,7 @@ class CouponController extends Controller
         ]);
 
         try {
-            $coupon = CouponService::validate(
+            $coupon = app(CouponService::class)->validate(
                 $data['code'],
                 $data['tenant_id'] ?? null,
                 $data['amount'] ?? null,
@@ -154,7 +154,7 @@ class CouponController extends Controller
         $this->ensureTenantAccess($request, TenantContext::getId());
 
         $tenantId = $request->query('tenant_id');
-        $usages = CouponService::getUsages($couponId, $tenantId);
+        $usages = app(CouponService::class)->getUsages($couponId, $tenantId);
 
         return response()->json(['success' => true, 'data' => $usages]);
     }
@@ -163,7 +163,7 @@ class CouponController extends Controller
     {
         $this->ensureTenantAccess($request, TenantContext::getId());
 
-        $stats = CouponService::getStatistics($couponId);
+        $stats = app(CouponService::class)->getStatistics($couponId);
 
         return response()->json(['success' => true, 'data' => $stats]);
     }
@@ -179,7 +179,7 @@ class CouponController extends Controller
             'keyword' => $request->query('keyword'),
         ]);
 
-        $templates = CouponService::getTemplates($filters, $request->query('per_page'));
+        $templates = app(CouponService::class)->getTemplates($filters, $request->query('per_page'));
 
         return response()->json(['success' => true, 'data' => $templates]);
     }
@@ -204,7 +204,7 @@ class CouponController extends Controller
             'metadata' => ['nullable', 'array'],
         ]);
 
-        $template = CouponService::createTemplate($data);
+        $template = app(CouponService::class)->createTemplate($data);
 
         return response()->json(['success' => true, 'data' => $template], 201);
     }
@@ -228,7 +228,7 @@ class CouponController extends Controller
             'metadata' => ['nullable', 'array'],
         ]);
 
-        $template = CouponService::updateTemplate($templateId, $data);
+        $template = app(CouponService::class)->updateTemplate($templateId, $data);
 
         return response()->json(['success' => true, 'data' => $template]);
     }
@@ -236,7 +236,7 @@ class CouponController extends Controller
     public function deleteTemplate(int $templateId): JsonResponse
     {
         try {
-            CouponService::deleteTemplate($templateId);
+            app(CouponService::class)->deleteTemplate($templateId);
 
             return response()->json(['success' => true, 'message' => trans('common.deleted')]);
         } catch (\RuntimeException $e) {
@@ -249,14 +249,14 @@ class CouponController extends Controller
 
     public function activateTemplate(int $templateId): JsonResponse
     {
-        $template = CouponService::activateTemplate($templateId);
+        $template = app(CouponService::class)->activateTemplate($templateId);
 
         return response()->json(['success' => true, 'data' => $template]);
     }
 
     public function deactivateTemplate(int $templateId): JsonResponse
     {
-        $template = CouponService::deactivateTemplate($templateId);
+        $template = app(CouponService::class)->deactivateTemplate($templateId);
 
         return response()->json(['success' => true, 'data' => $template]);
     }
@@ -271,7 +271,7 @@ class CouponController extends Controller
         ]);
 
         try {
-            $codes = CouponService::generateFromTemplate($templateId, $data['quantity'], $data['prefix'] ?? '');
+            $codes = app(CouponService::class)->generateFromTemplate($templateId, $data['quantity'], $data['prefix'] ?? '');
 
             return response()->json(['success' => true, 'data' => ['codes' => $codes, 'count' => count($codes)]], 201);
         } catch (\RuntimeException $e) {
@@ -291,7 +291,7 @@ class CouponController extends Controller
         ]);
 
         try {
-            $result = CouponService::bulkDistribute($templateId, $data['user_ids'], $data['tenant_id']);
+            $result = app(CouponService::class)->bulkDistribute($templateId, $data['user_ids'], $data['tenant_id']);
 
             return response()->json(['success' => true, 'data' => $result], 201);
         } catch (\RuntimeException $e) {
@@ -311,7 +311,7 @@ class CouponController extends Controller
         ]);
 
         try {
-            $share = CouponService::shareCoupon(
+            $share = app(CouponService::class)->shareCoupon(
                 $request->user()->user_id,
                 $templateId,
                 $data['tenant_id']
@@ -334,7 +334,7 @@ class CouponController extends Controller
         ]);
 
         try {
-            $result = CouponService::acceptShare(
+            $result = app(CouponService::class)->acceptShare(
                 $data['share_code'],
                 $request->user()->user_id,
                 $data['tenant_id']
@@ -358,7 +358,7 @@ class CouponController extends Controller
             'status' => $request->query('status'),
         ]);
 
-        $records = CouponService::getShareRecords($tenantId, $filters, $request->query('per_page'));
+        $records = app(CouponService::class)->getShareRecords($tenantId, $filters, $request->query('per_page'));
 
         return response()->json(['success' => true, 'data' => $records]);
     }

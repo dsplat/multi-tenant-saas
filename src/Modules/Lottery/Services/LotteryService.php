@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Lottery\Services;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\Lottery\Models\LotteryActivity;
 use MultiTenantSaas\Modules\Lottery\Models\LotteryActivityPrize;
@@ -18,6 +19,18 @@ use MultiTenantSaas\Modules\Lottery\Models\LotteryDrawLog;
  */
 class LotteryService
 {
+    public function __construct(private readonly TenantContextContract $tenantContext) {}
+
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     // ========================================
     // 活动管理
     // ========================================
@@ -25,13 +38,13 @@ class LotteryService
     /**
      * 创建抽奖活动
      */
-    public static function createActivity(array $data): LotteryActivity
+    public function createActivity(array $data): LotteryActivity
     {
         $activity = LotteryActivity::create($data);
 
         // 审计日志（如果表存在）
         try {
-            AuditService::log('lottery.activity.create', 'lottery_activity', $activity->activity_id, null, $data);
+            app(AuditService::class)->log('lottery.activity.create', 'lottery_activity', $activity->activity_id, null, $data);
         } catch (\Throwable $e) {
             // 忽略审计日志错误
         }
@@ -42,7 +55,7 @@ class LotteryService
     /**
      * 更新抽奖活动
      */
-    public static function updateActivity(int $activityId, array $data): LotteryActivity
+    public function updateActivity(int $activityId, array $data): LotteryActivity
     {
         $activity = LotteryActivity::findOrFail($activityId);
         $activity->update($data);
@@ -53,7 +66,7 @@ class LotteryService
     /**
      * 获取活动详情（含奖品列表）
      */
-    public static function getActivity(int $activityId): LotteryActivity
+    public function getActivity(int $activityId): LotteryActivity
     {
         return LotteryActivity::with('prizes')->findOrFail($activityId);
     }
@@ -61,7 +74,7 @@ class LotteryService
     /**
      * 获取租户活动列表
      */
-    public static function getActivities(int $tenantId, array $filters = []): Collection
+    public function getActivities(int $tenantId, array $filters = []): Collection
     {
         $query = LotteryActivity::where('tenant_id', $tenantId)
             ->withCount(['prizes', 'drawLogs']);
@@ -76,7 +89,7 @@ class LotteryService
     /**
      * 更新活动状态
      */
-    public static function updateActivityStatus(int $activityId, string $status): LotteryActivity
+    public function updateActivityStatus(int $activityId, string $status): LotteryActivity
     {
         $activity = LotteryActivity::findOrFail($activityId);
         $activity->update(['status' => $status]);
@@ -91,7 +104,7 @@ class LotteryService
     /**
      * 添加奖品
      */
-    public static function addPrize(int $activityId, array $data): LotteryActivityPrize
+    public function addPrize(int $activityId, array $data): LotteryActivityPrize
     {
         $activity = LotteryActivity::findOrFail($activityId);
 
@@ -105,7 +118,7 @@ class LotteryService
     /**
      * 更新奖品
      */
-    public static function updatePrize(int $prizeId, array $data): LotteryActivityPrize
+    public function updatePrize(int $prizeId, array $data): LotteryActivityPrize
     {
         $prize = LotteryActivityPrize::findOrFail($prizeId);
         $prize->update($data);
@@ -116,7 +129,7 @@ class LotteryService
     /**
      * 删除奖品
      */
-    public static function deletePrize(int $prizeId): bool
+    public function deletePrize(int $prizeId): bool
     {
         $prize = LotteryActivityPrize::findOrFail($prizeId);
 
@@ -126,7 +139,7 @@ class LotteryService
     /**
      * 获取活动奖品列表
      */
-    public static function getPrizes(int $activityId): Collection
+    public function getPrizes(int $activityId): Collection
     {
         return LotteryActivityPrize::where('activity_id', $activityId)
             ->orderBy('sort_order')
@@ -143,7 +156,7 @@ class LotteryService
      *
      * @return array{result: string, prize: ?LotteryActivityPrize, log: LotteryDrawLog}
      */
-    public static function draw(int $activityId, ?int $userId = null, ?string $userIp = null, ?string $userAgent = null): array
+    public function draw(int $activityId, ?int $userId = null, ?string $userIp = null, ?string $userAgent = null): array
     {
         $activity = LotteryActivity::findOrFail($activityId);
 
@@ -162,13 +175,13 @@ class LotteryService
         }
 
         // 检查黑名单
-        if ($userId && static::isBlacklisted($activityId, 'user_id', (string) $userId)) {
-            $log = static::recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'blacklist');
+        if ($userId && $this->isBlacklisted($activityId, 'user_id', (string) $userId)) {
+            $log = $this->recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'blacklist');
 
             return ['result' => 'blacklist', 'prize' => null, 'log' => $log];
         }
-        if ($userIp && static::isBlacklisted($activityId, 'ip', $userIp)) {
-            $log = static::recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'blacklist');
+        if ($userIp && $this->isBlacklisted($activityId, 'ip', $userIp)) {
+            $log = $this->recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'blacklist');
 
             return ['result' => 'blacklist', 'prize' => null, 'log' => $log];
         }
@@ -181,21 +194,21 @@ class LotteryService
                 ->where('user_id', $userId)
                 ->count();
             if ($drawCount >= $maxPerUser) {
-                $log = static::recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'miss');
+                $log = $this->recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'miss');
 
                 return ['result' => 'miss', 'prize' => null, 'log' => $log];
             }
         }
 
         // 尝试抽奖
-        $prize = static::tryDrawPrize($activityId);
+        $prize = $this->tryDrawPrize($activityId);
 
         if ($prize) {
-            $log = static::recordDraw($activity->tenant_id, $activityId, $prize->prize_id, $userId, $userIp, $userAgent, 'win');
+            $log = $this->recordDraw($activity->tenant_id, $activityId, $prize->prize_id, $userId, $userIp, $userAgent, 'win');
 
             // 审计日志
             try {
-                AuditService::log('lottery.draw.win', 'lottery_activity', $activityId, null, [
+                app(AuditService::class)->log('lottery.draw.win', 'lottery_activity', $activityId, null, [
                     'prize_id' => $prize->prize_id,
                     'prize_name' => $prize->name,
                     'user_id' => $userId,
@@ -207,11 +220,11 @@ class LotteryService
             return ['result' => 'win', 'prize' => $prize, 'log' => $log];
         }
 
-        $log = static::recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'miss');
+        $log = $this->recordDraw($activity->tenant_id, $activityId, null, $userId, $userIp, $userAgent, 'miss');
 
         // 审计日志
         try {
-            AuditService::log('lottery.draw.miss', 'lottery_activity', $activityId, null, [
+            app(AuditService::class)->log('lottery.draw.miss', 'lottery_activity', $activityId, null, [
                 'user_id' => $userId,
             ]);
         } catch (\Throwable $e) {
@@ -224,7 +237,7 @@ class LotteryService
     /**
      * 尝试抽取奖品（加权随机 + 乐观锁）
      */
-    protected static function tryDrawPrize(int $activityId): ?LotteryActivityPrize
+    protected function tryDrawPrize(int $activityId): ?LotteryActivityPrize
     {
         $prizes = LotteryActivityPrize::where('activity_id', $activityId)
             ->where('remaining_count', '>', 0)
@@ -254,7 +267,7 @@ class LotteryService
                 }
 
                 // 库存不足，重新尝试
-                return static::tryDrawPrize($activityId);
+                return $this->tryDrawPrize($activityId);
             }
         }
 
@@ -264,7 +277,7 @@ class LotteryService
     /**
      * 记录抽奖日志
      */
-    protected static function recordDraw(int $tenantId, int $activityId, ?int $prizeId, ?int $userId, ?string $userIp, ?string $userAgent, string $result): LotteryDrawLog
+    protected function recordDraw(int $tenantId, int $activityId, ?int $prizeId, ?int $userId, ?string $userIp, ?string $userAgent, string $result): LotteryDrawLog
     {
         $log = LotteryDrawLog::create([
             'tenant_id' => $tenantId,
@@ -278,7 +291,7 @@ class LotteryService
         ]);
 
         // 清除统计缓存
-        static::clearStatsCache($activityId);
+        $this->clearStatsCache($activityId);
 
         return $log;
     }
@@ -290,7 +303,7 @@ class LotteryService
     /**
      * 添加黑名单
      */
-    public static function addToBlacklist(int $tenantId, int $activityId, string $identifierType, string $identifier, ?string $reason = null): LotteryBlacklist
+    public function addToBlacklist(int $tenantId, int $activityId, string $identifierType, string $identifier, ?string $reason = null): LotteryBlacklist
     {
         return LotteryBlacklist::create([
             'tenant_id' => $tenantId,
@@ -304,7 +317,7 @@ class LotteryService
     /**
      * 移除黑名单
      */
-    public static function removeFromBlacklist(int $activityId, string $identifierType, string $identifier): bool
+    public function removeFromBlacklist(int $activityId, string $identifierType, string $identifier): bool
     {
         return LotteryBlacklist::where('activity_id', $activityId)
             ->where('identifier_type', $identifierType)
@@ -315,7 +328,7 @@ class LotteryService
     /**
      * 检查是否在黑名单中
      */
-    public static function isBlacklisted(int $activityId, string $identifierType, string $identifier): bool
+    public function isBlacklisted(int $activityId, string $identifierType, string $identifier): bool
     {
         return LotteryBlacklist::where('activity_id', $activityId)
             ->where('identifier_type', $identifierType)
@@ -326,7 +339,7 @@ class LotteryService
     /**
      * 获取活动黑名单
      */
-    public static function getBlacklist(int $activityId): Collection
+    public function getBlacklist(int $activityId): Collection
     {
         return LotteryBlacklist::where('activity_id', $activityId)->get();
     }
@@ -338,7 +351,7 @@ class LotteryService
     /**
      * 获取活动抽奖统计（带缓存）
      */
-    public static function getDrawStats(int $activityId): array
+    public function getDrawStats(int $activityId): array
     {
         $cacheKey = "lottery:stats:{$activityId}";
 
@@ -361,7 +374,7 @@ class LotteryService
     /**
      * 清除活动统计缓存
      */
-    public static function clearStatsCache(int $activityId): void
+    public function clearStatsCache(int $activityId): void
     {
         Cache::forget("lottery:stats:{$activityId}");
     }
@@ -369,7 +382,7 @@ class LotteryService
     /**
      * 获取用户抽奖记录
      */
-    public static function getUserDrawLogs(int $activityId, int $userId): Collection
+    public function getUserDrawLogs(int $activityId, int $userId): Collection
     {
         return LotteryDrawLog::where('activity_id', $activityId)
             ->where('user_id', $userId)
@@ -380,7 +393,7 @@ class LotteryService
     /**
      * 获取中奖记录列表
      */
-    public static function getWinLogs(int $activityId, int $limit = 50): Collection
+    public function getWinLogs(int $activityId, int $limit = 50): Collection
     {
         return LotteryDrawLog::where('activity_id', $activityId)
             ->where('result', 'win')
@@ -395,7 +408,7 @@ class LotteryService
      *
      * @return array{headers: array, rows: array, total: int}
      */
-    public static function exportDrawLogs(int $activityId, array $filters = []): array
+    public function exportDrawLogs(int $activityId, array $filters = []): array
     {
         $query = LotteryDrawLog::where('activity_id', $activityId)
             ->with(['prize']);

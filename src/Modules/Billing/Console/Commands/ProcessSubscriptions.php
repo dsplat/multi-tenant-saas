@@ -52,7 +52,7 @@ class ProcessSubscriptions extends Command
             ->pluck('tenant_id');
 
         foreach ($tenantIds as $tenantId) {
-            $result = DunningService::processFailedPayment((int) $tenantId);
+            $result = app(DunningService::class)->processFailedPayment((int) $tenantId);
 
             if ($result['action'] === 'retry') {
                 $count++;
@@ -61,7 +61,7 @@ class ProcessSubscriptions extends Command
                     'next_retry_at' => $result['next_retry_at']?->toDateTimeString(),
                 ]);
             } elseif ($result['action'] === 'suspend') {
-                DunningService::suspendTenant((int) $tenantId);
+                app(DunningService::class)->suspendTenant((int) $tenantId);
                 $count++;
                 Log::warning('Dunning: tenant suspended after grace period', [
                     'tenant_id' => $tenantId,

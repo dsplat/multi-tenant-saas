@@ -53,7 +53,7 @@ class TenantKeyController extends Controller
             return $this->errorResponse($e->getMessage());
         }
 
-        AuditService::log('create', 'tenant_key', $key->tenant_key_id, null, [
+        app(AuditService::class)->log('create', 'tenant_key', $key->tenant_key_id, null, [
             'tenant_id' => $tenantId,
             'key_type' => $key->key_type,
         ]);
@@ -82,7 +82,7 @@ class TenantKeyController extends Controller
 
         $key->update(['status' => 'revoked']);
 
-        AuditService::log('revoke', 'tenant_key', $id, ['status' => 'active'], ['status' => 'revoked']);
+        app(AuditService::class)->log('revoke', 'tenant_key', $id, ['status' => 'active'], ['status' => 'revoked']);
 
         return $this->deletedResponse('Key revoked');
     }

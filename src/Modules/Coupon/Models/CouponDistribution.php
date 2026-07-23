@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Coupon\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 
 /**
@@ -14,7 +15,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class CouponDistribution extends Model
 {
-    use HasFactory, HasGlobalId;
+    use BelongsToTenant, HasFactory, HasGlobalId;
 
     protected $primaryKey = 'distribution_id';
 

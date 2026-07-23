@@ -34,11 +34,20 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class AuthImprovementsTest extends TestCase
 {
+    protected SocialiteService $socialiteService;
+
     protected array $uses = [
         CoreModule::class,
         PluginModule::class,
         SecurityModule::class,
     ];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->socialiteService = $this->app->make(SocialiteService::class);
+    }
 
     protected function createTestTenant(array $overrides = []): Tenant
     {
@@ -92,9 +101,9 @@ class AuthImprovementsTest extends TestCase
 
     public function test_namespaced_provider_format(): void
     {
-        $this->assertEquals('wechat:tenant:1001', SocialiteService::namespacedProvider('wechat', 1001));
-        $this->assertEquals('wechat_work:tenant:999', SocialiteService::namespacedProvider('wechat_work', 999));
-        $this->assertEquals('alipay:tenant:42', SocialiteService::namespacedProvider('alipay', 42));
+        $this->assertEquals('wechat:tenant:1001', $this->socialiteService->namespacedProvider('wechat', 1001));
+        $this->assertEquals('wechat_work:tenant:999', $this->socialiteService->namespacedProvider('wechat_work', 999));
+        $this->assertEquals('alipay:tenant:42', $this->socialiteService->namespacedProvider('alipay', 42));
     }
 
     public function test_oauth_account_base_provider_extraction(): void
@@ -338,7 +347,7 @@ class AuthImprovementsTest extends TestCase
 
     public function test_supported_providers_includes_wechat_work(): void
     {
-        $providers = SocialiteService::getSupportedProviders();
+        $providers = $this->socialiteService->getSupportedProviders();
 
         $this->assertArrayHasKey('wechat_work', $providers);
         $this->assertArrayHasKey('alipay', $providers);
@@ -352,7 +361,7 @@ class AuthImprovementsTest extends TestCase
         TenantSetting::set(1001, 'oauth', 'wechat_work_agent_id', '1000002');
         TenantSetting::set(1001, 'oauth', 'wechat_work_secret', 'test-secret', true);
 
-        $url = SocialiteService::getRedirectUrl('wechat_work', 1001);
+        $url = $this->socialiteService->getRedirectUrl('wechat_work', 1001);
 
         $this->assertStringContainsString('open.work.weixin.qq.com', $url);
     }
@@ -440,7 +449,7 @@ class AuthImprovementsTest extends TestCase
         TenantSetting::set(1001, 'oauth', 'wechat_work_agent_id', '1000002');
         TenantSetting::set(1001, 'oauth', 'wechat_work_secret', 'test-secret', true);
 
-        $config = SocialiteService::getOAuthConfigForDisplay(1001);
+        $config = $this->socialiteService->getOAuthConfigForDisplay(1001);
 
         $this->assertArrayHasKey('wechat_work', $config);
         $this->assertTrue($config['wechat_work']['configured']);
@@ -455,7 +464,7 @@ class AuthImprovementsTest extends TestCase
         TenantSetting::set(1001, 'oauth', 'alipay_app_id', '2021001234');
         TenantSetting::set(1001, 'oauth', 'alipay_private_key', 'test-key', true);
 
-        $config = SocialiteService::getOAuthConfigForDisplay(1001);
+        $config = $this->socialiteService->getOAuthConfigForDisplay(1001);
 
         $this->assertArrayHasKey('alipay', $config);
         $this->assertTrue($config['alipay']['configured']);
@@ -467,19 +476,19 @@ class AuthImprovementsTest extends TestCase
         $this->createTestTenant();
 
         // 未配置时
-        $this->assertFalse(SocialiteService::isConfigured(1001, 'wechat_work'));
-        $this->assertFalse(SocialiteService::isConfigured(1001, 'alipay'));
-        $this->assertFalse(SocialiteService::isConfigured(1001, 'github'));
+        $this->assertFalse($this->socialiteService->isConfigured(1001, 'wechat_work'));
+        $this->assertFalse($this->socialiteService->isConfigured(1001, 'alipay'));
+        $this->assertFalse($this->socialiteService->isConfigured(1001, 'github'));
 
         // 配置 wechat_work
         TenantSetting::set(1001, 'oauth', 'wechat_work_corp_id', 'ww123');
         TenantSetting::set(1001, 'oauth', 'wechat_work_secret', 'sec', true);
-        $this->assertTrue(SocialiteService::isConfigured(1001, 'wechat_work'));
+        $this->assertTrue($this->socialiteService->isConfigured(1001, 'wechat_work'));
 
         // 配置 github（标准 client_id/secret）
         TenantSetting::set(1001, 'oauth', 'github_client_id', 'gh-id');
         TenantSetting::set(1001, 'oauth', 'github_client_secret', 'gh-sec');
-        $this->assertTrue(SocialiteService::isConfigured(1001, 'github'));
+        $this->assertTrue($this->socialiteService->isConfigured(1001, 'github'));
     }
 
     // =============================================

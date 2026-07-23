@@ -147,7 +147,7 @@ class CacheService
 
         Cache::flush();
 
-        AuditService::log(
+        app(AuditService::class)->log(
             action: 'cache_cleared',
             resourceType: 'system'
         );
@@ -171,7 +171,7 @@ class CacheService
             $count++;
         }
 
-        AuditService::log(
+        app(AuditService::class)->log(
             action: 'cache_warmup',
             resourceType: 'cache',
             newValues: ['count' => $count, 'ttl' => $ttl]

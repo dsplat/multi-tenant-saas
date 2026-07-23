@@ -37,7 +37,7 @@ if (! function_exists('tenant_config')) {
             return $default;
         }
 
-        return TenantSettingService::get($tenantId, $group, $key, $default);
+        return app(TenantSettingService::class)->get($tenantId, $group, $key, $default);
     }
 }
 
@@ -77,6 +77,6 @@ if (! function_exists('check_quota')) {
      */
     function check_quota(string $resource): void
     {
-        QuotaService::check($resource);
+        app(QuotaService::class)->check($resource);
     }
 }

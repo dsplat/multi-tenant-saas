@@ -536,7 +536,7 @@ class FeatureFlagService
     protected function logChange(FeatureFlag $flag, string $action, ?array $old, ?array $new): void
     {
         try {
-            AuditService::log(
+            app(AuditService::class)->log(
                 action: $action,
                 resourceType: 'feature_flag',
                 resourceId: (int) $flag->feature_flag_id,

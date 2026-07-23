@@ -42,6 +42,10 @@ use MultiTenantSaas\Modules\Ai\Services\Capability\SummarizeCapability;
 use MultiTenantSaas\Modules\Ai\Services\Capability\TagCapability;
 use MultiTenantSaas\Modules\Ai\Services\Capability\TranslateCapability;
 use MultiTenantSaas\Modules\Ai\Services\Capability\VisionCapability;
+use MultiTenantSaas\Modules\Ai\Services\AiOptional;
+use MultiTenantSaas\Modules\Ai\Services\AiConfigService;
+use MultiTenantSaas\Modules\Ai\Services\AiUsageService;
+use MultiTenantSaas\Modules\Ai\Services\IntentRouter;
 use MultiTenantSaas\Modules\Ai\Services\Memory\EntityMemory;
 use MultiTenantSaas\Modules\Ai\Services\Memory\MemoryPipeline;
 use MultiTenantSaas\Modules\Ai\Services\Memory\TenantMemory;
@@ -116,6 +120,16 @@ class AiServiceProvider extends ModuleServiceProvider
         $this->app->bind(EntityMemory::class, fn ($app) => new EntityMemory((int) $app->make(TenantContextContract::class)->resolveId()));
         $this->app->singleton(AiGatewayService::class);
         $this->app->singleton(AiVideoService::class);
+
+        // F1: AiOptional 可选性包装器
+        $this->app->singleton(AiOptional::class, fn ($app) => new AiOptional(
+            $app->make(AiConfigService::class),
+            $app->make(AiUsageService::class),
+            $app->bound(AgentMonitorContract::class) ? $app->make(AgentMonitorContract::class) : null,
+        ));
+
+        // F3: IntentRouter 意图路由器
+        $this->app->singleton(IntentRouter::class);
 
         $this->registerFrameworkTools();
     }

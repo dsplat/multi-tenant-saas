@@ -41,7 +41,7 @@ class TenantMemberController extends Controller
             ['role_id' => $request->role_id, 'is_active' => true, 'joined_at' => now()]
         );
 
-        AuditService::log('create', 'tenant_user', $request->user_id, null, [
+        app(AuditService::class)->log('create', 'tenant_user', $request->user_id, null, [
             'tenant_id' => $tenantId,
             'role_id' => $request->role_id,
         ]);
@@ -67,7 +67,7 @@ class TenantMemberController extends Controller
         $member->update($validated);
         $newValues = $validated;
 
-        AuditService::log('update', 'tenant_user', $userId, $oldValues, $newValues);
+        app(AuditService::class)->log('update', 'tenant_user', $userId, $oldValues, $newValues);
 
         return response()->json(['success' => true, 'message' => trans('common.updated')]);
     }
@@ -109,7 +109,7 @@ class TenantMemberController extends Controller
             ->where('tenant_id', $tenantId)
             ->delete();
 
-        AuditService::log('remove', 'tenant_user', $userId, $oldValues, null);
+        app(AuditService::class)->log('remove', 'tenant_user', $userId, $oldValues, null);
 
         return response()->json(['success' => true, 'message' => trans('tenant.member_removed')]);
     }

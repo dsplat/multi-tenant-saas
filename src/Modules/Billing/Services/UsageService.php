@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Modules\Billing\Services;
 
 use Illuminate\Support\Collection;
 
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
 use MultiTenantSaas\Modules\Billing\Models\UsageRecord;
 use MultiTenantSaas\Modules\Infrastructure\Services\RateLimitService;
@@ -28,6 +29,18 @@ class UsageService
 {
     use ResolvesPlan;
 
+    public function __construct(private readonly TenantContextContract $tenantContext) {}
+
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 记录用量
      *
@@ -36,7 +49,7 @@ class UsageService
      * @param  float  $value  本次用量
      * @param  string|null  $period  计费周期 YYYYMM，默认当前月
      */
-    public static function record(int $tenantId, string $metric, float $value, ?string $period = null): UsageRecord
+    public function record(int $tenantId, string $metric, float $value, ?string $period = null): UsageRecord
     {
         if ($value < 0) {
             throw new \InvalidArgumentException('Usage value must be non-negative.');
@@ -61,7 +74,7 @@ class UsageService
      * @param  string  $period  计费周期 YYYYMM
      * @return array{total: float, count: int, metric: string, period: string}
      */
-    public static function aggregate(int $tenantId, string $metric, string $period): array
+    public function aggregate(int $tenantId, string $metric, string $period): array
     {
         $row = UsageRecord::where('tenant_id', $tenantId)
             ->where('metric_type', $metric)
@@ -86,7 +99,7 @@ class UsageService
      * @param  string|null  $periodTo  截止周期 YYYYMM（含）
      * @return Collection<int, UsageRecord>
      */
-    public static function query(int $tenantId, ?string $metric = null, ?string $periodFrom = null, ?string $periodTo = null): Collection
+    public function query(int $tenantId, ?string $metric = null, ?string $periodFrom = null, ?string $periodTo = null): Collection
     {
         $query = UsageRecord::where('tenant_id', $tenantId);
 
@@ -120,9 +133,9 @@ class UsageService
      * @param  float  $value  待计入的本次用量
      * @return array{allowed: bool, overage: float, price: float}
      */
-    public static function checkOverage(int $tenantId, string $metric, float $value): array
+    public function checkOverage(int $tenantId, string $metric, float $value): array
     {
-        $plan = static::resolveCurrentPlan($tenantId);
+        $plan = $this->resolveCurrentPlan($tenantId);
 
         if (! $plan) {
             return ['allowed' => false, 'overage' => 0.0, 'price' => 0.0];
@@ -135,16 +148,16 @@ class UsageService
         }
 
         $currentPeriod = now()->format('Ym');
-        $currentUsage = static::aggregate($tenantId, $metric, $currentPeriod)['total'];
+        $currentUsage = $this->aggregate($tenantId, $metric, $currentPeriod)['total'];
         $projectedUsage = $currentUsage + $value;
 
         // 阶梯定价模式
         if (isset($rules['tiers']) && is_array($rules['tiers'])) {
-            return static::evaluateTieredRules($rules, $plan, $currentUsage, $value, $projectedUsage);
+            return $this->evaluateTieredRules($rules, $plan, $currentUsage, $value, $projectedUsage);
         }
 
         // 简单限额 + 超额单价模式
-        return static::evaluateFlatRules($rules, $plan, $projectedUsage);
+        return $this->evaluateFlatRules($rules, $plan, $projectedUsage);
     }
 
     /**
@@ -155,9 +168,9 @@ class UsageService
      *
      * @return int 当前租户可用的每分钟请求数上限
      */
-    public static function enforceRateLimit(int $tenantId): int
+    public function enforceRateLimit(int $tenantId): int
     {
-        $plan = static::resolveCurrentPlan($tenantId);
+        $plan = $this->resolveCurrentPlan($tenantId);
         $baseLimit = (int) ($plan?->rate_limit_rpm ?? 60);
 
         $service = new RateLimitService;
@@ -173,7 +186,7 @@ class UsageService
      * @param  float  $projectedUsage  当前周期累计 + 本次用量
      * @return array{allowed: bool, overage: float, price: float}
      */
-    protected static function evaluateFlatRules(array $rules, ?SubscriptionPlan $plan, float $projectedUsage): array
+    protected function evaluateFlatRules(array $rules, ?SubscriptionPlan $plan, float $projectedUsage): array
     {
         $limit = (float) ($rules['limit'] ?? 0);
         $overagePrice = (float) ($rules['overage_price'] ?? $plan?->overage_price ?? 0);
@@ -211,7 +224,7 @@ class UsageService
      * @param  float  $projectedUsage  累计 + 增量
      * @return array{allowed: bool, overage: float, price: float}
      */
-    protected static function evaluateTieredRules(array $rules, ?SubscriptionPlan $plan, float $currentUsage, float $value, float $projectedUsage): array
+    protected function evaluateTieredRules(array $rules, ?SubscriptionPlan $plan, float $currentUsage, float $value, float $projectedUsage): array
     {
         $tiers = $rules['tiers'];
         $overageAllowed = (bool) ($rules['overage_allowed'] ?? $plan?->overage_allowed ?? false);
@@ -240,10 +253,10 @@ class UsageService
         }
 
         // 按阶梯累进计价（仅对本次增量）
-        $price = static::calculateTieredPrice($tiers, $currentUsage, $projectedUsage);
+        $price = $this->calculateTieredPrice($tiers, $currentUsage, $projectedUsage);
 
         // overage = 超出最大免费额度的部分（若有），否则 0
-        $freeLimit = static::detectFreeLimit($tiers);
+        $freeLimit = $this->detectFreeLimit($tiers);
         $overage = $freeLimit !== null && $projectedUsage > $freeLimit
             ? round($projectedUsage - $freeLimit, 4)
             : 0.0;
@@ -254,7 +267,7 @@ class UsageService
     /**
      * 按 tiered 规则计算从 $from 到 $to 的累进价格
      */
-    protected static function calculateTieredPrice(array $tiers, float $from, float $to): float
+    protected function calculateTieredPrice(array $tiers, float $from, float $to): float
     {
         if ($to <= $from) {
             return 0.0;
@@ -285,7 +298,7 @@ class UsageService
      *
      * @return float|null 无免费阶梯时返回 null
      */
-    protected static function detectFreeLimit(array $tiers): ?float
+    protected function detectFreeLimit(array $tiers): ?float
     {
         $freeLimit = null;
 

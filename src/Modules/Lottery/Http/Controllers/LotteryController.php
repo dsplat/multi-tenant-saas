@@ -45,7 +45,7 @@ class LotteryController extends Controller
             'status' => $request->query('status'),
         ]);
 
-        $activities = LotteryService::getActivities($tenantId, $filters);
+        $activities = app(LotteryService::class)->getActivities($tenantId, $filters);
 
         return response()->json(['success' => true, 'data' => $activities]);
     }
@@ -106,7 +106,7 @@ class LotteryController extends Controller
 
         $data['tenant_id'] = $tenantId;
 
-        $activity = LotteryService::createActivity($data);
+        $activity = app(LotteryService::class)->createActivity($data);
 
         // 创建奖品
         if (! empty($data['prizes'])) {
@@ -155,7 +155,7 @@ class LotteryController extends Controller
             'end_at' => ['nullable', 'date'],
         ]);
 
-        $activity = LotteryService::updateActivity($activityId, $data);
+        $activity = app(LotteryService::class)->updateActivity($activityId, $data);
 
         return response()->json(['success' => true, 'data' => $activity]);
     }
@@ -193,7 +193,7 @@ class LotteryController extends Controller
             'status' => ['required', 'string', 'in:draft,active,paused,ended'],
         ]);
 
-        $activity = LotteryService::updateActivityStatus($activityId, $request->status);
+        $activity = app(LotteryService::class)->updateActivityStatus($activityId, $request->status);
 
         return response()->json(['success' => true, 'data' => $activity]);
     }
@@ -209,7 +209,7 @@ class LotteryController extends Controller
             ->where('tenant_id', $tenantId)
             ->firstOrFail();
 
-        $prizes = LotteryService::getPrizes($activityId);
+        $prizes = app(LotteryService::class)->getPrizes($activityId);
 
         return response()->json(['success' => true, 'data' => $prizes]);
     }
@@ -233,7 +233,7 @@ class LotteryController extends Controller
             'sort_order' => ['nullable', 'integer'],
         ]);
 
-        $prize = LotteryService::addPrize($activityId, $data);
+        $prize = app(LotteryService::class)->addPrize($activityId, $data);
 
         return response()->json(['success' => true, 'data' => $prize], 201);
     }
@@ -262,7 +262,7 @@ class LotteryController extends Controller
             'sort_order' => ['nullable', 'integer'],
         ]);
 
-        $prize = LotteryService::updatePrize($prizeId, $data);
+        $prize = app(LotteryService::class)->updatePrize($prizeId, $data);
 
         return response()->json(['success' => true, 'data' => $prize]);
     }
@@ -281,7 +281,7 @@ class LotteryController extends Controller
             ->where('activity_id', $activityId)
             ->firstOrFail();
 
-        LotteryService::deletePrize($prizeId);
+        app(LotteryService::class)->deletePrize($prizeId);
 
         return response()->json(['success' => true, 'message' => trans('common.deleted')]);
     }
@@ -320,7 +320,7 @@ class LotteryController extends Controller
             ->firstOrFail();
 
         try {
-            $result = LotteryService::draw(
+            $result = app(LotteryService::class)->draw(
                 $activityId,
                 $request->user()->user_id,
                 $request->ip(),
@@ -347,7 +347,7 @@ class LotteryController extends Controller
             ->where('tenant_id', $tenantId)
             ->firstOrFail();
 
-        $blacklist = LotteryService::getBlacklist($activityId);
+        $blacklist = app(LotteryService::class)->getBlacklist($activityId);
 
         return response()->json(['success' => true, 'data' => $blacklist]);
     }
@@ -367,7 +367,7 @@ class LotteryController extends Controller
             'reason' => ['nullable', 'string', 'max:512'],
         ]);
 
-        $blacklist = LotteryService::addToBlacklist(
+        $blacklist = app(LotteryService::class)->addToBlacklist(
             $tenantId,
             $activityId,
             $data['identifier_type'],
@@ -392,7 +392,7 @@ class LotteryController extends Controller
             'identifier' => ['required', 'string', 'max:128'],
         ]);
 
-        $removed = LotteryService::removeFromBlacklist(
+        $removed = app(LotteryService::class)->removeFromBlacklist(
             $activityId,
             $request->identifier_type,
             $request->identifier
@@ -415,7 +415,7 @@ class LotteryController extends Controller
             ->where('tenant_id', $tenantId)
             ->firstOrFail();
 
-        $stats = LotteryService::getDrawStats($activityId);
+        $stats = app(LotteryService::class)->getDrawStats($activityId);
 
         return response()->json(['success' => true, 'data' => $stats]);
     }
@@ -430,7 +430,7 @@ class LotteryController extends Controller
             ->firstOrFail();
 
         $userId = $request->user()->user_id;
-        $logs = LotteryService::getUserDrawLogs($activityId, $userId);
+        $logs = app(LotteryService::class)->getUserDrawLogs($activityId, $userId);
 
         return response()->json(['success' => true, 'data' => $logs]);
     }
@@ -445,7 +445,7 @@ class LotteryController extends Controller
             ->firstOrFail();
 
         $limit = (int) $request->query('limit', 50);
-        $logs = LotteryService::getWinLogs($activityId, $limit);
+        $logs = app(LotteryService::class)->getWinLogs($activityId, $limit);
 
         return response()->json(['success' => true, 'data' => $logs]);
     }
@@ -468,7 +468,7 @@ class LotteryController extends Controller
             'end_date' => $request->query('end_date'),
         ]);
 
-        $data = LotteryService::exportDrawLogs($activityId, $filters);
+        $data = app(LotteryService::class)->exportDrawLogs($activityId, $filters);
 
         return response()->json(['success' => true, 'data' => $data]);
     }

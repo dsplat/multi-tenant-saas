@@ -17,11 +17,16 @@ use MultiTenantSaas\Tests\Schema\PluginModule;
  */
 class UsageServiceTest extends TestCase
 {
+    protected UsageService $usageService;
+
     protected array $uses = [BillingModule::class, PluginModule::class];
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->usageService = $this->app->make(UsageService::class);
+
 
         SubscriptionPlan::unguarded(function () {
             SubscriptionPlan::create([
@@ -110,7 +115,7 @@ class UsageServiceTest extends TestCase
 
     public function test_record_creates_usage_record(): void
     {
-        $record = UsageService::record(1001, 'api_calls', 100);
+        $record = $this->usageService->record(1001, 'api_calls', 100);
 
         $this->assertNotNull($record->usage_record_id);
         $this->assertEquals(1001, (int) $record->tenant_id);
@@ -121,19 +126,19 @@ class UsageServiceTest extends TestCase
     public function test_record_throws_for_negative_value(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        UsageService::record(1001, 'api_calls', -1);
+        $this->usageService->record(1001, 'api_calls', -1);
     }
 
     public function test_record_uses_current_period_when_null(): void
     {
-        $record = UsageService::record(1001, 'api_calls', 10, null);
+        $record = $this->usageService->record(1001, 'api_calls', 10, null);
 
         $this->assertEquals(now()->format('Ym'), $record->period);
     }
 
     public function test_record_uses_provided_period(): void
     {
-        $record = UsageService::record(1001, 'api_calls', 10, '202501');
+        $record = $this->usageService->record(1001, 'api_calls', 10, '202501');
 
         $this->assertEquals('202501', $record->period);
     }
@@ -142,10 +147,10 @@ class UsageServiceTest extends TestCase
 
     public function test_aggregate_returns_total_and_count(): void
     {
-        UsageService::record(1001, 'api_calls', 100, '202501');
-        UsageService::record(1001, 'api_calls', 200, '202501');
+        $this->usageService->record(1001, 'api_calls', 100, '202501');
+        $this->usageService->record(1001, 'api_calls', 200, '202501');
 
-        $result = UsageService::aggregate(1001, 'api_calls', '202501');
+        $result = $this->usageService->aggregate(1001, 'api_calls', '202501');
 
         $this->assertEquals(300, $result['total']);
         $this->assertEquals(2, $result['count']);
@@ -155,7 +160,7 @@ class UsageServiceTest extends TestCase
 
     public function test_aggregate_returns_zero_for_no_records(): void
     {
-        $result = UsageService::aggregate(1001, 'api_calls', '202501');
+        $result = $this->usageService->aggregate(1001, 'api_calls', '202501');
 
         $this->assertEquals(0, $result['total']);
         $this->assertEquals(0, $result['count']);
@@ -163,10 +168,10 @@ class UsageServiceTest extends TestCase
 
     public function test_aggregate_filters_by_metric(): void
     {
-        UsageService::record(1001, 'api_calls', 100, '202501');
-        UsageService::record(1001, 'storage_mb', 500, '202501');
+        $this->usageService->record(1001, 'api_calls', 100, '202501');
+        $this->usageService->record(1001, 'storage_mb', 500, '202501');
 
-        $result = UsageService::aggregate(1001, 'api_calls', '202501');
+        $result = $this->usageService->aggregate(1001, 'api_calls', '202501');
 
         $this->assertEquals(100, $result['total']);
         $this->assertEquals(1, $result['count']);
@@ -174,10 +179,10 @@ class UsageServiceTest extends TestCase
 
     public function test_aggregate_filters_by_period(): void
     {
-        UsageService::record(1001, 'api_calls', 100, '202501');
-        UsageService::record(1001, 'api_calls', 200, '202502');
+        $this->usageService->record(1001, 'api_calls', 100, '202501');
+        $this->usageService->record(1001, 'api_calls', 200, '202502');
 
-        $result = UsageService::aggregate(1001, 'api_calls', '202501');
+        $result = $this->usageService->aggregate(1001, 'api_calls', '202501');
 
         $this->assertEquals(100, $result['total']);
         $this->assertEquals(1, $result['count']);
@@ -193,12 +198,12 @@ class UsageServiceTest extends TestCase
             'subscription_plan' => 'basic',
             'subscription_plan_id' => 2,
         ]);
-        UsageService::record(1001, 'api_calls', 100, '202501');
+        $this->usageService->record(1001, 'api_calls', 100, '202501');
         TenantContext::setTenantId('1002');
-        UsageService::record(1002, 'api_calls', 300, '202501');
+        $this->usageService->record(1002, 'api_calls', 300, '202501');
 
         TenantContext::setTenantId('1001');
-        $result = UsageService::aggregate(1001, 'api_calls', '202501');
+        $result = $this->usageService->aggregate(1001, 'api_calls', '202501');
 
         $this->assertEquals(100, $result['total']);
     }
@@ -210,7 +215,7 @@ class UsageServiceTest extends TestCase
         $this->recordUsageWithTimestamp(1001, 'api_calls', 10, '202501', now()->subSecond());
         $this->recordUsageWithTimestamp(1001, 'api_calls', 20, '202502', now());
 
-        $records = UsageService::query(1001, 'api_calls');
+        $records = $this->usageService->query(1001, 'api_calls');
 
         $this->assertEquals(2, $records->count());
         $this->assertEquals('202502', $records->first()->period);
@@ -218,21 +223,21 @@ class UsageServiceTest extends TestCase
 
     public function test_query_filters_by_metric(): void
     {
-        UsageService::record(1001, 'api_calls', 10, '202501');
-        UsageService::record(1001, 'storage_mb', 20, '202501');
+        $this->usageService->record(1001, 'api_calls', 10, '202501');
+        $this->usageService->record(1001, 'storage_mb', 20, '202501');
 
-        $records = UsageService::query(1001, 'api_calls');
+        $records = $this->usageService->query(1001, 'api_calls');
 
         $this->assertEquals(1, $records->count());
     }
 
     public function test_query_filters_by_period_range(): void
     {
-        UsageService::record(1001, 'api_calls', 10, '202501');
-        UsageService::record(1001, 'api_calls', 20, '202502');
-        UsageService::record(1001, 'api_calls', 30, '202503');
+        $this->usageService->record(1001, 'api_calls', 10, '202501');
+        $this->usageService->record(1001, 'api_calls', 20, '202502');
+        $this->usageService->record(1001, 'api_calls', 30, '202503');
 
-        $records = UsageService::query(1001, 'api_calls', '202501', '202502');
+        $records = $this->usageService->query(1001, 'api_calls', '202501', '202502');
 
         $this->assertEquals(2, $records->count());
     }
@@ -243,7 +248,7 @@ class UsageServiceTest extends TestCase
     {
         $this->setTenantPlan(1);
 
-        $result = UsageService::checkOverage(1001, 'api_calls', 100);
+        $result = $this->usageService->checkOverage(1001, 'api_calls', 100);
 
         $this->assertTrue($result['allowed']);
         $this->assertEquals(0, $result['overage']);
@@ -254,8 +259,8 @@ class UsageServiceTest extends TestCase
 
     public function test_check_overage_returns_allowed_under_limit(): void
     {
-        UsageService::record(1001, 'api_calls', 500);
-        $result = UsageService::checkOverage(1001, 'api_calls', 100);
+        $this->usageService->record(1001, 'api_calls', 500);
+        $result = $this->usageService->checkOverage(1001, 'api_calls', 100);
 
         $this->assertTrue($result['allowed']);
         $this->assertEquals(0, $result['overage']);
@@ -264,8 +269,8 @@ class UsageServiceTest extends TestCase
 
     public function test_check_overage_soft_limit_charges_overage(): void
     {
-        UsageService::record(1001, 'api_calls', 900);
-        $result = UsageService::checkOverage(1001, 'api_calls', 200);
+        $this->usageService->record(1001, 'api_calls', 900);
+        $result = $this->usageService->checkOverage(1001, 'api_calls', 200);
 
         $this->assertTrue($result['allowed']);
         $this->assertEquals(100, $result['overage']);
@@ -275,8 +280,8 @@ class UsageServiceTest extends TestCase
     public function test_check_overage_hard_limit_rejects(): void
     {
         $this->setTenantPlan(4);
-        UsageService::record(1001, 'api_calls', 900);
-        $result = UsageService::checkOverage(1001, 'api_calls', 200);
+        $this->usageService->record(1001, 'api_calls', 900);
+        $result = $this->usageService->checkOverage(1001, 'api_calls', 200);
 
         $this->assertFalse($result['allowed']);
         $this->assertEquals(100, $result['overage']);
@@ -288,8 +293,8 @@ class UsageServiceTest extends TestCase
     public function test_check_overage_tiered_pricing_within_free_tier(): void
     {
         $this->setTenantPlan(3);
-        UsageService::record(1001, 'api_calls', 500);
-        $result = UsageService::checkOverage(1001, 'api_calls', 300);
+        $this->usageService->record(1001, 'api_calls', 500);
+        $result = $this->usageService->checkOverage(1001, 'api_calls', 300);
 
         $this->assertTrue($result['allowed']);
         $this->assertEquals(0, $result['overage']);
@@ -299,8 +304,8 @@ class UsageServiceTest extends TestCase
     public function test_check_overage_tiered_pricing_crosses_paid_tier(): void
     {
         $this->setTenantPlan(3);
-        UsageService::record(1001, 'api_calls', 800);
-        $result = UsageService::checkOverage(1001, 'api_calls', 300);
+        $this->usageService->record(1001, 'api_calls', 800);
+        $result = $this->usageService->checkOverage(1001, 'api_calls', 300);
 
         $this->assertTrue($result['allowed']);
         $this->assertEquals(100, $result['overage']);
@@ -310,8 +315,8 @@ class UsageServiceTest extends TestCase
     public function test_check_overage_tiered_hard_limit_rejects(): void
     {
         $this->setTenantPlan(5);
-        UsageService::record(1001, 'api_calls', 4900);
-        $result = UsageService::checkOverage(1001, 'api_calls', 200);
+        $this->usageService->record(1001, 'api_calls', 4900);
+        $result = $this->usageService->checkOverage(1001, 'api_calls', 200);
 
         $this->assertFalse($result['allowed']);
         $this->assertEquals(100, $result['overage']);
@@ -322,7 +327,7 @@ class UsageServiceTest extends TestCase
 
     public function test_enforce_rate_limit_returns_positive_value(): void
     {
-        $limit = UsageService::enforceRateLimit(1001);
+        $limit = $this->usageService->enforceRateLimit(1001);
 
         $this->assertGreaterThan(0, $limit);
         $this->assertLessThanOrEqual(100, $limit);
@@ -332,7 +337,7 @@ class UsageServiceTest extends TestCase
     {
         $this->setTenantPlan(3);
 
-        $limit = UsageService::enforceRateLimit(1001);
+        $limit = $this->usageService->enforceRateLimit(1001);
 
         $this->assertGreaterThan(0, $limit);
         $this->assertLessThanOrEqual(600, $limit);
@@ -349,7 +354,7 @@ class UsageServiceTest extends TestCase
         ]);
         TenantContext::setTenantId('1003');
 
-        $limit = UsageService::enforceRateLimit(1003);
+        $limit = $this->usageService->enforceRateLimit(1003);
 
         $this->assertGreaterThan(0, $limit);
         $this->assertLessThanOrEqual(60, $limit);

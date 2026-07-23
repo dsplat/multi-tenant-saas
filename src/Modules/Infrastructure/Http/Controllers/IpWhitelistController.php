@@ -46,7 +46,7 @@ class IpWhitelistController extends Controller
             $validated['description'] ?? null,
         );
 
-        AuditService::log('create', 'ip_whitelist', $entry->ip_whitelist_id, null, [
+        app(AuditService::class)->log('create', 'ip_whitelist', $entry->ip_whitelist_id, null, [
             'ip' => $validated['ip'],
             'scope' => $validated['scope'] ?? 'all',
         ]);
@@ -63,7 +63,7 @@ class IpWhitelistController extends Controller
             return $this->notFoundResponse('IP whitelist entry not found');
         }
 
-        AuditService::log('delete', 'ip_whitelist', $id, null, null);
+        app(AuditService::class)->log('delete', 'ip_whitelist', $id, null, null);
 
         return $this->deletedResponse();
     }

@@ -8,17 +8,25 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Excel 服务
+ * Excel 服务（DI 实例方法）。
  *
  * 基于 phpoffice/phpspreadsheet 2.0 原生实现
  *
- * 用法：
- * ExcelService::exportArray($data, $headings, 'users.xlsx');
- * ExcelService::import('users.xlsx');
- * ExcelService::getHeadings('users.xlsx');
+ * 向后兼容：保留 __callStatic 代理，旧代码 ExcelService::exportArray(...) 仍可用，
+ * 新代码应通过构造器注入使用。
  */
 class ExcelService
 {
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 导出数组数据到 Excel
      *
@@ -26,7 +34,7 @@ class ExcelService
      * @param  array  $headings  表头
      * @param  string  $filename  文件名
      */
-    public static function exportArray(array|Collection $data, array $headings, string $filename): StreamedResponse
+    public function exportArray(array|Collection $data, array $headings, string $filename): StreamedResponse
     {
         $data = $data instanceof Collection ? $data->toArray() : $data;
 
@@ -69,7 +77,7 @@ class ExcelService
      * @param  string  $filePath  文件路径
      * @return array 数据数组（第一张工作表）
      */
-    public static function import(string $filePath): array
+    public function import(string $filePath): array
     {
         $spreadsheet = IOFactory::load($filePath);
         $sheet = $spreadsheet->getActiveSheet();
@@ -89,7 +97,7 @@ class ExcelService
     /**
      * 获取 Excel 表头（第一行）
      */
-    public static function getHeadings(string $filePath): array
+    public function getHeadings(string $filePath): array
     {
         $spreadsheet = IOFactory::load($filePath);
         $sheet = $spreadsheet->getActiveSheet();

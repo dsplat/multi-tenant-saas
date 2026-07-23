@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Billing\Models\PaymentOrder;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
@@ -45,6 +46,18 @@ class DunningService
      */
     public const DEFAULT_REMINDER_THRESHOLDS = [7, 3, 1];
 
+    public function __construct(private readonly TenantContextContract $tenantContext) {}
+
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 处理失败支付：按重试策略决定下一步动作
      *
@@ -57,7 +70,7 @@ class DunningService
      *
      * @return array{action: 'retry'|'suspend'|'none', next_retry_at: Carbon|null}
      */
-    public static function processFailedPayment(int $tenantId): array
+    public function processFailedPayment(int $tenantId): array
     {
         return DB::transaction(function () use ($tenantId) {
             $failedOrder = PaymentOrder::where('tenant_id', $tenantId)
@@ -70,8 +83,8 @@ class DunningService
                 return ['action' => 'none', 'next_retry_at' => null];
             }
 
-            $maxRetries = static::getMaxRetries();
-            $intervals = static::getRetryIntervals();
+            $maxRetries = $this->getMaxRetries();
+            $intervals = $this->getRetryIntervals();
             $extra = is_array($failedOrder->extra) ? $failedOrder->extra : [];
             $retryCount = (int) ($extra['retry_count'] ?? 0);
 
@@ -99,7 +112,7 @@ class DunningService
      * 仅在到期前 7/3/1 天匹配时发送，避免重复打扰。
      * 已过期或无订阅到期时间的租户不处理。
      */
-    public static function sendExpiryReminder(int $tenantId): void
+    public function sendExpiryReminder(int $tenantId): void
     {
         $tenant = Tenant::find($tenantId);
 
@@ -122,7 +135,7 @@ class DunningService
 
         $daysLeft = max(0, (int) now()->diffInDays($expiresAt, false));
 
-        $thresholds = static::getReminderThresholds();
+        $thresholds = $this->getReminderThresholds();
 
         if (! in_array($daysLeft, $thresholds, true)) {
             return;
@@ -133,7 +146,7 @@ class DunningService
             return;
         }
 
-        NotificationService::notifySubscriptionExpiring($tenant, $daysLeft);
+        app(NotificationService::class)->notifySubscriptionExpiring($tenant, $daysLeft);
 
         $settings = $tenant->settings ?? [];
         $settings['dunning_sent_reminders'] = array_values(array_unique(array_merge($sentReminders, [$daysLeft])));
@@ -152,7 +165,7 @@ class DunningService
      * 超过宽限期仍未恢复支付时调用：更新 tenants.status='suspended'，
      * 记录审计日志，并通知租户管理员。
      */
-    public static function suspendTenant(int $tenantId): void
+    public function suspendTenant(int $tenantId): void
     {
         $tenant = Tenant::find($tenantId);
 
@@ -172,7 +185,7 @@ class DunningService
             $tenant->auto_renew = false;
             $tenant->save();
 
-            AuditService::log(
+            app(AuditService::class)->log(
                 action: 'tenant_suspended',
                 resourceType: 'tenant',
                 resourceId: (int) $tenant->tenant_id,
@@ -181,7 +194,7 @@ class DunningService
             );
         });
 
-        NotificationService::notifyTenantSuspended($tenant, $reason);
+        app(NotificationService::class)->notifyTenantSuspended($tenant, $reason);
 
         Log::info('Dunning: tenant suspended', [
             'tenant_id' => $tenantId,
@@ -200,10 +213,10 @@ class DunningService
      *   status: 'none'|'retrying'|'suspended'|'active'
      * }
      */
-    public static function getDunningStatus(int $tenantId): array
+    public function getDunningStatus(int $tenantId): array
     {
         $tenant = Tenant::find($tenantId);
-        $failedOrder = static::findLatestFailedOrder($tenantId);
+        $failedOrder = $this->findLatestFailedOrder($tenantId);
         $extra = $failedOrder && is_array($failedOrder->extra) ? $failedOrder->extra : [];
 
         $retryCount = (int) ($extra['retry_count'] ?? 0);
@@ -221,8 +234,8 @@ class DunningService
 
         return [
             'retry_count' => $retryCount,
-            'max_retries' => static::getMaxRetries(),
-            'grace_period_days' => static::getGracePeriodDays(),
+            'max_retries' => $this->getMaxRetries(),
+            'grace_period_days' => $this->getGracePeriodDays(),
             'next_retry_at' => $nextRetryAt,
             'status' => $status,
         ];
@@ -231,7 +244,7 @@ class DunningService
     /**
      * 查找租户最近一笔失败支付订单
      */
-    protected static function findLatestFailedOrder(int $tenantId): ?PaymentOrder
+    protected function findLatestFailedOrder(int $tenantId): ?PaymentOrder
     {
         return PaymentOrder::where('tenant_id', $tenantId)
             ->where('status', 'failed')
@@ -242,36 +255,36 @@ class DunningService
     /**
      * 读取最大重试次数
      */
-    protected static function getMaxRetries(): int
+    protected function getMaxRetries(): int
     {
-        return (int) config('tenancy.dunning.max_retries', static::DEFAULT_MAX_RETRIES);
+        return (int) config('tenancy.dunning.max_retries', self::DEFAULT_MAX_RETRIES);
     }
 
     /**
      * 读取重试间隔（天）数组
      */
-    protected static function getRetryIntervals(): array
+    protected function getRetryIntervals(): array
     {
-        $intervals = config('tenancy.dunning.retry_intervals', static::DEFAULT_RETRY_INTERVALS);
+        $intervals = config('tenancy.dunning.retry_intervals', self::DEFAULT_RETRY_INTERVALS);
 
-        return is_array($intervals) ? array_map('intval', $intervals) : static::DEFAULT_RETRY_INTERVALS;
+        return is_array($intervals) ? array_map('intval', $intervals) : self::DEFAULT_RETRY_INTERVALS;
     }
 
     /**
      * 读取宽限期（天）
      */
-    protected static function getGracePeriodDays(): int
+    protected function getGracePeriodDays(): int
     {
-        return (int) config('tenancy.dunning.grace_period_days', static::DEFAULT_GRACE_PERIOD_DAYS);
+        return (int) config('tenancy.dunning.grace_period_days', self::DEFAULT_GRACE_PERIOD_DAYS);
     }
 
     /**
      * 读取到期提醒阈值（天）
      */
-    protected static function getReminderThresholds(): array
+    protected function getReminderThresholds(): array
     {
-        $thresholds = config('tenancy.dunning.reminder_thresholds', static::DEFAULT_REMINDER_THRESHOLDS);
+        $thresholds = config('tenancy.dunning.reminder_thresholds', self::DEFAULT_REMINDER_THRESHOLDS);
 
-        return is_array($thresholds) ? array_map('intval', $thresholds) : static::DEFAULT_REMINDER_THRESHOLDS;
+        return is_array($thresholds) ? array_map('intval', $thresholds) : self::DEFAULT_REMINDER_THRESHOLDS;
     }
 }

@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Auth\Services;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Auth\Models\OauthAccount;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
@@ -19,13 +20,25 @@ use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
  */
 class SocialiteService
 {
+    public function __construct(private readonly TenantContextContract $tenantContext) {}
+
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 生成命名空间化的 provider 标识
      *
      * 格式: {provider}:tenant:{tenantId}
      * 确保同一 OAuth 应用在不同租户间隔离
      */
-    public static function namespacedProvider(string $provider, int $tenantId): string
+    public function namespacedProvider(string $provider, int $tenantId): string
     {
         return "{$provider}:tenant:{$tenantId}";
     }
@@ -37,7 +50,7 @@ class SocialiteService
      * - 已是完整 URL（http 开头）→ 直接使用
      * - 相对路径或未设置 → 基于租户 domain 动态拼接
      */
-    public static function resolveRedirectUrl(int $tenantId, string $provider, string $storedRedirect = ''): string
+    public function resolveRedirectUrl(int $tenantId, string $provider, string $storedRedirect = ''): string
     {
         // 已存储完整 URL
         if ($storedRedirect && str_starts_with($storedRedirect, 'http')) {
@@ -60,14 +73,14 @@ class SocialiteService
     /**
      * 获取租户 OAuth 配置
      */
-    protected static function getOAuthConfig(int $tenantId, string $provider): array
+    protected function getOAuthConfig(int $tenantId, string $provider): array
     {
         $storedRedirect = TenantSetting::get($tenantId, 'oauth', "{$provider}_redirect", '');
 
         return [
             'client_id' => TenantSetting::get($tenantId, 'oauth', "{$provider}_client_id", ''),
             'client_secret' => TenantSetting::get($tenantId, 'oauth', "{$provider}_client_secret", ''),
-            'redirect' => self::resolveRedirectUrl($tenantId, $provider, $storedRedirect),
+            'redirect' => $this->resolveRedirectUrl($tenantId, $provider, $storedRedirect),
         ];
     }
 
@@ -77,9 +90,9 @@ class SocialiteService
      * 使用 app 容器保存原始配置，请求结束后恢复
      * app 容器在 Octane 下按请求隔离，避免跨请求污染
      */
-    protected static function configureDriver(string $provider, int $tenantId): void
+    protected function configureDriver(string $provider, int $tenantId): void
     {
-        $config = self::getOAuthConfig($tenantId, $provider);
+        $config = $this->getOAuthConfig($tenantId, $provider);
 
         // 过滤空值
         $config = array_filter($config, fn ($v) => $v !== '' && $v !== null);
@@ -102,7 +115,7 @@ class SocialiteService
      * 还原 OAuth 配置（请求结束时调用）
      * 从 app 容器恢复原始值，而非置为 null
      */
-    public static function resetDriverConfig(string $provider): void
+    public function resetDriverConfig(string $provider): void
     {
         $key = "oauth.original.{$provider}";
         if (app()->bound($key)) {
@@ -116,7 +129,7 @@ class SocialiteService
      *
      * 支付宝使用 RSA2 签名的独立授权流程，不走 Socialite 驱动
      */
-    public static function getRedirectUrl(string $provider, int $tenantId): string
+    public function getRedirectUrl(string $provider, int $tenantId): string
     {
         if ($provider === 'alipay') {
             return app(AlipayOAuthService::class)->getAuthorizeUrl($tenantId);
@@ -130,14 +143,14 @@ class SocialiteService
             return app(WechatOAuthService::class)->getAuthorizeUrl($tenantId);
         }
 
-        self::configureDriver($provider, $tenantId);
+        $this->configureDriver($provider, $tenantId);
 
         try {
             return Socialite::driver($provider)
                 ->redirect()
                 ->getTargetUrl();
         } finally {
-            self::resetDriverConfig($provider);
+            $this->resetDriverConfig($provider);
         }
     }
 
@@ -147,7 +160,7 @@ class SocialiteService
      * 支付宝走独立的 AlipayOAuthService 流程；其余提供商复用 Socialite，
      * 并捕获 InvalidStateException 显式 abort(403)，避免 state 不匹配被静默忽略
      */
-    public static function handleCallback(string $provider, int $tenantId): array
+    public function handleCallback(string $provider, int $tenantId): array
     {
         if ($provider === 'alipay') {
             return app(AlipayOAuthService::class)->handleCallback($tenantId);
@@ -161,21 +174,21 @@ class SocialiteService
             return app(WechatOAuthService::class)->handleCallback($tenantId);
         }
 
-        self::configureDriver($provider, $tenantId);
+        $this->configureDriver($provider, $tenantId);
 
         try {
             $socialUser = Socialite::driver($provider)->user();
         } catch (InvalidStateException $e) {
             abort(403, trans('common.oauth_state_invalid'));
         } finally {
-            self::resetDriverConfig($provider);
+            $this->resetDriverConfig($provider);
         }
 
         // 查找或创建用户
-        $user = self::findOrCreateUser($socialUser, $provider, $tenantId);
+        $user = $this->findOrCreateUser($socialUser, $provider, $tenantId);
 
         // 记录 OAuth 账号
-        self::recordOAuthAccount($user, $socialUser, $provider, $tenantId);
+        $this->recordOAuthAccount($user, $socialUser, $provider, $tenantId);
 
         return [
             'user' => [
@@ -191,9 +204,9 @@ class SocialiteService
     /**
      * 查找或创建用户
      */
-    protected static function findOrCreateUser($socialUser, string $provider, int $tenantId): User
+    protected function findOrCreateUser($socialUser, string $provider, int $tenantId): User
     {
-        $nsProvider = self::namespacedProvider($provider, $tenantId);
+        $nsProvider = $this->namespacedProvider($provider, $tenantId);
 
         // 先通过 OAuth 账号查找（命名空间化 provider）
         $oauthAccount = OauthAccount::where('provider', $nsProvider)
@@ -230,9 +243,9 @@ class SocialiteService
     /**
      * 记录 OAuth 账号（token 加密存储）
      */
-    protected static function recordOAuthAccount(User $user, $socialUser, string $provider, int $tenantId): void
+    protected function recordOAuthAccount(User $user, $socialUser, string $provider, int $tenantId): void
     {
-        $nsProvider = self::namespacedProvider($provider, $tenantId);
+        $nsProvider = $this->namespacedProvider($provider, $tenantId);
 
         OauthAccount::updateOrCreate(
             [
@@ -255,7 +268,7 @@ class SocialiteService
     /**
      * 检查租户是否已配置 OAuth
      */
-    public static function isConfigured(int $tenantId, string $provider): bool
+    public function isConfigured(int $tenantId, string $provider): bool
     {
         if ($provider === 'alipay') {
             return app(AlipayOAuthService::class)->isConfigured($tenantId);
@@ -269,7 +282,7 @@ class SocialiteService
             return app(WechatOAuthService::class)->isConfigured($tenantId);
         }
 
-        $config = self::getOAuthConfig($tenantId, $provider);
+        $config = $this->getOAuthConfig($tenantId, $provider);
 
         return ! empty($config['client_id']) && ! empty($config['client_secret']);
     }
@@ -277,7 +290,7 @@ class SocialiteService
     /**
      * 获取租户 OAuth 配置（用于后台展示）
      */
-    public static function getOAuthConfigForDisplay(int $tenantId): array
+    public function getOAuthConfigForDisplay(int $tenantId): array
     {
         $providers = ['wechat', 'wechat_work', 'dingtalk', 'feishu', 'github', 'google', 'alipay'];
         $result = [];
@@ -289,7 +302,7 @@ class SocialiteService
                     'configured' => app(AlipayOAuthService::class)->isConfigured($tenantId),
                     'app_id' => $appId,
                     'mode' => TenantSetting::get($tenantId, 'oauth', 'alipay_mode', 'production'),
-                    'redirect' => self::resolveRedirectUrl($tenantId, 'alipay', TenantSetting::get($tenantId, 'oauth', 'alipay_redirect', '')),
+                    'redirect' => $this->resolveRedirectUrl($tenantId, 'alipay', TenantSetting::get($tenantId, 'oauth', 'alipay_redirect', '')),
                 ];
 
                 continue;
@@ -301,7 +314,7 @@ class SocialiteService
                     'configured' => app(WechatWorkOAuthService::class)->isConfigured($tenantId),
                     'corp_id' => $corpId,
                     'agent_id' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_agent_id', ''),
-                    'redirect' => self::resolveRedirectUrl($tenantId, 'wechat_work', TenantSetting::get($tenantId, 'oauth', 'wechat_work_redirect', '')),
+                    'redirect' => $this->resolveRedirectUrl($tenantId, 'wechat_work', TenantSetting::get($tenantId, 'oauth', 'wechat_work_redirect', '')),
                 ];
 
                 continue;
@@ -311,13 +324,13 @@ class SocialiteService
                 $result[$provider] = [
                     'configured' => app(WechatOAuthService::class)->isConfigured($tenantId),
                     'client_id' => TenantSetting::get($tenantId, 'oauth', 'wechat_client_id', ''),
-                    'redirect' => self::resolveRedirectUrl($tenantId, 'wechat', TenantSetting::get($tenantId, 'oauth', 'wechat_redirect', '')),
+                    'redirect' => $this->resolveRedirectUrl($tenantId, 'wechat', TenantSetting::get($tenantId, 'oauth', 'wechat_redirect', '')),
                 ];
 
                 continue;
             }
 
-            $config = self::getOAuthConfig($tenantId, $provider);
+            $config = $this->getOAuthConfig($tenantId, $provider);
             $result[$provider] = [
                 'configured' => ! empty($config['client_id']) && ! empty($config['client_secret']),
                 'client_id' => $config['client_id'],
@@ -331,7 +344,7 @@ class SocialiteService
     /**
      * 更新租户 OAuth 配置
      */
-    public static function updateOAuthConfig(int $tenantId, string $provider, array $config): void
+    public function updateOAuthConfig(int $tenantId, string $provider, array $config): void
     {
         // wechat_work 使用 corp_id/agent_id/secret 模式，非标准 client_id/client_secret
         $sensitiveKeys = $provider === 'wechat_work'
@@ -350,7 +363,7 @@ class SocialiteService
     /**
      * 获取支持的提供商列表
      */
-    public static function getSupportedProviders(): array
+    public function getSupportedProviders(): array
     {
         return [
             'wechat' => ['name' => trans('common.wechat'), 'icon' => 'wechat'],

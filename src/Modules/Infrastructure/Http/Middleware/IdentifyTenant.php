@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Modules\Infrastructure\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
@@ -14,13 +15,16 @@ use Symfony\Component\HttpFoundation\Response;
  * 租户识别中间件
  *
  * 按优先级识别租户：
- * 1. URL参数 ?tenant_id=xxx
- * 2. Header X-Tenant-ID
- * 3. 自定义域名
- * 4. Cookie
+ * 1. URL参数 ?tenant_id=xxx（需校验用户归属）
+ * 2. Header X-Tenant-ID（需校验用户归属）
+ * 3. 自定义域名（可信：域名本身即归属证明）
+ * 4. Cookie（需校验用户归属）
  * 5. Session
  * 6. 认证用户
  * 7. 默认租户
+ *
+ * 安全原则：不可信来源（URL/Header/Cookie）解析的租户，
+ * 必须校验已认证用户确实属于该租户，防止越权。
  */
 class IdentifyTenant
 {
@@ -59,25 +63,25 @@ class IdentifyTenant
      */
     protected function resolveTenantId(Request $request): ?string
     {
-        // 1. URL参数
+        // 1. URL参数（不可信，需校验归属）
         if ($tenantId = ($request->query('tenant_id') ?? $request->query('tid'))) {
-            return (string) $tenantId;
+            return $this->resolveWithOwnershipCheck((string) $tenantId, $request);
         }
 
-        // 2. Header（Operator 的租户权限验证在步骤 6 中处理）
+        // 2. Header（不可信，需校验归属；Operator 在步骤 6 中单独处理）
         $tokenable = $request->user();
         if (! ($tokenable instanceof Operator) && $tenantId = $request->header('X-Tenant-ID')) {
-            return (string) $tenantId;
+            return $this->resolveWithOwnershipCheck((string) $tenantId, $request);
         }
 
-        // 3. 自定义域名
+        // 3. 自定义域名（可信：域名归属由平台管理，无需校验用户归属）
         if ($tenantId = $this->resolveFromCustomDomain($request)) {
             return (string) $tenantId;
         }
 
-        // 4. Cookie
+        // 4. Cookie（不可信，需校验归属）
         if ($tenantId = $request->cookie('tenant_id')) {
-            return (string) $tenantId;
+            return $this->resolveWithOwnershipCheck((string) $tenantId, $request);
         }
 
         // 5. Session
@@ -108,6 +112,31 @@ class IdentifyTenant
 
         // 未识别域名不兜底，由 EnsureTenantContext 返回 403
         return null;
+    }
+
+    /**
+     * 对不可信来源的租户 ID 进行用户归属校验。
+     *
+     * - 未认证用户（公开路由）：允许通过（由后续中间件决定是否放行）
+     * - 已认证用户：必须属于该租户（tenant_users 表有记录且 is_active）
+     */
+    protected function resolveWithOwnershipCheck(string $tenantId, Request $request): ?string
+    {
+        $user = $request->user();
+
+        // 未认证请求不做归属校验（公开页面、OAuth 回调等）
+        if (! $user || $user instanceof Operator) {
+            return $tenantId;
+        }
+
+        // 已认证用户：校验归属
+        $belongsToTenant = DB::table('tenant_users')
+            ->where('user_id', $user->getKey())
+            ->where('tenant_id', (int) $tenantId)
+            ->where('is_active', true)
+            ->exists();
+
+        return $belongsToTenant ? $tenantId : null;
     }
 
     /**

@@ -238,7 +238,7 @@ class TenantProfileService
             $tenant->trial_ends_at = now()->addDays($days);
             $tenant->save();
 
-            AuditService::log(
+            app(AuditService::class)->log(
                 action: 'trial_started',
                 resourceType: 'tenant',
                 resourceId: $tenantId,
@@ -310,7 +310,7 @@ class TenantProfileService
                     ->update(['tenant_id' => $targetTenantId]);
             }
 
-            AuditService::log(
+            app(AuditService::class)->log(
                 action: 'tenant_data_migrated',
                 resourceType: 'tenant',
                 resourceId: $targetTenantId,
@@ -381,7 +381,7 @@ class TenantProfileService
             }
 
             if (! $dryRun) {
-                AuditService::log(
+                app(AuditService::class)->log(
                     action: 'tenant_data_cleaned',
                     resourceType: 'tenant',
                     resourceId: $tenantId,

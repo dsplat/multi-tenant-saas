@@ -317,7 +317,7 @@ class ResourceService
             ]);
 
             if (class_exists(NotificationService::class) && method_exists(NotificationService::class, 'sendToTenantAdmins')) {
-                NotificationService::sendToTenantAdmins(
+                app(NotificationService::class)->sendToTenantAdmins(
                     $tenantId,
                     trans('common.resource_alert_sent'),
                     $message,

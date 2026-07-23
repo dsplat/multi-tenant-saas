@@ -62,7 +62,7 @@ class WechatWorkOAuthService
             'corp_id' => $corpId,
             'agent_id' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_agent_id', ''),
             'secret' => $secret,
-            'redirect' => SocialiteService::resolveRedirectUrl(
+            'redirect' => app(SocialiteService::class)->resolveRedirectUrl(
                 $tenantId,
                 'wechat_work',
                 TenantSetting::get($tenantId, 'oauth', 'wechat_work_redirect', '')
@@ -248,7 +248,7 @@ class WechatWorkOAuthService
      */
     public function findOrCreateUser(array $wwUser, string $userId, int $tenantId): User
     {
-        $nsProvider = SocialiteService::namespacedProvider('wechat_work', $tenantId);
+        $nsProvider = app(SocialiteService::class)->namespacedProvider('wechat_work', $tenantId);
 
         $oauthAccount = OauthAccount::where('provider', $nsProvider)
             ->where('provider_id', $userId)
@@ -305,7 +305,7 @@ class WechatWorkOAuthService
      */
     protected function recordOAuthAccount(User $user, array $userInfo, string $userId, string $accessToken, int $tenantId): void
     {
-        $nsProvider = SocialiteService::namespacedProvider('wechat_work', $tenantId);
+        $nsProvider = app(SocialiteService::class)->namespacedProvider('wechat_work', $tenantId);
 
         OauthAccount::updateOrCreate(
             [

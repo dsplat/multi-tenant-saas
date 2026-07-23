@@ -59,7 +59,7 @@ class TenantCreditController extends Controller
             $request->description ?? 'Tenant recharge'
         );
 
-        AuditService::log('recharge', 'credit_account', $account->account_id, null, [
+        app(AuditService::class)->log('recharge', 'credit_account', $account->account_id, null, [
             'amount' => $request->amount,
         ]);
 

@@ -6,6 +6,7 @@ use Carbon\Carbon;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Billing\Models\Invoice;
 use MultiTenantSaas\Modules\Infrastructure\Services\PdfService;
 
@@ -21,6 +22,18 @@ use MultiTenantSaas\Modules\Infrastructure\Services\PdfService;
  */
 class InvoiceService
 {
+    public function __construct(private readonly TenantContextContract $tenantContext) {}
+
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 创建发票（草稿）
      *
@@ -28,12 +41,12 @@ class InvoiceService
      *                       items(明细数组), currency, due_date,
      *                       subscription_id, payment_order_id, tenant_id
      */
-    public static function createInvoice(array $data): Invoice
+    public function createInvoice(array $data): Invoice
     {
         return DB::transaction(function () use ($data) {
             $items = $data['items'] ?? [];
 
-            [$subtotal, $taxAmount] = static::summarizeItems($items);
+            [$subtotal, $taxAmount] = $this->summarizeItems($items);
             $total = round($subtotal + $taxAmount, 2);
 
             $invoice = new Invoice;
@@ -42,13 +55,13 @@ class InvoiceService
                 $invoice->tenant_id = $data['tenant_id'];
             }
 
-            $invoice->invoice_number = static::nextInvoiceNumber();
+            $invoice->invoice_number = $this->nextInvoiceNumber();
             $invoice->subtotal = $subtotal;
             $invoice->tax_amount = $taxAmount;
             $invoice->total = $total;
             $invoice->currency = $data['currency'] ?? config('pay.invoice.default_currency', 'CNY');
             $invoice->status = Invoice::STATUS_DRAFT;
-            $invoice->due_date = $data['due_date'] ?? static::defaultDueDate();
+            $invoice->due_date = $data['due_date'] ?? $this->defaultDueDate();
             $invoice->subscription_id = $data['subscription_id'] ?? null;
             $invoice->payment_order_id = $data['payment_order_id'] ?? null;
             $invoice->save();
@@ -78,9 +91,9 @@ class InvoiceService
     /**
      * 开具发票 draft → issued
      */
-    public static function issueInvoice(int $invoiceId): Invoice
+    public function issueInvoice(int $invoiceId): Invoice
     {
-        $invoice = static::findInvoice($invoiceId);
+        $invoice = $this->findInvoice($invoiceId);
 
         if ($invoice->status !== Invoice::STATUS_DRAFT) {
             throw new \RuntimeException(trans('payment.invoice_status_invalid'));
@@ -96,9 +109,9 @@ class InvoiceService
     /**
      * 标记已付 issued → paid
      */
-    public static function markPaid(int $invoiceId): Invoice
+    public function markPaid(int $invoiceId): Invoice
     {
-        $invoice = static::findInvoice($invoiceId);
+        $invoice = $this->findInvoice($invoiceId);
 
         if ($invoice->status !== Invoice::STATUS_ISSUED) {
             throw new \RuntimeException(trans('payment.invoice_status_invalid'));
@@ -113,9 +126,9 @@ class InvoiceService
     /**
      * 作废发票 issued → void（保留记录不删除，paid 状态不可直接作废）
      */
-    public static function voidInvoice(int $invoiceId): Invoice
+    public function voidInvoice(int $invoiceId): Invoice
     {
-        $invoice = static::findInvoice($invoiceId);
+        $invoice = $this->findInvoice($invoiceId);
 
         if ($invoice->status === Invoice::STATUS_VOID) {
             throw new \RuntimeException(trans('payment.invoice_already_void'));
@@ -138,9 +151,9 @@ class InvoiceService
     /**
      * 取消发票 draft → cancelled
      */
-    public static function cancelInvoice(int $invoiceId): Invoice
+    public function cancelInvoice(int $invoiceId): Invoice
     {
-        $invoice = static::findInvoice($invoiceId);
+        $invoice = $this->findInvoice($invoiceId);
 
         if ($invoice->status !== Invoice::STATUS_DRAFT) {
             throw new \RuntimeException(trans('payment.invoice_status_invalid'));
@@ -157,9 +170,9 @@ class InvoiceService
      *
      * @return string PDF 文件路径
      */
-    public static function generatePdf(int $invoiceId): string
+    public function generatePdf(int $invoiceId): string
     {
-        $invoice = static::findInvoice($invoiceId);
+        $invoice = $this->findInvoice($invoiceId);
         $invoice->load('items', 'tenant');
 
         $directory = config('pay.invoice.storage_path', storage_path('app/invoices'));
@@ -169,7 +182,7 @@ class InvoiceService
 
         $outputPath = rtrim($directory, '/') . '/' . $invoice->invoice_number . '.pdf';
 
-        PdfService::generateInvoice([
+        app(PdfService::class)->generateInvoice([
             'invoice' => $invoice,
             'items' => $invoice->items,
             'tenant' => $invoice->tenant,
@@ -187,7 +200,7 @@ class InvoiceService
      *                          subscription_id, payment_order_id
      * @return Collection<int, Invoice>
      */
-    public static function getInvoices(array $filters = []): Collection
+    public function getInvoices(array $filters = []): Collection
     {
         $query = Invoice::query()->with('items');
 
@@ -216,7 +229,7 @@ class InvoiceService
      * 必须在事务中调用以使 lockForUpdate 生效；
      * invoice_number 的唯一约束作为并发兜底，即使锁失效也不会产生重复号。
      */
-    protected static function nextInvoiceNumber(): string
+    protected function nextInvoiceNumber(): string
     {
         $format = config('pay.invoice.number_format', 'INV-{YYYYMM}-{seq}');
         $prefix = str_replace('{YYYYMM}', now()->format('Ym'), $format);
@@ -236,7 +249,7 @@ class InvoiceService
      *
      * @return array{0: float, 1: float} [subtotal, taxAmount]
      */
-    protected static function summarizeItems(array $items): array
+    protected function summarizeItems(array $items): array
     {
         $subtotal = 0.0;
         $taxAmount = 0.0;
@@ -255,7 +268,7 @@ class InvoiceService
     /**
      * 默认到期日
      */
-    protected static function defaultDueDate(): string
+    protected function defaultDueDate(): string
     {
         $days = (int) config('pay.invoice.default_due_days', 30);
 
@@ -265,7 +278,7 @@ class InvoiceService
     /**
      * 查找发票（受租户作用域隔离）
      */
-    protected static function findInvoice(int $invoiceId): Invoice
+    protected function findInvoice(int $invoiceId): Invoice
     {
         $invoice = Invoice::find($invoiceId);
 

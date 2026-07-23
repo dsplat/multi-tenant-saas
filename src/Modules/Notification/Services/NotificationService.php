@@ -9,16 +9,29 @@ use App\Notifications\SubscriptionExpiringNotification;
 use App\Notifications\TenantSuspendedNotification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Notification\Models\NotificationPreference;
 
 class NotificationService
 {
+    public function __construct(private readonly TenantContextContract $tenantContext) {}
+
+    /**
+     * 向后兼容：静态调用代理到容器实例。
+     *
+     * @deprecated 请改用构造器注入
+     */
+    public static function __callStatic(string $method, array $arguments): mixed
+    {
+        return app(static::class)->{$method}(...$arguments);
+    }
+
     /**
      * 根据通知偏好过滤用户集合
      */
-    protected static function filterByPreference(Collection $users, string $channel, ?string $type = null): Collection
+    protected function filterByPreference(Collection $users, string $channel, ?string $type = null): Collection
     {
         return $users->filter(function (User $user) use ($channel, $type) {
             return NotificationPreference::isEnabled($user->id, $channel, $type);
@@ -28,7 +41,7 @@ class NotificationService
     /**
      * 发送通用通知给指定用户
      */
-    public static function sendToUser(
+    public function sendToUser(
         User $user,
         string $title,
         string $message,
@@ -45,7 +58,7 @@ class NotificationService
     /**
      * 批量发送通知给租户所有成员
      */
-    public static function sendToTenantUsers(
+    public function sendToTenantUsers(
         int $tenantId,
         string $title,
         string $message,
@@ -58,7 +71,7 @@ class NotificationService
                 ->where('tenant_users.is_active', true);
         })->get();
 
-        $users = static::filterByPreference($users, 'database', 'general');
+        $users = $this->filterByPreference($users, 'database', 'general');
 
         if ($users->isNotEmpty()) {
             Notification::send($users, new GeneralNotification($title, $message, $type, $actionUrl, $extra));
@@ -68,7 +81,7 @@ class NotificationService
     /**
      * 发送给租户管理员
      */
-    public static function sendToTenantAdmins(
+    public function sendToTenantAdmins(
         int $tenantId,
         string $title,
         string $message,
@@ -87,7 +100,7 @@ class NotificationService
                 ->where('tenant_users.role_id', $tenantAdminRoleId);
         })->get();
 
-        $users = static::filterByPreference($users, 'database', 'general');
+        $users = $this->filterByPreference($users, 'database', 'general');
 
         if ($users->isNotEmpty()) {
             Notification::send($users, new GeneralNotification($title, $message, $type, $actionUrl, $extra));
@@ -97,14 +110,14 @@ class NotificationService
     /**
      * 通知租户暂停
      */
-    public static function notifyTenantSuspended(Tenant $tenant, ?string $reason = null): void
+    public function notifyTenantSuspended(Tenant $tenant, ?string $reason = null): void
     {
         $users = User::whereHas('tenants', function ($q) use ($tenant) {
             $q->where('tenants.tenant_id', $tenant->tenant_id)
                 ->where('tenant_users.is_active', true);
         })->get();
 
-        $users = static::filterByPreference($users, 'database', 'tenant_suspended');
+        $users = $this->filterByPreference($users, 'database', 'tenant_suspended');
 
         if ($users->isNotEmpty()) {
             Notification::send($users, new TenantSuspendedNotification($tenant->name, $reason));
@@ -114,7 +127,7 @@ class NotificationService
     /**
      * 通知积分不足
      */
-    public static function notifyCreditLow(Tenant $tenant, int $remaining, int $threshold = 100): void
+    public function notifyCreditLow(Tenant $tenant, int $remaining, int $threshold = 100): void
     {
         $tenantAdminRoleId = \DB::table('roles')
             ->where('name', 'tenant_admin')
@@ -127,7 +140,7 @@ class NotificationService
                 ->where('tenant_users.role_id', $tenantAdminRoleId);
         })->get();
 
-        $admins = static::filterByPreference($admins, 'database', 'credit_low');
+        $admins = $this->filterByPreference($admins, 'database', 'credit_low');
 
         if ($admins->isNotEmpty()) {
             Notification::send($admins, new CreditLowNotification($remaining, $threshold));
@@ -137,7 +150,7 @@ class NotificationService
     /**
      * 通知订阅即将过期
      */
-    public static function notifySubscriptionExpiring(Tenant $tenant, int $daysLeft): void
+    public function notifySubscriptionExpiring(Tenant $tenant, int $daysLeft): void
     {
         $admins = User::whereHas('tenants', function ($q) use ($tenant) {
             $q->where('tenants.tenant_id', $tenant->tenant_id)
@@ -145,7 +158,7 @@ class NotificationService
                 ->wherePivotIn('role', ['tenant_admin']);
         })->get();
 
-        $admins = static::filterByPreference($admins, 'database', 'subscription_expiring');
+        $admins = $this->filterByPreference($admins, 'database', 'subscription_expiring');
 
         if ($admins->isNotEmpty()) {
             $planName = $tenant->subscription_plan ?? '免费版';
@@ -163,7 +176,7 @@ class NotificationService
     /**
      * 通知支付成功
      */
-    public static function notifyPaymentSuccess(User $user, string $orderNo, int $amount, string $paymentMethod): void
+    public function notifyPaymentSuccess(User $user, string $orderNo, int $amount, string $paymentMethod): void
     {
         if (! NotificationPreference::isEnabled($user->id, 'database', 'payment_success')) {
             return;
@@ -174,7 +187,7 @@ class NotificationService
     /**
      * 获取用户未读通知数
      */
-    public static function getUnreadCount(User $user): int
+    public function getUnreadCount(User $user): int
     {
         return $user->unreadNotifications()->count();
     }

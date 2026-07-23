@@ -14,6 +14,8 @@ use MultiTenantSaas\Tests\Schema\RbacModule;
 
 class LotteryControllerTest extends TestCase
 {
+    protected LotteryService $lotteryService;
+
     protected array $uses = [LotteryModule::class, RbacModule::class];
 
     private int $tenantId = 4001;
@@ -23,6 +25,9 @@ class LotteryControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->lotteryService = $this->app->make(LotteryService::class);
+
 
         Tenant::create([
             'tenant_id' => $this->tenantId,
@@ -73,13 +78,16 @@ class LotteryControllerTest extends TestCase
         ]);
 
         TenantContext::setTenantId($this->tenantId);
+
+        // BelongsToTenant 全局作用域需要 HTTP 请求中携带租户标识
+        $this->withHeader('X-Tenant-ID', (string) $this->tenantId);
     }
 
     // ========== 活动管理 API ==========
 
     public function test_index_activities(): void
     {
-        LotteryService::createActivity([
+        $this->lotteryService->createActivity([
             'tenant_id' => $this->tenantId,
             'title' => '测试活动',
             'slug' => 'test-activity',
@@ -123,7 +131,7 @@ class LotteryControllerTest extends TestCase
 
     public function test_show_activity(): void
     {
-        $activity = LotteryService::createActivity([
+        $activity = $this->lotteryService->createActivity([
             'tenant_id' => $this->tenantId,
             'title' => '测试活动',
             'slug' => 'test-activity',
@@ -139,7 +147,7 @@ class LotteryControllerTest extends TestCase
 
     public function test_update_activity(): void
     {
-        $activity = LotteryService::createActivity([
+        $activity = $this->lotteryService->createActivity([
             'tenant_id' => $this->tenantId,
             'title' => '原标题',
             'slug' => 'test-activity',
@@ -157,7 +165,7 @@ class LotteryControllerTest extends TestCase
 
     public function test_destroy_activity(): void
     {
-        $activity = LotteryService::createActivity([
+        $activity = $this->lotteryService->createActivity([
             'tenant_id' => $this->tenantId,
             'title' => '测试活动',
             'slug' => 'test-activity',
@@ -173,7 +181,7 @@ class LotteryControllerTest extends TestCase
 
     public function test_destroy_active_activity_fails(): void
     {
-        $activity = LotteryService::createActivity([
+        $activity = $this->lotteryService->createActivity([
             'tenant_id' => $this->tenantId,
             'title' => '进行中活动',
             'slug' => 'active-activity',
@@ -191,13 +199,13 @@ class LotteryControllerTest extends TestCase
 
     public function test_index_prizes(): void
     {
-        $activity = LotteryService::createActivity([
+        $activity = $this->lotteryService->createActivity([
             'tenant_id' => $this->tenantId,
             'title' => '测试活动',
             'slug' => 'test-activity',
         ]);
 
-        LotteryService::addPrize($activity->activity_id, [
+        $this->lotteryService->addPrize($activity->activity_id, [
             'name' => '奖品A',
             'type' => 'physical',
             'total_count' => 10,
@@ -214,7 +222,7 @@ class LotteryControllerTest extends TestCase
 
     public function test_store_prize(): void
     {
-        $activity = LotteryService::createActivity([
+        $activity = $this->lotteryService->createActivity([
             'tenant_id' => $this->tenantId,
             'title' => '测试活动',
             'slug' => 'test-activity',
@@ -237,7 +245,7 @@ class LotteryControllerTest extends TestCase
 
     public function test_draw(): void
     {
-        $activity = LotteryService::createActivity([
+        $activity = $this->lotteryService->createActivity([
             'tenant_id' => $this->tenantId,
             'title' => '测试活动',
             'slug' => 'test-activity',
@@ -246,7 +254,7 @@ class LotteryControllerTest extends TestCase
             'end_at' => now()->addDays(7),
         ]);
 
-        LotteryService::addPrize($activity->activity_id, [
+        $this->lotteryService->addPrize($activity->activity_id, [
             'name' => '奖品A',
             'type' => 'physical',
             'total_count' => 10,
@@ -262,7 +270,7 @@ class LotteryControllerTest extends TestCase
 
     public function test_draw_inactive_activity_fails(): void
     {
-        $activity = LotteryService::createActivity([
+        $activity = $this->lotteryService->createActivity([
             'tenant_id' => $this->tenantId,
             'title' => '草稿活动',
             'slug' => 'draft-activity',
@@ -280,7 +288,7 @@ class LotteryControllerTest extends TestCase
 
     public function test_statistics(): void
     {
-        $activity = LotteryService::createActivity([
+        $activity = $this->lotteryService->createActivity([
             'tenant_id' => $this->tenantId,
             'title' => '测试活动',
             'slug' => 'test-activity',
@@ -306,7 +314,7 @@ class LotteryControllerTest extends TestCase
             'status' => 'active',
         ]);
 
-        $activity = LotteryService::createActivity([
+        $activity = $this->lotteryService->createActivity([
             'tenant_id' => $otherTenantId,
             'title' => '其他租户活动',
             'slug' => 'other-activity',

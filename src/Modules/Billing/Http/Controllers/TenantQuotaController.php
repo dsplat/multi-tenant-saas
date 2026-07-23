@@ -22,7 +22,7 @@ class TenantQuotaController extends Controller
         $tenantId = TenantContext::getId();
 
         $tenant = Tenant::findOrFail($tenantId);
-        $plan = SubscriptionService::getCurrentPlan($tenantId);
+        $plan = app(SubscriptionService::class)->getCurrentPlan($tenantId);
 
         $maxUsers = $plan?->getLimit('max_users');
         $maxStorage = $plan?->getLimit('max_storage_mb');
@@ -60,7 +60,7 @@ class TenantQuotaController extends Controller
         $tenantId = TenantContext::getId();
 
         $tenant = Tenant::findOrFail($tenantId);
-        $plan = SubscriptionService::getCurrentPlan($tenantId);
+        $plan = app(SubscriptionService::class)->getCurrentPlan($tenantId);
 
         $usedStorage = FileUpload::where('tenant_id', $tenantId)->sum('size');
 

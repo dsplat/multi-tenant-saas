@@ -121,7 +121,7 @@ class TenancyServiceProvider extends ServiceProvider
             __DIR__ . '/../resources/js/user-core' => resource_path('js/user-core'),
         ], 'dsplat-public-spa');
 
-        HealthService::registerChecks();
+        app(HealthService::class)->registerChecks();
 
         // Artisan 命令
         if ($this->app->runningInConsole()) {

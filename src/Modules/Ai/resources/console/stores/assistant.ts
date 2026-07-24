@@ -35,8 +35,8 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   const conversationId = ref<number | null>(null)
 
   // ─── 计算属性 ─────────────────────────────────────────────
-  /** 最终是否展示助手入口（后端可用 && 用户未关闭） */
-  const visible = computed(() => available.value && userEnabled.value)
+  /** 最终是否展示助手入口（用户未关闭即显示浮动按钮，可用性仅影响面板内容） */
+  const visible = computed(() => userEnabled.value)
   const isOpen = computed(() => panelMode.value !== 'closed')
 
   // ─── Actions ──────────────────────────────────────────────

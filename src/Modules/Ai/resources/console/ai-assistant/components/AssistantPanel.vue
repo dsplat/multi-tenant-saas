@@ -6,12 +6,14 @@
  * 可预期铁律：顶部展示当前 agent 角色 + 能力说明；快捷指令明示可做什么。
  */
 import { ref, nextTick, watch, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAssistantStore } from '../../stores/assistant'
 import { usePageContext } from '../composables/usePageContext'
 import { useAssistantStream } from '../composables/useAssistantStream'
 import ChatMessage from './ChatMessage.vue'
 
 const store = useAssistantStore()
+const router = useRouter()
 const { pageContext } = usePageContext()
 const { send, abort, streaming } = useAssistantStream()
 
@@ -86,6 +88,12 @@ function handleClear() {
   store.clearMessages()
 }
 
+/** 跳转到数字员工页面 */
+function goToAgents() {
+  store.closePanel()
+  router.push('/agents')
+}
+
 
 </script>
 
@@ -106,6 +114,22 @@ function handleClear() {
         <button class="icon-btn" title="关闭" @click="store.closePanel()">✕</button>
       </div>
     </div>
+
+    <!-- 未启用状态：引导用户去数字员工页面开启 -->
+    <div v-if="!store.available" class="unavailable-state">
+      <div class="unavailable-icon">🔒</div>
+      <div class="unavailable-title">当前模块的 AI 助手尚未启用</div>
+      <div class="unavailable-desc">
+        前往「数字员工」页面开启对应模块的 AI 能力，即可在此获得智能辅助。
+      </div>
+      <button class="unavailable-link" @click="goToAgents">
+        <span class="link-arrow">→</span>
+        前往数字员工
+      </button>
+    </div>
+
+    <!-- 已启用：正常对话区 -->
+    <template v-else>
 
     <!-- 对话区 -->
     <div ref="chatScroll" class="chat-scroll">
@@ -161,9 +185,10 @@ function handleClear() {
     </div>
 
     <!-- 底部：AI 产出声明 -->
-    <div class="panel-footer">
+    <div v-if="store.available" class="panel-footer">
       <span class="ai-note">内容由 AI 生成，仅供参考</span>
     </div>
+    </template>
   </div>
 </template>
 
@@ -278,4 +303,58 @@ function handleClear() {
   flex-shrink: 0;
 }
 .ai-note { font-size: 10px; color: var(--text-color-secondary, #64748b); opacity: 0.7; }
+
+/* 未启用状态 */
+.unavailable-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+}
+.unavailable-icon {
+  font-size: 36px;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+.unavailable-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color-primary, #0f172a);
+  margin-bottom: 10px;
+}
+.unavailable-desc {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-color-secondary, #64748b);
+  margin-bottom: 24px;
+  max-width: 280px;
+}
+.unavailable-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 22px;
+  border-radius: 8px;
+  border: none;
+  background: var(--ac, #10b981);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.unavailable-link:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--ac, #10b981) 40%, transparent);
+}
+.link-arrow {
+  font-size: 15px;
+  transition: transform 0.15s;
+}
+.unavailable-link:hover .link-arrow {
+  transform: translateX(3px);
+}
 </style>

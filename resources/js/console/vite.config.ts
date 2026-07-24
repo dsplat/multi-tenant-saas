@@ -21,6 +21,7 @@ const FW_CONSOLE = FW_DIR
 export const consoleAliases: Array<{ find: string | RegExp; replacement: string }> = [
   { find: '@/', replacement: FW_CONSOLE + '/' },
   { find: '@stores', replacement: resolve(FW_CONSOLE, 'stores') },
+  { find: '@modules', replacement: resolve(FW_DIR, '../../../src/Modules') },
   { find: '@multi-tenant-saas/ui-core/components', replacement: resolve(FW_RESOURCES, 'pages/ui-core/components') },
   { find: '@multi-tenant-saas/ui-core', replacement: resolve(FW_CONSOLE, '../ui-core') },
 ]

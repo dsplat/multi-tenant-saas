@@ -76,6 +76,9 @@
 
   <ThemeSettings v-model:visible="showThemeSettings" />
   <UIFrameworkSelector v-model:visible="showFrameworkSelector" />
+
+  <!-- 全局 AI 助手（旁挂增强，AI 关闭时零 DOM） -->
+  <AiAssistant />
 </template>
 
 <script setup lang="ts">
@@ -90,6 +93,7 @@ import ThemeSwitcher from '@multi-tenant-saas/ui-core/components/ThemeSwitcher.v
 import ColorPicker from '@multi-tenant-saas/ui-core/components/ColorPicker.vue'
 import ThemeSettings from '@multi-tenant-saas/ui-core/components/ThemeSettings.vue'
 import UIFrameworkSelector from '@multi-tenant-saas/ui-core/components/UIFrameworkSelector.vue'
+import AiAssistant from '@modules/Ai/resources/console/ai-assistant/AiAssistant.vue'
 
 const route = useRoute()
 const router = useRouter()

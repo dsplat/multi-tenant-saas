@@ -104,3 +104,5 @@ Route::prefix('/capabilities')->middleware('rbac.permission:member.view')->group
 // ========== AI 页面助手 ==========
 Route::post('/ai/assistant', [AssistantController::class, 'handle'])
     ->middleware('tenant.ensure');
+Route::get('/ai/assistant/availability', [AssistantController::class, 'availability'])
+    ->middleware('tenant.ensure');

@@ -13,6 +13,7 @@ use MultiTenantSaas\Modules\Ai\DTOs\PageContext;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Services\Ai\StreamChunk;
+use MultiTenantSaas\Modules\Ai\Services\AiConfigService;
 use MultiTenantSaas\Modules\Ai\Services\IntentRouter;
 
 /**
@@ -33,6 +34,7 @@ class AssistantController extends Controller
         private AgentRuntimeContract $agentRuntime,
         private AgentServiceContract $agentService,
         private TenantContextContract $tenantContext,
+        private AiConfigService $aiConfig,
     ) {}
 
     /**
@@ -150,7 +152,44 @@ class AssistantController extends Controller
     }
 
     /**
+     * 检查页面助手可用性（feature flag + agent 配置）。
+     *
+     * GET /v1/ai/assistant/availability?module=Marketing
+     */
+    public function availability(Request $request): JsonResponse
+    {
+        $module = $request->query('module', '');
+
+        try {
+            $tenantId = (int) $this->tenantContext->resolveId();
+
+            // 租户级 feature flag：assistant 总开关 + 模块级开关
+            $enabled = $this->aiConfig->isCategoryEnabled('assistant')
+                && ($module === '' || $this->aiConfig->isCategoryEnabled('assistant.'.strtolower($module)));
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'module' => $module,
+                    'available' => $enabled,
+                ],
+            ]);
+        } catch (\Throwable) {
+            // 无租户上下文或配置未就绪 → 不可用（fail-open，不报错）
+            return response()->json([
+                'success' => true,
+                'data' => ['module' => $module, 'available' => false],
+            ]);
+        }
+    }
+
+    /**
      * SSE 流式响应。
+     *
+     * 协议（data: JSON\n\n）：
+     *  - {"type":"text","content":"..."}        增量文本
+     *  - {"type":"tool_call","content":[...]}   工具调用决策（前端展示“正在调用 XX”）
+     *  - {"type":"done","metadata":{...}}       流结束
      */
     private function streamResponse(int $agentId, int $conversationId, string $message): StreamedResponse
     {
@@ -158,18 +197,32 @@ class AssistantController extends Controller
             $generator = $this->agentRuntime->runStream($agentId, $conversationId, $message);
 
             foreach ($generator as $chunk) {
-                if ($chunk instanceof StreamChunk) {
-                    echo 'data: '.json_encode([
-                        'type' => $chunk->type,
-                        'content' => $chunk->content,
-                        'metadata' => $chunk->metadata ?? null,
-                    ], JSON_UNESCAPED_UNICODE)."\n\n";
+                if (! $chunk instanceof StreamChunk) {
+                    continue;
                 }
 
-                if (ob_get_level() > 0) {
-                    ob_flush();
+                // 增量文本
+                if ($chunk->text !== '') {
+                    $this->emit(['type' => 'text', 'content' => $chunk->text]);
                 }
-                flush();
+
+                // 工具调用决策
+                if ($chunk->hasToolCalls()) {
+                    // 检测 suggest_form_fill 工具 → 转为 form_fill 类型
+                    $formFill = $this->extractFormFill($chunk->toolCalls);
+                    if ($formFill) {
+                        $this->emit(['type' => 'form_fill', 'content' => $formFill]);
+                    } elseif ($workflow = $this->extractWorkflow($chunk->toolCalls)) {
+                        $this->emit(['type' => 'workflow', 'content' => $workflow]);
+                    } else {
+                        $this->emit(['type' => 'tool_call', 'content' => $chunk->toolCalls]);
+                    }
+                }
+
+                // 流结束
+                if ($chunk->isFinished()) {
+                    $this->emit(['type' => 'done', 'content' => '', 'metadata' => ['finish_reason' => $chunk->finishReason]]);
+                }
             }
 
             echo "data: [DONE]\n\n";
@@ -183,5 +236,62 @@ class AssistantController extends Controller
             'Connection' => 'keep-alive',
             'X-Accel-Buffering' => 'no',
         ]);
+    }
+
+    /**
+     * 输出单个 SSE 事件。
+     */
+    private function emit(array $payload): void
+    {
+        echo 'data: '.json_encode($payload, JSON_UNESCAPED_UNICODE)."\n\n";
+        if (ob_get_level() > 0) {
+            ob_flush();
+        }
+        flush();
+    }
+
+    /**
+     * 从工具调用中提取 suggest_form_fill 结果。
+     * Agent 调用此工具时，参数即为表单填充建议。
+     */
+    private function extractFormFill(array $toolCalls): ?array
+    {
+        foreach ($toolCalls as $tc) {
+            $slug = is_object($tc) ? ($tc->slug ?? $tc->name ?? '') : ($tc['slug'] ?? $tc['name'] ?? '');
+            if ($slug === 'suggest_form_fill') {
+                $args = is_object($tc) ? ($tc->arguments ?? []) : ($tc['arguments'] ?? []);
+                return [
+                    'fields' => $args['fields'] ?? $args,
+                    'explanation' => $args['explanation'] ?? null,
+                    'field_notes' => $args['field_notes'] ?? null,
+                    'confidence' => $args['confidence'] ?? 0.8,
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 从工具调用中提取 suggest_workflow 结果。
+     * Agent 调用此工具时，参数即为工作流编排建议。
+     */
+    private function extractWorkflow(array $toolCalls): ?array
+    {
+        foreach ($toolCalls as $tc) {
+            $slug = is_object($tc) ? ($tc->slug ?? $tc->name ?? '') : ($tc['slug'] ?? $tc['name'] ?? '');
+            if ($slug === 'suggest_workflow') {
+                $args = is_object($tc) ? ($tc->arguments ?? []) : ($tc['arguments'] ?? []);
+                return [
+                    'name' => $args['name'] ?? '未命名流程',
+                    'steps' => $args['steps'] ?? [],
+                    'submit_endpoint' => $args['submit_endpoint'] ?? null,
+                    'submit_payload' => $args['submit_payload'] ?? null,
+                    'explanation' => $args['explanation'] ?? null,
+                ];
+            }
+        }
+
+        return null;
     }
 }

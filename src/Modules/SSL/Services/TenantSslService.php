@@ -33,7 +33,7 @@ class TenantSslService
      */
     public function storeCertificate(Tenant $tenant, string $certificate, string $privateKey): void
     {
-        $domain = $tenant->custom_domain;
+        $domain = $tenant->domain;
 
         if (! $domain) {
             throw new RuntimeException(trans('ssl.no_domain'));
@@ -84,7 +84,7 @@ class TenantSslService
      */
     public function removeCertificate(Tenant $tenant): void
     {
-        $domain = $tenant->custom_domain;
+        $domain = $tenant->domain;
 
         if ($domain) {
             @unlink("{$this->certsPath}/{$domain}.crt");
@@ -103,7 +103,7 @@ class TenantSslService
      */
     public function getCertInfo(Tenant $tenant): array
     {
-        $domain = $tenant->custom_domain;
+        $domain = $tenant->domain;
 
         $hasCert = $domain
             && file_exists("{$this->certsPath}/{$domain}.crt")
@@ -131,13 +131,13 @@ class TenantSslService
      */
     public function regenerateNginxMap(): void
     {
-        // 找出所有有 custom_domain + 证书存在的租户
+        // 找出所有有 domain + 证书存在的租户
         $entries = Tenant::query()
-            ->whereNotNull('custom_domain')
+            ->whereNotNull('domain')
             ->whereNotNull('ssl_uploaded_at')
-            ->get(['custom_domain'])
-            ->filter(fn ($t) => file_exists("{$this->certsPath}/{$t->custom_domain}.crt"))
-            ->map(fn ($t) => $t->custom_domain)
+            ->get(['domain'])
+            ->filter(fn ($t) => file_exists("{$this->certsPath}/{$t->domain}.crt"))
+            ->map(fn ($t) => $t->domain)
             ->values();
 
         $certLines = implode("\n", $entries->map(

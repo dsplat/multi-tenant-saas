@@ -19,8 +19,8 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   const available = ref(false)
   /** 可用性是否已探测完成 */
   const availabilityLoaded = ref(false)
-  /** 用户级偏好（localStorage 持久化）：用户可手动关闭助手 */
-  const userEnabled = ref(localStorage.getItem('ai_assistant_enabled') !== '0')
+  /** 用户级偏好：始终启用（浮动按钮即开关，无需额外禁用入口） */
+  const userEnabled = ref(true)
 
   // ─── 面板状态 ─────────────────────────────────────────────
   const panelMode = ref<PanelMode>('closed')

@@ -86,11 +86,7 @@ function handleClear() {
   store.clearMessages()
 }
 
-/** 关闭助手（用户级开关，可完全关闭铁律） */
-function handleDisable() {
-  store.setUserEnabled(false)
-  store.closePanel()
-}
+
 </script>
 
 <template>
@@ -164,10 +160,9 @@ function handleDisable() {
       <button v-else class="send-btn" :disabled="!input.trim()" title="发送" @click="handleSend()">➤</button>
     </div>
 
-    <!-- 底部：AI 产出声明 + 关闭助手 -->
+    <!-- 底部：AI 产出声明 -->
     <div class="panel-footer">
       <span class="ai-note">内容由 AI 生成，仅供参考</span>
-      <button class="disable-link" @click="handleDisable">关闭 AI 助手</button>
     </div>
   </div>
 </template>
@@ -283,10 +278,4 @@ function handleDisable() {
   flex-shrink: 0;
 }
 .ai-note { font-size: 10px; color: var(--text-color-secondary, #64748b); opacity: 0.7; }
-.disable-link {
-  border: none; background: none; font-size: 10px;
-  color: var(--text-color-secondary, #64748b);
-  cursor: pointer; text-decoration: underline;
-}
-.disable-link:hover { color: var(--badge-danger-fg, #f5222d); }
 </style>

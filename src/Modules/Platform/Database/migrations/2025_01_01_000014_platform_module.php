@@ -46,11 +46,36 @@ CREATE TABLE `plugins` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL);
 
+        // Table: tenant_applications（FK → operators，operators 于 000013 先建，000014 > 000013 顺序安全）
+        DB::statement(<<<'SQL'
+CREATE TABLE `tenant_applications` (
+  `application_id` bigint unsigned NOT NULL,
+  `operator_id` bigint unsigned NOT NULL,
+  `code` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `org_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `org_industry` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `org_size` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `contact_info` json DEFAULT NULL,
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'submitted',
+  `review_notes` text COLLATE utf8mb4_unicode_ci,
+  `reviewed_by` bigint unsigned DEFAULT NULL,
+  `reviewed_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`application_id`),
+  UNIQUE KEY `uk_code` (`code`),
+  KEY `idx_operator_id` (`operator_id`),
+  KEY `idx_status` (`status`),
+  CONSTRAINT `tenant_applications_operator_id_foreign` FOREIGN KEY (`operator_id`) REFERENCES `operators` (`operator_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+SQL);
+
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('tenant_applications');
         Schema::dropIfExists('plugin_dependencies');
         Schema::dropIfExists('plugins');
     }

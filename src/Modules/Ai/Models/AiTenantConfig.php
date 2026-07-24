@@ -46,6 +46,8 @@ class AiTenantConfig extends Model
 
     public const CATEGORY_VIDEO = 'video';
 
+    public const CATEGORY_ASSISTANT = 'assistant';
+
     public const CATEGORIES = [
         self::CATEGORY_TEXT,
         self::CATEGORY_IMAGE,
@@ -97,6 +99,11 @@ class AiTenantConfig extends Model
      */
     public function isCategoryEnabled(string $category): bool
     {
+        // assistant 及 assistant.* 子分类继承 text_enabled（助手依赖文本生成能力）
+        if ($category === self::CATEGORY_ASSISTANT || str_starts_with($category, self::CATEGORY_ASSISTANT . '.')) {
+            return (bool) $this->text_enabled;
+        }
+
         return match ($category) {
             self::CATEGORY_TEXT => (bool) $this->text_enabled,
             self::CATEGORY_IMAGE => (bool) $this->image_enabled,

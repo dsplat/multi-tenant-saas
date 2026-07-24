@@ -27,7 +27,7 @@ export interface StreamCallbacks {
   onFormFill: (suggestion: FormFillSuggestion) => void
   onWorkflow: (workflow: WorkflowSuggestion) => void
   onDone: (metadata?: Record<string, any> | null) => void
-  onError: (message: string) => void
+  onError: (message: string, action?: { label: string; route: string } | null) => void
 }
 
 export function useAssistantStream() {
@@ -171,7 +171,10 @@ export function useAssistantStream() {
             callbacks.onDone(msg.metadata)
             break
           case 'error':
-            callbacks.onError(String(msg.content || 'AI 助手遇到错误。'))
+            callbacks.onError(
+              String(msg.content || 'AI 助手遇到错误。'),
+              (msg as any).action || null,
+            )
             break
         }
       } catch {

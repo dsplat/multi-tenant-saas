@@ -121,11 +121,12 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   }
 
   /** 追加一条错误消息（降级提示，不阻断） */
-  function pushError(content: string) {
+  function pushError(content: string, action?: { label: string; route: string } | null) {
     messages.value.push({
       id: nextId(),
       role: 'assistant',
       content,
+      action: action || null,
       isError: true,
       timestamp: Date.now(),
     })

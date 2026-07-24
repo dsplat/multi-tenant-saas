@@ -6,11 +6,13 @@
  * AI 产出标注：assistant 消息带「AI」徽标，与用户消息视觉区分。
  */
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import type { ChatMessage } from '../types'
 import FormFillCard from './FormFillCard.vue'
 import WorkflowProgress from './WorkflowProgress.vue'
 
 const props = defineProps<{ message: ChatMessage }>()
+const router = useRouter()
 
 const isUser = computed(() => props.message.role === 'user')
 
@@ -50,6 +52,16 @@ function toolArgs(call: any): string {
       <div v-if="message.content" class="msg-text" :class="{ 'error-text': message.isError }">
         {{ message.content }}
       </div>
+
+      <!-- 错误消息附带的操作按钮（如跳转数字员工） -->
+      <button
+        v-if="message.action"
+        class="msg-action-btn"
+        @click="router.push(message.action.route)"
+      >
+        <span class="action-arrow">→</span>
+        {{ message.action.label }}
+      </button>
 
       <!-- 表单填充建议卡片 -->
       <FormFillCard v-if="message.formFill" :suggestion="message.formFill" />
@@ -120,6 +132,34 @@ function toolArgs(call: any): string {
   background: var(--badge-danger-bg, #fff1f0);
   color: var(--badge-danger-fg, #f5222d);
   border-color: color-mix(in srgb, var(--badge-danger-fg, #f5222d) 30%, transparent);
+}
+
+/* 错误消息操作按钮 */
+.msg-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--ac, #10b981);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  align-self: flex-start;
+}
+.msg-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--ac, #10b981) 40%, transparent);
+}
+.action-arrow {
+  font-size: 14px;
+  transition: transform 0.15s;
+}
+.msg-action-btn:hover .action-arrow {
+  transform: translateX(3px);
 }
 
 /* 工具调用卡片 */

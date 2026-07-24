@@ -63,9 +63,9 @@ async function handleSend(text?: string) {
     onFormFill: (suggestion) => store.setFormFill(assistantMsg.id, suggestion),
     onWorkflow: (wf) => store.setWorkflow(assistantMsg.id, wf),
     onDone: () => store.finishMessage(assistantMsg.id),
-    onError: (msg) => {
+    onError: (msg, action) => {
       store.finishMessage(assistantMsg.id)
-      store.pushError(msg)
+      store.pushError(msg, action)
     },
   })
 

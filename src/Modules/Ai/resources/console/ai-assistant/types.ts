@@ -69,6 +69,8 @@ export interface ChatMessage {
   formFill?: FormFillSuggestion | null
   /** 工作流编排（type=workflow 时有值） */
   workflow?: WorkflowSuggestion | null
+  /** 错误消息附带的操作按钮（如跳转数字员工） */
+  action?: { label: string; route: string } | null
   /** 是否正在流式输出 */
   streaming?: boolean
   /** 是否为错误消息 */

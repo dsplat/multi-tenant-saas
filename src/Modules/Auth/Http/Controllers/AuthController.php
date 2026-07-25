@@ -526,6 +526,9 @@ class AuthController extends Controller
     public function ssoRedirect(Request $request, string $provider): JsonResponse
     {
         $tenantId = $request->attributes->get('tenant_id');
+        if (! $tenantId) {
+            return response()->json(['success' => false, 'message' => trans('auth.sso_provider_not_found')], 404);
+        }
         $ssoService = app(SsoService::class);
         $ssoProvider = $ssoService->getProvider($tenantId, $provider);
 
@@ -545,6 +548,9 @@ class AuthController extends Controller
     public function ssoCallback(Request $request, string $provider): JsonResponse
     {
         $tenantId = $request->attributes->get('tenant_id');
+        if (! $tenantId) {
+            return response()->json(['success' => false, 'message' => trans('auth.sso_provider_not_found')], 404);
+        }
         $ssoService = app(SsoService::class);
         $ssoProvider = $ssoService->getProvider($tenantId, $provider);
 

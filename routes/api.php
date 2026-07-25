@@ -180,7 +180,7 @@ Route::prefix('v1/channels')->group(function () {
         $provider = $manager->get('enterprise_wechat');
         $router = app(MessageRouter::class);
 
-        if ($provider->verifyWebhook($request->all(), $request->headers->all())) {
+        if ($provider && $provider->verifyWebhook($request->all(), $request->headers->all())) {
             $router->routeMessage('enterprise_wechat', $request->all());
 
             return response()->json(['success' => true]);
@@ -193,7 +193,7 @@ Route::prefix('v1/channels')->group(function () {
         $provider = $manager->get('wechat_official');
         $router = app(MessageRouter::class);
 
-        if ($provider->verifyWebhook($request->all(), $request->headers->all())) {
+        if ($provider && $provider->verifyWebhook($request->all(), $request->headers->all())) {
             $router->routeMessage('wechat_official', $request->all());
 
             return response()->json(['success' => true]);

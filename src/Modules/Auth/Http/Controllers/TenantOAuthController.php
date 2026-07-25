@@ -74,7 +74,12 @@ class TenantOAuthController extends Controller
             return response()->json(['success' => false, 'message' => 'tenant_not_found'], 404);
         }
 
-        $url = app(SocialiteService::class)->getRedirectUrl($provider, $tenantId);
+        try {
+            $url = app(SocialiteService::class)->getRedirectUrl($provider, $tenantId);
+        } catch (\RuntimeException $e) {
+            // provider 未配置/不存在 → 422（避免 500）
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
 
         return response()->json(['success' => true, 'data' => ['url' => $url]]);
     }
@@ -87,7 +92,12 @@ class TenantOAuthController extends Controller
             return response()->json(['success' => false, 'message' => 'tenant_not_found'], 404);
         }
 
-        $result = app(SocialiteService::class)->handleCallback($provider, $tenantId);
+        try {
+            $result = app(SocialiteService::class)->handleCallback($provider, $tenantId);
+        } catch (\RuntimeException $e) {
+            // provider 未配置/不存在 → 422（避免 500）
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
 
         return response()->json(['success' => true, 'data' => $result]);
     }

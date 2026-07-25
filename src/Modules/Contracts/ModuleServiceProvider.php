@@ -82,9 +82,12 @@ abstract class ModuleServiceProvider extends ServiceProvider
         $moduleDir = $this->getModulePath();
 
         // API 路由 (需要认证 + 租户识别)
+        // 注意顺序：tenant.identify 必须在 VerifyOperatorTenant 之前——
+        // 归属校验依赖已识别的租户上下文；若先校验，TenantContext::getId()
+        // 会 fallback 到 default_tenant_id，Operator 不属于默认租户时误判 403。
         $apiRoute = $moduleDir . '/Routes/api.php';
         if (file_exists($apiRoute)) {
-            Route::middleware(['auth:sanctum', \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\VerifyOperatorTenant::class, 'throttle:api', 'tenant.identify'])
+            Route::middleware(['auth:sanctum', 'throttle:api', 'tenant.identify', \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\VerifyOperatorTenant::class])
                 ->prefix('api/v1')
                 ->group($apiRoute);
         }

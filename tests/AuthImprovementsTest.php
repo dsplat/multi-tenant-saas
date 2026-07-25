@@ -297,6 +297,35 @@ class AuthImprovementsTest extends TestCase
         });
     }
 
+    public function test_operator_me_not_403_when_default_tenant_differs(): void
+    {
+        // 生产事故回归：default_tenant_id 指向其他租户时，模块 API 路由
+        // （auth → throttle → tenant.identify → VerifyOperatorTenant 顺序）
+        // 不得因归属校验早于租户识别 fallback 到默认租户而误判 403。
+        config(['tenancy.default_tenant_id' => '9999']);
+        $this->createTestTenant();
+
+        $operator = \MultiTenantSaas\Modules\Operator\Models\Operator::create([
+            'name' => 'Default Tenant Victim',
+            'email' => 'default-victim-op@example.com',
+            'password' => bcrypt('password123'),
+            'scope' => 'tenant',
+            'is_active' => true,
+        ]);
+        \MultiTenantSaas\Modules\Operator\Models\OperatorTenant::create([
+            'operator_id' => $operator->operator_id,
+            'tenant_id' => 1001,
+            'role' => 'tenant_admin',
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($operator, 'sanctum')
+            ->withHeaders(['X-Original-Host' => 'crm.test.com'])
+            ->getJson('/api/v1/operator-auth/me');
+
+        $response->assertStatus(200);
+    }
+
     // =============================================
     // Phase 2: 租户发现 API
     // =============================================

@@ -67,15 +67,20 @@ class IdentifyTenant
      */
     protected function resolveTenantId(Request $request): ?string
     {
-        // 1. URL参数（不可信，需校验归属）
+        // 1. URL参数（不可信，需校验归属；校验不通过则忽略该来源，继续后续解析）
         if ($tenantId = ($request->query('tenant_id') ?? $request->query('tid'))) {
-            return $this->resolveWithOwnershipCheck((string) $tenantId, $request);
+            if ($resolved = $this->resolveWithOwnershipCheck((string) $tenantId, $request)) {
+                return $resolved;
+            }
         }
 
-        // 2. Header（不可信，需校验归属；Operator 在步骤 6 中单独处理）
+        // 2. Header（不可信，需校验归属；校验不通过则忽略——前端残留的过期 X-Tenant-ID
+        //    不应导致整个请求 403，域名解析等可信来源仍可自愈；Operator 在步骤 6 中单独处理）
         $tokenable = $request->user();
         if (! ($tokenable instanceof Operator) && $tenantId = $request->header('X-Tenant-ID')) {
-            return $this->resolveWithOwnershipCheck((string) $tenantId, $request);
+            if ($resolved = $this->resolveWithOwnershipCheck((string) $tenantId, $request)) {
+                return $resolved;
+            }
         }
 
         // 3. 自定义域名（域名归属可信，但仍需校验 Operator 是否属于该租户）
@@ -94,9 +99,11 @@ class IdentifyTenant
             return (string) $tenantId;
         }
 
-        // 4. Cookie（不可信，需校验归属）
+        // 4. Cookie（不可信，需校验归属；校验不通过则忽略该来源，继续后续解析）
         if ($tenantId = $request->cookie('tenant_id')) {
-            return $this->resolveWithOwnershipCheck((string) $tenantId, $request);
+            if ($resolved = $this->resolveWithOwnershipCheck((string) $tenantId, $request)) {
+                return $resolved;
+            }
         }
 
         // 5. Session
@@ -197,14 +204,17 @@ class IdentifyTenant
      */
     protected function resolveTenantFromOperator(Operator $operator, Request $request): ?string
     {
-        // 如果请求头指定了 tenant_id，验证 Operator 是否有权访问
+        // 如果请求头指定了 tenant_id，验证 Operator 是否有权访问；
+        // 无权访问（如前端残留的过期 X-Tenant-ID）则忽略 header，回退到活跃关联
         if ($headerTenantId = $request->header('X-Tenant-ID')) {
             $hasAccess = OperatorTenant::where('operator_id', $operator->operator_id)
                 ->where('tenant_id', (int) $headerTenantId)
                 ->where('is_active', true)
                 ->exists();
 
-            return $hasAccess ? (string) $headerTenantId : null;
+            if ($hasAccess) {
+                return (string) $headerTenantId;
+            }
         }
 
         // 取第一个活跃的 OperatorTenant 关联

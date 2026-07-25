@@ -131,13 +131,22 @@ export const useUserStore = defineStore('user', () => {
       const storedTid = localStorage.getItem('console_tenant_id')
       if (storedTid) axios.defaults.headers.common['X-Tenant-ID'] = storedTid
       try { await fetchUser() } catch (error: any) {
-        // 仅认证失效（401/403）时清除会话；瞬时 5xx/网络错误保留 token，避免误登出
         const status = error?.response?.status
-        if (status === 401 || status === 403) {
-          token.value = null; user.value = null; permissions.value = []
-          localStorage.removeItem('console_token')
-          delete axios.defaults.headers.common['Authorization']
+        if (status === 403) {
+          // 403 多为残留的过期 X-Tenant-ID 与当前域名租户冲突：清残留租户头重试，不清 token
+          localStorage.removeItem('console_tenant_id')
+          delete axios.defaults.headers.common['X-Tenant-ID']
+          try { await fetchUser(); return } catch (retryError: any) {
+            if (retryError?.response?.status !== 401) return
+          }
+        } else if (status !== 401) {
+          // 瞬时 5xx/网络错误保留 token，避免误登出
+          return
         }
+        // 仅认证失效（401）清除会话
+        token.value = null; user.value = null; permissions.value = []
+        localStorage.removeItem('console_token')
+        delete axios.defaults.headers.common['Authorization']
       }
     }
   }

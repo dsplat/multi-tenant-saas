@@ -47,6 +47,17 @@ class OperatorControllersTest extends TestCase
             'email_verified_at' => now(),
         ]);
 
+        // X-Tenant-ID 归属校验（IdentifyTenant fail-closed）需要 tenant_users 记录
+        DB::table('tenant_users')->insert([
+            'tenant_user_id' => 700101,
+            'tenant_id' => $this->tenantId,
+            'user_id' => $this->admin->user_id,
+            'role' => 'tenant_admin',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $operator = new Operator([
             'email' => 'operator-admin@test.com',
             'name' => 'Admin',

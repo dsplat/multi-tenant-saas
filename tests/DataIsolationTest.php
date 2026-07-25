@@ -84,13 +84,16 @@ class DataIsolationTest extends TestCase
         TenantContext::setDomainType(null);
     }
 
-    public function test_no_tenant_context_returns_unscoped(): void
+    public function test_no_tenant_context_blocks_by_default_and_allows_explicit_unscoped(): void
     {
         Customer::create(['tenant_id' => 1001, 'name' => 'Alice']);
         Customer::create(['tenant_id' => 1002, 'name' => 'Bob']);
 
-        // 未设置租户上下文，应该返回所有数据
-        $customers = Customer::all();
+        // fail-closed：无租户上下文时默认阻断（WHERE 1=0）
+        $this->assertCount(0, Customer::all());
+
+        // 系统级场景（队列/CLI）需显式豁免
+        $customers = \MultiTenantSaas\Scopes\TenantScope::allowUnscoped(fn () => Customer::all());
         $this->assertCount(2, $customers);
     }
 }

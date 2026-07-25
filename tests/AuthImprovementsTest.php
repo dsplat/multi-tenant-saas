@@ -236,6 +236,68 @@ class AuthImprovementsTest extends TestCase
     }
 
     // =============================================
+    // 残留 X-Tenant-ID 回退（会话误 403 修复回归）
+    // =============================================
+
+    public function test_identify_tenant_stale_header_falls_back_to_domain(): void
+    {
+        $this->createTestTenant();
+
+        $user = \MultiTenantSaas\Modules\Auth\Models\User::create([
+            'name' => 'Stale Header User',
+            'email' => 'stale-header@example.com',
+            'password' => bcrypt('password123'),
+            'role' => 'end_user',
+        ]);
+
+        // 已认证 User 携带不属于自己的残留 X-Tenant-ID：忽略 header，回退域名解析
+        $middleware = new IdentifyTenant;
+        $request = Request::create('https://crm.test.com/api/v1/test');
+        $request->headers->set('X-Original-Host', 'crm.test.com');
+        $request->headers->set('X-Tenant-ID', '9999');
+        $request->setUserResolver(fn () => $user);
+
+        $middleware->handle($request, function () {
+            $this->assertEquals('1001', TenantContext::getId());
+
+            return new Response;
+        });
+    }
+
+    public function test_identify_tenant_operator_stale_header_falls_back_to_active_tenant(): void
+    {
+        config(['tenancy.default_tenant_id' => null]);
+        $this->createTestTenant();
+
+        $operator = \MultiTenantSaas\Modules\Operator\Models\Operator::create([
+            'name' => 'Stale Header Operator',
+            'email' => 'stale-header-op@example.com',
+            'password' => bcrypt('password123'),
+            'scope' => 'tenant',
+            'status' => 'active',
+        ]);
+        \MultiTenantSaas\Modules\Operator\Models\OperatorTenant::create([
+            'operator_id' => $operator->operator_id,
+            'tenant_id' => 1001,
+            'role' => 'tenant_admin',
+            'is_active' => true,
+        ]);
+
+        // Operator 在未识别域名下携带无权访问的残留 X-Tenant-ID：忽略 header，回退首个活跃关联
+        $middleware = new IdentifyTenant;
+        $request = Request::create('https://unknown-host.com/api/v1/test');
+        $request->headers->set('X-Original-Host', 'unknown-host.com');
+        $request->headers->set('X-Tenant-ID', '8888');
+        $request->setUserResolver(fn () => $operator);
+
+        $middleware->handle($request, function () {
+            $this->assertEquals('1001', TenantContext::getId());
+
+            return new Response;
+        });
+    }
+
+    // =============================================
     // Phase 2: 租户发现 API
     // =============================================
 

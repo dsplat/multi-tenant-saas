@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Modules\Ai\Services\Ai\Providers;
 
 use Generator;
-use Laravel\Ai\Agent;
+use Laravel\Ai\AnonymousAgent;
 use Laravel\Ai\Embeddings;
 use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Messages\Message;
@@ -235,24 +235,13 @@ class LaravelAiProviderAdapter implements AiProviderContract
     /**
      * Build an anonymous Agent with the given message history.
      *
+     * laravel/ai ^0.8 使用 AnonymousAgent(instructions, messages, tools)。
+     *
      * @param  Message[]  $history
      */
-    protected function buildAgent(array $history): Agent
+    protected function buildAgent(array $history): AnonymousAgent
     {
-        return new class($history) extends Agent
-        {
-            public function __construct(private array $history) {}
-
-            public function instructions(): string
-            {
-                return '';
-            }
-
-            public function messages(): iterable
-            {
-                return $this->history;
-            }
-        };
+        return new AnonymousAgent('', $history, []);
     }
 
     public function getConfig(): array

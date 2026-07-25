@@ -84,7 +84,7 @@ abstract class ModuleServiceProvider extends ServiceProvider
         // API 路由 (需要认证 + 租户识别)
         $apiRoute = $moduleDir . '/Routes/api.php';
         if (file_exists($apiRoute)) {
-            Route::middleware(['auth:sanctum', 'throttle:api', 'tenant.identify'])
+            Route::middleware(['auth:sanctum', \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\VerifyOperatorTenant::class, 'throttle:api', 'tenant.identify'])
                 ->prefix('api/v1')
                 ->group($apiRoute);
         }

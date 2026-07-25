@@ -130,10 +130,14 @@ export const useUserStore = defineStore('user', () => {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
       const storedTid = localStorage.getItem('console_tenant_id')
       if (storedTid) axios.defaults.headers.common['X-Tenant-ID'] = storedTid
-      try { await fetchUser() } catch {
-        token.value = null; user.value = null; permissions.value = []
-        localStorage.removeItem('console_token')
-        delete axios.defaults.headers.common['Authorization']
+      try { await fetchUser() } catch (error: any) {
+        // 仅认证失效（401/403）时清除会话；瞬时 5xx/网络错误保留 token，避免误登出
+        const status = error?.response?.status
+        if (status === 401 || status === 403) {
+          token.value = null; user.value = null; permissions.value = []
+          localStorage.removeItem('console_token')
+          delete axios.defaults.headers.common['Authorization']
+        }
       }
     }
   }

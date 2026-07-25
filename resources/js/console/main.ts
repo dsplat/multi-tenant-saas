@@ -1,11 +1,28 @@
 import { createApp, type App as VueApp } from 'vue'
 import { createPinia } from 'pinia'
+import axios from 'axios'
 import { initUICore, uiRegistry } from '@multi-tenant-saas/ui-core'
 import { createBootstrapAdapter } from '@multi-tenant-saas/ui-core/adapters/index'
 import { useUserStore } from './stores/user'
 import App from '../../pages/console/App.vue'
 import router, { routesReady } from './router'
 import 'element-plus/theme-chalk/dark/css-vars.css'
+
+// 全局 401 拦截：token 过期/失效时清除会话并跳转登录页（登录页自身请求除外，防循环）
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    const status = error?.response?.status
+    const reqUrl: string = error?.config?.url || ''
+    if (status === 401 && !reqUrl.includes('/auth/login') && !window.location.pathname.startsWith('/console/login')) {
+      localStorage.removeItem('console_token')
+      delete axios.defaults.headers.common['Authorization']
+      const redirect = encodeURIComponent(window.location.pathname.replace(/^\/console/, '') + window.location.search)
+      window.location.href = `/console/login?redirect=${redirect}`
+    }
+    return Promise.reject(error)
+  },
+)
 
 const fw = localStorage.getItem('multi-tenant-saas-ui-framework')
   || (import.meta.env.VITE_UI_FRAMEWORK as string)

@@ -8,22 +8,38 @@ Route::prefix('plugins')->group(function () {
         return response()->json(['success' => true, 'data' => app(PluginService::class)->listInstalled()]);
     });
     Route::post('/{name}/install', function (string $name) {
-        app(PluginService::class)->install($name);
+        try {
+            app(PluginService::class)->install($name);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
 
         return response()->json(['success' => true, 'message' => trans('plugin.installed')]);
     });
     Route::post('/{name}/uninstall', function (string $name) {
-        app(PluginService::class)->uninstall($name);
+        try {
+            app(PluginService::class)->uninstall($name);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
 
         return response()->json(['success' => true, 'message' => trans('plugin.uninstalled')]);
     });
     Route::post('/{name}/enable', function (string $name) {
-        app(PluginService::class)->enable($name);
+        try {
+            app(PluginService::class)->enable($name);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
 
         return response()->json(['success' => true, 'message' => trans('plugin.enabled')]);
     });
     Route::post('/{name}/disable', function (string $name) {
-        app(PluginService::class)->disable($name);
+        try {
+            app(PluginService::class)->disable($name);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
 
         return response()->json(['success' => true, 'message' => trans('plugin.disabled')]);
     });

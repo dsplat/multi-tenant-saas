@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Queue\Failed\FailedJobProviderInterface;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Artisan;
 
 /**
  * 队列失败任务管理控制器
@@ -65,7 +66,15 @@ class QueueController extends Controller
      */
     public function retry(string $id): JsonResponse
     {
-        $this->failedJobProvider->retry($id);
+        // FailedJobProviderInterface 无 retry()，通过 artisan 命令重试
+        $exitCode = Artisan::call('queue:retry', ['id' => [$id]]);
+
+        if ($exitCode !== 0) {
+            return response()->json([
+                'success' => false,
+                'message' => '任务重试失败，可能不存在',
+            ], 404);
+        }
 
         return response()->json([
             'success' => true,

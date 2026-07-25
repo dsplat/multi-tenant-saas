@@ -115,7 +115,7 @@ class NotificationController extends Controller
      */
     public function getPreferences(Request $request)
     {
-        $userId = $request->user()->id;
+        $userId = $request->user()->getKey();
         $preferences = NotificationPreference::getUserPreferences($userId);
 
         return response()->json([
@@ -137,7 +137,7 @@ class NotificationController extends Controller
             'enabled' => 'required|boolean',
         ]);
 
-        $userId = $request->user()->id;
+        $userId = $request->user()->getKey();
         NotificationPreference::setPreference(
             $userId,
             $request->channel,
@@ -165,7 +165,7 @@ class NotificationController extends Controller
             'preferences.*.enabled' => 'required|boolean',
         ]);
 
-        $userId = $request->user()->id;
+        $userId = $request->user()->getKey();
         foreach ($request->preferences as $pref) {
             NotificationPreference::setPreference(
                 $userId,

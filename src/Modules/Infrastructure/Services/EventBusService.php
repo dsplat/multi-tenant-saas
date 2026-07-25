@@ -183,6 +183,16 @@ class EventBusService
     // ----------------------------------------
 
     /**
+     * 获取最近事件（当前无独立事件日志表，返回死信记录作为可观测代理）
+     *
+     * @return Collection<int, DeadLetter>
+     */
+    public function getRecentEvents(int $limit = 100): Collection
+    {
+        return DeadLetter::orderByDesc('created_at')->limit($limit)->get();
+    }
+
+    /**
      * 死信列表（可按事件类型过滤）
      *
      * @return Collection<int, DeadLetter>

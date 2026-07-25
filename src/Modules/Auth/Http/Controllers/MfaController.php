@@ -26,7 +26,7 @@ class MfaController extends Controller
 
         if ($tenantId) {
             $exists = TenantUser::where('tenant_id', $tenantId)
-                ->where('user_id', $request->user()->user_id)
+                ->where('user_id', $request->user()->getKey())
                 ->where('is_active', true)
                 ->exists();
 
@@ -59,7 +59,7 @@ class MfaController extends Controller
         }
 
         $device = $this->mfaService->setupTotpDevice(
-            $request->user()->user_id,
+            $request->user()->getKey(),
             $request->secret,
             $request->input('label', 'TOTP')
         );
@@ -69,14 +69,14 @@ class MfaController extends Controller
 
     public function sendEmailCode(Request $request): JsonResponse
     {
-        $this->mfaService->sendEmailCode($request->user()->user_id);
+        $this->mfaService->sendEmailCode($request->user()->getKey());
 
         return response()->json(['success' => true, 'message' => trans('auth.mfa_code_sent')]);
     }
 
     public function sendSmsCode(Request $request): JsonResponse
     {
-        $this->mfaService->sendSmsCode($request->user()->user_id);
+        $this->mfaService->sendSmsCode($request->user()->getKey());
 
         return response()->json(['success' => true, 'message' => trans('auth.mfa_code_sent')]);
     }
@@ -85,7 +85,7 @@ class MfaController extends Controller
     {
         $this->ensureTenantMembership($request);
 
-        $devices = $this->mfaService->listDevices($request->user()->user_id);
+        $devices = $this->mfaService->listDevices($request->user()->getKey());
 
         return response()->json(['success' => true, 'data' => ['devices' => $devices]]);
     }
@@ -94,7 +94,7 @@ class MfaController extends Controller
     {
         $this->ensureTenantMembership($request);
 
-        $this->mfaService->deleteDevice($request->user()->user_id, $deviceId);
+        $this->mfaService->deleteDevice($request->user()->getKey(), $deviceId);
 
         return response()->json(['success' => true, 'message' => trans('auth.mfa_device_removed')]);
     }
@@ -105,7 +105,7 @@ class MfaController extends Controller
 
         $request->validate(['name' => 'required|string|max:50']);
 
-        $this->mfaService->renameDevice($request->user()->user_id, $deviceId, $request->name);
+        $this->mfaService->renameDevice($request->user()->getKey(), $deviceId, $request->name);
 
         return response()->json(['success' => true, 'message' => trans('auth.mfa_device_renamed')]);
     }
@@ -114,7 +114,7 @@ class MfaController extends Controller
     {
         $this->ensureTenantMembership($request);
 
-        $this->mfaService->setPrimaryDevice($request->user()->user_id, $deviceId);
+        $this->mfaService->setPrimaryDevice($request->user()->getKey(), $deviceId);
 
         return response()->json(['success' => true, 'message' => trans('auth.mfa_device_primary_set')]);
     }
@@ -123,7 +123,7 @@ class MfaController extends Controller
     {
         $this->ensureTenantMembership($request);
 
-        $codes = $this->mfaService->regenerateRecoveryCodes($request->user()->user_id);
+        $codes = $this->mfaService->regenerateRecoveryCodes($request->user()->getKey());
 
         return response()->json(['success' => true, 'data' => ['recovery_codes' => $codes]]);
     }
@@ -132,7 +132,7 @@ class MfaController extends Controller
     {
         $this->ensureTenantMembership($request);
 
-        $status = $this->mfaService->getRecoveryCodeStatus($request->user()->user_id);
+        $status = $this->mfaService->getRecoveryCodeStatus($request->user()->getKey());
 
         return response()->json(['success' => true, 'data' => $status]);
     }
@@ -141,7 +141,7 @@ class MfaController extends Controller
     {
         $this->ensureTenantMembership($request);
 
-        $sessions = $this->sessionService->listSessions($request->user()->user_id);
+        $sessions = $this->sessionService->listSessions($request->user()->getKey());
 
         return response()->json(['success' => true, 'data' => ['sessions' => $sessions]]);
     }
@@ -150,7 +150,7 @@ class MfaController extends Controller
     {
         $this->ensureTenantMembership($request);
 
-        $this->sessionService->revokeSession($request->user()->user_id, $sessionId);
+        $this->sessionService->revokeSession($request->user()->getKey(), $sessionId);
 
         return response()->json(['success' => true, 'message' => trans('auth.session_revoked')]);
     }
@@ -159,7 +159,7 @@ class MfaController extends Controller
     {
         $this->ensureTenantMembership($request);
 
-        $count = $this->sessionService->revokeAllSessions($request->user()->user_id);
+        $count = $this->sessionService->revokeAllSessions($request->user()->getKey());
 
         return response()->json(['success' => true, 'data' => ['revoked' => $count]]);
     }

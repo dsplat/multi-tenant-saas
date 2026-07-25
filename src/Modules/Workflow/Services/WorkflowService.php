@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Modules\Workflow\Services;
 
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Contracts\WorkflowEngineContract;
@@ -30,7 +31,7 @@ class WorkflowService implements WorkflowServiceContract
         $workflow = $this->find($workflowId);
 
         if ($workflow === null) {
-            throw new \RuntimeException("Workflow {$workflowId} not found");
+            throw new ModelNotFoundException("Workflow {$workflowId} not found");
         }
 
         $workflow->update($data);
@@ -80,7 +81,7 @@ class WorkflowService implements WorkflowServiceContract
         $workflow = $this->find($workflowId);
 
         if ($workflow === null) {
-            throw new \RuntimeException("Workflow {$workflowId} not found");
+            throw new ModelNotFoundException("Workflow {$workflowId} not found");
         }
 
         if ($workflow->status !== 'active') {

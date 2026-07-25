@@ -148,11 +148,24 @@ class AuthController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
+        $tokenable = $request->user();
+        $tenantId = $request->attributes->get('tenant_id');
+
+        // Console Operator token 走 operatorToArray
+        if ($tokenable instanceof Operator) {
+            return response()->json([
+                'success' => true,
+                'data' => array_merge($this->operatorToArray($tokenable), [
+                    'tenant_id' => $tenantId,
+                ]),
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
-                'user' => $this->userToArray($request->user()),
-                'tenant_id' => $request->attributes->get('tenant_id'),
+                'user' => $this->userToArray($tokenable),
+                'tenant_id' => $tenantId,
                 'permissions' => app(RbacService::class)->getCurrentUserPermissions(),
             ],
         ]);

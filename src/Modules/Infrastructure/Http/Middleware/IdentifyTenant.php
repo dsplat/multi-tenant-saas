@@ -74,8 +74,19 @@ class IdentifyTenant
             return $this->resolveWithOwnershipCheck((string) $tenantId, $request);
         }
 
-        // 3. 自定义域名（可信：域名归属由平台管理，无需校验用户归属）
+        // 3. 自定义域名（域名归属可信，但仍需校验 Operator 是否属于该租户）
         if ($tenantId = $this->resolveFromCustomDomain($request)) {
+            $tokenable = $request->user();
+            if ($tokenable instanceof Operator && $tokenable->scope !== 'platform') {
+                $hasAccess = OperatorTenant::where('operator_id', $tokenable->operator_id)
+                    ->where('tenant_id', (int) $tenantId)
+                    ->where('is_active', true)
+                    ->exists();
+                if (! $hasAccess) {
+                    return null;
+                }
+            }
+
             return (string) $tenantId;
         }
 
@@ -125,8 +136,22 @@ class IdentifyTenant
         $user = $request->user();
 
         // 未认证请求不做归属校验（公开页面、OAuth 回调等）
-        if (! $user || $user instanceof Operator) {
+        if (! $user) {
             return $tenantId;
+        }
+
+        // Operator：校验 operator_tenants 归属
+        if ($user instanceof Operator) {
+            if ($user->scope === 'platform') {
+                return $tenantId;
+            }
+
+            $belongsToTenant = OperatorTenant::where('operator_id', $user->operator_id)
+                ->where('tenant_id', (int) $tenantId)
+                ->where('is_active', true)
+                ->exists();
+
+            return $belongsToTenant ? $tenantId : null;
         }
 
         // 已认证用户：校验归属

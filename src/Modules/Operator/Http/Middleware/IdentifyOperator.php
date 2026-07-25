@@ -38,15 +38,27 @@ class IdentifyOperator
 
         $tenantId = TenantContext::getId();
         if ($tenantId) {
+            // platform scope 的 Operator 可跨租户访问（平台管理员）
+            if ($operator->scope === 'platform') {
+                return $next($request);
+            }
+
             $operatorTenant = OperatorTenant::where('operator_id', $operator->operator_id)
                 ->where('tenant_id', $tenantId)
                 ->where('is_active', true)
                 ->first();
 
-            if ($operatorTenant) {
-                $request->attributes->set('operator_id', $operatorTenant->operator_id);
-                $request->attributes->set('operator_role', $operatorTenant->role);
+            if (! $operatorTenant) {
+                // Operator 不属于当前域名对应的租户 → 拒绝
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have access to this workspace.',
+                    'error' => 'TenantAccessDenied',
+                ], 403);
             }
+
+            $request->attributes->set('operator_id', $operatorTenant->operator_id);
+            $request->attributes->set('operator_role', $operatorTenant->role);
         }
 
         return $next($request);

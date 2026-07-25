@@ -53,6 +53,10 @@ class IdentifyTenant
                 TenantContext::setTenant($tenant);
                 TenantContext::setTenantId((string) $tenantId);
             }
+        } else {
+            // 解析失败（含 Operator 归属校验不通过）：清除可能由前一次中间件设置的上下文
+            TenantContext::setTenant(null);
+            TenantContext::setTenantId(null);
         }
 
         return $next($request);

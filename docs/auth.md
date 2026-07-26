@@ -1,8 +1,8 @@
 # 认证与权限体系
 
 > **文档性质**: 系统现状权威描述（代码即文档）
-> **最后更新**: 2026-07-19
-> **关联文档**: `docs/tenant.md`（租户体系）、`docs/auth_plan.md`（改进计划历史）
+> **最后更新**: 2026-07-25
+> **关联文档**: `docs/tenant.md`（租户体系）、`docs/idp-protocol-spec.md`（IdP 协议规范）
 
 ---
 
@@ -108,6 +108,39 @@ GET /api/v1/auth/{provider}/callback    → 处理回调（throttle:30,1）
 GET /api/v1/auth/sso/{provider}/redirect → SSO 重定向
 GET /api/v1/auth/sso/{provider}/callback → SSO 回调
 ```
+
+### 4.6 委托式认证（Delegated IdP）
+
+**产品铁律**：租户选择 delegated 模式 = 公司有完整认证中心，框架与 email/SMS/注册**完全互斥**。
+
+| 模式 | 可用登录方式 | 注册 | 验证 | 用户生命周期 |
+|------|-------------|------|------|-------------|
+| `direct`（默认） | email + SMS + 各 OAuth | 框架 | 框架 | 框架 |
+| `delegated` | **仅 IdP OAuth** | IdP | IdP | IdP |
+
+**配置**（`tenant_settings` group=oauth）：
+
+| key | 值 | 说明 |
+|-----|---|------|
+| `oauth_mode` | `delegated` | 启用委托模式 |
+| `idp_base_url` | `https://id.lanyantu.com` | IdP 地址 |
+| `idp_protocol` | `standard` / `legacy` | 协议版本 |
+| `idp_client_id` | `scrm_prod` | 调用方标识 |
+| `idp_client_secret` | `<secret>` | 调用方密钥 |
+| `idp_field_mapping` | JSON | 自定义字段映射（可选） |
+
+**双协议**（`IdentityProviderOAuthService`）：
+- **standard**：/authorize → code → POST /token（authorization_code 流程）
+- **legacy**：/login/wechat?redirect= → /verify + JWT 直传
+
+**字段映射**：支持 `"a|b|c"` 优先级语法，默认兼容 OIDC + lanyantu 格式。
+`phone_verified=true` 时框架直接信任，不触发二次验证。
+
+**用户匹配优先级**：provider_id(guid) → unionid → mobile → email → 创建新用户
+
+**前端**：`login-config` 返回 `delegated: true` → H5 仅渲染 OAuth 按钮。
+
+**协议规范**：`docs/idp-protocol-spec.md`
 
 ---
 
@@ -281,7 +314,8 @@ POST /api/v1/tenant/auth/mail/test     → 发送测试邮件
 
 | 文件 | 职责 |
 |---|---|
-| `src/Modules/Auth/Services/SocialiteService.php` | 标准 OAuth（7 个 provider） |
+| `src/Modules/Auth/Services/SocialiteService.php` | 标准 OAuth（7 个 provider）+ delegated 分发 |
+| `src/Modules/Auth/Services/IdentityProviderOAuthService.php` | 委托式 IdP（standard/legacy 双协议 + 字段映射） |
 | `src/Modules/Auth/Services/WechatWorkOAuthService.php` | 企业微信独立 OAuth |
 | `src/Modules/Auth/Services/AlipayOAuthService.php` | 支付宝独立 OAuth（RSA2） |
 | `src/Modules/Auth/Services/SsoService.php` | SAML 2.0 + OIDC SSO |

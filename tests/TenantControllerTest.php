@@ -262,7 +262,7 @@ class TenantControllerTest extends TestCase
             'name' => 'Regular User',
             'email' => 'user@example.com',
             'password' => bcrypt('password'),
-            'role' => 'end_user',
+            'role' => 'platform_user',
         ]);
 
         $response = $this->actingAs($user)

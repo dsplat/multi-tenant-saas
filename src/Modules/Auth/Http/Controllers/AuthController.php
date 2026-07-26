@@ -98,18 +98,12 @@ class AuthController extends Controller
             'password' => Hash::make($request->password), // 业务层显式 hash
         ]);
 
-        // 自动加入当前租户
+        // 自动加入当前租户（User 不拥有角色）
         $tenantId = $request->attributes->get('tenant_id');
         if ($tenantId) {
-            $endUserRoleId = \DB::table('roles')
-                ->where('name', 'end_user')
-                ->whereNull('tenant_id')
-                ->value('role_id');
-
             TenantUser::create([
                 'tenant_id' => $tenantId,
                 'user_id' => $user->user_id,
-                'role_id' => $endUserRoleId,
                 'joined_at' => now(),
             ]);
         }

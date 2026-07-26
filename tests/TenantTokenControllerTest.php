@@ -12,7 +12,7 @@ class TenantTokenControllerTest extends TestCase
             'name' => 'Token User',
             'email' => 'token@example.com',
             'password' => bcrypt('password'),
-            'role' => 'end_user',
+            'role' => 'platform_user',
         ]);
 
         $token = $user->createToken('test-token')->plainTextToken;
@@ -27,7 +27,7 @@ class TenantTokenControllerTest extends TestCase
             'name' => 'Token User 2',
             'email' => 'token2@example.com',
             'password' => bcrypt('password'),
-            'role' => 'end_user',
+            'role' => 'platform_user',
         ]);
 
         $token = $user->createToken('test-token', ['tenant.view', 'member.view'])->plainTextToken;

@@ -82,7 +82,7 @@ class UserService
             ]);
 
             $platformTenantId = (int) config('id.platform_tenant_id');
-            $this->attachToTenant($user->user_id, $platformTenantId, 'end_user');
+            $this->attachToTenant($user->user_id, $platformTenantId);
             $this->giveWelcomeCredits($user->user_id, $platformTenantId);
 
             return $user->fresh();
@@ -108,7 +108,7 @@ class UserService
                 'role' => 'platform_user',
             ]);
 
-            $this->attachToTenant($user->user_id, $tenantId, 'end_user');
+            $this->attachToTenant($user->user_id, $tenantId);
 
             if ($welcomeCredits > 0) {
                 $account = CreditAccount::where('tenant_id', $tenantId)
@@ -128,9 +128,9 @@ class UserService
      *
      * @param  array{provider: string, provider_id: string, provider_name?: string, provider_email?: string, provider_avatar?: string, access_token?: string, refresh_token?: string, token_expires_at?: Carbon|null, metadata?: array}  $oauthData
      */
-    public function loginViaOauth(array $oauthData, int $tenantId, string $tenantRole = 'end_user'): User
+    public function loginViaOauth(array $oauthData, int $tenantId): User
     {
-        return DB::transaction(function () use ($oauthData, $tenantId, $tenantRole) {
+        return DB::transaction(function () use ($oauthData, $tenantId) {
             $oauthAccount = OauthAccount::where('provider', $oauthData['provider'])
                 ->where('provider_id', $oauthData['provider_id'])
                 ->first();
@@ -183,7 +183,7 @@ class UserService
             }
 
             if (! $user->tenants()->where('tenants.tenant_id', $tenantId)->exists()) {
-                $this->attachToTenant($user->user_id, $tenantId, $tenantRole);
+                $this->attachToTenant($user->user_id, $tenantId);
                 if ($isNewUser) {
                     $this->giveWelcomeCredits($user->user_id, $tenantId);
                 }
@@ -230,7 +230,7 @@ class UserService
             ]);
 
             if (! empty($data['tenant_id'])) {
-                $this->attachToTenant($user->user_id, $data['tenant_id'], $data['tenant_role'] ?? 'end_user');
+                $this->attachToTenant($user->user_id, $data['tenant_id']);
             }
 
             DB::commit();
@@ -306,23 +306,21 @@ class UserService
     }
 
     /**
-     * 将用户关联到租户
+     * 将用户关联到租户（User 不拥有角色）
      */
-    public function attachToTenant(int $userId, int $tenantId, string $role = 'end_user', int $credits = 0): void
+    public function attachToTenant(int $userId, int $tenantId, int $credits = 0): void
     {
         $user = User::findOrFail($userId);
         $tenant = Tenant::findOrFail($tenantId);
 
         if ($user->tenants()->where('tenants.tenant_id', $tenantId)->exists()) {
             $user->tenants()->updateExistingPivot($tenantId, [
-                'role' => $role,
                 'credits' => $credits,
                 'is_active' => true,
             ]);
         } else {
             $user->tenants()->attach($tenantId, [
                 'tenant_user_id' => $this->idGenerator->generate(),
-                'role' => $role,
                 'credits' => $credits,
                 'is_active' => true,
                 'joined_at' => now(),
@@ -350,18 +348,6 @@ class UserService
     }
 
     /**
-     * 更新用户在租户中的角色
-     */
-    public function updateTenantRole(int $userId, int $tenantId, string $role): void
-    {
-        $user = User::findOrFail($userId);
-
-        $user->tenants()->updateExistingPivot($tenantId, [
-            'role' => $role,
-        ]);
-    }
-
-    /**
      * 获取用户的租户列表
      */
     public function getUserTenants(int $userId): Collection
@@ -369,7 +355,7 @@ class UserService
         $user = User::findOrFail($userId);
 
         return $user->tenants()
-            ->withPivot('role', 'credits', 'is_active', 'joined_at')
+            ->withPivot('credits', 'is_active', 'joined_at')
             ->orderBy('tenant_users.joined_at', 'desc')
             ->get();
     }

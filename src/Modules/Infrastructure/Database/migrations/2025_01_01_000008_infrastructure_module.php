@@ -175,7 +175,6 @@ CREATE TABLE `tenant_users` (
   `tenant_user_id` bigint unsigned NOT NULL,
   `tenant_id` bigint unsigned NOT NULL,
   `user_id` bigint unsigned NOT NULL,
-  `role_id` bigint unsigned DEFAULT NULL,
   `credits` int NOT NULL DEFAULT '0',
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `joined_at` timestamp NULL DEFAULT NULL,
@@ -184,8 +183,6 @@ CREATE TABLE `tenant_users` (
   PRIMARY KEY (`tenant_user_id`),
   UNIQUE KEY `tenant_users_tenant_id_user_id_unique` (`tenant_id`,`user_id`),
   KEY `tenant_users_user_id_index` (`user_id`),
-  KEY `tenant_users_role_id_foreign` (`role_id`),
-  CONSTRAINT `tenant_users_role_id_foreign` FOREIGN KEY (`role_id`) REFERENCES `roles` (`role_id`) ON DELETE SET NULL,
   CONSTRAINT `tenant_users_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`tenant_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL);

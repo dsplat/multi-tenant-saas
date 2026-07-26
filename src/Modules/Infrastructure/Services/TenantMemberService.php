@@ -14,16 +14,19 @@ use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 
 /**
- * 租户成员管理服务
- * 用于 Console 后台的企业成员管理
+ * 租户用户管理服务
+ * 用于 Console 后台管理租户的 User（被服务用户）。
+ *
+ * 注意：User 不拥有角色（角色仅属 Operator，经 operator_tenants 关联）。
+ * 本服务仅管理用户与租户的关联及积分，不涉及任何角色逻辑。
  */
 class TenantMemberService
 {
     /**
-     * 获取租户成员列表
+     * 获取租户用户列表
      *
      * @param  int  $tenantId  租户ID
-     * @param  array  $options  选项 ['search' => string, 'role' => string, 'perPage' => int]
+     * @param  array  $options  选项 ['search' => string, 'perPage' => int]
      */
     public function getMembers(int $tenantId, array $options = []): LengthAwarePaginator
     {
@@ -38,11 +41,6 @@ class TenantMemberService
             });
         }
 
-        // 角色筛选
-        if (! empty($options['role'])) {
-            $query->where('role', $options['role']);
-        }
-
         $perPage = $options['perPage'] ?? 15;
 
         return $query->orderBy('joined_at', 'desc')
@@ -50,16 +48,15 @@ class TenantMemberService
     }
 
     /**
-     * 邀请新成员加入租户
+     * 邀请新用户加入租户（User 不拥有角色）
      *
      * @param  int  $tenantId  租户ID
      * @param  string  $email  邮箱
-     * @param  string  $role  角色（tenant_admin / end_user）
      * @param  int  $credits  初始积分
      * @param  int  $invitedBy  邀请人ID
      * @return array ['success' => bool, 'message' => string, 'data' => array]
      */
-    public function inviteMember(int $tenantId, string $email, string $role, int $credits, int $invitedBy): array
+    public function inviteMember(int $tenantId, string $email, int $credits, int $invitedBy): array
     {
         DB::beginTransaction();
         try {
@@ -85,7 +82,6 @@ class TenantMemberService
                 $tenantUser = TenantUser::create([
                     'tenant_id' => $tenantId,
                     'user_id' => $user->user_id,
-                    'role' => $role,
                     'credits' => $credits,
                     'joined_at' => now(),
                 ]);
@@ -96,14 +92,13 @@ class TenantMemberService
                     'name' => explode('@', $email)[0], // 临时名称
                     'email' => $email,
                     'password' => Hash::make($password),
-                    'role' => 'end_user', // 全局角色默认为普通用户
+                    'role' => 'platform_user', // 平台用户类型（非租户角色）
                 ]);
 
                 // 添加到租户
                 $tenantUser = TenantUser::create([
                     'tenant_id' => $tenantId,
                     'user_id' => $user->user_id,
-                    'role' => $role,
                     'credits' => $credits,
                     'joined_at' => now(),
                 ]);
@@ -118,7 +113,6 @@ class TenantMemberService
                     tenantName: $tenant?->name ?? '',
                     inviterName: $inviter?->name ?? 'System',
                     inviteUrl: url("/invite?tenant={$tenantId}&email=" . urlencode($email)),
-                    role: $role,
                 ));
             } catch (\Throwable $e) {
                 Log::warning('[TenantMemberService] Failed to send invitation email', [
@@ -145,54 +139,6 @@ class TenantMemberService
                 'message' => trans('tenant.invite_failed') . ': ' . $e->getMessage(),
             ];
         }
-    }
-
-    /**
-     * 更新成员角色
-     *
-     * @param  int  $tenantId  租户ID
-     * @param  int  $userId  用户ID
-     * @param  string  $role  新角色
-     * @return array ['success' => bool, 'message' => string]
-     */
-    public function updateMemberRole(int $tenantId, int $userId, string $role): array
-    {
-        $tenantUser = TenantUser::where('tenant_id', $tenantId)
-            ->where('user_id', $userId)
-            ->first();
-
-        if (! $tenantUser) {
-            return [
-                'success' => false,
-                'message' => trans('tenant.member_not_found'),
-            ];
-        }
-
-        // 检查是否是最后一个管理员
-        $tenantAdminRoleId = \DB::table('roles')
-            ->where('name', 'tenant_admin')
-            ->whereNull('tenant_id')
-            ->value('role_id');
-
-        if ($tenantUser->role_id === $tenantAdminRoleId && $roleId !== $tenantAdminRoleId) {
-            $adminCount = TenantUser::where('tenant_id', $tenantId)
-                ->where('role_id', $tenantAdminRoleId)
-                ->count();
-
-            if ($adminCount <= 1) {
-                return [
-                    'success' => false,
-                    'message' => trans('tenant.last_admin_role_protected'),
-                ];
-            }
-        }
-
-        $tenantUser->update(['role_id' => $roleId]);
-
-        return [
-            'success' => true,
-            'message' => trans('tenant.role_updated'),
-        ];
     }
 
     /**
@@ -244,25 +190,6 @@ class TenantMemberService
             ];
         }
 
-        // 检查是否是最后一个管理员
-        $tenantAdminRoleId = \DB::table('roles')
-            ->where('name', 'tenant_admin')
-            ->whereNull('tenant_id')
-            ->value('role_id');
-
-        if ($tenantUser->role_id === $tenantAdminRoleId) {
-            $adminCount = TenantUser::where('tenant_id', $tenantId)
-                ->where('role_id', $tenantAdminRoleId)
-                ->count();
-
-            if ($adminCount <= 1) {
-                return [
-                    'success' => false,
-                    'message' => trans('tenant.last_admin_protected'),
-                ];
-            }
-        }
-
         $tenantUser->delete();
 
         return [
@@ -293,17 +220,13 @@ class TenantMemberService
     public function getMemberStats(int $tenantId): array
     {
         $total = TenantUser::where('tenant_id', $tenantId)->count();
-        $admins = TenantUser::where('tenant_id', $tenantId)
-            ->where('role', 'tenant_admin')
-            ->count();
-        $users = TenantUser::where('tenant_id', $tenantId)
-            ->where('role', 'end_user')
+        $active = TenantUser::where('tenant_id', $tenantId)
+            ->where('is_active', true)
             ->count();
 
         return [
             'total' => $total,
-            'admins' => $admins,
-            'users' => $users,
+            'active' => $active,
         ];
     }
 }

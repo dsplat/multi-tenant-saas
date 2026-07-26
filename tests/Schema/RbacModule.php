@@ -65,7 +65,7 @@ class RbacModule implements SchemaModuleInterface
             ['role_id' => 1, 'name' => 'super_admin', 'display_name' => '超级管理员'],
             ['role_id' => 2, 'name' => 'platform_user', 'display_name' => '平台用户'],
             ['role_id' => 3, 'name' => 'tenant_admin', 'display_name' => '租户管理员'],
-            ['role_id' => 4, 'name' => 'end_user', 'display_name' => '普通用户'],
+            ['role_id' => 4, 'name' => 'member', 'display_name' => '成员'],
         ];
 
         foreach ($roles as $role) {
@@ -158,7 +158,7 @@ class RbacModule implements SchemaModuleInterface
             );
         }
 
-        // end_user: 仅查看权限（不含 tenant.view，因为这是管理权限）
+        // member: 仅查看权限（不含 tenant.view，因为这是管理权限）
         $userPermNames = ['member.view', 'credit.view', 'setting.view', 'payment.view', 'audit.view', 'file.upload', 'user.view'];
         $userPerms = DB::table('permissions')->whereIn('name', $userPermNames)->pluck('permission_id');
         foreach ($userPerms as $pid) {

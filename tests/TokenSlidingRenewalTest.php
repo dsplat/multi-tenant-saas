@@ -17,7 +17,7 @@ class TokenSlidingRenewalTest extends TestCase
             'name' => 'Renewal User',
             'email' => 'renewal@example.com',
             'password' => bcrypt('password123'),
-            'role' => 'end_user',
+            'role' => 'platform_user',
             'email_verified_at' => now(),
         ]);
 

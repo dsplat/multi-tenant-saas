@@ -277,9 +277,8 @@ class TenantOnboardingService
         $tenant = DB::transaction(function () use ($basic, $domain, $subscriptionPlan, $operatorId) {
             $tenant = $this->createTenant($basic, $domain, $subscriptionPlan);
 
-            // 为租户预置默认角色（待审核通过后供未来 User 注册使用）
+            // 为租户预置默认角色（仅供 Operator 使用；User 不拥有角色）
             $this->createDefaultRole($tenant, 'tenant_admin', trans('tenant.onboarding.role_admin'));
-            $this->createDefaultRole($tenant, 'end_user', trans('tenant.onboarding.role_user'));
 
             $this->provisionTenantSettings($tenant);
 

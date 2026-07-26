@@ -167,7 +167,7 @@ class TenantService
         $tenant = Tenant::findOrFail($tenantId);
 
         return $tenant->users()
-            ->withPivot('role', 'credits', 'is_active', 'joined_at')
+            ->withPivot('credits', 'is_active', 'joined_at')
             ->orderBy('tenant_users.joined_at', 'desc')
             ->get();
     }

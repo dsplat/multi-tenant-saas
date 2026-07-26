@@ -239,9 +239,9 @@ class TenantOnboardingTest extends TestCase
         $this->assertNotNull($tenant, '租户记录应被创建');
         $this->assertEquals('pending_approval', $tenant->status);
 
-        // 默认角色（tenant_admin / end_user）
+        // 默认角色（tenant_admin，仅供 Operator；User 不拥有角色）
         $this->assertGreaterThanOrEqual(
-            2,
+            1,
             Role::where('tenant_id', $tenantId)->count(),
             '默认角色应被创建'
         );

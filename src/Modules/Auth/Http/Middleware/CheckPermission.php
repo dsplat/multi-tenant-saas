@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\Response;
  * 安全原则：
  * - 平台 admin 后台仅 scope=platform 的 Operator 可访问
  * - 团队 console 后台仅 tenant_admin 角色 Operator 可访问
- * - 团队前台 /app 由 Operator（tenant_admin/end_user）或 User（开放注册后）访问
+ * - 团队前台 /app 由 User（经 tenant_users 关联，不拥有角色）或 Operator（经 operator_tenants）访问
  */
 class CheckPermission
 {
@@ -121,7 +121,7 @@ class CheckPermission
 
             $tenantRoleName = DB::table('roles')->where('role_id', $operatorTenant->role_id)->value('name');
         } else {
-            // User 路径
+            // User 路径（User 不拥有角色，仅校验是否为该租户的活跃用户）
             $tenantUser = $user->tenants()
                 ->where('tenants.tenant_id', $tenantId)
                 ->wherePivot('is_active', true)
@@ -131,7 +131,7 @@ class CheckPermission
                 return $this->forbidden($request, trans('common.not_in_tenant'));
             }
 
-            $tenantRoleName = DB::table('roles')->where('role_id', $tenantUser->pivot->role_id)->value('name');
+            // User 无角色，$tenantRoleName 保持 null
         }
 
         TenantContext::setTenantRole($tenantRoleName);

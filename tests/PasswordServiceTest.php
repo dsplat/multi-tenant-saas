@@ -31,7 +31,7 @@ class PasswordServiceTest extends TestCase
             'name' => 'Test',
             'email' => 'test@example.com',
             'password' => bcrypt('oldpassword'),
-            'role' => 'end_user',
+            'role' => 'platform_user',
         ]);
     }
 

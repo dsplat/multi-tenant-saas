@@ -68,14 +68,12 @@ class TenantProfileServiceTest extends TestCase
             'tenant_user_id' => 9001,
             'tenant_id' => 1001,
             'user_id' => 2001,
-            'role' => 'end_user',
             'is_active' => true,
         ]);
         DB::table('tenant_users')->insert([
             'tenant_user_id' => 9002,
             'tenant_id' => 1001,
             'user_id' => 2002,
-            'role' => 'end_user',
             'is_active' => false,
         ]);
 

@@ -39,6 +39,31 @@ class NotificationService
     }
 
     /**
+     * 解析租户管理员（Operator）绑定的 User ID 列表。
+     *
+     * 角色仅属 Operator：租户管理员经 operator_tenants（role/role_id）关联，
+     * User 不拥有角色。通知以 Operator 绑定的 User 记录为对象。
+     */
+    protected function tenantAdminUserIds(int $tenantId): array
+    {
+        $tenantAdminRoleId = \DB::table('roles')
+            ->where('name', 'tenant_admin')
+            ->whereNull('tenant_id')
+            ->value('role_id');
+
+        return \DB::table('operator_tenants')
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->whereNotNull('user_id')
+            ->where(function ($q) use ($tenantAdminRoleId) {
+                $q->where('role_id', $tenantAdminRoleId)
+                    ->orWhere('role', 'tenant_admin');
+            })
+            ->pluck('user_id')
+            ->all();
+    }
+
+    /**
      * 发送通用通知给指定用户
      */
     public function sendToUser(
@@ -89,16 +114,7 @@ class NotificationService
         ?string $actionUrl = null,
         array $extra = []
     ): void {
-        $tenantAdminRoleId = \DB::table('roles')
-            ->where('name', 'tenant_admin')
-            ->whereNull('tenant_id')
-            ->value('role_id');
-
-        $users = User::whereHas('tenants', function ($q) use ($tenantId, $tenantAdminRoleId) {
-            $q->where('tenants.tenant_id', $tenantId)
-                ->where('tenant_users.is_active', true)
-                ->where('tenant_users.role_id', $tenantAdminRoleId);
-        })->get();
+        $users = User::whereIn('user_id', $this->tenantAdminUserIds($tenantId))->get();
 
         $users = $this->filterByPreference($users, 'database', 'general');
 
@@ -129,16 +145,7 @@ class NotificationService
      */
     public function notifyCreditLow(Tenant $tenant, int $remaining, int $threshold = 100): void
     {
-        $tenantAdminRoleId = \DB::table('roles')
-            ->where('name', 'tenant_admin')
-            ->whereNull('tenant_id')
-            ->value('role_id');
-
-        $admins = User::whereHas('tenants', function ($q) use ($tenant, $tenantAdminRoleId) {
-            $q->where('tenants.tenant_id', $tenant->tenant_id)
-                ->where('tenant_users.is_active', true)
-                ->where('tenant_users.role_id', $tenantAdminRoleId);
-        })->get();
+        $admins = User::whereIn('user_id', $this->tenantAdminUserIds($tenant->tenant_id))->get();
 
         $admins = $this->filterByPreference($admins, 'database', 'credit_low');
 

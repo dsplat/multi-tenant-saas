@@ -15,7 +15,6 @@ class StoreMemberRequest extends FormRequest
     {
         return [
             'user_id' => 'required',
-            'role_id' => 'required|exists:roles,role_id',
         ];
     }
 }

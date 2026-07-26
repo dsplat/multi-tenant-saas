@@ -92,7 +92,6 @@ class PermissionModelIntegrationTest extends TestCase
             ['name' => 'tenant_admin', 'display_name' => '租户管理员', 'description' => '租户管理角色'],
             ['name' => 'member', 'display_name' => '成员', 'description' => '基础成员角色'],
             ['name' => 'viewer', 'display_name' => '观察者', 'description' => '只读访问角色'],
-            ['name' => 'end_user', 'display_name' => '普通用户', 'description' => '终端用户角色'],
         ];
 
         foreach ($roles as $role) {
@@ -195,7 +194,6 @@ class PermissionModelIntegrationTest extends TestCase
         $superAdminRoleId = \DB::table('roles')->where('name', 'super_admin')->whereNull('tenant_id')->value('role_id');
         $platformAdminRoleId = \DB::table('roles')->where('name', 'platform_admin')->whereNull('tenant_id')->value('role_id');
         $tenantAdminRoleId = \DB::table('roles')->where('name', 'tenant_admin')->whereNull('tenant_id')->value('role_id');
-        $endUserRoleId = \DB::table('roles')->where('name', 'end_user')->whereNull('tenant_id')->value('role_id');
 
         // 4. 创建超级管理员
         $this->superAdminOperator = Operator::create([
@@ -287,7 +285,6 @@ class PermissionModelIntegrationTest extends TestCase
         TenantUser::create([
             'tenant_id' => $this->tenantA->tenant_id,
             'user_id' => $this->tenantAAdminUser->user_id,
-            'role_id' => $tenantAdminRoleId,
             'is_active' => true,
         ]);
 
@@ -323,7 +320,6 @@ class PermissionModelIntegrationTest extends TestCase
         TenantUser::create([
             'tenant_id' => $this->tenantB->tenant_id,
             'user_id' => $this->tenantBAdminUser->user_id,
-            'role_id' => $tenantAdminRoleId,
             'is_active' => true,
         ]);
 
@@ -340,7 +336,6 @@ class PermissionModelIntegrationTest extends TestCase
         TenantUser::create([
             'tenant_id' => $this->tenantA->tenant_id,
             'user_id' => $this->endUser->user_id,
-            'role_id' => $endUserRoleId,
             'is_active' => true,
         ]);
     }
@@ -359,7 +354,7 @@ class PermissionModelIntegrationTest extends TestCase
         // 验证角色
         $this->assertDatabaseHas('roles', ['name' => 'super_admin']);
         $this->assertDatabaseHas('roles', ['name' => 'tenant_admin']);
-        $this->assertDatabaseHas('roles', ['name' => 'end_user']);
+        $this->assertDatabaseHas('roles', ['name' => 'member']);
 
         // 验证权限
         $this->assertTrue(\DB::table('permissions')->count() > 0);

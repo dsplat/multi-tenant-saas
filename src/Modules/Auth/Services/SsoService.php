@@ -541,19 +541,12 @@ class SsoService
                 ]);
             }
 
-            // 创建租户成员关系（JIT 加入）
+            // 创建租户成员关系（JIT 加入，User 不拥有角色）
             $tenantId = (int) $provider->tenant_id;
             if (! TenantUser::where('tenant_id', $tenantId)->where('user_id', $user->user_id)->exists()) {
-                // 获取 end_user 角色 ID
-                $endUserRoleId = \DB::table('roles')
-                    ->where('name', 'end_user')
-                    ->whereNull('tenant_id')
-                    ->value('role_id');
-
                 TenantUser::create([
                     'tenant_id' => $tenantId,
                     'user_id' => $user->user_id,
-                    'role_id' => $endUserRoleId,
                     'is_active' => true,
                     'joined_at' => now(),
                 ]);

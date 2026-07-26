@@ -97,24 +97,8 @@ class Tenant extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'tenant_users', 'tenant_id', 'user_id', 'tenant_id')
-            ->withPivot('role', 'role_id', 'credits', 'is_active', 'joined_at')
+            ->withPivot('credits', 'is_active', 'joined_at')
             ->withTimestamps();
-    }
-
-    /**
-     * 管理员用户
-     */
-    public function admins(): BelongsToMany
-    {
-        return $this->users()->wherePivot('role', 'tenant_admin');
-    }
-
-    /**
-     * 普通用户
-     */
-    public function endUsers(): BelongsToMany
-    {
-        return $this->users()->wherePivot('role', 'end_user');
     }
 
     /**

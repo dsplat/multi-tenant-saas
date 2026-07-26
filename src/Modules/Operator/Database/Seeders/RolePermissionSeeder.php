@@ -47,13 +47,7 @@ class RolePermissionSeeder extends Seeder
                 'apply_fields.update',
             ]))->values()->all(),
 
-            // 普通用户：查看 + 基础操作
-            'end_user' => $allPermIds->filter(fn ($_, $name) => str_contains($name, '.view') || in_array($name, [
-                'file.upload', 'lottery.draw', 'voting.vote', 'coupon.redeem',
-                'conversation.create',
-            ]))->values()->all(),
-
-            // 成员：与普通用户相同
+            // 成员（普通用户）：查看 + 基础操作
             'member' => $allPermIds->filter(fn ($_, $name) => str_contains($name, '.view') || in_array($name, [
                 'file.upload', 'lottery.draw', 'voting.vote', 'coupon.redeem',
                 'conversation.create',

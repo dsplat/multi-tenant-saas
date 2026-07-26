@@ -14,7 +14,7 @@ class UserSearchService
      *
      * @param  int  $tenantId  Tenant ID to scope results
      * @param  string  $query  Search term (name or email)
-     * @param  array  $filters  Additional filters: role, is_active, email_verified, sort_by, sort_direction, per_page
+     * @param  array  $filters  Additional filters: is_active, email_verified, sort_by, sort_direction, per_page
      */
     public function search(int $tenantId, string $query, array $filters = []): LengthAwarePaginator
     {
@@ -26,7 +26,7 @@ class UserSearchService
             ->with(['tenants' => function ($q) use ($tenantId) {
                 $q->where('tenants.tenant_id', $tenantId)
                     ->select('tenants.tenant_id')
-                    ->withPivot('role', 'is_active', 'joined_at');
+                    ->withPivot('is_active', 'joined_at');
             }]);
 
         if ($query !== '') {
@@ -35,13 +35,6 @@ class UserSearchService
             $builder->where(function ($q) use ($escaped) {
                 $q->where('name', 'like', "%{$escaped}%")
                     ->orWhere('email', 'like', "%{$escaped}%");
-            });
-        }
-
-        if (! empty($filters['role'])) {
-            $builder->whereHas('tenants', function ($q) use ($filters, $tenantId) {
-                $q->where('tenants.tenant_id', $tenantId)
-                    ->where('tenant_users.role', $filters['role']);
             });
         }
 

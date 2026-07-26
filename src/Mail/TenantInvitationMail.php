@@ -14,7 +14,6 @@ class TenantInvitationMail extends Mailable
         protected string $tenantName,
         protected string $inviterName,
         protected string $inviteUrl,
-        protected string $role = 'end_user',
     ) {}
 
     public function envelope(): Envelope
@@ -32,7 +31,6 @@ class TenantInvitationMail extends Mailable
             'tenant_name' => $this->tenantName,
             'inviter_name' => $this->inviterName,
             'invite_url' => $this->inviteUrl,
-            'role' => $this->role,
         ]);
 
         if ($rendered) {
@@ -43,7 +41,6 @@ class TenantInvitationMail extends Mailable
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>加入 {tenantName}</h2>
             <p>{inviterName} 邀请你加入 <strong>{tenantName}</strong>。</p>
-            <p>角色: {role}</p>
             <p style="margin: 24px 0;">
                 <a href="{inviteUrl}"
                    style="background: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
@@ -55,8 +52,8 @@ class TenantInvitationMail extends Mailable
         HTML;
 
         $html = str_replace(
-            ['{tenantName}', '{inviterName}', '{role}', '{inviteUrl}'],
-            [$this->tenantName, $this->inviterName, $this->role, $this->inviteUrl],
+            ['{tenantName}', '{inviterName}', '{inviteUrl}'],
+            [$this->tenantName, $this->inviterName, $this->inviteUrl],
             $html
         );
 

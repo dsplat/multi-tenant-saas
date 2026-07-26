@@ -46,12 +46,12 @@ class SecurityTest extends TestCase
             'password' => Hash::make('Password123'),
         ]);
 
-        TenantUser::factory()->admin()->create([
+        TenantUser::factory()->create([
             'tenant_id' => $this->tenant->tenant_id,
             'user_id' => $this->tenantAdmin->user_id,
         ]);
 
-        TenantUser::factory()->endUser()->create([
+        TenantUser::factory()->create([
             'tenant_id' => $this->tenant->tenant_id,
             'user_id' => $this->endUser->user_id,
         ]);

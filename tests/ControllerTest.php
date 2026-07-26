@@ -68,11 +68,6 @@ class ControllerTest extends TestCase
             ->whereNull('tenant_id')
             ->value('role_id');
 
-        $endUserRoleId = \DB::table('roles')
-            ->where('name', 'end_user')
-            ->whereNull('tenant_id')
-            ->value('role_id');
-
         // 创建平台级 operator（super_admin）
         $superAdminOperator = Operator::create([
             'email' => 'super@test.com',
@@ -115,13 +110,11 @@ class ControllerTest extends TestCase
         TenantUser::factory()->create([
             'tenant_id' => $this->tenant->tenant_id,
             'user_id' => $this->tenantAdmin->user_id,
-            'role_id' => $tenantAdminRoleId,
         ]);
 
         TenantUser::factory()->create([
             'tenant_id' => $this->tenant->tenant_id,
             'user_id' => $this->endUser->user_id,
-            'role_id' => $endUserRoleId,
         ]);
     }
 
@@ -182,14 +175,15 @@ class ControllerTest extends TestCase
         $response->assertStatus(403);
     }
 
-    public function test_end_user_can_access_tenant_data(): void
+    public function test_regular_user_cannot_access_member_management(): void
     {
+        // User 不拥有角色：成员管理（member.view）为 Operator 权限，普通 User 访问被拒
         $token = $this->endUser->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->getJson("/api/v1/tenants/{$this->tenant->tenant_id}/members");
 
-        $response->assertSuccessful();
+        $response->assertStatus(403);
     }
 
     // ========== 认证 API ==========

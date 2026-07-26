@@ -18,7 +18,7 @@ class AuthControllerTest extends TestCase
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => bcrypt('password123'),
-            'role' => 'end_user',
+            'role' => 'platform_user',
             'email_verified_at' => now(),
         ]);
 
@@ -38,7 +38,7 @@ class AuthControllerTest extends TestCase
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => bcrypt('password123'),
-            'role' => 'end_user',
+            'role' => 'platform_user',
         ]);
 
         $response = $this->postJson('/api/v1/auth/login', [
@@ -96,7 +96,7 @@ class AuthControllerTest extends TestCase
             'name' => 'Existing User',
             'email' => 'existing@example.com',
             'password' => bcrypt('password123'),
-            'role' => 'end_user',
+            'role' => 'platform_user',
         ]);
 
         $response = $this->postJson('/api/v1/auth/register', [
@@ -129,7 +129,7 @@ class AuthControllerTest extends TestCase
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => bcrypt('password123'),
-            'role' => 'end_user',
+            'role' => 'platform_user',
         ]);
 
         $response = $this->actingAs($user)
@@ -154,7 +154,7 @@ class AuthControllerTest extends TestCase
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => bcrypt('password123'),
-            'role' => 'end_user',
+            'role' => 'platform_user',
         ]);
 
         $token = $user->createToken('test-token')->plainTextToken;
@@ -181,7 +181,7 @@ class AuthControllerTest extends TestCase
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => bcrypt('password123'),
-            'role' => 'end_user',
+            'role' => 'platform_user',
         ]);
 
         $response = $this->postJson('/api/v1/auth/forgot-password', [
@@ -216,14 +216,13 @@ class AuthControllerTest extends TestCase
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => bcrypt('password123'),
-            'role' => 'end_user',
+            'role' => 'platform_user',
             'email_verified_at' => now(),
         ]);
 
         TenantUser::create([
             'tenant_id' => $tenant->tenant_id,
             'user_id' => $user->user_id,
-            'role' => 'end_user',
             'is_active' => true,
         ]);
 
@@ -244,7 +243,7 @@ class AuthControllerTest extends TestCase
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => bcrypt('password123'),
-            'role' => 'end_user',
+            'role' => 'platform_user',
         ]);
 
         $token = $user->createToken('test-token', ['tenant.view', 'member.view'])->plainTextToken;

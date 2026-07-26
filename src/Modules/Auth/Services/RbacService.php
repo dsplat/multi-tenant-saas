@@ -71,23 +71,8 @@ class RbacService
             return $this->checkRolePermission($operatorTenant->role_id, $permission);
         }
 
-        // 回退到 tenant_users 路径
-        if ($tenantId) {
-            $tenantUser = $user->tenants()
-                ->wherePivot('is_active', true)
-                ->where('tenants.tenant_id', $tenantId)
-                ->first();
-        } else {
-            $tenantUser = $user->tenants()
-                ->wherePivot('is_active', true)
-                ->first();
-        }
-
-        if (! $tenantUser || ! $tenantUser->pivot->role_id) {
-            return false;
-        }
-
-        return $this->checkRolePermission($tenantUser->pivot->role_id, $permission);
+        // User 不拥有角色：无 operator_tenants 角色关联即无 RBAC 权限
+        return false;
     }
 
     /**
@@ -168,21 +153,8 @@ class RbacService
             return [];
         }
 
-        // User 路径
-        if ($tenantId) {
-            $tenantUser = $user->tenants()
-                ->wherePivot('is_active', true)
-                ->where('tenants.tenant_id', $tenantId)
-                ->first();
-        } else {
-            $tenantUser = $user->tenants()
-                ->wherePivot('is_active', true)
-                ->first();
-        }
-
-        return $tenantUser && $tenantUser->pivot->role_id
-            ? $this->getRolePermissions($tenantUser->pivot->role_id)
-            : [];
+        // User 不拥有角色：无 RBAC 权限
+        return [];
     }
 
     public function clearRoleCache(int $roleId): void

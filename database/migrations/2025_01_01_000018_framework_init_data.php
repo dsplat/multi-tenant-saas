@@ -14,7 +14,7 @@ return new class extends Migration
 INSERT INTO `roles` (`role_id`, `tenant_id`, `name`, `display_name`, `description`, `is_system`, `created_at`, `updated_at`) VALUES (1264552901951924,NULL,'customer_insight','客户洞察','对应 CustomerInsightAgent — 客户情感分析、流失预测、画像分析和对话质量评估',1,'2026-07-17 02:38:54','2026-07-17 02:38:54');
 SQL);
         DB::statement(<<<'SQL'
-INSERT INTO `roles` (`role_id`, `tenant_id`, `name`, `display_name`, `description`, `is_system`, `created_at`, `updated_at`) VALUES (1454484572332186,NULL,'end_user','普通用户','终端用户角色',1,'2026-07-11 06:53:22','2026-07-11 06:53:22');
+INSERT INTO `roles` (`role_id`, `tenant_id`, `name`, `display_name`, `description`, `is_system`, `created_at`, `updated_at`) VALUES (1454484572332186,NULL,'member','成员','基础成员角色',1,'2026-07-11 06:53:22','2026-07-11 06:53:22');
 SQL);
         DB::statement(<<<'SQL'
 INSERT INTO `roles` (`role_id`, `tenant_id`, `name`, `display_name`, `description`, `is_system`, `created_at`, `updated_at`) VALUES (2411930942217401,NULL,'super_admin','超级管理员','系统级管理角色',1,'2026-07-11 06:53:22','2026-07-11 06:53:22');

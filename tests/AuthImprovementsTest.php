@@ -247,7 +247,7 @@ class AuthImprovementsTest extends TestCase
             'name' => 'Stale Header User',
             'email' => 'stale-header@example.com',
             'password' => bcrypt('password123'),
-            'role' => 'end_user',
+            'role' => 'platform_user',
         ]);
 
         // 已认证 User 携带不属于自己的残留 X-Tenant-ID：忽略 header，回退域名解析

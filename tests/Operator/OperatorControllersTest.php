@@ -52,7 +52,6 @@ class OperatorControllersTest extends TestCase
             'tenant_user_id' => 700101,
             'tenant_id' => $this->tenantId,
             'user_id' => $this->admin->user_id,
-            'role' => 'tenant_admin',
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
@@ -237,7 +236,7 @@ class OperatorControllersTest extends TestCase
             'operator_id' => 70002,
             'tenant_id' => $this->tenantId,
             'user_id' => 7002,
-            'role' => 'end_user',
+            'role' => 'member',
             'is_active' => true,
             'accepted_at' => now(),
         ]);
@@ -333,7 +332,7 @@ class OperatorControllersTest extends TestCase
             'operator_id' => 70005,
             'tenant_id' => $this->tenantId,
             'user_id' => $this->admin->user_id,
-            'role' => 'end_user',
+            'role' => 'member',
             'is_active' => false,
             'invited_at' => now(),
         ]);
@@ -399,7 +398,7 @@ class OperatorControllersTest extends TestCase
             'operator_id' => 70007,
             'tenant_id' => $this->tenantId,
             'user_id' => 7007,
-            'role' => 'end_user',
+            'role' => 'member',
             'is_active' => true,
             'accepted_at' => now(),
         ]);

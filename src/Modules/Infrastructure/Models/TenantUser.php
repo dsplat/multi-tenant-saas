@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
-use MultiTenantSaas\Modules\Auth\Models\Role;
 use MultiTenantSaas\Modules\Auth\Models\User;
 
 class TenantUser extends Model
@@ -31,7 +30,6 @@ class TenantUser extends Model
     protected $fillable = [
         'tenant_id',
         'user_id',
-        'role_id',
         'credits',
         'is_active',
         'joined_at',
@@ -54,40 +52,5 @@ class TenantUser extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id', 'user_id');
-    }
-
-    public function role(): BelongsTo
-    {
-        return $this->belongsTo(Role::class, 'role_id', 'role_id');
-    }
-
-    public function isAdmin(): bool
-    {
-        if ($this->relationLoaded('role')) {
-            return $this->role?->name === 'tenant_admin';
-        }
-
-        if (! $this->role_id) {
-            return false;
-        }
-
-        return Role::where('role_id', $this->role_id)
-            ->where('name', 'tenant_admin')
-            ->exists();
-    }
-
-    public function isEndUser(): bool
-    {
-        if ($this->relationLoaded('role')) {
-            return $this->role?->name === 'end_user';
-        }
-
-        if (! $this->role_id) {
-            return false;
-        }
-
-        return Role::where('role_id', $this->role_id)
-            ->where('name', 'end_user')
-            ->exists();
     }
 }

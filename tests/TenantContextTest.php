@@ -64,7 +64,7 @@ class TenantContextTest extends TestCase
         TenantContext::setTenantRole('tenant_admin');
         $this->assertEquals('tenant_admin', TenantContext::getTenantRole());
 
-        TenantContext::setTenantRole('end_user');
-        $this->assertEquals('end_user', TenantContext::getTenantRole());
+        TenantContext::setTenantRole('member');
+        $this->assertEquals('member', TenantContext::getTenantRole());
     }
 }

@@ -100,16 +100,17 @@ class WechatOAuthService
 
         $config = $this->getConfig($tenantId);
 
-        // 通过 code 换取 access_token + openid
+        // 通过 code 换取 access_token + openid + unionid
         $tokenData = $this->getAccessToken($config, $code);
         $accessToken = $tokenData['access_token'];
         $openId = $tokenData['openid'];
+        $unionid = $tokenData['unionid'] ?? '';
 
         // 获取用户信息
         $userInfo = $this->getUserInfo($accessToken, $openId);
 
-        $user = $this->findOrCreateUser($userInfo, $openId, $tenantId);
-        $this->recordOAuthAccount($user, $userInfo, $openId, $accessToken, $tenantId);
+        $user = $this->findOrCreateUser($userInfo, $openId, $tenantId, $unionid);
+        $this->recordOAuthAccount($user, $userInfo, $openId, $accessToken, $tenantId, $unionid, $config['app_id']);
 
         return [
             'user' => [
@@ -184,30 +185,30 @@ class WechatOAuthService
     /**
      * 查找或创建用户
      */
-    public function findOrCreateUser(array $wxUser, string $openId, int $tenantId): User
+    public function findOrCreateUser(array $wxUser, string $openId, int $tenantId, string $unionid = ''): User
     {
         $nsProvider = app(SocialiteService::class)->namespacedProvider('wechat', $tenantId);
 
+        // 1. 优先通过 unionid 查找（跨应用唯一）
+        if ($unionid !== '') {
+            $byUnionid = OauthAccount::where('unionid', $unionid)
+                ->where('provider', 'like', 'wechat%')
+                ->first();
+            if ($byUnionid && $byUnionid->user) {
+                $this->ensureTenantUser($byUnionid->user, $tenantId);
+
+                return $byUnionid->user;
+            }
+        }
+
+        // 2. 通过 openid + provider 查找
         $oauthAccount = OauthAccount::where('provider', $nsProvider)
             ->where('provider_id', $openId)
             ->first();
 
         if ($oauthAccount) {
             $existingUser = $oauthAccount->user;
-
-            $isMember = TenantUser::where('tenant_id', $tenantId)
-                ->where('user_id', $existingUser->user_id)
-                ->where('is_active', true)
-                ->exists();
-
-            if (! $isMember) {
-                TenantUser::create([
-                    'tenant_id' => $tenantId,
-                    'user_id' => $existingUser->user_id,
-                    'is_active' => true,
-                    'joined_at' => now(),
-                ]);
-            }
+            $this->ensureTenantUser($existingUser, $tenantId);
 
             return $existingUser;
         }
@@ -237,9 +238,9 @@ class WechatOAuthService
     }
 
     /**
-     * 记录 OAuth 账号
+     * 记录 OAuth 账号（含 unionid/openid/appid 冗余）
      */
-    protected function recordOAuthAccount(User $user, array $userInfo, string $openId, string $accessToken, int $tenantId): void
+    protected function recordOAuthAccount(User $user, array $userInfo, string $openId, string $accessToken, int $tenantId, string $unionid = '', string $appid = ''): void
     {
         $nsProvider = app(SocialiteService::class)->namespacedProvider('wechat', $tenantId);
 
@@ -251,6 +252,9 @@ class WechatOAuthService
             ],
             [
                 'tenant_id' => $tenantId,
+                'unionid' => $unionid ?: null,
+                'openid' => $openId,
+                'appid' => $appid ?: null,
                 'provider_email' => null,
                 'provider_name' => $userInfo['nickname'] ?? null,
                 'provider_avatar' => $userInfo['headimgurl'] ?? null,
@@ -258,6 +262,26 @@ class WechatOAuthService
                 'token_expires_at' => now()->addSeconds(7200),
             ]
         );
+    }
+
+    /**
+     * 确保用户关联到租户
+     */
+    protected function ensureTenantUser(User $user, int $tenantId): void
+    {
+        $exists = TenantUser::where('tenant_id', $tenantId)
+            ->where('user_id', $user->user_id)
+            ->where('is_active', true)
+            ->exists();
+
+        if (! $exists) {
+            TenantUser::create([
+                'tenant_id' => $tenantId,
+                'user_id' => $user->user_id,
+                'is_active' => true,
+                'joined_at' => now(),
+            ]);
+        }
     }
 
     /**

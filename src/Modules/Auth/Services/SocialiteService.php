@@ -127,10 +127,17 @@ class SocialiteService
     /**
      * 获取 OAuth 重定向 URL
      *
+     * 委托模式优先：若租户配置了 oauth_mode=delegated，跳转到认证中心
      * 支付宝使用 RSA2 签名的独立授权流程，不走 Socialite 驱动
      */
     public function getRedirectUrl(string $provider, int $tenantId): string
     {
+        // 委托模式：跳转到公司认证中心
+        $idp = app(IdentityProviderOAuthService::class);
+        if ($idp->isConfigured($tenantId)) {
+            return $idp->getRedirectUrl($tenantId, $provider);
+        }
+
         if ($provider === 'alipay') {
             return app(AlipayOAuthService::class)->getAuthorizeUrl($tenantId);
         }
@@ -157,11 +164,18 @@ class SocialiteService
     /**
      * 处理 OAuth 回调
      *
+     * 委托模式优先：若租户配置了 oauth_mode=delegated，由 IdentityProviderOAuthService 处理
      * 支付宝走独立的 AlipayOAuthService 流程；其余提供商复用 Socialite，
      * 并捕获 InvalidStateException 显式 abort(403)，避免 state 不匹配被静默忽略
      */
     public function handleCallback(string $provider, int $tenantId): array
     {
+        // 委托模式：认证中心回调带 token 参数
+        $idp = app(IdentityProviderOAuthService::class);
+        if ($idp->isConfigured($tenantId) && request()->has('token')) {
+            return $idp->handleCallback($tenantId, $provider);
+        }
+
         if ($provider === 'alipay') {
             return app(AlipayOAuthService::class)->handleCallback($tenantId);
         }

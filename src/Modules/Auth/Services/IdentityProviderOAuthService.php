@@ -166,18 +166,50 @@ class IdentityProviderOAuthService
     // ==================== 公共：用户创建/查找 ====================
 
     /**
-     * 根据 IdP 返回的用户信息，查找或创建本地用户
+     * 字段映射：IdP 返回 → 框架 users 表
      *
-     * 支持标准协议字段（sub/name/mobile/email/oauth_bindings）
-     * 和兼容字段（guid/nickname/avatar）
+     * 默认兼容两种格式：
+     * - 标准 OIDC: sub, name, avatar, mobile/phone_number, email
+     * - lanyantu IdP: guid, nickname, avatar, mobile, email
+     *
+     * 租户可通过 tenant_settings (group=oauth, key=idp_field_mapping) 自定义覆盖。
+     * 格式: JSON 对象，key=框架字段，value=IdP 字段（支持 "a|b" 表示优先 a 回退 b）
+     *
+     * 示例:
+     * {
+     *   "external_id": "sub|guid",
+     *   "name": "name|nickname",
+     *   "avatar": "avatar|headimgurl",
+     *   "phone": "mobile|phone_number",
+     *   "email": "email",
+     *   "phone_verified": "mobile_verified|phone_verified",
+     *   "email_verified": "email_verified"
+     * }
+     */
+    protected const DEFAULT_FIELD_MAPPING = [
+        'external_id' => 'sub|guid',
+        'name' => 'name|nickname',
+        'avatar' => 'avatar|headimgurl',
+        'phone' => 'mobile|phone_number|phone',
+        'email' => 'email',
+        'phone_verified' => 'mobile_verified|phone_verified',
+        'email_verified' => 'email_verified',
+    ];
+
+    /**
+     * 根据 IdP 返回的用户信息，查找或创建本地用户
      */
     protected function provisionUser(array $idpUser, int $tenantId, string $provider, string $idpToken): array
     {
-        $guid = (string) ($idpUser['sub'] ?? $idpUser['guid'] ?? '');
-        $nickname = $idpUser['name'] ?? $idpUser['nickname'] ?? '';
-        $avatar = $idpUser['avatar'] ?? '';
-        $mobile = $idpUser['mobile'] ?? $idpUser['phone'] ?? '';
-        $email = $idpUser['email'] ?? '';
+        $mapped = $this->mapFields($idpUser, $tenantId);
+
+        $guid = $mapped['external_id'];
+        $nickname = $mapped['name'];
+        $avatar = $mapped['avatar'];
+        $mobile = $mapped['phone'];
+        $email = $mapped['email'];
+        $phoneVerified = $mapped['phone_verified'];
+        $emailVerified = $mapped['email_verified'];
         $oauthBindings = $idpUser['oauth_bindings'] ?? [];
 
         if ($guid === '') {
@@ -193,6 +225,7 @@ class IdentityProviderOAuthService
 
         if ($oauthAccount && $oauthAccount->user) {
             $this->ensureTenantUser($oauthAccount->user, $tenantId);
+            $this->syncUserProfile($oauthAccount->user, $mapped);
             $this->updateOAuthBindings($oauthAccount->user, $oauthBindings, $tenantId, $provider);
 
             return $this->buildResult($oauthAccount->user, $provider);
@@ -205,6 +238,7 @@ class IdentityProviderOAuthService
                 $byUnionid = OauthAccount::where('unionid', $unionid)->first();
                 if ($byUnionid && $byUnionid->user) {
                     $this->ensureTenantUser($byUnionid->user, $tenantId);
+                    $this->syncUserProfile($byUnionid->user, $mapped);
                     $this->updateOAuthBindings($byUnionid->user, $oauthBindings, $tenantId, $provider);
 
                     return $this->buildResult($byUnionid->user, $provider);
@@ -217,6 +251,7 @@ class IdentityProviderOAuthService
             $user = User::where('phone', $mobile)->first();
             if ($user) {
                 $this->ensureTenantUser($user, $tenantId);
+                $this->syncUserProfile($user, $mapped);
                 $this->recordIdpAccount($user, $guid, $nickname, $avatar, $tenantId, $provider, $idpToken, $oauthBindings);
 
                 return $this->buildResult($user, $provider);
@@ -228,20 +263,22 @@ class IdentityProviderOAuthService
             $user = User::where('email', $email)->first();
             if ($user) {
                 $this->ensureTenantUser($user, $tenantId);
+                $this->syncUserProfile($user, $mapped);
                 $this->recordIdpAccount($user, $guid, $nickname, $avatar, $tenantId, $provider, $idpToken, $oauthBindings);
 
                 return $this->buildResult($user, $provider);
             }
         }
 
-        // 5. 创建最小注册用户
+        // 5. 创建用户（delegated 模式下 IdP 已验证联系方式，直接写入）
         $user = User::create([
             'name' => $nickname ?: ('idp_' . Str::limit($guid, 8)),
-            'email' => $guid . '@' . $provider,
+            'email' => $email ?: ($guid . '@' . $provider),
             'password' => bcrypt(Str::random(32)),
             'avatar' => $avatar ?: null,
             'phone' => $mobile ?: null,
-            'phone_verified_at' => $mobile ? now() : null,
+            'phone_verified_at' => ($mobile && $phoneVerified) ? now() : null,
+            'email_verified_at' => ($email && $emailVerified) ? now() : null,
         ]);
 
         TenantUser::create([
@@ -254,6 +291,87 @@ class IdentityProviderOAuthService
         $this->recordIdpAccount($user, $guid, $nickname, $avatar, $tenantId, $provider, $idpToken, $oauthBindings);
 
         return $this->buildResult($user, $provider);
+    }
+
+    /**
+     * 字段映射：从 IdP 原始数据提取框架所需字段
+     *
+     * 支持 "a|b|c" 优先级语法：取第一个非空值
+     */
+    protected function mapFields(array $idpUser, int $tenantId): array
+    {
+        $mapping = $this->getFieldMapping($tenantId);
+        $result = [];
+
+        foreach ($mapping as $frameworkField => $idpFields) {
+            $candidates = explode('|', $idpFields);
+            $value = '';
+
+            foreach ($candidates as $field) {
+                $field = trim($field);
+                if (isset($idpUser[$field]) && $idpUser[$field] !== '' && $idpUser[$field] !== null) {
+                    $value = (string) $idpUser[$field];
+                    break;
+                }
+            }
+
+            $result[$frameworkField] = $value;
+        }
+
+        // phone_verified / email_verified 转为布尔
+        $result['phone_verified'] = in_array(strtolower($result['phone_verified'] ?? ''), ['1', 'true', 'yes'], true);
+        $result['email_verified'] = in_array(strtolower($result['email_verified'] ?? ''), ['1', 'true', 'yes'], true);
+
+        return $result;
+    }
+
+    /**
+     * 同步用户资料（IdP 数据覆盖本地，仅更新空字段或 IdP 有值的字段）
+     */
+    protected function syncUserProfile(User $user, array $mapped): void
+    {
+        $updates = [];
+
+        if ($mapped['name'] !== '' && ($user->name === '' || str_starts_with($user->name, 'idp_'))) {
+            $updates['name'] = $mapped['name'];
+        }
+
+        if ($mapped['avatar'] !== '' && ! $user->avatar) {
+            $updates['avatar'] = $mapped['avatar'];
+        }
+
+        if ($mapped['phone'] !== '' && ! $user->phone) {
+            $updates['phone'] = $mapped['phone'];
+            if ($mapped['phone_verified']) {
+                $updates['phone_verified_at'] = now();
+            }
+        }
+
+        if ($mapped['email'] !== '' && ! preg_match('/@(wechat|wechat_work|idp)$/', $user->email ?? '') && ! $user->email) {
+            $updates['email'] = $mapped['email'];
+            if ($mapped['email_verified']) {
+                $updates['email_verified_at'] = now();
+            }
+        }
+
+        if (! empty($updates)) {
+            $user->update($updates);
+        }
+    }
+
+    protected function getFieldMapping(int $tenantId): array
+    {
+        $custom = TenantSetting::get($tenantId, 'oauth', 'idp_field_mapping', '');
+
+        if ($custom !== '') {
+            $decoded = json_decode($custom, true);
+            if (is_array($decoded) && ! empty($decoded)) {
+                // 合并：自定义覆盖默认
+                return array_merge(self::DEFAULT_FIELD_MAPPING, $decoded);
+            }
+        }
+
+        return self::DEFAULT_FIELD_MAPPING;
     }
 
     protected function buildResult(User $user, string $provider): array

@@ -99,9 +99,12 @@ class TenantOAuthController extends Controller
             return $this->redirectToH5($request, $tenantId, ['error' => $e->getMessage()]);
         }
 
-        // 检查用户是否已绑定有效联系方式（phone/email 已验证）
+        // delegated 模式：IdP 已担保用户身份，跳过联系方式检测
+        $isDelegated = app(\MultiTenantSaas\Modules\Auth\Services\IdentityProviderOAuthService::class)->isConfigured($tenantId);
+
+        // direct 模式：检查用户是否已绑定有效联系方式（phone/email 已验证）
         $user = \MultiTenantSaas\Modules\Auth\Models\User::find($result['user']['user_id']);
-        if ($user && ! $this->hasVerifiedContact($user)) {
+        if (! $isDelegated && $user && ! $this->hasVerifiedContact($user)) {
             // 最小注册：签发 pending token，要求补充联系方式
             $user->tokens()->where('name', "{$provider}-login")->latest('id')->first()?->delete();
             $pendingToken = $user->createToken('oauth-pending', ['pending'])->plainTextToken;

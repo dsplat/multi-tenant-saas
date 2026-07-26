@@ -103,7 +103,7 @@ router.beforeEach(async (to, _from, next) => {
         await userStore.fetchUser()
       } catch {
         userStore.token = null
-        localStorage.removeItem('console_token')
+        localStorage.removeItem('auth_token')
         next({ name: 'Login', query: { redirect: to.fullPath } })
         return
       }

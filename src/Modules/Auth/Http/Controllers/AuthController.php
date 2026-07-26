@@ -138,6 +138,120 @@ class AuthController extends Controller
     }
 
     /**
+     * 发送短信验证码（公开，用于 SMS 登录/注册）。
+     *
+     * POST /api/v1/auth/sms/send-code
+     */
+    public function sendSmsLoginCode(Request $request): JsonResponse
+    {
+        $request->validate([
+            'phone' => ['required', 'regex:/^1[3-9]\d{9}$/'],
+        ]);
+
+        $phone = $request->phone;
+        $tenantId = $request->attributes->get('tenant_id');
+
+        // 频率限制：同一手机号 60 秒内只能发一次
+        $throttleKey = "sms_login:{$phone}";
+        if (\Illuminate\Support\Facades\Cache::has($throttleKey)) {
+            return response()->json([
+                'success' => false,
+                'message' => trans('auth.sms_too_frequent'),
+            ], 429);
+        }
+
+        // 生成 6 位验证码
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        // 缓存验证码（5 分钟有效）
+        \Illuminate\Support\Facades\Cache::put("sms_login_code:{$phone}", $code, 300);
+        // 频率锁 60 秒
+        \Illuminate\Support\Facades\Cache::put($throttleKey, 1, 60);
+
+        // 发送短信
+        $sent = app(\MultiTenantSaas\Modules\Sms\Services\SmsService::class)->send($phone, $code, 'login');
+
+        if ($sent === false) {
+            return response()->json([
+                'success' => false,
+                'message' => trans('auth.sms_send_failed'),
+            ], 503);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => ['expires_in' => 300],
+        ]);
+    }
+
+    /**
+     * 短信验证码登录（未注册手机号自动注册）。
+     *
+     * POST /api/v1/auth/sms/login
+     */
+    public function smsLogin(Request $request): JsonResponse
+    {
+        $request->validate([
+            'phone' => ['required', 'regex:/^1[3-9]\d{9}$/'],
+            'code' => 'required|string|size:6',
+        ]);
+
+        $phone = $request->phone;
+        $code = $request->code;
+        $tenantId = $request->attributes->get('tenant_id');
+
+        // 校验验证码
+        $stored = \Illuminate\Support\Facades\Cache::get("sms_login_code:{$phone}");
+        if ($stored === null || ! hash_equals((string) $stored, $code)) {
+            return response()->json([
+                'success' => false,
+                'message' => trans('auth.sms_code_invalid'),
+            ], 422);
+        }
+
+        // 验证成功，清除缓存
+        \Illuminate\Support\Facades\Cache::forget("sms_login_code:{$phone}");
+
+        // 查找或创建用户
+        $user = User::where('phone', $phone)->first();
+        $isNewUser = false;
+
+        if (! $user) {
+            $isNewUser = true;
+            $user = User::create([
+                'name' => substr($phone, 0, 3) . '****' . substr($phone, -4),
+                'phone' => $phone,
+                'phone_verified_at' => now(),
+                'password' => Hash::make(Str::random(32)), // 随机密码，SMS 用户无需密码
+            ]);
+        }
+
+        if (! ($user->is_active ?? true)) {
+            return response()->json(['success' => false, 'message' => trans('auth.account_disabled')], 403);
+        }
+
+        // 确保租户关联
+        if ($tenantId) {
+            $exists = TenantUser::where('tenant_id', $tenantId)
+                ->where('user_id', $user->user_id)
+                ->exists();
+            if (! $exists) {
+                TenantUser::create([
+                    'tenant_id' => $tenantId,
+                    'user_id' => $user->user_id,
+                    'joined_at' => now(),
+                ]);
+            }
+        }
+
+        if ($isNewUser) {
+            event(new UserRegistered($user, $tenantId));
+        }
+
+        return $this->createTokenResponse($user, $request);
+    }
+
+    /**
      * 获取当前用户信息。
      */
     public function me(Request $request): JsonResponse

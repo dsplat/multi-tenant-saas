@@ -64,7 +64,7 @@ const userStore = useUserStore()
 const loading = ref(false)
 const error = ref('')
 
-const form = reactive({ email: '', password: '', tenantId: (route.query.tenant_id as string) || (route.query.tid as string) || localStorage.getItem('console_tenant_id') || '' })
+const form = reactive({ email: '', password: '', tenantId: (route.query.tenant_id as string) || (route.query.tid as string) || localStorage.getItem('auth_tenant_id') || '' })
 
 const handleLogin = async () => {
   loading.value = true

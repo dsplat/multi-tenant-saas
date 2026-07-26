@@ -15,12 +15,12 @@ interface User {
 }
 
 export const useUserStore = defineStore('user', () => {
-  const token = ref<string | null>(localStorage.getItem('console_token'))
+  const token = ref<string | null>(localStorage.getItem('auth_token'))
   const user = ref<User | null>(null)
   const permissions = ref<string[]>([])
 
   const isLoggedIn = computed(() => !!token.value)
-  const tenantId = computed(() => user.value?.tenant_id || localStorage.getItem('console_tenant_id') || '')
+  const tenantId = computed(() => user.value?.tenant_id || localStorage.getItem('auth_tenant_id') || '')
 
   const hasPermission = (perm: string): boolean => {
     if (['super_admin', 'tenant_admin', 'platform_admin'].includes(user.value?.role || '')) return true
@@ -29,7 +29,7 @@ export const useUserStore = defineStore('user', () => {
 
   const setToken = (newToken: string) => {
     token.value = newToken
-    localStorage.setItem('console_token', newToken)
+    localStorage.setItem('auth_token', newToken)
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
   }
 
@@ -39,7 +39,7 @@ export const useUserStore = defineStore('user', () => {
       const data = response.data.data
       user.value = data.user || data
       permissions.value = data.permissions || []
-      if (data.tenant_id) localStorage.setItem('console_tenant_id', String(data.tenant_id))
+      if (data.tenant_id) localStorage.setItem('auth_tenant_id', String(data.tenant_id))
     } catch (error) {
       console.error('获取用户信息失败:', error)
       throw error
@@ -48,7 +48,7 @@ export const useUserStore = defineStore('user', () => {
 
   const login = async (email: string, password: string, tenantId?: string) => {
     try {
-      const tid = tenantId || localStorage.getItem('console_tenant_id') || new URLSearchParams(window.location.search).get('tenant_id') || ''
+      const tid = tenantId || localStorage.getItem('auth_tenant_id') || new URLSearchParams(window.location.search).get('tenant_id') || ''
       const headers: Record<string, string> = {}
       if (tid) headers['X-Tenant-ID'] = tid
       const response = await axios.post('/api/v1/console/auth/login', { email, password }, { headers })
@@ -68,7 +68,7 @@ export const useUserStore = defineStore('user', () => {
         if (no_tenant || !tenants?.length) {
           // No tenant — will be redirected to /console/apply
           if (user.value) user.value.tenant_id = undefined
-          localStorage.removeItem('console_tenant_id')
+          localStorage.removeItem('auth_tenant_id')
           delete axios.defaults.headers.common['X-Tenant-ID']
           return { ...response.data, no_tenant: true }
         }
@@ -76,7 +76,7 @@ export const useUserStore = defineStore('user', () => {
         const firstTenant = tenants[0]
         const effectiveTenantId = firstTenant.tenant_id
         if (user.value) user.value.tenant_id = String(effectiveTenantId)
-        localStorage.setItem('console_tenant_id', String(effectiveTenantId))
+        localStorage.setItem('auth_tenant_id', String(effectiveTenantId))
         axios.defaults.headers.common['X-Tenant-ID'] = String(effectiveTenantId)
         return response.data
       }
@@ -88,7 +88,7 @@ export const useUserStore = defineStore('user', () => {
       user.value = userData
       permissions.value = userData.permissions || []
       if (tenant_id) {
-        localStorage.setItem('console_tenant_id', String(tenant_id))
+        localStorage.setItem('auth_tenant_id', String(tenant_id))
         axios.defaults.headers.common['X-Tenant-ID'] = String(tenant_id)
       }
       return response.data
@@ -102,7 +102,7 @@ export const useUserStore = defineStore('user', () => {
     try { await axios.post('/api/v1/console/auth/logout') } catch {}
     finally {
       token.value = null; user.value = null; permissions.value = []
-      localStorage.removeItem('console_token'); localStorage.removeItem('console_tenant_id')
+      localStorage.removeItem('auth_token'); localStorage.removeItem('auth_tenant_id')
       delete axios.defaults.headers.common['Authorization']
       delete axios.defaults.headers.common['X-Tenant-ID']
     }
@@ -111,7 +111,7 @@ export const useUserStore = defineStore('user', () => {
   const switchTenant = async (tenantId: number) => {
     // Update headers and storage
     axios.defaults.headers.common['X-Tenant-ID'] = String(tenantId)
-    localStorage.setItem('console_tenant_id', String(tenantId))
+    localStorage.setItem('auth_tenant_id', String(tenantId))
     if (user.value) user.value.tenant_id = String(tenantId)
 
     // Reload user info for the new tenant context
@@ -128,13 +128,13 @@ export const useUserStore = defineStore('user', () => {
   const init = async () => {
     if (token.value) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
-      const storedTid = localStorage.getItem('console_tenant_id')
+      const storedTid = localStorage.getItem('auth_tenant_id')
       if (storedTid) axios.defaults.headers.common['X-Tenant-ID'] = storedTid
       try { await fetchUser() } catch (error: any) {
         const status = error?.response?.status
         if (status === 403) {
           // 403 多为残留的过期 X-Tenant-ID 与当前域名租户冲突：清残留租户头重试，不清 token
-          localStorage.removeItem('console_tenant_id')
+          localStorage.removeItem('auth_tenant_id')
           delete axios.defaults.headers.common['X-Tenant-ID']
           try { await fetchUser(); return } catch (retryError: any) {
             if (retryError?.response?.status !== 401) return
@@ -145,7 +145,7 @@ export const useUserStore = defineStore('user', () => {
         }
         // 仅认证失效（401）清除会话
         token.value = null; user.value = null; permissions.value = []
-        localStorage.removeItem('console_token')
+        localStorage.removeItem('auth_token')
         delete axios.defaults.headers.common['Authorization']
       }
     }

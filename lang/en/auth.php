@@ -87,4 +87,9 @@ return [
     'oauth_not_bound' => 'This OAuth account is not bound',
     'cannot_unbind_last' => 'Cannot unbind the only login method. Please set a password first',
     'oauth_unbound' => 'OAuth account unbound',
+
+    // SMS login
+    'sms_too_frequent' => 'Too frequent, please retry after 60 seconds',
+    'sms_send_failed' => 'Failed to send SMS, please try again later',
+    'sms_code_invalid' => 'Invalid or expired verification code',
 ];

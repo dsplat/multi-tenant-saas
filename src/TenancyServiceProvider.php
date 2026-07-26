@@ -100,6 +100,9 @@ class TenancyServiceProvider extends ServiceProvider
         // 自动加载核心迁移（下游无需维护副本）
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
 
+        // 注册框架语言包：追加到 FileLoader 根路径，使 trans('common.xxx') 直接可用
+        $this->app['translation.loader']->addPath(__DIR__ . '/../lang');
+
         // 发布资源（供需要自定义迁移/配置的项目使用）
         $this->publishes([
             __DIR__ . '/../config/tenancy.php' => config_path('tenancy.php'),

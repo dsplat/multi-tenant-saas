@@ -15,7 +15,7 @@ axios.interceptors.response.use(
     const status = error?.response?.status
     const reqUrl: string = error?.config?.url || ''
     if (status === 401 && !reqUrl.includes('/auth/login') && !window.location.pathname.startsWith('/console/login')) {
-      localStorage.removeItem('console_token')
+      localStorage.removeItem('auth_token')
       delete axios.defaults.headers.common['Authorization']
       const redirect = encodeURIComponent(window.location.pathname.replace(/^\/console/, '') + window.location.search)
       window.location.href = `/console/login?redirect=${redirect}`

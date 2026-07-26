@@ -90,4 +90,9 @@ return [
     'oauth_not_bound' => '未绑定该第三方账号',
     'cannot_unbind_last' => '不能解绑唯一的登录方式，请先设置密码',
     'oauth_unbound' => '第三方账号已解绑',
+
+    // SMS 验证码登录
+    'sms_too_frequent' => '发送过于频繁，请 60 秒后重试',
+    'sms_send_failed' => '短信发送失败，请稍后重试',
+    'sms_code_invalid' => '验证码错误或已过期',
 ];

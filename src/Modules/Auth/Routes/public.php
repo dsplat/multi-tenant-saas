@@ -19,6 +19,12 @@ Route::prefix('auth')->group(function () {
     Route::post('/resend-verification', [AuthController::class, 'resendVerification'])
         ->middleware('throttle:10,1');
 
+    // SMS 验证码登录
+    Route::post('/sms/send-code', [AuthController::class, 'sendSmsLoginCode'])
+        ->middleware('throttle:5,1');
+    Route::post('/sms/login', [AuthController::class, 'smsLogin'])
+        ->middleware('throttle:10,1');
+
     // SSO
     Route::get('/sso/{provider}/redirect', [AuthController::class, 'ssoRedirect']);
     Route::get('/sso/{provider}/callback', [AuthController::class, 'ssoCallback']);

@@ -57,15 +57,15 @@ class SocialiteService
             return $storedRedirect;
         }
 
-        // 基于租户域名动态拼接
+        // 基于租户域名动态拼接（路由前缀 /api/v1）
         $domain = Tenant::where('tenant_id', $tenantId)->value('domain');
 
         if (! $domain) {
             // 无自定义域名，回退到相对路径（平台域名场景）
-            return $storedRedirect ?: "/auth/{$provider}/callback";
+            return $storedRedirect ?: "/api/v1/auth/{$provider}/callback";
         }
 
-        $path = $storedRedirect ?: "/auth/{$provider}/callback";
+        $path = $storedRedirect ?: "/api/v1/auth/{$provider}/callback";
 
         return "https://{$domain}{$path}";
     }

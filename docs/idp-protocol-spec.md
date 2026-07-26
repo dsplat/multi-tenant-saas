@@ -237,7 +237,35 @@ idp_protocol            = standard | legacy
 
 ---
 
-## 7. 验收标准
+## 7. 字段映射规范
+
+框架通过可配置映射层适配不同 IdP 的返回格式。以下为**推荐字段名**（IdP 实现时优先采用）：
+
+| 框架字段 | 推荐 IdP 字段 | 兼容别名 | 说明 |
+|----------|--------------|----------|------|
+| external_id | `sub` | `guid` | IdP 内全局用户唯一 ID |
+| name | `name` | `nickname` | 用户显示名 |
+| avatar | `avatar` | `headimgurl` | 头像 URL |
+| phone | `mobile` | `phone_number`, `phone` | 手机号 |
+| email | `email` | — | 邮箱 |
+| phone_verified | `mobile_verified` | `phone_verified` | 手机是否已验证（bool） |
+| email_verified | `email_verified` | — | 邮箱是否已验证（bool） |
+| oauth_bindings | `oauth_bindings` | — | 数组，每项含 provider/openid/unionid/appid |
+
+**映射规则**：
+- 框架按 `推荐字段 → 兼容别名` 优先级取第一个非空值
+- 租户可通过 `idp_field_mapping` 配置自定义覆盖（JSON 对象）
+- `phone_verified=true` 时框架直接信任，不再要求二次短信验证
+- `oauth_bindings` 中的 unionid 用于跨应用用户匹配（核心字段，**必须返回**）
+
+**互斥原则**：
+- 租户选择 delegated 模式后，框架侧 email/SMS 登录、注册入口全部关闭
+- 用户生命周期（注册/注销/改密/验证）完全由 IdP 管理
+- 框架仅做「身份映射 + 会话管理」，不越权
+
+---
+
+## 8. 验收标准
 
 - [ ] `oauth_clients` 表创建，scrm_prod 注册完成
 - [ ] `GET /authorize?client_id=scrm_prod&redirect_uri=...&state=xxx` 正确跳转微信

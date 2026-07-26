@@ -64,3 +64,4 @@ deploy/__pycache__/
 # IDE/AI 工具配置
 .qoder/
 .verify_lanyantu_login.png
+.verify_*.png

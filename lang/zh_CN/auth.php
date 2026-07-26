@@ -95,4 +95,6 @@ return [
     'sms_too_frequent' => '发送过于频繁，请 60 秒后重试',
     'sms_send_failed' => '短信发送失败，请稍后重试',
     'sms_code_invalid' => '验证码错误或已过期',
+    'email_code_invalid' => '邮箱验证码错误或已过期',
+    'email_send_failed' => '邮件发送失败，请稍后重试',
 ];

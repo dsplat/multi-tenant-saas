@@ -11,6 +11,10 @@ Route::prefix('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/mfa/verify', [AuthController::class, 'mfaVerify']);
 
+    // OAuth 登录后补充联系方式（pending token 可用）
+    Route::post('/bind-contact', [AuthController::class, 'bindContact']);
+    Route::post('/bind-contact/send-email-code', [AuthController::class, 'sendBindEmailCode']);
+
     // 用户资料管理
     Route::put('/profile', [UserProfileController::class, 'updateProfile']);
     Route::put('/password', [UserProfileController::class, 'changePassword']);

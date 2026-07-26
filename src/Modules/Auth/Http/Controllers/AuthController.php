@@ -252,6 +252,147 @@ class AuthController extends Controller
     }
 
     /**
+     * OAuth 登录后补充联系方式（需 pending token）。
+     *
+     * POST /api/v1/auth/bind-contact
+     * Body: { type: "phone"|"email", value: "13800138000"|"a@b.com", code: "123456" }
+     *
+     * 若该联系方式已属于另一账号 → 合并（oauth_accounts 迁移，壳用户删除）
+     */
+    public function bindContact(Request $request): JsonResponse
+    {
+        $request->validate([
+            'type' => 'required|in:phone,email',
+            'value' => 'required|string',
+            'code' => 'required|string|size:6',
+        ]);
+
+        $user = $request->user();
+        $type = $request->type;
+        $value = trim($request->value);
+        $code = $request->code;
+        $tenantId = $request->attributes->get('tenant_id');
+
+        // 验证 token 必须是 pending 能力（或完整 token 也允许补绑）
+        $token = $user->currentAccessToken();
+        if (! $token->can('pending') && ! empty($token->abilities)) {
+            // 非 pending 且非空能力 → 拒绝
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+        }
+
+        // 校验验证码
+        if ($type === 'phone') {
+            $stored = \Illuminate\Support\Facades\Cache::get("sms_login_code:{$value}");
+            if ($stored === null || ! hash_equals((string) $stored, $code)) {
+                return response()->json(['success' => false, 'message' => trans('auth.sms_code_invalid')], 422);
+            }
+            \Illuminate\Support\Facades\Cache::forget("sms_login_code:{$value}");
+        } else {
+            // email 验证码（复用 MFA email code 机制）
+            $stored = \Illuminate\Support\Facades\Cache::get("email_bind_code:{$value}");
+            if ($stored === null || ! hash_equals((string) $stored, $code)) {
+                return response()->json(['success' => false, 'message' => trans('auth.email_code_invalid')], 422);
+            }
+            \Illuminate\Support\Facades\Cache::forget("email_bind_code:{$value}");
+        }
+
+        // 查找是否已有账号使用该联系方式
+        $existingUser = $type === 'phone'
+            ? User::where('phone', $value)->where('user_id', '!=', $user->user_id)->first()
+            : User::where('email', $value)->where('user_id', '!=', $user->user_id)->first();
+
+        if ($existingUser) {
+            // ===== 账号合并：壳用户 → 已有账号 =====
+            $this->mergeAccounts($user, $existingUser, $tenantId);
+
+            // 删除 pending token
+            $token->delete();
+
+            // 为已有账号签发正式 token
+            return $this->createTokenResponse($existingUser, $request);
+        }
+
+        // ===== 无冲突：直接写入当前用户 =====
+        if ($type === 'phone') {
+            $user->update(['phone' => $value, 'phone_verified_at' => now()]);
+        } else {
+            $user->update(['email' => $value, 'email_verified_at' => now()]);
+        }
+
+        // 删除 pending token，签发正式 token
+        $token->delete();
+
+        return $this->createTokenResponse($user, $request);
+    }
+
+    /**
+     * 发送邮箱绑定验证码（需 pending token）。
+     *
+     * POST /api/v1/auth/bind-contact/send-email-code
+     */
+    public function sendBindEmailCode(Request $request): JsonResponse
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $email = $request->email;
+
+        // 频率限制
+        $throttleKey = "email_bind:{$email}";
+        if (\Illuminate\Support\Facades\Cache::has($throttleKey)) {
+            return response()->json(['success' => false, 'message' => trans('auth.sms_too_frequent')], 429);
+        }
+
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        \Illuminate\Support\Facades\Cache::put("email_bind_code:{$email}", $code, 300);
+        \Illuminate\Support\Facades\Cache::put($throttleKey, 1, 60);
+
+        // 发送邮件
+        try {
+            app(\MultiTenantSaas\Modules\Infrastructure\Services\MailerService::class)
+                ->sendMfaCode($email, $code);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => trans('auth.email_send_failed')], 503);
+        }
+
+        return response()->json(['success' => true, 'data' => ['expires_in' => 300]]);
+    }
+
+    /**
+     * 合并账号：将壳用户的 OAuth 绑定迁移到目标用户，然后删除壳用户
+     */
+    protected function mergeAccounts(User $shell, User $target, ?int $tenantId): void
+    {
+        DB::transaction(function () use ($shell, $target, $tenantId) {
+            // 迁移所有 OAuth 账号绑定
+            \MultiTenantSaas\Modules\Auth\Models\OauthAccount::where('user_id', $shell->user_id)
+                ->update(['user_id' => $target->user_id]);
+
+            // 确保目标用户关联到租户
+            if ($tenantId) {
+                $exists = TenantUser::where('tenant_id', $tenantId)
+                    ->where('user_id', $target->user_id)
+                    ->exists();
+                if (! $exists) {
+                    TenantUser::create([
+                        'tenant_id' => $tenantId,
+                        'user_id' => $target->user_id,
+                        'joined_at' => now(),
+                    ]);
+                }
+            }
+
+            // 删除壳用户的 tenant_users 关联
+            TenantUser::where('user_id', $shell->user_id)->delete();
+
+            // 删除壳用户的所有 token
+            $shell->tokens()->delete();
+
+            // 删除壳用户
+            $shell->delete();
+        });
+    }
+
+    /**
      * 获取当前用户信息。
      */
     public function me(Request $request): JsonResponse

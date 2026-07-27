@@ -32,7 +32,8 @@ class LotteryActivity extends Model
 
     public function prizes(): HasMany
     {
-        return $this->hasMany(LotteryActivityPrize::class, 'activity_id', 'activity_id');
+        // prize_id 为随机全局 ID，必须显式按 sort_order 排序，否则返回顺序随机
+        return $this->hasMany(LotteryActivityPrize::class, 'activity_id', 'activity_id')->orderBy('sort_order');
     }
 
     public function drawLogs(): HasMany

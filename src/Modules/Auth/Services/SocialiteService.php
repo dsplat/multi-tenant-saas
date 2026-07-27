@@ -170,9 +170,9 @@ class SocialiteService
      */
     public function handleCallback(string $provider, int $tenantId): array
     {
-        // 委托模式：认证中心回调带 token 参数
+        // 委托模式：认证中心回调（legacy 带 token；standard 带 code+state 且 provider 为通用 idp）
         $idp = app(IdentityProviderOAuthService::class);
-        if ($idp->isConfigured($tenantId) && request()->has('token')) {
+        if ($idp->isConfigured($tenantId) && (request()->has('token') || $provider === 'idp' || request()->has('state'))) {
             return $idp->handleCallback($tenantId, $provider);
         }
 

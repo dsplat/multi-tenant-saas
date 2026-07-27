@@ -95,6 +95,54 @@
             <el-form-item><el-button type="primary" :loading="saving" @click="handleSave('dify')">保存</el-button></el-form-item>
           </el-form>
         </el-tab-pane>
+
+        <!-- 存储配置（平台默认 OSS，租户未配置时回退使用） -->
+        <el-tab-pane label="存储配置" name="storage">
+          <el-form :model="storage" label-width="140px" style="margin-top: 12px">
+            <el-form-item label="启用平台默认 OSS">
+              <el-switch v-model="storage.enabled" />
+              <div class="form-hint">租户未配置自有存储时，回退到此平台默认存储</div>
+            </el-form-item>
+            <el-form-item label="Endpoint"><el-input v-model="storage.endpoint" placeholder="https://oss-cn-hangzhou.aliyuncs.com" /></el-form-item>
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="Bucket"><el-input v-model="storage.bucket" /></el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="Region"><el-input v-model="storage.region" placeholder="cn-hangzhou" /></el-form-item>
+              </el-col>
+            </el-row>
+            <el-form-item label="AccessKey ID"><el-input v-model="storage.access_key_id" /></el-form-item>
+            <el-form-item label="AccessKey Secret"><el-input v-model="storage.access_key_secret" type="password" placeholder="********" show-password /></el-form-item>
+            <el-form-item label="自定义域名"><el-input v-model="storage.url" placeholder="https://cdn.example.com（可选）" /></el-form-item>
+            <el-form-item label="Path-Style 访问">
+              <el-switch v-model="storage.use_path_style" />
+              <div class="form-hint">MinIO 等自建存储需开启</div>
+            </el-form-item>
+            <el-form-item><el-button type="primary" :loading="saving" @click="handleSave('storage')">保存</el-button></el-form-item>
+          </el-form>
+        </el-tab-pane>
+
+        <!-- 外部知识库（平台默认连接，租户未配置时回退使用） -->
+        <el-tab-pane label="外部知识库" name="external_kb">
+          <el-form :model="externalKb" label-width="140px" style="margin-top: 12px">
+            <el-form-item label="启用平台默认连接">
+              <el-switch v-model="externalKb.enabled" />
+              <div class="form-hint">租户未配置自有知识库时，AI 检索回退到此平台默认连接</div>
+            </el-form-item>
+            <el-form-item label="服务商">
+              <el-select v-model="externalKb.provider_type" style="width: 100%">
+                <el-option label="Dify" value="dify" />
+                <el-option label="RAGFlow" value="ragflow" />
+                <el-option label="FastGPT" value="fastgpt" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="API 地址"><el-input v-model="externalKb.api_url" placeholder="https://api.dify.ai" /></el-form-item>
+            <el-form-item label="API Key"><el-input v-model="externalKb.api_key" type="password" placeholder="********" show-password /></el-form-item>
+            <el-form-item label="知识库/数据集 ID"><el-input v-model="externalKb.dataset_id" /></el-form-item>
+            <el-form-item><el-button type="primary" :loading="saving" @click="handleSave('external_kb')">保存</el-button></el-form-item>
+          </el-form>
+        </el-tab-pane>
       </el-tabs>
     </el-card>
   </div>
@@ -141,14 +189,53 @@ const dify = reactive({
   timeout: 30,
 })
 
+const storage = reactive({
+  enabled: false,
+  driver: 's3',
+  endpoint: '',
+  bucket: '',
+  region: '',
+  access_key_id: '',
+  access_key_secret: '',
+  url: '',
+  use_path_style: false,
+})
+
+const externalKb = reactive({
+  enabled: false,
+  provider_type: 'dify',
+  api_url: '',
+  api_key: '',
+  dataset_id: '',
+})
+
+// 后端返回的是设置记录数组，转为 key => value 映射
+const toKv = (items: any): Record<string, any> => {
+  if (Array.isArray(items)) {
+    return Object.fromEntries(items.map((s: any) => [s.key, s.value]))
+  }
+  return items || {}
+}
+
+const asBool = (v: any) => v === true || v === 'true' || v === '1' || v === 1
+
 const loadSettings = async () => {
   try {
     const res = await axios.get('/api/v1/admin/settings')
     const data = res.data.data || {}
-    if (data.system) Object.assign(system, data.system)
-    if (data.mail) Object.assign(mail, data.mail)
-    if (data.credit) Object.assign(credit, data.credit)
-    if (data.dify) Object.assign(dify, data.dify)
+    if (data.system) Object.assign(system, toKv(data.system))
+    if (data.mail) Object.assign(mail, toKv(data.mail))
+    if (data.credit) Object.assign(credit, toKv(data.credit))
+    if (data.dify) Object.assign(dify, toKv(data.dify))
+    if (data.storage) {
+      Object.assign(storage, toKv(data.storage))
+      storage.enabled = asBool(storage.enabled)
+      storage.use_path_style = asBool(storage.use_path_style)
+    }
+    if (data.external_kb) {
+      Object.assign(externalKb, toKv(data.external_kb))
+      externalKb.enabled = asBool(externalKb.enabled)
+    }
   } catch {}
 }
 
@@ -158,6 +245,8 @@ const handleSave = async (group: string) => {
     const data = group === 'system' ? system
       : group === 'mail' ? mail
       : group === 'credit' ? credit
+      : group === 'storage' ? storage
+      : group === 'external_kb' ? externalKb
       : dify
     await axios.put(`/api/v1/admin/settings/${group}`, data)
     ElMessage.success('保存成功')

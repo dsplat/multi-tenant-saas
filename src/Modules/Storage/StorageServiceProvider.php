@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
 use MultiTenantSaas\Modules\Storage\Services\FileService;
+use MultiTenantSaas\Modules\Storage\Services\StorageConfigService;
 
 class StorageServiceProvider extends ModuleServiceProvider
 {
@@ -13,7 +14,11 @@ class StorageServiceProvider extends ModuleServiceProvider
 
     protected function registerModuleBindings(): void
     {
-        $this->app->singleton(FileService::class, fn ($app) => new FileService($app->make(TenantContextContract::class)));
+        $this->app->singleton(StorageConfigService::class);
+        $this->app->singleton(FileService::class, fn ($app) => new FileService(
+            $app->make(TenantContextContract::class),
+            $app->make(StorageConfigService::class),
+        ));
     }
 
     protected function bootModule(): void

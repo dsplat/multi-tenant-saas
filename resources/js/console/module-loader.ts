@@ -139,6 +139,7 @@ const knownPaths: Record<string, string> = {
   Workflows: 'workflows', SSL: 'ssl', Webhooks: 'webhooks',
   TenantSettings: 'tenant-settings', TenantDetail: 'tenants/:id',
   Tickets: 'tickets', TenantSettingsPage: 'settings',
+  StorageSettings: 'storage', ExternalKbSettings: 'external-kb',
 }
 
 function pageNameToPath(pageName: string): string {
@@ -220,7 +221,7 @@ const MODULE_LABELS: Record<string, string> = {
   // Vendor modules (PascalCase — framework standalone)
   User: '用户管理', Billing: '计费管理', Auth: '认证配置', ApiToken: 'API 管理',
   Payment: '支付配置', Platform: '平台管理', Sms: '短信配置', SSL: 'SSL 证书',
-  Workflow: '工作流', Infrastructure: '基础设施', Ticket: '工单管理',
+  Workflow: '工作流', Infrastructure: '基础设施', Ticket: '工单管理', Storage: '文件存储',
   // Vendor modules (kebab-case — consumed by downstream projects)
   'multi-tenant-saas-module-user': '用户管理',
   'multi-tenant-saas-module-billing': '计费管理',
@@ -233,6 +234,8 @@ const MODULE_LABELS: Record<string, string> = {
   'multi-tenant-saas-module-workflow': '工作流',
   'multi-tenant-saas-module-infrastructure': '基础设施',
   'multi-tenant-saas-module-ticket': '工单管理',
+  'multi-tenant-saas-module-storage': '文件存储',
+  'multi-tenant-saas-module-knowledge': '知识库',
 }
 
 // ---- Route loading ----
@@ -307,6 +310,8 @@ export async function loadModuleViews(): Promise<ModuleRoute[]> {
     OAuthSettings: '第三方登录',
     PaymentSettings: '支付配置',
     PointsManagement: '积分管理',
+    StorageSettings: '存储配置',
+    ExternalKbSettings: '外部知识库',
   }
 
   for (const source of allSources) {

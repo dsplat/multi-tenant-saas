@@ -36,6 +36,8 @@ jobs:
             repo: multi-tenant-saas-module-form
           - prefix: 'src/Modules/Infrastructure'
             repo: multi-tenant-saas-module-infrastructure
+          - prefix: 'src/Modules/Knowledge'
+            repo: multi-tenant-saas-module-knowledge
           - prefix: 'src/Modules/Logging'
             repo: multi-tenant-saas-module-logging
           - prefix: 'src/Modules/Lottery'

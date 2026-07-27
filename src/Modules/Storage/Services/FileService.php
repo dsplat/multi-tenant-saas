@@ -28,7 +28,10 @@ class FileService
 
     private const IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
 
-    public function __construct(private readonly TenantContextContract $tenantContext) {}
+    public function __construct(
+        private readonly TenantContextContract $tenantContext,
+        private readonly StorageConfigService $storageConfig,
+    ) {}
 
     /**
      * 向后兼容：静态调用代理到容器实例。
@@ -82,7 +85,8 @@ class FileService
         bool $isPublic = false
     ): FileUpload {
         $tenantId = $tenantId ?? TenantContext::getId();
-        $disk = $disk ?? config('tenancy.file_storage_disk', 'local');
+        // 租户 OSS → 平台默认 OSS → config 兜底
+        $disk = $disk ?? $this->storageConfig->resolveDisk($tenantId);
 
         // 验证文件大小
         if ($file->getSize() > self::MAX_FILE_SIZE) {
@@ -174,7 +178,8 @@ class FileService
             }
         }
 
-        $disk = config('tenancy.file_storage_disk', 'local');
+        // 租户 OSS → 平台默认 OSS → config 兜底
+        $disk = $this->storageConfig->resolveDisk($tenantId);
 
         // 验证文件大小
         if ($file->getSize() > self::MAX_FILE_SIZE) {
@@ -277,7 +282,9 @@ class FileService
     public function createShareUrl(FileUpload $file, int $expiresInMinutes = 60): string
     {
         // S3/OSS 使用临时 URL
-        if (in_array($file->disk, ['s3', 'oss'])) {
+        if ($this->storageConfig->isCloudDisk($file->disk)) {
+            $this->storageConfig->ensureDiskRegistered($file->disk, $file->tenant_id);
+
             return Storage::disk($file->disk)->temporaryUrl(
                 $file->path,
                 now()->addMinutes($expiresInMinutes)
@@ -331,11 +338,15 @@ class FileService
     public function getUrl(FileUpload $file): string
     {
         if ($file->is_public) {
+            $this->storageConfig->ensureDiskRegistered($file->disk, $file->tenant_id);
+
             return Storage::disk($file->disk)->url($file->path);
         }
 
         // 私有文件返回临时 URL（S3/OSS 支持）
-        if (in_array($file->disk, ['s3', 'oss'])) {
+        if ($this->storageConfig->isCloudDisk($file->disk)) {
+            $this->storageConfig->ensureDiskRegistered($file->disk, $file->tenant_id);
+
             return Storage::disk($file->disk)->temporaryUrl(
                 $file->path,
                 now()->addMinutes(30)
@@ -351,6 +362,8 @@ class FileService
      */
     public function download(FileUpload $file): StreamedResponse
     {
+        $this->storageConfig->ensureDiskRegistered($file->disk, $file->tenant_id);
+
         if (! Storage::disk($file->disk)->exists($file->path)) {
             throw new \RuntimeException(trans('file.not_found'));
         }
@@ -363,6 +376,8 @@ class FileService
      */
     public function delete(FileUpload $file): bool
     {
+        $this->storageConfig->ensureDiskRegistered($file->disk, $file->tenant_id);
+
         // 删除存储中的文件
         if (Storage::disk($file->disk)->exists($file->path)) {
             Storage::disk($file->disk)->delete($file->path);

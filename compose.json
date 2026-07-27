@@ -19,7 +19,8 @@
         "payment": { "enabled": false },
         "form": { "enabled": true },
         "lottery": { "enabled": true },
-        "voting": { "enabled": true }
+        "voting": { "enabled": true },
+        "knowledge": { "enabled": true }
     },
     "plugins": {}
 }

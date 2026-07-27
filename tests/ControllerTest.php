@@ -26,9 +26,20 @@ class ControllerTest extends TestCase
 
     protected User $endUser;
 
+    protected Operator $superAdminOperator;
+
+    protected Operator $tenantAdminOperator;
+
     protected Tenant $tenant;
 
     protected Tenant $otherTenant;
+
+    protected function defineEnvironment($app): void
+    {
+        parent::defineEnvironment($app);
+        // 与生产一致：sanctum guard 不绑定 provider，Operator/User token 均可认证
+        $app['config']->set('auth.guards.sanctum.provider', null);
+    }
 
     protected function setUp(): void
     {
@@ -69,7 +80,7 @@ class ControllerTest extends TestCase
             ->value('role_id');
 
         // 创建平台级 operator（super_admin）
-        $superAdminOperator = Operator::create([
+        $this->superAdminOperator = $superAdminOperator = Operator::create([
             'email' => 'super@test.com',
             'name' => 'Super Admin',
             'scope' => 'platform',
@@ -88,7 +99,7 @@ class ControllerTest extends TestCase
         ]);
 
         // 创建租户级 operator（tenant_admin）
-        $tenantAdminOperator = Operator::create([
+        $this->tenantAdminOperator = $tenantAdminOperator = Operator::create([
             'email' => 'admin@test.com',
             'name' => 'Tenant Admin',
             'scope' => 'tenant',
@@ -122,7 +133,8 @@ class ControllerTest extends TestCase
 
     public function test_super_admin_can_list_tenants(): void
     {
-        $token = $this->superAdmin->createToken('test')->plainTextToken;
+        // 管理路由走 RBAC，角色仅属于 Operator，必须用 Operator token
+        $token = $this->superAdminOperator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->getJson('/api/v1/tenants');
@@ -133,7 +145,7 @@ class ControllerTest extends TestCase
 
     public function test_tenant_admin_can_list_tenants(): void
     {
-        $token = $this->tenantAdmin->createToken('test')->plainTextToken;
+        $token = $this->tenantAdminOperator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->getJson('/api/v1/tenants');
@@ -146,7 +158,7 @@ class ControllerTest extends TestCase
 
     public function test_tenant_admin_can_access_own_tenant_members(): void
     {
-        $token = $this->tenantAdmin->createToken('test')->plainTextToken;
+        $token = $this->tenantAdminOperator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->getJson("/api/v1/tenants/{$this->tenant->tenant_id}/members");
@@ -245,7 +257,7 @@ class ControllerTest extends TestCase
 
     public function test_tenant_can_get_own_settings(): void
     {
-        $token = $this->tenantAdmin->createToken('test')->plainTextToken;
+        $token = $this->tenantAdminOperator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->getJson("/api/v1/tenants/{$this->tenant->tenant_id}/settings");
@@ -255,7 +267,7 @@ class ControllerTest extends TestCase
 
     public function test_tenant_can_update_own_settings(): void
     {
-        $token = $this->tenantAdmin->createToken('test')->plainTextToken;
+        $token = $this->tenantAdminOperator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->putJson("/api/v1/tenants/{$this->tenant->tenant_id}/settings/auth", [

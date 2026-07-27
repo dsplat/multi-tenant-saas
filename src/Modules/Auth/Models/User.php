@@ -15,7 +15,6 @@ use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Concerns\Searchable;
 use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
-use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 
 class User extends Authenticatable
 {
@@ -73,14 +72,6 @@ class User extends Authenticatable
         return $this->belongsToMany(Tenant::class, 'tenant_users', 'user_id', 'tenant_id', 'user_id')
             ->withPivot('credits', 'is_active', 'joined_at')
             ->withTimestamps();
-    }
-
-    /**
-     * 运营员租户关联
-     */
-    public function operatorTenants(): HasMany
-    {
-        return $this->hasMany(OperatorTenant::class, 'user_id', 'user_id');
     }
 
     public function oauthAccounts(): HasMany

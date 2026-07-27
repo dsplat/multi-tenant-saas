@@ -15,10 +15,9 @@ use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 /**
  * RBAC 服务（Operator 直连租户模式）
  *
- * 设计原则：
- * - Operator 直接通过 operator_tenants 关联到团队，取 role_id 查权限
- * - User 是租户开放注册后的业务用户，走 tenant_users 路径查权限
- * - 两条路径独立，不再交叉
+ * 设计原则（身份模型铁律）：
+ * - 角色仅属于 Operator，经 operator_tenants.role_id 关联，RBAC 只作用于 Operator
+ * - User 不拥有角色（tenant_users 无 role_id 字段），永远无 RBAC 权限
  */
 class RbacService
 {
@@ -50,28 +49,11 @@ class RbacService
 
         $tenantId = TenantContext::getId() ?? request()->route('tenantId');
 
-        // 1) Operator 直连路径
+        // 角色仅属于 Operator；User 不拥有角色，无 RBAC 权限
         if ($user instanceof Operator) {
             return $this->checkOperatorPermission($user, $tenantId, $permission);
         }
 
-        // 2) User 路径：先查 operator_tenants（运营员），再查 tenant_users（业务用户）
-        if ($tenantId) {
-            $operatorTenant = $user->operatorTenants()
-                ->where('is_active', true)
-                ->where('tenant_id', $tenantId)
-                ->first();
-        } else {
-            $operatorTenant = $user->operatorTenants()
-                ->where('is_active', true)
-                ->first();
-        }
-
-        if ($operatorTenant && $operatorTenant->role_id) {
-            return $this->checkRolePermission($operatorTenant->role_id, $permission);
-        }
-
-        // User 不拥有角色：无 operator_tenants 角色关联即无 RBAC 权限
         return false;
     }
 
@@ -199,7 +181,7 @@ class RbacService
             throw new \RuntimeException(trans('tenant.system_role_no_delete'));
         }
 
-        DB::table('tenant_users')
+        DB::table('operator_tenants')
             ->where('role_id', $roleId)
             ->update(['role_id' => null]);
 

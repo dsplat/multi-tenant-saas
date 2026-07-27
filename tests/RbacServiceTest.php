@@ -146,22 +146,23 @@ class RbacServiceTest extends TestCase
         $this->service->deleteRole(300);
     }
 
-    public function test_delete_role_clears_user_assignments(): void
+    public function test_delete_role_clears_operator_assignments(): void
     {
         $role = $this->service->createRole(1001, 'assignable', 'Assignable', 'To be deleted');
 
-        DB::table('tenant_users')->insert([
-            'tenant_user_id' => 9001,
+        // 角色仅属于 Operator（经 operator_tenants.role_id 关联）
+        DB::table('operator_tenants')->insert([
+            'operator_id' => 8001,
             'tenant_id' => 1001,
-            'user_id' => 2001,
+            'role' => 'assignable',
             'role_id' => $role->role_id,
             'is_active' => true,
         ]);
 
         $this->service->deleteRole($role->role_id);
 
-        $tenantUser = DB::table('tenant_users')->where('tenant_user_id', 9001)->first();
-        $this->assertNull($tenantUser->role_id);
+        $operatorTenant = DB::table('operator_tenants')->where('operator_id', 8001)->first();
+        $this->assertNull($operatorTenant->role_id);
     }
 
     // ---------- 角色权限查询 ----------

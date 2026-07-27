@@ -155,15 +155,15 @@
 
 ---
 
-### BUG-012: RbacService::deleteRole() 未清理 operator_tenants.role_id
+### BUG-012: RbacService::deleteRole() 未清理 operator_tenants.role_id（已修复）
 
 **影响范围**: 角色删除操作
 
-**根因**: 删除角色时将 `tenant_users.role_id` 设为 null，但**未同步清理 `operator_tenants.role_id`**。如果 Operator 也被分配了该角色，删除后 Operator 的角色引用会悬空。
+**根因**: 删除角色时将 `tenant_users.role_id` 设为 null（该列生产表并不存在，执行即 SQL 报错），但**未同步清理 `operator_tenants.role_id`**。如果 Operator 也被分配了该角色，删除后 Operator 的角色引用会悬空。
 
 **文件**: `src/Modules/Auth/Services/RbacService.php`
 
-**修复方案**: 在 `deleteRole()` 中同时清理 `operator_tenants.role_id`。
+**修复方案**: 已修复——`deleteRole()` 改为清理 `operator_tenants.role_id`（角色仅属于 Operator，tenant_users 无 role_id 列）。
 
 ---
 

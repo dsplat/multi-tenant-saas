@@ -558,20 +558,25 @@ class PermissionModelIntegrationTest extends TestCase
      */
     public function test_rbac_service_permission_check(): void
     {
-        // 超级管理员应该有所有权限
-        $this->actingAs($this->superAdminUser);
+        // 角色仅属于 Operator，RBAC 只作用于 Operator（身份模型铁律）
+        // 超级管理员（scope=platform）应该有所有权限
+        $this->actingAs($this->superAdminOperator);
         TenantContext::setTenantId(9007199254740991);
 
         $this->assertTrue($this->rbacService->check('tenant.view'));
         $this->assertTrue($this->rbacService->check('tenant.create'));
         $this->assertTrue($this->rbacService->check('member.create'));
 
-        // 租户管理员应该有租户权限
-        $this->actingAs($this->tenantAAdminUser);
+        // 租户管理员 Operator 应该有租户权限，但无平台级权限
+        $this->actingAs($this->tenantAAdminOperator);
         TenantContext::setTenantId($this->tenantA->tenant_id);
 
         $this->assertTrue($this->rbacService->check('tenant.view'));
         $this->assertFalse($this->rbacService->check('tenant.create'));
+
+        // User 不拥有角色，永远无 RBAC 权限
+        $this->actingAs($this->tenantAAdminUser);
+        $this->assertFalse($this->rbacService->check('tenant.view'));
     }
 
     /**

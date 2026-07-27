@@ -126,7 +126,6 @@ class GdprServiceTest extends TestCase
             'tenant_user_id' => 200001,
             'tenant_id' => $this->tenantId,
             'user_id' => $this->userId,
-            'role' => 'admin',
             'is_active' => true,
             'joined_at' => now(),
         ]);

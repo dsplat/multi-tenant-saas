@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Modules\Auth\Services\SocialiteService;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\Sms\Services\SmsService;
@@ -36,7 +37,7 @@ class TenantSettingController extends Controller
                     'login_path' => $data['idp_login_path'] ?? '',
                     'redirect_uri' => $data['idp_redirect_uri'] ?? '',
                     // 未配置覆盖时的自动推导值（供前端展示占位）
-                    'redirect_uri_default' => app(\MultiTenantSaas\Modules\Auth\Services\SocialiteService::class)
+                    'redirect_uri_default' => app(SocialiteService::class)
                         ->resolveRedirectUrl($tenantId, '{provider}'),
                     'field_mapping' => $data['idp_field_mapping'] ?? '',
                 ];
@@ -79,9 +80,10 @@ class TenantSettingController extends Controller
         // 白名单：每个配置组只允许特定 key
         $allowedKeys = [
             'info' => ['name', 'description', 'logo', 'contact_name', 'contact_email', 'contact_phone'],
-            'oauth' => ['wechat_enabled', 'wechat_corp_id', 'wechat_agent_id', 'wechat_secret',
-                'dingtalk_enabled', 'dingtalk_app_key', 'dingtalk_app_secret',
-                'feishu_enabled', 'feishu_app_id', 'feishu_app_secret',
+            'oauth' => ['wechat_work_corp_id', 'wechat_work_agent_id', 'wechat_work_secret',
+                'wechat_client_id', 'wechat_client_secret',
+                'dingtalk_client_id', 'dingtalk_client_secret',
+                'feishu_client_id', 'feishu_client_secret',
                 'oauth_mode', 'idp_base_url', 'idp_protocol', 'idp_client_id', 'idp_client_secret',
                 'idp_login_path', 'idp_redirect_uri', 'idp_field_mapping'],
             'auth' => ['allow_phone_login', 'allow_password_login', 'email_domains'],

@@ -328,6 +328,7 @@ class SocialiteService
                     'configured' => app(WechatWorkOAuthService::class)->isConfigured($tenantId),
                     'corp_id' => $corpId,
                     'agent_id' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_agent_id', ''),
+                    'secret' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_secret', '') !== '' ? '********' : '',
                     'redirect' => $this->resolveRedirectUrl($tenantId, 'wechat_work', TenantSetting::get($tenantId, 'oauth', 'wechat_work_redirect', '')),
                 ];
 
@@ -338,6 +339,7 @@ class SocialiteService
                 $result[$provider] = [
                     'configured' => app(WechatOAuthService::class)->isConfigured($tenantId),
                     'client_id' => TenantSetting::get($tenantId, 'oauth', 'wechat_client_id', ''),
+                    'client_secret' => TenantSetting::get($tenantId, 'oauth', 'wechat_client_secret', '') !== '' ? '********' : '',
                     'redirect' => $this->resolveRedirectUrl($tenantId, 'wechat', TenantSetting::get($tenantId, 'oauth', 'wechat_redirect', '')),
                 ];
 
@@ -348,9 +350,26 @@ class SocialiteService
             $result[$provider] = [
                 'configured' => ! empty($config['client_id']) && ! empty($config['client_secret']),
                 'client_id' => $config['client_id'],
+                'client_secret' => ! empty($config['client_secret']) ? '********' : '',
                 'redirect' => $config['redirect'],
             ];
         }
+
+        // IdP 委托模式配置（console 第三方登录页消费）
+        $idpBaseUrl = TenantSetting::get($tenantId, 'oauth', 'idp_base_url', '');
+        $idpEnabled = TenantSetting::get($tenantId, 'oauth', 'oauth_mode', 'direct') === 'delegated';
+        $result['idp'] = [
+            'configured' => $idpEnabled && $idpBaseUrl !== '',
+            'enabled' => $idpEnabled,
+            'base_url' => $idpBaseUrl,
+            'protocol' => TenantSetting::get($tenantId, 'oauth', 'idp_protocol', 'standard'),
+            'client_id' => TenantSetting::get($tenantId, 'oauth', 'idp_client_id', ''),
+            'client_secret' => TenantSetting::get($tenantId, 'oauth', 'idp_client_secret', '') !== '' ? '********' : '',
+            'login_path' => TenantSetting::get($tenantId, 'oauth', 'idp_login_path', ''),
+            'redirect_uri' => TenantSetting::get($tenantId, 'oauth', 'idp_redirect_uri', ''),
+            'redirect_uri_default' => $this->resolveRedirectUrl($tenantId, '{provider}'),
+            'field_mapping' => TenantSetting::get($tenantId, 'oauth', 'idp_field_mapping', ''),
+        ];
 
         return $result;
     }
@@ -360,10 +379,18 @@ class SocialiteService
      */
     public function updateOAuthConfig(int $tenantId, string $provider, array $config): void
     {
-        // wechat_work 使用 corp_id/agent_id/secret 模式，非标准 client_id/client_secret
-        $sensitiveKeys = $provider === 'wechat_work'
-            ? ['secret']
-            : ['client_secret'];
+        // idp 委托模式：enabled 开关映射为 oauth_mode，其余字段走通用 idp_* key
+        if ($provider === 'idp' && array_key_exists('enabled', $config)) {
+            TenantSetting::set($tenantId, 'oauth', 'oauth_mode', ! empty($config['enabled']) ? 'delegated' : 'direct');
+            unset($config['enabled']);
+        }
+
+        // wechat_work 使用 corp_id/agent_id/secret 模式，alipay 使用 private_key，非标准 client_id/client_secret
+        $sensitiveKeys = match ($provider) {
+            'wechat_work' => ['secret'],
+            'alipay' => ['private_key'],
+            default => ['client_secret'],
+        };
 
         foreach ($config as $key => $value) {
             if (in_array($key, $sensitiveKeys) && $value === '********') {

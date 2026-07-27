@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Auth\Models\OauthAccount;
+use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Auth\Services\AlipayOAuthService;
 use MultiTenantSaas\Modules\Auth\Services\SocialiteService;
 use MultiTenantSaas\Modules\Auth\Services\WechatWorkOAuthService;
@@ -15,6 +16,8 @@ use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Infrastructure\Services\MailerService;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
+use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 use MultiTenantSaas\Tests\Schema\CoreModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;
 use MultiTenantSaas\Tests\Schema\SecurityModule;
@@ -243,7 +246,7 @@ class AuthImprovementsTest extends TestCase
     {
         $this->createTestTenant();
 
-        $user = \MultiTenantSaas\Modules\Auth\Models\User::create([
+        $user = User::create([
             'name' => 'Stale Header User',
             'email' => 'stale-header@example.com',
             'password' => bcrypt('password123'),
@@ -269,14 +272,14 @@ class AuthImprovementsTest extends TestCase
         config(['tenancy.default_tenant_id' => null]);
         $this->createTestTenant();
 
-        $operator = \MultiTenantSaas\Modules\Operator\Models\Operator::create([
+        $operator = Operator::create([
             'name' => 'Stale Header Operator',
             'email' => 'stale-header-op@example.com',
             'password' => bcrypt('password123'),
             'scope' => 'tenant',
             'status' => 'active',
         ]);
-        \MultiTenantSaas\Modules\Operator\Models\OperatorTenant::create([
+        OperatorTenant::create([
             'operator_id' => $operator->operator_id,
             'tenant_id' => 1001,
             'role' => 'tenant_admin',
@@ -305,14 +308,14 @@ class AuthImprovementsTest extends TestCase
         config(['tenancy.default_tenant_id' => '9999']);
         $this->createTestTenant();
 
-        $operator = \MultiTenantSaas\Modules\Operator\Models\Operator::create([
+        $operator = Operator::create([
             'name' => 'Default Tenant Victim',
             'email' => 'default-victim-op@example.com',
             'password' => bcrypt('password123'),
             'scope' => 'tenant',
             'is_active' => true,
         ]);
-        \MultiTenantSaas\Modules\Operator\Models\OperatorTenant::create([
+        OperatorTenant::create([
             'operator_id' => $operator->operator_id,
             'tenant_id' => 1001,
             'role' => 'tenant_admin',
@@ -560,6 +563,79 @@ class AuthImprovementsTest extends TestCase
         $this->assertArrayHasKey('alipay', $config);
         $this->assertTrue($config['alipay']['configured']);
         $this->assertEquals('2021001234', $config['alipay']['app_id']);
+    }
+
+    public function test_oauth_config_display_masks_secrets(): void
+    {
+        $this->createTestTenant();
+
+        TenantSetting::set(1001, 'oauth', 'wechat_work_corp_id', 'ww123');
+        TenantSetting::set(1001, 'oauth', 'wechat_work_secret', 'real-secret', true);
+        TenantSetting::set(1001, 'oauth', 'github_client_id', 'gh-id');
+        TenantSetting::set(1001, 'oauth', 'github_client_secret', 'gh-secret', true);
+
+        $config = $this->socialiteService->getOAuthConfigForDisplay(1001);
+
+        $this->assertEquals('********', $config['wechat_work']['secret']);
+        $this->assertEquals('********', $config['github']['client_secret']);
+        // 未配置时不返回遮罩
+        $this->assertEquals('', $config['dingtalk']['client_secret']);
+    }
+
+    public function test_oauth_config_display_includes_idp_section(): void
+    {
+        $this->createTestTenant();
+
+        TenantSetting::set(1001, 'oauth', 'oauth_mode', 'delegated');
+        TenantSetting::set(1001, 'oauth', 'idp_base_url', 'https://id.example.com');
+        TenantSetting::set(1001, 'oauth', 'idp_protocol', 'standard');
+        TenantSetting::set(1001, 'oauth', 'idp_client_secret', 'idp-secret', true);
+
+        $config = $this->socialiteService->getOAuthConfigForDisplay(1001);
+
+        $this->assertArrayHasKey('idp', $config);
+        $this->assertTrue($config['idp']['enabled']);
+        $this->assertEquals('https://id.example.com', $config['idp']['base_url']);
+        $this->assertEquals('standard', $config['idp']['protocol']);
+        $this->assertEquals('********', $config['idp']['client_secret']);
+    }
+
+    public function test_update_oauth_config_idp_maps_enabled_to_oauth_mode(): void
+    {
+        $this->createTestTenant();
+
+        $this->socialiteService->updateOAuthConfig(1001, 'idp', [
+            'enabled' => true,
+            'base_url' => 'https://id.example.com',
+            'protocol' => 'standard',
+            'client_id' => 'scrm_prod',
+            'client_secret' => 'top-secret',
+        ]);
+
+        $this->assertEquals('delegated', TenantSetting::get(1001, 'oauth', 'oauth_mode'));
+        $this->assertEquals('https://id.example.com', TenantSetting::get(1001, 'oauth', 'idp_base_url'));
+        $this->assertEquals('top-secret', TenantSetting::get(1001, 'oauth', 'idp_client_secret'));
+        // enabled 不应作为独立 key 写入
+        $this->assertNull(TenantSetting::get(1001, 'oauth', 'idp_enabled'));
+
+        // 关闭回 direct
+        $this->socialiteService->updateOAuthConfig(1001, 'idp', ['enabled' => false]);
+        $this->assertEquals('direct', TenantSetting::get(1001, 'oauth', 'oauth_mode'));
+    }
+
+    public function test_update_oauth_config_skips_masked_secret(): void
+    {
+        $this->createTestTenant();
+
+        TenantSetting::set(1001, 'oauth', 'wechat_work_secret', 'original-secret', true);
+
+        $this->socialiteService->updateOAuthConfig(1001, 'wechat_work', [
+            'corp_id' => 'ww-new',
+            'secret' => '********',
+        ]);
+
+        $this->assertEquals('ww-new', TenantSetting::get(1001, 'oauth', 'wechat_work_corp_id'));
+        $this->assertEquals('original-secret', TenantSetting::get(1001, 'oauth', 'wechat_work_secret'));
     }
 
     public function test_is_configured_delegates_correctly(): void

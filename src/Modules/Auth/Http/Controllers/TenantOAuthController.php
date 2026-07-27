@@ -6,6 +6,8 @@ use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Auth\Services\IdentityProviderOAuthService;
 use MultiTenantSaas\Modules\Auth\Services\SocialiteService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
@@ -61,6 +63,11 @@ class TenantOAuthController extends Controller
             $allowed = ['enabled', 'app_id', 'private_key', 'public_key', 'mode', 'redirect'];
         }
 
+        // idp 委托模式：enabled 映射 oauth_mode，其余写入 idp_* key
+        if ($provider === 'idp') {
+            $allowed = ['enabled', 'base_url', 'protocol', 'client_id', 'client_secret', 'login_path', 'redirect_uri', 'field_mapping'];
+        }
+
         app(SocialiteService::class)->updateOAuthConfig($tenantId, $provider, $request->only($allowed));
 
         return response()->json(['success' => true, 'message' => trans('common.updated')]);
@@ -100,10 +107,10 @@ class TenantOAuthController extends Controller
         }
 
         // delegated 模式：IdP 已担保用户身份，跳过联系方式检测
-        $isDelegated = app(\MultiTenantSaas\Modules\Auth\Services\IdentityProviderOAuthService::class)->isConfigured($tenantId);
+        $isDelegated = app(IdentityProviderOAuthService::class)->isConfigured($tenantId);
 
         // direct 模式：检查用户是否已绑定有效联系方式（phone/email 已验证）
-        $user = \MultiTenantSaas\Modules\Auth\Models\User::find($result['user']['user_id']);
+        $user = User::find($result['user']['user_id']);
         if (! $isDelegated && $user && ! $this->hasVerifiedContact($user)) {
             // 最小注册：签发 pending token，要求补充联系方式
             $user->tokens()->where('name', "{$provider}-login")->latest('id')->first()?->delete();
@@ -127,7 +134,7 @@ class TenantOAuthController extends Controller
      */
     protected function redirectToH5(Request $request, int $tenantId, array $params)
     {
-        $domain = \MultiTenantSaas\Modules\Infrastructure\Models\Tenant::where('tenant_id', $tenantId)->value('domain');
+        $domain = Tenant::where('tenant_id', $tenantId)->value('domain');
         $base = $domain ? "https://{$domain}" : '';
 
         $query = http_build_query($params);

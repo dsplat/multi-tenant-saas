@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Modules\Auth\Services\IdentityProviderOAuthService;
 use MultiTenantSaas\Modules\Auth\Services\SocialiteService;
 use MultiTenantSaas\Modules\Auth\Services\SsoService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
@@ -77,6 +78,10 @@ class TenantResolveController extends Controller
         $oauthProviders = [];
         $oauthConfig = app(SocialiteService::class)->getOAuthConfigForDisplay($tenantId);
         foreach ($oauthConfig as $provider => $config) {
+            // idp 为委托模式配置段，非直连登录提供商，delegated 入口单独处理
+            if ($provider === 'idp') {
+                continue;
+            }
             if ($config['configured']) {
                 $oauthProviders[] = [
                     'provider' => $provider,
@@ -105,7 +110,7 @@ class TenantResolveController extends Controller
         $emailDomainRestriction = app(TenantSettingService::class)->get($tenantId, 'sso', 'email_domain_restriction');
 
         // delegated 模式：认证方式完全互斥，仅保留认证中心入口（其他 provider 一并隐藏）
-        $isDelegated = app(\MultiTenantSaas\Modules\Auth\Services\IdentityProviderOAuthService::class)->isConfigured($tenantId);
+        $isDelegated = app(IdentityProviderOAuthService::class)->isConfigured($tenantId);
         if ($isDelegated) {
             $loginMethods = ['oauth'];
             $allowRegister = false;

@@ -69,18 +69,40 @@
           </el-form>
         </el-card>
 
-        <!-- 微信 / 企业微信 -->
+        <!-- 企业微信（扫码登录） -->
         <el-card shadow="never" class="config-card" :class="{ 'config-card--disabled': config.idp.enabled }">
           <template #header>
             <div class="config-header">
-              <span style="font-size: 15px; font-weight: 500">微信 / 企业微信</span>
+              <span style="font-size: 15px; font-weight: 500">企业微信</span>
+              <el-switch v-model="config.wechat_work.enabled" :disabled="config.idp.enabled" />
+            </div>
+          </template>
+          <el-form v-if="config.wechat_work.enabled && !config.idp.enabled" label-width="90px" style="max-width: 500px">
+            <el-form-item label="Corp ID"><el-input v-model="config.wechat_work.corp_id" placeholder="ww1234567890abcdef" /></el-form-item>
+            <el-form-item label="Agent ID"><el-input v-model="config.wechat_work.agent_id" placeholder="1000001" /></el-form-item>
+            <el-form-item label="Secret"><el-input v-model="config.wechat_work.secret" type="password" show-password placeholder="******" /></el-form-item>
+            <el-form-item v-if="config.wechat_work.redirect" label="回调地址">
+              <el-input :model-value="config.wechat_work.redirect" readonly />
+              <div class="form-tip">请在企业微信应用后台将此域名配置为「授权回调域」，并将服务器出口 IP 加入「企业可信 IP」</div>
+            </el-form-item>
+          </el-form>
+        </el-card>
+
+        <!-- 微信（开放平台扫码 / 公众号网页授权） -->
+        <el-card shadow="never" class="config-card" :class="{ 'config-card--disabled': config.idp.enabled }">
+          <template #header>
+            <div class="config-header">
+              <span style="font-size: 15px; font-weight: 500">微信</span>
               <el-switch v-model="config.wechat.enabled" :disabled="config.idp.enabled" />
             </div>
           </template>
           <el-form v-if="config.wechat.enabled && !config.idp.enabled" label-width="90px" style="max-width: 500px">
-            <el-form-item label="Corp ID"><el-input v-model="config.wechat.corp_id" placeholder="wx1234567890" /></el-form-item>
-            <el-form-item label="Agent ID"><el-input v-model="config.wechat.agent_id" placeholder="1000001" /></el-form-item>
-            <el-form-item label="Secret"><el-input v-model="config.wechat.secret" type="password" show-password placeholder="******" /></el-form-item>
+            <el-form-item label="AppID"><el-input v-model="config.wechat.client_id" placeholder="wx1234567890abcdef" /></el-form-item>
+            <el-form-item label="AppSecret"><el-input v-model="config.wechat.client_secret" type="password" show-password placeholder="******" /></el-form-item>
+            <el-form-item v-if="config.wechat.redirect" label="回调地址">
+              <el-input :model-value="config.wechat.redirect" readonly />
+              <div class="form-tip">请在微信开放平台/公众号后台配置此授权回调域名</div>
+            </el-form-item>
           </el-form>
         </el-card>
 
@@ -93,8 +115,8 @@
             </div>
           </template>
           <el-form v-if="config.dingtalk.enabled && !config.idp.enabled" label-width="90px" style="max-width: 500px">
-            <el-form-item label="App Key"><el-input v-model="config.dingtalk.app_key" /></el-form-item>
-            <el-form-item label="App Secret"><el-input v-model="config.dingtalk.app_secret" type="password" show-password placeholder="******" /></el-form-item>
+            <el-form-item label="App Key"><el-input v-model="config.dingtalk.client_id" /></el-form-item>
+            <el-form-item label="App Secret"><el-input v-model="config.dingtalk.client_secret" type="password" show-password placeholder="******" /></el-form-item>
           </el-form>
         </el-card>
 
@@ -107,8 +129,8 @@
             </div>
           </template>
           <el-form v-if="config.feishu.enabled && !config.idp.enabled" label-width="90px" style="max-width: 500px">
-            <el-form-item label="App ID"><el-input v-model="config.feishu.app_id" /></el-form-item>
-            <el-form-item label="App Secret"><el-input v-model="config.feishu.app_secret" type="password" show-password placeholder="******" /></el-form-item>
+            <el-form-item label="App ID"><el-input v-model="config.feishu.client_id" /></el-form-item>
+            <el-form-item label="App Secret"><el-input v-model="config.feishu.client_secret" type="password" show-password placeholder="******" /></el-form-item>
           </el-form>
         </el-card>
       </div>
@@ -122,25 +144,27 @@
 import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
-import { useUserStore } from '@stores/user'
 
-const userStore = useUserStore()
 const saving = ref(false)
 const config = reactive({
   idp: { enabled: false, base_url: '', protocol: 'standard', client_id: '', client_secret: '', login_path: '', redirect_uri: '', redirect_uri_default: '', field_mapping: '' },
-  wechat: { enabled: false, corp_id: '', agent_id: '', secret: '' },
-  dingtalk: { enabled: false, app_key: '', app_secret: '' },
-  feishu: { enabled: false, app_id: '', app_secret: '' },
+  wechat_work: { enabled: false, corp_id: '', agent_id: '', secret: '', redirect: '' },
+  wechat: { enabled: false, client_id: '', client_secret: '', redirect: '' },
+  dingtalk: { enabled: false, client_id: '', client_secret: '' },
+  feishu: { enabled: false, client_id: '', client_secret: '' },
 })
 
 const loadConfig = async () => {
   try {
-    const res = await axios.get(`/api/v1/tenants/${userStore.tenantId}/settings/oauth`)
+    const res = await axios.get('/api/v1/tenant/auth/oauth/config')
     const data = res.data.data || res.data
     if (data.idp) Object.assign(config.idp, data.idp)
-    if (data.wechat) Object.assign(config.wechat, data.wechat)
-    if (data.dingtalk) Object.assign(config.dingtalk, data.dingtalk)
-    if (data.feishu) Object.assign(config.feishu, data.feishu)
+    for (const key of ['wechat_work', 'wechat', 'dingtalk', 'feishu'] as const) {
+      if (data[key]) {
+        Object.assign(config[key], data[key])
+        config[key].enabled = !!data[key].configured
+      }
+    }
   } catch {}
 }
 
@@ -157,7 +181,27 @@ const handleSave = async () => {
 
   saving.value = true
   try {
-    await axios.put(`/api/v1/tenants/${userStore.tenantId}/settings/oauth`, config)
+    // IdP 始终保存（enabled 开关映射 oauth_mode）
+    const { redirect_uri_default: _omit, ...idpPayload } = config.idp
+    await axios.put('/api/v1/tenant/auth/oauth/idp', idpPayload)
+
+    // 各直连提供商：仅保存已开启的卡片（'********' 遮罩由后端跳过）
+    if (config.wechat_work.enabled) {
+      const { corp_id, agent_id, secret } = config.wechat_work
+      await axios.put('/api/v1/tenant/auth/oauth/wechat_work', { corp_id, agent_id, secret })
+    }
+    if (config.wechat.enabled) {
+      const { client_id, client_secret } = config.wechat
+      await axios.put('/api/v1/tenant/auth/oauth/wechat', { client_id, client_secret })
+    }
+    if (config.dingtalk.enabled) {
+      const { client_id, client_secret } = config.dingtalk
+      await axios.put('/api/v1/tenant/auth/oauth/dingtalk', { client_id, client_secret })
+    }
+    if (config.feishu.enabled) {
+      const { client_id, client_secret } = config.feishu
+      await axios.put('/api/v1/tenant/auth/oauth/feishu', { client_id, client_secret })
+    }
     ElMessage.success('保存成功')
   } catch {
     ElMessage.error('保存失败')

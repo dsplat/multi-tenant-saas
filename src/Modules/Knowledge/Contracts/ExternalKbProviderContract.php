@@ -27,4 +27,11 @@ interface ExternalKbProviderContract
      * @return array{success: bool, message: string}
      */
     public function test(): array;
+
+    /**
+     * 推送文本文档到外部知识库（文档知识库 → 外部同步）
+     *
+     * @return array{success: bool, message: string, external_id: string|null}
+     */
+    public function pushDocument(string $name, string $content): array;
 }

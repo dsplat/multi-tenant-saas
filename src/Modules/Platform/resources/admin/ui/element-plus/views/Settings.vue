@@ -135,11 +135,20 @@
                 <el-option label="Dify" value="dify" />
                 <el-option label="RAGFlow" value="ragflow" />
                 <el-option label="FastGPT" value="fastgpt" />
+                <el-option label="阿里云百炼" value="bailian" />
               </el-select>
             </el-form-item>
-            <el-form-item label="API 地址"><el-input v-model="externalKb.api_url" placeholder="https://api.dify.ai" /></el-form-item>
-            <el-form-item label="API Key"><el-input v-model="externalKb.api_key" type="password" placeholder="********" show-password /></el-form-item>
-            <el-form-item label="知识库/数据集 ID"><el-input v-model="externalKb.dataset_id" /></el-form-item>
+            <el-form-item label="API 地址"><el-input v-model="externalKb.api_url" :placeholder="externalKb.provider_type === 'bailian' ? 'https://bailian.cn-beijing.aliyuncs.com' : 'https://api.dify.ai'" /></el-form-item>
+            <template v-if="externalKb.provider_type === 'bailian'">
+              <el-form-item label="AccessKey ID"><el-input v-model="externalKb.access_key_id" /></el-form-item>
+              <el-form-item label="AccessKey Secret"><el-input v-model="externalKb.api_key" type="password" placeholder="********" show-password /></el-form-item>
+              <el-form-item label="业务空间 ID"><el-input v-model="externalKb.workspace_id" placeholder="llm-xxxx" /></el-form-item>
+              <el-form-item label="知识库 ID"><el-input v-model="externalKb.index_id" placeholder="CreateIndex 返回的索引 ID" /></el-form-item>
+            </template>
+            <template v-else>
+              <el-form-item label="API Key"><el-input v-model="externalKb.api_key" type="password" placeholder="********" show-password /></el-form-item>
+              <el-form-item label="知识库/数据集 ID"><el-input v-model="externalKb.dataset_id" /></el-form-item>
+            </template>
             <el-form-item><el-button type="primary" :loading="saving" @click="handleSave('external_kb')">保存</el-button></el-form-item>
           </el-form>
         </el-tab-pane>
@@ -207,6 +216,9 @@ const externalKb = reactive({
   api_url: '',
   api_key: '',
   dataset_id: '',
+  access_key_id: '',
+  workspace_id: '',
+  index_id: '',
 })
 
 // 后端返回的是设置记录数组，转为 key => value 映射

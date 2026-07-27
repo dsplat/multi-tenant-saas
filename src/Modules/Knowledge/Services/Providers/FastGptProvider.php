@@ -71,4 +71,37 @@ class FastGptProvider implements ExternalKbProviderContract
             return ['success' => false, 'message' => $e->getMessage()];
         }
     }
+
+    /**
+     * 推送文本文档（FastGPT 文本集合，自动分块训练）
+     */
+    public function pushDocument(string $name, string $content): array
+    {
+        try {
+            $response = Http::timeout(60)->withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+            ])->post($this->apiUrl . '/api/core/dataset/collection/create/text', [
+                'datasetId' => $this->datasetId,
+                'name' => $name,
+                'text' => $content,
+                'trainingType' => 'chunk',
+            ]);
+
+            $collectionId = $response->json('data.collectionId') ?? $response->json('data');
+
+            if ($response->failed() || ! $collectionId) {
+                Log::error('FastGptProvider::pushDocument failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+
+                return ['success' => false, 'message' => $response->json('message') ?? "HTTP {$response->status()}", 'external_id' => null];
+            }
+
+            return ['success' => true, 'message' => 'ok', 'external_id' => is_string($collectionId) ? $collectionId : json_encode($collectionId)];
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage(), 'external_id' => null];
+        }
+    }
 }

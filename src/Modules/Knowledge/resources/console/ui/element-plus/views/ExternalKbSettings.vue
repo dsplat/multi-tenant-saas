@@ -68,9 +68,17 @@
             <el-option v-for="p in providers" :key="p" :label="providerLabel(p)" :value="p" />
           </el-select>
         </el-form-item>
-        <el-form-item label="API 地址" required><el-input v-model="form.api_url" placeholder="https://api.dify.ai" /></el-form-item>
-        <el-form-item label="API Key"><el-input v-model="form.api_key" type="password" placeholder="********" show-password /></el-form-item>
-        <el-form-item label="数据集 ID"><el-input v-model="form.dataset_id" placeholder="知识库/数据集 ID" /></el-form-item>
+        <el-form-item label="API 地址" required><el-input v-model="form.api_url" :placeholder="isBailian ? 'https://bailian.cn-beijing.aliyuncs.com' : 'https://api.dify.ai'" /></el-form-item>
+        <template v-if="isBailian">
+          <el-form-item label="AccessKey ID" required><el-input v-model="form.access_key_id" /></el-form-item>
+          <el-form-item label="AccessKey Secret"><el-input v-model="form.api_key" type="password" placeholder="********" show-password /></el-form-item>
+          <el-form-item label="业务空间 ID" required><el-input v-model="form.workspace_id" placeholder="llm-xxxx" /></el-form-item>
+          <el-form-item label="知识库 ID" required><el-input v-model="form.index_id" placeholder="CreateIndex 返回的索引 ID" /></el-form-item>
+        </template>
+        <template v-else>
+          <el-form-item label="API Key"><el-input v-model="form.api_key" type="password" placeholder="********" show-password /></el-form-item>
+          <el-form-item label="数据集 ID"><el-input v-model="form.dataset_id" placeholder="知识库/数据集 ID" /></el-form-item>
+        </template>
         <el-form-item label="状态">
           <el-switch v-model="formActive" active-text="激活" inactive-text="停用" />
         </el-form-item>
@@ -88,10 +96,10 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
-const PROVIDER_LABELS: Record<string, string> = { dify: 'Dify', ragflow: 'RAGFlow', fastgpt: 'FastGPT' }
+const PROVIDER_LABELS: Record<string, string> = { dify: 'Dify', ragflow: 'RAGFlow', fastgpt: 'FastGPT', bailian: '阿里云百炼' }
 
 const connections = ref<any[]>([])
-const providers = ref<string[]>(['dify', 'ragflow', 'fastgpt'])
+const providers = ref<string[]>(['dify', 'ragflow', 'fastgpt', 'bailian'])
 const status = reactive({ configured: false, source: null as string | null, provider_type: null as string | null })
 
 const dialogVisible = ref(false)
@@ -106,7 +114,12 @@ const form = reactive({
   api_url: '',
   api_key: '',
   dataset_id: '',
+  access_key_id: '',
+  workspace_id: '',
+  index_id: '',
 })
+
+const isBailian = computed(() => form.provider_type === 'bailian')
 
 const providerLabel = (type: string) => PROVIDER_LABELS[type] || type
 
@@ -130,7 +143,7 @@ const loadData = async () => {
 
 const openCreate = () => {
   editingId.value = null
-  Object.assign(form, { name: '', provider_type: 'dify', api_url: '', api_key: '', dataset_id: '' })
+  Object.assign(form, { name: '', provider_type: 'dify', api_url: '', api_key: '', dataset_id: '', access_key_id: '', workspace_id: '', index_id: '' })
   formActive.value = true
   dialogVisible.value = true
 }
@@ -143,6 +156,9 @@ const openEdit = (row: any) => {
     api_url: row.api_url,
     api_key: row.api_key,
     dataset_id: row.config?.dataset_id || '',
+    access_key_id: row.config?.access_key_id || '',
+    workspace_id: row.config?.workspace_id || '',
+    index_id: row.config?.index_id || '',
   })
   formActive.value = row.status === 'active'
   dialogVisible.value = true
@@ -157,7 +173,9 @@ const handleSave = async () => {
       api_url: form.api_url,
       api_key: form.api_key,
       status: formActive.value ? 'active' : 'disabled',
-      config: { dataset_id: form.dataset_id },
+      config: isBailian.value
+        ? { access_key_id: form.access_key_id, workspace_id: form.workspace_id, index_id: form.index_id }
+        : { dataset_id: form.dataset_id },
     }
     if (editingId.value) {
       await axios.put(`/api/v1/tenant/external-kb/connections/${editingId.value}`, payload)

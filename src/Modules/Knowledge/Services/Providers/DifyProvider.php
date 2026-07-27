@@ -75,4 +75,39 @@ class DifyProvider implements ExternalKbProviderContract
             return ['success' => false, 'message' => $e->getMessage()];
         }
     }
+
+    /**
+     * 推送文本文档（Dify create-by-text，自动分段）
+     */
+    public function pushDocument(string $name, string $content): array
+    {
+        try {
+            $response = Http::timeout(60)->withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+            ])->post($this->apiUrl . '/v1/datasets/' . $this->datasetId . '/document/create-by-text', [
+                'name' => $name,
+                'text' => $content,
+                'indexing_technique' => 'high_quality',
+                'process_rule' => ['mode' => 'automatic'],
+            ]);
+
+            if ($response->failed()) {
+                Log::error('DifyProvider::pushDocument failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+
+                return ['success' => false, 'message' => "HTTP {$response->status()}", 'external_id' => null];
+            }
+
+            return [
+                'success' => true,
+                'message' => 'ok',
+                'external_id' => (string) ($response->json('document.id') ?? ''),
+            ];
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage(), 'external_id' => null];
+        }
+    }
 }

@@ -54,16 +54,36 @@
           </div>
           <div class="form-group">
             <label>API 地址</label>
-            <input v-model="form.api_url" required placeholder="https://api.dify.ai" />
+            <input v-model="form.api_url" required :placeholder="isBailian ? 'https://bailian.cn-beijing.aliyuncs.com' : 'https://api.dify.ai'" />
           </div>
-          <div class="form-group">
-            <label>API Key</label>
-            <input v-model="form.api_key" type="password" placeholder="********" />
-          </div>
-          <div class="form-group">
-            <label>数据集 ID</label>
-            <input v-model="form.dataset_id" placeholder="知识库/数据集 ID" />
-          </div>
+          <template v-if="isBailian">
+            <div class="form-group">
+              <label>AccessKey ID</label>
+              <input v-model="form.access_key_id" required />
+            </div>
+            <div class="form-group">
+              <label>AccessKey Secret</label>
+              <input v-model="form.api_key" type="password" placeholder="********" />
+            </div>
+            <div class="form-group">
+              <label>业务空间 ID</label>
+              <input v-model="form.workspace_id" required placeholder="llm-xxxx" />
+            </div>
+            <div class="form-group">
+              <label>知识库 ID</label>
+              <input v-model="form.index_id" required placeholder="CreateIndex 返回的索引 ID" />
+            </div>
+          </template>
+          <template v-else>
+            <div class="form-group">
+              <label>API Key</label>
+              <input v-model="form.api_key" type="password" placeholder="********" />
+            </div>
+            <div class="form-group">
+              <label>数据集 ID</label>
+              <input v-model="form.dataset_id" placeholder="知识库/数据集 ID" />
+            </div>
+          </template>
           <div class="form-group">
             <label><input type="checkbox" v-model="formActive" /> 激活</label>
           </div>
@@ -81,10 +101,10 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
 
-const PROVIDER_LABELS: Record<string, string> = { dify: 'Dify', ragflow: 'RAGFlow', fastgpt: 'FastGPT' }
+const PROVIDER_LABELS: Record<string, string> = { dify: 'Dify', ragflow: 'RAGFlow', fastgpt: 'FastGPT', bailian: '阿里云百炼' }
 
 const connections = ref<any[]>([])
-const providers = ref<string[]>(['dify', 'ragflow', 'fastgpt'])
+const providers = ref<string[]>(['dify', 'ragflow', 'fastgpt', 'bailian'])
 const status = reactive({ configured: false, source: null as string | null, provider_type: null as string | null })
 
 const dialogVisible = ref(false)
@@ -99,7 +119,12 @@ const form = reactive({
   api_url: '',
   api_key: '',
   dataset_id: '',
+  access_key_id: '',
+  workspace_id: '',
+  index_id: '',
 })
+
+const isBailian = computed(() => form.provider_type === 'bailian')
 
 const providerLabel = (type: string) => PROVIDER_LABELS[type] || type
 
@@ -120,7 +145,7 @@ const loadData = async () => {
 
 const openCreate = () => {
   editingId.value = null
-  Object.assign(form, { name: '', provider_type: 'dify', api_url: '', api_key: '', dataset_id: '' })
+  Object.assign(form, { name: '', provider_type: 'dify', api_url: '', api_key: '', dataset_id: '', access_key_id: '', workspace_id: '', index_id: '' })
   formActive.value = true
   dialogVisible.value = true
 }
@@ -133,6 +158,9 @@ const openEdit = (row: any) => {
     api_url: row.api_url,
     api_key: row.api_key,
     dataset_id: row.config?.dataset_id || '',
+    access_key_id: row.config?.access_key_id || '',
+    workspace_id: row.config?.workspace_id || '',
+    index_id: row.config?.index_id || '',
   })
   formActive.value = row.status === 'active'
   dialogVisible.value = true
@@ -147,7 +175,9 @@ const handleSave = async () => {
       api_url: form.api_url,
       api_key: form.api_key,
       status: formActive.value ? 'active' : 'disabled',
-      config: { dataset_id: form.dataset_id },
+      config: isBailian.value
+        ? { access_key_id: form.access_key_id, workspace_id: form.workspace_id, index_id: form.index_id }
+        : { dataset_id: form.dataset_id },
     }
     if (editingId.value) {
       await axios.put(`/api/v1/tenant/external-kb/connections/${editingId.value}`, payload)

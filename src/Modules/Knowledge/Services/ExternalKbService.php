@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Knowledge\Services;
 use MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting;
 use MultiTenantSaas\Modules\Knowledge\Contracts\ExternalKbProviderContract;
 use MultiTenantSaas\Modules\Knowledge\Models\ExternalKbConnection;
+use MultiTenantSaas\Modules\Knowledge\Services\Providers\BailianProvider;
 use MultiTenantSaas\Modules\Knowledge\Services\Providers\DifyProvider;
 use MultiTenantSaas\Modules\Knowledge\Services\Providers\FastGptProvider;
 use MultiTenantSaas\Modules\Knowledge\Services\Providers\RagFlowProvider;
@@ -34,6 +35,7 @@ class ExternalKbService
         'dify' => DifyProvider::class,
         'ragflow' => RagFlowProvider::class,
         'fastgpt' => FastGptProvider::class,
+        'bailian' => BailianProvider::class,
     ];
 
     /**
@@ -183,6 +185,10 @@ class ExternalKbService
             'api_url' => (string) SystemSetting::get(self::SETTINGS_GROUP, 'api_url', ''),
             'api_key' => (string) SystemSetting::get(self::SETTINGS_GROUP, 'api_key', ''),
             'dataset_id' => (string) SystemSetting::get(self::SETTINGS_GROUP, 'dataset_id', ''),
+            // 阿里云百炼等云厂商 Provider 的扩展凭证键
+            'access_key_id' => (string) SystemSetting::get(self::SETTINGS_GROUP, 'access_key_id', ''),
+            'workspace_id' => (string) SystemSetting::get(self::SETTINGS_GROUP, 'workspace_id', ''),
+            'index_id' => (string) SystemSetting::get(self::SETTINGS_GROUP, 'index_id', ''),
         ];
 
         if ($config['provider_type'] === '' || $config['api_url'] === '' || ! isset(self::PROVIDERS[$config['provider_type']])) {
@@ -212,6 +218,27 @@ class ExternalKbService
             'source' => $resolved['source'],
             'results' => $provider->search($query, $limit),
         ];
+    }
+
+    /**
+     * 推送文本文档到指定租户连接（文档知识库 → 外部同步）
+     *
+     * @return array{success: bool, message: string, external_id: string|null}
+     */
+    public function pushDocument(int $tenantId, int $connectionId, string $name, string $content): array
+    {
+        $connection = $this->findConnection($tenantId, $connectionId);
+
+        $provider = $this->makeProvider($connection->provider_type);
+        $provider->configure($connection->toProviderConfig());
+
+        $result = $provider->pushDocument($name, $content);
+
+        if ($result['success']) {
+            $connection->update(['last_synced_at' => now()]);
+        }
+
+        return $result;
     }
 
     /**

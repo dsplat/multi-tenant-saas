@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
+use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Knowledge\Models\ExternalKbConnection;
@@ -167,6 +168,29 @@ class ExternalKbServiceTest extends TestCase
 
         $this->assertTrue($this->service->deleteConnection(2001, $connection->connection_id));
         $this->assertCount(0, $this->service->listConnections(2001));
+    }
+
+    public function test_push_document_updates_last_synced_at(): void
+    {
+        Http::fake([
+            'api.dify.ai/*' => Http::response(['document' => ['id' => 'ext-doc-1']]),
+        ]);
+
+        $connection = $this->service->createConnection(2001, [
+            'provider_type' => 'dify',
+            'name' => '同步目标库',
+            'api_url' => 'https://api.dify.ai',
+            'api_key' => 'sync-key',
+            'config' => ['dataset_id' => 'ds-1'],
+        ]);
+
+        $this->assertNull($connection->last_synced_at);
+
+        $result = $this->service->pushDocument(2001, $connection->connection_id, '企业FAQ', 'Q&A 内容');
+
+        $this->assertTrue($result['success']);
+        $this->assertSame('ext-doc-1', $result['external_id']);
+        $this->assertNotNull($connection->fresh()->last_synced_at);
     }
 
     public function test_make_provider_rejects_unknown_type(): void

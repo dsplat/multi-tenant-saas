@@ -71,4 +71,41 @@ class RagFlowProvider implements ExternalKbProviderContract
             return ['success' => false, 'message' => $e->getMessage()];
         }
     }
+
+    /**
+     * 推送文本文档（RAGFlow 仅支持文件上传，文本以 .txt 附件形式推送，随后触发解析）
+     */
+    public function pushDocument(string $name, string $content): array
+    {
+        try {
+            $fileName = str_ends_with($name, '.txt') ? $name : "{$name}.txt";
+
+            $response = Http::timeout(60)
+                ->withHeaders(['Authorization' => 'Bearer ' . $this->apiKey])
+                ->attach('file', $content, $fileName)
+                ->post($this->apiUrl . '/api/v1/datasets/' . $this->datasetId . '/documents');
+
+            $documentId = $response->json('data.0.id');
+
+            if ($response->failed() || ! $documentId) {
+                Log::error('RagFlowProvider::pushDocument failed', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+
+                return ['success' => false, 'message' => $response->json('message') ?? "HTTP {$response->status()}", 'external_id' => null];
+            }
+
+            // 触发文档解析（异步切片入库）
+            Http::timeout(30)
+                ->withHeaders(['Authorization' => 'Bearer ' . $this->apiKey])
+                ->post($this->apiUrl . '/api/v1/datasets/' . $this->datasetId . '/chunks', [
+                    'document_ids' => [$documentId],
+                ]);
+
+            return ['success' => true, 'message' => 'ok', 'external_id' => (string) $documentId];
+        } catch (\Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage(), 'external_id' => null];
+        }
+    }
 }

@@ -360,10 +360,10 @@ PEM;
         $this->assertSame('new@example.com', $user->email);
         $this->assertNotNull($user->email_verified_at);
 
-        // 已绑定 oauth_account
+        // 已绑定 oauth_account（provider 命名空间化：type:name:tenant:{tenant_id}）
         $this->assertDatabaseHas('oauth_accounts', [
             'user_id' => $user->user_id,
-            'provider' => 'saml:default',
+            'provider' => 'saml:default:tenant:1001',
             'provider_id' => 'ext-new-1',
         ]);
 

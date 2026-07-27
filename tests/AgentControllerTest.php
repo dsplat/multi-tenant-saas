@@ -23,6 +23,16 @@ class AgentControllerTest extends TestCase
 
     protected User $user;
 
+    protected Operator $operator;
+
+    protected function defineEnvironment($app): void
+    {
+        parent::defineEnvironment($app);
+
+        // 与生产一致：sanctum guard 不绑定 provider，Operator/User token 均可认证
+        $app['config']->set('auth.guards.sanctum.provider', null);
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -41,7 +51,7 @@ class AgentControllerTest extends TestCase
             ->value('role_id');
 
         // 创建租户级 operator
-        $operator = Operator::create([
+        $this->operator = Operator::create([
             'email' => $this->user->email,
             'name' => $this->user->name,
             'scope' => 'tenant',
@@ -49,7 +59,7 @@ class AgentControllerTest extends TestCase
         ]);
 
         OperatorTenant::create([
-            'operator_id' => $operator->operator_id,
+            'operator_id' => $this->operator->operator_id,
             'tenant_id' => 1001,
             'user_id' => $this->user->user_id,
             'role' => 'tenant_admin',
@@ -63,7 +73,8 @@ class AgentControllerTest extends TestCase
 
     protected function authHeaders(int $tenantId = 1001): array
     {
-        $token = $this->user->createToken('test-' . uniqid())->plainTextToken;
+        // console 后台的调用方是 Operator（身份模型铁律），以 Operator 身份发 token
+        $token = $this->operator->createToken('test-' . uniqid())->plainTextToken;
 
         return [
             'Authorization' => "Bearer {$token}",
@@ -147,10 +158,11 @@ class AgentControllerTest extends TestCase
 
     public function test_store_validates_required_fields(): void
     {
+        // system_prompt 已改为 nullable（可后置配置），必填项仅 name/role
         $this->withHeaders($this->authHeaders())
             ->postJson('/api/v1/agents', [])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'role', 'system_prompt']);
+            ->assertJsonValidationErrors(['name', 'role']);
     }
 
     public function test_store_validates_name_max_length(): void

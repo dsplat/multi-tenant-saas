@@ -27,7 +27,17 @@ class AgentChatControllerTest extends TestCase
 
     protected User $user;
 
+    protected Operator $operator;
+
     protected Agent $agent;
+
+    protected function defineEnvironment($app): void
+    {
+        parent::defineEnvironment($app);
+
+        // 与生产一致：sanctum guard 不绑定 provider，Operator/User token 均可认证
+        $app['config']->set('auth.guards.sanctum.provider', null);
+    }
 
     protected function setUp(): void
     {
@@ -47,7 +57,7 @@ class AgentChatControllerTest extends TestCase
             ->value('role_id');
 
         // 创建租户级 operator
-        $operator = Operator::create([
+        $this->operator = Operator::create([
             'email' => $this->user->email,
             'name' => $this->user->name,
             'scope' => 'tenant',
@@ -55,7 +65,7 @@ class AgentChatControllerTest extends TestCase
         ]);
 
         OperatorTenant::create([
-            'operator_id' => $operator->operator_id,
+            'operator_id' => $this->operator->operator_id,
             'tenant_id' => 1001,
             'user_id' => $this->user->user_id,
             'role' => 'tenant_admin',
@@ -83,7 +93,8 @@ class AgentChatControllerTest extends TestCase
 
     protected function authHeaders(int $tenantId = 1001): array
     {
-        $token = $this->user->createToken('test-' . uniqid())->plainTextToken;
+        // console 后台的调用方是 Operator（身份模型铁律），以 Operator 身份发 token
+        $token = $this->operator->createToken('test-' . uniqid())->plainTextToken;
 
         return [
             'Authorization' => "Bearer {$token}",

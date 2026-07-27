@@ -111,11 +111,11 @@ class WechatWorkOAuthService
         $accessToken = $this->getAccessToken($tenantId);
         $userIdentity = $this->getUserIdentity($tenantId, $accessToken, $code);
 
-        // 企业微信 userid 是企业在内部标识用户的唯一 ID
-        $userId = $userIdentity['UserId'] ?? '';
+        // 企业微信 userid 是企业在内部标识用户的唯一 ID（新版 API 返回小写 userid，旧版大写 UserId）
+        $userId = $userIdentity['userid'] ?? $userIdentity['UserId'] ?? '';
         if ($userId === '') {
-            // 非企业成员扫码，返回数据中无 UserId，仅有 OpenId
-            $openId = $userIdentity['OpenId'] ?? '';
+            // 非企业成员扫码，返回数据中无 userid，仅有 openid
+            $openId = $userIdentity['openid'] ?? $userIdentity['OpenId'] ?? '';
             if ($openId === '') {
                 throw new \RuntimeException('WechatWork: neither UserId nor OpenId returned');
             }

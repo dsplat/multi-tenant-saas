@@ -12,6 +12,9 @@ import FormFillCard from './FormFillCard.vue'
 import WorkflowProgress from './WorkflowProgress.vue'
 
 const props = defineProps<{ message: ChatMessage }>()
+const emit = defineEmits<{
+  (e: 'delegate', payload: { agentId: string; agentName: string; handoffMessage: string }): void
+}>()
 const router = useRouter()
 
 const isUser = computed(() => props.message.role === 'user')
@@ -27,6 +30,44 @@ function toolArgs(call: any): string {
   if (!args) return ''
   const s = typeof args === 'string' ? args : JSON.stringify(args)
   return s.length > 80 ? s.slice(0, 80) + '…' : s
+}
+
+/** 解析工具参数为对象（兼容 JSON 字符串） */
+function parseArgs(call: any): Record<string, any> {
+  const args = call?.arguments || call?.function?.arguments
+  if (!args) return {}
+  if (typeof args === 'string') {
+    try { return JSON.parse(args) } catch { return {} }
+  }
+  return args
+}
+
+/** 秘书 navigate 带路：从 toolCalls 提取跳转指令 */
+const navigateActions = computed(() =>
+  (props.message.toolCalls || [])
+    .filter(c => toolName(c) === 'navigate')
+    .map(c => parseArgs(c))
+    .filter(a => typeof a.route_path === 'string' && a.route_path.startsWith('/')),
+)
+
+/** 秘书 delegate 转派：从 toolCalls 提取转派指令 */
+const delegateActions = computed(() =>
+  (props.message.toolCalls || [])
+    .filter(c => toolName(c) === 'delegate_to_agent')
+    .map(c => parseArgs(c))
+    .filter(a => a.agent_id),
+)
+
+function handleNavigate(routePath: string) {
+  router.push(routePath)
+}
+
+function handleDelegate(a: Record<string, any>) {
+  emit('delegate', {
+    agentId: String(a.agent_id),
+    agentName: String(a.agent_name || ''),
+    handoffMessage: String(a.handoff_message || ''),
+  })
 }
 </script>
 
@@ -61,6 +102,28 @@ function toolArgs(call: any): string {
       >
         <span class="action-arrow">→</span>
         {{ message.action.label }}
+      </button>
+
+      <!-- 秘书带路：navigate 跳转按钮 -->
+      <button
+        v-for="(nav, i) in navigateActions"
+        :key="'nav' + i"
+        class="msg-action-btn"
+        @click="handleNavigate(nav.route_path)"
+      >
+        <span class="action-arrow">→</span>
+        {{ nav.label || nav.route_path }}
+      </button>
+
+      <!-- 秘书转派：delegate 接手按钮 -->
+      <button
+        v-for="(d, i) in delegateActions"
+        :key="'dlg' + i"
+        class="msg-action-btn"
+        @click="handleDelegate(d)"
+      >
+        <span class="action-arrow">⇄</span>
+        转接给 {{ d.agent_name || '数字员工' }}
       </button>
 
       <!-- 表单填充建议卡片 -->

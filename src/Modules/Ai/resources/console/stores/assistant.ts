@@ -33,6 +33,9 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   const streaming = ref(false)
   /** 当前会话 ID（后端返回，用于续接） */
   const conversationId = ref<number | null>(null)
+  /** 转派目标员工（秘书 delegate 后后续消息定向该员工） */
+  const targetAgentId = ref<string | null>(null)
+  const targetAgentName = ref<string | null>(null)
 
   // ─── 计算属性 ─────────────────────────────────────────────
   /** 最终是否展示助手入口（用户未关闭即显示浮动按钮，可用性仅影响面板内容） */
@@ -140,9 +143,19 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     conversationId.value = id
   }
 
+  /** 设置/清除转派目标员工 */
+  function setTargetAgent(agentId: string | null, agentName: string | null = null) {
+    targetAgentId.value = agentId
+    targetAgentName.value = agentName
+    // 切换员工后会话重新开始（后端按 agent 隔离会话）
+    conversationId.value = null
+  }
+
   function clearMessages() {
     messages.value = []
     conversationId.value = null
+    targetAgentId.value = null
+    targetAgentName.value = null
   }
 
   return {
@@ -150,12 +163,13 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     available, availabilityLoaded, userEnabled,
     panelMode, currentModule,
     messages, streaming, conversationId,
+    targetAgentId, targetAgentName,
     // computed
     visible, isOpen,
     // actions
     setAvailability, setUserEnabled, setModule,
     openPanel, closePanel, togglePin,
     pushUserMessage, startAssistantMessage, appendText, appendToolCalls, setFormFill, setWorkflow,
-    finishMessage, pushError, setStreaming, setConversationId, clearMessages,
+    finishMessage, pushError, setStreaming, setConversationId, setTargetAgent, clearMessages,
   }
 })

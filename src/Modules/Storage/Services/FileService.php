@@ -85,7 +85,7 @@ class FileService
         bool $isPublic = false
     ): FileUpload {
         $tenantId = $tenantId ?? TenantContext::getId();
-        // 租户 OSS → 平台默认 OSS → config 兜底
+        // 存储预设：租户存储，未配置则平台存储（均未配置明确报错）
         $disk = $disk ?? $this->storageConfig->resolveDisk($tenantId);
 
         // 验证文件大小
@@ -178,7 +178,7 @@ class FileService
             }
         }
 
-        // 租户 OSS → 平台默认 OSS → config 兜底
+        // 存储预设：租户存储，未配置则平台存储（均未配置明确报错）
         $disk = $this->storageConfig->resolveDisk($tenantId);
 
         // 验证文件大小

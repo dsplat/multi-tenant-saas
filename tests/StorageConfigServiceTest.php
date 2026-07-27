@@ -12,7 +12,7 @@ use MultiTenantSaas\Tests\Schema\InfrastructureModule;
 /**
  * StorageConfigService 测试套件
  *
- * 覆盖：租户 OSS → 平台默认 OSS → config 兜底三级 fallback、
+ * 覆盖：两级预设（租户存储 → 平台存储，未配置明确报错）、local 驱动显式预设、
  * 敏感键加密与掩码保留、生效来源解析。
  */
 class StorageConfigServiceTest extends TestCase
@@ -32,8 +32,6 @@ class StorageConfigServiceTest extends TestCase
         // TenantConfigStore 为进程级静态缓存，清除跨用例残留
         TenantConfigStore::clear();
 
-        config(['tenancy.file_storage_disk' => 'local']);
-
         $this->tenantSettings = $this->app->make(TenantSettingService::class);
         // 桩掉磁盘注册（测试环境未安装 league/flysystem-aws-s3-v3）
         $this->service = new class($this->tenantSettings) extends StorageConfigService
@@ -47,12 +45,28 @@ class StorageConfigServiceTest extends TestCase
         };
     }
 
-    public function test_falls_back_to_config_disk_when_nothing_configured(): void
+    public function test_throws_when_nothing_configured(): void
     {
-        $this->assertSame('local', $this->service->resolveDisk(3001));
-
         $status = $this->service->resolveStatus(3001);
-        $this->assertSame(StorageConfigService::SOURCE_SYSTEM, $status['source']);
+        $this->assertSame(StorageConfigService::SOURCE_NONE, $status['source']);
+        $this->assertNull($status['disk']);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('对象存储未配置');
+        $this->service->resolveDisk(3001);
+    }
+
+    public function test_platform_local_driver_is_explicit_preset(): void
+    {
+        // 开发/单机环境：平台存储显式配置为 local 驱动，无需云端凭证
+        SystemSetting::set(StorageConfigService::SETTINGS_GROUP, 'enabled', true);
+        SystemSetting::set(StorageConfigService::SETTINGS_GROUP, 'driver', 'local');
+
+        $this->assertSame(StorageConfigService::PLATFORM_DISK, $this->service->resolveDisk(3001));
+
+        $config = $this->service->registered[StorageConfigService::PLATFORM_DISK];
+        $this->assertSame('local', $config['driver']);
+        $this->assertArrayHasKey('root', $config);
     }
 
     public function test_uses_platform_default_when_tenant_not_configured(): void
@@ -93,11 +107,14 @@ class StorageConfigServiceTest extends TestCase
         SystemSetting::set(StorageConfigService::SETTINGS_GROUP, 'endpoint', 'https://oss.example.com');
 
         $this->assertNull($this->service->getPlatformOssConfig());
-        $this->assertSame('local', $this->service->resolveDisk(3001));
 
         // 租户启用但配置不完整同样忽略
         $this->tenantSettings->set(3001, StorageConfigService::SETTINGS_GROUP, 'enabled', true);
         $this->assertNull($this->service->getTenantOssConfig(3001));
+
+        // 两级均无有效配置 → 明确报错
+        $this->expectException(\RuntimeException::class);
+        $this->service->resolveDisk(3001);
     }
 
     public function test_disabled_config_is_ignored(): void
@@ -106,7 +123,9 @@ class StorageConfigServiceTest extends TestCase
         SystemSetting::set(StorageConfigService::SETTINGS_GROUP, 'enabled', false);
 
         $this->assertNull($this->service->getPlatformOssConfig());
-        $this->assertSame('local', $this->service->resolveDisk(3001));
+
+        $this->expectException(\RuntimeException::class);
+        $this->service->resolveDisk(3001);
     }
 
     public function test_update_tenant_config_keeps_secret_when_masked(): void

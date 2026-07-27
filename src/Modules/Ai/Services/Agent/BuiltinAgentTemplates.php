@@ -7,8 +7,12 @@ use Illuminate\Support\Collection;
 /**
  * 预置 Agent 模板定义数据
  *
- * 框架层提供 8 个角色骨架空模板（客服/销售/营销/数据分析等），
- * feature_keys 留空由业务层填充。本类为纯数据类，不含任何业务逻辑。
+ * 框架层提供系统小秘书（展示序号 seq=0，即“第 0 号数字员工”）+ 8 个角色骨架空模板
+ * （客服/销售/营销/数据分析等），feature_keys 留空由业务层填充。
+ * 本类为纯数据类，不含任何业务逻辑。
+ *
+ * 注意：template_id 是标识符，一律从 1 起编（0 为 falsy 值，禁用作 ID）；
+ * “第 0 号”是 seq 展示序号，与 ID 无关。
  *
  * @see AgentService::getBuiltinTemplates()
  * @see AgentService::cloneFromTemplate()
@@ -39,10 +43,11 @@ final class BuiltinAgentTemplates
     /**
      * 获取全部预置模板定义
      *
-     * 返回 8 个角色骨架空模板，feature_keys 为空数组由业务层填充。
+     * 返回系统小秘书 + 8 个角色骨架空模板，feature_keys 为空数组由业务层填充。
      *
      * @return list<array{
      *     template_id: int,
+     *     seq: int,
      *     template_key: string,
      *     role: string,
      *     name: string,
@@ -65,7 +70,22 @@ final class BuiltinAgentTemplates
 
         self::$cache = [
             [
+                'template_id' => 9,
+                'seq' => 0,
+                'template_key' => 'system_secretary',
+                'role' => 'system_secretary',
+                'name' => '系统小秘书',
+                'avatar' => '',
+                'description' => '系统总入口与总调度：回答系统怎么用、功能在哪里，带你跳转页面，并把专业事务转派给合适的数字员工。',
+                'system_prompt' => self::secretarySystemPrompt(),
+                'tools' => ['system_kb_search', 'get_data_dictionary', 'navigate', 'list_agents', 'delegate_to_agent'],
+                'kb_ids' => [],
+                'feature_keys' => [],
+                'model_config' => self::secretaryModelConfig(),
+            ],
+            [
                 'template_id' => 1,
+                'seq' => 1,
                 'template_key' => 'customer_service',
                 'role' => 'customer_service',
                 'name' => '客服专员',
@@ -79,6 +99,7 @@ final class BuiltinAgentTemplates
             ],
             [
                 'template_id' => 2,
+                'seq' => 2,
                 'template_key' => 'sales',
                 'role' => 'sales',
                 'name' => '销售顾问',
@@ -92,6 +113,7 @@ final class BuiltinAgentTemplates
             ],
             [
                 'template_id' => 3,
+                'seq' => 3,
                 'template_key' => 'marketing',
                 'role' => 'marketing',
                 'name' => '营销专员',
@@ -105,6 +127,7 @@ final class BuiltinAgentTemplates
             ],
             [
                 'template_id' => 4,
+                'seq' => 4,
                 'template_key' => 'data_analyst',
                 'role' => 'data_analyst',
                 'name' => '数据分析师',
@@ -118,6 +141,7 @@ final class BuiltinAgentTemplates
             ],
             [
                 'template_id' => 5,
+                'seq' => 5,
                 'template_key' => 'operations',
                 'role' => 'operations',
                 'name' => '运营专员',
@@ -131,6 +155,7 @@ final class BuiltinAgentTemplates
             ],
             [
                 'template_id' => 6,
+                'seq' => 6,
                 'template_key' => 'hr',
                 'role' => 'hr',
                 'name' => '人力资源',
@@ -144,6 +169,7 @@ final class BuiltinAgentTemplates
             ],
             [
                 'template_id' => 7,
+                'seq' => 7,
                 'template_key' => 'finance',
                 'role' => 'finance',
                 'name' => '财务助手',
@@ -157,6 +183,7 @@ final class BuiltinAgentTemplates
             ],
             [
                 'template_id' => 8,
+                'seq' => 8,
                 'template_key' => 'tech_support',
                 'role' => 'tech_support',
                 'name' => '技术支持',
@@ -243,6 +270,47 @@ final class BuiltinAgentTemplates
             'temperature' => 0.7,
             'max_tokens' => 2000,
             'max_tool_calls' => 5,
+            'stream' => true,
+        ];
+    }
+
+    /**
+     * 系统小秘书 system_prompt
+     */
+    private static function secretarySystemPrompt(): string
+    {
+        return <<<'PROMPT'
+你是本系统的「系统小秘书」——第 0 号数字员工，用户的总入口和总调度。
+
+你的职责：
+1. 系统向导：回答“系统怎么用、功能在哪里、业务流程怎么走”。必须先调用 system_kb_search 检索系统知识库，严格依据检索片段作答；检索不到就坦诚说不知道，绝不编造功能或操作步骤。
+2. 带路：用户想去某个功能页时，用 navigate 返回站内路径（路径以知识库检索结果为准）。
+3. 数据结构咨询：涉及表、字段等结构问题时用 get_data_dictionary 查询，不凭记忆回答。
+4. 调度转派：需要专业处理（客服/销售/营销/数据分析等）时，先用 list_agents 查看可用数字员工，再用 delegate_to_agent 转派，并写清楚 handoff_message。
+
+行为准则：
+- 回答简短直接，中文作答；能用一句话说清就不写长段。
+- 只回答与本系统相关的问题，无关问题礼貌地引导回系统使用场景。
+- 绝不泄露内部实现细节（代码、密钥、服务器信息），数据字典仅限表与字段含义层面。
+PROMPT;
+    }
+
+    /**
+     * 系统小秘书 model_config（展示用骨架）
+     *
+     * 运行时真正生效的是 config('ai.secretary')（AgentRuntime 按 role 强制解析，
+     * 平台买单），此处仅供模板展示与克隆时落库。
+     */
+    public static function secretaryModelConfig(): array
+    {
+        return [
+            'preferred_provider' => (string) config('ai.secretary.provider', 'bailian'),
+            'preferred_model' => (string) config('ai.secretary.model', 'qwen-flash'),
+            'fallback_provider' => (string) config('ai.secretary.fallback_provider', 'bailian'),
+            'fallback_model' => (string) config('ai.secretary.fallback_model', 'deepseek-v3'),
+            'temperature' => (float) config('ai.secretary.temperature', 0.3),
+            'max_tokens' => (int) config('ai.secretary.max_tokens', 2000),
+            'max_tool_calls' => (int) config('ai.secretary.max_tool_calls', 5),
             'stream' => true,
         ];
     }

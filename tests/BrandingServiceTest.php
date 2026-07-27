@@ -6,14 +6,17 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use MultiTenantSaas\Modules\Infrastructure\Models\BrandingConfig;
+use MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Services\BrandingService;
+use MultiTenantSaas\Modules\Storage\Services\StorageConfigService;
 use MultiTenantSaas\Tests\Schema\AiModule;
+use MultiTenantSaas\Tests\Schema\InfrastructureModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;
 
 class BrandingServiceTest extends TestCase
 {
-    protected array $uses = [AiModule::class, PluginModule::class];
+    protected array $uses = [AiModule::class, PluginModule::class, InfrastructureModule::class];
 
     use DatabaseTransactions;
 
@@ -120,7 +123,7 @@ class BrandingServiceTest extends TestCase
 
     public function test_upload_logo(): void
     {
-        Storage::fake('local');
+        $this->fakePlatformStorage();
 
         $file = UploadedFile::fake()->image('logo.png', 100, 100);
 
@@ -131,7 +134,7 @@ class BrandingServiceTest extends TestCase
 
     public function test_upload_logo_invalid_format_throws(): void
     {
-        Storage::fake('local');
+        $this->fakePlatformStorage();
 
         $file = UploadedFile::fake()->create('document.pdf', 100, 'application/pdf');
 
@@ -141,7 +144,7 @@ class BrandingServiceTest extends TestCase
 
     public function test_upload_favicon(): void
     {
-        Storage::fake('local');
+        $this->fakePlatformStorage();
 
         $file = UploadedFile::fake()->image('favicon.png', 32, 32);
 
@@ -176,5 +179,19 @@ class BrandingServiceTest extends TestCase
 
         $this->assertSame('#aaaaaa', $this->service->getConfig(1001)->primary_color);
         $this->assertSame('#bbbbbb', $this->service->getConfig(1002)->primary_color);
+    }
+
+    /**
+     * 预设平台存储（driver=local）并替换为 fake 磁盘
+     *
+     * 先 resolveDisk 完成注册再 fake；后续解析因配置未变化不会 forgetDisk，fake 得以保留
+     */
+    private function fakePlatformStorage(): void
+    {
+        SystemSetting::set(StorageConfigService::SETTINGS_GROUP, 'enabled', true);
+        SystemSetting::set(StorageConfigService::SETTINGS_GROUP, 'driver', 'local');
+
+        app(StorageConfigService::class)->resolveDisk(null);
+        Storage::fake(StorageConfigService::PLATFORM_DISK);
     }
 }

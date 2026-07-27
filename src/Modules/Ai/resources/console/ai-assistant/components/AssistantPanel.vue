@@ -29,6 +29,7 @@ const quickCommands = [
 ]
 
 const agentLabel = computed(() => {
+  if (store.targetAgentName) return store.targetAgentName
   const mod = store.currentModule || pageContext.value.module
   return mod ? `${mod} 智能助手` : '智能助手'
 })
@@ -57,7 +58,14 @@ async function handleSend(text?: string) {
   store.setStreaming(true)
   await scrollToBottom()
 
-  await send(pageContext.value, intent, {
+  // 转派后定向目标员工；带上会话 ID 续接
+  const payload = {
+    ...pageContext.value,
+    agent_id: store.targetAgentId ?? undefined,
+    conversation_id: store.conversationId ?? undefined,
+  }
+
+  await send(payload, intent, {
     onText: (t) => store.appendText(assistantMsg.id, t),
     onToolCall: (calls) => store.appendToolCalls(assistantMsg.id, calls),
     onFormFill: (suggestion) => store.setFormFill(assistantMsg.id, suggestion),
@@ -81,6 +89,13 @@ function handleQuick(intent: string) {
 /** 中断输出（可控制） */
 function handleAbort() {
   abort()
+}
+
+/** 秘书转派：切换目标员工并把交接消息作为开场发送 */
+function handleDelegate(payload: { agentId: string; agentName: string; handoffMessage: string }) {
+  store.setTargetAgent(payload.agentId, payload.agentName || null)
+  const opening = payload.handoffMessage || '你好，请接手处理。'
+  handleSend(opening)
 }
 
 /** 清空对话 */
@@ -154,7 +169,7 @@ function goToAgents() {
       </div>
 
       <!-- 消息列表 -->
-      <ChatMessage v-for="msg in store.messages" :key="msg.id" :message="msg" />
+      <ChatMessage v-for="msg in store.messages" :key="msg.id" :message="msg" @delegate="handleDelegate" />
     </div>
 
     <!-- 快捷指令栏 -->

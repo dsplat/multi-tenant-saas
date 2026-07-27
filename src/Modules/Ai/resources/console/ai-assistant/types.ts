@@ -25,6 +25,8 @@ export interface PageContext {
   user_intent?: string | null
   /** 续接已有会话 */
   conversation_id?: number | null
+  /** 显式指定目标员工（秘书转派后续接） */
+  agent_id?: number | string | null
 }
 
 /** SSE 消息类型 */

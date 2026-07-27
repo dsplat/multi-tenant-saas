@@ -289,7 +289,7 @@ class AgentServiceTest extends TestCase
     {
         $templates = $this->service->getBuiltinTemplates();
 
-        $this->assertCount(8, $templates);
+        $this->assertCount(9, $templates);
     }
 
     public function test_clone_from_template_creates_agent(): void

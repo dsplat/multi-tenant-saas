@@ -63,18 +63,21 @@ class InfrastructureModule implements SchemaModuleInterface
             $table->softDeletes();
         });
 
-        Schema::create('branding_configs', function (Blueprint $table) {
-            $table->unsignedBigInteger('branding_config_id')->primary();
-            $table->unsignedBigInteger('tenant_id');
-            $table->string('logo_url', 500)->nullable();
-            $table->string('primary_color', 7)->nullable();
-            $table->string('secondary_color', 7)->nullable();
-            $table->string('login_page_style', 500)->nullable();
-            $table->string('email_template', 500)->nullable();
-            $table->json('settings')->nullable();
-            $table->timestamps();
-            $table->index('tenant_id');
-        });
+        // AiModule 也会建 branding_configs（字段更全），与其组合使用时跳过
+        if (! Schema::hasTable('branding_configs')) {
+            Schema::create('branding_configs', function (Blueprint $table) {
+                $table->unsignedBigInteger('branding_config_id')->primary();
+                $table->unsignedBigInteger('tenant_id');
+                $table->string('logo_url', 500)->nullable();
+                $table->string('primary_color', 7)->nullable();
+                $table->string('secondary_color', 7)->nullable();
+                $table->string('login_page_style', 500)->nullable();
+                $table->string('email_template', 500)->nullable();
+                $table->json('settings')->nullable();
+                $table->timestamps();
+                $table->index('tenant_id');
+            });
+        }
 
         Schema::create('system_settings', function (Blueprint $table) {
             $table->unsignedBigInteger('setting_id')->primary();

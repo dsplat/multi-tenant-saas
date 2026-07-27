@@ -985,7 +985,7 @@ class AgentRuntime implements AgentRuntimeContract
      */
     private function buildChatOptions(Agent $agent, array $toolDefinitions = [], array $overrides = []): array
     {
-        $modelConfig = $agent->model_config ?? [];
+        $modelConfig = $this->resolveModelConfig($agent);
 
         $options = [
             'model' => $modelConfig['preferred_model'] ?? config('ai.default_model', 'gpt-4o-mini'),
@@ -1000,6 +1000,28 @@ class AgentRuntime implements AgentRuntimeContract
         }
 
         return array_merge($options, $overrides);
+    }
+
+    /**
+     * 解析 Agent 生效的模型配置
+     *
+     * 系统小秘书（role=system_secretary）强制走平台级 config('ai.secretary')：
+     * 平台买单、不读租户维护的 model_config，也不进租户配额路径。
+     */
+        private function resolveModelConfig(Agent $agent): array
+    {
+        if ($agent->role === 'system_secretary' && config('ai.secretary.enabled', true)) {
+            return [
+                'preferred_provider' => config('ai.secretary.provider'),
+                'preferred_model' => config('ai.secretary.model'),
+                'fallback_provider' => config('ai.secretary.fallback_provider'),
+                'fallback_model' => config('ai.secretary.fallback_model'),
+                'temperature' => config('ai.secretary.temperature', 0.3),
+                'max_tokens' => config('ai.secretary.max_tokens', 2000),
+            ];
+        }
+
+        return $agent->model_config ?? [];
     }
 
     /**
@@ -1056,8 +1078,8 @@ class AgentRuntime implements AgentRuntimeContract
             ]);
         }
 
-        // 检查 fallback 配置
-        $modelConfig = $agent->model_config ?? [];
+        // 检查 fallback 配置（秘书走平台级配置）
+        $modelConfig = $this->resolveModelConfig($agent);
         $fallbackProvider = $modelConfig['fallback_provider'] ?? null;
         $fallbackModel = $modelConfig['fallback_model'] ?? null;
 

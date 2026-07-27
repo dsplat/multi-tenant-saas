@@ -49,8 +49,14 @@ use MultiTenantSaas\Modules\Ai\Services\IntentRouter;
 use MultiTenantSaas\Modules\Ai\Services\Memory\EntityMemory;
 use MultiTenantSaas\Modules\Ai\Services\Memory\MemoryPipeline;
 use MultiTenantSaas\Modules\Ai\Services\Memory\TenantMemory;
+use MultiTenantSaas\Modules\Ai\Services\SystemKb\SystemKbEmbedder;
+use MultiTenantSaas\Modules\Ai\Services\SystemKb\SystemKbIndexer;
+use MultiTenantSaas\Modules\Ai\Services\SystemKb\SystemKbRegistry;
+use MultiTenantSaas\Modules\Ai\Services\SystemKb\SystemKbSearchService;
 use MultiTenantSaas\Modules\Ai\Services\Tool\CacheGetTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\CacheSetTool;
+use MultiTenantSaas\Modules\Ai\Services\Tool\DataDictionaryTool;
+use MultiTenantSaas\Modules\Ai\Services\Tool\DelegateToAgentTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\DocumentParseTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\EmailSendTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\EmbeddingGenerateTool;
@@ -58,8 +64,11 @@ use MultiTenantSaas\Modules\Ai\Services\Tool\FileReadTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\FileWriteTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\HttpRequestTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\KnowledgeSearchTool;
+use MultiTenantSaas\Modules\Ai\Services\Tool\ListAgentsTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\LlmCallTool;
+use MultiTenantSaas\Modules\Ai\Services\Tool\NavigateTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\OcrRecognizeTool;
+use MultiTenantSaas\Modules\Ai\Services\Tool\SystemKbSearchTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\VectorSearchTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\WebhookTriggerTool;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
@@ -131,6 +140,17 @@ class AiServiceProvider extends ModuleServiceProvider
         // F3: IntentRouter 意图路由器
         $this->app->singleton(IntentRouter::class);
 
+        // 系统小秘书：知识库底座（平台级，无租户隔离）
+        $this->app->singleton(SystemKbRegistry::class, fn () => new SystemKbRegistry);
+        $this->app->singleton(SystemKbEmbedder::class, fn () => new SystemKbEmbedder);
+        $this->app->singleton(SystemKbIndexer::class, fn ($app) => new SystemKbIndexer(
+            $app->make(SystemKbRegistry::class),
+            $app->make(SystemKbEmbedder::class),
+        ));
+        $this->app->singleton(SystemKbSearchService::class, fn ($app) => new SystemKbSearchService(
+            $app->make(SystemKbEmbedder::class),
+        ));
+
         $this->registerFrameworkTools();
     }
 
@@ -150,5 +170,12 @@ class AiServiceProvider extends ModuleServiceProvider
         $registry->register('embedding_generate', 'Generate Embedding', 'Generate embeddings', EmbeddingGenerateTool::class, ['type' => 'object', 'properties' => ['text' => ['type' => 'string']], 'required' => ['text']], 'ai');
         $registry->register('knowledge_search', 'Knowledge Search', 'Search knowledge bases', KnowledgeSearchTool::class, ['type' => 'object', 'properties' => ['query' => ['type' => 'string']], 'required' => ['query']], 'kb');
         $registry->register('document_parse', 'Parse Document', 'Parse a document', DocumentParseTool::class, ['type' => 'object', 'properties' => ['file_id' => ['type' => 'string']]], 'storage');
+
+        // 系统小秘书专属工具（category=secretary）
+        $registry->register('system_kb_search', 'System KB Search', 'Search the platform system knowledge base for how-to guides, feature locations and business flows', SystemKbSearchTool::class, ['type' => 'object', 'properties' => ['query' => ['type' => 'string', 'description' => '检索问题（自然语言）'], 'top_k' => ['type' => 'integer', 'description' => '返回片段数 1-10，默认 5']], 'required' => ['query']], 'secretary');
+        $registry->register('get_data_dictionary', 'Data Dictionary', 'Look up database tables and columns; pass table for column details or keyword to filter the table list', DataDictionaryTool::class, ['type' => 'object', 'properties' => ['table' => ['type' => 'string', 'description' => '表名（可选，传则返回字段明细）'], 'keyword' => ['type' => 'string', 'description' => '表清单过滤关键词（可选）']]], 'secretary');
+        $registry->register('navigate', 'Navigate', 'Return an in-app navigation instruction {route_path,label} for the frontend to jump to a page', NavigateTool::class, ['type' => 'object', 'properties' => ['route_path' => ['type' => 'string', 'description' => '站内路由路径，以 / 开头'], 'label' => ['type' => 'string', 'description' => '按钮文案（可选）']], 'required' => ['route_path']], 'secretary');
+        $registry->register('list_agents', 'List Agents', 'List enabled digital employees of current tenant with their roles and specialities', ListAgentsTool::class, ['type' => 'object', 'properties' => []], 'secretary');
+        $registry->register('delegate_to_agent', 'Delegate To Agent', 'Hand the conversation off to a specialised digital employee; returns a delegate instruction for the frontend', DelegateToAgentTool::class, ['type' => 'object', 'properties' => ['agent_id' => ['type' => 'string', 'description' => '目标员工 agent_id（先用 list_agents 查询）'], 'reason' => ['type' => 'string', 'description' => '转派原因'], 'handoff_message' => ['type' => 'string', 'description' => '带给目标员工的开场消息']], 'required' => ['agent_id']], 'secretary');
     }
 }

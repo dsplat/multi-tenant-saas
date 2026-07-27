@@ -72,16 +72,52 @@ return [
             'driver' => 'groq',
             'key' => env('GROQ_API_KEY', ''),
         ],
-        // 兼容 OpenAI 协议的其它后端，按需复制扩展
-        // 'bailian' => [
-        //     'base_url' => env('AI_BAILIAN_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1'),
-        //     'api_key' => env('AI_BAILIAN_API_KEY', ''),
-        //     'models' => ['qwen-plus', 'qwen-turbo'],
-        // ],
+        // 阿里云百炼（OpenAI 兼容 dashscope 端点），平台级小秘书默认后端
+        'bailian' => [
+            'driver' => 'openai',
+            'key' => env('AI_BAILIAN_API_KEY', ''),
+            'url' => env('AI_BAILIAN_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1'),
+            // SaaS 网关层兼容字段
+            'base_url' => env('AI_BAILIAN_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1'),
+            'api_key' => env('AI_BAILIAN_API_KEY', ''),
+            'models' => ['qwen-flash', 'qwen-turbo', 'qwen-plus', 'deepseek-v3', 'mimo-2.5'],
+        ],
     ],
 
     // 默认 provider 名称（仅 laravel/ai SDK 内部使用）
     'default_provider' => env('AI_PROVIDER', 'openai'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | 系统小秘书（第 0 号数字员工）平台级配置
+    |--------------------------------------------------------------------------
+    |
+    | 小秘书是框架内置的总入口数字员工，模型费用由平台买单（不消耗租户
+    | 任何积分/token）。模板 0 的 model_config 不写死，AgentRuntime 运行时
+    | 从本段解析——换模型只改 .env，零代码零数据变更。
+    |
+    | - enabled: 平台级总开关（关闭时前端零入口、后端拒绝会话）
+    | - provider/model: 主模型（默认阿里云百炼 qwen-flash）
+    | - fallback_provider/fallback_model: 降级模型
+    | - embedding_model: 系统知识库向量化模型（为空或 key 缺失时索引
+    |   fail-open 降级为纯关键词检索）
+    |
+    */
+    'secretary' => [
+        'enabled' => (bool) env('SECRETARY_ENABLED', true),
+        'provider' => env('SECRETARY_AI_PROVIDER', 'bailian'),
+        'model' => env('SECRETARY_AI_MODEL', 'qwen-flash'),
+        'fallback_provider' => env('SECRETARY_AI_FALLBACK_PROVIDER', 'bailian'),
+        'fallback_model' => env('SECRETARY_AI_FALLBACK_MODEL', 'deepseek-v3'),
+        'temperature' => (float) env('SECRETARY_AI_TEMPERATURE', 0.3),
+        'max_tokens' => (int) env('SECRETARY_AI_MAX_TOKENS', 2000),
+        'max_tool_calls' => (int) env('SECRETARY_AI_MAX_TOOL_CALLS', 5),
+        'embedding_provider' => env('SECRETARY_EMBEDDING_PROVIDER', 'bailian'),
+        'embedding_model' => env('SECRETARY_EMBEDDING_MODEL', 'text-embedding-v3'),
+        // 下游扩展模板类（需提供静态 definitions(): array，如 ScrmAgentTemplates），
+        // 用于数字员工名录生成与转派路由
+        'extra_template_classes' => [],
+    ],
 
     /*
     |--------------------------------------------------------------------------

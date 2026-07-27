@@ -21,6 +21,9 @@ use MultiTenantSaas\Console\Commands\ModuleListCommand;
 use MultiTenantSaas\Console\Commands\ModuleRequireCommand;
 use MultiTenantSaas\Console\Commands\ProcessScheduledReports;
 use MultiTenantSaas\Console\Commands\ProcessSmsBatch;
+use MultiTenantSaas\Console\Commands\SecretaryInstallCommand;
+use MultiTenantSaas\Console\Commands\SecretaryKbGenerateCommand;
+use MultiTenantSaas\Console\Commands\SecretaryKbSyncCommand;
 use MultiTenantSaas\Console\Commands\ScheduleListCommand;
 use MultiTenantSaas\Console\Commands\TenancyInitCommand;
 use MultiTenantSaas\Context\TenantConfigStore;
@@ -146,6 +149,9 @@ class TenancyServiceProvider extends ServiceProvider
                 BackupRunCommand::class,
                 BackupListCommand::class,
                 BackupRestoreCommand::class,
+                SecretaryInstallCommand::class,
+                SecretaryKbGenerateCommand::class,
+                SecretaryKbSyncCommand::class,
             ]);
         }
 

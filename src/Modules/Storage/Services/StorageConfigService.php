@@ -9,10 +9,12 @@ use MultiTenantSaas\Modules\Infrastructure\Services\TenantSettingService;
 /**
  * 对象存储配置服务
  *
- * 三级 fallback 链（对象存储是文件流程的必备环节，平台默认配置保证租户开箱即用）：
+ * 两级逻辑预设（不做静默 fallback）：
  * 1. 租户自有 OSS（tenant_settings group=storage）→ 动态注册 tenant-oss 磁盘
- * 2. 平台默认 OSS（system_settings group=storage）→ 动态注册 platform-oss 磁盘
- * 3. 系统兜底 config('tenancy.file_storage_disk', 'local')
+ * 2. 租户未配置 → 平台存储（system_settings group=storage）→ 动态注册 platform-oss 磁盘
+ *
+ * 平台存储未配置时明确报错，绝不静默落本地盘；开发/单机环境可将平台存储
+ * 显式配置为 driver=local（无需云端凭证）。
  *
  * 磁盘名 ≤ 20 字符（file_uploads.disk varchar(20)）。
  */
@@ -29,7 +31,8 @@ class StorageConfigService
 
     public const SOURCE_PLATFORM = 'platform';
 
-    public const SOURCE_SYSTEM = 'system';
+    /** 租户/平台均未配置（此时上传会明确报错） */
+    public const SOURCE_NONE = 'none';
 
     /** 加密存储的敏感键 */
     public const ENCRYPTED_KEYS = ['access_key_secret'];
@@ -48,7 +51,9 @@ class StorageConfigService
     public function __construct(private readonly TenantSettingService $tenantSettings) {}
 
     /**
-     * 解析写入用磁盘（fallback 链），并确保动态磁盘已注册
+     * 解析写入用磁盘（两级预设：租户存储 → 平台存储），并确保动态磁盘已注册
+     *
+     * @throws \RuntimeException 租户与平台存储均未配置时
      */
     public function resolveDisk(?int $tenantId): string
     {
@@ -70,7 +75,10 @@ class StorageConfigService
             return self::PLATFORM_DISK;
         }
 
-        return config('tenancy.file_storage_disk', 'local');
+        throw new \RuntimeException(
+            '对象存储未配置：租户未配置专属存储时预设使用平台存储，'
+            . '请在平台后台配置存储（OSS/S3，开发环境可选 local 驱动）'
+        );
     }
 
     /**
@@ -106,21 +114,22 @@ class StorageConfigService
     }
 
     /**
-     * 当前生效来源（供设置页展示）
+     * 当前生效来源（供设置页展示）；未配置时 source=none、disk=null，不抛异常
      */
     public function resolveStatus(int $tenantId): array
     {
-        if ($this->getTenantOssConfig($tenantId) !== null) {
-            $source = self::SOURCE_TENANT;
-        } elseif ($this->getPlatformOssConfig() !== null) {
-            $source = self::SOURCE_PLATFORM;
-        } else {
-            $source = self::SOURCE_SYSTEM;
+        if ($this->getTenantOssConfig($tenantId) !== null || $this->getPlatformOssConfig() !== null) {
+            $disk = $this->resolveDisk($tenantId);
+
+            return [
+                'source' => $disk === self::TENANT_DISK ? self::SOURCE_TENANT : self::SOURCE_PLATFORM,
+                'disk' => $disk,
+            ];
         }
 
         return [
-            'source' => $source,
-            'disk' => $this->resolveDisk($tenantId),
+            'source' => self::SOURCE_NONE,
+            'disk' => null,
         ];
     }
 
@@ -211,10 +220,19 @@ class StorageConfigService
     }
 
     /**
-     * 构建 Laravel S3 磁盘配置（关键字段不完整返回 null）
+     * 构建 Laravel 磁盘配置（s3 关键字段不完整返回 null）
      */
     protected function buildDiskConfig(array $raw): ?array
     {
+        // local 驱动：显式选择服务器本地盘（开发/单机部署预设），无需云端凭证
+        if (($raw['driver'] ?? 's3') === 'local') {
+            return [
+                'driver' => 'local',
+                'root' => storage_path('app'),
+                'throw' => false,
+            ];
+        }
+
         if (empty($raw['bucket']) || empty($raw['access_key_id']) || empty($raw['access_key_secret'])) {
             return null;
         }
@@ -237,7 +255,12 @@ class StorageConfigService
      */
     protected function registerDisk(string $name, array $config): void
     {
-        if (! class_exists(\League\Flysystem\AwsS3V3\AwsS3V3Adapter::class)) {
+        // 配置未变化时跳过，避免反复 forgetDisk（也保证测试中 Storage::fake 不被清除）
+        if (config("filesystems.disks.{$name}") === $config) {
+            return;
+        }
+
+        if (($config['driver'] ?? 's3') === 's3' && ! class_exists(\League\Flysystem\AwsS3V3\AwsS3V3Adapter::class)) {
             throw new \RuntimeException(
                 'S3 storage requires league/flysystem-aws-s3-v3. Run: composer require league/flysystem-aws-s3-v3'
             );

@@ -25,7 +25,7 @@ class ToolRegistry implements ToolRegistryContract
     /**
      * 框架层工具分类（平台内置）
      */
-    private const FRAMEWORK_CATEGORIES = ['core', 'ai', 'storage', 'kb', 'channel', 'workflow'];
+    private const FRAMEWORK_CATEGORIES = ['core', 'ai', 'storage', 'kb', 'channel', 'workflow', 'secretary'];
 
     /**
      * 运行时注册的工具 [slug => Tool]

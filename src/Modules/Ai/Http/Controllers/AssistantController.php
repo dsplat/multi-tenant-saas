@@ -76,6 +76,7 @@ class AssistantController extends Controller
             'form_state' => 'nullable|array',
             'visible_data_summary' => 'nullable|string|max:10000',
             'conversation_id' => 'nullable|integer',
+            'agent_id' => 'nullable|integer',
         ]);
 
         $tenantId = (int) $this->tenantContext->resolveId();
@@ -83,26 +84,40 @@ class AssistantController extends Controller
         // 构建页面上下文
         $pageContext = PageContext::fromArray($validated);
 
-        // 意图路由
-        $agentSlug = $this->intentRouter->route($pageContext);
+        // 前端显式指定目标员工（转派后续接），否则走意图路由
+        $agent = null;
 
-        if ($agentSlug === null) {
-            return response()->json([
-                'success' => false,
-                'message' => '当前页面暂无可用的 AI 助手。',
-            ], 404);
+        if (! empty($validated['agent_id'])) {
+            $agent = Agent::where('tenant_id', $tenantId)
+                ->where('agent_id', $validated['agent_id'])
+                ->where('enabled', true)
+                ->first();
         }
 
-        // 查找 Agent（按 slug + 租户）
-        $agent = Agent::where('tenant_id', $tenantId)
-            ->where('slug', $agentSlug)
-            ->where('status', 'active')
-            ->first();
+        if (! $agent) {
+            // 意图路由（slug 为 kebab-case，agents.role 为 snake_case）
+            $agentSlug = $this->intentRouter->route($pageContext);
+
+            if ($agentSlug !== null) {
+                $agent = Agent::where('tenant_id', $tenantId)
+                    ->where('role', str_replace('-', '_', $agentSlug))
+                    ->where('enabled', true)
+                    ->first();
+            }
+        }
+
+        // 系统小秘书回退：定向员工未配置时，由第 0 号总入口接手
+        if (! $agent && config('ai.secretary.enabled', true)) {
+            $agent = Agent::where('tenant_id', $tenantId)
+                ->where('role', 'system_secretary')
+                ->where('enabled', true)
+                ->first();
+        }
 
         if (! $agent) {
             return response()->json([
                 'success' => false,
-                'message' => "AI 助手 [{$agentSlug}] 未配置或已停用。",
+                'message' => '当前页面暂无可用的 AI 助手。',
             ], 404);
         }
 

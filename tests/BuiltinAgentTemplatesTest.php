@@ -22,24 +22,24 @@ class BuiltinAgentTemplatesTest extends TestCase
 
     // ---------- 模板数量与结构 ----------
 
-    public function test_all_returns_8_templates(): void
+    public function test_all_returns_9_templates(): void
     {
         $templates = BuiltinAgentTemplates::all();
 
-        $this->assertCount(8, $templates);
+        $this->assertCount(9, $templates);
     }
 
-    public function test_definitions_returns_8_templates(): void
+    public function test_definitions_returns_9_templates(): void
     {
         $definitions = BuiltinAgentTemplates::definitions();
 
-        $this->assertCount(8, $definitions);
+        $this->assertCount(9, $definitions);
     }
 
     public function test_each_template_has_required_fields(): void
     {
         $required = [
-            'template_id', 'template_key', 'role', 'name',
+            'template_id', 'seq', 'template_key', 'role', 'name',
             'description', 'system_prompt', 'tools', 'kb_ids',
             'feature_keys', 'model_config',
         ];
@@ -65,11 +65,17 @@ class BuiltinAgentTemplatesTest extends TestCase
         $this->assertEquals($keys, array_unique($keys), 'template_key 必须唯一');
     }
 
-    public function test_template_ids_are_sequential_from_1(): void
+    public function test_template_ids_start_from_1_and_seq_from_0(): void
     {
         $ids = array_column(BuiltinAgentTemplates::definitions(), 'template_id');
+        $seqs = array_column(BuiltinAgentTemplates::definitions(), 'seq');
 
-        $this->assertEquals([1, 2, 3, 4, 5, 6, 7, 8], $ids);
+        // template_id 是标识符，禁用 0（falsy）；小秘书 id=9 排首位
+        $this->assertNotContains(0, $ids, 'template_id 禁用 0');
+        $this->assertEquals([9, 1, 2, 3, 4, 5, 6, 7, 8], $ids);
+
+        // seq 是展示序号，小秘书为“第 0 号”
+        $this->assertEquals([0, 1, 2, 3, 4, 5, 6, 7, 8], $seqs);
     }
 
     public function test_templates_have_empty_feature_keys(): void

@@ -565,7 +565,7 @@ class AuthImprovementsTest extends TestCase
         $this->assertEquals('2021001234', $config['alipay']['app_id']);
     }
 
-    public function test_oauth_config_display_masks_secrets(): void
+    public function test_oauth_config_display_returns_plaintext_secrets(): void
     {
         $this->createTestTenant();
 
@@ -576,9 +576,10 @@ class AuthImprovementsTest extends TestCase
 
         $config = $this->socialiteService->getOAuthConfigForDisplay(1001);
 
-        $this->assertEquals('********', $config['wechat_work']['secret']);
-        $this->assertEquals('********', $config['github']['client_secret']);
-        // 未配置时不返回遮罩
+        // 明文回显（存储层加密，展示端透明解密供租户管理员核对）
+        $this->assertEquals('real-secret', $config['wechat_work']['secret']);
+        $this->assertEquals('gh-secret', $config['github']['client_secret']);
+        // 未配置时返回空串
         $this->assertEquals('', $config['dingtalk']['client_secret']);
     }
 
@@ -597,7 +598,7 @@ class AuthImprovementsTest extends TestCase
         $this->assertTrue($config['idp']['enabled']);
         $this->assertEquals('https://id.example.com', $config['idp']['base_url']);
         $this->assertEquals('standard', $config['idp']['protocol']);
-        $this->assertEquals('********', $config['idp']['client_secret']);
+        $this->assertEquals('idp-secret', $config['idp']['client_secret']);
     }
 
     public function test_update_oauth_config_idp_maps_enabled_to_oauth_mode(): void

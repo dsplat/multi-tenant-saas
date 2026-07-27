@@ -303,6 +303,9 @@ class SocialiteService
 
     /**
      * 获取租户 OAuth 配置（用于后台展示）
+     *
+     * secret 明文回显：调用方需 setting.update 权限，租户管理员可查看
+     * 自己配置的凭证以便核对排查（存储层仍加密）。
      */
     public function getOAuthConfigForDisplay(int $tenantId): array
     {
@@ -328,7 +331,7 @@ class SocialiteService
                     'configured' => app(WechatWorkOAuthService::class)->isConfigured($tenantId),
                     'corp_id' => $corpId,
                     'agent_id' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_agent_id', ''),
-                    'secret' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_secret', '') !== '' ? '********' : '',
+                    'secret' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_secret', ''),
                     'redirect' => $this->resolveRedirectUrl($tenantId, 'wechat_work', TenantSetting::get($tenantId, 'oauth', 'wechat_work_redirect', '')),
                 ];
 
@@ -339,7 +342,7 @@ class SocialiteService
                 $result[$provider] = [
                     'configured' => app(WechatOAuthService::class)->isConfigured($tenantId),
                     'client_id' => TenantSetting::get($tenantId, 'oauth', 'wechat_client_id', ''),
-                    'client_secret' => TenantSetting::get($tenantId, 'oauth', 'wechat_client_secret', '') !== '' ? '********' : '',
+                    'client_secret' => TenantSetting::get($tenantId, 'oauth', 'wechat_client_secret', ''),
                     'redirect' => $this->resolveRedirectUrl($tenantId, 'wechat', TenantSetting::get($tenantId, 'oauth', 'wechat_redirect', '')),
                 ];
 
@@ -350,7 +353,7 @@ class SocialiteService
             $result[$provider] = [
                 'configured' => ! empty($config['client_id']) && ! empty($config['client_secret']),
                 'client_id' => $config['client_id'],
-                'client_secret' => ! empty($config['client_secret']) ? '********' : '',
+                'client_secret' => $config['client_secret'] ?? '',
                 'redirect' => $config['redirect'],
             ];
         }
@@ -364,7 +367,7 @@ class SocialiteService
             'base_url' => $idpBaseUrl,
             'protocol' => TenantSetting::get($tenantId, 'oauth', 'idp_protocol', 'standard'),
             'client_id' => TenantSetting::get($tenantId, 'oauth', 'idp_client_id', ''),
-            'client_secret' => TenantSetting::get($tenantId, 'oauth', 'idp_client_secret', '') !== '' ? '********' : '',
+            'client_secret' => TenantSetting::get($tenantId, 'oauth', 'idp_client_secret', ''),
             'login_path' => TenantSetting::get($tenantId, 'oauth', 'idp_login_path', ''),
             'redirect_uri' => TenantSetting::get($tenantId, 'oauth', 'idp_redirect_uri', ''),
             'redirect_uri_default' => $this->resolveRedirectUrl($tenantId, '{provider}'),

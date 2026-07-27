@@ -3,146 +3,209 @@
     <div class="page-header"><h2>第三方登录配置</h2></div>
 
     <div class="panel">
-      <div class="config-section">
-        <!-- 认证中心（Delegated IdP）：启用后与其他登录方式互斥 -->
-        <div class="config-card" :class="{ 'config-card--active': config.idp.enabled }">
-          <div class="config-header">
-            <h4>公司认证中心（IdP）<span v-if="config.idp.enabled" class="badge">互斥模式</span></h4>
-            <label class="switch">
-              <input type="checkbox" v-model="config.idp.enabled" />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="config-body" v-if="config.idp.enabled">
-            <div class="alert-warning">启用后，邮箱/短信登录及下方所有第三方登录将全部关闭，用户仅能通过认证中心登录。</div>
-            <div class="form-group">
-              <label>认证中心地址</label>
-              <input v-model="config.idp.base_url" placeholder="https://id.example.com" />
-            </div>
-            <div class="form-group">
-              <label>协议版本</label>
-              <select v-model="config.idp.protocol">
-                <option value="standard">标准协议（authorization_code）</option>
-                <option value="legacy">兼容模式（JWT 直传）</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Client ID</label>
-              <input v-model="config.idp.client_id" placeholder="scrm_prod" />
-            </div>
-            <div class="form-group">
-              <label>Client Secret</label>
-              <input v-model="config.idp.client_secret" type="password" placeholder="******" />
-            </div>
-            <div class="form-group">
-              <label>前往登录路径</label>
-              <input v-model="config.idp.login_path" :placeholder="config.idp.protocol === 'standard' ? '默认 /authorize' : '默认 /login/{provider}'" />
-            </div>
-            <div class="form-group">
-              <label>回跳地址</label>
-              <input v-model="config.idp.redirect_uri" :placeholder="config.idp.redirect_uri_default || 'https://<租户域名>/api/v1/auth/{provider}/callback'" />
-            </div>
-            <div class="form-group">
-              <label>字段映射（可选，JSON）</label>
-              <textarea v-model="config.idp.field_mapping" rows="3" placeholder='如 {"phone": "mobile"}'></textarea>
-            </div>
-          </div>
-        </div>
-
-        <!-- 企业微信 -->
-        <div class="config-card" :class="{ 'config-card--disabled': config.idp.enabled }">
-          <div class="config-header">
-            <h4>企业微信</h4>
-            <label class="switch">
-              <input type="checkbox" v-model="config.wechat_work.enabled" :disabled="config.idp.enabled" />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="config-body" v-if="config.wechat_work.enabled && !config.idp.enabled">
-            <div class="form-group">
-              <label>Corp ID</label>
-              <input v-model="config.wechat_work.corp_id" placeholder="ww1234567890abcdef" />
-            </div>
-            <div class="form-group">
-              <label>Agent ID</label>
-              <input v-model="config.wechat_work.agent_id" placeholder="1000001" />
-            </div>
-            <div class="form-group">
-              <label>Secret</label>
-              <input v-model="config.wechat_work.secret" type="password" placeholder="******" />
-            </div>
-            <div class="form-group" v-if="config.wechat_work.redirect">
-              <label>回调地址（企微后台配置授权回调域 + 企业可信 IP）</label>
-              <input :value="config.wechat_work.redirect" readonly />
-            </div>
-          </div>
-        </div>
-
-        <!-- 微信 -->
-        <div class="config-card" :class="{ 'config-card--disabled': config.idp.enabled }">
-          <div class="config-header">
-            <h4>微信</h4>
-            <label class="switch">
-              <input type="checkbox" v-model="config.wechat.enabled" :disabled="config.idp.enabled" />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="config-body" v-if="config.wechat.enabled && !config.idp.enabled">
-            <div class="form-group">
-              <label>AppID</label>
-              <input v-model="config.wechat.client_id" placeholder="wx1234567890abcdef" />
-            </div>
-            <div class="form-group">
-              <label>AppSecret</label>
-              <input v-model="config.wechat.client_secret" type="password" placeholder="******" />
-            </div>
-          </div>
-        </div>
-
-        <!-- 钉钉 -->
-        <div class="config-card" :class="{ 'config-card--disabled': config.idp.enabled }">
-          <div class="config-header">
-            <h4>钉钉</h4>
-            <label class="switch">
-              <input type="checkbox" v-model="config.dingtalk.enabled" :disabled="config.idp.enabled" />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="config-body" v-if="config.dingtalk.enabled && !config.idp.enabled">
-            <div class="form-group">
-              <label>App Key</label>
-              <input v-model="config.dingtalk.client_id" />
-            </div>
-            <div class="form-group">
-              <label>App Secret</label>
-              <input v-model="config.dingtalk.client_secret" type="password" placeholder="******" />
-            </div>
-          </div>
-        </div>
-
-        <!-- 飞书 -->
-        <div class="config-card" :class="{ 'config-card--disabled': config.idp.enabled }">
-          <div class="config-header">
-            <h4>飞书</h4>
-            <label class="switch">
-              <input type="checkbox" v-model="config.feishu.enabled" :disabled="config.idp.enabled" />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="config-body" v-if="config.feishu.enabled && !config.idp.enabled">
-            <div class="form-group">
-              <label>App ID</label>
-              <input v-model="config.feishu.client_id" />
-            </div>
-            <div class="form-group">
-              <label>App Secret</label>
-              <input v-model="config.feishu.client_secret" type="password" placeholder="******" />
-            </div>
-          </div>
-        </div>
-
-        <button class="primary-btn" @click="handleSave" :disabled="saving">{{ saving ? '保存中...' : '保存配置' }}</button>
+      <div v-if="config.idp.enabled" class="alert-warning">
+        已启用认证中心（IdP）委托模式：邮箱/短信登录及其他第三方登录将全部关闭，用户仅能通过认证中心登录。
       </div>
+
+      <!-- 横向 tab -->
+      <ul class="nav nav-tabs">
+        <li v-for="tab in tabs" :key="tab.key" class="nav-item">
+          <button
+            class="nav-link"
+            :class="{ active: activeTab === tab.key, disabled: tab.key !== 'idp' && config.idp.enabled }"
+            :disabled="tab.key !== 'idp' && config.idp.enabled"
+            type="button"
+            @click="activeTab = tab.key"
+          >
+            {{ tab.label }}
+            <span v-if="isEnabled(tab.key)" class="badge">已启用</span>
+          </button>
+        </li>
+      </ul>
+
+      <!-- 认证中心（IdP） -->
+      <div v-show="activeTab === 'idp'" class="tab-body">
+        <div class="enable-row">
+          <span>启用认证中心委托登录</span>
+          <label class="switch"><input type="checkbox" v-model="config.idp.enabled" /><span class="slider"></span></label>
+        </div>
+        <div v-if="config.idp.enabled">
+          <div class="form-group">
+            <label>认证中心地址</label>
+            <input v-model="config.idp.base_url" placeholder="https://id.example.com" />
+          </div>
+          <div class="form-group">
+            <label>协议版本</label>
+            <select v-model="config.idp.protocol">
+              <option value="standard">标准协议（authorization_code）</option>
+              <option value="legacy">兼容模式（JWT 直传）</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Client ID</label>
+            <input v-model="config.idp.client_id" placeholder="scrm_prod" />
+          </div>
+          <div class="form-group">
+            <label>Client Secret</label>
+            <input v-model="config.idp.client_secret" />
+          </div>
+          <div class="form-group">
+            <label>前往登录路径</label>
+            <input v-model="config.idp.login_path" :placeholder="config.idp.protocol === 'standard' ? '默认 /authorize' : '默认 /login/{provider}'" />
+            <div class="form-tip">相对认证中心地址的路径，留空使用协议默认值</div>
+          </div>
+          <div class="form-group">
+            <label>回跳地址</label>
+            <input v-model="config.idp.redirect_uri" :placeholder="config.idp.redirect_uri_default || 'https://<租户域名>/api/v1/auth/{provider}/callback'" />
+            <div class="form-tip">认证完成后回调本系统的地址，留空自动按租户域名推导；{provider} 为占位符</div>
+          </div>
+          <div class="form-group">
+            <label>字段映射（可选，JSON）</label>
+            <textarea v-model="config.idp.field_mapping" rows="3" placeholder='如 {"phone": "mobile"}'></textarea>
+          </div>
+        </div>
+
+        <div class="help-box">
+          <div class="help-title">📖 配置指引</div>
+          <ol>
+            <li>在贵司认证中心（IdP）侧将本系统注册为 OAuth 客户端，获得 <b>Client ID</b> 与 <b>Client Secret</b> 填入本页。</li>
+            <li>在认证中心侧登记回跳地址（Redirect URI）：<code>{{ config.idp.redirect_uri || config.idp.redirect_uri_default || 'https://<租户域名>/api/v1/auth/{provider}/callback' }}</code>，须与本页「回跳地址」完全一致。</li>
+            <li>协议选择：认证中心支持标准 OAuth2 授权码流程选「标准协议」；仅支持签发 JWT 直传的旧系统选「兼容模式」。</li>
+            <li>如认证中心返回的用户字段名与本系统不同（如手机号字段叫 mobile），在「字段映射」中以 JSON 声明。</li>
+          </ol>
+          <div class="help-title">🛠 常见问题排查</div>
+          <ul>
+            <li><b>回跳后报 state 不匹配 / redirect_uri 不合法</b>：认证中心侧登记的回跳地址与实际回调地址不一致（含 http/https、端口、路径差异）。</li>
+            <li><b>标准协议换取 token 失败</b>：核对 Client Secret 是否有效、认证中心 token 端点是否为 <code>{base_url}/oauth/token</code> 规范路径。</li>
+            <li><b>兼容模式 JWT 校验失败</b>：检查两侧服务器时钟偏差与签名密钥配置。</li>
+            <li><b>启用后无法用邮箱登录</b>：属预期行为，委托模式与其他登录方式互斥；需恢复请关闭本开关并保存。</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 企业微信 -->
+      <div v-show="activeTab === 'wechat_work'" class="tab-body">
+        <div class="enable-row">
+          <span>启用企业微信扫码登录</span>
+          <label class="switch"><input type="checkbox" v-model="config.wechat_work.enabled" /><span class="slider"></span></label>
+        </div>
+        <div v-if="config.wechat_work.enabled">
+          <div class="form-group"><label>Corp ID</label><input v-model="config.wechat_work.corp_id" placeholder="ww1234567890abcdef" /></div>
+          <div class="form-group"><label>Agent ID</label><input v-model="config.wechat_work.agent_id" placeholder="1000001" /></div>
+          <div class="form-group"><label>Secret</label><input v-model="config.wechat_work.secret" /></div>
+          <div class="form-group" v-if="config.wechat_work.redirect">
+            <label>回调地址</label>
+            <input :value="config.wechat_work.redirect" readonly />
+          </div>
+        </div>
+
+        <div class="help-box">
+          <div class="help-title">📖 配置指引（企业微信管理后台）</div>
+          <ol>
+            <li>管理员登录 <a href="https://work.weixin.qq.com/wework_admin/" target="_blank" rel="noopener">企业微信管理后台</a> →「应用管理」→「自建」→「创建应用」。</li>
+            <li>进入应用详情页，复制 <b>AgentId</b> 和 <b>Secret</b> 填入本页。</li>
+            <li>「我的企业」→「企业信息」页面底部，复制 <b>企业 ID（CorpID）</b> 填入本页。</li>
+            <li>应用详情页 →「企业微信授权登录」→ 设置「授权回调域」为本系统域名（即回调地址中的域名部分，不含 https:// 与路径）。</li>
+            <li>应用详情页 →「开发者接口」→「企业可信 IP」，添加本系统服务器的<b>出口 IP</b>（如不确定请联系平台方获取）。</li>
+          </ol>
+          <div class="help-title">🛠 常见问题排查</div>
+          <ul>
+            <li><b>扫码后提示 redirect_uri 域名不合法（50001）</b>：「授权回调域」未配置或与回调地址域名不一致。</li>
+            <li><b>报错 60020 not allow to access from your ip</b>：服务器出口 IP 未加入「企业可信 IP」列表。</li>
+            <li><b>Secret 无效（40001）</b>：填的不是该自建应用的 Secret（勿使用通讯录同步等其他 Secret）；Secret 重置后需同步更新本页。</li>
+            <li><b>扫码成功但登录失败</b>：确认扫码人属于该应用的「可见范围」。</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 微信 -->
+      <div v-show="activeTab === 'wechat'" class="tab-body">
+        <div class="enable-row">
+          <span>启用微信登录</span>
+          <label class="switch"><input type="checkbox" v-model="config.wechat.enabled" /><span class="slider"></span></label>
+        </div>
+        <div v-if="config.wechat.enabled">
+          <div class="form-group"><label>AppID</label><input v-model="config.wechat.client_id" placeholder="wx1234567890abcdef" /></div>
+          <div class="form-group"><label>AppSecret</label><input v-model="config.wechat.client_secret" /></div>
+          <div class="form-group" v-if="config.wechat.redirect">
+            <label>回调地址</label>
+            <input :value="config.wechat.redirect" readonly />
+          </div>
+        </div>
+
+        <div class="help-box">
+          <div class="help-title">📖 配置指引（微信开放平台）</div>
+          <ol>
+            <li>登录 <a href="https://open.weixin.qq.com" target="_blank" rel="noopener">微信开放平台</a> →「管理中心」→「网站应用」→「创建网站应用」，提交资料等待审核通过。</li>
+            <li>审核通过后，在应用详情页获取 <b>AppID</b>，并生成/查看 <b>AppSecret</b> 填入本页。</li>
+            <li>应用详情 →「开发信息」→「授权回调域」，填写本系统域名（仅域名，不含 https:// 与路径）。</li>
+            <li>如使用公众号网页授权（H5 内），则在 <a href="https://mp.weixin.qq.com" target="_blank" rel="noopener">公众号后台</a>「设置与开发」→「公众号设置」→「功能设置」中配置「网页授权域名」。</li>
+          </ol>
+          <div class="help-title">🛠 常见问题排查</div>
+          <ul>
+            <li><b>redirect_uri 参数错误（10003）</b>：授权回调域与回调地址域名不一致，或应用尚未审核通过。</li>
+            <li><b>AppSecret 错误（40125）</b>：AppSecret 被重置后未同步更新本页。</li>
+            <li><b>扫码后一直转圈</b>：网站应用与公众号是两套凭证，确认使用场景与凭证类型匹配。</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 钉钉 -->
+      <div v-show="activeTab === 'dingtalk'" class="tab-body">
+        <div class="enable-row">
+          <span>启用钉钉登录</span>
+          <label class="switch"><input type="checkbox" v-model="config.dingtalk.enabled" /><span class="slider"></span></label>
+        </div>
+        <div v-if="config.dingtalk.enabled">
+          <div class="form-group"><label>Client ID</label><input v-model="config.dingtalk.client_id" placeholder="原 AppKey" /></div>
+          <div class="form-group"><label>Client Secret</label><input v-model="config.dingtalk.client_secret" /></div>
+        </div>
+
+        <div class="help-box">
+          <div class="help-title">📖 配置指引（钉钉开放平台）</div>
+          <ol>
+            <li>登录 <a href="https://open-dev.dingtalk.com" target="_blank" rel="noopener">钉钉开发者后台</a> →「应用开发」→「创建应用」（企业自建应用）。</li>
+            <li>应用「凭证与基础信息」页，复制 <b>Client ID</b>（原 AppKey）与 <b>Client Secret</b>（原 AppSecret）填入本页。</li>
+            <li>「安全设置」中添加回调域名：<code>{{ callbackUrl('dingtalk') }}</code>。</li>
+            <li>「权限管理」中开通「个人手机号信息」与「通讯录个人信息读权限」。</li>
+          </ol>
+          <div class="help-title">🛠 常见问题排查</div>
+          <ul>
+            <li><b>回调地址不在白名单</b>：安全设置中的回调域名与实际回调地址不一致（须含完整路径）。</li>
+            <li><b>获取用户信息失败</b>：所需权限未开通或未发布应用版本。</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 飞书 -->
+      <div v-show="activeTab === 'feishu'" class="tab-body">
+        <div class="enable-row">
+          <span>启用飞书登录</span>
+          <label class="switch"><input type="checkbox" v-model="config.feishu.enabled" /><span class="slider"></span></label>
+        </div>
+        <div v-if="config.feishu.enabled">
+          <div class="form-group"><label>App ID</label><input v-model="config.feishu.client_id" placeholder="cli_xxxxxxxx" /></div>
+          <div class="form-group"><label>App Secret</label><input v-model="config.feishu.client_secret" /></div>
+        </div>
+
+        <div class="help-box">
+          <div class="help-title">📖 配置指引（飞书开放平台）</div>
+          <ol>
+            <li>登录 <a href="https://open.feishu.cn" target="_blank" rel="noopener">飞书开放平台</a> →「开发者后台」→「创建企业自建应用」。</li>
+            <li>「凭证与基础信息」页复制 <b>App ID</b> 与 <b>App Secret</b> 填入本页。</li>
+            <li>「安全设置」→「重定向 URL」添加：<code>{{ callbackUrl('feishu') }}</code>。</li>
+            <li>「应用发布」中创建版本并提交，经企业管理员审核通过后生效。</li>
+          </ol>
+          <div class="help-title">🛠 常见问题排查</div>
+          <ul>
+            <li><b>20029 redirect_uri 请求不合法</b>：重定向 URL 未添加或不完全一致。</li>
+            <li><b>扫码后无反应 / 无权限</b>：应用版本未发布或未通过管理员审核；确认用户在应用可用范围内。</li>
+          </ul>
+        </div>
+      </div>
+
+      <button class="btn-primary" :disabled="saving" @click="handleSave">{{ saving ? '保存中...' : '保存配置' }}</button>
+      <div v-if="message" class="alert" :class="messageType === 'success' ? 'alert-success' : 'alert-danger'">{{ message }}</div>
     </div>
   </div>
 </template>
@@ -152,6 +215,18 @@ import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
 
 const saving = ref(false)
+const message = ref('')
+const messageType = ref('success')
+const activeTab = ref('idp')
+
+const tabs = [
+  { key: 'idp', label: '认证中心（IdP）' },
+  { key: 'wechat_work', label: '企业微信' },
+  { key: 'wechat', label: '微信' },
+  { key: 'dingtalk', label: '钉钉' },
+  { key: 'feishu', label: '飞书' },
+]
+
 const config = reactive({
   idp: { enabled: false, base_url: '', protocol: 'standard', client_id: '', client_secret: '', login_path: '', redirect_uri: '', redirect_uri_default: '', field_mapping: '' },
   wechat_work: { enabled: false, corp_id: '', agent_id: '', secret: '', redirect: '' },
@@ -159,6 +234,15 @@ const config = reactive({
   dingtalk: { enabled: false, client_id: '', client_secret: '' },
   feishu: { enabled: false, client_id: '', client_secret: '' },
 })
+
+const isEnabled = (key: string) => (config as any)[key]?.enabled
+
+// 按租户域名推导指定 provider 的回调地址（帮助文案展示用）
+const callbackUrl = (provider: string) => {
+  const tpl = config.idp.redirect_uri_default
+  if (tpl) return tpl.replace('{provider}', provider)
+  return `https://${window.location.host}/api/v1/auth/${provider}/callback`
+}
 
 const loadConfig = async () => {
   try {
@@ -171,15 +255,23 @@ const loadConfig = async () => {
         config[key].enabled = !!data[key].configured
       }
     }
+    // 默认定位到首个已启用的 provider，便于直接查看/排查
+    if (!config.idp.enabled) {
+      const first = (['wechat_work', 'wechat', 'dingtalk', 'feishu'] as const).find(k => config[k].enabled)
+      if (first) activeTab.value = first
+    }
   } catch {}
 }
 
 const handleSave = async () => {
+  message.value = ''
+  // 字段映射 JSON 校验
   if (config.idp.enabled && config.idp.field_mapping.trim() !== '') {
     try {
       JSON.parse(config.idp.field_mapping)
     } catch {
-      alert('字段映射必须是合法的 JSON')
+      message.value = '字段映射必须是合法的 JSON'
+      messageType.value = 'danger'
       return
     }
   }
@@ -190,7 +282,7 @@ const handleSave = async () => {
     const { redirect_uri_default: _omit, ...idpPayload } = config.idp
     await axios.put('/api/v1/tenant/auth/oauth/idp', idpPayload)
 
-    // 各直连提供商：仅保存已开启的卡片（'********' 遮罩由后端跳过）
+    // 各直连提供商：仅保存已开启的 tab
     if (config.wechat_work.enabled) {
       const { corp_id, agent_id, secret } = config.wechat_work
       await axios.put('/api/v1/tenant/auth/oauth/wechat_work', { corp_id, agent_id, secret })
@@ -207,9 +299,11 @@ const handleSave = async () => {
       const { client_id, client_secret } = config.feishu
       await axios.put('/api/v1/tenant/auth/oauth/feishu', { client_id, client_secret })
     }
-    alert('保存成功')
+    message.value = '保存成功'
+    messageType.value = 'success'
   } catch {
-    alert('保存失败')
+    message.value = '保存失败'
+    messageType.value = 'danger'
   } finally {
     saving.value = false
   }
@@ -220,27 +314,30 @@ onMounted(loadConfig)
 
 <style scoped>
 .page-header { margin-bottom: 20px; }
-.page-header h2 { margin: 0; }
-.panel { background: var(--bg-color, #fff); border-radius: 8px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-.config-section { display: flex; flex-direction: column; gap: 16px; }
-.config-card { border: 1px solid var(--border-color, #eee); border-radius: 8px; overflow: hidden; transition: opacity 0.2s; }
-.config-card--active { border-color: #e6a23c; }
-.config-card--disabled { opacity: 0.5; pointer-events: none; }
-.config-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--fill-color, #f9f9f9); }
-.config-header h4 { margin: 0; font-size: 14px; }
-.badge { display: inline-block; margin-left: 8px; padding: 2px 8px; font-size: 12px; color: #e6a23c; background: #fdf6ec; border-radius: 4px; font-weight: normal; }
-.alert-warning { padding: 10px 12px; margin-bottom: 12px; font-size: 13px; color: #e6a23c; background: #fdf6ec; border-radius: 6px; }
-.config-body { padding: 16px; }
-.form-group { margin-bottom: 12px; }
-.form-group label { display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-color-secondary, #999); }
-.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; font-size: 13px; box-sizing: border-box; font-family: inherit; }
-.primary-btn { padding: 10px 24px; border: none; border-radius: 6px; background: var(--primary-color, #409eff); color: #fff; cursor: pointer; font-size: 14px; margin-top: 8px; }
-.primary-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.panel { background: #fff; border: 1px solid #dee2e6; border-radius: 6px; padding: 20px; max-width: 860px; }
+.nav-tabs { margin-bottom: 16px; }
+.nav-tabs .nav-link { cursor: pointer; }
+.nav-tabs .nav-link.disabled { pointer-events: none; opacity: 0.5; }
+.badge { background: #198754; color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 4px; }
+.tab-body { padding-top: 4px; }
+.enable-row { display: flex; align-items: center; justify-content: space-between; max-width: 560px; margin-bottom: 16px; font-size: 14px; }
+.form-group { margin-bottom: 12px; max-width: 560px; }
+.form-group label { display: block; font-size: 13px; margin-bottom: 4px; color: #495057; }
+.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 6px 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; box-sizing: border-box; }
+.form-tip { font-size: 12px; color: #6c757d; line-height: 1.5; margin-top: 4px; }
+.switch { position: relative; display: inline-block; width: 40px; height: 22px; }
 .switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; border-radius: 24px; transition: 0.3s; }
-.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.3s; }
-input:checked + .slider { background: var(--primary-color, #409eff); }
-input:checked + .slider:before { transform: translateX(20px); }
+.slider { position: absolute; cursor: pointer; inset: 0; background: #ccc; border-radius: 22px; transition: 0.2s; }
+.slider::before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.2s; }
+.switch input:checked + .slider { background: #0d6efd; }
+.switch input:checked + .slider::before { transform: translateX(18px); }
+.btn-primary { margin-top: 16px; background: #0d6efd; color: #fff; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; }
+.btn-primary:disabled { opacity: 0.6; }
+.alert { margin-top: 12px; padding: 8px 12px; border-radius: 4px; font-size: 14px; }
+.alert-success { background: #d1e7dd; color: #0f5132; }
+.alert-danger { background: #f8d7da; color: #842029; }
+.help-box { margin-top: 8px; padding: 12px 16px; background: #f8f9fa; border-radius: 6px; font-size: 13px; line-height: 1.8; color: #495057; }
+.help-title { font-weight: 600; margin: 4px 0; color: #212529; }
+.help-box ol, .help-box ul { margin: 4px 0 12px; padding-left: 20px; }
+.help-box code { background: #e9ecef; padding: 1px 6px; border-radius: 3px; word-break: break-all; }
 </style>

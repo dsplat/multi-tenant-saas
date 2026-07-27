@@ -24,6 +24,18 @@ class TenantSettingController extends Controller
                 return response()->json(['success' => true, 'data' => TenantSetting::getGroup($tenantId, 'sms')]);
             }
             $data = TenantSetting::getGroup($tenantId, $group);
+
+            // oauth 组：附加嵌套 idp 结构供前端消费
+            if ($group === 'oauth') {
+                $data['idp'] = [
+                    'enabled' => ($data['oauth_mode'] ?? 'direct') === 'delegated',
+                    'base_url' => $data['idp_base_url'] ?? '',
+                    'protocol' => $data['idp_protocol'] ?? 'standard',
+                    'client_id' => $data['idp_client_id'] ?? '',
+                    'client_secret' => $data['idp_client_secret'] ?? '',
+                    'field_mapping' => $data['idp_field_mapping'] ?? '',
+                ];
+            }
         } else {
             $data = TenantSetting::getAll($tenantId);
         }
@@ -64,11 +76,32 @@ class TenantSettingController extends Controller
             'info' => ['name', 'description', 'logo', 'contact_name', 'contact_email', 'contact_phone'],
             'oauth' => ['wechat_enabled', 'wechat_corp_id', 'wechat_agent_id', 'wechat_secret',
                 'dingtalk_enabled', 'dingtalk_app_key', 'dingtalk_app_secret',
-                'feishu_enabled', 'feishu_app_id', 'feishu_app_secret'],
+                'feishu_enabled', 'feishu_app_id', 'feishu_app_secret',
+                'oauth_mode', 'idp_base_url', 'idp_protocol', 'idp_client_id', 'idp_client_secret', 'idp_field_mapping'],
             'auth' => ['allow_phone_login', 'allow_password_login', 'email_domains'],
             'mail' => ['driver', 'host', 'port', 'username', 'password', 'encryption', 'from_address', 'from_name'],
             'registration' => ['allow_register', 'welcome_credits'],
         ];
+
+        // oauth 组：处理前端嵌套的 idp 对象 → 扁平 tenant_settings key
+        if ($group === 'oauth' && $request->has('idp')) {
+            $idp = $request->input('idp', []);
+            $idpMap = [
+                'oauth_mode' => ! empty($idp['enabled']) ? 'delegated' : 'direct',
+                'idp_base_url' => $idp['base_url'] ?? '',
+                'idp_protocol' => $idp['protocol'] ?? 'standard',
+                'idp_client_id' => $idp['client_id'] ?? '',
+                'idp_client_secret' => $idp['client_secret'] ?? '',
+                'idp_field_mapping' => $idp['field_mapping'] ?? '',
+            ];
+            foreach ($idpMap as $key => $value) {
+                $oldValue = TenantSetting::get($tenantId, 'oauth', $key);
+                TenantSetting::set($tenantId, 'oauth', $key, $value);
+                if ($oldValue !== $value) {
+                    $changes[$key] = ['old' => $oldValue, 'new' => $key === 'idp_client_secret' ? '***' : $value];
+                }
+            }
+        }
 
         $keys = $allowedKeys[$group] ?? [];
         $changes = [];

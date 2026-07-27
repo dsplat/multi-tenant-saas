@@ -253,4 +253,84 @@ class AuthControllerTest extends TestCase
 
         $response->assertStatus(200);
     }
+
+    // ========== delegated 模式互斥测试 ==========
+
+    public function test_login_rejected_when_delegated(): void
+    {
+        $tenant = Tenant::create([
+            'name' => 'Delegated Tenant',
+            'slug' => 'delegated-tenant',
+            'status' => 'active',
+        ]);
+
+        \MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting::set($tenant->tenant_id, 'oauth', 'oauth_mode', 'delegated');
+        \MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting::set($tenant->tenant_id, 'oauth', 'idp_base_url', 'https://id.example.com');
+
+        User::create([
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => bcrypt('password123'),
+            'role' => 'platform_user',
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->postJson("/api/v1/auth/login?tenant_id={$tenant->tenant_id}", [
+            'email' => 'test@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJson(['success' => false]);
+    }
+
+    public function test_sms_login_rejected_when_delegated(): void
+    {
+        $tenant = Tenant::create([
+            'name' => 'Delegated Tenant',
+            'slug' => 'delegated-tenant',
+            'status' => 'active',
+        ]);
+
+        \MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting::set($tenant->tenant_id, 'oauth', 'oauth_mode', 'delegated');
+        \MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting::set($tenant->tenant_id, 'oauth', 'idp_base_url', 'https://id.example.com');
+
+        $response = $this->postJson("/api/v1/auth/sms/send-code?tenant_id={$tenant->tenant_id}", [
+            'phone' => '13800138000',
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJson(['success' => false]);
+    }
+
+    public function test_login_allowed_when_direct_mode(): void
+    {
+        $tenant = Tenant::create([
+            'name' => 'Direct Tenant',
+            'slug' => 'direct-tenant',
+            'status' => 'active',
+        ]);
+
+        $user = User::create([
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => bcrypt('password123'),
+            'role' => 'platform_user',
+            'email_verified_at' => now(),
+        ]);
+
+        TenantUser::create([
+            'tenant_id' => $tenant->tenant_id,
+            'user_id' => $user->user_id,
+            'is_active' => true,
+        ]);
+
+        $response = $this->postJson("/api/v1/auth/login?tenant_id={$tenant->tenant_id}", [
+            'email' => 'test@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson(['success' => true]);
+    }
 }

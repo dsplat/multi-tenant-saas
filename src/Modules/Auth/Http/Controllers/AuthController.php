@@ -35,10 +35,31 @@ class AuthController extends Controller
     ) {}
 
     /**
+     * delegated 模式防线：租户启用公司认证中心后，其他认证方式一律拒绝
+     *
+     * 租户解析：attributes（IdentifyTenant 中间件）优先，回退 query 参数。
+     * query 来源仅用于拒绝判断（更严格），不授予任何权限。
+     */
+    protected function rejectIfDelegated(Request $request): ?JsonResponse
+    {
+        $tenantId = $request->attributes->get('tenant_id')
+            ?? $request->query('tenant_id');
+        if ($tenantId && app(\MultiTenantSaas\Modules\Auth\Services\IdentityProviderOAuthService::class)->isConfigured((int) $tenantId)) {
+            return response()->json(['success' => false, 'message' => trans('auth.delegated_only')], 403);
+        }
+
+        return null;
+    }
+
+    /**
      * 邮箱密码登录。
      */
     public function login(Request $request): JsonResponse
     {
+        if ($rejected = $this->rejectIfDelegated($request)) {
+            return $rejected;
+        }
+
         $request->validate([
             'email' => 'required|email',
             'password' => 'required|string',
@@ -86,6 +107,10 @@ class AuthController extends Controller
      */
     public function register(Request $request): JsonResponse
     {
+        if ($rejected = $this->rejectIfDelegated($request)) {
+            return $rejected;
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
@@ -144,6 +169,10 @@ class AuthController extends Controller
      */
     public function sendSmsLoginCode(Request $request): JsonResponse
     {
+        if ($rejected = $this->rejectIfDelegated($request)) {
+            return $rejected;
+        }
+
         $request->validate([
             'phone' => ['required', 'regex:/^1[3-9]\d{9}$/'],
         ]);
@@ -191,6 +220,10 @@ class AuthController extends Controller
      */
     public function smsLogin(Request $request): JsonResponse
     {
+        if ($rejected = $this->rejectIfDelegated($request)) {
+            return $rejected;
+        }
+
         $request->validate([
             'phone' => ['required', 'regex:/^1[3-9]\d{9}$/'],
             'code' => 'required|string|size:6',
@@ -787,6 +820,10 @@ class AuthController extends Controller
      */
     public function ssoRedirect(Request $request, string $provider): JsonResponse
     {
+        if ($rejected = $this->rejectIfDelegated($request)) {
+            return $rejected;
+        }
+
         $tenantId = $request->attributes->get('tenant_id');
         if (! $tenantId) {
             return response()->json(['success' => false, 'message' => trans('auth.sso_provider_not_found')], 404);

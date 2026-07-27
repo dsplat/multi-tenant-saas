@@ -81,6 +81,7 @@ return [
 
     // User profile management
     'invalid_credentials' => 'Invalid email or password',
+    'delegated_only' => 'This tenant uses unified authentication. Please sign in via the company identity provider.',
     'account_disabled' => 'Account has been disabled',
     'logged_out' => 'Logged out',
     'current_password_incorrect' => 'Current password is incorrect',

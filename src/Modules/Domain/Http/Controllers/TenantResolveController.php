@@ -104,12 +104,14 @@ class TenantResolveController extends Controller
         $allowRegister = (bool) app(TenantSettingService::class)->get($tenantId, 'sso', 'allow_register', false);
         $emailDomainRestriction = app(TenantSettingService::class)->get($tenantId, 'sso', 'email_domain_restriction');
 
-        // delegated 模式：认证方式完全互斥，仅保留 OAuth（由 IdP 决定具体 provider）
+        // delegated 模式：认证方式完全互斥，仅保留认证中心入口（其他 provider 一并隐藏）
         $isDelegated = app(\MultiTenantSaas\Modules\Auth\Services\IdentityProviderOAuthService::class)->isConfigured($tenantId);
         if ($isDelegated) {
             $loginMethods = ['oauth'];
             $allowRegister = false;
             $emailDomainRestriction = null;
+            $oauthProviders = [];
+            $ssoProviders = [];
         }
 
         return response()->json([

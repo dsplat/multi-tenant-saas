@@ -84,6 +84,7 @@ return [
 
     // 用户资料管理
     'invalid_credentials' => '邮箱或密码错误',
+    'delegated_only' => '该租户已启用统一认证，请通过公司认证中心登录',
     'account_disabled' => '账号已被禁用',
     'logged_out' => '已退出登录',
     'current_password_incorrect' => '当前密码不正确',

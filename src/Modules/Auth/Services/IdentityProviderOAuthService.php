@@ -22,10 +22,12 @@ use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
  * - idp_protocol: "standard" | "legacy"（默认 legacy）
  * - idp_client_id: "scrm_prod"（standard 必须）
  * - idp_client_secret: "<secret>"（standard 必须）
+ * - idp_login_path: 前往登录路径（standard 默认 /authorize，legacy 默认 /login/{provider}）
+ * - idp_redirect_uri: 回跳地址覆盖（默认按租户域名自动推导）
  *
  * 兼容旧 key（过渡期）：
  * - identity_provider_url → idp_base_url
- * - identity_provider_login_path → 仅 legacy 使用
+ * - identity_provider_login_path → idp_login_path（仅 legacy）
  * - identity_provider_verify_path → 仅 legacy 使用
  */
 class IdentityProviderOAuthService
@@ -36,10 +38,10 @@ class IdentityProviderOAuthService
     public function getRedirectUrl(int $tenantId, string $provider): string
     {
         $base = $this->getBaseUrl($tenantId);
-        $callbackUrl = app(SocialiteService::class)->resolveRedirectUrl($tenantId, $provider);
+        $callbackUrl = $this->resolveCallbackUrl($tenantId, $provider);
 
         if ($this->getProtocol($tenantId) === 'standard') {
-            // 标准协议：/authorize?client_id=&redirect_uri=&state=&provider=
+            // 标准协议：{login_path}?client_id=&redirect_uri=&state=&provider=
             $state = Str::random(32);
             // 存 state 到 cache（5 分钟有效）
             \Illuminate\Support\Facades\Cache::put("idp_state:{$state}", $tenantId, 300);
@@ -52,11 +54,13 @@ class IdentityProviderOAuthService
                 'provider' => $provider,
             ]);
 
-            return "{$base}/authorize?{$params}";
+            $loginPath = $this->getLoginPath($tenantId, '/authorize');
+
+            return "{$base}{$loginPath}?{$params}";
         }
 
-        // 兼容模式：/login/wechat?redirect=
-        $loginPath = TenantSetting::get($tenantId, 'oauth', 'identity_provider_login_path', '/login/wechat');
+        // 兼容模式：{login_path}?redirect=
+        $loginPath = $this->getLoginPath($tenantId, "/login/{$provider}");
 
         return "{$base}{$loginPath}?redirect=" . urlencode($callbackUrl);
     }
@@ -102,7 +106,7 @@ class IdentityProviderOAuthService
 
         // 用 code 换 token（POST /token）
         $base = $this->getBaseUrl($tenantId);
-        $callbackUrl = app(SocialiteService::class)->resolveRedirectUrl($tenantId, $provider);
+        $callbackUrl = $this->resolveCallbackUrl($tenantId, $provider);
 
         $response = Http::timeout(10)->asForm()->post("{$base}/token", [
             'grant_type' => 'authorization_code',
@@ -482,6 +486,41 @@ class IdentityProviderOAuthService
     protected function getClientSecret(int $tenantId): string
     {
         return TenantSetting::get($tenantId, 'oauth', 'idp_client_secret', '');
+    }
+
+    /**
+     * 前往登录路径（相对 idp_base_url）
+     *
+     * 优先 idp_login_path，兼容旧 key identity_provider_login_path，最后用协议默认值
+     */
+    protected function getLoginPath(int $tenantId, string $default): string
+    {
+        $path = TenantSetting::get($tenantId, 'oauth', 'idp_login_path', '');
+        if ($path === '') {
+            $path = TenantSetting::get($tenantId, 'oauth', 'identity_provider_login_path', '');
+        }
+        if ($path === '') {
+            return $default;
+        }
+
+        return '/' . ltrim($path, '/');
+    }
+
+    /**
+     * 回跳地址（IdP 授权完成后回调本系统的 URL）
+     *
+     * 优先 idp_redirect_uri 配置覆盖，否则按租户域名自动推导
+     * 支持 {provider} 占位符
+     */
+    public function resolveCallbackUrl(int $tenantId, string $provider): string
+    {
+        $custom = TenantSetting::get($tenantId, 'oauth', 'idp_redirect_uri', '');
+
+        if ($custom !== '') {
+            return str_replace('{provider}', $provider, $custom);
+        }
+
+        return app(SocialiteService::class)->resolveRedirectUrl($tenantId, $provider);
     }
 
     protected function ensureTenantUser(User $user, int $tenantId): void

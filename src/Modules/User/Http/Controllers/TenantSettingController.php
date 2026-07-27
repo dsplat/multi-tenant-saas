@@ -33,6 +33,11 @@ class TenantSettingController extends Controller
                     'protocol' => $data['idp_protocol'] ?? 'standard',
                     'client_id' => $data['idp_client_id'] ?? '',
                     'client_secret' => $data['idp_client_secret'] ?? '',
+                    'login_path' => $data['idp_login_path'] ?? '',
+                    'redirect_uri' => $data['idp_redirect_uri'] ?? '',
+                    // 未配置覆盖时的自动推导值（供前端展示占位）
+                    'redirect_uri_default' => app(\MultiTenantSaas\Modules\Auth\Services\SocialiteService::class)
+                        ->resolveRedirectUrl($tenantId, '{provider}'),
                     'field_mapping' => $data['idp_field_mapping'] ?? '',
                 ];
             }
@@ -77,13 +82,15 @@ class TenantSettingController extends Controller
             'oauth' => ['wechat_enabled', 'wechat_corp_id', 'wechat_agent_id', 'wechat_secret',
                 'dingtalk_enabled', 'dingtalk_app_key', 'dingtalk_app_secret',
                 'feishu_enabled', 'feishu_app_id', 'feishu_app_secret',
-                'oauth_mode', 'idp_base_url', 'idp_protocol', 'idp_client_id', 'idp_client_secret', 'idp_field_mapping'],
+                'oauth_mode', 'idp_base_url', 'idp_protocol', 'idp_client_id', 'idp_client_secret',
+                'idp_login_path', 'idp_redirect_uri', 'idp_field_mapping'],
             'auth' => ['allow_phone_login', 'allow_password_login', 'email_domains'],
             'mail' => ['driver', 'host', 'port', 'username', 'password', 'encryption', 'from_address', 'from_name'],
             'registration' => ['allow_register', 'welcome_credits'],
         ];
 
         // oauth 组：处理前端嵌套的 idp 对象 → 扁平 tenant_settings key
+        $changes = [];
         if ($group === 'oauth' && $request->has('idp')) {
             $idp = $request->input('idp', []);
             $idpMap = [
@@ -92,6 +99,8 @@ class TenantSettingController extends Controller
                 'idp_protocol' => $idp['protocol'] ?? 'standard',
                 'idp_client_id' => $idp['client_id'] ?? '',
                 'idp_client_secret' => $idp['client_secret'] ?? '',
+                'idp_login_path' => $idp['login_path'] ?? '',
+                'idp_redirect_uri' => $idp['redirect_uri'] ?? '',
                 'idp_field_mapping' => $idp['field_mapping'] ?? '',
             ];
             foreach ($idpMap as $key => $value) {
@@ -104,7 +113,6 @@ class TenantSettingController extends Controller
         }
 
         $keys = $allowedKeys[$group] ?? [];
-        $changes = [];
         foreach ($request->only($keys) as $key => $value) {
             $oldValue = TenantSetting::get($tenantId, $group, $key);
             TenantSetting::set($tenantId, $group, $key, $value);

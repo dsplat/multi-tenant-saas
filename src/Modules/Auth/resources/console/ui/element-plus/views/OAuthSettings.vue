@@ -44,6 +44,20 @@
             <el-form-item label="Client Secret">
               <el-input v-model="config.idp.client_secret" type="password" show-password placeholder="******" />
             </el-form-item>
+            <el-form-item label="前往登录路径">
+              <el-input
+                v-model="config.idp.login_path"
+                :placeholder="config.idp.protocol === 'standard' ? '默认 /authorize' : '默认 /login/{provider}，如 /login/wechat'"
+              />
+              <div class="form-tip">相对认证中心地址的路径，留空使用协议默认值</div>
+            </el-form-item>
+            <el-form-item label="回跳地址">
+              <el-input
+                v-model="config.idp.redirect_uri"
+                :placeholder="config.idp.redirect_uri_default || 'https://<租户域名>/api/v1/auth/{provider}/callback'"
+              />
+              <div class="form-tip">认证完成后回调本系统的地址，留空自动按租户域名推导；{provider} 为占位符</div>
+            </el-form-item>
             <el-form-item label="字段映射">
               <el-input
                 v-model="config.idp.field_mapping"
@@ -113,7 +127,7 @@ import { useUserStore } from '@stores/user'
 const userStore = useUserStore()
 const saving = ref(false)
 const config = reactive({
-  idp: { enabled: false, base_url: '', protocol: 'standard', client_id: '', client_secret: '', field_mapping: '' },
+  idp: { enabled: false, base_url: '', protocol: 'standard', client_id: '', client_secret: '', login_path: '', redirect_uri: '', redirect_uri_default: '', field_mapping: '' },
   wechat: { enabled: false, corp_id: '', agent_id: '', secret: '' },
   dingtalk: { enabled: false, app_key: '', app_secret: '' },
   feishu: { enabled: false, app_id: '', app_secret: '' },
@@ -162,4 +176,5 @@ onMounted(loadConfig)
 .config-card { border: 1px solid var(--el-border-color); transition: opacity 0.2s; }
 .config-card--idp.config-card--active { border-color: var(--el-color-warning); }
 .config-card--disabled { opacity: 0.5; pointer-events: none; }
+.form-tip { font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.5; margin-top: 4px; }
 </style>

@@ -127,6 +127,8 @@ GET /api/v1/auth/sso/{provider}/callback → SSO 回调
 | `idp_protocol` | `standard` / `legacy` | 协议版本 |
 | `idp_client_id` | `scrm_prod` | 调用方标识 |
 | `idp_client_secret` | `<secret>` | 调用方密钥 |
+| `idp_login_path` | `/authorize` / `/login/wechat` | 前往登录路径（留空按协议默认） |
+| `idp_redirect_uri` | `https://<域名>/api/v1/auth/{provider}/callback` | 回跳地址覆盖（留空按租户域名自动推导，支持 `{provider}` 占位符） |
 | `idp_field_mapping` | JSON | 自定义字段映射（可选） |
 
 **双协议**（`IdentityProviderOAuthService`）：

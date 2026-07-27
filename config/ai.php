@@ -1,7 +1,7 @@
 <?php
 
-use MultiTenantSaas\Services\Ai\Drivers\LaravelAiDriverAdapter;
-use MultiTenantSaas\Services\Ai\Drivers\MockAiDriver;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Drivers\LaravelAiDriverAdapter;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Drivers\MockAiDriver;
 
 return [
     /*

@@ -351,7 +351,9 @@ class IdentityProviderOAuthService
             }
         }
 
-        if ($mapped['email'] !== '' && ! preg_match('/@(wechat|wechat_work|idp)$/', $user->email ?? '') && ! $user->email) {
+        // 本地邮箱为空或为占位符（guid@idp 等）时，用 IdP 真实邮箱覆盖
+        $isPlaceholderEmail = (bool) preg_match('/@(wechat|wechat_work|idp)$/', $user->email ?? '');
+        if ($mapped['email'] !== '' && (! $user->email || $isPlaceholderEmail)) {
             $updates['email'] = $mapped['email'];
             if ($mapped['email_verified']) {
                 $updates['email_verified_at'] = now();

@@ -5,7 +5,7 @@ namespace MultiTenantSaas\Modules\Ai\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\StreamedResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use MultiTenantSaas\Contracts\AgentRuntimeContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Ai\DTOs\PageContext;

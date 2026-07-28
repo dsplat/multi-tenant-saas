@@ -11,8 +11,6 @@ use MultiTenantSaas\Modules\Workflow\Services\Tools\WorkflowCreateHandler;
 use MultiTenantSaas\Modules\Workflow\Services\Tools\WorkflowDeleteHandler;
 use MultiTenantSaas\Modules\Workflow\Services\Tools\WorkflowGetHandler;
 use MultiTenantSaas\Modules\Workflow\Services\Tools\WorkflowListHandler;
-use MultiTenantSaas\Modules\Workflow\Services\Tools\WorkflowRetryHandler;
-use MultiTenantSaas\Modules\Workflow\Services\Tools\WorkflowRollbackHandler;
 use MultiTenantSaas\Modules\Workflow\Services\Tools\WorkflowStartHandler;
 use MultiTenantSaas\Modules\Workflow\Services\Tools\WorkflowUpdateHandler;
 use MultiTenantSaas\Modules\Workflow\Services\WorkflowEngine;
@@ -73,7 +71,5 @@ class WorkflowServiceProvider extends ModuleServiceProvider
         $registry->register('workflow_update', 'Workflow Update', 'Update', WorkflowUpdateHandler::class, ['type' => 'object', 'properties' => ['workflow_id' => ['type' => 'integer', 'description' => '工作流ID'], 'name' => ['type' => 'string', 'description' => '名称'], 'definition' => ['type' => 'object', 'description' => '定义']], 'required' => ['workflow_id']], 'workflow', 'L2');
         $registry->register('workflow_delete', 'Workflow Delete', 'Delete', WorkflowDeleteHandler::class, ['type' => 'object', 'properties' => ['workflow_id' => ['type' => 'integer', 'description' => '工作流ID']], 'required' => ['workflow_id']], 'workflow', 'L2');
         $registry->register('workflow_start', 'Workflow Start', 'Start', WorkflowStartHandler::class, ['type' => 'object', 'properties' => ['workflow_id' => ['type' => 'integer', 'description' => '工作流ID'], 'input' => ['type' => 'object', 'description' => '输入数据']], 'required' => ['workflow_id']], 'workflow', 'L2');
-        $registry->register('workflow_retry', 'Workflow Retry', 'Retry', WorkflowRetryHandler::class, ['type' => 'object', 'properties' => ['workflow_id' => ['type' => 'integer', 'description' => '工作流ID']], 'required' => ['workflow_id']], 'workflow', 'L2');
-        $registry->register('workflow_rollback', 'Workflow Rollback', 'Rollback', WorkflowRollbackHandler::class, ['type' => 'object', 'properties' => ['workflow_id' => ['type' => 'integer', 'description' => '工作流ID']], 'required' => ['workflow_id']], 'workflow', 'L2');
     }
 }

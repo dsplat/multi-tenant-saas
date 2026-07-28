@@ -624,15 +624,20 @@ class AgentRuntime implements AgentRuntimeContract
                 $toolDefinitions, $options, $maxToolCalls, 0, $totalUsage,
             );
         } finally {
-            // 记忆压缩移出首帧关键路径：压缩含 LLM 调用，放入口会阻塞首字节数秒，
-            // 改为流结束后收尾执行（为下一轮对话瘦身），失败不影响已完成的对话
-            try {
-                $this->compressMemory($conversationId, $maxTokens);
-            } catch (\Throwable $e) {
-                Log::warning('AgentRuntime: 流后记忆压缩失败', [
-                    'conversation_id' => $conversationId,
-                    'error' => $e->getMessage(),
-                ]);
+            // 记忆压缩移出流式关键路径：压缩含 LLM 调用（可达数十秒），
+            // 同步执行会挡首帧（旧入口位置）或拖住 [DONE] 尾帧（finally 同步位置），
+            // 改为 terminating 回调：响应完整送达后才执行，失败不影响已完成的对话
+            if ($this->memoryCompressor !== null) {
+                app()->terminating(function () use ($conversationId, $maxTokens): void {
+                    try {
+                        $this->compressMemory($conversationId, $maxTokens);
+                    } catch (\Throwable $e) {
+                        Log::warning('AgentRuntime: 流后记忆压缩失败', [
+                            'conversation_id' => $conversationId,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                });
             }
         }
     }

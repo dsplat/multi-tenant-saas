@@ -126,6 +126,8 @@ export function useAssistantStream() {
 
   /**
    * 逐行解析 SSE 流（data: JSON\n\n 格式）。
+   * 收到 [DONE]/done 后立即停止读流，不等服务端关闭连接
+   *（服务端收尾任务可能延迟关流，避免被空闲超时误判为中断）。
    */
   async function consumeStream(body: ReadableStream<Uint8Array>, callbacks: StreamCallbacks): Promise<void> {
     const reader = body.getReader()
@@ -147,7 +149,7 @@ export function useAssistantStream() {
         while ((idx = buffer.indexOf('\n\n')) !== -1) {
           const rawEvent = buffer.slice(0, idx)
           buffer = buffer.slice(idx + 2)
-          handleSseEvent(rawEvent, callbacks)
+          if (handleSseEvent(rawEvent, callbacks)) return
         }
       }
       // 处理残留 buffer
@@ -160,9 +162,9 @@ export function useAssistantStream() {
   }
 
   /**
-   * 解析单个 SSE 事件块。
+   * 解析单个 SSE 事件块。返回 true 表示流已结束（[DONE]/done）。
    */
-  function handleSseEvent(raw: string, callbacks: StreamCallbacks) {
+  function handleSseEvent(raw: string, callbacks: StreamCallbacks): boolean {
     const lines = raw.split('\n')
     for (const line of lines) {
       if (!line.startsWith('data:')) continue
@@ -170,7 +172,7 @@ export function useAssistantStream() {
 
       if (data === '[DONE]') {
         callbacks.onDone(null)
-        return
+        return true
       }
 
       try {
@@ -196,7 +198,7 @@ export function useAssistantStream() {
             break
           case 'done':
             callbacks.onDone(msg.metadata)
-            break
+            return true
           case 'error':
             callbacks.onError(
               String(msg.content || 'AI 助手遇到错误。'),
@@ -208,6 +210,8 @@ export function useAssistantStream() {
         // 非法 JSON 行，静默跳过（不中断流）
       }
     }
+
+    return false
   }
 
   /** 中断当前流 */

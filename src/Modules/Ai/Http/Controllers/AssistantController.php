@@ -157,6 +157,18 @@ class AssistantController extends Controller
     }
 
     /**
+     * 从落库的完整 prompt 中提取用户原话（buildMessage 的逆操作）。
+     */
+    private function extractUserIntent(string $content): string
+    {
+        if (preg_match('/\[用户请求\]\n(.*)$/su', $content, $m)) {
+            return trim($m[1]);
+        }
+
+        return $content;
+    }
+
+    /**
      * 检查 AI 小助手可用性（平台级开关）。
      *
      * 小助手是平台级预配置、全程可用的主入口，
@@ -220,7 +232,8 @@ class AssistantController extends Controller
             ->map(fn ($m) => [
                 'message_id' => $m->message_id,
                 'role' => $m->role,
-                'content' => (string) $m->content,
+                // user 轮次落库为完整 prompt（含页面上下文包装），恢复时只回显用户原话
+                'content' => $m->role === 'user' ? $this->extractUserIntent((string) $m->content) : (string) $m->content,
                 'created_at' => $m->created_at?->toISOString(),
             ]);
 

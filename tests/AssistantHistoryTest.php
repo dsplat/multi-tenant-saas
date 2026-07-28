@@ -219,6 +219,33 @@ class AssistantHistoryTest extends TestCase
             ->assertJsonPath('data.messages.1.content', '消息 5');
     }
 
+    public function test_history_strips_prompt_wrapper_from_user_messages(): void
+    {
+        $conversation = $this->createConversation();
+
+        // user 轮次落库为完整 prompt（buildMessage 产物）
+        AgentConversationMessage::forceCreate([
+            'conversation_id' => $conversation->conversation_id,
+            'role' => 'user',
+            'content' => "[页面上下文]\n当前页面: dashboard\n模块: Dashboard\n\n[用户请求]\n你好，请介绍一下你自己",
+            'created_at' => now()->subMinutes(2),
+        ]);
+        AgentConversationMessage::forceCreate([
+            'conversation_id' => $conversation->conversation_id,
+            'role' => 'assistant',
+            'content' => '我是小秘书。',
+            'created_at' => now()->subMinute(),
+        ]);
+
+        $response = $this->withHeaders($this->authHeaders())
+            ->getJson("/api/v1/ai/assistant/history?conversation_id={$conversation->conversation_id}");
+
+        // 恢复时只回显用户原话，assistant 内容不变
+        $response->assertOk()
+            ->assertJsonPath('data.messages.0.content', '你好，请介绍一下你自己')
+            ->assertJsonPath('data.messages.1.content', '我是小秘书。');
+    }
+
     public function test_history_returns_404_for_nonexistent_conversation(): void
     {
         $this->withHeaders($this->authHeaders())

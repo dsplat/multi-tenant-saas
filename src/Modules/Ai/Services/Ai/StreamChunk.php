@@ -15,6 +15,8 @@ namespace MultiTenantSaas\Modules\Ai\Services\Ai;
  *  - finish_reason: 结束原因（仅在末块出现，stop / tool_calls / length 等）
  *  - pending_confirmation: L2 工具待确认载荷（AgentRuntime 拦截 risk=L2 工具时产出，
  *                   含 token/args_hash/expires_in/tool_slug/tool_name/arguments/conversation_id）
+ *  - heartbeat:     心跳帧标记（工具执行等长耗时静默期后产出，仅用于向 SSE 连接
+ *                   推送字节防止 nginx/FPM 判死连接，不含任何业务内容）
  */
 final class StreamChunk
 {
@@ -24,6 +26,7 @@ final class StreamChunk
         public readonly string $finishReason = '',
         public readonly array $usage = [],
         public readonly array $pendingConfirmation = [],
+        public readonly bool $heartbeat = false,
     ) {}
 
     /**
@@ -40,6 +43,14 @@ final class StreamChunk
     public function hasPendingConfirmation(): bool
     {
         return ! empty($this->pendingConfirmation);
+    }
+
+    /**
+     * 是否为心跳帧（仅用于维持 SSE 连接，不含业务内容）
+     */
+    public function isHeartbeat(): bool
+    {
+        return $this->heartbeat;
     }
 
     /**

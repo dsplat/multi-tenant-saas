@@ -604,10 +604,7 @@ class AgentRuntime implements AgentRuntimeContract
         }
 
         $maxToolCalls = $options['max_tool_calls'] ?? ($agent->model_config['max_tool_calls'] ?? 5);
-
-        // 自动触发记忆压缩（如果 MemoryCompressor 已注入）
         $maxTokens = $options['max_tokens'] ?? ($agent->model_config['max_tokens'] ?? 8000);
-        $this->compressMemory($conversationId, $maxTokens);
 
         // 保存用户消息
         $this->saveMessage($conversationId, 'user', $message);
@@ -621,10 +618,23 @@ class AgentRuntime implements AgentRuntimeContract
 
         $totalUsage = ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
 
-        return yield from $this->streamInner(
-            $context, $agent, $agentId, $conversationId, $tenantId, $message,
-            $toolDefinitions, $options, $maxToolCalls, 0, $totalUsage,
-        );
+        try {
+            return yield from $this->streamInner(
+                $context, $agent, $agentId, $conversationId, $tenantId, $message,
+                $toolDefinitions, $options, $maxToolCalls, 0, $totalUsage,
+            );
+        } finally {
+            // 记忆压缩移出首帧关键路径：压缩含 LLM 调用，放入口会阻塞首字节数秒，
+            // 改为流结束后收尾执行（为下一轮对话瘦身），失败不影响已完成的对话
+            try {
+                $this->compressMemory($conversationId, $maxTokens);
+            } catch (\Throwable $e) {
+                Log::warning('AgentRuntime: 流后记忆压缩失败', [
+                    'conversation_id' => $conversationId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**
@@ -664,12 +674,11 @@ class AgentRuntime implements AgentRuntimeContract
         $assistantContent = '';
 
         try {
-            // NOTE: 流式场景不使用 chatWithFallback 进行 provider 降级。
-            // streamChat() 返回 Generator，惰性序列无法在中途切换底层驱动实现。
-            // 流式 AI 驱动异常将被外层 try/catch 捕获为"流式中断"，返回已生成内容。
-            // 若需流式降级，需在驱动层实现（超出当前 TASK-046 范围）。
+            // NOTE: 流式降级采用“起跑前换道”策略：首 chunk 产出前失败（连接/鉴权/限流等）
+            // 可安全切换 fallback 驱动重新起流；首 chunk 之后的中断无法换道
+            // （惰性序列已向前端吐字），仍由外层 catch 捕获为“流式中断”返回已生成内容。
             /** @var StreamChunk $chunk */
-            foreach ($this->aiService->streamChat($context, $chatOptions) as $chunk) {
+            foreach ($this->streamChatWithFirstChunkFallback($context, $chatOptions, $agent, $conversationId, $agentId) as $chunk) {
                 // 累积文本（在 yield 之前，确保状态更新）
                 $assistantContent .= $chunk->text;
 
@@ -728,6 +737,10 @@ class AgentRuntime implements AgentRuntimeContract
                     [$context, $allToolCalls] = $this->executeToolCalls(
                         $chunk->toolCalls, $context, $conversationId, $agentId, $tenantId, $assistantContent,
                     );
+
+                    // 工具执行期间 SSE 无字节输出，nginx/FPM 会判死连接；
+                    // 轮次边界产出心跳帧推送字节维持连接（控制器转为 SSE 注释行）
+                    yield new StreamChunk(heartbeat: true);
 
                     $loopCount++;
 
@@ -1109,7 +1122,7 @@ class AgentRuntime implements AgentRuntimeContract
      * 系统小秘书（role=system_secretary）强制走平台级 config('ai.secretary')：
      * 平台买单、不读租户维护的 model_config，也不进租户配额路径。
      */
-        private function resolveModelConfig(Agent $agent): array
+    private function resolveModelConfig(Agent $agent): array
     {
         if ($agent->role === 'system_secretary' && config('ai.secretary.enabled', true)) {
             return [
@@ -1223,5 +1236,91 @@ class AgentRuntime implements AgentRuntimeContract
 
             return null;
         }
+    }
+
+    /**
+     * 流式 AI 调用（含首 chunk 前降级）
+     *
+     * “起跑前换道”：显式驱动 Generator 至首 chunk，若在此之前失败
+     *（连接拒绝/鉴权/限流等，尚未向前端吐任何字节）则切 fallback 驱动重新起流；
+     * 首 chunk 之后的异常不在此处理，由 streamInner 外层 catch 收尾。
+     *
+     * @param  array  $context  消息上下文
+     * @param  array  $chatOptions  主驱动调用选项
+     * @param  Agent  $agent  Agent 实例（读取 fallback 配置）
+     * @param  int  $conversationId  会话 ID（用于日志）
+     * @param  int  $agentId  Agent ID（用于日志）
+     * @return Generator<int, StreamChunk>
+     */
+    private function streamChatWithFirstChunkFallback(
+        array $context,
+        array $chatOptions,
+        Agent $agent,
+        int $conversationId,
+        int $agentId,
+    ): Generator {
+        $stream = $this->aiService->streamChat($context, $chatOptions);
+
+        try {
+            // valid() 触发底层请求直至首 chunk 产出（或抛异常）
+            $valid = $stream->valid();
+        } catch (\Throwable $primaryError) {
+            $fallbackOptions = $this->buildFallbackChatOptions($agent, $chatOptions);
+
+            if ($fallbackOptions === null) {
+                throw $primaryError;
+            }
+
+            Log::warning('AgentRuntime: 流式主驱动首 chunk 前失败，换道 fallback', [
+                'agent_id' => $agentId,
+                'conversation_id' => $conversationId,
+                'provider' => $chatOptions['provider'] ?? 'unknown',
+                'model' => $chatOptions['model'] ?? 'unknown',
+                'fallback_provider' => $fallbackOptions['provider'] ?? 'unknown',
+                'fallback_model' => $fallbackOptions['model'] ?? 'unknown',
+                'error' => $primaryError->getMessage(),
+            ]);
+
+            $stream = $this->aiService->streamChat($context, $fallbackOptions);
+            $valid = $stream->valid();
+        }
+
+        while ($valid) {
+            yield $stream->current();
+            $stream->next();
+            $valid = $stream->valid();
+        }
+    }
+
+    /**
+     * 构建流式 fallback 调用选项
+     *
+     * 无 fallback 配置、或 fallback 与主选项 provider+model 完全相同
+     *（原地重试无意义）时返回 null。
+     */
+    private function buildFallbackChatOptions(Agent $agent, array $chatOptions): ?array
+    {
+        $modelConfig = $this->resolveModelConfig($agent);
+        $fallbackProvider = $modelConfig['fallback_provider'] ?? null;
+        $fallbackModel = $modelConfig['fallback_model'] ?? null;
+
+        if ($fallbackProvider === null && $fallbackModel === null) {
+            return null;
+        }
+
+        $options = $chatOptions;
+        if ($fallbackProvider !== null) {
+            $options['provider'] = $fallbackProvider;
+        }
+        if ($fallbackModel !== null) {
+            $options['model'] = $fallbackModel;
+        }
+
+        if (($options['provider'] ?? null) === ($chatOptions['provider'] ?? null)
+            && ($options['model'] ?? null) === ($chatOptions['model'] ?? null)) {
+            return null;
+        }
+
+        return $options;
     }
 }

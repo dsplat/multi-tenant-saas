@@ -3,7 +3,7 @@
  *
  * 用 fetch + ReadableStream 消费 POST SSE（EventSource 不支持 POST）。
  * 遵循铁律：
- *  - 超时 30s 自动断开（非阻塞）
+ *  - 空闲 30s（无任何字节到达）自动断开；服务端心跳帧可续命，多轮工具调用不再被总时长误杀
  *  - 任何错误都不抛出，转为降级提示（fail-open）
  *  - 支持随时中断（AbortController）
  */
@@ -11,8 +11,8 @@ import { ref } from 'vue'
 import axios from 'axios'
 import type { PageContext, SseMessage, ToolCall, FormFillSuggestion, WorkflowSuggestion, ConversationMeta, ActionConfirmData } from '../types'
 
-/** SSE 流式超时（毫秒） */
-const STREAM_TIMEOUT_MS = 30_000
+/** SSE 空闲超时（毫秒）：距上次收到字节的间隔，收到任意字节（含心跳帧）即重置 */
+const STREAM_IDLE_TIMEOUT_MS = 30_000
 
 /**
  * AI 助手 SSE 端点。
@@ -47,6 +47,14 @@ export function useAssistantStream() {
   let abortController: AbortController | null = null
   let timeoutTimer: ReturnType<typeof setTimeout> | null = null
 
+  /** 重置空闲计时器：每次收到字节调用，超过空闲阈值才断开 */
+  function resetIdleTimer() {
+    if (timeoutTimer) clearTimeout(timeoutTimer)
+    timeoutTimer = setTimeout(() => {
+      abortController?.abort()
+    }, STREAM_IDLE_TIMEOUT_MS)
+  }
+
   /**
    * 发起一次流式对话。
    * 返回的 Promise 永远 resolve（不 reject），错误通过 onError 回调降级。
@@ -57,10 +65,8 @@ export function useAssistantStream() {
     streaming.value = true
     abortController = new AbortController()
 
-    // 超时保护：30s 自动断开
-    timeoutTimer = setTimeout(() => {
-      abortController?.abort()
-    }, STREAM_TIMEOUT_MS)
+    // 空闲超时保护：30s 无任何字节到达才断开（消费流时逐次重置）
+    resetIdleTimer()
 
     try {
       const payload: PageContext = {
@@ -130,6 +136,9 @@ export function useAssistantStream() {
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
+
+        // 收到字节（含服务端心跳注释帧）即重置空闲计时器
+        resetIdleTimer()
 
         buffer += decoder.decode(value, { stream: true })
 

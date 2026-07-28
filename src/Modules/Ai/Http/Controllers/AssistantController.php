@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use MultiTenantSaas\Contracts\AgentRuntimeContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
@@ -18,6 +17,7 @@ use MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService;
 use MultiTenantSaas\Modules\Ai\Services\Ai\StreamChunk;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * AI 小助手入口（主入口，非兜底）。
@@ -423,6 +423,7 @@ class AssistantController extends Controller
      *  - {"type":"text","content":"..."}        增量文本
      *  - {"type":"tool_call","content":[...]}   工具调用决策（前端展示“正在调用 XX”）
      *  - {"type":"done","metadata":{...}}       流结束
+     *  - ": ping"                               心跳注释帧（工具执行等静默期维持连接，前端自动忽略）
      */
     private function streamResponse(int $agentId, int $conversationId, string $message): StreamedResponse
     {
@@ -434,6 +435,17 @@ class AssistantController extends Controller
 
             foreach ($generator as $chunk) {
                 if (! $chunk instanceof StreamChunk) {
+                    continue;
+                }
+
+                // 心跳帧：以 SSE 注释行推送字节维持连接（防 nginx/FPM 判死），前端解析器自动忽略
+                if ($chunk->isHeartbeat()) {
+                    echo ": ping\n\n";
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+
                     continue;
                 }
 
@@ -484,7 +496,7 @@ class AssistantController extends Controller
      */
     private function emit(array $payload): void
     {
-        echo 'data: '.json_encode($payload, JSON_UNESCAPED_UNICODE)."\n\n";
+        echo 'data: ' . json_encode($payload, JSON_UNESCAPED_UNICODE) . "\n\n";
         if (ob_get_level() > 0) {
             ob_flush();
         }

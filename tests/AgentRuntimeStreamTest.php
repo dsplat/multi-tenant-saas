@@ -180,4 +180,101 @@ class AgentRuntimeStreamTest extends TestCase
         $this->assertInstanceOf(AgentResponse::class, $returnValue);
         $this->assertEquals('Hello', $returnValue->message);
     }
+
+    public function test_stream_yields_heartbeat_after_tool_execution(): void
+    {
+        $this->createAgent(['tools' => ['search_customer']]);
+        $this->createConversation();
+
+        $this->toolRegistryMock->shouldReceive('getToolDefinitions')
+            ->andReturn([['type' => 'function', 'function' => ['name' => 'search_customer']]]);
+
+        $this->toolRegistryMock->shouldReceive('execute')
+            ->andReturn(['result' => 'ok']);
+
+        $this->aiServiceMock->shouldReceive('streamChat')
+            ->once()
+            ->andReturn((function () {
+                yield new StreamChunk(
+                    toolCalls: [['id' => 'call_1', 'type' => 'function', 'function' => ['name' => 'search_customer', 'arguments' => '{}']]],
+                    finishReason: 'tool_calls',
+                );
+            })());
+
+        $this->aiServiceMock->shouldReceive('streamChat')
+            ->once()
+            ->andReturn((function () {
+                yield new StreamChunk(text: 'Done.');
+                yield new StreamChunk(finishReason: 'stop');
+            })());
+
+        $chunks = iterator_to_array($this->runtime->runStream(1001, 2001, 'Go'), false);
+
+        // 工具执行后、下一轮推理前应产出心跳帧维持 SSE 连接
+        $heartbeats = array_filter($chunks, fn (StreamChunk $c) => $c->isHeartbeat());
+        $this->assertCount(1, $heartbeats);
+        // 心跳帧不携带任何业务内容
+        $heartbeat = array_values($heartbeats)[0];
+        $this->assertSame('', $heartbeat->text);
+        $this->assertFalse($heartbeat->hasToolCalls());
+        $this->assertFalse($heartbeat->isFinished());
+    }
+
+    public function test_stream_falls_back_when_primary_fails_before_first_chunk(): void
+    {
+        $this->createAgent(['model_config' => [
+            'preferred_model' => 'gpt-4o-mini',
+            'preferred_provider' => 'openai',
+            'fallback_provider' => 'bailian',
+            'fallback_model' => 'deepseek-v3',
+        ]]);
+        $this->createConversation();
+
+        // 主驱动：首 chunk 产出前即抛异常（连接失败场景）
+        $this->aiServiceMock->shouldReceive('streamChat')
+            ->once()
+            ->andReturn((function () {
+                throw new \RuntimeException('primary provider down');
+                yield; // @phpstan-ignore-line 保持 Generator 类型
+            })());
+
+        // fallback 驱动：正常起流
+        $this->aiServiceMock->shouldReceive('streamChat')
+            ->once()
+            ->withArgs(function (array $context, array $options) {
+                return ($options['provider'] ?? null) === 'bailian'
+                    && ($options['model'] ?? null) === 'deepseek-v3';
+            })
+            ->andReturn((function () {
+                yield new StreamChunk(text: 'Fallback reply');
+                yield new StreamChunk(finishReason: 'stop');
+            })());
+
+        $generator = $this->runtime->runStream(1001, 2001, 'Hi');
+        $chunks = iterator_to_array($generator, false);
+
+        $texts = array_map(fn (StreamChunk $c) => $c->text, $chunks);
+        $this->assertContains('Fallback reply', $texts);
+        $this->assertEquals('stop', end($chunks)->finishReason);
+
+        $returnValue = $generator->getReturn();
+        $this->assertEquals('Fallback reply', $returnValue->message);
+    }
+
+    public function test_stream_without_fallback_config_yields_error_on_primary_failure(): void
+    {
+        $this->createAgent(); // 无 fallback 配置
+        $this->createConversation();
+
+        $this->aiServiceMock->shouldReceive('streamChat')
+            ->once()
+            ->andReturn((function () {
+                throw new \RuntimeException('primary provider down');
+                yield; // @phpstan-ignore-line 保持 Generator 类型
+            })());
+
+        $chunks = iterator_to_array($this->runtime->runStream(1001, 2001, 'Hi'), false);
+
+        $this->assertEquals('error', end($chunks)->finishReason);
+    }
 }

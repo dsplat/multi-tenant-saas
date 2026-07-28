@@ -130,7 +130,12 @@ function goToAgents() {
       </div>
       <div class="header-actions">
         <button class="icon-btn" title="清空对话" @click="handleClear">🗑</button>
-        <button class="icon-btn" title="固定/取消固定" @click="store.togglePin()">📌</button>
+        <button
+          class="icon-btn"
+          :class="{ active: store.panelMode === 'pinned' }"
+          :title="store.panelMode === 'pinned' ? '已常驻：刷新后自动展开（点击取消）' : '常驻：钉住后刷新页面自动展开'"
+          @click="store.togglePin()"
+        >📌</button>
         <button class="icon-btn" title="关闭" @click="store.closePanel()">✕</button>
       </div>
     </div>
@@ -246,6 +251,10 @@ function goToAgents() {
   transition: background 0.15s;
 }
 .icon-btn:hover { background: var(--fill-color, #f1f5f9); }
+.icon-btn.active {
+  background: color-mix(in srgb, var(--ac, #10b981) 15%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ac, #10b981) 40%, transparent);
+}
 
 /* 对话区 */
 .chat-scroll {

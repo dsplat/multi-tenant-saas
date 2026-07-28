@@ -2,12 +2,14 @@
 /**
  * ChatMessage — 单条对话消息渲染
  *
- * 可看见铁律：工具调用以卡片形式展示（工具名 + 参数），不黑箱。
+ * 可看见铁律：工具调用以人性化文案展示（“搜索…”而非 slug），不黑箱也不暴露系统变量。
  * AI 产出标注：assistant 消息带「AI」徽标，与用户消息视觉区分。
+ * assistant 正文按 Markdown 渲染（加粗/列表/链接），站内链接点击路由切换、面板不关闭。
  */
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import type { ChatMessage } from '../types'
+import { renderMarkdown } from '../utils/renderMarkdown'
 import FormFillCard from './FormFillCard.vue'
 import WorkflowProgress from './WorkflowProgress.vue'
 
@@ -19,17 +21,26 @@ const router = useRouter()
 
 const isUser = computed(() => props.message.role === 'user')
 
-/** 工具调用的展示名 */
-function toolName(call: any): string {
-  return call?.slug || call?.name || call?.function?.name || '工具'
+/** assistant 正文 Markdown 渲染（用户消息保持纯文本） */
+const renderedContent = computed(() =>
+  isUser.value || props.message.isError ? '' : renderMarkdown(props.message.content),
+)
+
+/** 正文内已含站内链接时，不再重复渲染独立 navigate 按钮 */
+const hasInlineRoute = computed(() => renderedContent.value.includes('data-route'))
+
+/** 正文内站内链接：事件委托 → 路由切换（面板不动，页面切换） */
+function handleContentClick(e: MouseEvent) {
+  const link = (e.target as HTMLElement).closest('a[data-route]') as HTMLElement | null
+  if (link?.dataset.route) {
+    e.preventDefault()
+    router.push(link.dataset.route)
+  }
 }
 
-/** 工具参数摘要（截断展示） */
-function toolArgs(call: any): string {
-  const args = call?.arguments || call?.function?.arguments
-  if (!args) return ''
-  const s = typeof args === 'string' ? args : JSON.stringify(args)
-  return s.length > 80 ? s.slice(0, 80) + '…' : s
+/** 工具调用的内部名（仅用于分类，不直接展示） */
+function toolName(call: any): string {
+  return call?.slug || call?.name || call?.function?.name || ''
 }
 
 /** 解析工具参数为对象（兼容 JSON 字符串） */
@@ -40,6 +51,27 @@ function parseArgs(call: any): Record<string, any> {
     try { return JSON.parse(args) } catch { return {} }
   }
   return args
+}
+
+/** 工具调用人性化展示：运营人员看得懂的动作描述，不暴露 slug/系统参数 */
+function toolDisplay(call: any): { icon: string; text: string } {
+  const args = parseArgs(call)
+  switch (toolName(call)) {
+    case 'system_kb_search':
+      return { icon: '🔍', text: args.query ? `搜索「${args.query}」` : '搜索知识库' }
+    case 'get_data_dictionary':
+      return { icon: '📖', text: '查阅数据字典' }
+    case 'navigate':
+      return { icon: '🧭', text: args.label ? `带你前往「${args.label}」` : '为你导航页面' }
+    case 'list_agents':
+      return { icon: '👥', text: '查看可用的数字员工' }
+    case 'delegate_to_agent':
+      return { icon: '⇄', text: args.agent_name ? `转接给「${args.agent_name}」` : '转接专业员工' }
+    case 'enable_agent':
+      return { icon: '🔓', text: args.agent_name ? `启用「${args.agent_name}」` : '启用数字员工' }
+    default:
+      return { icon: '⚙️', text: '处理中…' }
+  }
 }
 
 /** 秘书 navigate 带路：从 toolCalls 提取跳转指令 */
@@ -59,6 +91,7 @@ const delegateActions = computed(() =>
 )
 
 function handleNavigate(routePath: string) {
+  // 面板不动，页面切换（非阻塞铁律）
   router.push(routePath)
 }
 
@@ -80,17 +113,22 @@ function handleDelegate(a: Record<string, any>) {
     </div>
 
     <div class="msg-body">
-      <!-- 工具调用卡片（可看见） -->
+      <!-- 工具调用卡片（可看见，人性化文案） -->
       <div v-if="message.toolCalls?.length" class="tool-calls">
         <div v-for="(call, i) in message.toolCalls" :key="i" class="tool-card">
-          <span class="tool-icon">⚙</span>
-          <span class="tool-name">调用 {{ toolName(call) }}</span>
-          <span v-if="toolArgs(call)" class="tool-args">{{ toolArgs(call) }}</span>
+          <span class="tool-icon">{{ toolDisplay(call).icon }}</span>
+          <span class="tool-name">{{ toolDisplay(call).text }}</span>
         </div>
       </div>
 
-      <!-- 文本内容 -->
-      <div v-if="message.content" class="msg-text" :class="{ 'error-text': message.isError }">
+      <!-- 文本内容：assistant 按 Markdown 渲染（受控标签，XSS 安全），用户/错误消息纯文本 -->
+      <div
+        v-if="message.content && renderedContent"
+        class="msg-text md-body"
+        @click="handleContentClick"
+        v-html="renderedContent"
+      />
+      <div v-else-if="message.content" class="msg-text" :class="{ 'error-text': message.isError }">
         {{ message.content }}
       </div>
 
@@ -104,9 +142,9 @@ function handleDelegate(a: Record<string, any>) {
         {{ message.action.label }}
       </button>
 
-      <!-- 秘书带路：navigate 跳转按钮 -->
+      <!-- 秘书带路：navigate 跳转按钮（正文已含内联链接时不重复展示） -->
       <button
-        v-for="(nav, i) in navigateActions"
+        v-for="(nav, i) in hasInlineRoute ? [] : navigateActions"
         :key="'nav' + i"
         class="msg-action-btn"
         @click="handleNavigate(nav.route_path)"
@@ -197,6 +235,49 @@ function handleDelegate(a: Record<string, any>) {
   border-color: color-mix(in srgb, var(--badge-danger-fg, #f5222d) 30%, transparent);
 }
 
+/* Markdown 渲染（v-html 内容需 :deep） */
+.md-body { white-space: normal; }
+.md-body :deep(.md-p) { margin: 0; }
+.md-body :deep(.md-p + .md-p) { margin-top: 4px; }
+.md-body :deep(.md-gap) { height: 8px; }
+.md-body :deep(.md-heading) {
+  font-weight: 700;
+  margin: 8px 0 4px;
+}
+.md-body :deep(.md-heading:first-child) { margin-top: 0; }
+.md-body :deep(.md-list) {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+.md-body :deep(.md-list li) { margin: 3px 0; }
+.md-body :deep(.md-code) {
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  background: color-mix(in srgb, var(--text-color-secondary, #64748b) 12%, transparent);
+}
+.md-body :deep(.md-pre) {
+  margin: 6px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  background: color-mix(in srgb, var(--text-color-secondary, #64748b) 10%, transparent);
+  overflow-x: auto;
+  white-space: pre;
+}
+.md-body :deep(.md-link) {
+  color: var(--ac, #10b981);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.md-body :deep(.md-link:hover) {
+  opacity: 0.8;
+}
+
 /* 错误消息操作按钮 */
 .msg-action-btn {
   display: inline-flex;
@@ -244,14 +325,7 @@ function handleDelegate(a: Record<string, any>) {
   max-width: 100%;
 }
 .tool-icon { font-size: 12px; }
-.tool-name { font-weight: 600; color: var(--text-color-primary, #0f172a); white-space: nowrap; }
-.tool-args {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  opacity: 0.7;
-  font-family: ui-monospace, monospace;
-}
+.tool-name { font-weight: 600; color: var(--text-color-primary, #0f172a); }
 
 /* 打字光标 */
 .typing-cursor {

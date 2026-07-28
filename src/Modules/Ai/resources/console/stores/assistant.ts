@@ -34,6 +34,14 @@ function loadPersistedConversation(): PersistedConversation | null {
   }
 }
 
+/** 图钉“常驻”偏好：钉住后刷新页面自动展开面板 */
+function loadPinnedPreference(): boolean {
+  try { return localStorage.getItem('ai_assistant_pinned') === '1' } catch { return false }
+}
+function savePinnedPreference(on: boolean) {
+  try { localStorage.setItem('ai_assistant_pinned', on ? '1' : '0') } catch { /* 静默降级 */ }
+}
+
 export const useAssistantStore = defineStore('aiAssistant', () => {
   // ─── 可用性 ───────────────────────────────────────────────
   /** 租户级 + 用户级开关后的最终可用性（默认开启，探测可覆盖） */
@@ -44,7 +52,7 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   const userEnabled = ref(true)
 
   // ─── 面板状态 ─────────────────────────────────────────────
-  const panelMode = ref<PanelMode>('closed')
+  const panelMode = ref<PanelMode>(loadPinnedPreference() ? 'pinned' : 'closed')
   /** 当前模块名（随路由变化） */
   const currentModule = ref('')
 
@@ -82,15 +90,20 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   }
 
   function openPanel() {
-    panelMode.value = 'panel'
+    // 带图钉偏好打开时直接进入常驻模式
+    panelMode.value = loadPinnedPreference() ? 'pinned' : 'panel'
   }
 
   function closePanel() {
+    // 主动关闭即取消常驻（下次刷新不自动展开）
     panelMode.value = 'closed'
+    savePinnedPreference(false)
   }
 
   function togglePin() {
-    panelMode.value = panelMode.value === 'pinned' ? 'panel' : 'pinned'
+    const next = panelMode.value === 'pinned' ? 'panel' : 'pinned'
+    panelMode.value = next
+    savePinnedPreference(next === 'pinned')
   }
 
   function pushUserMessage(content: string): ChatMessage {

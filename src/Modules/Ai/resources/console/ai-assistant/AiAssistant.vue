@@ -64,6 +64,9 @@ watch(() => route.path, () => {
       direction="rtl"
       :with-header="false"
       :modal="false"
+      :lock-scroll="false"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
       :append-to-body="true"
       class="ai-assistant-drawer"
       @update:model-value="(v: boolean) => { if (!v) store.closePanel() }"
@@ -82,12 +85,16 @@ watch(() => route.path, () => {
   flex-direction: column;
 }
 
-/* 最上层覆盖：高于 Element Plus 弹层（PopupManager 从 2000+ 递增） */
+/* 最上层覆盖：高于 Element Plus 弹层（PopupManager 从 2000+ 递增）
+   同时面板打开时页面仍可操作：全屏 overlay 不拦截事件，仅抽屉本体可交互 */
 .el-overlay:has(> .ai-assistant-drawer) {
   z-index: 2147483000 !important;
+  pointer-events: none;
+  background: transparent !important;
 }
 .ai-assistant-drawer {
   z-index: 2147483000 !important;
+  pointer-events: auto;
 }
 
 /* AI 填充字段全局标记（蓝色底纹 + 左侧边框）—— “AI 产出必标注”铁律 */

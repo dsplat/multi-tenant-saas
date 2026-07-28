@@ -71,6 +71,11 @@ class TenancyServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__ . '/../config/id.php', 'id');
         $this->mergeConfigFrom(__DIR__ . '/../config/socialite.php', 'socialite');
 
+        // Octane 配置（仅在 laravel/octane 已安装时生效）
+        if (class_exists(\Laravel\Octane\Octane::class)) {
+            $this->mergeConfigFrom(__DIR__ . '/../config/octane.php', 'octane');
+        }
+
         // 模块基础设施
         $this->app->singleton(ModuleRegistry::class);
         $this->app->singleton(ModuleManager::class);
@@ -110,6 +115,11 @@ class TenancyServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../config/tenancy.php' => config_path('tenancy.php'),
         ], 'tenancy-config');
+
+        // Octane 配置发布（下游可自定义 listeners / tables / watch）
+        $this->publishes([
+            __DIR__ . '/../config/octane.php' => config_path('octane.php'),
+        ], 'octane-config');
 
         $this->publishes([
             __DIR__ . '/../database/migrations' => database_path('migrations'),

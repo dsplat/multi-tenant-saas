@@ -67,6 +67,12 @@
         ],
         "test:filter": [
             "@php -d memory_limit=2G artisan test --parallel --filter"
+        ],
+        "octane": [
+            "@php artisan octane:start --host=127.0.0.1 --port=8000 --workers=auto"
+        ],
+        "octane:prod": [
+            "@php artisan octane:start --host=127.0.0.1 --port=9100 --workers=auto --max-requests=500"
         ]
     },
     "extra": {
@@ -130,6 +136,10 @@
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
         }
+    },
+    "suggest": {
+        "laravel/octane": "Required for Octane + Swoole/RoadRunner high-concurrency deployment (^2.0)",
+        "ext-swoole": "Required for Octane Swoole server (>=5.0)"
     },
     "minimum-stability": "stable",
     "prefer-stable": true

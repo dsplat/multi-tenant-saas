@@ -66,7 +66,7 @@ class SecretaryTest extends TestCase
         $template = BuiltinAgentTemplates::findByKey('system_secretary');
 
         $this->assertEquals(
-            ['system_kb_search', 'get_data_dictionary', 'navigate', 'list_agents', 'delegate_to_agent'],
+            ['system_kb_search', 'get_data_dictionary', 'navigate', 'list_agents', 'delegate_to_agent', 'enable_agent'],
             $template['tools']
         );
     }

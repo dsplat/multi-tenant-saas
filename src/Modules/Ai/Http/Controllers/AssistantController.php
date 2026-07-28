@@ -7,69 +7,68 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\StreamedResponse;
 use MultiTenantSaas\Contracts\AgentRuntimeContract;
-use MultiTenantSaas\Contracts\AgentServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Ai\DTOs\PageContext;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Services\Ai\StreamChunk;
-use MultiTenantSaas\Modules\Ai\Services\AiConfigService;
-use MultiTenantSaas\Modules\Ai\Services\IntentRouter;
 
 /**
- * 页面 AI 助手入口。
+ * AI 小助手入口（主入口，非兜底）。
  *
- * 接收 PageContext + user_intent → IntentRouter 路由 → AgentRuntime::runStream 流式返回。
- * 写操作约束：写工具只产出草稿，落库由业务 Service + 人确认完成。
+ * 系统小助手（system_secretary）是租户运营人员的唯一交互主入口，
+ * 全程可用、平台买单、不消耗租户额度。
+ * 小助手通过 list_agents / delegate_to_agent / enable_agent 工具
+ * 智能调度数字员工完成专业操作。
+ *
+ * 路由逻辑：
+ * - 前端显式传 agent_id（转派后续接）→ 直达目标员工
+ * - 否则 → 一律由系统小助手接手（主入口）
  *
  * @OA\Tag(
  *     name="AI 助手",
- *     description="页面级 AI 助手（意图路由 + 流式对话）"
+ *     description="AI 小助手（主入口 + 流式对话 + 数字员工调度）"
  * )
  */
 class AssistantController extends Controller
 {
     public function __construct(
-        private IntentRouter $intentRouter,
         private AgentRuntimeContract $agentRuntime,
-        private AgentServiceContract $agentService,
         private TenantContextContract $tenantContext,
-        private AiConfigService $aiConfig,
     ) {}
 
     /**
      * @OA\Post(
      *     path="/v1/ai/assistant",
-     *     summary="页面 AI 助手（SSE 流式）",
-     *     description="根据页面上下文自动路由到对应 Agent，流式返回回复。",
+     *     summary="AI 小助手（SSE 流式）",
+     *     description="系统小助手为唯一主入口，智能调度数字员工完成操作。传 agent_id 可直达转派目标。",
      *     tags={"AI 助手"},
      *     security={{"sanctum":{}}},
      *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
-     *         required={"route", "module", "user_intent"},
+     *         required={"user_intent"},
      *
-     *         @OA\Property(property="route", type="string", example="marketing.campaign.create", description="前端路由"),
-     *         @OA\Property(property="module", type="string", example="Marketing", description="模块名"),
-     *         @OA\Property(property="user_intent", type="string", example="帮我写一段活动文案", description="用户自然语言意图"),
+     *         @OA\Property(property="user_intent", type="string", example="帮我创建一个抽奖活动", description="用户自然语言意图"),
+     *         @OA\Property(property="route", type="string", nullable=true, example="marketing.campaign.create", description="当前前端路由"),
+     *         @OA\Property(property="module", type="string", nullable=true, example="Marketing", description="当前模块名"),
      *         @OA\Property(property="entity_type", type="string", nullable=true, example="campaign"),
      *         @OA\Property(property="entity_id", type="integer", nullable=true),
      *         @OA\Property(property="form_state", type="object", nullable=true, description="当前表单状态"),
      *         @OA\Property(property="visible_data_summary", type="string", nullable=true, description="页面可见数据摘要"),
-     *         @OA\Property(property="conversation_id", type="integer", nullable=true, description="续接已有会话")
+     *         @OA\Property(property="conversation_id", type="integer", nullable=true, description="续接已有会话"),
+     *         @OA\Property(property="agent_id", type="integer", nullable=true, description="转派后续接目标员工")
      *     )),
      *
      *     @OA\Response(response=200, description="SSE 流式响应"),
      *     @OA\Response(response=401, description="未认证"),
-     *     @OA\Response(response=403, description="租户上下文缺失"),
-     *     @OA\Response(response=404, description="无可用 Agent"),
-     *     @OA\Response(response=422, description="参数校验失败")
+     *     @OA\Response(response=503, description="小助手未初始化")
      * )
      */
     public function handle(Request $request): StreamedResponse|JsonResponse
     {
         $validated = $request->validate([
-            'route' => 'required|string|max:255',
-            'module' => 'required|string|max:100',
+            'route' => 'nullable|string|max:255',
+            'module' => 'nullable|string|max:100',
             'user_intent' => 'required|string|max:32000',
             'entity_type' => 'nullable|string|max:100',
             'entity_id' => 'nullable|integer',
@@ -84,7 +83,9 @@ class AssistantController extends Controller
         // 构建页面上下文
         $pageContext = PageContext::fromArray($validated);
 
-        // 前端显式指定目标员工（转派后续接），否则走意图路由
+        // 路由策略：
+        // 1. 前端显式传 agent_id（转派后续接）→ 直达目标员工
+        // 2. 否则 → 系统小助手（主入口，全程可用）
         $agent = null;
 
         if (! empty($validated['agent_id'])) {
@@ -94,20 +95,8 @@ class AssistantController extends Controller
                 ->first();
         }
 
+        // 主入口：系统小助手（不是兜底，是唯一入口）
         if (! $agent) {
-            // 意图路由（slug 为 kebab-case，agents.role 为 snake_case）
-            $agentSlug = $this->intentRouter->route($pageContext);
-
-            if ($agentSlug !== null) {
-                $agent = Agent::where('tenant_id', $tenantId)
-                    ->where('role', str_replace('-', '_', $agentSlug))
-                    ->where('enabled', true)
-                    ->first();
-            }
-        }
-
-        // 系统小秘书回退：定向员工未配置时，由第 0 号总入口接手
-        if (! $agent && config('ai.secretary.enabled', true)) {
             $agent = Agent::where('tenant_id', $tenantId)
                 ->where('role', 'system_secretary')
                 ->where('enabled', true)
@@ -117,8 +106,8 @@ class AssistantController extends Controller
         if (! $agent) {
             return response()->json([
                 'success' => false,
-                'message' => '当前页面暂无可用的 AI 助手。',
-            ], 404);
+                'message' => 'AI 小助手尚未初始化，请联系平台管理员执行 secretary:install。',
+            ], 503);
         }
 
         // 获取或创建会话
@@ -167,32 +156,23 @@ class AssistantController extends Controller
     }
 
     /**
-     * 检查页面助手可用性（feature flag + agent 配置）。
+     * 检查 AI 小助手可用性（平台级开关）。
      *
-     * GET /v1/ai/assistant/availability?module=Marketing
+     * 小助手是平台级预配置、全程可用的主入口，
+     * 仅当平台管理员显式关闭 secretary 时才不可用。
+     *
+     * GET /v1/ai/assistant/availability
      */
     public function availability(Request $request): JsonResponse
     {
-        $module = $request->query('module', '');
-
-        // 默认开启（fail-open）：只有租户显式关闭才返回 false
-        $enabled = true;
-
-        try {
-            $this->tenantContext->resolveId();
-
-            // 租户级 feature flag：assistant 总开关 + 模块级开关
-            $enabled = $this->aiConfig->isCategoryEnabled('assistant')
-                && ($module === '' || $this->aiConfig->isCategoryEnabled('assistant.'.strtolower($module)));
-        } catch (\Throwable) {
-            // 无租户上下文或配置未就绪 → 默认可用（小秘书始终兜底）
-        }
+        // 平台级开关：config('ai.secretary.enabled')
+        // 小助手全程可用，不依赖租户配置或数字员工是否启用
+        $available = config('ai.secretary.enabled', true);
 
         return response()->json([
             'success' => true,
             'data' => [
-                'module' => $module,
-                'available' => $enabled,
+                'available' => $available,
             ],
         ]);
     }

@@ -80,7 +80,7 @@ return [
             // SaaS 网关层兼容字段
             'base_url' => env('AI_BAILIAN_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1'),
             'api_key' => env('AI_BAILIAN_API_KEY', ''),
-            'models' => ['qwen-flash', 'qwen-turbo', 'qwen-plus', 'deepseek-v3', 'mimo-2.5'],
+            'models' => ['qwen3.6-flash', 'qwen-flash', 'qwen-turbo', 'qwen-plus', 'deepseek-v3', 'mimo-2.5'],
         ],
     ],
 
@@ -106,7 +106,7 @@ return [
     'secretary' => [
         'enabled' => (bool) env('SECRETARY_ENABLED', true),
         'provider' => env('SECRETARY_AI_PROVIDER', 'bailian'),
-        'model' => env('SECRETARY_AI_MODEL', 'qwen-flash'),
+        'model' => env('SECRETARY_AI_MODEL', 'qwen3.6-flash'),
         'fallback_provider' => env('SECRETARY_AI_FALLBACK_PROVIDER', 'bailian'),
         'fallback_model' => env('SECRETARY_AI_FALLBACK_MODEL', 'deepseek-v3'),
         'temperature' => (float) env('SECRETARY_AI_TEMPERATURE', 0.3),

@@ -57,6 +57,7 @@ use MultiTenantSaas\Modules\Ai\Services\Tool\CacheGetTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\CacheSetTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\DataDictionaryTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\DelegateToAgentTool;
+use MultiTenantSaas\Modules\Ai\Services\Tool\EnableAgentTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\DocumentParseTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\EmailSendTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\EmbeddingGenerateTool;
@@ -177,5 +178,6 @@ class AiServiceProvider extends ModuleServiceProvider
         $registry->register('navigate', 'Navigate', 'Return an in-app navigation instruction {route_path,label} for the frontend to jump to a page', NavigateTool::class, ['type' => 'object', 'properties' => ['route_path' => ['type' => 'string', 'description' => '站内路由路径，以 / 开头'], 'label' => ['type' => 'string', 'description' => '按钮文案（可选）']], 'required' => ['route_path']], 'secretary');
         $registry->register('list_agents', 'List Agents', 'List enabled digital employees of current tenant with their roles and specialities', ListAgentsTool::class, ['type' => 'object', 'properties' => []], 'secretary');
         $registry->register('delegate_to_agent', 'Delegate To Agent', 'Hand the conversation off to a specialised digital employee; returns a delegate instruction for the frontend', DelegateToAgentTool::class, ['type' => 'object', 'properties' => ['agent_id' => ['type' => 'string', 'description' => '目标员工 agent_id（先用 list_agents 查询）'], 'reason' => ['type' => 'string', 'description' => '转派原因'], 'handoff_message' => ['type' => 'string', 'description' => '带给目标员工的开场消息']], 'required' => ['agent_id']], 'secretary');
+        $registry->register('enable_agent', 'Enable Agent', 'Enable a digital employee for the current tenant (create from template if not exists); requires user confirmation before calling', EnableAgentTool::class, ['type' => 'object', 'properties' => ['role' => ['type' => 'string', 'description' => '要启用的数字员工角色标识（如 customer_service / sales / scrm_marketing）']], 'required' => ['role']], 'secretary');
     }
 }

@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Contracts;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\VerifyOperatorTenant;
 
 /**
  * 模块 ServiceProvider 基类
@@ -87,7 +88,7 @@ abstract class ModuleServiceProvider extends ServiceProvider
         // 会 fallback 到 default_tenant_id，Operator 不属于默认租户时误判 403。
         $apiRoute = $moduleDir . '/Routes/api.php';
         if (file_exists($apiRoute)) {
-            Route::middleware(['auth:sanctum', 'throttle:api', 'tenant.identify', \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\VerifyOperatorTenant::class])
+            Route::middleware(['auth:sanctum', 'throttle:api', 'tenant.identify', VerifyOperatorTenant::class])
                 ->prefix('api/v1')
                 ->group($apiRoute);
         }

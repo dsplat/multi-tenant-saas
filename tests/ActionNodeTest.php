@@ -114,7 +114,7 @@ class ActionNodeTest extends TestCase
     {
         $failingRegistry = new class implements ToolRegistryContract
         {
-            public function register(string $slug, string $name, string $description, string $handlerClass, array $schema, string $category = 'core'): void {}
+            public function register(string $slug, string $name, string $description, string $handlerClass, array $schema, string $category = 'core', string $risk = 'L1'): void {}
 
             public function all(): Collection
             {

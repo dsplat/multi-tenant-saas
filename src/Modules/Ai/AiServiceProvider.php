@@ -67,7 +67,6 @@ use MultiTenantSaas\Modules\Ai\Services\Tool\EnableAgentTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\FileReadTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\FileWriteTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\HttpRequestTool;
-use MultiTenantSaas\Modules\Ai\Services\Tool\KnowledgeSearchTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\ListAgentsTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\LlmCallTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\NavigateTool;
@@ -179,7 +178,6 @@ class AiServiceProvider extends ModuleServiceProvider
         $registry->register('ocr_recognize', 'OCR Recognize', 'Extract text from image', OcrRecognizeTool::class, ['type' => 'object', 'properties' => ['image_url' => ['type' => 'string']]], 'ai');
         $registry->register('vector_search', 'Vector Search', 'Search similar content', VectorSearchTool::class, ['type' => 'object', 'properties' => ['query' => ['type' => 'string']], 'required' => ['query']], 'kb');
         $registry->register('embedding_generate', 'Generate Embedding', 'Generate embeddings', EmbeddingGenerateTool::class, ['type' => 'object', 'properties' => ['text' => ['type' => 'string']], 'required' => ['text']], 'ai');
-        $registry->register('knowledge_search', 'Knowledge Search', 'Search knowledge bases', KnowledgeSearchTool::class, ['type' => 'object', 'properties' => ['query' => ['type' => 'string']], 'required' => ['query']], 'kb');
         $registry->register('document_parse', 'Parse Document', 'Parse a document', DocumentParseTool::class, ['type' => 'object', 'properties' => ['file_id' => ['type' => 'string']]], 'storage');
 
         // 系统小秘书专属工具（category=secretary）

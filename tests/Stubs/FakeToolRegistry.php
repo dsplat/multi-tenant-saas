@@ -12,7 +12,7 @@ class FakeToolRegistry implements ToolRegistryContract
 {
     protected array $tools = [];
 
-    public function register(string $slug, string $name, string $description, string $handlerClass, array $schema, string $category = 'core'): void
+    public function register(string $slug, string $name, string $description, string $handlerClass, array $schema, string $category = 'core', string $risk = 'L1'): void
     {
         $this->tools[$slug] = new Tool(
             slug: $slug,
@@ -21,6 +21,7 @@ class FakeToolRegistry implements ToolRegistryContract
             parametersSchema: $schema,
             handlerClass: $handlerClass,
             category: $category,
+            risk: $risk,
         );
     }
 

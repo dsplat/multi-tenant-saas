@@ -86,15 +86,17 @@ watch(() => route.path, () => {
 }
 
 /* 最上层覆盖：高于 Element Plus 弹层（PopupManager 从 2000+ 递增）
-   同时面板打开时页面仍可操作：全屏 overlay 不拦截事件，仅抽屉本体可交互 */
-.el-overlay:has(> .ai-assistant-drawer) {
+   同时面板打开时页面仍可操作：全屏 overlay 不拦截事件，仅抽屉本体可交互。
+   兼容不同 EP 版本的容器 class（.el-overlay / .el-modal-drawer） */
+.el-overlay:has(> .ai-assistant-drawer),
+.el-modal-drawer:has(> .ai-assistant-drawer) {
   z-index: 2147483000 !important;
-  pointer-events: none;
+  pointer-events: none !important;
   background: transparent !important;
 }
 .ai-assistant-drawer {
   z-index: 2147483000 !important;
-  pointer-events: auto;
+  pointer-events: auto !important;
 }
 
 /* AI 填充字段全局标记（蓝色底纹 + 左侧边框）—— “AI 产出必标注”铁律 */

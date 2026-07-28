@@ -8,6 +8,7 @@
  */
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAssistantStore } from '../../stores/assistant'
 import type { ChatMessage } from '../types'
 import { renderMarkdown } from '../utils/renderMarkdown'
 import FormFillCard from './FormFillCard.vue'
@@ -18,6 +19,7 @@ const emit = defineEmits<{
   (e: 'delegate', payload: { agentId: string; agentName: string; handoffMessage: string }): void
 }>()
 const router = useRouter()
+const store = useAssistantStore()
 
 const isUser = computed(() => props.message.role === 'user')
 
@@ -29,12 +31,22 @@ const renderedContent = computed(() =>
 /** 正文内已含站内链接时，不再重复渲染独立 navigate 按钮 */
 const hasInlineRoute = computed(() => renderedContent.value.includes('data-route'))
 
+/** 站内跳转前校验路由存在：AI 给出的过期/错误路径不跳转，友好提示代替白屏 */
+function safePush(path: string) {
+  const resolved = router.resolve(path)
+  if (resolved.matched.length === 0 || resolved.name === 'NotFound') {
+    store.pushError(`抱歉，页面路径似乎已变更，未能找到对应页面。你可以告诉我想去的功能名称，我重新带路。`)
+    return
+  }
+  router.push(path)
+}
+
 /** 正文内站内链接：事件委托 → 路由切换（面板不动，页面切换） */
 function handleContentClick(e: MouseEvent) {
   const link = (e.target as HTMLElement).closest('a[data-route]') as HTMLElement | null
   if (link?.dataset.route) {
     e.preventDefault()
-    router.push(link.dataset.route)
+    safePush(link.dataset.route)
   }
 }
 
@@ -91,8 +103,8 @@ const delegateActions = computed(() =>
 )
 
 function handleNavigate(routePath: string) {
-  // 面板不动，页面切换（非阻塞铁律）
-  router.push(routePath)
+  // 面板不动，页面切换（非阻塞铁律）；同样走路由存在性校验
+  safePush(routePath)
 }
 
 function handleDelegate(a: Record<string, any>) {

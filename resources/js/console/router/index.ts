@@ -89,6 +89,13 @@ export const routesReady = getAllModuleRoutes().then(moduleRoutes => {
   }
 }).catch(e => {
   console.warn('[Router] 模块路由加载失败:', e)
+}).finally(() => {
+  // 兜底：未知路径回落工作台，避免整页空白（必须在模块路由全部注册后再加）
+  router.addRoute({
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    redirect: '/dashboard',
+  })
 })
 
 router.beforeEach(async (to, _from, next) => {

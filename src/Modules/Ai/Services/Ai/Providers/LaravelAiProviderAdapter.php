@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Modules\Ai\Services\Ai\Providers;
 
 use Generator;
+use Illuminate\Support\Facades\Http;
 use Laravel\Ai\AnonymousAgent;
 use Laravel\Ai\Embeddings;
 use Laravel\Ai\Enums\Lab;
@@ -14,16 +15,17 @@ use Laravel\Ai\Streaming\Events\StreamEnd;
 use Laravel\Ai\Streaming\Events\TextDelta;
 use Laravel\Ai\Streaming\Events\ToolCall as ToolCallEvent;
 use MultiTenantSaas\Contracts\AiProviderContract;
+use RuntimeException;
 use Throwable;
 
 /**
  * Laravel AI SDK Provider 适配器
  *
- * 实现 AiProviderContract 接口，内部使用 laravel/ai SDK 调用各 provider。
- * 支持 OpenAI、Anthropic、Gemini、DeepSeek、Groq 等原生 provider。
+ * 实现 AiProviderContract 接口。
  *
- * 对于需要 OpenAI 兼容模式的 provider（如 bailian、zhipu），
- * 仍应使用 ZhipuProvider 等专用实现。
+ * 工具调用路径：当 options 含 tools 时，绕过 laravel/ai SDK 直接调用
+ * OpenAI 兼容 /chat/completions API（SDK 会自动执行工具，与 AgentRuntime
+ * 的 ReAct 循环冲突）。无工具时仍走 SDK 的 AnonymousAgent。
  */
 class LaravelAiProviderAdapter implements AiProviderContract
 {
@@ -50,9 +52,32 @@ class LaravelAiProviderAdapter implements AiProviderContract
         };
     }
 
+    /** 解析 API base URL（兼容多种配置字段） */
+    private function resolveBaseUrl(): string
+    {
+        $url = $this->config['url']
+            ?? $this->config['base_url']
+            ?? 'https://api.openai.com/v1';
+
+        return rtrim($url, '/');
+    }
+
+    /** 解析 API Key */
+    private function resolveApiKey(): string
+    {
+        return $this->config['key']
+            ?? $this->config['api_key']
+            ?? '';
+    }
+
     public function chatCompletion(string $model, array $messages, array $options = []): array
     {
         $timeout = $options['timeout'] ?? config('ai.timeout', 60);
+
+        // 有工具定义 → 走原生 OpenAI 兼容 API（SDK 会自动执行工具，与 ReAct 循环冲突）
+        if (! empty($options['tools'])) {
+            return $this->rawChatCompletion($model, $messages, $options, $timeout);
+        }
 
         [$instructions, $history] = $this->parseMessages($messages);
 
@@ -156,6 +181,13 @@ class LaravelAiProviderAdapter implements AiProviderContract
     {
         $timeout = $options['timeout'] ?? config('ai.timeout', 60);
 
+        // 有工具定义 → 走原生 OpenAI 兼容 SSE API
+        if (! empty($options['tools'])) {
+            yield from $this->rawStreamChatCompletion($model, $messages, $options, $timeout);
+
+            return;
+        }
+
         [$instructions, $history] = $this->parseMessages($messages);
 
         try {
@@ -220,6 +252,203 @@ class LaravelAiProviderAdapter implements AiProviderContract
                 $e
             );
         }
+    }
+
+    // ─── 原生 OpenAI 兼容 API（工具调用路径）───────────────────────────
+
+    /**
+     * 非流式 chat/completions（含 tools）。
+     *
+     * 直接调用 OpenAI 兼容端点，返回标准格式（含 tool_calls），
+     * 由 AgentRuntime ReAct 循环执行工具。
+     */
+    private function rawChatCompletion(string $model, array $messages, array $options, int $timeout): array
+    {
+        $body = $this->buildRawRequestBody($model, $messages, $options, false);
+
+        $response = Http::withToken($this->resolveApiKey())
+            ->timeout($timeout)
+            ->post($this->resolveBaseUrl().'/chat/completions', $body);
+
+        if ($response->failed()) {
+            throw new RuntimeException(
+                "OpenAI API 请求失败 [{$response->status()}]: ".$response->body()
+            );
+        }
+
+        $data = $response->json();
+        $choice = $data['choices'][0] ?? [];
+        $msg = $choice['message'] ?? [];
+
+        return [
+            'id' => $data['id'] ?? null,
+            'object' => 'chat.completion',
+            'model' => $data['model'] ?? $model,
+            'content' => $msg['content'] ?? '',
+            'role' => 'assistant',
+            'tool_calls' => $msg['tool_calls'] ?? null,
+            'finish_reason' => $choice['finish_reason'] ?? 'stop',
+            'usage' => [
+                'prompt_tokens' => $data['usage']['prompt_tokens'] ?? 0,
+                'completion_tokens' => $data['usage']['completion_tokens'] ?? 0,
+                'total_tokens' => $data['usage']['total_tokens'] ?? 0,
+            ],
+            'raw' => $data,
+        ];
+    }
+
+    /**
+     * 流式 chat/completions（含 tools）。
+     *
+     * 逐行解析 SSE（data: {...}\n\n），yield 标准 chunk 格式。
+     * tool_calls 通过 delta 增量拼接，在 finish_reason 非 null 时一次性输出。
+     */
+    private function rawStreamChatCompletion(string $model, array $messages, array $options, int $timeout): Generator
+    {
+        $body = $this->buildRawRequestBody($model, $messages, $options, true);
+
+        $response = Http::withToken($this->resolveApiKey())
+            ->withHeaders(['Accept' => 'text/event-stream'])
+            ->timeout($timeout)
+            ->withOptions(['stream' => true])
+            ->post($this->resolveBaseUrl().'/chat/completions', $body);
+
+        if ($response->failed()) {
+            throw new RuntimeException(
+                "OpenAI API 流式请求失败 [{$response->status()}]: ".$response->body()
+            );
+        }
+
+        $stream = $response->toPsrResponse()->getBody();
+        $buffer = '';
+        // 累积 tool_calls delta（按 index 拼接）
+        $toolCallAccum = [];
+
+        while (! $stream->eof()) {
+            $buffer .= $stream->read(8192);
+
+            // 按行切分
+            while (($pos = strpos($buffer, "\n")) !== false) {
+                $line = trim(substr($buffer, 0, $pos));
+                $buffer = substr($buffer, $pos + 1);
+
+                if (! str_starts_with($line, 'data:')) {
+                    continue;
+                }
+
+                $payload = trim(substr($line, 5));
+
+                if ($payload === '[DONE]') {
+                    // 流结束：输出累积的 tool_calls
+                    if (! empty($toolCallAccum)) {
+                        yield [
+                            'id' => null,
+                            'object' => 'chat.completion.chunk',
+                            'model' => $model,
+                            'content' => '',
+                            'role' => 'assistant',
+                            'tool_calls' => $this->finalizeToolCalls($toolCallAccum),
+                            'finish_reason' => 'tool_calls',
+                            'usage' => null,
+                            'raw' => null,
+                        ];
+                    }
+
+                    return;
+                }
+
+                $chunk = json_decode($payload, true);
+                if (! $chunk) {
+                    continue;
+                }
+
+                $delta = $chunk['choices'][0]['delta'] ?? [];
+                $finishReason = $chunk['choices'][0]['finish_reason'] ?? null;
+
+                // 文本增量
+                if (! empty($delta['content'])) {
+                    yield [
+                        'id' => $chunk['id'] ?? null,
+                        'object' => 'chat.completion.chunk',
+                        'model' => $chunk['model'] ?? $model,
+                        'content' => $delta['content'],
+                        'role' => 'assistant',
+                        'tool_calls' => null,
+                        'finish_reason' => null,
+                        'raw' => $chunk,
+                    ];
+                }
+
+                // tool_calls delta 累积
+                if (! empty($delta['tool_calls'])) {
+                    foreach ($delta['tool_calls'] as $tc) {
+                        $idx = $tc['index'] ?? 0;
+                        if (! isset($toolCallAccum[$idx])) {
+                            $toolCallAccum[$idx] = [
+                                'id' => $tc['id'] ?? '',
+                                'type' => 'function',
+                                'function' => ['name' => '', 'arguments' => ''],
+                            ];
+                        }
+                        if (! empty($tc['id'])) {
+                            $toolCallAccum[$idx]['id'] = $tc['id'];
+                        }
+                        if (! empty($tc['function']['name'])) {
+                            $toolCallAccum[$idx]['function']['name'] .= $tc['function']['name'];
+                        }
+                        if (isset($tc['function']['arguments'])) {
+                            $toolCallAccum[$idx]['function']['arguments'] .= $tc['function']['arguments'];
+                        }
+                    }
+                }
+
+                // finish_reason 非 null 且无 tool_calls → 正常结束
+                if ($finishReason !== null && empty($toolCallAccum)) {
+                    yield [
+                        'id' => $chunk['id'] ?? null,
+                        'object' => 'chat.completion.chunk',
+                        'model' => $chunk['model'] ?? $model,
+                        'content' => '',
+                        'role' => 'assistant',
+                        'tool_calls' => null,
+                        'finish_reason' => $finishReason,
+                        'usage' => $chunk['usage'] ?? null,
+                        'raw' => $chunk,
+                    ];
+                }
+            }
+        }
+    }
+
+    /** 构建 OpenAI 兼容请求体 */
+    private function buildRawRequestBody(string $model, array $messages, array $options, bool $stream): array
+    {
+        $body = [
+            'model' => $model,
+            'messages' => $messages,
+            'stream' => $stream,
+        ];
+
+        if (isset($options['temperature'])) {
+            $body['temperature'] = $options['temperature'];
+        }
+        if (isset($options['max_tokens'])) {
+            $body['max_tokens'] = $options['max_tokens'];
+        }
+        if (! empty($options['tools'])) {
+            $body['tools'] = $options['tools'];
+            $body['tool_choice'] = $options['tool_choice'] ?? 'auto';
+        }
+
+        return $body;
+    }
+
+    /** 将累积的 tool_calls delta 转为最终数组 */
+    private function finalizeToolCalls(array $accum): array
+    {
+        ksort($accum);
+
+        return array_values($accum);
     }
 
     /**

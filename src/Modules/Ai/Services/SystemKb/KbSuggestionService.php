@@ -48,16 +48,18 @@ class KbSuggestionService
     /**
      * 待收割提案（跨租户：系统知识是平台级资产，CLI 收割侧专用）
      *
+     * 注意：生产 CLI 可能存在默认租户上下文，allowUnscoped 不够，
+     * 必须显式摘除 TenantScope（本方法仅供 harvest 命令调用，不暴露 HTTP）。
+     *
      * @return Collection<int, KbSuggestion>
      */
     public function listPending(int $limit = 200): Collection
     {
-        return TenantScope::allowUnscoped(
-            fn () => KbSuggestion::where('status', KbSuggestion::STATUS_PENDING)
-                ->orderBy('created_at')
-                ->limit($limit)
-                ->get()
-        );
+        return KbSuggestion::withoutGlobalScope(TenantScope::class)
+            ->where('status', KbSuggestion::STATUS_PENDING)
+            ->orderBy('created_at')
+            ->limit($limit)
+            ->get();
     }
 
     /**
@@ -86,10 +88,9 @@ class KbSuggestionService
             return 0;
         }
 
-        return TenantScope::allowUnscoped(
-            fn () => KbSuggestion::whereIn('suggestion_id', $suggestionIds)
-                ->where('status', KbSuggestion::STATUS_PENDING)
-                ->update(['status' => $status, 'resolved_at' => now()])
-        );
+        return KbSuggestion::withoutGlobalScope(TenantScope::class)
+            ->whereIn('suggestion_id', $suggestionIds)
+            ->where('status', KbSuggestion::STATUS_PENDING)
+            ->update(['status' => $status, 'resolved_at' => now()]);
     }
 }

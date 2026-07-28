@@ -106,3 +106,5 @@ Route::post('/ai/assistant', [AssistantController::class, 'handle'])
     ->middleware('tenant.ensure');
 Route::get('/ai/assistant/availability', [AssistantController::class, 'availability'])
     ->middleware('tenant.ensure');
+Route::get('/ai/assistant/history', [AssistantController::class, 'history'])
+    ->middleware('tenant.ensure');

@@ -65,6 +65,12 @@ async function handleSend(text?: string) {
   }
 
   await send(payload, intent, {
+    onMeta: (meta) => {
+      // 首帧会话元信息 → 持久化 conversation_id（刷新不丢）
+      if (meta.conversation_id && meta.conversation_id !== store.conversationId) {
+        store.setConversationId(meta.conversation_id)
+      }
+    },
     onText: (t) => store.appendText(assistantMsg.id, t),
     onToolCall: (calls) => store.appendToolCalls(assistantMsg.id, calls),
     onFormFill: (suggestion) => store.setFormFill(assistantMsg.id, suggestion),

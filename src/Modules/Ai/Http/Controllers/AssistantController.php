@@ -11,6 +11,7 @@ use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Ai\DTOs\PageContext;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
+use MultiTenantSaas\Modules\Ai\Models\AgentConversationMessage;
 use MultiTenantSaas\Modules\Ai\Services\Ai\StreamChunk;
 
 /**
@@ -178,9 +179,66 @@ class AssistantController extends Controller
     }
 
     /**
+     * 会话历史（刷新恢复用）。
+     *
+     * GET /v1/ai/assistant/history?conversation_id=X&limit=50
+     * 前端刷新后凭 localStorage 中的 conversation_id 拉取历史消息恢复面板。
+     */
+    public function history(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'conversation_id' => 'required|integer',
+            'limit' => 'nullable|integer|min:1|max:100',
+        ]);
+
+        $tenantId = (int) $this->tenantContext->resolveId();
+
+        $conversation = AgentConversation::where('tenant_id', $tenantId)
+            ->where('conversation_id', $validated['conversation_id'])
+            ->first();
+
+        if (! $conversation) {
+            return response()->json([
+                'success' => false,
+                'message' => '会话不存在或已过期。',
+            ], 404);
+        }
+
+        $limit = (int) ($validated['limit'] ?? 50);
+
+        // 只取用户可见轮次（过滤 tool 结果与空的工具调用轮次），倒序取最近 N 条后正序返回
+        // 注：message_id 为全局 ID（非单调递增），排序以 created_at 为准
+        $messages = AgentConversationMessage::where('conversation_id', $conversation->conversation_id)
+            ->whereIn('role', ['user', 'assistant'])
+            ->where('content', '!=', '')
+            ->orderByDesc('created_at')
+            ->orderByDesc('message_id')
+            ->limit($limit)
+            ->get()
+            ->reverse()
+            ->values()
+            ->map(fn ($m) => [
+                'message_id' => $m->message_id,
+                'role' => $m->role,
+                'content' => (string) $m->content,
+                'created_at' => $m->created_at?->toISOString(),
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'conversation_id' => $conversation->conversation_id,
+                'agent_id' => $conversation->agent_id,
+                'messages' => $messages,
+            ],
+        ]);
+    }
+
+    /**
      * SSE 流式响应。
      *
      * 协议（data: JSON\n\n）：
+     *  - {"type":"meta","content":{...}}        会话元信息（conversation_id/agent_id，首帧下发）
      *  - {"type":"text","content":"..."}        增量文本
      *  - {"type":"tool_call","content":[...]}   工具调用决策（前端展示“正在调用 XX”）
      *  - {"type":"done","metadata":{...}}       流结束
@@ -188,6 +246,9 @@ class AssistantController extends Controller
     private function streamResponse(int $agentId, int $conversationId, string $message): StreamedResponse
     {
         return response()->stream(function () use ($agentId, $conversationId, $message) {
+            // 首帧下发会话元信息，前端持久化 conversation_id 以支持刷新续接
+            $this->emit(['type' => 'meta', 'content' => ['conversation_id' => $conversationId, 'agent_id' => $agentId]]);
+
             $generator = $this->agentRuntime->runStream($agentId, $conversationId, $message);
 
             foreach ($generator as $chunk) {

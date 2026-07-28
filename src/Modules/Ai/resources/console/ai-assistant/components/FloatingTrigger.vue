@@ -40,7 +40,8 @@ function handleClick() {
   border-radius: 50%;
   border: none;
   cursor: pointer;
-  z-index: 2000;
+  /* 最上层覆盖：高于 Element Plus 弹层，低于助手抽屉（2147483000） */
+  z-index: 2147482999;
   display: flex;
   align-items: center;
   justify-content: center;

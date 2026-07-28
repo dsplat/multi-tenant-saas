@@ -30,13 +30,27 @@ export interface PageContext {
 }
 
 /** SSE 消息类型 */
-export type SseMessageType = 'text' | 'tool_call' | 'form_fill' | 'action_card' | 'workflow' | 'done' | 'error'
+export type SseMessageType = 'meta' | 'text' | 'tool_call' | 'form_fill' | 'action_card' | 'workflow' | 'done' | 'error'
 
 /** SSE 单条消息 */
 export interface SseMessage {
   type: SseMessageType
   content: any
   metadata?: Record<string, any> | null
+}
+
+/** 会话元信息（SSE 首帧下发，前端持久化用于刷新续接） */
+export interface ConversationMeta {
+  conversation_id: number
+  agent_id?: number | null
+}
+
+/** 历史消息（GET /ai/assistant/history 返回） */
+export interface HistoryMessage {
+  message_id: number
+  role: 'user' | 'assistant'
+  content: string
+  created_at?: string | null
 }
 
 /** 表单智能填充建议（AI → 前端） */

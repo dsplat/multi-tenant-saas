@@ -6,11 +6,32 @@
  */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { ChatMessage, PanelMode, ToolCall, FormFillSuggestion, WorkflowSuggestion } from '../ai-assistant/types'
+import type { ChatMessage, PanelMode, ToolCall, FormFillSuggestion, WorkflowSuggestion, HistoryMessage } from '../ai-assistant/types'
 
 let msgSeq = 0
 function nextId(): string {
   return `msg_${Date.now()}_${++msgSeq}`
+}
+
+/** 会话持久化 key（刷新不丢：conversation_id + 转派目标一起存） */
+const CONVERSATION_STORAGE_KEY = 'ai_assistant_conversation'
+
+interface PersistedConversation {
+  id: number
+  agentId: string | null
+  agentName: string | null
+}
+
+function loadPersistedConversation(): PersistedConversation | null {
+  try {
+    const raw = localStorage.getItem(CONVERSATION_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (typeof parsed?.id !== 'number') return null
+    return { id: parsed.id, agentId: parsed.agentId ?? null, agentName: parsed.agentName ?? null }
+  } catch {
+    return null
+  }
 }
 
 export const useAssistantStore = defineStore('aiAssistant', () => {
@@ -31,11 +52,14 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   const messages = ref<ChatMessage[]>([])
   /** 是否正在流式输出 */
   const streaming = ref(false)
-  /** 当前会话 ID（后端返回，用于续接） */
-  const conversationId = ref<number | null>(null)
+  const persisted = loadPersistedConversation()
+  /** 当前会话 ID（后端返回，用于续接；刷新后从 localStorage 恢复） */
+  const conversationId = ref<number | null>(persisted?.id ?? null)
   /** 转派目标员工（秘书 delegate 后后续消息定向该员工） */
-  const targetAgentId = ref<string | null>(null)
-  const targetAgentName = ref<string | null>(null)
+  const targetAgentId = ref<string | null>(persisted?.agentId ?? null)
+  const targetAgentName = ref<string | null>(persisted?.agentName ?? null)
+  /** 历史恢复是否已尝试过（避免重复拉取） */
+  const hydrated = ref(false)
 
   // ─── 计算属性 ─────────────────────────────────────────────
   /** 最终是否展示助手入口（用户未关闭即显示浮动按钮，可用性仅影响面板内容） */
@@ -139,8 +163,24 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     streaming.value = v
   }
 
+  /** 持久化当前会话（刷新不丢） */
+  function persistConversation() {
+    try {
+      if (conversationId.value) {
+        localStorage.setItem(CONVERSATION_STORAGE_KEY, JSON.stringify({
+          id: conversationId.value,
+          agentId: targetAgentId.value,
+          agentName: targetAgentName.value,
+        }))
+      } else {
+        localStorage.removeItem(CONVERSATION_STORAGE_KEY)
+      }
+    } catch { /* 存储不可用时静默降级（不影响对话） */ }
+  }
+
   function setConversationId(id: number | null) {
     conversationId.value = id
+    persistConversation()
   }
 
   /** 设置/清除转派目标员工 */
@@ -149,6 +189,24 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     targetAgentName.value = agentName
     // 切换员工后会话重新开始（后端按 agent 隔离会话）
     conversationId.value = null
+    persistConversation()
+  }
+
+  /** 用历史消息恢复面板（刷新后调用；已有对话时不覆盖） */
+  function hydrateMessages(list: HistoryMessage[]) {
+    hydrated.value = true
+    if (messages.value.length > 0 || list.length === 0) return
+    messages.value = list.map(m => ({
+      id: `hist_${m.message_id}`,
+      role: m.role,
+      content: m.content,
+      timestamp: m.created_at ? Date.parse(m.created_at) : Date.now(),
+    }))
+  }
+
+  /** 标记历史恢复已尝试（无可恢复内容时） */
+  function markHydrated() {
+    hydrated.value = true
   }
 
   function clearMessages() {
@@ -156,6 +214,7 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     conversationId.value = null
     targetAgentId.value = null
     targetAgentName.value = null
+    persistConversation()
   }
 
   return {
@@ -163,7 +222,7 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     available, availabilityLoaded, userEnabled,
     panelMode, currentModule,
     messages, streaming, conversationId,
-    targetAgentId, targetAgentName,
+    targetAgentId, targetAgentName, hydrated,
     // computed
     visible, isOpen,
     // actions
@@ -171,5 +230,6 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     openPanel, closePanel, togglePin,
     pushUserMessage, startAssistantMessage, appendText, appendToolCalls, setFormFill, setWorkflow,
     finishMessage, pushError, setStreaming, setConversationId, setTargetAgent, clearMessages,
+    hydrateMessages, markHydrated,
   }
 })

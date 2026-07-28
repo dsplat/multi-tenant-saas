@@ -17,6 +17,7 @@ import { useRoute } from 'vue-router'
 import { useAssistantStore } from '../stores/assistant'
 import { usePageContext } from './composables/usePageContext'
 import { useAvailability } from './composables/useAvailability'
+import { useAssistantHistory } from './composables/useAssistantHistory'
 import FloatingTrigger from './components/FloatingTrigger.vue'
 import AssistantPanel from './components/AssistantPanel.vue'
 
@@ -24,6 +25,7 @@ const store = useAssistantStore()
 const route = useRoute()
 const { pageContext } = usePageContext()
 const { check } = useAvailability()
+const { restore } = useAssistantHistory()
 
 /** 推断当前模块并探测可用性（防抖：路由稳定后才探测） */
 let probeTimer: ReturnType<typeof setTimeout> | null = null
@@ -40,6 +42,8 @@ onMounted(() => {
   // 用户未关闭时才探测（可完全关闭铁律）
   if (store.userEnabled) {
     probeModule()
+    // 刷新后异步恢复历史会话（不阻塞首屏，失败静默降级）
+    restore()
   }
 })
 
@@ -76,6 +80,14 @@ watch(() => route.path, () => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+/* 最上层覆盖：高于 Element Plus 弹层（PopupManager 从 2000+ 递增） */
+.el-overlay:has(> .ai-assistant-drawer) {
+  z-index: 2147483000 !important;
+}
+.ai-assistant-drawer {
+  z-index: 2147483000 !important;
 }
 
 /* AI 填充字段全局标记（蓝色底纹 + 左侧边框）—— “AI 产出必标注”铁律 */

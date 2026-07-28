@@ -9,7 +9,7 @@
  */
 import { ref } from 'vue'
 import axios from 'axios'
-import type { PageContext, SseMessage, ToolCall, FormFillSuggestion, WorkflowSuggestion } from '../types'
+import type { PageContext, SseMessage, ToolCall, FormFillSuggestion, WorkflowSuggestion, ConversationMeta } from '../types'
 
 /** SSE 流式超时（毫秒） */
 const STREAM_TIMEOUT_MS = 30_000
@@ -22,6 +22,8 @@ const STREAM_TIMEOUT_MS = 30_000
 const ASSISTANT_ENDPOINT = (import.meta as any).env?.VITE_AI_ASSISTANT_ENDPOINT || '/api/v1/ai/assistant'
 
 export interface StreamCallbacks {
+  /** 会话元信息（首帧，携带 conversation_id，用于持久化续接） */
+  onMeta?: (meta: ConversationMeta) => void
   onText: (text: string) => void
   onToolCall: (calls: ToolCall[]) => void
   onFormFill: (suggestion: FormFillSuggestion) => void
@@ -155,6 +157,9 @@ export function useAssistantStream() {
       try {
         const msg = JSON.parse(data) as SseMessage
         switch (msg.type) {
+          case 'meta':
+            if (msg.content?.conversation_id) callbacks.onMeta?.(msg.content as ConversationMeta)
+            break
           case 'text':
             if (typeof msg.content === 'string') callbacks.onText(msg.content)
             break

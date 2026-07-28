@@ -12,6 +12,7 @@ import { useAssistantStore } from '../../stores/assistant'
 import type { ChatMessage } from '../types'
 import { renderMarkdown } from '../utils/renderMarkdown'
 import FormFillCard from './FormFillCard.vue'
+import ActionConfirmCard from './ActionConfirmCard.vue'
 import WorkflowProgress from './WorkflowProgress.vue'
 
 const props = defineProps<{ message: ChatMessage }>()
@@ -114,6 +115,14 @@ function handleDelegate(a: Record<string, any>) {
     handoffMessage: String(a.handoff_message || ''),
   })
 }
+
+/** L2 确认卡片回执：更新该消息确认态；服务端续答非空则追加为新的 assistant 消息 */
+function handleConfirmResolved(payload: { status: any; feedback: string | null; assistantMessage: string }) {
+  store.updateActionConfirmStatus(props.message.id, payload.status, payload.feedback)
+  if (payload.assistantMessage) {
+    store.pushAssistantMessage(payload.assistantMessage)
+  }
+}
 </script>
 
 <template>
@@ -178,6 +187,15 @@ function handleDelegate(a: Record<string, any>) {
 
       <!-- 表单填充建议卡片 -->
       <FormFillCard v-if="message.formFill" :suggestion="message.formFill" />
+
+      <!-- L2 低风险写操作确认卡片 -->
+      <ActionConfirmCard
+        v-if="message.actionConfirm"
+        :data="message.actionConfirm"
+        :status="message.confirmStatus"
+        :feedback="message.confirmFeedback"
+        @resolved="handleConfirmResolved"
+      />
 
       <!-- 工作流编排进度 -->
       <WorkflowProgress v-if="message.workflow" :workflow="message.workflow" />

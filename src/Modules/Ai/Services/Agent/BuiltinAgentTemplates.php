@@ -78,7 +78,8 @@ final class BuiltinAgentTemplates
                 'avatar' => '',
                 'description' => '系统总入口与总调度：回答系统怎么用、功能在哪里，带你跳转页面，并把专业事务转派给合适的数字员工。',
                 'system_prompt' => self::secretarySystemPrompt(),
-                'tools' => ['system_kb_search', 'get_data_dictionary', 'navigate', 'list_agents', 'delegate_to_agent', 'enable_agent'],
+                // 末尾 3 个为下游 L2 代操作试点（未注册时 getToolDefinitions 自动跳过，纯框架部署不受影响）
+                'tools' => ['system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'list_agents', 'delegate_to_agent', 'enable_agent', 'tag_customer', 'create_script_draft', 'save_oauth_config'],
                 'kb_ids' => [],
                 'feature_keys' => [],
                 'model_config' => self::secretaryModelConfig(),
@@ -289,6 +290,8 @@ final class BuiltinAgentTemplates
 3. 数据结构咨询：涉及表、字段等结构问题时用 get_data_dictionary 查询。
 4. 调度转派：需要专业处理时，先用 list_agents 查看已启用的数字员工，再用 delegate_to_agent 转派。
 5. 启用员工：当用户需要的数字员工尚未启用时，先告知用户并征得确认，然后调用 enable_agent 启用，再转派。
+6. 智能填表：当用户在某个表单页并请你帮忙填写时，依据对话与页面上下文（form_state）用 suggest_form_fill 返回字段建议；只给出建议，由用户点“应用”回填，你绝不代替用户提交。
+7. 代操作：用户让你给客户打标签、创建话术草稿、保存登录平台配置时，直接调用对应工具（tag_customer / create_script_draft / save_oauth_config）；系统会自动弹出确认卡片，用户确认后才真正执行。若缺少必要参数（如客户的用户ID），先追问或用查询类工具确认，再发起调用。
 
 行为准则：
 - 你是主入口，不是兜底。始终积极解决问题，绝不说“尚未启用”就拒绝服务。
@@ -297,7 +300,7 @@ final class BuiltinAgentTemplates
 - 用 Markdown 排版（加粗、列表）。正文中提及页面时，必须用 Markdown 链接形式 [页面名称](/路由路径)，绝不以裸文本或反引号形式暴露路由路径、字段名、工具名等系统内部标识。
 - 只回答与本系统相关的问题，无关问题礼貌地引导回系统使用场景。
 - 绝不泄露内部实现细节（代码、密钥、服务器信息）。
-- 写操作（创建/修改/删除）必须先征得用户确认，再调用对应工具执行。
+- 写操作（创建/修改/删除）必须先征得用户确认，再调用对应工具执行。低风险写操作工具由系统自动弹出确认卡片：你正常调用工具即可，系统会拦截并请用户确认后才真正执行，你无需自行追问“是否确认”。
 PROMPT;
     }
 

@@ -22,8 +22,9 @@ interface ToolRegistryContract
      * @param  string  $handlerClass  工具处理器类名（FQCN）
      * @param  array  $schema  JSON Schema 格式的参数定义
      * @param  string  $category  工具分类（如 core, ai, storage, kb, customer, campaign, content, report, channel, workflow）
+     * @param  string  $risk  风险等级（L1=读/低风险直接执行；L2=低风险写，需用户确认后执行）
      */
-    public function register(string $slug, string $name, string $description, string $handlerClass, array $schema, string $category = 'core'): void;
+    public function register(string $slug, string $name, string $description, string $handlerClass, array $schema, string $category = 'core', string $risk = 'L1'): void;
 
     /**
      * 获取所有已注册工具

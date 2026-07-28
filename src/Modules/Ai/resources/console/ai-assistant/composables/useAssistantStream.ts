@@ -9,7 +9,7 @@
  */
 import { ref } from 'vue'
 import axios from 'axios'
-import type { PageContext, SseMessage, ToolCall, FormFillSuggestion, WorkflowSuggestion, ConversationMeta } from '../types'
+import type { PageContext, SseMessage, ToolCall, FormFillSuggestion, WorkflowSuggestion, ConversationMeta, ActionConfirmData } from '../types'
 
 /** SSE 流式超时（毫秒） */
 const STREAM_TIMEOUT_MS = 30_000
@@ -21,6 +21,9 @@ const STREAM_TIMEOUT_MS = 30_000
  */
 const ASSISTANT_ENDPOINT = (import.meta as any).env?.VITE_AI_ASSISTANT_ENDPOINT || '/api/v1/ai/assistant'
 
+/** L2 操作确认端点（与 SSE 端点同根） */
+export const CONFIRM_ACTION_ENDPOINT = `${ASSISTANT_ENDPOINT}/confirm-action`
+
 export interface StreamCallbacks {
   /** 会话元信息（首帧，携带 conversation_id，用于持久化续接） */
   onMeta?: (meta: ConversationMeta) => void
@@ -28,6 +31,7 @@ export interface StreamCallbacks {
   onToolCall: (calls: ToolCall[]) => void
   onFormFill: (suggestion: FormFillSuggestion) => void
   onWorkflow: (workflow: WorkflowSuggestion) => void
+  onPendingConfirmation?: (data: ActionConfirmData) => void
   onDone: (metadata?: Record<string, any> | null) => void
   onError: (message: string, action?: { label: string; route: string } | null) => void
 }
@@ -171,6 +175,9 @@ export function useAssistantStream() {
             break
           case 'workflow':
             callbacks.onWorkflow(msg.content as WorkflowSuggestion)
+            break
+          case 'pending_confirmation':
+            callbacks.onPendingConfirmation?.(msg.content as ActionConfirmData)
             break
           case 'done':
             callbacks.onDone(msg.metadata)

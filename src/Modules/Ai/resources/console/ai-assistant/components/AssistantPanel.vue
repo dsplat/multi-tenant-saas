@@ -75,6 +75,7 @@ async function handleSend(text?: string) {
     onToolCall: (calls) => store.appendToolCalls(assistantMsg.id, calls),
     onFormFill: (suggestion) => store.setFormFill(assistantMsg.id, suggestion),
     onWorkflow: (wf) => store.setWorkflow(assistantMsg.id, wf),
+    onPendingConfirmation: (confirm) => store.setActionConfirm(assistantMsg.id, confirm),
     onDone: () => store.finishMessage(assistantMsg.id),
     onError: (msg, action) => {
       store.finishMessage(assistantMsg.id)

@@ -30,7 +30,7 @@ export interface PageContext {
 }
 
 /** SSE 消息类型 */
-export type SseMessageType = 'meta' | 'text' | 'tool_call' | 'form_fill' | 'action_card' | 'workflow' | 'done' | 'error'
+export type SseMessageType = 'meta' | 'text' | 'tool_call' | 'form_fill' | 'action_card' | 'workflow' | 'pending_confirmation' | 'done' | 'error'
 
 /** SSE 单条消息 */
 export interface SseMessage {
@@ -65,6 +65,27 @@ export interface FormFillSuggestion {
   confidence?: number
 }
 
+/** L2 操作确认卡片数据（SSE pending_confirmation → 前端） */
+export interface ActionConfirmData {
+  /** 一次性确认令牌 */
+  token: string
+  /** 参数哈希（确认时回传校验） */
+  args_hash: string
+  /** 令牌有效期（秒） */
+  expires_in: number
+  /** 工具标识 */
+  tool_slug: string
+  /** 工具展示名 */
+  tool_name: string
+  /** 待执行参数（供用户核对，执行时以服务端存储为准） */
+  arguments: Record<string, any>
+  /** 归属会话 */
+  conversation_id: number
+}
+
+/** 确认卡片交互状态 */
+export type ActionConfirmStatus = 'pending' | 'confirming' | 'executed' | 'cancelled' | 'expired' | 'error'
+
 /** 工具调用结构 */
 export interface ToolCall {
   slug?: string
@@ -85,6 +106,12 @@ export interface ChatMessage {
   formFill?: FormFillSuggestion | null
   /** 工作流编排（type=workflow 时有值） */
   workflow?: WorkflowSuggestion | null
+  /** L2 待确认操作（type=pending_confirmation 时有值） */
+  actionConfirm?: ActionConfirmData | null
+  /** 确认卡片交互状态 */
+  confirmStatus?: ActionConfirmStatus
+  /** 确认/取消后的反馈文案 */
+  confirmFeedback?: string | null
   /** 错误消息附带的操作按钮（如跳转数字员工） */
   action?: { label: string; route: string } | null
   /** 是否正在流式输出 */

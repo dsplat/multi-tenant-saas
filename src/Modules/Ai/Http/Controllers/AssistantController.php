@@ -5,14 +5,19 @@ namespace MultiTenantSaas\Modules\Ai\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use MultiTenantSaas\Contracts\AgentRuntimeContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Ai\DTOs\PageContext;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversationMessage;
+use MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService;
 use MultiTenantSaas\Modules\Ai\Services\Ai\StreamChunk;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
 
 /**
  * AI 小助手入口（主入口，非兜底）。
@@ -36,6 +41,8 @@ class AssistantController extends Controller
     public function __construct(
         private AgentRuntimeContract $agentRuntime,
         private TenantContextContract $tenantContext,
+        private ToolRegistryContract $toolRegistry,
+        private ActionConfirmService $actionConfirm,
     ) {}
 
     /**
@@ -248,6 +255,167 @@ class AssistantController extends Controller
     }
 
     /**
+     * 确认并执行 L2 待确认操作（AI 代操作的人类确认点）。
+     *
+     * POST /v1/ai/assistant/confirm-action
+     * 校验 confirm_token + 参数哈希 + 会话归属 + Operator RBAC，
+     * 通过后以当前登录 Operator 身份经 ToolRegistry 执行工具、写审计、
+     * 结果以 role=tool 入会话并让 LLM 续答。取消路径同样消费令牌使其作废。
+     */
+    public function confirmAction(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'token' => 'required|string|max:128',
+            'conversation_id' => 'required|integer',
+            'args_hash' => 'required|string|max:128',
+            'confirmed' => 'required|boolean',
+        ]);
+
+        $tenantId = (int) $this->tenantContext->resolveId();
+        $conversationId = (int) $validated['conversation_id'];
+
+        // 会话归属校验
+        $conversation = AgentConversation::where('tenant_id', $tenantId)
+            ->where('conversation_id', $conversationId)
+            ->first();
+
+        if (! $conversation) {
+            return response()->json(['success' => false, 'message' => '会话不存在或已过期。'], 404);
+        }
+
+        // 权限切面：以当前 Operator 身份行事，绝不提权
+        if ($deny = $this->ensureOperatorCanExecute($request, $tenantId)) {
+            return $deny;
+        }
+
+        // 一次性消费令牌（确认与取消共用；不存在/过期/归属或哈希不符抛异常）
+        try {
+            $payload = $this->actionConfirm->consume(
+                $validated['token'], $tenantId, $conversationId, $validated['args_hash'],
+            );
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        $toolSlug = (string) ($payload['tool_slug'] ?? '');
+        $arguments = is_array($payload['arguments'] ?? null) ? $payload['arguments'] : [];
+        $toolCallId = $payload['tool_call_id'] ?? null;
+
+        // 取消路径：令牌已作废，回传取消结果让 LLM 收尾
+        if (! $validated['confirmed']) {
+            AuditService::log('ai_action_cancel', 'agent_tool', null, [
+                'tool_slug' => $toolSlug,
+                'arguments' => $arguments,
+                'conversation_id' => $conversationId,
+            ], ['cancelled' => true]);
+
+            $response = $this->agentRuntime->continueWithToolResults($conversationId, [[
+                'tool_name' => $toolSlug,
+                'tool_call_id' => $toolCallId,
+                'content' => json_encode(['cancelled' => true, 'message' => '用户已取消该操作'], JSON_UNESCAPED_UNICODE),
+            ]]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'executed' => false,
+                    'cancelled' => true,
+                    'assistant_message' => $response->message ?? '',
+                    'conversation_id' => $conversationId,
+                ],
+            ]);
+        }
+
+        // 确认路径：以服务端存储的参数执行（不信任前端回传）
+        $startTime = microtime(true);
+        $error = null;
+        $result = null;
+
+        try {
+            $result = $this->toolRegistry->execute($toolSlug, $arguments, $tenantId);
+            if (is_array($result) && ($result['error'] ?? false)) {
+                $error = $result['message'] ?? '工具执行失败';
+                $result = null;
+            }
+        } catch (\Throwable $e) {
+            $error = $e->getMessage();
+        }
+
+        $durationMs = (int) ((microtime(true) - $startTime) * 1000);
+
+        AuditService::log('ai_action_execute', 'agent_tool', null, [
+            'tool_slug' => $toolSlug,
+            'arguments' => $arguments,
+            'conversation_id' => $conversationId,
+        ], [
+            'success' => $error === null,
+            'result' => $result,
+            'error' => $error,
+            'duration_ms' => $durationMs,
+        ]);
+
+        $toolResultContent = $error !== null
+            ? json_encode(['error' => $error], JSON_UNESCAPED_UNICODE)
+            : (is_string($result) ? $result : json_encode($result, JSON_UNESCAPED_UNICODE));
+
+        $response = $this->agentRuntime->continueWithToolResults($conversationId, [[
+            'tool_name' => $toolSlug,
+            'tool_call_id' => $toolCallId,
+            'content' => $toolResultContent,
+        ]]);
+
+        return response()->json([
+            'success' => $error === null,
+            'data' => [
+                'executed' => $error === null,
+                'error' => $error,
+                'assistant_message' => $response->message ?? '',
+                'conversation_id' => $conversationId,
+            ],
+        ]);
+    }
+
+    /**
+     * 权限切面：确认执行前校验当前 Operator 对该租户的 console 写权限。
+     *
+     * 参照 CheckPermission::checkConsoleAccess：仅 operator_tenants 活跃关联
+     * 且角色为 tenant_admin 的 Operator 可执行代操作。绝不提权、绝不放行 User。
+     *
+     * @return JsonResponse|null null 表示放行，否则为 403 拒绝响应
+     */
+    private function ensureOperatorCanExecute(Request $request, int $tenantId): ?JsonResponse
+    {
+        $user = $request->user();
+
+        if (! ($user instanceof Operator)) {
+            return response()->json(['success' => false, 'message' => '无权执行该操作。'], 403);
+        }
+
+        $operatorTenant = DB::table('operator_tenants')
+            ->where('operator_id', $user->operator_id)
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->first();
+
+        if (! $operatorTenant) {
+            return response()->json(['success' => false, 'message' => '当前账号不属于该团队。'], 403);
+        }
+
+        $tenantAdminRoleId = DB::table('roles')
+            ->where('name', 'tenant_admin')
+            ->where(function ($q) use ($tenantId) {
+                $q->whereNull('tenant_id')->orWhere('tenant_id', $tenantId);
+            })
+            ->value('role_id');
+
+        if ($operatorTenant->role_id !== $tenantAdminRoleId) {
+            return response()->json(['success' => false, 'message' => '仅团队管理员可执行代操作。'], 403);
+        }
+
+        return null;
+    }
+
+    /**
      * SSE 流式响应。
      *
      * 协议（data: JSON\n\n）：
@@ -272,6 +440,11 @@ class AssistantController extends Controller
                 // 增量文本
                 if ($chunk->text !== '') {
                     $this->emit(['type' => 'text', 'content' => $chunk->text]);
+                }
+
+                // L2 工具待确认 → 下发确认卡片
+                if ($chunk->hasPendingConfirmation()) {
+                    $this->emit(['type' => 'pending_confirmation', 'content' => $chunk->pendingConfirmation]);
                 }
 
                 // 工具调用决策
@@ -325,9 +498,8 @@ class AssistantController extends Controller
     private function extractFormFill(array $toolCalls): ?array
     {
         foreach ($toolCalls as $tc) {
-            $slug = is_object($tc) ? ($tc->slug ?? $tc->name ?? '') : ($tc['slug'] ?? $tc['name'] ?? '');
+            [$slug, $args] = $this->normalizeToolCall($tc);
             if ($slug === 'suggest_form_fill') {
-                $args = is_object($tc) ? ($tc->arguments ?? []) : ($tc['arguments'] ?? []);
                 return [
                     'fields' => $args['fields'] ?? $args,
                     'explanation' => $args['explanation'] ?? null,
@@ -341,15 +513,46 @@ class AssistantController extends Controller
     }
 
     /**
+     * 归一化单个工具调用（兼容 OpenAI function.name/arguments 与早期 slug/name 格式）。
+     *
+     * @return array{0: string, 1: array} [slug, arguments]
+     */
+    private function normalizeToolCall(mixed $tc): array
+    {
+        if (is_object($tc)) {
+            $tc = (array) $tc;
+        }
+        if (! is_array($tc)) {
+            return ['', []];
+        }
+
+        $fn = $tc['function'] ?? null;
+        if (is_object($fn)) {
+            $fn = (array) $fn;
+        }
+
+        $slug = (is_array($fn) ? ($fn['name'] ?? null) : null) ?? $tc['slug'] ?? $tc['name'] ?? '';
+
+        $args = (is_array($fn) ? ($fn['arguments'] ?? null) : null) ?? $tc['arguments'] ?? [];
+        if (is_string($args)) {
+            $args = json_decode($args, true) ?: [];
+        }
+        if (! is_array($args)) {
+            $args = [];
+        }
+
+        return [(string) $slug, $args];
+    }
+
+    /**
      * 从工具调用中提取 suggest_workflow 结果。
      * Agent 调用此工具时，参数即为工作流编排建议。
      */
     private function extractWorkflow(array $toolCalls): ?array
     {
         foreach ($toolCalls as $tc) {
-            $slug = is_object($tc) ? ($tc->slug ?? $tc->name ?? '') : ($tc['slug'] ?? $tc['name'] ?? '');
+            [$slug, $args] = $this->normalizeToolCall($tc);
             if ($slug === 'suggest_workflow') {
-                $args = is_object($tc) ? ($tc->arguments ?? []) : ($tc['arguments'] ?? []);
                 return [
                     'name' => $args['name'] ?? '未命名流程',
                     'steps' => $args['steps'] ?? [],

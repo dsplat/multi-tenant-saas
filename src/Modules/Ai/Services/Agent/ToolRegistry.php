@@ -50,8 +50,9 @@ class ToolRegistry implements ToolRegistryContract
      * @param  string  $handlerClass  工具处理器类名（FQCN，须实现 ToolHandlerContract）
      * @param  array  $schema  JSON Schema 格式的参数定义
      * @param  string  $category  工具分类
+     * @param  string  $risk  风险等级（L1=读/低风险直接执行；L2=低风险写，需用户确认后执行）
      */
-    public function register(string $slug, string $name, string $description, string $handlerClass, array $schema, string $category = 'core'): void
+    public function register(string $slug, string $name, string $description, string $handlerClass, array $schema, string $category = 'core', string $risk = Tool::RISK_L1): void
     {
         $this->runtimeTools[$slug] = new Tool(
             slug: $slug,
@@ -60,6 +61,7 @@ class ToolRegistry implements ToolRegistryContract
             parametersSchema: $schema,
             handlerClass: $handlerClass,
             category: $category,
+            risk: $risk,
         );
     }
 
@@ -224,6 +226,7 @@ class ToolRegistry implements ToolRegistryContract
                 'parameters_schema' => $model->parameters_schema,
                 'handler_class' => $model->handler_class,
                 'category' => $model->category ?? 'core',
+                'risk' => $model->risk ?? Tool::RISK_L1,
             ]);
         });
 
@@ -251,6 +254,7 @@ class ToolRegistry implements ToolRegistryContract
             'parameters_schema' => $model->parameters_schema,
             'handler_class' => $model->handler_class,
             'category' => $model->category ?? 'core',
+            'risk' => $model->risk ?? Tool::RISK_L1,
         ]);
     }
 

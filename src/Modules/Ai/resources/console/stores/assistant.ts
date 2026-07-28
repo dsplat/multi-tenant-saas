@@ -6,7 +6,7 @@
  */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { ChatMessage, PanelMode, ToolCall, FormFillSuggestion, WorkflowSuggestion, HistoryMessage } from '../ai-assistant/types'
+import type { ChatMessage, PanelMode, ToolCall, FormFillSuggestion, WorkflowSuggestion, HistoryMessage, ActionConfirmData, ActionConfirmStatus } from '../ai-assistant/types'
 
 let msgSeq = 0
 function nextId(): string {
@@ -154,6 +154,36 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     if (msg) msg.workflow = workflow
   }
 
+  /** 向指定 assistant 消息设置 L2 待确认操作（确认卡片） */
+  function setActionConfirm(msgId: string, data: ActionConfirmData) {
+    const msg = messages.value.find(m => m.id === msgId)
+    if (msg) {
+      msg.actionConfirm = data
+      msg.confirmStatus = 'pending'
+    }
+  }
+
+  /** 更新确认卡片交互状态（可附带反馈文案） */
+  function updateActionConfirmStatus(msgId: string, status: ActionConfirmStatus, feedback: string | null = null) {
+    const msg = messages.value.find(m => m.id === msgId)
+    if (msg) {
+      msg.confirmStatus = status
+      msg.confirmFeedback = feedback
+    }
+  }
+
+  /** 直接追加一条完整的 assistant 消息（确认/取消后 LLM 续答用） */
+  function pushAssistantMessage(content: string): ChatMessage {
+    const msg: ChatMessage = {
+      id: nextId(),
+      role: 'assistant',
+      content,
+      timestamp: Date.now(),
+    }
+    messages.value.push(msg)
+    return msg
+  }
+
   /** 结束指定消息的流式状态 */
   function finishMessage(msgId: string) {
     const msg = messages.value.find(m => m.id === msgId)
@@ -242,6 +272,7 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     setAvailability, setUserEnabled, setModule,
     openPanel, closePanel, togglePin,
     pushUserMessage, startAssistantMessage, appendText, appendToolCalls, setFormFill, setWorkflow,
+    setActionConfirm, updateActionConfirmStatus, pushAssistantMessage,
     finishMessage, pushError, setStreaming, setConversationId, setTargetAgent, clearMessages,
     hydrateMessages, markHydrated,
   }

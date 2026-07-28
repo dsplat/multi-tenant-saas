@@ -26,6 +26,7 @@ class AgentTool extends Model
         'category',
         'parameters_schema',
         'handler_class',
+        'risk',
         'enabled',
     ];
 

@@ -45,6 +45,7 @@ class AgentModule implements SchemaModuleInterface
             $table->string('category', 50)->nullable();
             $table->json('parameters_schema');
             $table->string('handler_class', 255);
+            $table->string('risk', 10)->default('L1');
             $table->boolean('enabled')->default(true);
             $table->timestamps();
 

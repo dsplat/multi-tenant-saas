@@ -14,9 +14,14 @@ namespace MultiTenantSaas\Modules\Ai\Services\Agent\Dto;
  *  - description:    工具功能描述（供 AI 理解工具用途）
  *  - parametersSchema: JSON Schema 格式的参数定义（供 AI 生成调用参数）
  *  - handlerClass:   工具处理器类名（FQCN，实际执行工具逻辑）
+ *  - risk:           风险等级（L1=读/低风险直接执行；L2=低风险写，需用户确认后执行）
  */
 final class Tool
 {
+    public const RISK_L1 = 'L1';
+
+    public const RISK_L2 = 'L2';
+
     public function __construct(
         public readonly string $slug,
         public readonly string $name,
@@ -24,7 +29,16 @@ final class Tool
         public readonly array $parametersSchema,
         public readonly string $handlerClass,
         public readonly string $category = 'core',
+        public readonly string $risk = self::RISK_L1,
     ) {}
+
+    /**
+     * 是否需要用户确认后才能执行（L2 低风险写）
+     */
+    public function requiresConfirmation(): bool
+    {
+        return $this->risk === self::RISK_L2;
+    }
 
     /**
      * 从数组构造
@@ -46,6 +60,7 @@ final class Tool
             parametersSchema: (array) ($data['parameters_schema'] ?? []),
             handlerClass: (string) ($data['handler_class'] ?? ''),
             category: (string) ($data['category'] ?? 'core'),
+            risk: (string) ($data['risk'] ?? self::RISK_L1),
         );
     }
 
@@ -87,6 +102,7 @@ final class Tool
             'parameters_schema' => $this->parametersSchema,
             'handler_class' => $this->handlerClass,
             'category' => $this->category,
+            'risk' => $this->risk,
         ];
     }
 }

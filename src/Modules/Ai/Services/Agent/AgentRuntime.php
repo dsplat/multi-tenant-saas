@@ -45,6 +45,7 @@ class AgentRuntime implements AgentRuntimeContract
         private TenantContextContract $tenantContext,
         private ?WorkflowEngineContract $workflowEngine = null,
         private ?MemoryCompressor $memoryCompressor = null,
+        private ?ActionConfirmService $actionConfirm = null,
     ) {}
 
     /**
@@ -419,9 +420,11 @@ class AgentRuntime implements AgentRuntimeContract
         // 保存工具结果消息
         foreach ($toolResults as $result) {
             $toolResult = $result['content'] ?? json_encode($result);
-            $this->saveMessage($conversationId, 'tool', $toolResult, [
-                'tool_name' => $result['tool_name'] ?? '',
-            ]);
+            $metadata = ['tool_name' => $result['tool_name'] ?? ''];
+            if (! empty($result['tool_call_id'])) {
+                $metadata['tool_call_id'] = $result['tool_call_id'];
+            }
+            $this->saveMessage($conversationId, 'tool', $toolResult, $metadata);
         }
 
         // 构建上下文
@@ -684,6 +687,43 @@ class AgentRuntime implements AgentRuntimeContract
                         'model' => '',
                     ], $chunk->toolCalls);
 
+                    // L2 风险工具拦截：不执行，签发确认令牌后结束本轮，
+                    // 由用户在前端确认卡片确认后经 confirm-action 端点执行
+                    [$execCalls, $pendingCalls] = $this->partitionByRisk($chunk->toolCalls);
+
+                    if ($pendingCalls !== []) {
+                        // 同轮 L1 工具照常执行落库（确认后续答时上下文完整）
+                        foreach ($execCalls as $execCall) {
+                            $this->executeSingleToolCall($execCall, $conversationId, $agentId, $tenantId);
+                        }
+
+                        foreach ($pendingCalls as $pendingCall) {
+                            yield new StreamChunk(
+                                pendingConfirmation: $this->issuePendingConfirmation($pendingCall, $conversationId, $tenantId),
+                            );
+                        }
+
+                        $this->monitor->logConversationTurn($conversationId, $agentId, [
+                            'message' => $message,
+                            'response' => $assistantContent,
+                            'token_usage' => $totalUsage,
+                            'tool_calls' => $chunk->toolCalls,
+                            'loop_count' => $loopCount,
+                            'pending_confirmation' => true,
+                        ]);
+
+                        yield new StreamChunk(finishReason: 'pending_confirmation');
+
+                        return AgentResponse::fromArray([
+                            'message' => $assistantContent,
+                            'tool_calls' => $chunk->toolCalls,
+                            'token_usage' => $totalUsage,
+                            'finish_reason' => 'pending_confirmation',
+                            'agent_id' => $agentId,
+                            'conversation_id' => $conversationId,
+                        ]);
+                    }
+
                     // 执行工具并收集结果（传入累积的 assistant 文本以保留上下文）
                     [$context, $allToolCalls] = $this->executeToolCalls(
                         $chunk->toolCalls, $context, $conversationId, $agentId, $tenantId, $assistantContent,
@@ -907,6 +947,67 @@ class AgentRuntime implements AgentRuntimeContract
         }
 
         return [$toolContextMsg, $toolError];
+    }
+
+    /**
+     * 按 risk 等级拆分工具调用：L1 直接执行 / L2 需确认
+     *
+     * @param  array  $toolCalls  工具调用列表（OpenAI 格式）
+     * @return array{0: array, 1: array} [L1 执行列表, L2 待确认列表]
+     */
+    private function partitionByRisk(array $toolCalls): array
+    {
+        // 未注入 ActionConfirmService 时退化为全部直接执行（向后兼容）
+        if ($this->actionConfirm === null) {
+            return [$toolCalls, []];
+        }
+
+        $execCalls = [];
+        $pendingCalls = [];
+
+        foreach ($toolCalls as $toolCall) {
+            $slug = $toolCall['function']['name'] ?? $toolCall['name'] ?? '';
+            $tool = $slug !== '' ? $this->toolRegistry->get($slug) : null;
+
+            if ($tool !== null && $tool->requiresConfirmation()) {
+                $pendingCalls[] = $toolCall;
+            } else {
+                $execCalls[] = $toolCall;
+            }
+        }
+
+        return [$execCalls, $pendingCalls];
+    }
+
+    /**
+     * 为单个 L2 工具调用签发确认令牌，返回前端确认卡片载荷
+     *
+     * @param  array  $toolCall  L2 工具调用（OpenAI 格式）
+     * @return array 确认卡片载荷（token/args_hash/expires_in/tool_slug/tool_name/arguments/conversation_id）
+     */
+    private function issuePendingConfirmation(array $toolCall, int $conversationId, int $tenantId): array
+    {
+        $slug = $toolCall['function']['name'] ?? $toolCall['name'] ?? '';
+        $arguments = $toolCall['function']['arguments'] ?? $toolCall['arguments'] ?? [];
+
+        if (is_string($arguments)) {
+            $arguments = json_decode($arguments, true) ?? [];
+        }
+
+        $toolCallId = $toolCall['id'] ?? $toolCall['tool_call_id'] ?? null;
+        $issued = $this->actionConfirm->issue($tenantId, $conversationId, $slug, $arguments, $toolCallId);
+
+        $tool = $this->toolRegistry->get($slug);
+
+        return [
+            'token' => $issued['token'],
+            'args_hash' => $issued['args_hash'],
+            'expires_in' => $issued['expires_in'],
+            'tool_slug' => $slug,
+            'tool_name' => $tool?->name ?? $slug,
+            'arguments' => $arguments,
+            'conversation_id' => $conversationId,
+        ];
     }
 
     /**

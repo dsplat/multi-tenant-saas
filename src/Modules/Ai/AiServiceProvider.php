@@ -20,6 +20,7 @@ use MultiTenantSaas\Modules\Ai\Mcp\McpSkillGenerator;
 use MultiTenantSaas\Modules\Ai\Mcp\McpToolRegistry;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentMonitor;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentRuntime;
+use MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\MemoryCompressor;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
@@ -69,6 +70,7 @@ use MultiTenantSaas\Modules\Ai\Services\Tool\KnowledgeSearchTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\ListAgentsTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\LlmCallTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\NavigateTool;
+use MultiTenantSaas\Modules\Ai\Services\Tool\SuggestFormFillTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\OcrRecognizeTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\SystemKbSearchTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\VectorSearchTool;
@@ -97,7 +99,8 @@ class AiServiceProvider extends ModuleServiceProvider
         $this->app->singleton(ToolRegistryContract::class, fn ($app) => new ToolRegistry($app->make(Container::class)));
         $this->app->alias(ToolRegistryContract::class, ToolRegistry::class);
         $this->app->singleton(MemoryCompressor::class, fn ($app) => new MemoryCompressor($app->make(AiTextServiceContract::class), $app->make(TenantContextContract::class)));
-        $this->app->singleton(AgentRuntimeContract::class, fn ($app) => new AgentRuntime($app->make(AiTextServiceContract::class), $app->make(ToolRegistryContract::class), $app->make(AgentMonitorContract::class), $app->make(TenantContextContract::class), $app->bound(WorkflowEngineContract::class) ? $app->make(WorkflowEngineContract::class) : null, $app->bound(MemoryCompressor::class) ? $app->make(MemoryCompressor::class) : null));
+        $this->app->singleton(ActionConfirmService::class, fn () => new ActionConfirmService);
+        $this->app->singleton(AgentRuntimeContract::class, fn ($app) => new AgentRuntime($app->make(AiTextServiceContract::class), $app->make(ToolRegistryContract::class), $app->make(AgentMonitorContract::class), $app->make(TenantContextContract::class), $app->bound(WorkflowEngineContract::class) ? $app->make(WorkflowEngineContract::class) : null, $app->bound(MemoryCompressor::class) ? $app->make(MemoryCompressor::class) : null, $app->make(ActionConfirmService::class)));
         $this->app->alias(AgentRuntimeContract::class, AgentRuntime::class);
         $this->app->singleton(McpToolRegistryContract::class, fn ($app) => new McpToolRegistry($app->make(Container::class)));
         $this->app->alias(McpToolRegistryContract::class, McpToolRegistry::class);
@@ -183,5 +186,6 @@ class AiServiceProvider extends ModuleServiceProvider
         $registry->register('list_agents', 'List Agents', 'List enabled digital employees of current tenant with their roles and specialities', ListAgentsTool::class, ['type' => 'object', 'properties' => []], 'secretary');
         $registry->register('delegate_to_agent', 'Delegate To Agent', 'Hand the conversation off to a specialised digital employee; returns a delegate instruction for the frontend', DelegateToAgentTool::class, ['type' => 'object', 'properties' => ['agent_id' => ['type' => 'string', 'description' => '目标员工 agent_id（先用 list_agents 查询）'], 'reason' => ['type' => 'string', 'description' => '转派原因'], 'handoff_message' => ['type' => 'string', 'description' => '带给目标员工的开场消息']], 'required' => ['agent_id']], 'secretary');
         $registry->register('enable_agent', 'Enable Agent', 'Enable a digital employee for the current tenant (create from template if not exists); requires user confirmation before calling', EnableAgentTool::class, ['type' => 'object', 'properties' => ['role' => ['type' => 'string', 'description' => '要启用的数字员工角色标识（如 customer_service / sales / scrm_marketing）']], 'required' => ['role']], 'secretary');
+        $registry->register('suggest_form_fill', 'Suggest Form Fill', 'Suggest values to fill into the current page form; returns structured {fields,...} for the frontend to render an apply card (does NOT submit)', SuggestFormFillTool::class, ['type' => 'object', 'properties' => ['fields' => ['type' => 'object', 'description' => '字段名到建议值的映射，如 {"name":"张三","phone":"138..."}'], 'explanation' => ['type' => 'string', 'description' => '填写说明（可选）'], 'field_notes' => ['type' => 'object', 'description' => '各字段的补充说明映射（可选）'], 'confidence' => ['type' => 'number', 'description' => '建议置信度 0-1（可选）']], 'required' => ['fields']], 'secretary');
     }
 }

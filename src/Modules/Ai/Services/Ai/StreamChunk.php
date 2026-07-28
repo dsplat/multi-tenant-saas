@@ -13,6 +13,8 @@ namespace MultiTenantSaas\Modules\Ai\Services\Ai;
  *  - tool_calls:    流中累积识别后解析出的工具调用（仅在结束块产出，
  *                   arguments 已解码为数组，格式同 AiResponse.toolCalls）
  *  - finish_reason: 结束原因（仅在末块出现，stop / tool_calls / length 等）
+ *  - pending_confirmation: L2 工具待确认载荷（AgentRuntime 拦截 risk=L2 工具时产出，
+ *                   含 token/args_hash/expires_in/tool_slug/tool_name/arguments/conversation_id）
  */
 final class StreamChunk
 {
@@ -21,6 +23,7 @@ final class StreamChunk
         public readonly array $toolCalls = [],
         public readonly string $finishReason = '',
         public readonly array $usage = [],
+        public readonly array $pendingConfirmation = [],
     ) {}
 
     /**
@@ -29,6 +32,14 @@ final class StreamChunk
     public function hasToolCalls(): bool
     {
         return ! empty($this->toolCalls);
+    }
+
+    /**
+     * 是否包含 L2 待确认操作
+     */
+    public function hasPendingConfirmation(): bool
+    {
+        return ! empty($this->pendingConfirmation);
     }
 
     /**

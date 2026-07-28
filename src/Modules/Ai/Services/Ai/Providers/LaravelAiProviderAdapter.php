@@ -54,15 +54,10 @@ class LaravelAiProviderAdapter implements AiProviderContract
     {
         $timeout = $options['timeout'] ?? config('ai.timeout', 60);
 
-        $history = [];
-        foreach ($messages as $msg) {
-            $role = $msg['role'] ?? 'user';
-            $content = $msg['content'] ?? '';
-            $history[] = new Message($role, $content);
-        }
+        [$instructions, $history] = $this->parseMessages($messages);
 
         try {
-            $agent = $this->buildAgent($history);
+            $agent = $this->buildAgent($history, $instructions);
 
             $response = $agent->prompt(
                 prompt: '',
@@ -161,15 +156,10 @@ class LaravelAiProviderAdapter implements AiProviderContract
     {
         $timeout = $options['timeout'] ?? config('ai.timeout', 60);
 
-        $history = [];
-        foreach ($messages as $msg) {
-            $role = $msg['role'] ?? 'user';
-            $content = $msg['content'] ?? '';
-            $history[] = new Message($role, $content);
-        }
+        [$instructions, $history] = $this->parseMessages($messages);
 
         try {
-            $agent = $this->buildAgent($history);
+            $agent = $this->buildAgent($history, $instructions);
 
             /** @var StreamableAgentResponse $stream */
             $stream = $agent->stream(
@@ -233,15 +223,49 @@ class LaravelAiProviderAdapter implements AiProviderContract
     }
 
     /**
+     * 解析消息数组：分离 system 角色为 instructions，其余转为 Message 对象。
+     *
+     * laravel/ai MessageRole 枚举仅支持 assistant/user/tool_result，
+     * system 角色必须作为 AnonymousAgent 的 instructions 参数传入。
+     *
+     * @return array{0: string, 1: Message[]}
+     */
+    protected function parseMessages(array $messages): array
+    {
+        $instructions = '';
+        $history = [];
+
+        foreach ($messages as $msg) {
+            $role = $msg['role'] ?? 'user';
+            $content = $msg['content'] ?? '';
+
+            if ($role === 'system') {
+                // system 消息拼接为 instructions
+                $instructions .= ($instructions !== '' ? "\n\n" : '').$content;
+                continue;
+            }
+
+            // tool 角色映射为 SDK 支持的 tool_result
+            if ($role === 'tool') {
+                $role = 'tool_result';
+            }
+
+            $history[] = new Message($role, $content);
+        }
+
+        return [$instructions, $history];
+    }
+
+    /**
      * Build an anonymous Agent with the given message history.
      *
      * laravel/ai ^0.8 使用 AnonymousAgent(instructions, messages, tools)。
      *
      * @param  Message[]  $history
      */
-    protected function buildAgent(array $history): AnonymousAgent
+    protected function buildAgent(array $history, string $instructions = ''): AnonymousAgent
     {
-        return new AnonymousAgent('', $history, []);
+        return new AnonymousAgent($instructions, $history, []);
     }
 
     public function getConfig(): array

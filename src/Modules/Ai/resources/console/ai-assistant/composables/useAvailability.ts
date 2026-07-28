@@ -4,7 +4,7 @@
  * 调用后端 GET /api/v1/ai/assistant/availability 检测租户级 feature flag。
  * 遵循铁律：
  *  - 异步探测，不阻塞首屏渲染
- *  - 探测失败一律视为「不可用」（fail-open，隐藏入口，页面零影响）
+ *  - 探测失败一律视为「可用」（fail-open，小秘书始终兜底）
  *  - 结果缓存，避免每次路由变化都请求
  */
 import axios from 'axios'
@@ -47,10 +47,10 @@ export function useAvailability() {
       store.setAvailability(ok)
       return ok
     } catch {
-      // 探测失败 → 不可用（fail-open）
-      cache.set(key, false)
-      store.setAvailability(false)
-      return false
+      // 探测失败 → 默认可用（fail-open，小秘书兜底）
+      cache.set(key, true)
+      store.setAvailability(true)
+      return true
     }
   }
 

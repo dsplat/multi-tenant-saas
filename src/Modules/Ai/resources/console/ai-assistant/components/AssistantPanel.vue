@@ -29,9 +29,8 @@ const quickCommands = [
 ]
 
 const agentLabel = computed(() => {
-  if (store.targetAgentName) return store.targetAgentName
-  const mod = store.currentModule || pageContext.value.module
-  return mod ? `${mod} 智能助手` : '智能助手'
+  // 统一命名，不跟页面变
+  return 'AI小助手'
 })
 
 /** 滚动到底部 */
@@ -151,7 +150,7 @@ function goToAgents() {
       <!-- 空状态引导 -->
       <div v-if="store.messages.length === 0" class="empty-state">
         <div class="empty-icon">🤖</div>
-        <div class="empty-title">你好，我是页面智能助手</div>
+        <div class="empty-title">你好，我是AI小助手</div>
         <div class="empty-desc">
           我可以帮你分析当前页面数据、辅助填写表单、解答操作疑问。<br />
           所有 AI 建议仅供参考，关键操作需你确认后执行。

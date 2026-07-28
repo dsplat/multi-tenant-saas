@@ -15,8 +15,8 @@ function nextId(): string {
 
 export const useAssistantStore = defineStore('aiAssistant', () => {
   // ─── 可用性 ───────────────────────────────────────────────
-  /** 租户级 + 用户级开关后的最终可用性 */
-  const available = ref(false)
+  /** 租户级 + 用户级开关后的最终可用性（默认开启，探测可覆盖） */
+  const available = ref(true)
   /** 可用性是否已探测完成 */
   const availabilityLoaded = ref(false)
   /** 用户级偏好：始终启用（浮动按钮即开关，无需额外禁用入口） */

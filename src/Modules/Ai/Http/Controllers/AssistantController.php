@@ -175,27 +175,26 @@ class AssistantController extends Controller
     {
         $module = $request->query('module', '');
 
+        // 默认开启（fail-open）：只有租户显式关闭才返回 false
+        $enabled = true;
+
         try {
-            $tenantId = (int) $this->tenantContext->resolveId();
+            $this->tenantContext->resolveId();
 
             // 租户级 feature flag：assistant 总开关 + 模块级开关
             $enabled = $this->aiConfig->isCategoryEnabled('assistant')
                 && ($module === '' || $this->aiConfig->isCategoryEnabled('assistant.'.strtolower($module)));
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'module' => $module,
-                    'available' => $enabled,
-                ],
-            ]);
         } catch (\Throwable) {
-            // 无租户上下文或配置未就绪 → 不可用（fail-open，不报错）
-            return response()->json([
-                'success' => true,
-                'data' => ['module' => $module, 'available' => false],
-            ]);
+            // 无租户上下文或配置未就绪 → 默认可用（小秘书始终兜底）
         }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'module' => $module,
+                'available' => $enabled,
+            ],
+        ]);
     }
 
     /**

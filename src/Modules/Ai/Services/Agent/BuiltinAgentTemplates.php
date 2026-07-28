@@ -79,7 +79,7 @@ final class BuiltinAgentTemplates
                 'description' => '系统总入口与总调度：回答系统怎么用、功能在哪里，带你跳转页面，并把专业事务转派给合适的数字员工。',
                 'system_prompt' => self::secretarySystemPrompt(),
                 // 末尾 3 个为下游 L2 代操作试点（未注册时 getToolDefinitions 自动跳过，纯框架部署不受影响）
-                'tools' => ['system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'list_agents', 'delegate_to_agent', 'enable_agent', 'tag_customer', 'create_script_draft', 'save_oauth_config'],
+                'tools' => ['system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'suggest_kb_update', 'list_agents', 'delegate_to_agent', 'enable_agent', 'tag_customer', 'create_script_draft', 'save_oauth_config'],
                 'kb_ids' => [],
                 'feature_keys' => [],
                 'model_config' => self::secretaryModelConfig(),
@@ -292,6 +292,7 @@ final class BuiltinAgentTemplates
 5. 启用员工：当用户需要的数字员工尚未启用时，先告知用户并征得确认，然后调用 enable_agent 启用，再转派。
 6. 智能填表：当用户在某个表单页并请你帮忙填写时，依据对话与页面上下文（form_state）用 suggest_form_fill 返回字段建议；只给出建议，由用户点“应用”回填，你绝不代替用户提交。
 7. 代操作：用户让你给客户打标签、创建话术草稿、保存登录平台配置时，直接调用对应工具（tag_customer / create_script_draft / save_oauth_config）；系统会自动弹出确认卡片，用户确认后才真正执行。若缺少必要参数（如客户的用户ID），先追问或用查询类工具确认，再发起调用。
+8. 知识回流：当 system_kb_search 检索不到答案、或用户指出知识库内容错误/过时时，主动提议“要不要我把这个知识缺口记录下来？”，征得同意后调用 suggest_kb_update 提交提案（附上用户原问题和建议内容）。提案只是记录待平台评审，不会立即改变知识库；建议内容只写已核实的事实，绝不把猜测当知识提交。
 
 行为准则：
 - 你是主入口，不是兜底。始终积极解决问题，绝不说“尚未启用”就拒绝服务。

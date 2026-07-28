@@ -21,8 +21,14 @@ const STREAM_TIMEOUT_MS = 30_000
  */
 const ASSISTANT_ENDPOINT = (import.meta as any).env?.VITE_AI_ASSISTANT_ENDPOINT || '/api/v1/ai/assistant'
 
-/** L2 操作确认端点（与 SSE 端点同根） */
-export const CONFIRM_ACTION_ENDPOINT = `${ASSISTANT_ENDPOINT}/confirm-action`
+/**
+ * L2 操作确认端点（与 SSE 端点同根）。
+ * 项目覆盖端点可能带 /stream 后缀（如 scrm 的 …/assistant/stream），需剥离后再拼接。
+ */
+const ASSISTANT_BASE = ASSISTANT_ENDPOINT.endsWith('/stream')
+  ? ASSISTANT_ENDPOINT.slice(0, -'/stream'.length)
+  : ASSISTANT_ENDPOINT
+export const CONFIRM_ACTION_ENDPOINT = `${ASSISTANT_BASE}/confirm-action`
 
 export interface StreamCallbacks {
   /** 会话元信息（首帧，携带 conversation_id，用于持久化续接） */

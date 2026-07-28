@@ -1,0 +1,41 @@
+# AiStreaming Node SSE 引擎 — systemd 服务单元
+# 由 `php artisan ai-streaming:install` 渲染生成。
+#
+# 安装：
+#   sudo cp ai-streaming.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ai-streaming
+#
+# 变量：
+#   {{NODE_BIN}}      node 可执行文件绝对路径
+#   {{SERVER_MJS}}    dist/server.mjs 绝对路径
+#   {{NODE_HOST}}     监听地址
+#   {{NODE_PORT}}     监听端口
+#   {{PHP_API_BASE}}  PHP 契约 API 基址
+#   {{RUN_USER}}      运行用户（建议与 php-fpm 相同，如 www-data）
+
+[Unit]
+Description=AiStreaming Node SSE Engine (multi-tenant-saas)
+After=network.target
+
+[Service]
+Type=simple
+User={{RUN_USER}}
+Environment=NODE_ENV=production
+Environment=AI_STREAMING_NODE_HOST={{NODE_HOST}}
+Environment=AI_STREAMING_NODE_PORT={{NODE_PORT}}
+Environment=AI_STREAMING_PHP_API_BASE={{PHP_API_BASE}}
+ExecStart={{NODE_BIN}} {{SERVER_MJS}}
+Restart=always
+RestartSec=2
+
+# 无状态引擎：崩溃即重启，无需优雅退出等待
+TimeoutStopSec=5
+
+# 安全加固
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

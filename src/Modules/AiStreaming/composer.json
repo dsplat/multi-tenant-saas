@@ -1,0 +1,28 @@
+{
+  "name": "dsplat/multi-tenant-saas-module-ai-streaming",
+  "version": "1.0.0",
+  "description": "AI 流式网关 - Node.js SSE 引擎（Hono + Vercel AI SDK 单文件）+ PHP 契约 API（鉴权/配额/工具/用量结算）",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\AiStreaming\\": ""
+    }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "ai-streaming",
+      "priority": 95,
+      "dependencies": ["ai"],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\AiStreaming\\AiStreamingServiceProvider",
+      "tenant_toggleable": true,
+      "default_enabled": true
+    }
+  }
+}

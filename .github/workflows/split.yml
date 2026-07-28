@@ -16,6 +16,9 @@ jobs:
             repo: multi-tenant-saas
           - prefix: 'src/Modules/Ai'
             repo: multi-tenant-saas-module-ai
+          - prefix: 'src/Modules/AiStreaming'
+            repo: multi-tenant-saas-module-ai-streaming
+            node_build: true
           - prefix: 'src/Modules/ApiToken'
             repo: multi-tenant-saas-module-api-token
           - prefix: 'src/Modules/Auth'
@@ -73,6 +76,12 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.SPLIT_TOKEN }}
 
+      - name: Setup Node (engine build)
+        if: matrix.node_build == true
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Create repo if needed
         env:
           GH_TOKEN: ${{ secrets.SPLIT_TOKEN }}
@@ -100,6 +109,21 @@ jobs:
             git subtree split --prefix="$PREFIX" --branch="$BRANCH"
           else
             BRANCH="main"
+          fi
+
+          # Node 引擎构建注入：在 split 分支上构建 dist/server.mjs 并追加提交，
+          # 用户 composer 装包即得单文件引擎，无需安装 node_modules
+          if [ "${{ matrix.node_build }}" = "true" ]; then
+            git worktree add /tmp/split-build "$BRANCH"
+            pushd /tmp/split-build
+            (cd node && npm ci --no-audit --no-fund)
+            (cd node && node build.mjs)
+            git add -f dist/server.mjs
+            git -c user.name="github-actions[bot]" \
+                -c user.email="github-actions[bot]@users.noreply.github.com" \
+                commit -m "build: inject Node engine bundle (dist/server.mjs)"
+            popd
+            git worktree remove --force /tmp/split-build
           fi
 
           # Push using PAT from checkout token

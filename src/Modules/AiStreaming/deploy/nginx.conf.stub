@@ -1,0 +1,30 @@
+# AiStreaming Node SSE 引擎 — nginx location 片段
+# 由 `php artisan ai-streaming:nginx` 渲染生成，追加到站点 server {} 块内。
+#
+# 变量：
+#   {{PUBLIC_PATH}}  浏览器访问的 SSE 入口路径（config: ai-streaming.public_path）
+#   {{NODE_HOST}}    Node 引擎监听地址（config: ai-streaming.node.host）
+#   {{NODE_PORT}}    Node 引擎监听端口（config: ai-streaming.node.port）
+#   {{IDLE_TIMEOUT}} SSE 空闲超时秒数（config: ai-streaming.idle_timeout）
+
+location {{PUBLIC_PATH}}/ {
+    proxy_pass http://{{NODE_HOST}}:{{NODE_PORT}}/;
+    proxy_http_version 1.1;
+
+    # SSE 必需：关闭缓冲，保持长连接
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_set_header Connection '';
+    chunked_transfer_encoding off;
+
+    # 透传客户端信息与鉴权头
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Authorization $http_authorization;
+
+    # 空闲超时（LLM 首 token 可能较慢，勿设过短）
+    proxy_read_timeout {{IDLE_TIMEOUT}}s;
+    proxy_send_timeout {{IDLE_TIMEOUT}}s;
+}

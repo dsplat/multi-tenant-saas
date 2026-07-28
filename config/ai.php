@@ -99,8 +99,7 @@ return [
     | - enabled: 平台级总开关（关闭时前端零入口、后端拒绝会话）
     | - provider/model: 主模型（默认阿里云百炼 qwen-flash）
     | - fallback_provider/fallback_model: 降级模型
-    | - embedding_model: 系统知识库向量化模型（为空或 key 缺失时索引
-    |   fail-open 降级为纯关键词检索）
+    | - build_timeout/build_max_tokens: kb:build 起草器超时与 token 上限
     |
     */
     'secretary' => [
@@ -112,8 +111,8 @@ return [
         'temperature' => (float) env('SECRETARY_AI_TEMPERATURE', 0.3),
         'max_tokens' => (int) env('SECRETARY_AI_MAX_TOKENS', 2000),
         'max_tool_calls' => (int) env('SECRETARY_AI_MAX_TOOL_CALLS', 5),
-        'embedding_provider' => env('SECRETARY_EMBEDDING_PROVIDER', 'bailian'),
-        'embedding_model' => env('SECRETARY_EMBEDDING_MODEL', 'text-embedding-v3'),
+        'build_timeout' => (int) env('SECRETARY_BUILD_TIMEOUT', 180),
+        'build_max_tokens' => (int) env('SECRETARY_BUILD_MAX_TOKENS', 4000),
         // 下游扩展模板类（需提供静态 definitions(): array，如 ScrmAgentTemplates），
         // 用于数字员工名录生成与转派路由
         'extra_template_classes' => [],

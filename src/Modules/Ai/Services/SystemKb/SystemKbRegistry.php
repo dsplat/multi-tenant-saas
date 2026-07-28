@@ -40,16 +40,16 @@ class SystemKbRegistry
     public function discover(): array
     {
         $base = rtrim($this->basePath ?? base_path(), '/');
-        $isFrameworkRepo = is_dir($base.'/src/Modules');
+        $isFrameworkRepo = is_dir($base . '/src/Modules');
 
         // [source, glob 模式] 按优先级从高到低
         $scanGroups = [
-            ['project_module', $base.'/app/Modules/*/resources/kb/*.md'],
-            [$isFrameworkRepo ? 'framework' : 'project', $base.'/docs/kb/*.md'],
-            ['vendor', $base.'/vendor/dsplat/*/resources/kb/*.md'],
-            ['vendor', $base.'/vendor/dsplat/*/docs/kb/*.md'],
-            ['vendor', $base.'/vendor/dsplat/*/src/Modules/*/resources/kb/*.md'],
-            ['framework_module', $base.'/src/Modules/*/resources/kb/*.md'],
+            ['project_module', $base . '/app/Modules/*/resources/kb/*.md'],
+            [$isFrameworkRepo ? 'framework' : 'project', $base . '/docs/kb/*.md'],
+            ['vendor', $base . '/vendor/dsplat/*/resources/kb/*.md'],
+            ['vendor', $base . '/vendor/dsplat/*/docs/kb/*.md'],
+            ['vendor', $base . '/vendor/dsplat/*/src/Modules/*/resources/kb/*.md'],
+            ['framework_module', $base . '/src/Modules/*/resources/kb/*.md'],
         ];
 
         $documents = [];
@@ -63,7 +63,7 @@ class SystemKbRegistry
                 }
 
                 // 覆盖规则：先扫到的（高优先级）胜出
-                $identity = $entry['module'].'/'.basename($entry['path']);
+                $identity = $entry['module'] . '/' . basename($entry['path']);
 
                 if (! isset($documents[$identity])) {
                     $documents[$identity] = $entry;
@@ -133,8 +133,8 @@ class SystemKbRegistry
     private function inferModule(string $relativePath): string
     {
         if (preg_match('#Modules/([^/]+)/resources/kb/#', $relativePath, $m)) {
-            // PascalCase → kebab-case，与拆包命名一致
-            return strtolower(preg_replace('/(?<!^)[A-Z]/', '-$0', $m[1]));
+            // PascalCase → kebab-case，连续大写视为整体（SSL → ssl），与拆包命名一致
+            return strtolower(preg_replace('/(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/', '-', $m[1]));
         }
 
         // vendor 拆分包：vendor/dsplat/multi-tenant-saas-module-<X>/...

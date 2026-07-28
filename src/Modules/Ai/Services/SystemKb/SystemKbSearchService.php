@@ -2,30 +2,29 @@
 
 namespace MultiTenantSaas\Modules\Ai\Services\SystemKb;
 
-use MultiTenantSaas\Modules\Ai\Models\SystemKbChunk;
-
 /**
- * 系统知识库检索服务（混合检索）
+ * 系统知识库检索服务（纯文件型，零 DB 零 embedding）
  *
- * - 向量：查询 embedding 与 chunk embedding 余弦相似度（embedding 缺失时跳过）；
- * - 关键词：查询词元（空格分词 + 中文 bigram）在分块中的命中频次；
- * - 混合打分：score = 0.7 * vector + 0.3 * keyword（任一侧缺失自动退化为另一侧）。
+ * 工作流：Registry 发现文档 → 读取文件 → 按 ## 标题内存分块 → 关键词打分。
+ * 设计哲学：知识库是随版本发布的文件资产，检索不依赖任何外部服务，
+ * 项目部署初期只需配一个 chat 小模型即可使用系统小助手。
  *
- * chunk 规模在数千级，内存计算足够，不引入向量库。
+ * 分块规模在数百级（数十篇文档 × 数块），内存计算毫秒级完成。
  * audience=internal 的文档默认不进入检索结果（仅平台内部诊断可见）。
  */
 class SystemKbSearchService
 {
-    private const VECTOR_WEIGHT = 0.7;
-
-    private const KEYWORD_WEIGHT = 0.3;
+    /**
+     * 单块最大字符数（超长块按段落二次切分）
+     */
+    private const MAX_CHUNK_CHARS = 1500;
 
     public function __construct(
-        private readonly SystemKbEmbedder $embedder,
+        private readonly SystemKbRegistry $registry,
     ) {}
 
     /**
-     * 混合检索
+     * 关键词检索
      *
      * @param  string  $query  自然语言查询
      * @param  int  $topK  返回条数
@@ -47,58 +46,104 @@ class SystemKbSearchService
             return [];
         }
 
-        $chunks = SystemKbChunk::query()
-            ->with('document')
-            ->whereHas('document', function ($q) use ($includeInternal) {
-                if (! $includeInternal) {
-                    $q->where('audience', '!=', 'internal');
-                }
-            })
-            ->get();
+        $tokens = $this->tokenize($query);
 
-        if ($chunks->isEmpty()) {
+        if ($tokens === []) {
             return [];
         }
 
-        // 查询向量（失败 fail-open 为 null，退化为纯关键词）
-        $queryEmbedding = $this->embedder->embed($query);
-        $tokens = $this->tokenize($query);
-
         $scored = [];
 
-        foreach ($chunks as $chunk) {
-            $vectorScore = ($queryEmbedding !== null && is_array($chunk->embedding))
-                ? $this->cosine($queryEmbedding, $chunk->embedding)
-                : null;
-
-            $keywordScore = $this->keywordScore($tokens, $chunk->heading."\n".$chunk->content);
-
-            // 两侧都无信号的分块跳过
-            if (($vectorScore === null || $vectorScore <= 0) && $keywordScore <= 0) {
+        foreach ($this->registry->discover() as $entry) {
+            if (! $includeInternal && $entry['audience'] === 'internal') {
                 continue;
             }
 
-            $score = $vectorScore === null
-                ? $keywordScore
-                : self::VECTOR_WEIGHT * $vectorScore + self::KEYWORD_WEIGHT * $keywordScore;
+            $content = @file_get_contents($entry['absolute_path']);
 
-            $scored[] = ['chunk' => $chunk, 'score' => $score];
+            if ($content === false) {
+                continue;
+            }
+
+            foreach ($this->chunk($content) as $chunk) {
+                $score = $this->keywordScore($tokens, $chunk['heading'] . "\n" . $chunk['content']);
+
+                if ($score <= 0) {
+                    continue;
+                }
+
+                $scored[] = [
+                    'title' => $entry['title'],
+                    'module' => $entry['module'],
+                    'path' => $entry['path'],
+                    'heading' => $chunk['heading'],
+                    'content' => $chunk['content'],
+                    'score' => round($score, 4),
+                ];
+            }
         }
 
         usort($scored, fn ($a, $b) => $b['score'] <=> $a['score']);
 
-        return array_map(function ($item) {
-            $chunk = $item['chunk'];
+        return array_slice($scored, 0, max(1, $topK));
+    }
 
-            return [
-                'title' => $chunk->document->title ?? '',
-                'module' => $chunk->document->module ?? '',
-                'path' => $chunk->document->path ?? '',
-                'heading' => $chunk->heading,
-                'content' => $chunk->content,
-                'score' => round($item['score'], 4),
-            ];
-        }, array_slice($scored, 0, max(1, $topK)));
+    /**
+     * 按 markdown 标题分块（##/### 级），超长块按段落二次切分
+     *
+     * @return list<array{heading: string, content: string}>
+     */
+    private function chunk(string $content): array
+    {
+        // 去掉 frontmatter
+        $body = preg_replace('/\A---\s*\n.*?\n---\s*\n/s', '', $content);
+
+        // 按 ## 或 ### 标题切分，保留标题行
+        $parts = preg_split('/^(?=#{2,3}\s)/m', $body, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $chunks = [];
+
+        foreach ($parts as $part) {
+            $part = trim($part);
+
+            if ($part === '') {
+                continue;
+            }
+
+            $heading = '';
+
+            if (preg_match('/^#{2,3}\s+(.+)$/m', $part, $m)) {
+                $heading = trim($m[1]);
+            }
+
+            // 超长块按空行二次切分
+            if (mb_strlen($part) <= self::MAX_CHUNK_CHARS) {
+                $chunks[] = ['heading' => $heading, 'content' => $part];
+
+                continue;
+            }
+
+            $buffer = '';
+
+            foreach (preg_split('/\n{2,}/', $part) ?: [] as $paragraph) {
+                if ($buffer !== '' && mb_strlen($buffer) + mb_strlen($paragraph) > self::MAX_CHUNK_CHARS) {
+                    $chunks[] = ['heading' => $heading, 'content' => trim($buffer)];
+                    $buffer = '';
+                }
+
+                $buffer .= $paragraph . "\n\n";
+            }
+
+            if (trim($buffer) !== '') {
+                $chunks[] = ['heading' => $heading, 'content' => trim($buffer)];
+            }
+        }
+
+        // 无二级标题的短文档整体成块
+        if ($chunks === [] && trim($body) !== '') {
+            $chunks[] = ['heading' => '', 'content' => trim($body)];
+        }
+
+        return $chunks;
     }
 
     /**
@@ -137,10 +182,6 @@ class SystemKbSearchService
      */
     private function keywordScore(array $tokens, string $content): float
     {
-        if ($tokens === []) {
-            return 0.0;
-        }
-
         $hits = 0;
 
         foreach ($tokens as $token) {
@@ -150,34 +191,5 @@ class SystemKbSearchService
         }
 
         return $hits / count($tokens);
-    }
-
-    /**
-     * 余弦相似度（维度不一致返回 0）
-     *
-     * @param  list<float>  $a
-     * @param  list<float>  $b
-     */
-    private function cosine(array $a, array $b): float
-    {
-        if (count($a) !== count($b) || $a === []) {
-            return 0.0;
-        }
-
-        $dot = 0.0;
-        $normA = 0.0;
-        $normB = 0.0;
-
-        foreach ($a as $i => $value) {
-            $dot += $value * $b[$i];
-            $normA += $value * $value;
-            $normB += $b[$i] * $b[$i];
-        }
-
-        if ($normA <= 0 || $normB <= 0) {
-            return 0.0;
-        }
-
-        return $dot / (sqrt($normA) * sqrt($normB));
     }
 }

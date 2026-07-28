@@ -27,6 +27,9 @@ use MultiTenantSaas\Modules\Ai\Services\Ai\AiGatewayService;
 use MultiTenantSaas\Modules\Ai\Services\Ai\AiTextService;
 use MultiTenantSaas\Modules\Ai\Services\Ai\AiVideoService;
 use MultiTenantSaas\Modules\Ai\Services\Ai\Storage\TenantConversationStore;
+use MultiTenantSaas\Modules\Ai\Services\AiConfigService;
+use MultiTenantSaas\Modules\Ai\Services\AiOptional;
+use MultiTenantSaas\Modules\Ai\Services\AiUsageService;
 use MultiTenantSaas\Modules\Ai\Services\Capability\CapabilityRegistry;
 use MultiTenantSaas\Modules\Ai\Services\Capability\CapabilityService;
 use MultiTenantSaas\Modules\Ai\Services\Capability\ClassifyCapability;
@@ -42,25 +45,23 @@ use MultiTenantSaas\Modules\Ai\Services\Capability\SummarizeCapability;
 use MultiTenantSaas\Modules\Ai\Services\Capability\TagCapability;
 use MultiTenantSaas\Modules\Ai\Services\Capability\TranslateCapability;
 use MultiTenantSaas\Modules\Ai\Services\Capability\VisionCapability;
-use MultiTenantSaas\Modules\Ai\Services\AiOptional;
-use MultiTenantSaas\Modules\Ai\Services\AiConfigService;
-use MultiTenantSaas\Modules\Ai\Services\AiUsageService;
 use MultiTenantSaas\Modules\Ai\Services\IntentRouter;
 use MultiTenantSaas\Modules\Ai\Services\Memory\EntityMemory;
 use MultiTenantSaas\Modules\Ai\Services\Memory\MemoryPipeline;
 use MultiTenantSaas\Modules\Ai\Services\Memory\TenantMemory;
-use MultiTenantSaas\Modules\Ai\Services\SystemKb\SystemKbEmbedder;
-use MultiTenantSaas\Modules\Ai\Services\SystemKb\SystemKbIndexer;
+use MultiTenantSaas\Modules\Ai\Services\SystemKb\ModuleFactScanner;
+use MultiTenantSaas\Modules\Ai\Services\SystemKb\SystemKbDocBuilder;
+use MultiTenantSaas\Modules\Ai\Services\SystemKb\SystemKbDrafter;
 use MultiTenantSaas\Modules\Ai\Services\SystemKb\SystemKbRegistry;
 use MultiTenantSaas\Modules\Ai\Services\SystemKb\SystemKbSearchService;
 use MultiTenantSaas\Modules\Ai\Services\Tool\CacheGetTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\CacheSetTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\DataDictionaryTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\DelegateToAgentTool;
-use MultiTenantSaas\Modules\Ai\Services\Tool\EnableAgentTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\DocumentParseTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\EmailSendTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\EmbeddingGenerateTool;
+use MultiTenantSaas\Modules\Ai\Services\Tool\EnableAgentTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\FileReadTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\FileWriteTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\HttpRequestTool;
@@ -141,15 +142,18 @@ class AiServiceProvider extends ModuleServiceProvider
         // F3: IntentRouter 意图路由器
         $this->app->singleton(IntentRouter::class);
 
-        // 系统小秘书：知识库底座（平台级，无租户隔离）
+        // 系统小秘书：知识库底座（纯文件型，零 DB 零 embedding，随版本发布）
         $this->app->singleton(SystemKbRegistry::class, fn () => new SystemKbRegistry);
-        $this->app->singleton(SystemKbEmbedder::class, fn () => new SystemKbEmbedder);
-        $this->app->singleton(SystemKbIndexer::class, fn ($app) => new SystemKbIndexer(
-            $app->make(SystemKbRegistry::class),
-            $app->make(SystemKbEmbedder::class),
-        ));
         $this->app->singleton(SystemKbSearchService::class, fn ($app) => new SystemKbSearchService(
-            $app->make(SystemKbEmbedder::class),
+            $app->make(SystemKbRegistry::class),
+        ));
+
+        // 知识库构建工具链（构建期：kb:build 起草模块使用手册）
+        $this->app->singleton(ModuleFactScanner::class, fn () => new ModuleFactScanner);
+        $this->app->singleton(SystemKbDrafter::class, fn () => new SystemKbDrafter);
+        $this->app->singleton(SystemKbDocBuilder::class, fn ($app) => new SystemKbDocBuilder(
+            $app->make(ModuleFactScanner::class),
+            $app->make(SystemKbDrafter::class),
         ));
 
         $this->registerFrameworkTools();

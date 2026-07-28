@@ -65,11 +65,12 @@ SECRETARY_ENABLED=true
 - **数字员工名录**：扫描 BuiltinAgentTemplates + 下游模板（如 ScrmAgentTemplates）→ 每个数字员工的职责/能力/工具清单（**转派路由的事实来源**）。
 - **版本变更**：CHANGELOG 最新段落 + 版本号。
 
-### 4. 索引与检索（轻量内建）
+### 4. 索引与检索（纯文件型，零 DB）
 
-- 新表：`system_kb_documents` / `system_kb_chunks`（含 embedding JSON）；
-- `php artisan secretary:kb:sync`：checksum 增量 → 标题分块 → embedding（复用 EmbeddingCapability，bailian text-embedding 亦可）；embedding 不可用时纯关键词索引 fail-open；
-- 检索：向量 Top-K + 关键词混合，chunk 数千级内 SQL/内存计算足够，不引入向量库。
+- 无数据库表、无 embedding、无同步命令；
+- `SystemKbRegistry` 零配置发现 kb 文档（app/Modules > docs/kb > vendor/dsplat > src/Modules）；
+- `SystemKbSearchService` 运行时直接读文件 → 按 ## 标题内存分块 → 中文 bigram 关键词打分；
+- 知识库是随版本发布的文件资产，部署初期只需配一个 chat 小模型即可使用小助手。
 
 ### 5. 知识库构建工具链（生产侧，补齐"谁来写文档"）
 
@@ -81,8 +82,8 @@ SECRETARY_ENABLED=true
 
 ### 6. 发版/部署闭环
 
-- 发版时序：`kb:build --changed`（人审草稿）→ commit → tag → split 分发（kb 语料随包）；
-- 下游 deploy.py 部署后置命令挂 `secretary:kb:sync` + `secretary:kb:eval`（与 migrate 同批），composer update 拉到新框架包即自动重建索引；本地手动刷。
+- 发版时序：`kb:build`（人审草稿）→ commit → tag → split 分发（kb 语料随包）；
+- 下游 composer update 拉到新框架包即自动获得新文档，无需任何后置命令。
 
 ## 三、小秘书 Agent 本体
 
@@ -114,11 +115,11 @@ SECRETARY_ENABLED=true
 
 ## 四、文件落点（框架仓库）
 
-- `src/Modules/Ai/Services/SystemKb/`：SystemKbRegistry / SystemKbIndexer / SystemKbSearchService / SystemKbDocBuilder（AI 起草）/ DataDictionaryGenerator / FeatureMapGenerator / AgentDirectoryGenerator / GoldenQuestionEvaluator
+- `src/Modules/Ai/Services/SystemKb/`：SystemKbRegistry / SystemKbSearchService / SystemKbDocBuilder（AI 起草）/ DataDictionaryGenerator / FeatureMapGenerator / AgentDirectoryGenerator / GoldenQuestionEvaluator
 - `src/Modules/Ai/Services/Tool/`：SystemKbSearchTool / DataDictionaryTool / NavigateTool / ListAgentsTool / DelegateToAgentTool
-- `src/Console/Commands/`：SecretaryKbBuild / SecretaryKbGenerate / SecretaryKbSync / SecretaryKbEval / SecretaryInstall
+- `src/Console/Commands/`：SecretaryKbBuild / SecretaryKbGenerate / SecretaryKbEval / SecretaryInstall
 - `scripts/architecture_guard.py`：kb 覆盖率/frontmatter/引用有效性检查
-- `src/Modules/Ai/Database/migrations/`：system_kb_documents / system_kb_chunks
+- `src/Modules/Ai/Services/SystemKb/`：纯文件型知识库（零 DB，无迁移文件）
 - `BuiltinAgentTemplates.php`：模板 0；`config/ai.php`：bailian provider + secretary 段；`AiServiceProvider`：工具与服务注册
 - AgentRuntime 记账处：secretary 跳过租户配额
 - `src/Modules/Ai/resources/console/ai-assistant/`：回退逻辑 + navigate/delegate 事件

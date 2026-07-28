@@ -10,8 +10,8 @@ use MultiTenantSaas\Modules\Ai\Services\SystemKb\FeatureMapGenerator;
 /**
  * secretary:kb:generate — 生成机器文档（数据字典/功能分布/数字员工名录）
  *
- * 输出到 docs/kb/ 下的固定文件名（generated- 前缀），随后 secretary:kb:sync
- * 将其索引入库。发版/部署后与 migrate 同批执行即可刷新。
+ * 输出到 docs/kb/ 下的固定文件名（generated- 前缀），提交后随版本发布即生效。
+ * 发版时重新执行即可刷新（纯文件型，零 DB）。
  */
 class SecretaryKbGenerateCommand extends Command
 {
@@ -47,7 +47,7 @@ class SecretaryKbGenerateCommand extends Command
             }
 
             try {
-                file_put_contents($targetDir.'/'.$filename, $generator());
+                file_put_contents($targetDir . '/' . $filename, $generator());
                 $this->info("已生成 docs/kb/{$filename}");
             } catch (\Throwable $e) {
                 // 单个生成器失败不阻断其余（fail-open）

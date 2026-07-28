@@ -6,6 +6,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Octane\Octane;
 use MultiTenantSaas\Console\Commands\BackupListCommand;
 use MultiTenantSaas\Console\Commands\BackupRestoreCommand;
 use MultiTenantSaas\Console\Commands\BackupRunCommand;
@@ -21,10 +22,10 @@ use MultiTenantSaas\Console\Commands\ModuleListCommand;
 use MultiTenantSaas\Console\Commands\ModuleRequireCommand;
 use MultiTenantSaas\Console\Commands\ProcessScheduledReports;
 use MultiTenantSaas\Console\Commands\ProcessSmsBatch;
-use MultiTenantSaas\Console\Commands\SecretaryInstallCommand;
-use MultiTenantSaas\Console\Commands\SecretaryKbGenerateCommand;
-use MultiTenantSaas\Console\Commands\SecretaryKbSyncCommand;
 use MultiTenantSaas\Console\Commands\ScheduleListCommand;
+use MultiTenantSaas\Console\Commands\SecretaryInstallCommand;
+use MultiTenantSaas\Console\Commands\SecretaryKbBuildCommand;
+use MultiTenantSaas\Console\Commands\SecretaryKbGenerateCommand;
 use MultiTenantSaas\Console\Commands\TenancyInitCommand;
 use MultiTenantSaas\Context\TenantConfigStore;
 use MultiTenantSaas\Context\TenantContext;
@@ -72,7 +73,7 @@ class TenancyServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__ . '/../config/socialite.php', 'socialite');
 
         // Octane 配置（仅在 laravel/octane 已安装时生效）
-        if (class_exists(\Laravel\Octane\Octane::class)) {
+        if (class_exists(Octane::class)) {
             $this->mergeConfigFrom(__DIR__ . '/../config/octane.php', 'octane');
         }
 
@@ -160,8 +161,8 @@ class TenancyServiceProvider extends ServiceProvider
                 BackupListCommand::class,
                 BackupRestoreCommand::class,
                 SecretaryInstallCommand::class,
+                SecretaryKbBuildCommand::class,
                 SecretaryKbGenerateCommand::class,
-                SecretaryKbSyncCommand::class,
             ]);
         }
 

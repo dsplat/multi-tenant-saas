@@ -2,7 +2,7 @@
 
 > 适用对象：生产环境运维人员
 > 关联设计文档：`docs/system-secretary-design.md`
-> 涉及组件：第 0 号数字员工（system_secretary）、系统知识库（system_kb_documents / system_kb_chunks）
+> 涉及组件：第 0 号数字员工（system_secretary）、系统知识库（纯文件型，随版本发布）
 
 ---
 
@@ -57,17 +57,11 @@
 在应用根目录依次执行：
 
 ```bash
-# ① 建表：system_kb_documents / system_kb_chunks
-php artisan migrate --force
-
-# ② 生成机器文档 → docs/kb/generated-*.md
+# ① 生成机器文档 → docs/kb/generated-*.md
 #    （数据字典 / 功能分布图 / 数字员工名录）
 php artisan secretary:kb:generate
 
-# ③ 同步知识库索引：发现 kb 文档 → checksum 增量 → 分块 + embedding
-php artisan secretary:kb:sync
-
-# ④ 为全部租户安装第 0 号员工（幂等，已安装自动跳过）
+# ② 为全部租户安装第 0 号员工（幂等，已安装自动跳过）
 php artisan secretary:install
 ```
 
@@ -76,12 +70,12 @@ php artisan secretary:install
 | 命令 | 幂等性 | 可选参数 |
 |---|---|---|
 | `secretary:kb:generate` | 是（覆盖固定文件名） | `--only=dictionary\|features\|agents` 仅生成单个文档 |
-| `secretary:kb:sync` | 是（checksum 增量：未变化跳过、已删除清理） | 无 |
+| `secretary:kb:build` | 是（facts checksum 增量） | `--module=<name>` 仅构建指定模块，`--force` 强制重建 |
 | `secretary:install` | 是（已存在秘书的租户自动跳过） | `--tenant=<tenant_id>` 仅安装指定租户 |
 
 ### 3.3 日常发版
 
-每次发版后与 migrate 同批执行 ② + ③ 即可刷新知识库（增量，未变化文档零开销）。新租户开通后执行 `secretary:install --tenant=<id>`（或全量跑一次 `secretary:install`，幂等）。
+知识库是纯文件型资产，随代码提交即生效，无需任何部署后置命令。发版时如需刷新机器文档，重新执行 `secretary:kb:generate` 并提交即可。新租户开通后执行 `secretary:install --tenant=<id>`（或全量跑一次 `secretary:install`，幂等）。
 
 ---
 
@@ -114,37 +108,21 @@ curl -s -o /dev/null -w "%{http_code}" \
 
 > 主模型失败时 AgentRuntime 会自动降级到 `SECRETARY_AI_FALLBACK_MODEL`；若两者同 provider（默认都走百炼），key 失效会导致双双失败。
 
-### 4.2 向量嵌入超时 / 失败
+### 4.2 知识库检索无结果
 
-**现象**：`secretary:kb:sync` 执行慢，或 `laravel.log` 出现：
+**现象**：小秘书回答“不知道”或检索不到内容。
 
-```
-[SystemKbEmbedder] embedding 请求失败，降级关键词
-[SystemKbEmbedder] embedding 异常，降级关键词
-```
-
-**关键认知：embedding 失败不阻断上线**。Embedder 是 fail-open 设计——任何失败（key 缺失/网络异常/超时）该分块的 `embedding` 存 `null`，检索侧自动降级纯关键词，命令仍会正常结束。
+**关键认知：知识库是纯文件型，零 DB 零 embedding，无需任何同步命令**。检索服务直接从文件系统发现并分块。
 
 处理路径：
 
-1. **偶发超时**：适当调大 `AI_TIMEOUT`（如 `120`），重跑 `secretary:kb:sync`。
-   > 注意 checksum 增量：文档内容未变时会被跳过、不会补 embedding。需强制重建时先清空再同步：
-   > ```bash
-   > php artisan tinker --execute="\MultiTenantSaas\Modules\Ai\Models\SystemKbChunk::query()->delete(); \MultiTenantSaas\Modules\Ai\Models\SystemKbDocument::query()->delete();"
-   > php artisan secretary:kb:sync
-   > ```
-2. **持续失败**：按 4.1 排查百炼连通性；确认 `SECRETARY_EMBEDDING_MODEL`（text-embedding-v3）已在百炼开通。
-3. **主动放弃向量检索**：`SECRETARY_EMBEDDING_MODEL=` 置空 + `config:clear`，索引与检索均走纯关键词，零外部依赖。
-
-检查向量覆盖率：
-
-```sql
-SELECT COUNT(*) AS total,
-       SUM(CASE WHEN embedding IS NULL THEN 1 ELSE 0 END) AS no_embedding
-FROM system_kb_chunks;
-```
-
-`no_embedding > 0` 表示部分分块处于关键词降级状态。
+1. 确认 kb 文档存在：`find src/Modules/*/resources/kb docs/kb vendor/dsplat/*/resources/kb -name '*.md' | wc -l`
+2. 确认文档非空且含 `##` 标题（分块依据）
+3. 用 tinker 验证检索：
+   ```bash
+   php artisan tinker --execute="print_r(app(\MultiTenantSaas\Modules\Ai\Services\SystemKb\SystemKbSearchService::class)->search('优惠券', 3));"
+   ```
+4. 若模块文档缺失，执行 `php artisan secretary:kb:build` 生成并提交。
 
 ### 4.3 secretary:install 安装数不符预期
 
@@ -188,18 +166,13 @@ SELECT
 
 - [ ] 每个租户存在且仅存在 1 条 `system_secretary`，`enabled = 1`
 
-### 5.2 知识库已建立
+### 5.2 知识库文件存在
 
-```sql
-SELECT
-  (SELECT COUNT(*) FROM system_kb_documents) AS documents,
-  (SELECT COUNT(*) FROM system_kb_chunks) AS chunks,
-  (SELECT COUNT(*) FROM system_kb_chunks WHERE embedding IS NOT NULL) AS vectorized;
+```bash
+find src/Modules/*/resources/kb docs/kb vendor/dsplat/*/resources/kb -name '*.md' 2>/dev/null | wc -l
 ```
 
-- [ ] `documents > 0`（含 `docs/kb/` 手册 + 3 份 generated- 机器文档）
-- [ ] `chunks > 0`
-- [ ] `vectorized ≈ chunks`（允许为 0 —— 关键词降级模式，需知悉即可）
+- [ ] 文档数 > 0（含模块使用手册 + 3 份 generated- 机器文档）
 
 ### 5.3 知识检索返回结果
 
@@ -226,7 +199,7 @@ foreach (\$r as \$hit) { echo '- '.\$hit['title'].' / '.\$hit['heading'].PHP_EOL
 tail -100 storage/logs/laravel.log | grep -i "secretary\|SystemKb"
 ```
 
-- [ ] 无 ERROR 级日志（`[SystemKbEmbedder] … 降级关键词` 的 WARNING 可接受，对照 5.2 的 vectorized 数即可）
+- [ ] 无 ERROR 级日志
 
 ---
 

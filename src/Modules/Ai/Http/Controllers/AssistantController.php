@@ -303,7 +303,7 @@ class AssistantController extends Controller
 
         // 取消路径：令牌已作废，回传取消结果让 LLM 收尾
         if (! $validated['confirmed']) {
-            AuditService::log('ai_action_cancel', 'agent_tool', null, [
+            app(AuditService::class)->log('ai_action_cancel', 'agent_tool', null, [
                 'tool_slug' => $toolSlug,
                 'arguments' => $arguments,
                 'conversation_id' => $conversationId,
@@ -343,7 +343,7 @@ class AssistantController extends Controller
 
         $durationMs = (int) ((microtime(true) - $startTime) * 1000);
 
-        AuditService::log('ai_action_execute', 'agent_tool', null, [
+        app(AuditService::class)->log('ai_action_execute', 'agent_tool', null, [
             'tool_slug' => $toolSlug,
             'arguments' => $arguments,
             'conversation_id' => $conversationId,

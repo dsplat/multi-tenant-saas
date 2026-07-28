@@ -63,6 +63,8 @@ jobs:
             repo: multi-tenant-saas-module-ssl
           - prefix: 'src/Modules/Storage'
             repo: multi-tenant-saas-module-storage
+          - prefix: 'src/Modules/Ticket'
+            repo: multi-tenant-saas-module-ticket
           - prefix: 'src/Modules/User'
             repo: multi-tenant-saas-module-user
           - prefix: 'src/Modules/Voting'

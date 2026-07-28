@@ -45,6 +45,7 @@ class SystemKbRegistry
         // [source, glob 模式] 按优先级从高到低
         $scanGroups = [
             ['project_module', $base . '/app/Modules/*/resources/kb/*.md'],
+            ['project_module', $base . '/app/Modules/*/Resources/kb/*.md'],
             [$isFrameworkRepo ? 'framework' : 'project', $base . '/docs/kb/*.md'],
             ['vendor', $base . '/vendor/dsplat/*/resources/kb/*.md'],
             ['vendor', $base . '/vendor/dsplat/*/docs/kb/*.md'],
@@ -132,7 +133,7 @@ class SystemKbRegistry
      */
     private function inferModule(string $relativePath): string
     {
-        if (preg_match('#Modules/([^/]+)/resources/kb/#', $relativePath, $m)) {
+        if (preg_match('#Modules/([^/]+)/[Rr]esources/kb/#', $relativePath, $m)) {
             // PascalCase → kebab-case，连续大写视为整体（SSL → ssl），与拆包命名一致
             return strtolower(preg_replace('/(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/', '-', $m[1]));
         }

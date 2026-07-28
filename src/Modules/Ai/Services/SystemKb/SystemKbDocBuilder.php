@@ -67,7 +67,10 @@ class SystemKbDocBuilder
     {
         $facts = $this->scanner->scan($moduleDir, $moduleName);
         $factsChecksum = hash('sha256', $facts);
-        $target = $moduleDir . '/resources/kb/usage.md';
+
+        // 兼容历史大小写（如 Marketing/Resources）：优先用已存在的目录
+        $resDir = is_dir($moduleDir . '/Resources') ? 'Resources' : 'resources';
+        $target = $moduleDir . '/' . $resDir . '/kb/usage.md';
 
         if (! $force && $this->existingChecksum($target) === $factsChecksum) {
             return 'unchanged';

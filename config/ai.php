@@ -235,6 +235,8 @@ return [
         'telegram' => [
             'api_base' => env('AI_IBOT_TELEGRAM_API_BASE', 'https://api.telegram.org'),
             'poll_timeout' => (int) env('AI_IBOT_TELEGRAM_POLL_TIMEOUT', 30),
+            // 出站代理（仅 Telegram API）：国内服务器直连不通时配置，如 socks5h://127.0.0.1:1080
+            'proxy' => env('AI_IBOT_TELEGRAM_PROXY'),
         ],
         'extra_channels' => [],
     ],

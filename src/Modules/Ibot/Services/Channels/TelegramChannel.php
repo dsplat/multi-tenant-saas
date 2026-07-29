@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Modules\Ibot\Services\Channels;
 
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Modules\Ibot\Contracts\IbotChannelContract;
@@ -56,7 +57,7 @@ class TelegramChannel implements IbotChannelContract
         $ok = true;
 
         foreach ($this->splitText($text) as $chunk) {
-            $response = Http::timeout(15)->post($this->apiUrl($token, 'sendMessage'), [
+            $response = $this->http(15)->post($this->apiUrl($token, 'sendMessage'), [
                 'chat_id' => $externalId,
                 'text' => $chunk,
             ]);
@@ -87,7 +88,7 @@ class TelegramChannel implements IbotChannelContract
             return ['updates' => [], 'ok' => false];
         }
 
-        $response = Http::timeout($timeout + 10)->get($this->apiUrl($token, 'getUpdates'), [
+        $response = $this->http($timeout + 10)->get($this->apiUrl($token, 'getUpdates'), [
             'offset' => $offset,
             'timeout' => $timeout,
             'allowed_updates' => json_encode(['message']),
@@ -120,6 +121,25 @@ class TelegramChannel implements IbotChannelContract
         $base = rtrim(config('ai.ibot.telegram.api_base', 'https://api.telegram.org'), '/');
 
         return "{$base}/bot{$token}/{$method}";
+    }
+
+    /**
+     * 构造 HTTP 客户端（支持可选出站代理，仅作用于 Telegram API）
+     *
+     * 国内服务器直连 api.telegram.org 不通时，配置 AI_IBOT_TELEGRAM_PROXY
+     * 指向本地 SOCKS5/HTTP 代理（如 socks5h://127.0.0.1:1080）。
+     */
+    private function http(int $timeout): PendingRequest
+    {
+        $request = Http::timeout($timeout);
+
+        $proxy = config('ai.ibot.telegram.proxy');
+
+        if ($proxy) {
+            $request = $request->withOptions(['proxy' => $proxy]);
+        }
+
+        return $request;
     }
 
     /**

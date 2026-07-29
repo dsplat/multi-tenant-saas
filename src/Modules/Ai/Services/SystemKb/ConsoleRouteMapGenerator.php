@@ -191,7 +191,7 @@ class ConsoleRouteMapGenerator
      */
     private function parseKnownPaths(): array
     {
-        // 尝试多个可能位置
+        // 尝试多个可能位置（项目级可能是 re-export，需继续找 vendor 原始文件）
         $candidates = [
             $this->basePath.'/resources/js/console/module-loader.ts',
             $this->basePath.'/vendor/dsplat/multi-tenant-saas/resources/js/console/module-loader.ts',
@@ -199,8 +199,12 @@ class ConsoleRouteMapGenerator
 
         $content = null;
         foreach ($candidates as $file) {
-            if (file_exists($file)) {
-                $content = file_get_contents($file);
+            if (! file_exists($file)) {
+                continue;
+            }
+            $raw = file_get_contents($file);
+            if ($raw !== false && str_contains($raw, 'knownPaths')) {
+                $content = $raw;
                 break;
             }
         }

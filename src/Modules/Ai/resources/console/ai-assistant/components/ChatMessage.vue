@@ -142,6 +142,12 @@ function handleConfirmResolved(payload: { status: any; feedback: string | null; 
         </div>
       </div>
 
+      <!-- 等待首字节：友好思考提示（有内容/工具调用后自动消失） -->
+      <div v-if="message.streaming && !message.content && !message.toolCalls?.length" class="thinking-indicator">
+        <span class="thinking-dots"><i></i><i></i><i></i></span>
+        <span class="thinking-text">正在思考…</span>
+      </div>
+
       <!-- 文本内容：assistant 按 Markdown 渲染（受控标签，XSS 安全），用户/错误消息纯文本 -->
       <div
         v-if="message.content && renderedContent"
@@ -356,6 +362,39 @@ function handleConfirmResolved(payload: { status: any; feedback: string | null; 
 }
 .tool-icon { font-size: 12px; }
 .tool-name { font-weight: 600; color: var(--text-color-primary, #0f172a); }
+
+/* 思考等待提示 */
+.thinking-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--fill-color, #f8fafc);
+  border: 1px solid var(--border-color, #e2e8f0);
+}
+.thinking-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.thinking-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ac, #10b981);
+  animation: dot-bounce 1.2s ease-in-out infinite;
+}
+.thinking-dots i:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot-bounce {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+.thinking-text {
+  font-size: 12px;
+  color: var(--text-color-secondary, #64748b);
+}
 
 /* 打字光标 */
 .typing-cursor {

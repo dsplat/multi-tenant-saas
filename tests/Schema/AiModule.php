@@ -73,6 +73,8 @@ class AiModule implements SchemaModuleInterface
         Schema::create('ai_prompts', function (Blueprint $table) {
             $table->unsignedBigInteger('prompt_id')->primary();
             $table->bigInteger('tenant_id')->unsigned()->nullable();
+            $table->unsignedBigInteger('operator_id')->nullable();
+            $table->string('role', 50)->nullable();
             $table->string('name', 100);
             $table->string('category', 50)->default('general');
             $table->text('system_prompt')->nullable();
@@ -85,6 +87,8 @@ class AiModule implements SchemaModuleInterface
             $table->index(['tenant_id', 'name'], 'idx_tenant_name');
             $table->index('category', 'idx_category');
             $table->index('status', 'idx_status');
+            $table->index(['operator_id', 'role', 'status'], 'idx_operator_role_status');
+            $table->index(['tenant_id', 'role', 'status'], 'idx_tenant_role_status');
         });
 
         Schema::create('ai_usage_quotas', function (Blueprint $table) {

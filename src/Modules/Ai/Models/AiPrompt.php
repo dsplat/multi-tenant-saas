@@ -35,6 +35,8 @@ class AiPrompt extends Model
 
     protected $fillable = [
         'tenant_id',
+        'operator_id',
+        'role',
         'name',
         'category',
         'system_prompt',
@@ -54,6 +56,7 @@ class AiPrompt extends Model
     {
         return [
             'tenant_id' => 'integer',
+            'operator_id' => 'integer',
             'variables' => 'array',
             'version' => 'integer',
         ];
@@ -128,6 +131,30 @@ class AiPrompt extends Model
      */
     public function scopeTenantLevel($query)
     {
-        return $query->whereNotNull('tenant_id');
+        return $query->whereNotNull('tenant_id')->whereNull('operator_id');
+    }
+
+    /**
+     * 作用域：仅 operator 级模板
+     */
+    public function scopeOperatorLevel($query)
+    {
+        return $query->whereNotNull('operator_id');
+    }
+
+    /**
+     * 作用域：按角色筛选
+     */
+    public function scopeByRole($query, string $role)
+    {
+        return $query->where('role', $role);
+    }
+
+    /**
+     * 是否为 operator 级模板
+     */
+    public function isOperatorLevel(): bool
+    {
+        return $this->operator_id !== null;
     }
 }

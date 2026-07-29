@@ -47,6 +47,7 @@ class AgentRuntime implements AgentRuntimeContract
         private ?MemoryCompressor $memoryCompressor = null,
         private ?ActionConfirmService $actionConfirm = null,
         private ?MemoryPipeline $memoryPipeline = null,
+        private ?PromptService $promptService = null,
     ) {}
 
     /**
@@ -1090,7 +1091,8 @@ class AgentRuntime implements AgentRuntimeContract
             }
         }
 
-        $systemPrompt = $agent->system_prompt ?? '';
+        // Prompt 解析链：operator > tenant > system > agent.system_prompt
+        $systemPrompt = $this->resolveSystemPrompt($agent, $conversationId);
 
         // 记忆注入：将实体高权重记忆追加到 system prompt 末尾
         if ($this->memoryPipeline !== null && $systemPrompt !== '') {
@@ -1117,6 +1119,62 @@ class AgentRuntime implements AgentRuntimeContract
         }
 
         return $context;
+    }
+
+    /**
+     * Prompt 解析链：PromptService(operator>tenant>system) → agent.system_prompt → 空
+     *
+     * fail-open：PromptService 异常时降级到 agent.system_prompt。
+     */
+    private function resolveSystemPrompt(Agent $agent, int $conversationId): string
+    {
+        if ($this->promptService !== null) {
+            $operatorId = $this->resolveOperatorId($conversationId);
+            $role = $agent->role ?? '';
+
+            if ($role !== '') {
+                $resolved = $this->promptService->resolve($role, $operatorId, [
+                    'agent_name' => $agent->name ?? '',
+                    'operator_name' => $this->resolveOperatorName($operatorId),
+                ]);
+
+                if ($resolved !== null) {
+                    return $resolved;
+                }
+            }
+        }
+
+        return $agent->system_prompt ?? '';
+    }
+
+    /**
+     * 从会话解析 operator ID（staff_id）
+     */
+    private function resolveOperatorId(int $conversationId): ?int
+    {
+        try {
+            $conversation = AgentConversation::find($conversationId);
+
+            return $conversation?->staff_id ? (int) $conversation->staff_id : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * 解析 operator 名称（供变量插值）
+     */
+    private function resolveOperatorName(?int $operatorId): string
+    {
+        if ($operatorId === null) {
+            return '';
+        }
+
+        try {
+            return \DB::table('operators')->where('operator_id', $operatorId)->value('name') ?? '';
+        } catch (\Throwable) {
+            return '';
+        }
     }
 
     /**

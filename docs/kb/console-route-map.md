@@ -24,7 +24,7 @@ locale: zh
 |---------|---------|------|
 | 工作台 | /dashboard | 控制台首页 |
 | 成员管理 | /members | 租户成员列表 |
-| 租户设置 | /settings | 当前租户基础设置 |
+| 租户设置 | /tenant-settings | 当前租户基础设置 |
 | API 令牌 | /api-tokens | 开发者 API Token 管理 |
 | OAuth 配置 | /oauth | 第三方登录配置 |
 | 支付配置 | /payment | 支付渠道配置 |

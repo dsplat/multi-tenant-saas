@@ -73,6 +73,18 @@ const appModuleRoutesFiles = import.meta.glob(
   { eager: false }
 )
 
+// Vendor split-package module routes (dsplat/multi-tenant-saas-module-*)
+const vendorModuleRoutesFiles = import.meta.glob(
+  '/vendor/dsplat/*/resources/console/routes.ts',
+  { eager: false }
+)
+
+// Vendor core module routes (inside main framework package)
+const vendorCoreRoutesFiles = import.meta.glob(
+  '/vendor/dsplat/multi-tenant-saas/src/Modules/*/resources/console/routes.ts',
+  { eager: false }
+)
+
 // ---- Case-insensitive glob lookup ----
 // Vite import.meta.glob keys preserve filesystem case (PascalCase on disk).
 // Module routes.ts may pass lowercase names (e.g. view('channel', ...)).
@@ -244,23 +256,33 @@ const MODULE_LABELS: Record<string, string> = {
 export async function loadModuleRoutes(): Promise<ModuleRoute[]> {
   const routes: ModuleRoute[] = []
 
-  for (const [path, loader] of Object.entries({ ...moduleRoutesFiles, ...appModuleRoutesFiles })) {
-    const moduleName = extractModuleName(path, 'local')
-    if (!moduleName) continue
+  // Source order: project local → downstream app → vendor split-packages → vendor core
+  const routeSources: Array<{ files: Record<string, unknown>; type: SourceType }> = [
+    { files: moduleRoutesFiles, type: 'local' },
+    { files: appModuleRoutesFiles, type: 'app' },
+    { files: vendorModuleRoutesFiles, type: 'vendor' },
+    { files: vendorCoreRoutesFiles, type: 'vendor-core' },
+  ]
 
-    try {
-      const mod = await (loader as () => Promise<any>)()
-      const moduleRoutes = mod.default || mod
-      if (Array.isArray(moduleRoutes)) {
-        // Inject module name into meta for sidebar grouping
-        for (const route of moduleRoutes) {
-          if (!route.meta) route.meta = {}
-          if (!route.meta.module) route.meta.module = moduleName
+  for (const { files, type } of routeSources) {
+    for (const [path, loader] of Object.entries(files)) {
+      const moduleName = extractModuleName(path, type)
+      if (!moduleName) continue
+
+      try {
+        const mod = await (loader as () => Promise<any>)()
+        const moduleRoutes = mod.default || mod
+        if (Array.isArray(moduleRoutes)) {
+          // Inject module name into meta for sidebar grouping
+          for (const route of moduleRoutes) {
+            if (!route.meta) route.meta = {}
+            if (!route.meta.module) route.meta.module = moduleName
+          }
+          routes.push(...moduleRoutes)
         }
-        routes.push(...moduleRoutes)
+      } catch (e) {
+        console.warn(`[ModuleLoader] 加载模块 ${moduleName} 路由失败:`, e)
       }
-    } catch (e) {
-      console.warn(`[ModuleLoader] 加载模块 ${moduleName} 路由失败:`, e)
     }
   }
 
@@ -291,9 +313,17 @@ export async function loadModuleViews(): Promise<ModuleRoute[]> {
   }
 
   const hasCustomRoutes = new Set<string>()
-  for (const [path] of Object.entries({ ...moduleRoutesFiles, ...appModuleRoutesFiles })) {
-    const name = extractModuleName(path, 'local')
-    if (name) hasCustomRoutes.add(name)
+  const routeFileSources: Array<{ files: Record<string, unknown>; type: SourceType }> = [
+    { files: moduleRoutesFiles, type: 'local' },
+    { files: appModuleRoutesFiles, type: 'app' },
+    { files: vendorModuleRoutesFiles, type: 'vendor' },
+    { files: vendorCoreRoutesFiles, type: 'vendor-core' },
+  ]
+  for (const { files, type } of routeFileSources) {
+    for (const [path] of Object.entries(files)) {
+      const name = extractModuleName(path, type)
+      if (name) hasCustomRoutes.add(name)
+    }
   }
 
   const allSources = sources.flatMap(s => [s.fwMap, s.bsMap])

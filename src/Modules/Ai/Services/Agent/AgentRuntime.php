@@ -957,6 +957,15 @@ class AgentRuntime implements AgentRuntimeContract
             $toolError,
         );
 
+        // 审计日志：工具执行事件
+        if (app()->bound(AuditLogService::class)) {
+            app(AuditLogService::class)->logToolExecution(
+                $agentId, $conversationId, $toolName, $toolArguments,
+                $toolOutput ?? ['error' => $toolError],
+                $toolError !== null ? 'failed' : 'success',
+            );
+        }
+
         $toolResult = $toolError !== null
             ? json_encode(['error' => $toolError])
             : (is_string($toolOutput) ? $toolOutput : json_encode($toolOutput));

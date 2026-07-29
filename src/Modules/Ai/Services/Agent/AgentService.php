@@ -146,6 +146,10 @@ class AgentService implements AgentServiceContract
         $agent->save();
 
         Event::dispatch(new AgentEnabled((int) $agent->tenant_id, (int) $agent->agent_id));
+
+        if (app()->bound(AuditLogService::class)) {
+            app(AuditLogService::class)->logAgentToggle((int) $agent->agent_id, $agent->name, true);
+        }
     }
 
     /**
@@ -158,6 +162,10 @@ class AgentService implements AgentServiceContract
         $agent->save();
 
         Event::dispatch(new AgentDisabled((int) $agent->tenant_id, (int) $agent->agent_id));
+
+        if (app()->bound(AuditLogService::class)) {
+            app(AuditLogService::class)->logAgentToggle((int) $agent->agent_id, $agent->name, false);
+        }
     }
 
     /**

@@ -126,13 +126,32 @@ class AiModule implements SchemaModuleInterface
             $table->unique('tenant_id', 'bc_tenant_unique');
             $table->unique('custom_domain', 'bc_domain_unique');
         });
+
+        Schema::create('ai_audit_logs', function (Blueprint $table) {
+            $table->unsignedBigInteger('audit_id')->primary();
+            $table->unsignedBigInteger('tenant_id');
+            $table->unsignedBigInteger('operator_id')->nullable();
+            $table->unsignedBigInteger('agent_id')->nullable();
+            $table->unsignedBigInteger('conversation_id')->nullable();
+            $table->string('action', 50);
+            $table->string('target_type', 50)->nullable();
+            $table->string('target_id', 100)->nullable();
+            $table->string('summary', 500)->nullable();
+            $table->json('detail')->nullable();
+            $table->string('status', 20)->default('success');
+            $table->string('ip_address', 45)->nullable();
+            $table->timestamp('created_at')->nullable();
+
+            $table->index(['tenant_id', 'created_at'], 'idx_audit_tenant_time');
+            $table->index(['tenant_id', 'action'], 'idx_audit_tenant_action');
+        });
     }
 
     public function getTableNames(): array
     {
         return [
             'ai_tenant_configs', 'ai_model_aliases', 'ai_requests',
-            'ai_prompts', 'ai_usage_quotas', 'branding_configs',
+            'ai_prompts', 'ai_usage_quotas', 'branding_configs', 'ai_audit_logs',
         ];
     }
 }

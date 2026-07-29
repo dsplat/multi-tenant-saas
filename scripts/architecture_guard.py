@@ -134,10 +134,32 @@ def check_psr4():
             )
 
 
+# ---------------------------------------------------------------------------
+# 检查 4：AI KB 索引新鲜度（警告，不阻断）
+# ---------------------------------------------------------------------------
+def check_kb_index_freshness():
+    """routes.ts / 工具注册 / module-loader 变更时，提醒重新生成 AI KB 索引。"""
+    added = staged_files("A") + staged_files("M")
+    trigger_patterns = [
+        "resources/console/routes.ts",
+        "AiServiceProvider.php",
+        "AgentService.php",
+        "module-loader.ts",
+        "Services/SystemKb/",
+    ]
+    triggered = [f for f in added if any(p in f for p in trigger_patterns)]
+    if triggered:
+        warnings.append(
+            f"AI KB 索引可能过期（改动: {', '.join(triggered[:3])}）。"
+            f"下游项目部署前请执行: php artisan secretary:kb:index"
+        )
+
+
 def main():
     check_case_collisions()
     check_module_pascalcase()
     check_psr4()
+    check_kb_index_freshness()
 
     for w in warnings:
         print(f"\033[33m[架构守卫 WARN]\033[0m {w}")

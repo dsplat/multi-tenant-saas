@@ -115,6 +115,28 @@ src/Modules/{Name}/
 
 ---
 
+## AI KB 索引维护（强制）
+
+AI 小助手的导航与工具调用能力依赖自动生成的 KB 索引（路由地图 / 工具目录 / API 功能图），由框架内置命令从 routes.ts 与 ToolRegistry 实时提取，**禁止手写**：
+
+```bash
+php artisan secretary:kb:index          # 生成/刷新索引
+php artisan secretary:kb:index --check  # 检查是否过期（可接入 CI）
+```
+
+**下游项目接入（与部署工具无关的默认路径）**：在项目 `composer.json` 添加钩子，任何部署方式只要跑 `composer install/update` 即自动刷新：
+
+```json
+"scripts": {
+    "post-update-cmd": ["@php artisan secretary:kb:index --ansi || true"],
+    "post-install-cmd": ["@php artisan secretary:kb:index --ansi || true"]
+}
+```
+
+开发纪律：改动 `resources/console/routes.ts`、工具注册或 `module-loader.ts` 后必须重新生成；pre-commit 钩子（`scripts/install-hooks.sh` 安装）会在触发文件变更时自动提醒。解析器正确性由守恒测试 `tests/ConsoleRouteMapGeneratorTest.php` 保障。
+
+---
+
 ## 技术栈
 
 PHP ^8.3 · Laravel ^13.0 · MySQL 8.0+ · Redis · Nginx + PHP-FPM · Vue.js 3 + TypeScript + Vite

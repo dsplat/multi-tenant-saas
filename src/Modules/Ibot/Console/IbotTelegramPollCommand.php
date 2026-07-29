@@ -62,12 +62,16 @@ class IbotTelegramPollCommand extends Command
     }
 
     /**
-     * 跨租户加载 active telegram ibots（CLI 无租户上下文，须豁免作用域）
+     * 跨租户加载 active telegram ibots。
+     *
+     * 系统级发现查询，显式绕过 TenantScope（allowUnscoped 在下游配置了
+     * tenancy.default_tenant_id 时会被兜底租户短路，CLI 必须硬豁免）。
      */
     private function loadTelegramIbots()
     {
         return TenantScope::allowUnscoped(function () {
-            $query = Ibot::where('channel_type', Ibot::CHANNEL_TELEGRAM)
+            $query = Ibot::withoutGlobalScope(TenantScope::class)
+                ->where('channel_type', Ibot::CHANNEL_TELEGRAM)
                 ->where('status', Ibot::STATUS_ACTIVE);
 
             if ($this->option('ibot')) {

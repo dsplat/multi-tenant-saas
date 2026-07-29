@@ -6,11 +6,12 @@ use InvalidArgumentException;
 use MultiTenantSaas\Modules\Ibot\Contracts\IbotChannelContract;
 use MultiTenantSaas\Modules\Ibot\Models\Ibot;
 use MultiTenantSaas\Modules\Ibot\Services\Channels\TelegramChannel;
+use MultiTenantSaas\Modules\Ibot\Services\Channels\WechatWorkChannel;
 
 /**
  * 频道解析器 — channel_type → IbotChannelContract 实现
  *
- * P0 仅 Telegram；后续频道（企微/飞书/钉钉/微信 iLink）在 $map 中追加，
+ * 后续频道（飞书/钉钉/微信 iLink）在 $map 中追加，
  * 下游可经 config('ai.ibot.extra_channels') 注入扩展实现。
  */
 class IbotChannelResolver
@@ -18,6 +19,7 @@ class IbotChannelResolver
     /** @var array<string, class-string<IbotChannelContract>> */
     private array $map = [
         Ibot::CHANNEL_TELEGRAM => TelegramChannel::class,
+        Ibot::CHANNEL_WECHAT_WORK => WechatWorkChannel::class,
     ];
 
     public function resolve(Ibot $ibot): IbotChannelContract

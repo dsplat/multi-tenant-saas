@@ -37,6 +37,8 @@ jobs:
             repo: multi-tenant-saas-module-event
           - prefix: 'src/Modules/Form'
             repo: multi-tenant-saas-module-form
+          - prefix: 'src/Modules/Ibot'
+            repo: multi-tenant-saas-module-ibot
           - prefix: 'src/Modules/Infrastructure'
             repo: multi-tenant-saas-module-infrastructure
           - prefix: 'src/Modules/Knowledge'

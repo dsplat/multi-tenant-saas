@@ -1,0 +1,28 @@
+{
+  "name": "dsplat/multi-tenant-saas-module-ibot",
+  "version": "1.0.0",
+  "description": "AI 消息小助理 - IM 机器人网关（operator 扫码绑定，随身 AI 助理）",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\Ibot\\": ""
+    }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "ibot",
+      "priority": 400,
+      "dependencies": ["ai"],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\Ibot\\IbotServiceProvider",
+      "tenant_toggleable": true,
+      "default_enabled": true
+    }
+  }
+}

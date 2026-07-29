@@ -216,6 +216,31 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Ibot 随身 AI 小助理（IM 机器人）
+    |--------------------------------------------------------------------------
+    |
+    | operator 扫码绑定 IM 机器人（P0: Telegram long polling），入向消息
+    | 经 IbotGateway → Job → AgentRuntime。设计稿 docs/ibot.md。
+    |
+    | - enabled: 平台级总开关（默认关闭，AI 可选性铁律）
+    | - bind_code_ttl: 绑定码有效期（秒）
+    | - telegram.api_base: Bot API 地址（测试可指向 fake）
+    | - telegram.poll_timeout: long polling 长连接等待秒数
+    | - extra_channels: 下游扩展频道映射 channel_type => 实现类
+    |
+    */
+    'ibot' => [
+        'enabled' => (bool) env('AI_IBOT_ENABLED', false),
+        'bind_code_ttl' => (int) env('AI_IBOT_BIND_CODE_TTL', 600),
+        'telegram' => [
+            'api_base' => env('AI_IBOT_TELEGRAM_API_BASE', 'https://api.telegram.org'),
+            'poll_timeout' => (int) env('AI_IBOT_TELEGRAM_POLL_TIMEOUT', 30),
+        ],
+        'extra_channels' => [],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | laravel/ai 会话存储配置
     |--------------------------------------------------------------------------
     |

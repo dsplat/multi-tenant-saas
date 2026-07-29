@@ -27,6 +27,7 @@ use MultiTenantSaas\Console\Commands\SecretaryInstallCommand;
 use MultiTenantSaas\Console\Commands\SecretaryKbBuildCommand;
 use MultiTenantSaas\Console\Commands\SecretaryKbGenerateCommand;
 use MultiTenantSaas\Console\Commands\SecretaryKbHarvestCommand;
+use MultiTenantSaas\Console\Commands\SecretaryKbIndexCommand;
 use MultiTenantSaas\Console\Commands\TenancyInitCommand;
 use MultiTenantSaas\Context\TenantConfigStore;
 use MultiTenantSaas\Context\TenantContext;
@@ -165,6 +166,7 @@ class TenancyServiceProvider extends ServiceProvider
                 SecretaryKbBuildCommand::class,
                 SecretaryKbGenerateCommand::class,
                 SecretaryKbHarvestCommand::class,
+                SecretaryKbIndexCommand::class,
             ]);
         }
 

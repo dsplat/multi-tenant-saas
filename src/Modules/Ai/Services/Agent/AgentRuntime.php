@@ -1094,6 +1094,14 @@ class AgentRuntime implements AgentRuntimeContract
         // Prompt 解析链：operator > tenant > system > agent.system_prompt
         $systemPrompt = $this->resolveSystemPrompt($agent, $conversationId);
 
+        // 小秘书专属：注入租户已启用的数字员工名册（实时查询，开通/停用即时生效）
+        if (($agent->role ?? '') === 'system_secretary') {
+            $roster = $this->buildAgentsRoster($agent);
+            if ($roster !== '') {
+                $systemPrompt .= $roster;
+            }
+        }
+
         // 记忆注入：将实体高权重记忆追加到 system prompt 末尾
         if ($this->memoryPipeline !== null && $systemPrompt !== '') {
             $memoryBlock = $this->injectMemory($conversationId);
@@ -1173,6 +1181,45 @@ class AgentRuntime implements AgentRuntimeContract
         try {
             return \DB::table('operators')->where('operator_id', $operatorId)->value('name') ?? '';
         } catch (\Throwable) {
+            return '';
+        }
+    }
+
+    /**
+     * 构建租户已启用数字员工名册（小秘书专用）
+     *
+     * 实时查询，开通/停用即时反映。排除小秘书自身。
+     * 输出格式：Markdown 列表，含 agent_id、名称、职责描述。
+     */
+    private function buildAgentsRoster(Agent $secretary): string
+    {
+        try {
+            $agents = Agent::where('tenant_id', $secretary->tenant_id)
+                ->where('enabled', true)
+                ->where('agent_id', '!=', $secretary->agent_id)
+                ->orderBy('agent_id')
+                ->get(['agent_id', 'name', 'role', 'description']);
+
+            if ($agents->isEmpty()) {
+                return '';
+            }
+
+            $lines = $agents->map(fn ($a) => sprintf(
+                '- **%s**（ID: %d，角色: %s）— %s',
+                $a->name,
+                $a->agent_id,
+                $a->role ?? 'general',
+                $a->description ?? '暂无描述',
+            ))->toArray();
+
+            return "\n\n## 当前团队已启用的数字员工\n"
+                . "当用户的请求匹配以下员工的职责时，使用 delegate_to_agent 工具转派（传入对应 agent_id）：\n"
+                . implode("\n", $lines);
+        } catch (\Throwable $e) {
+            Log::warning('AgentRuntime: 构建员工名册失败（已跳过）', [
+                'error' => $e->getMessage(),
+            ]);
+
             return '';
         }
     }

@@ -258,10 +258,11 @@ class AgentRuntime implements AgentRuntimeContract
         // 构建上下文
         $context = $this->buildContext($agent, $conversationId, $message);
 
-        // 构建 tools 定义
+        // 构建 tools 定义（合并模板工具，确保模板新增工具自动可用）
         $toolDefinitions = [];
-        if (! empty($agent->tools)) {
-            $toolDefinitions = $this->toolRegistry->getToolDefinitions($agent->tools);
+        $effectiveTools = $this->resolveEffectiveTools($agent);
+        if (! empty($effectiveTools)) {
+            $toolDefinitions = $this->toolRegistry->getToolDefinitions($effectiveTools);
         }
 
         // ReAct 循环
@@ -430,10 +431,11 @@ class AgentRuntime implements AgentRuntimeContract
         // 构建上下文
         $context = $this->getConversationContext($conversationId);
 
-        // 构建 tools 定义
+        // 构建 tools 定义（合并模板工具）
         $toolDefinitions = [];
-        if (! empty($agent->tools)) {
-            $toolDefinitions = $this->toolRegistry->getToolDefinitions($agent->tools);
+        $effectiveTools = $this->resolveEffectiveTools($agent);
+        if (! empty($effectiveTools)) {
+            $toolDefinitions = $this->toolRegistry->getToolDefinitions($effectiveTools);
         }
 
         $chatOptions = $this->buildChatOptions($agent, $toolDefinitions);
@@ -609,11 +611,12 @@ class AgentRuntime implements AgentRuntimeContract
         // 保存用户消息
         $this->saveMessage($conversationId, 'user', $message);
 
-        // 构建上下文与工具定义
+        // 构建上下文与工具定义（合并模板工具，确保模板新增工具自动可用）
         $context = $this->buildContext($agent, $conversationId, $message);
         $toolDefinitions = [];
-        if (! empty($agent->tools)) {
-            $toolDefinitions = $this->toolRegistry->getToolDefinitions($agent->tools);
+        $effectiveTools = $this->resolveEffectiveTools($agent);
+        if (! empty($effectiveTools)) {
+            $toolDefinitions = $this->toolRegistry->getToolDefinitions($effectiveTools);
         }
 
         $totalUsage = ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
@@ -1295,6 +1298,33 @@ class AgentRuntime implements AgentRuntimeContract
             $stream->next();
             $valid = $stream->valid();
         }
+    }
+
+    /**
+     * 解析 Agent 的有效工具列表（DB 快照 ∪ 模板最新工具）
+     *
+     * Agent 创建时从模板 clone tools 到 DB，之后模板新增工具不会自动同步。
+     * 此方法在运行时将模板工具合并进来（只增不减），确保模板迭代后已有 Agent 也能使用新工具。
+     *
+     * @return list<string>
+     */
+    private function resolveEffectiveTools(Agent $agent): array
+    {
+        $dbTools = $agent->tools ?? [];
+
+        // 尝试按 role 匹配预置模板
+        $template = BuiltinAgentTemplates::findByKey($agent->role ?? '');
+        if ($template === null) {
+            return $dbTools;
+        }
+
+        $templateTools = $template['tools'] ?? [];
+        if (empty($templateTools)) {
+            return $dbTools;
+        }
+
+        // 合并：DB 已有 + 模板新增（去重，保持顺序）
+        return array_values(array_unique(array_merge($dbTools, $templateTools)));
     }
 
     /**

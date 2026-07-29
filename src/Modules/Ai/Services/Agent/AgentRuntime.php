@@ -46,6 +46,7 @@ class AgentRuntime implements AgentRuntimeContract
         private ?WorkflowEngineContract $workflowEngine = null,
         private ?MemoryCompressor $memoryCompressor = null,
         private ?ActionConfirmService $actionConfirm = null,
+        private ?MemoryPipeline $memoryPipeline = null,
     ) {}
 
     /**
@@ -310,6 +311,9 @@ class AgentRuntime implements AgentRuntimeContract
                 $this->saveMessage($conversationId, 'assistant', $aiResponse->content, [
                     'model' => $aiResponse->model,
                 ]);
+
+                // 记忆提取后置钩子（terminating 回调，不阻断响应）
+                $this->scheduleMemoryExtract($conversationId, $message, $aiResponse->content);
 
                 // 记录会话轮次
                 $this->monitor->logConversationTurn($conversationId, $agentId, [
@@ -829,6 +833,9 @@ class AgentRuntime implements AgentRuntimeContract
             'model' => '',
         ]);
 
+        // 记忆提取后置钩子（terminating 回调，不阻断响应）
+        $this->scheduleMemoryExtract($conversationId, $message, $assistantContent);
+
         // 记录会话轮次
         $this->monitor->logConversationTurn($conversationId, $agentId, [
             'message' => $message,
@@ -1083,10 +1090,20 @@ class AgentRuntime implements AgentRuntimeContract
             }
         }
 
-        if (! $hasSystemPrompt && ! empty($agent->system_prompt)) {
+        $systemPrompt = $agent->system_prompt ?? '';
+
+        // 记忆注入：将实体高权重记忆追加到 system prompt 末尾
+        if ($this->memoryPipeline !== null && $systemPrompt !== '') {
+            $memoryBlock = $this->injectMemory($conversationId);
+            if ($memoryBlock !== '') {
+                $systemPrompt .= $memoryBlock;
+            }
+        }
+
+        if (! $hasSystemPrompt && $systemPrompt !== '') {
             array_unshift($context, [
                 'role' => 'system',
-                'content' => $agent->system_prompt,
+                'content' => $systemPrompt,
             ]);
         }
 
@@ -1100,6 +1117,87 @@ class AgentRuntime implements AgentRuntimeContract
         }
 
         return $context;
+    }
+
+    /**
+     * 记忆注入阶段：从会话解析实体 → 召回高权重记忆 → 格式化为文本块
+     *
+     * fail-open：任何异常返回空字符串，不阻断主链路。
+     */
+    private function injectMemory(int $conversationId): string
+    {
+        try {
+            $conversation = AgentConversation::find($conversationId);
+            if ($conversation === null) {
+                return '';
+            }
+
+            // 确定实体：优先 staff_id（Operator），其次 customer_id
+            $entityType = null;
+            $entityId = null;
+
+            if (! empty($conversation->staff_id)) {
+                $entityType = 'operator';
+                $entityId = (int) $conversation->staff_id;
+            } elseif (! empty($conversation->customer_id)) {
+                $entityType = 'customer';
+                $entityId = (int) $conversation->customer_id;
+            }
+
+            if ($entityType === null) {
+                return '';
+            }
+
+            return $this->memoryPipeline->inject($entityType, $entityId);
+        } catch (\Throwable $e) {
+            Log::warning('AgentRuntime: 记忆注入失败（已跳过）', [
+                'conversation_id' => $conversationId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return '';
+        }
+    }
+
+    /**
+     * 记忆提取后置钩子：对话结束后从用户消息中提取值得记住的信息
+     *
+     * 以 terminating 回调执行，不阻断响应返回。
+     */
+    private function scheduleMemoryExtract(int $conversationId, string $userMessage, string $assistantReply): void
+    {
+        if ($this->memoryPipeline === null) {
+            return;
+        }
+
+        app()->terminating(function () use ($conversationId, $userMessage, $assistantReply): void {
+            try {
+                $conversation = AgentConversation::find($conversationId);
+                if ($conversation === null) {
+                    return;
+                }
+
+                $entityType = null;
+                $entityId = null;
+
+                if (! empty($conversation->staff_id)) {
+                    $entityType = 'operator';
+                    $entityId = (int) $conversation->staff_id;
+                } elseif (! empty($conversation->customer_id)) {
+                    $entityType = 'customer';
+                    $entityId = (int) $conversation->customer_id;
+                }
+
+                if ($entityType !== null) {
+                    $this->memoryPipeline->extract($entityType, $entityId, $userMessage, $assistantReply);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('AgentRuntime: 记忆提取失败（已跳过）', [
+                    'conversation_id' => $conversationId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        });
     }
 
     /**

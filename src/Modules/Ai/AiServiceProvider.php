@@ -47,9 +47,8 @@ use MultiTenantSaas\Modules\Ai\Services\Capability\TagCapability;
 use MultiTenantSaas\Modules\Ai\Services\Capability\TranslateCapability;
 use MultiTenantSaas\Modules\Ai\Services\Capability\VisionCapability;
 use MultiTenantSaas\Modules\Ai\Services\IntentRouter;
-use MultiTenantSaas\Modules\Ai\Services\Memory\EntityMemory;
-use MultiTenantSaas\Modules\Ai\Services\Memory\MemoryPipeline;
-use MultiTenantSaas\Modules\Ai\Services\Memory\TenantMemory;
+use MultiTenantSaas\Modules\Ai\Services\Agent\EntityMemoryService;
+use MultiTenantSaas\Modules\Ai\Services\Agent\MemoryPipeline;
 use MultiTenantSaas\Modules\Ai\Services\SystemKb\KbSuggestionService;
 use MultiTenantSaas\Modules\Ai\Services\SystemKb\ModuleFactScanner;
 use MultiTenantSaas\Modules\Ai\Services\SystemKb\SystemKbDocBuilder;
@@ -101,7 +100,7 @@ class AiServiceProvider extends ModuleServiceProvider
         $this->app->alias(ToolRegistryContract::class, ToolRegistry::class);
         $this->app->singleton(MemoryCompressor::class, fn ($app) => new MemoryCompressor($app->make(AiTextServiceContract::class), $app->make(TenantContextContract::class)));
         $this->app->singleton(ActionConfirmService::class, fn () => new ActionConfirmService);
-        $this->app->singleton(AgentRuntimeContract::class, fn ($app) => new AgentRuntime($app->make(AiTextServiceContract::class), $app->make(ToolRegistryContract::class), $app->make(AgentMonitorContract::class), $app->make(TenantContextContract::class), $app->bound(WorkflowEngineContract::class) ? $app->make(WorkflowEngineContract::class) : null, $app->bound(MemoryCompressor::class) ? $app->make(MemoryCompressor::class) : null, $app->make(ActionConfirmService::class)));
+        $this->app->singleton(AgentRuntimeContract::class, fn ($app) => new AgentRuntime($app->make(AiTextServiceContract::class), $app->make(ToolRegistryContract::class), $app->make(AgentMonitorContract::class), $app->make(TenantContextContract::class), $app->bound(WorkflowEngineContract::class) ? $app->make(WorkflowEngineContract::class) : null, $app->bound(MemoryCompressor::class) ? $app->make(MemoryCompressor::class) : null, $app->make(ActionConfirmService::class), $app->bound(MemoryPipeline::class) ? $app->make(MemoryPipeline::class) : null));
         $this->app->alias(AgentRuntimeContract::class, AgentRuntime::class);
         $this->app->singleton(McpToolRegistryContract::class, fn ($app) => new McpToolRegistry($app->make(Container::class)));
         $this->app->alias(McpToolRegistryContract::class, McpToolRegistry::class);
@@ -129,10 +128,9 @@ class AiServiceProvider extends ModuleServiceProvider
             return $registry;
         });
         $this->app->alias(CapabilityContract::class, CapabilityRegistry::class);
-        $this->app->singleton(MemoryPipeline::class, fn ($app) => new MemoryPipeline($app->make(TenantContextContract::class)));
-        $this->app->bind(TenantMemory::class, fn ($app) => new TenantMemory((int) $app->make(TenantContextContract::class)->resolveId()));
-        $this->app->alias(TenantMemory::class, MemoryContract::class);
-        $this->app->bind(EntityMemory::class, fn ($app) => new EntityMemory((int) $app->make(TenantContextContract::class)->resolveId()));
+        $this->app->singleton(EntityMemoryService::class, fn ($app) => new EntityMemoryService($app->make(TenantContextContract::class)));
+        $this->app->alias(EntityMemoryService::class, MemoryContract::class);
+        $this->app->singleton(MemoryPipeline::class, fn ($app) => new MemoryPipeline($app->make(EntityMemoryService::class), $app->make(TenantContextContract::class)));
         $this->app->singleton(AiGatewayService::class);
         $this->app->singleton(AiVideoService::class);
 

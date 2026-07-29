@@ -6,7 +6,7 @@
  * AI 产出标注：assistant 消息带「AI」徽标，与用户消息视觉区分。
  * assistant 正文按 Markdown 渲染（加粗/列表/链接），站内链接点击路由切换、面板不关闭。
  */
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAssistantStore } from '../../stores/assistant'
 import type { ChatMessage } from '../types'
@@ -107,6 +107,20 @@ function handleNavigate(routePath: string) {
   // 面板不动，页面切换（非阻塞铁律）；同样走路由存在性校验
   safePush(routePath)
 }
+
+/** 自动跳转：最新消息含 navigate 时自动执行一次路由跳转，无需用户手动点击 */
+const autoNavigated = ref(false)
+onMounted(() => {
+  if (autoNavigated.value || isUser.value) return
+  const navs = navigateActions.value
+  if (navs.length === 0) return
+  // 仅对最新一条 assistant 消息自动跳转（避免历史消息滚动时误触发）
+  const msgs = store.messages
+  const lastAssistant = [...msgs].reverse().find(m => m.role === 'assistant')
+  if (lastAssistant?.id !== props.message.id) return
+  autoNavigated.value = true
+  safePush(navs[0].route_path)
+})
 
 function handleDelegate(a: Record<string, any>) {
   emit('delegate', {

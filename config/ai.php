@@ -72,7 +72,9 @@ return [
             'driver' => 'groq',
             'key' => env('GROQ_API_KEY', ''),
         ],
-        // 阿里云百炼（OpenAI 兼容 dashscope 端点），平台级小秘书默认后端
+        // 阿里云百炼主通道（OpenAI 兼容端点），平台级小秘书默认后端。
+        // 生产环境指向 Token Plan 包量套餐端点（token-plan.cn-beijing.maas.aliyuncs.com），
+        // models 为离线兜底清单，真实可用清单以 ai:models:sync 拉取的动态缓存为准。
         'bailian' => [
             'driver' => 'openai',
             'key' => env('AI_BAILIAN_API_KEY', ''),
@@ -80,8 +82,39 @@ return [
             // SaaS 网关层兼容字段
             'base_url' => env('AI_BAILIAN_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1'),
             'api_key' => env('AI_BAILIAN_API_KEY', ''),
-            'models' => ['qwen3.6-flash', 'qwen-flash', 'qwen-turbo', 'qwen-plus', 'deepseek-v3', 'mimo-2.5'],
+            'models' => [
+                'qwen3.8-max-preview', 'qwen3.7-max', 'qwen3.7-plus', 'qwen3.6-plus', 'qwen3.6-flash',
+                'deepseek-v4-pro', 'deepseek-v4-flash', 'deepseek-v3.2',
+                'glm-5', 'glm-5.1', 'glm-5.2',
+                'kimi-k2.5', 'kimi-k2.6', 'kimi-k2.7-code', 'MiniMax-M2.5',
+                'qwen-image-2.0', 'qwen-image-2.0-pro', 'wan2.7-image', 'wan2.7-image-pro',
+            ],
         ],
+        // 阿里云百炼按量付费备用通道（dashscope 按量 key），仅套餐不可用时应急切换
+        'bailian_metered' => [
+            'driver' => 'openai',
+            'key' => env('AI_BAILIAN_METERED_API_KEY', ''),
+            'url' => env('AI_BAILIAN_METERED_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1'),
+            // SaaS 网关层兼容字段
+            'base_url' => env('AI_BAILIAN_METERED_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1'),
+            'api_key' => env('AI_BAILIAN_METERED_API_KEY', ''),
+            'models' => ['qwen3.7-plus', 'qwen3.6-flash', 'qwen-plus', 'qwen-turbo', 'deepseek-v3.2'],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | 动态模型清单（ai:models:sync）
+    |--------------------------------------------------------------------------
+    |
+    | AiModelCatalogService 调 provider 的 /models 端点拉取真实可用清单并
+    | 缓存（TTL 默认 1 天），providers.*.models 手写数组仅作网络不可达时的
+    | 离线兜底。定时刷新：php artisan ai:models:sync。
+    |
+    */
+    'model_catalog' => [
+        'cache_ttl' => (int) env('AI_MODEL_CATALOG_TTL', 86400),
+        'timeout' => (int) env('AI_MODEL_CATALOG_TIMEOUT', 15),
     ],
 
     // 默认 provider 名称（仅 laravel/ai SDK 内部使用）
@@ -107,7 +140,7 @@ return [
         'provider' => env('SECRETARY_AI_PROVIDER', 'bailian'),
         'model' => env('SECRETARY_AI_MODEL', 'qwen3.6-flash'),
         'fallback_provider' => env('SECRETARY_AI_FALLBACK_PROVIDER', 'bailian'),
-        'fallback_model' => env('SECRETARY_AI_FALLBACK_MODEL', 'deepseek-v3'),
+        'fallback_model' => env('SECRETARY_AI_FALLBACK_MODEL', 'deepseek-v4-flash'),
         'temperature' => (float) env('SECRETARY_AI_TEMPERATURE', 0.3),
         'max_tokens' => (int) env('SECRETARY_AI_MAX_TOKENS', 2000),
         'max_tool_calls' => (int) env('SECRETARY_AI_MAX_TOOL_CALLS', 5),
@@ -116,6 +149,9 @@ return [
         // 下游扩展模板类（需提供静态 definitions(): array，如 ScrmAgentTemplates），
         // 用于数字员工名录生成与转派路由
         'extra_template_classes' => [],
+        // 下游扩展设置完善度检查类（需提供 checks(int $tenantId): array，
+        // 如 SCRM 的渠道配置检查），供开场引导 setup_checklist 消费
+        'extra_setup_checkers' => [],
     ],
 
     /*

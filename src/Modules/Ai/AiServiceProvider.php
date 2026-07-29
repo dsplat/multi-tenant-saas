@@ -67,6 +67,7 @@ use MultiTenantSaas\Modules\Ai\Services\Tool\EmbeddingGenerateTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\EnableAgentTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\FileReadTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\FileWriteTool;
+use MultiTenantSaas\Modules\Ai\Services\Tool\GeneratePosterTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\HttpRequestTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\ListAgentsTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\LlmCallTool;
@@ -180,7 +181,8 @@ class AiServiceProvider extends ModuleServiceProvider
         $registry->register('ocr_recognize', 'OCR Recognize', 'Extract text from image', OcrRecognizeTool::class, ['type' => 'object', 'properties' => ['image_url' => ['type' => 'string']]], 'ai');
         $registry->register('vector_search', 'Vector Search', 'Search similar content', VectorSearchTool::class, ['type' => 'object', 'properties' => ['query' => ['type' => 'string']], 'required' => ['query']], 'kb');
         $registry->register('embedding_generate', 'Generate Embedding', 'Generate embeddings', EmbeddingGenerateTool::class, ['type' => 'object', 'properties' => ['text' => ['type' => 'string']], 'required' => ['text']], 'ai');
-        $registry->register('document_parse', 'Parse Document', 'Parse a document', DocumentParseTool::class, ['type' => 'object', 'properties' => ['file_id' => ['type' => 'string']]], 'storage');
+        $registry->register('document_parse', 'Parse Document', 'Extract plain text from an uploaded document (txt/md/csv/xlsx/docx/pdf) so its content can be used in the conversation', DocumentParseTool::class, ['type' => 'object', 'properties' => ['file_id' => ['type' => 'string', 'description' => '已上传文件的 ID（file_upload_id）']], 'required' => ['file_id']], 'storage');
+        $registry->register('generate_poster', 'Generate Poster', 'Generate a poster image from a text brief (theme, copywriting and style); returns image URLs for the chat card', GeneratePosterTool::class, ['type' => 'object', 'properties' => ['prompt' => ['type' => 'string', 'description' => '海报描述：主题、文案、风格、配色等'], 'size' => ['type' => 'string', 'description' => '图片尺寸（可选，如 1024x1024 / 1024x1792）'], 'model' => ['type' => 'string', 'description' => '图像模型（可选，默认 qwen-image-2.0）']], 'required' => ['prompt']], 'ai');
 
         // 系统小秘书专属工具（category=secretary）
         $registry->register('system_kb_search', 'System KB Search', 'Search the platform system knowledge base for how-to guides, feature locations and business flows', SystemKbSearchTool::class, ['type' => 'object', 'properties' => ['query' => ['type' => 'string', 'description' => '检索问题（自然语言）'], 'top_k' => ['type' => 'integer', 'description' => '返回片段数 1-10，默认 5']], 'required' => ['query']], 'secretary');

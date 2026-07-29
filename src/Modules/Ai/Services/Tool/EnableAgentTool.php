@@ -3,7 +3,7 @@
 namespace MultiTenantSaas\Modules\Ai\Services\Tool;
 
 use MultiTenantSaas\Modules\Ai\Models\Agent;
-use MultiTenantSaas\Modules\Ai\Services\Agent\BuiltinAgentTemplates;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentTemplateRegistry;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
 
 /**
@@ -15,7 +15,7 @@ use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
  * 逻辑：
  * 1. 按 role 查找租户已有 agent → 已启用则直接返回
  * 2. 已有但停用 → 重新启用
- * 3. 不存在 → 从 BuiltinAgentTemplates 克隆创建（enabled=true）
+ * 3. 不存在 → 从 AgentTemplateRegistry（框架模板 + 下游扩展模板）克隆创建（enabled=true）
  */
 class EnableAgentTool implements ToolHandlerContract
 {
@@ -60,8 +60,8 @@ class EnableAgentTool implements ToolHandlerContract
             ];
         }
 
-        // 2. 从模板克隆创建
-        $template = BuiltinAgentTemplates::findByKey($role);
+        // 2. 从模板克隆创建（框架模板 + 下游注册模板）
+        $template = AgentTemplateRegistry::findByKey($role);
 
         if ($template === null) {
             return [

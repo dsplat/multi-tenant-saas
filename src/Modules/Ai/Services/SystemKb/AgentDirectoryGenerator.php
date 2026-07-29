@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Modules\Ai\Services\SystemKb;
 
-use MultiTenantSaas\Modules\Ai\Services\Agent\BuiltinAgentTemplates;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentTemplateRegistry;
 
 /**
  * 数字员工名录生成器（机器文档）
@@ -59,28 +59,12 @@ class AgentDirectoryGenerator
     }
 
     /**
-     * 框架模板 + 下游扩展模板
-     *
-     * 下游模板类须提供静态 definitions(): array 方法（与 BuiltinAgentTemplates 同构）。
+     * 框架模板 + 下游扩展模板（经 AgentTemplateRegistry 归一）
      *
      * @return list<array<string, mixed>>
      */
     private function allTemplates(): array
     {
-        $templates = BuiltinAgentTemplates::definitions();
-
-        foreach ((array) config('ai.secretary.extra_template_classes', []) as $class) {
-            if (! is_string($class) || ! class_exists($class) || ! method_exists($class, 'definitions')) {
-                continue;
-            }
-
-            $extra = $class::definitions();
-
-            if (is_array($extra)) {
-                $templates = array_merge($templates, $extra);
-            }
-        }
-
-        return $templates;
+        return AgentTemplateRegistry::definitions();
     }
 }

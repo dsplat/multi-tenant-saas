@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Octane\Octane;
+use MultiTenantSaas\Console\Commands\AgentsEnableCommand;
+use MultiTenantSaas\Console\Commands\AiModelsSyncCommand;
 use MultiTenantSaas\Console\Commands\BackupListCommand;
 use MultiTenantSaas\Console\Commands\BackupRestoreCommand;
 use MultiTenantSaas\Console\Commands\BackupRunCommand;
@@ -162,6 +164,8 @@ class TenancyServiceProvider extends ServiceProvider
                 BackupRunCommand::class,
                 BackupListCommand::class,
                 BackupRestoreCommand::class,
+                AiModelsSyncCommand::class,
+                AgentsEnableCommand::class,
                 SecretaryInstallCommand::class,
                 SecretaryKbBuildCommand::class,
                 SecretaryKbGenerateCommand::class,

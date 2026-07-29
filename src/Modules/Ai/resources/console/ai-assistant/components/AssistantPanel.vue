@@ -5,28 +5,56 @@
  * 可控制铁律：写操作先草稿后人确认；随时可中断流式输出。
  * 可预期铁律：顶部展示当前 agent 角色 + 能力说明；快捷指令明示可做什么。
  */
-import { ref, nextTick, watch, computed } from 'vue'
+import { ref, nextTick, watch, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAssistantStore } from '../../stores/assistant'
 import { usePageContext } from '../composables/usePageContext'
 import { useAssistantStream } from '../composables/useAssistantStream'
+import { useAssistantHistory } from '../composables/useAssistantHistory'
+import { useSuggestions } from '../composables/useSuggestions'
 import ChatMessage from './ChatMessage.vue'
+import HistoryList from './HistoryList.vue'
 
 const store = useAssistantStore()
 const router = useRouter()
 const { pageContext } = usePageContext()
 const { send, abort, streaming } = useAssistantStream()
+const { restore } = useAssistantHistory()
+const { data: suggestions, fetchSuggestions } = useSuggestions()
 
 const input = ref('')
 const chatScroll = ref<HTMLElement | null>(null)
+/** 历史会话视图开关（面板内覆盖视图，避免抽屉套抽屉） */
+const showHistory = ref(false)
 
-/** 快捷指令（可预期：明示 AI 能做什么） */
+/** 内置快捷指令（suggestions 接口不可用时的兜底；对话中快捷栏仍用） */
 const quickCommands = [
   { label: '分析', icon: '📊', intent: '分析当前页面的数据，给出洞察和改进建议' },
   { label: '填表', icon: '✍️', intent: '根据我的描述智能填写当前表单（请告诉我具体需求）' },
   { label: '帮助', icon: '💡', intent: '告诉我当前页面可以做什么，给出操作指引' },
   { label: '创建', icon: '✨', intent: '帮我创建一个新内容（请告诉我具体需求）' },
 ]
+
+/** 空状态建议 chips：优先页面感知建议，接口未就绪时回退内置快捷指令 */
+const emptyHints = computed(() => {
+  const pageSuggestions = suggestions.value?.page_suggestions ?? []
+  if (pageSuggestions.length > 0) {
+    return pageSuggestions.map(s => ({ label: s, intent: s }))
+  }
+  return quickCommands.map(c => ({ label: `${c.icon} ${c.label}`, intent: c.intent }))
+})
+
+/** 继续聊入口（排除当前会话） */
+const historySuggestions = computed(() =>
+  (suggestions.value?.history_suggestions ?? []).filter(h => h.conversation_id !== store.conversationId))
+
+/** 设置完善度（仅 tenant_admin 返回；全部完成时不展示引导条） */
+const setupChecklist = computed(() => {
+  const checklist = suggestions.value?.setup_checklist
+  if (!checklist || checklist.completed >= checklist.total) return null
+  return checklist
+})
+const undoneSetupItems = computed(() => setupChecklist.value?.items.filter(i => !i.done) ?? [])
 
 const agentLabel = computed(() => {
   // 统一命名，不跟页面变
@@ -109,12 +137,38 @@ function handleClear() {
   store.clearMessages()
 }
 
+/** 新建会话：清空当前对话并刷新开场引导（历史建议需含刚结束的会话） */
+function handleNewConversation() {
+  showHistory.value = false
+  store.startNewConversation()
+  fetchSuggestions(true)
+}
+
+/** 切换到历史会话：重置状态后由历史恢复流程拉取消息 */
+async function handleSelectConversation(conversationId: number) {
+  showHistory.value = false
+  store.switchConversation(conversationId)
+  await restore()
+  await scrollToBottom()
+}
+
+/** 设置引导项跳转（关闭面板避免遮挡目标页） */
+function goToSetupItem(route: string | null) {
+  if (!route) return
+  store.closePanel()
+  router.push(route)
+}
+
 /** 跳转到数字员工页面 */
 function goToAgents() {
   store.closePanel()
   router.push('/agents')
 }
 
+onMounted(() => {
+  // 空会话时异步拉开场引导（不阻塞面板渲染，失败回退内置建议）
+  if (store.messages.length === 0) fetchSuggestions()
+})
 
 </script>
 
@@ -130,6 +184,13 @@ function goToAgents() {
         </div>
       </div>
       <div class="header-actions">
+        <button class="icon-btn" title="新建会话" @click="handleNewConversation">＋</button>
+        <button
+          class="icon-btn"
+          :class="{ active: showHistory }"
+          title="历史会话"
+          @click="showHistory = !showHistory"
+        >🕘</button>
         <button class="icon-btn" title="清空对话" @click="handleClear">🗑</button>
         <button
           class="icon-btn"
@@ -157,6 +218,15 @@ function goToAgents() {
     <!-- 已启用：正常对话区 -->
     <template v-else>
 
+    <!-- 历史会话视图（面板内覆盖） -->
+    <HistoryList
+      v-if="showHistory"
+      @select="handleSelectConversation"
+      @close="showHistory = false"
+    />
+
+    <template v-else>
+
     <!-- 对话区 -->
     <div ref="chatScroll" class="chat-scroll">
       <!-- 空状态引导 -->
@@ -169,12 +239,44 @@ function goToAgents() {
         </div>
         <div class="empty-hints">
           <button
-            v-for="cmd in quickCommands"
-            :key="cmd.label"
+            v-for="hint in emptyHints"
+            :key="hint.intent"
             class="hint-chip"
-            @click="handleQuick(cmd.intent)"
+            @click="handleQuick(hint.intent)"
           >
-            {{ cmd.icon }} {{ cmd.label }}
+            {{ hint.label }}
+          </button>
+        </div>
+
+        <!-- 继续上次的对话 -->
+        <div v-if="historySuggestions.length > 0" class="suggest-block">
+          <div class="suggest-label">继续上次的对话</div>
+          <button
+            v-for="h in historySuggestions"
+            :key="h.conversation_id"
+            class="continue-item"
+            @click="handleSelectConversation(h.conversation_id)"
+          >
+            <span class="continue-subject">{{ h.subject || '未命名会话' }}</span>
+            <span class="continue-arrow">→</span>
+          </button>
+        </div>
+
+        <!-- 租户设置完善度引导（仅管理员可见，后端已按角色过滤） -->
+        <div v-if="setupChecklist" class="setup-block">
+          <div class="suggest-label">
+            完善团队设置（{{ setupChecklist.completed }}/{{ setupChecklist.total }}）
+          </div>
+          <button
+            v-for="item in undoneSetupItems"
+            :key="item.key"
+            class="setup-item"
+            :title="item.description"
+            @click="goToSetupItem(item.route)"
+          >
+            <span class="setup-dot">○</span>
+            <span class="setup-label">{{ item.label }}</span>
+            <span class="continue-arrow">→</span>
           </button>
         </div>
       </div>
@@ -214,6 +316,7 @@ function goToAgents() {
     <div v-if="store.available" class="panel-footer">
       <span class="ai-note">内容由 AI 生成，仅供参考</span>
     </div>
+    </template>
     </template>
   </div>
 </template>
@@ -281,6 +384,35 @@ function goToAgents() {
   background: color-mix(in srgb, var(--ac, #10b981) 18%, transparent);
   transform: translateY(-1px);
 }
+
+/* 开场引导块（继续聊 / 设置完善度） */
+.suggest-block, .setup-block {
+  margin-top: 20px;
+  text-align: left;
+}
+.suggest-label {
+  font-size: 11px; font-weight: 600;
+  color: var(--text-color-secondary, #64748b);
+  margin-bottom: 6px; padding-left: 2px;
+}
+.continue-item, .setup-item {
+  display: flex; align-items: center; gap: 6px;
+  width: 100%; padding: 8px 10px; margin-bottom: 4px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 10px; background: var(--fill-color, #f8fafc);
+  font-size: 12px; color: var(--text-color-primary, #0f172a);
+  cursor: pointer; transition: all 0.15s; text-align: left;
+}
+.continue-item:hover, .setup-item:hover {
+  border-color: var(--ac, #10b981);
+  background: color-mix(in srgb, var(--ac, #10b981) 6%, transparent);
+}
+.continue-subject, .setup-label {
+  flex: 1; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.continue-arrow { font-size: 12px; color: var(--ac, #10b981); flex-shrink: 0; }
+.setup-dot { color: var(--text-color-secondary, #64748b); flex-shrink: 0; }
 
 /* 快捷指令 */
 .quick-bar {

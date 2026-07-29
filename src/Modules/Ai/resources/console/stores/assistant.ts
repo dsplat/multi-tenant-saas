@@ -260,6 +260,23 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     persistConversation()
   }
 
+  /** 切换到历史会话（多会话管理）：清空当前消息并重置 hydrated，由历史恢复流程重新拉取 */
+  function switchConversation(id: number) {
+    if (conversationId.value === id && messages.value.length > 0) return
+    messages.value = []
+    targetAgentId.value = null
+    targetAgentName.value = null
+    conversationId.value = id
+    hydrated.value = false
+    persistConversation()
+  }
+
+  /** 新建会话：清空当前对话与持久化，不再触发历史恢复 */
+  function startNewConversation() {
+    clearMessages()
+    hydrated.value = true
+  }
+
   return {
     // state
     available, availabilityLoaded, userEnabled,
@@ -274,6 +291,7 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     pushUserMessage, startAssistantMessage, appendText, appendToolCalls, setFormFill, setWorkflow,
     setActionConfirm, updateActionConfirmStatus, pushAssistantMessage,
     finishMessage, pushError, setStreaming, setConversationId, setTargetAgent, clearMessages,
+    switchConversation, startNewConversation,
     hydrateMessages, markHydrated,
   }
 })

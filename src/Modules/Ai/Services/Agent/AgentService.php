@@ -171,12 +171,13 @@ class AgentService implements AgentServiceContract
     /**
      * 获取预置模板列表
      *
-     * 框架提供 8 个角色骨架空模板（客服/销售/营销/数据分析等），
-     * feature_keys 留空由业务层填充。
+     * 框架提供小秘书与 8 个角色空模板（客服/销售/营销/数据分析等），
+     * feature_keys 留空由业务层填充；下游通过
+     * config('ai.secretary.extra_template_classes') 注册的模板一并返回。
      */
     public function getBuiltinTemplates(): SupportCollection
     {
-        return BuiltinAgentTemplates::all();
+        return collect(AgentTemplateRegistry::definitions());
     }
 
     /**
@@ -191,7 +192,7 @@ class AgentService implements AgentServiceContract
      */
     public function cloneFromTemplate(int $templateId, int $tenantId, array $overrides = []): Agent
     {
-        $template = BuiltinAgentTemplates::find($templateId);
+        $template = AgentTemplateRegistry::find($templateId);
 
         if ($template === null) {
             throw new \InvalidArgumentException("预置模板 [{$templateId}] 不存在");

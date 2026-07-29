@@ -53,6 +53,47 @@ export interface HistoryMessage {
   created_at?: string | null
 }
 
+/** 会话摘要（GET /ai/assistant/conversations 返回） */
+export interface ConversationSummary {
+  conversation_id: number
+  agent_id: number
+  subject: string | null
+  status: string
+  updated_at?: string | null
+}
+
+/** 历史会话建议（继续聊入口） */
+export interface HistorySuggestion {
+  conversation_id: number
+  subject: string | null
+  updated_at?: string | null
+}
+
+/** 租户设置完善度检查项（仅 tenant_admin 返回） */
+export interface SetupChecklistItem {
+  key: string
+  label: string
+  done: boolean
+  route: string | null
+  description: string
+}
+
+/** 设置完善度清单 */
+export interface SetupChecklist {
+  items: SetupChecklistItem[]
+  completed: number
+  total: number
+}
+
+/** 开场引导数据（GET /ai/assistant/suggestions 返回） */
+export interface SuggestionData {
+  page_suggestions: string[]
+  history_suggestions: HistorySuggestion[]
+  /** 预设任务链（引擎就位前固定空数组，见 docs/task-chain.md） */
+  task_chains: unknown[]
+  setup_checklist: SetupChecklist | null
+}
+
 /** 表单智能填充建议（AI → 前端） */
 export interface FormFillSuggestion {
   /** 字段名 → 建议值 */

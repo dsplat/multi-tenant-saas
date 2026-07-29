@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Ai\Models\AiRequest;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Providers\BailianImageProvider;
 use MultiTenantSaas\Modules\Ai\Services\Ai\Providers\DalleImageProvider;
 use MultiTenantSaas\Modules\Ai\Services\Ai\StableDiffusionProvider;
 use MultiTenantSaas\Modules\Storage\Models\FileUpload;
@@ -42,6 +43,7 @@ class AiImageService
     protected const PROVIDER_CLASS_MAP = [
         'dalle' => DalleImageProvider::class,
         'stability' => StableDiffusionProvider::class,
+        'bailian' => BailianImageProvider::class,
     ];
 
     /**
@@ -57,6 +59,10 @@ class AiImageService
         'sdxl' => 'stability',
         'stable-diffusion-xl' => 'stability',
         'stable-diffusion' => 'stability',
+        'qwen-image-2.0' => 'bailian',
+        'qwen-image-2.0-pro' => 'bailian',
+        'wan2.7-image' => 'bailian',
+        'wan2.7-image-pro' => 'bailian',
     ];
 
     /**

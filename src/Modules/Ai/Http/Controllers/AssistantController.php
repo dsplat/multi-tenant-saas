@@ -15,6 +15,7 @@ use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversationMessage;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService;
 use MultiTenantSaas\Modules\Ai\Services\Ai\StreamChunk;
+use MultiTenantSaas\Modules\Ai\Services\Assistant\TenantSetupChecker;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -252,6 +253,169 @@ class AssistantController extends Controller
                 'messages' => $messages,
             ],
         ]);
+    }
+
+    /**
+     * 小助手历史会话列表（多会话管理）。
+     *
+     * GET /v1/ai/assistant/conversations?page=1&per_page=20
+     * 仅返回本租户 channel=assistant 的会话，按最近活跃倒序分页。
+     */
+    public function conversations(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'page' => 'nullable|integer|min:1',
+            'per_page' => 'nullable|integer|min:1|max:50',
+        ]);
+
+        $tenantId = (int) $this->tenantContext->resolveId();
+
+        $paginator = AgentConversation::where('tenant_id', $tenantId)
+            ->where('channel', 'assistant')
+            ->orderByDesc('updated_at')
+            ->paginate(
+                (int) ($validated['per_page'] ?? 20),
+                ['*'],
+                'page',
+                (int) ($validated['page'] ?? 1),
+            );
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'conversations' => collect($paginator->items())->map(fn ($c) => [
+                    'conversation_id' => (int) $c->conversation_id,
+                    'agent_id' => (int) $c->agent_id,
+                    'subject' => $c->subject,
+                    'status' => $c->status,
+                    'updated_at' => $c->updated_at?->toISOString(),
+                ])->all(),
+                'meta' => [
+                    'current_page' => $paginator->currentPage(),
+                    'last_page' => $paginator->lastPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * 删除小助手会话（连同消息）。
+     *
+     * DELETE /v1/ai/assistant/conversations/{conversationId}
+     * 仅限本租户 channel=assistant 的会话，防止越权删除数字员工业务会话。
+     */
+    public function deleteConversation(Request $request, int $conversationId): JsonResponse
+    {
+        $tenantId = (int) $this->tenantContext->resolveId();
+
+        $conversation = AgentConversation::where('tenant_id', $tenantId)
+            ->where('channel', 'assistant')
+            ->where('conversation_id', $conversationId)
+            ->first();
+
+        if (! $conversation) {
+            return response()->json([
+                'success' => false,
+                'message' => '会话不存在或不属于当前团队。',
+            ], 404);
+        }
+
+        AgentConversationMessage::where('conversation_id', $conversationId)->delete();
+        $conversation->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => '会话已删除。',
+        ]);
+    }
+
+    /**
+     * 新会话开场引导（建议推荐 + 设置完善度）。
+     *
+     * GET /v1/ai/assistant/suggestions?route=/customers&module=Customer
+     * 返回四块：
+     *  - page_suggestions   按当前页面路由规则匹配的建议话术
+     *  - history_suggestions 最近会话主题（继续聊入口）
+     *  - task_chains         预设任务链（引擎就位前返回空数组，见 docs/task-chain.md）
+     *  - setup_checklist     租户设置完善度（仅 tenant_admin 返回）
+     */
+    public function suggestions(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'route' => 'nullable|string|max:255',
+            'module' => 'nullable|string|max:100',
+        ]);
+
+        $tenantId = (int) $this->tenantContext->resolveId();
+
+        $data = [
+            'page_suggestions' => $this->pageSuggestions((string) ($validated['route'] ?? '')),
+            'history_suggestions' => $this->historySuggestions($tenantId),
+            // 预设任务链契约先行：引擎实现前固定空数组（docs/task-chain.md）
+            'task_chains' => [],
+            'setup_checklist' => null,
+        ];
+
+        // 设置完善度仅对团队管理员可见（复用代操作权限切面，非管理员不报错只省略）
+        if ($this->ensureOperatorCanExecute($request, $tenantId) === null) {
+            $data['setup_checklist'] = app(TenantSetupChecker::class)->checklist($tenantId);
+        }
+
+        return response()->json(['success' => true, 'data' => $data]);
+    }
+
+    /**
+     * 页面感知建议：按路由前缀最长匹配规则表，未命中返回通用建议。
+     *
+     * 路由取值以 KB 路由地图（ConsoleRouteMapGenerator 产出）为准。
+     *
+     * @return list<string>
+     */
+    private function pageSuggestions(string $route): array
+    {
+        $rules = [
+            '/customers' => ['帮我给最近 7 天新增的客户打标签', '分析当前客户列表的画像分布'],
+            '/marketing' => ['帮我策划一个拉新活动', '看看正在进行的活动效果如何'],
+            '/analytics' => ['本周经营数据帮我分析一下', '生成一份本月运营周报'],
+            '/agents' => ['带我看看有哪些数字员工', '帮我启用合适的数字员工'],
+            '/members' => ['邀请一位新成员加入团队', '给新成员分配合适的角色权限'],
+            '/external-kb' => ['帮我检查知识库连接状态', '知识库里有哪些内容可以用？'],
+            '/dashboard' => ['带我熟悉一下系统功能', '今天有哪些重点数据需要关注？'],
+        ];
+
+        $matched = null;
+        $matchedLength = 0;
+
+        foreach ($rules as $prefix => $suggestions) {
+            if (str_starts_with($route, $prefix) && strlen($prefix) > $matchedLength) {
+                $matched = $suggestions;
+                $matchedLength = strlen($prefix);
+            }
+        }
+
+        return $matched ?? ['带我熟悉一下系统功能', '有哪些数字员工可以帮我干活？', '帮我看看还有哪些设置没完成'];
+    }
+
+    /**
+     * 历史会话主题（最近 5 条，供继续聊入口）。
+     *
+     * @return list<array{conversation_id: int, subject: ?string, updated_at: ?string}>
+     */
+    private function historySuggestions(int $tenantId): array
+    {
+        return AgentConversation::where('tenant_id', $tenantId)
+            ->where('channel', 'assistant')
+            ->orderByDesc('updated_at')
+            ->limit(5)
+            ->get()
+            ->map(fn ($c) => [
+                'conversation_id' => (int) $c->conversation_id,
+                'subject' => $c->subject,
+                'updated_at' => $c->updated_at?->toISOString(),
+            ])
+            ->all();
     }
 
     /**

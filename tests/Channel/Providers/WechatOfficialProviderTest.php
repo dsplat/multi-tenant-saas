@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace MultiTenantSaas\Tests\WechatOfficial;
+namespace MultiTenantSaas\Tests\Channel\Providers;
 
 use Illuminate\Support\Facades\Http;
+use MultiTenantSaas\Services\Channel\Providers\WechatOfficialProvider;
+use MultiTenantSaas\Support\WechatOfficial\SignatureValidator;
 use MultiTenantSaas\Tests\TestCase;
-use MultiTenantSaas\WechatOfficial\SignatureValidator;
-use MultiTenantSaas\WechatOfficial\WechatOfficialProvider;
 
 class WechatOfficialProviderTest extends TestCase
 {

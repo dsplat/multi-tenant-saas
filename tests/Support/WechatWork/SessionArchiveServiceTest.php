@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace MultiTenantSaas\Tests\EnterpriseWechat;
+namespace MultiTenantSaas\Tests\Support\WechatWork;
 
 use Illuminate\Support\Facades\Http;
-use MultiTenantSaas\EnterpriseWechat\ArchiveDecryptor;
-use MultiTenantSaas\EnterpriseWechat\SessionArchiveService;
 use MultiTenantSaas\Modules\Conversation\Models\ArchivedMessage;
+use MultiTenantSaas\Support\WechatWork\ArchiveDecryptor;
+use MultiTenantSaas\Support\WechatWork\SessionArchiveService;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
 use MultiTenantSaas\Tests\TestCase;
 

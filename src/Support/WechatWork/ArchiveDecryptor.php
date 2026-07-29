@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MultiTenantSaas\EnterpriseWechat;
+namespace MultiTenantSaas\Support\WechatWork;
 
 use RuntimeException;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MultiTenantSaas\Services\Channel;
+namespace MultiTenantSaas\Support\Slack;
 
 class SlackSignatureValidator
 {

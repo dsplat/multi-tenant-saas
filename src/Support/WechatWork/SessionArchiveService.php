@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-namespace MultiTenantSaas\EnterpriseWechat;
+namespace MultiTenantSaas\Support\WechatWork;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Modules\Conversation\Models\ArchivedMessage;
+use MultiTenantSaas\Scopes\TenantScope;
 
 class SessionArchiveService
 {
@@ -114,7 +115,10 @@ class SessionArchiveService
             return false;
         }
 
-        $existing = ArchivedMessage::query()->where('msg_id', $msgId)->first();
+        // 会话存档为系统级拉取（队列/CLI 无租户上下文），tenant_id 由参数显式指定，查重需豁免 TenantScope
+        $existing = ArchivedMessage::withoutGlobalScope(TenantScope::class)
+            ->where('msg_id', $msgId)
+            ->first();
 
         if ($existing !== null) {
             return false;
@@ -151,7 +155,7 @@ class SessionArchiveService
      */
     public function queryMessages(string $roomId, int $limit = 20, int $offset = 0): Collection
     {
-        return ArchivedMessage::query()
+        return ArchivedMessage::withoutGlobalScope(TenantScope::class)
             ->where('room_id', $roomId)
             ->orderBy('seq', 'asc')
             ->skip($offset)

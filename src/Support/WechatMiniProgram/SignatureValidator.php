@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MultiTenantSaas\WechatMiniProgram;
+namespace MultiTenantSaas\Support\WechatMiniProgram;
 
 /**
  * 微信小程序签名验证器.

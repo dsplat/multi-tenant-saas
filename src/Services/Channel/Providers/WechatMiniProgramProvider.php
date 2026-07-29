@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace MultiTenantSaas\WechatMiniProgram;
+namespace MultiTenantSaas\Services\Channel\Providers;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\ChannelContract;
+use MultiTenantSaas\Support\WechatMiniProgram\SignatureValidator;
 
 class WechatMiniProgramProvider implements ChannelContract
 {

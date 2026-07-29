@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MultiTenantSaas\Services\Channel;
+namespace MultiTenantSaas\Services\Channel\Providers;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;

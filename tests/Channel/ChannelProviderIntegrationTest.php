@@ -2,17 +2,18 @@
 
 declare(strict_types=1);
 
-namespace MultiTenantSaas\Tests;
+namespace MultiTenantSaas\Tests\Channel;
 
 use Illuminate\Support\Facades\Http;
-use MultiTenantSaas\EnterpriseWechat\EnterpriseWechatProvider;
+use MultiTenantSaas\Services\Channel\Providers\EnterpriseWechatProvider;
+use MultiTenantSaas\Services\Channel\Providers\WechatMiniProgramProvider;
+use MultiTenantSaas\Services\Channel\Providers\WechatOfficialProvider;
+use MultiTenantSaas\Support\WechatMiniProgram\SignatureValidator as MiniProgramSignatureValidator;
+use MultiTenantSaas\Support\WechatOfficial\SignatureValidator as OfficialSignatureValidator;
 use MultiTenantSaas\Support\WechatWork\WechatWorkCrypto;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
 use MultiTenantSaas\Tests\Schema\WebhookModule;
-use MultiTenantSaas\WechatMiniProgram\SignatureValidator as MiniProgramSignatureValidator;
-use MultiTenantSaas\WechatMiniProgram\WechatMiniProgramProvider;
-use MultiTenantSaas\WechatOfficial\SignatureValidator as OfficialSignatureValidator;
-use MultiTenantSaas\WechatOfficial\WechatOfficialProvider;
+use MultiTenantSaas\Tests\TestCase;
 
 class ChannelProviderIntegrationTest extends TestCase
 {

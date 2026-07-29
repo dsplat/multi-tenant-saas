@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MultiTenantSaas\Tests\EnterpriseWechat;
+namespace MultiTenantSaas\Tests\Channel\Providers;
 
 use Illuminate\Support\Facades\Http;
-use MultiTenantSaas\EnterpriseWechat\EnterpriseWechatProvider;
+use MultiTenantSaas\Services\Channel\Providers\EnterpriseWechatProvider;
 use MultiTenantSaas\Tests\TestCase;
 
 class EnterpriseWechatProviderTest extends TestCase

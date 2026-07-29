@@ -2,61 +2,55 @@
 
 declare(strict_types=1);
 
-namespace MultiTenantSaas\EnterpriseWechat;
+namespace MultiTenantSaas\Services\Channel\Providers;
 
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\ChannelContract;
-use MultiTenantSaas\Support\WechatWork\WechatWorkApiClient;
-use MultiTenantSaas\Support\WechatWork\WechatWorkCrypto;
+use MultiTenantSaas\Support\WechatOfficial\SignatureValidator;
 
-class EnterpriseWechatProvider implements ChannelContract
+class WechatOfficialProvider implements ChannelContract
 {
-    protected string $corpId;
+    protected string $appId;
 
-    protected string $corpSecret;
+    protected string $appSecret;
 
-    protected string $agentId;
-
-    protected WechatWorkCrypto $crypto;
-
-    protected WechatWorkApiClient $apiClient;
+    protected SignatureValidator $signatureValidator;
 
     /**
      * @param  array<string, string>  $config
      */
     public function __construct(array $config)
     {
-        $this->corpId = $config['corp_id'] ?? '';
-        $this->corpSecret = $config['corp_secret'] ?? '';
-        $this->agentId = $config['agent_id'] ?? '';
-        $this->crypto = new WechatWorkCrypto(
+        $this->appId = $config['app_id'] ?? '';
+        $this->appSecret = $config['app_secret'] ?? '';
+        $this->signatureValidator = new SignatureValidator(
             $config['token'] ?? '',
             $config['encoding_aes_key'] ?? '',
-            $this->corpId,
         );
-        $this->apiClient = new WechatWorkApiClient($this->corpId, $this->corpSecret, $this->agentId);
     }
 
-    /**
-     * 验证回调请求签名.
-     *
-     * 共享 crypto 4 元验签；无 encrypt 时空串不影响排序拼接，等价 3 元验签。
-     *
-     * @param  array<string, mixed>  $query
-     * @param  array<string, array<string>>  $headers
-     */
     public function verifyWebhook(array $query, array $headers): bool
     {
-        return $this->crypto->verifySignature(
-            (string) ($query['msg_signature'] ?? ''),
-            (string) ($query['timestamp'] ?? ''),
-            (string) ($query['nonce'] ?? ''),
-            (string) ($query['encrypt'] ?? ''),
+        $signature = $query['signature'] ?? $query['msg_signature'] ?? '';
+        $timestamp = $query['timestamp'] ?? '';
+        $nonce = $query['nonce'] ?? '';
+        $encrypt = $query['encrypt'] ?? '';
+
+        if ($encrypt !== '') {
+            return $this->signatureValidator->validateMsgSignature(
+                ['timestamp' => $timestamp, 'nonce' => $nonce, 'encrypt' => $encrypt],
+                (string) $signature,
+            );
+        }
+
+        return $this->signatureValidator->validateSignature(
+            ['timestamp' => $timestamp, 'nonce' => $nonce],
+            (string) $signature,
         );
     }
 
     /**
-     * 处理接收到的消息.
-     *
      * @param  array<string, mixed>  $rawMessage
      * @return array<string, mixed>
      */
@@ -65,8 +59,8 @@ class EnterpriseWechatProvider implements ChannelContract
         $encrypt = $rawMessage['encrypt'] ?? '';
 
         if ($encrypt !== '') {
-            $decrypted = $this->crypto->decrypt((string) $encrypt);
-            if ($decrypted !== null && $decrypted !== '') {
+            $decrypted = $this->signatureValidator->decryptMessage((string) $encrypt);
+            if ($decrypted !== '') {
                 $xml = simplexml_load_string($decrypted, 'SimpleXMLElement', LIBXML_NOCDATA);
                 if ($xml !== false) {
                     $rawMessage = json_decode(json_encode($xml), true) ?? $rawMessage;
@@ -88,43 +82,93 @@ class EnterpriseWechatProvider implements ChannelContract
         };
     }
 
-    /**
-     * 发送消息到企业微信.
-     */
     public function sendMessage(string $toUser, array $message): bool
     {
-        return $this->apiClient->sendMessage($toUser, $message);
+        $accessToken = $this->getAccessToken();
+
+        if ($accessToken === '') {
+            return false;
+        }
+
+        $payload = array_merge([
+            'touser' => $toUser,
+            'msgtype' => $message['msgtype'] ?? 'text',
+        ], $message);
+
+        $response = Http::post(
+            "https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token={$accessToken}",
+            $payload,
+        );
+
+        $result = $response->json();
+
+        if (($result['errcode'] ?? 0) !== 0) {
+            Log::error('WechatOfficial: send message failed', ['response' => $result]);
+
+            return false;
+        }
+
+        return true;
     }
 
-    /**
-     * 获取会话参与者.
-     *
-     * @return array<int, string>
-     */
+    public function replyText(string $toUser, string $fromUser, string $content): string
+    {
+        return <<<XML
+        <xml>
+        <ToUserName><![CDATA[{$toUser}]]></ToUserName>
+        <FromUserName><![CDATA[{$fromUser}]]></FromUserName>
+        <CreateTime>{time()}</CreateTime>
+        <MsgType><![CDATA[text]]></MsgType>
+        <Content><![CDATA[{$content}]]></Content>
+        </xml>
+        XML;
+    }
+
     public function getParticipants(string $conversationId): array
     {
         return [];
     }
 
     /**
-     * 获取会话信息.
-     *
      * @return array<string, mixed>
      */
     public function getConversationInfo(string $conversationId): array
     {
         return [
             'conversation_id' => $conversationId,
-            'channel' => 'enterprise_wechat',
+            'channel' => 'wechat_official',
         ];
     }
 
-    /**
-     * 获取访问令牌（委托共享 API 客户端，token 按 corp+agent 缓存）.
-     */
     public function getAccessToken(): string
     {
-        return $this->apiClient->accessToken();
+        $cacheKey = "wechat_official:access_token:{$this->appId}";
+        $cached = cache()->get($cacheKey);
+
+        if ($cached !== null) {
+            return (string) $cached;
+        }
+
+        $response = Http::get('https://api.weixin.qq.com/cgi-bin/token', [
+            'grant_type' => 'client_credential',
+            'appid' => $this->appId,
+            'secret' => $this->appSecret,
+        ]);
+
+        $result = $response->json();
+
+        if (($result['errcode'] ?? 0) !== 0) {
+            Log::error('WechatOfficial: get access token failed', ['response' => $result]);
+
+            return '';
+        }
+
+        $token = $result['access_token'] ?? '';
+        $expiresIn = (int) ($result['expires_in'] ?? 7200);
+
+        cache()->put($cacheKey, $token, $expiresIn - 300);
+
+        return (string) $token;
     }
 
     /**
@@ -170,6 +214,7 @@ class EnterpriseWechatProvider implements ChannelContract
             'type' => 'voice',
             'media_id' => (string) ($rawMessage['MediaId'] ?? ''),
             'format' => (string) ($rawMessage['Format'] ?? ''),
+            'recognition' => (string) ($rawMessage['Recognition'] ?? ''),
             'from_user' => (string) ($rawMessage['FromUserName'] ?? ''),
             'to_user' => (string) ($rawMessage['ToUserName'] ?? ''),
             'msg_id' => (string) ($rawMessage['MsgId'] ?? ''),
@@ -242,6 +287,7 @@ class EnterpriseWechatProvider implements ChannelContract
             'type' => 'event',
             'event' => (string) ($rawMessage['Event'] ?? ''),
             'event_key' => (string) ($rawMessage['EventKey'] ?? ''),
+            'ticket' => (string) ($rawMessage['Ticket'] ?? ''),
             'from_user' => (string) ($rawMessage['FromUserName'] ?? ''),
             'to_user' => (string) ($rawMessage['ToUserName'] ?? ''),
             'create_time' => (int) ($rawMessage['CreateTime'] ?? 0),

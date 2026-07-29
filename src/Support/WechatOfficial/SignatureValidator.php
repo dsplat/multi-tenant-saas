@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MultiTenantSaas\WechatOfficial;
+namespace MultiTenantSaas\Support\WechatOfficial;
 
 class SignatureValidator
 {

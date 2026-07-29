@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace MultiTenantSaas\Services\Channel;
+namespace MultiTenantSaas\Services\Channel\Providers;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -10,6 +10,7 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\ChannelContract;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
+use MultiTenantSaas\Support\Slack\SlackSignatureValidator;
 
 class SlackProvider implements ChannelContract
 {

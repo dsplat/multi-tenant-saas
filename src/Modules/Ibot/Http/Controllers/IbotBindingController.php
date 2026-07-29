@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Modules\Ibot\Models\Ibot;
 use MultiTenantSaas\Modules\Ibot\Models\OperatorIbotBinding;
 use MultiTenantSaas\Modules\Ibot\Services\Channels\TelegramChannel;
@@ -82,6 +83,33 @@ class IbotBindingController extends Controller
             ->get();
 
         return response()->json(['success' => true, 'data' => $bindings]);
+    }
+
+    /**
+     * 设定当前 operator 的默认消息通道（系统通知推送目标，同一 operator 唯一）
+     */
+    public function setDefaultBinding(Request $request, int $tenantId, int $bindingId): JsonResponse
+    {
+        $this->ensureTenantAccess($request, $tenantId);
+
+        $operatorId = (int) $request->user()->operator_id;
+
+        $binding = OperatorIbotBinding::where('binding_id', $bindingId)
+            ->where('tenant_id', $tenantId)
+            ->where('operator_id', $operatorId)
+            ->where('status', OperatorIbotBinding::STATUS_ACTIVE)
+            ->firstOrFail();
+
+        DB::transaction(function () use ($binding, $operatorId) {
+            OperatorIbotBinding::where('operator_id', $operatorId)
+                ->where('binding_id', '!=', $binding->binding_id)
+                ->where('is_default_channel', true)
+                ->update(['is_default_channel' => false]);
+
+            $binding->update(['is_default_channel' => true]);
+        });
+
+        return response()->json(['success' => true, 'data' => $binding->fresh()]);
     }
 
     /**

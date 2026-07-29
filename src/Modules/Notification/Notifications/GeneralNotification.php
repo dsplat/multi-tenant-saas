@@ -27,6 +27,12 @@ class GeneralNotification extends Notification implements ShouldQueue
             $channels[] = 'mail';
         }
 
+        // 随身助理通道：仅 Operator（有 operator_id）且功能开启时尝试，
+        // 无默认绑定或推送失败由驱动内部静默降级，database 通道兜底
+        if (config('ai.ibot.enabled', false) && isset($notifiable->operator_id)) {
+            $channels[] = 'ibot';
+        }
+
         return $channels;
     }
 
@@ -41,6 +47,17 @@ class GeneralNotification extends Notification implements ShouldQueue
         }
 
         return $mail;
+    }
+
+    public function toIbot(object $notifiable): string
+    {
+        $lines = array_filter([
+            $this->title,
+            $this->message,
+            $this->actionUrl,
+        ]);
+
+        return implode("\n", $lines);
     }
 
     public function toArray(object $notifiable): array

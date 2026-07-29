@@ -7,5 +7,6 @@ Route::prefix('/tenants/{tenantId}/ibot')->group(function () {
     Route::get('/ibots', [IbotBindingController::class, 'indexIbots']);
     Route::post('/ibots/{ibotId}/bind-code', [IbotBindingController::class, 'generateBindCode']);
     Route::get('/bindings', [IbotBindingController::class, 'myBindings']);
+    Route::put('/bindings/{bindingId}/default', [IbotBindingController::class, 'setDefaultBinding']);
     Route::delete('/bindings/{bindingId}', [IbotBindingController::class, 'revokeBinding']);
 });

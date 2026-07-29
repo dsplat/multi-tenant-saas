@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\EnterpriseWechat;
 
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\ChannelContract;
+use MultiTenantSaas\Support\WechatWork\WechatWorkApiClient;
+use MultiTenantSaas\Support\WechatWork\WechatWorkCrypto;
 
 class EnterpriseWechatProvider implements ChannelContract
 {
@@ -16,7 +16,9 @@ class EnterpriseWechatProvider implements ChannelContract
 
     protected string $agentId;
 
-    protected SignatureValidator $signatureValidator;
+    protected WechatWorkCrypto $crypto;
+
+    protected WechatWorkApiClient $apiClient;
 
     /**
      * @param  array<string, string>  $config
@@ -26,35 +28,29 @@ class EnterpriseWechatProvider implements ChannelContract
         $this->corpId = $config['corp_id'] ?? '';
         $this->corpSecret = $config['corp_secret'] ?? '';
         $this->agentId = $config['agent_id'] ?? '';
-        $this->signatureValidator = new SignatureValidator(
+        $this->crypto = new WechatWorkCrypto(
             $config['token'] ?? '',
             $config['encoding_aes_key'] ?? '',
+            $this->corpId,
         );
+        $this->apiClient = new WechatWorkApiClient($this->corpId, $this->corpSecret, $this->agentId);
     }
 
     /**
      * 验证回调请求签名.
+     *
+     * 共享 crypto 4 元验签；无 encrypt 时空串不影响排序拼接，等价 3 元验签。
      *
      * @param  array<string, mixed>  $query
      * @param  array<string, array<string>>  $headers
      */
     public function verifyWebhook(array $query, array $headers): bool
     {
-        $signature = $query['msg_signature'] ?? '';
-        $timestamp = $query['timestamp'] ?? '';
-        $nonce = $query['nonce'] ?? '';
-        $encrypt = $query['encrypt'] ?? '';
-
-        if ($encrypt !== '') {
-            return $this->signatureValidator->validateMsgSignature(
-                ['timestamp' => $timestamp, 'nonce' => $nonce, 'encrypt' => $encrypt],
-                (string) $signature,
-            );
-        }
-
-        return $this->signatureValidator->validateSignature(
-            ['timestamp' => $timestamp, 'nonce' => $nonce],
-            (string) $signature,
+        return $this->crypto->verifySignature(
+            (string) ($query['msg_signature'] ?? ''),
+            (string) ($query['timestamp'] ?? ''),
+            (string) ($query['nonce'] ?? ''),
+            (string) ($query['encrypt'] ?? ''),
         );
     }
 
@@ -69,8 +65,8 @@ class EnterpriseWechatProvider implements ChannelContract
         $encrypt = $rawMessage['encrypt'] ?? '';
 
         if ($encrypt !== '') {
-            $decrypted = $this->signatureValidator->decryptMessage((string) $encrypt);
-            if ($decrypted !== '') {
+            $decrypted = $this->crypto->decrypt((string) $encrypt);
+            if ($decrypted !== null && $decrypted !== '') {
                 $xml = simplexml_load_string($decrypted, 'SimpleXMLElement', LIBXML_NOCDATA);
                 if ($xml !== false) {
                     $rawMessage = json_decode(json_encode($xml), true) ?? $rawMessage;
@@ -97,32 +93,7 @@ class EnterpriseWechatProvider implements ChannelContract
      */
     public function sendMessage(string $toUser, array $message): bool
     {
-        $accessToken = $this->getAccessToken();
-
-        if ($accessToken === '') {
-            return false;
-        }
-
-        $payload = array_merge([
-            'touser' => $toUser,
-            'msgtype' => $message['msgtype'] ?? 'text',
-            'agentid' => (int) $this->agentId,
-        ], $message);
-
-        $response = Http::post(
-            "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={$accessToken}",
-            $payload,
-        );
-
-        $result = $response->json();
-
-        if (($result['errcode'] ?? 0) !== 0) {
-            Log::error('EnterpriseWechat: send message failed', ['response' => $result]);
-
-            return false;
-        }
-
-        return true;
+        return $this->apiClient->sendMessage($toUser, $message);
     }
 
     /**
@@ -149,36 +120,11 @@ class EnterpriseWechatProvider implements ChannelContract
     }
 
     /**
-     * 获取访问令牌.
+     * 获取访问令牌（委托共享 API 客户端，token 按 corp+agent 缓存）.
      */
     public function getAccessToken(): string
     {
-        $cacheKey = "enterprise_wechat:access_token:{$this->corpId}";
-        $cached = cache()->get($cacheKey);
-
-        if ($cached !== null) {
-            return (string) $cached;
-        }
-
-        $response = Http::get('https://qyapi.weixin.qq.com/cgi-bin/gettoken', [
-            'corpid' => $this->corpId,
-            'corpsecret' => $this->corpSecret,
-        ]);
-
-        $result = $response->json();
-
-        if (($result['errcode'] ?? 0) !== 0) {
-            Log::error('EnterpriseWechat: get access token failed', ['response' => $result]);
-
-            return '';
-        }
-
-        $token = $result['access_token'] ?? '';
-        $expiresIn = (int) ($result['expires_in'] ?? 7200);
-
-        cache()->put($cacheKey, $token, $expiresIn - 300);
-
-        return (string) $token;
+        return $this->apiClient->accessToken();
     }
 
     /**

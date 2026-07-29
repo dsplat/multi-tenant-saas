@@ -1,14 +1,13 @@
 <?php
 
-namespace MultiTenantSaas\Modules\Ibot\Services\Channels;
+namespace MultiTenantSaas\Support\WechatWork;
 
 /**
- * 企业微信回调加解密（自包含实现）
+ * 企业微信回调加解密（共享 SDK 层，自包含实现）
  *
  * 官方协议：AESKey = Base64Decode(EncodingAESKey . '=')，AES-256-CBC，
  * 明文结构 = random(16B) + msg_len(4B 网络序) + msg + receiveid。
- * 注意与旧 src/EnterpriseWechat/SignatureValidator 的区别：后者解密未剥离
- * 随机头与长度域，不能直接复用（docs/ibot.md 已将旧 webhook 路由列为待清理死代码）。
+ * 供 ibot WechatWorkChannel 与 Channel 模块 EnterpriseWechatProvider 共用。
  */
 class WechatWorkCrypto
 {
@@ -20,6 +19,8 @@ class WechatWorkCrypto
 
     /**
      * 验证回调签名（sha1(sort(token, timestamp, nonce, encrypt))）
+     *
+     * encrypt 传空串时等价于无密文的 3 元验签（空串不影响排序拼接结果）。
      */
     public function verifySignature(string $signature, string $timestamp, string $nonce, string $encrypt): bool
     {

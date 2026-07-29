@@ -6,7 +6,6 @@ namespace MultiTenantSaas\Tests\EnterpriseWechat;
 
 use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\EnterpriseWechat\EnterpriseWechatProvider;
-use MultiTenantSaas\EnterpriseWechat\SignatureValidator;
 use MultiTenantSaas\Tests\TestCase;
 
 class EnterpriseWechatProviderTest extends TestCase
@@ -26,55 +25,39 @@ class EnterpriseWechatProviderTest extends TestCase
         ]);
     }
 
-    // ========== SignatureValidator Tests ==========
+    // ========== 回调解密（共享 WechatWorkCrypto） ==========
 
-    public function test_signature_validator_valid_signature(): void
+    /**
+     * 按企微协议加密：random(16B) + msg_len(4B 网络序) + msg + receiveid
+     */
+    private function encryptForProvider(string $msg): string
     {
-        $validator = new SignatureValidator('test_token');
-        $timestamp = '1234567890';
-        $nonce = 'abc123';
+        $aesKey = base64_decode('abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG' . '=');
+        $plain = random_bytes(16) . pack('N', strlen($msg)) . $msg . 'test_corp_id';
 
-        $tmpArr = ['test_token', $timestamp, $nonce];
-        sort($tmpArr, SORT_STRING);
-        $expectedSignature = sha1(implode('', $tmpArr));
+        $pad = 32 - (strlen($plain) % 32);
+        $plain .= str_repeat(chr($pad), $pad);
 
-        $result = $validator->validateSignature(
-            ['timestamp' => $timestamp, 'nonce' => $nonce],
-            $expectedSignature,
-        );
-
-        $this->assertTrue($result);
+        return openssl_encrypt($plain, 'AES-256-CBC', $aesKey, OPENSSL_ZERO_PADDING, substr($aesKey, 0, 16));
     }
 
-    public function test_signature_validator_invalid_signature(): void
+    public function test_on_message_decrypts_encrypted_payload(): void
     {
-        $validator = new SignatureValidator('test_token');
+        $xml = '<xml>'
+            . '<MsgType><![CDATA[text]]></MsgType>'
+            . '<Content><![CDATA[加密消息内容]]></Content>'
+            . '<FromUserName><![CDATA[user123]]></FromUserName>'
+            . '<ToUserName><![CDATA[test_corp_id]]></ToUserName>'
+            . '<MsgId>987654321</MsgId>'
+            . '<CreateTime>1234567890</CreateTime>'
+            . '</xml>';
 
-        $result = $validator->validateSignature(
-            ['timestamp' => '1234567890', 'nonce' => 'abc123'],
-            'invalid_signature',
-        );
+        $result = $this->provider->onMessage(['encrypt' => $this->encryptForProvider($xml)]);
 
-        $this->assertFalse($result);
-    }
-
-    public function test_signature_validator_msg_signature(): void
-    {
-        $validator = new SignatureValidator('test_token');
-        $timestamp = '1234567890';
-        $nonce = 'abc123';
-        $encrypt = 'some_encrypted_data';
-
-        $tmpArr = ['test_token', $timestamp, $nonce, $encrypt];
-        sort($tmpArr, SORT_STRING);
-        $expectedSignature = sha1(implode('', $tmpArr));
-
-        $result = $validator->validateMsgSignature(
-            ['timestamp' => $timestamp, 'nonce' => $nonce, 'encrypt' => $encrypt],
-            $expectedSignature,
-        );
-
-        $this->assertTrue($result);
+        $this->assertSame('text', $result['type']);
+        $this->assertSame('加密消息内容', $result['content']);
+        $this->assertSame('user123', $result['from_user']);
+        $this->assertSame('987654321', $result['msg_id']);
     }
 
     // ========== verifyWebhook Tests ==========
@@ -346,7 +329,8 @@ class EnterpriseWechatProviderTest extends TestCase
 
     public function test_get_access_token_cached(): void
     {
-        cache()->put('enterprise_wechat:access_token:test_corp_id', 'cached_token', 3600);
+        // 共享 SDK 缓存键：wechat_work:access_token:{corp}:{agent}
+        cache()->put('wechat_work:access_token:test_corp_id:1000001', 'cached_token', 3600);
 
         $token = $this->provider->getAccessToken();
 

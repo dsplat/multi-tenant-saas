@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Modules\Ibot\Services\Channels\WechatWorkCrypto;
+use MultiTenantSaas\Support\WechatWork\WechatWorkCrypto;
 
 class WechatWorkCryptoTest extends TestCase
 {

@@ -6,7 +6,7 @@ namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\EnterpriseWechat\EnterpriseWechatProvider;
-use MultiTenantSaas\EnterpriseWechat\SignatureValidator as EnterpriseSignatureValidator;
+use MultiTenantSaas\Support\WechatWork\WechatWorkCrypto;
 use MultiTenantSaas\Tests\Schema\ChannelModule;
 use MultiTenantSaas\Tests\Schema\WebhookModule;
 use MultiTenantSaas\WechatMiniProgram\SignatureValidator as MiniProgramSignatureValidator;
@@ -383,7 +383,8 @@ class ChannelProviderIntegrationTest extends TestCase
 
     public function test_signature_validators_consistency(): void
     {
-        $entValidator = new EnterpriseSignatureValidator('test_token');
+        // 企微验签已提升至共享 SDK（空 encrypt 时等价 3 元验签）
+        $entCrypto = new WechatWorkCrypto('test_token', '');
         $officialValidator = new OfficialSignatureValidator('test_token');
         $miniValidator = new MiniProgramSignatureValidator('test_token');
 
@@ -393,7 +394,7 @@ class ChannelProviderIntegrationTest extends TestCase
         sort($tmpArr, SORT_STRING);
         $expected = sha1(implode('', $tmpArr));
 
-        $this->assertTrue($entValidator->validateSignature($params, $expected));
+        $this->assertTrue($entCrypto->verifySignature($expected, $params['timestamp'], $params['nonce'], ''));
         $this->assertTrue($officialValidator->validateSignature($params, $expected));
         $this->assertTrue($miniValidator->validateSignature($params, $expected));
     }

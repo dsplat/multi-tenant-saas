@@ -1,30 +1,115 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MultiTenantSaas\Services\Channel;
 
+use InvalidArgumentException;
 use MultiTenantSaas\Contracts\ChannelContract;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
+use MultiTenantSaas\Services\Channel\Providers\EnterpriseWechatAppDriver;
+use RuntimeException;
 
+/**
+ * 渠道管理器 —— 租户感知的 Provider 工厂
+ *
+ * 按 (渠道类型, 租户) 从 tenant_settings 读取凭证并实例化驱动。
+ * 凭证约定：group=channel，key={type}，value=JSON（加密存储），如
+ *   enterprise_wechat_app => {"corp_id","corp_secret","agent_id","token","encoding_aes_key","enabled"}
+ *   enterprise_wechat_kf  => {"corp_id","kf_secret","token","encoding_aes_key","enabled"}
+ *
+ * 下游可经 extend() 注册自定义驱动（无需改框架）。
+ */
 class ChannelManager
 {
-    protected array $channels = [];
+    /** 渠道类型 => 驱动类名 */
+    protected array $drivers = [];
 
-    public function register(string $name, ChannelContract $channel): void
+    /** 已实例化的驱动缓存（key: type:tenantId） */
+    protected array $resolved = [];
+
+    public function __construct()
     {
-        $this->channels[$name] = $channel;
+        // 驱动按需注册（下游可经 extend() 追加）
+        $this->drivers[EnterpriseWechatAppDriver::TYPE] = EnterpriseWechatAppDriver::class;
+        // Phase 2：$this->drivers['enterprise_wechat_kf'] = EnterpriseWechatKfDriver::class;
     }
 
-    public function get(string $name): ?ChannelContract
+    /**
+     * 注册/覆盖驱动（下游扩展入口）。
+     *
+     * @param  class-string<ChannelContract>  $driverClass
+     */
+    public function extend(string $type, string $driverClass): void
     {
-        return $this->channels[$name] ?? null;
+        $this->drivers[$type] = $driverClass;
     }
 
-    public function all(): array
+    public function hasDriver(string $type): bool
     {
-        return $this->channels;
+        return isset($this->drivers[$type]);
     }
 
-    public function has(string $name): bool
+    /**
+     * 按租户解析驱动实例（凭证从 tenant_settings 读取，缓存复用）。
+     */
+    public function resolve(string $type, int $tenantId): ChannelContract
     {
-        return isset($this->channels[$name]);
+        $cacheKey = $type . ':' . $tenantId;
+
+        if (isset($this->resolved[$cacheKey])) {
+            return $this->resolved[$cacheKey];
+        }
+
+        $class = $this->drivers[$type] ?? null;
+
+        if ($class === null) {
+            throw new InvalidArgumentException("Unsupported channel type: {$type}");
+        }
+
+        $config = $this->credentials($type, $tenantId);
+
+        if ($config === []) {
+            throw new RuntimeException("Channel [{$type}] not configured for tenant {$tenantId}");
+        }
+
+        return $this->resolved[$cacheKey] = new $class($config);
+    }
+
+    /**
+     * 读取租户渠道凭证（解密 + JSON 解码）。
+     *
+     * @return array<string, mixed>
+     */
+    public function credentials(string $type, int $tenantId): array
+    {
+        // TenantSetting::get 按 tenant_id 显式查询（绕过 TenantScope），webhook 无上下文亦安全
+        $value = TenantSetting::get($tenantId, 'channel', $type);
+
+        if (is_string($value)) {
+            $value = json_decode($value, true);
+        }
+
+        return is_array($value) ? $value : [];
+    }
+
+    /**
+     * 租户已启用（配置且 enabled）的渠道类型列表。
+     *
+     * @return string[]
+     */
+    public function enabledChannels(int $tenantId): array
+    {
+        $enabled = [];
+
+        foreach (array_keys($this->drivers) as $type) {
+            $config = $this->credentials($type, $tenantId);
+
+            if ($config !== [] && ($config['enabled'] ?? false)) {
+                $enabled[] = $type;
+            }
+        }
+
+        return $enabled;
     }
 }

@@ -28,10 +28,38 @@ class ModuleRegistry
      */
     public function __construct(?string $modulePath = null, ?array $vendorPaths = null)
     {
-        // 从当前类路径向上找到 src/ 目录，然后定位 Modules/
-        // 当前类在 src/Modules/Infrastructure/Services/，需要向上 3 级到 src/
-        $this->modulePath = $modulePath ?? dirname(__DIR__, 3) . '/Modules';
+        $this->modulePath = $modulePath ?? $this->resolveModulePath();
         $this->vendorPaths = $vendorPaths ?? $this->discoverVendorModules();
+    }
+
+    /**
+     * 解析 src/Modules/ 目录路径
+     *
+     * 本类可能从两个位置加载:
+     * 1. root 包 (monorepo 开发 / vendor/dsplat/multi-tenant-saas): src/Modules/Infrastructure/Services/
+     * 2. split 包 (vendor/dsplat/multi-tenant-saas-module-infrastructure): Services/ (扁平结构)
+     *
+     * 情况 2 中 dirname(__DIR__, 3) 会错误地解析到 vendor/，需回退到 root 包路径。
+     */
+    protected function resolveModulePath(): string
+    {
+        // 从当前类路径向上 3 级 (src/Modules/Infrastructure/Services → src/)
+        $candidate = dirname(__DIR__, 3) . '/Modules';
+
+        if (is_dir($candidate)) {
+            return $candidate;
+        }
+
+        // split 包加载时回退: 定位 root 包的 src/Modules/
+        // split 包结构: vendor/dsplat/multi-tenant-saas-module-infrastructure/Services/
+        // dirname(__DIR__, 3) = vendor/
+        $rootCandidate = dirname(__DIR__, 3) . '/dsplat/multi-tenant-saas/src/Modules';
+
+        if (is_dir($rootCandidate)) {
+            return $rootCandidate;
+        }
+
+        return $candidate;
     }
 
     /**

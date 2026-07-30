@@ -53,6 +53,10 @@ use MultiTenantSaas\Modules\Infrastructure\Services\ModuleManager;
 use MultiTenantSaas\Modules\Infrastructure\Services\ModuleRegistry;
 use MultiTenantSaas\Modules\Infrastructure\Services\SchedulerService;
 use MultiTenantSaas\Modules\Infrastructure\Services\SearchService;
+use MultiTenantSaas\Services\Channel\ChannelManager;
+use MultiTenantSaas\Services\Channel\ConversationRouter;
+use MultiTenantSaas\Services\Channel\EventBusBridge;
+use MultiTenantSaas\Services\Channel\MessageRouter;
 
 /**
  * 核心 ServiceProvider
@@ -106,6 +110,12 @@ class TenancyServiceProvider extends ServiceProvider
         $this->app->singleton(TenantConfigStore::class, function () {
             return new TenantConfigStore;
         });
+
+        // Channel 抽象层（渠道无关全链路基础设施，docs/channel.md）
+        $this->app->singleton(ChannelManager::class);
+        $this->app->singleton(ConversationRouter::class);
+        $this->app->singleton(EventBusBridge::class);
+        $this->app->singleton(MessageRouter::class);
     }
 
     public function boot(): void

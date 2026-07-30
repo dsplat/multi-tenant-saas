@@ -4,68 +4,30 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Services\Channel;
 
-use MultiTenantSaas\Contracts\ChannelContract;
-use MultiTenantSaas\DTOs\MessageDTO;
-use MultiTenantSaas\Modules\Infrastructure\Services\IdGenerator;
+use MultiTenantSaas\DTOs\InboundMessage;
+use MultiTenantSaas\Modules\Conversation\Models\Message;
 
+/**
+ * 渠道无关入站消息管道
+ *
+ * 串联 ConversationRouter（会话解析）与 EventBusBridge（入库+事件）：
+ *   InboundMessage -> 会话解析 -> 入库 -> MessageReceived
+ * 由 ChannelWebhookController 在验签/解析后调用。
+ */
 class MessageRouter
 {
-    protected array $channels = [];
-
     public function __construct(
-        protected IdGenerator $idGenerator,
+        protected ConversationRouter $conversationRouter,
         protected EventBusBridge $eventBusBridge,
     ) {}
 
     /**
-     * 注册渠道处理器.
+     * 处理一条入向消息：解析会话、入库、触发事件，返回落库消息。
      */
-    public function registerChannel(string $type, ChannelContract $provider): void
+    public function handleInbound(int $tenantId, InboundMessage $msg): Message
     {
-        $this->channels[$type] = $provider;
-    }
+        $conversation = $this->conversationRouter->resolve($tenantId, $msg);
 
-    /**
-     * 路由原始消息，通过渠道处理器转换为 MessageDTO.
-     */
-    public function route(string $channelType, array $rawMessage): MessageDTO
-    {
-        $provider = $this->channels[$channelType] ?? null;
-
-        if (! $provider instanceof ChannelContract) {
-            throw new \InvalidArgumentException("Channel provider not found: {$channelType}");
-        }
-
-        $messageData = $provider->onMessage($rawMessage);
-
-        if (empty($messageData['message_id'])) {
-            $messageData['message_id'] = (string) $this->idGenerator->generate();
-        }
-
-        return MessageDTO::fromArray($messageData);
-    }
-
-    /**
-     * 分发消息到事件总线.
-     */
-    public function dispatch(MessageDTO $message): void
-    {
-        $this->eventBusBridge->dispatch($message);
-    }
-
-    /**
-     * 获取已注册的渠道类型列表.
-     */
-    public function getRegisteredChannels(): array
-    {
-        return array_keys($this->channels);
-    }
-
-    /**
-     * 检查渠道是否已注册.
-     */
-    public function hasChannel(string $type): bool
-    {
-        return isset($this->channels[$type]);
+        return $this->eventBusBridge->dispatch($msg, $conversation);
     }
 }

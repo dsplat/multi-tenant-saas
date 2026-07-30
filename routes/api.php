@@ -2,12 +2,11 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use MultiTenantSaas\Http\Controllers\ChannelWebhookController;
 use MultiTenantSaas\Modules\Auth\Http\Controllers\TenantOAuthController;
 use MultiTenantSaas\Modules\Event\Services\BroadcastingService;
 use MultiTenantSaas\Modules\Notification\Services\InAppNotificationService;
 use MultiTenantSaas\Modules\Payment\Http\Controllers\TenantPaymentController;
-use MultiTenantSaas\Services\Channel\ChannelManager;
-use MultiTenantSaas\Services\Channel\MessageRouter;
 
 // ========== 支付回调（无需认证） ==========
 Route::post('/v1/pay/wechat/notify', [TenantPaymentController::class, 'wechatNotify']);
@@ -173,32 +172,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
     })->middleware('rbac.permission:tenant.update');
 });
 
-// ========== Channel Webhooks（无需认证） ==========
-Route::prefix('v1/channels')->group(function () {
-    Route::post('/enterprise-wechat/webhook', function (Request $request) {
-        $manager = app(ChannelManager::class);
-        $provider = $manager->get('enterprise_wechat');
-        $router = app(MessageRouter::class);
-
-        if ($provider && $provider->verifyWebhook($request->all(), $request->headers->all())) {
-            $router->routeMessage('enterprise_wechat', $request->all());
-
-            return response()->json(['success' => true]);
-        }
-
-        return response()->json(['success' => false], 403);
-    });
-    Route::post('/wechat-official/webhook', function (Request $request) {
-        $manager = app(ChannelManager::class);
-        $provider = $manager->get('wechat_official');
-        $router = app(MessageRouter::class);
-
-        if ($provider && $provider->verifyWebhook($request->all(), $request->headers->all())) {
-            $router->routeMessage('wechat_official', $request->all());
-
-            return response()->json(['success' => true]);
-        }
-
-        return response()->json(['success' => false], 403);
-    });
-});
+// ========== Channel Webhooks（无需认证，驱动内强制验签） ==========
+// {type}：enterprise-wechat-app / enterprise-wechat-kf / wechat-official / slack ...
+// {tenant_slug?}：可选租户标识（缺省回退 default_tenant_id）
+Route::match(['get', 'post'], '/v1/channels/{type}/webhook/{tenant_slug?}', ChannelWebhookController::class)
+    ->where('tenant_slug', '[A-Za-z0-9_-]+');

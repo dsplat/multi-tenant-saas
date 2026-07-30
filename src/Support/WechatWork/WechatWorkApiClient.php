@@ -118,4 +118,40 @@ class WechatWorkApiClient
             'markdown' => ['content' => $content],
         ]);
     }
+
+    /**
+     * 发送应用群聊消息（appchat/send，面向内部群 chatid）
+     *
+     * 与 message/send 不同：群聊不带 agentid/touser，改以 chatid 为接收方。
+     *
+     * @param  array<string, mixed>  $message  msgtype 及对应内容体
+     */
+    public function sendGroupMessage(string $chatId, array $message): bool
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return false;
+        }
+
+        $payload = array_merge([
+            'chatid' => $chatId,
+            'msgtype' => $message['msgtype'] ?? 'text',
+        ], $message);
+
+        $response = Http::timeout(15)->post(self::API_BASE . "/appchat/send?access_token={$accessToken}", $payload);
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] appchat/send 失败', [
+                'corp_id' => $this->corpId,
+                'chatid' => $chatId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return false;
+        }
+
+        return true;
+    }
 }

@@ -969,6 +969,8 @@ class AgentRuntime implements AgentRuntimeContract
         $toolError = null;
 
         try {
+            // 会话感知工具（如任务链三工具）需要当前会话 ID，执行前注入
+            app(ToolConversationContext::class)->set($conversationId);
             $toolOutput = $this->toolRegistry->execute($toolName, $toolArguments, $tenantId);
 
             // ToolRegistry 返回结构化错误（处理器运行时异常已封装）

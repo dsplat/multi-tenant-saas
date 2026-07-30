@@ -14,6 +14,7 @@ use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentRuntime;
+use MultiTenantSaas\Modules\Ai\Services\Agent\ToolConversationContext;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
 use MultiTenantSaas\Modules\Ibot\Models\Ibot;
 use MultiTenantSaas\Modules\Ibot\Models\OperatorIbotBinding;
@@ -183,6 +184,8 @@ class ProcessIbotInboundMessage implements ShouldQueue
             $result = null;
 
             try {
+                // 会话感知工具（如任务链三工具）需要当前会话 ID，执行前注入
+                app(ToolConversationContext::class)->set((int) $conversation->conversation_id);
                 $result = app(ToolRegistry::class)->execute($toolSlug, $arguments, $this->tenantId);
                 if (is_array($result) && ($result['error'] ?? false)) {
                     $error = $result['message'] ?? '工具执行失败';

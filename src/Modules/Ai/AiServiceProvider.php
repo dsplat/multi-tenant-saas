@@ -22,7 +22,12 @@ use MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentMonitor;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentRuntime;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentService;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AuditLogService;
+use MultiTenantSaas\Modules\Ai\Services\Agent\EntityMemoryService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\MemoryCompressor;
+use MultiTenantSaas\Modules\Ai\Services\Agent\MemoryPipeline;
+use MultiTenantSaas\Modules\Ai\Services\Agent\PromptService;
+use MultiTenantSaas\Modules\Ai\Services\Agent\ToolConversationContext;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
 use MultiTenantSaas\Modules\Ai\Services\Ai\AiGatewayService;
 use MultiTenantSaas\Modules\Ai\Services\Ai\AiTextService;
@@ -47,16 +52,15 @@ use MultiTenantSaas\Modules\Ai\Services\Capability\TagCapability;
 use MultiTenantSaas\Modules\Ai\Services\Capability\TranslateCapability;
 use MultiTenantSaas\Modules\Ai\Services\Capability\VisionCapability;
 use MultiTenantSaas\Modules\Ai\Services\IntentRouter;
-use MultiTenantSaas\Modules\Ai\Services\Agent\EntityMemoryService;
-use MultiTenantSaas\Modules\Ai\Services\Agent\MemoryPipeline;
-use MultiTenantSaas\Modules\Ai\Services\Agent\PromptService;
-use MultiTenantSaas\Modules\Ai\Services\Agent\AuditLogService;
 use MultiTenantSaas\Modules\Ai\Services\SystemKb\KbSuggestionService;
 use MultiTenantSaas\Modules\Ai\Services\SystemKb\ModuleFactScanner;
 use MultiTenantSaas\Modules\Ai\Services\SystemKb\SystemKbDocBuilder;
 use MultiTenantSaas\Modules\Ai\Services\SystemKb\SystemKbDrafter;
 use MultiTenantSaas\Modules\Ai\Services\SystemKb\SystemKbRegistry;
 use MultiTenantSaas\Modules\Ai\Services\SystemKb\SystemKbSearchService;
+use MultiTenantSaas\Modules\Ai\Services\TaskChain\TaskChainRegistry;
+use MultiTenantSaas\Modules\Ai\Services\TaskChain\TaskChainRunner;
+use MultiTenantSaas\Modules\Ai\Services\Tool\AdvanceTaskChainTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\CacheGetTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\CacheSetTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\DataDictionaryTool;
@@ -70,9 +74,11 @@ use MultiTenantSaas\Modules\Ai\Services\Tool\FileWriteTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\GeneratePosterTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\HttpRequestTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\ListAgentsTool;
+use MultiTenantSaas\Modules\Ai\Services\Tool\ListTaskChainsTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\LlmCallTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\NavigateTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\OcrRecognizeTool;
+use MultiTenantSaas\Modules\Ai\Services\Tool\StartTaskChainTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\SuggestFormFillTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\SuggestKbUpdateTool;
 use MultiTenantSaas\Modules\Ai\Services\Tool\SystemKbSearchTool;
@@ -164,6 +170,16 @@ class AiServiceProvider extends ModuleServiceProvider
             $app->make(SystemKbDrafter::class),
         ));
 
+        // 工具执行会话上下文：必须 scoped（Octane / queue worker 下每请求/每任务重置）
+        $this->app->scoped(ToolConversationContext::class);
+
+        // 预设任务链引擎（docs/task-chain.md Phase 1）
+        $this->app->singleton(TaskChainRegistry::class, fn () => new TaskChainRegistry);
+        $this->app->singleton(TaskChainRunner::class, fn ($app) => new TaskChainRunner(
+            $app->make(TaskChainRegistry::class),
+            $app->make(ToolRegistryContract::class),
+        ));
+
         $this->registerFrameworkTools();
     }
 
@@ -193,5 +209,12 @@ class AiServiceProvider extends ModuleServiceProvider
         $registry->register('enable_agent', 'Enable Agent', 'Enable a digital employee for the current tenant (create from template if not exists); requires user confirmation before calling', EnableAgentTool::class, ['type' => 'object', 'properties' => ['role' => ['type' => 'string', 'description' => '要启用的数字员工角色标识（如 customer_service / sales / scrm_marketing）']], 'required' => ['role']], 'secretary');
         $registry->register('suggest_form_fill', 'Suggest Form Fill', 'Suggest values to fill into the current page form; returns structured {fields,...} for the frontend to render an apply card (does NOT submit)', SuggestFormFillTool::class, ['type' => 'object', 'properties' => ['fields' => ['type' => 'object', 'description' => '字段名到建议值的映射，如 {"name":"张三","phone":"138..."}'], 'explanation' => ['type' => 'string', 'description' => '填写说明（可选）'], 'field_notes' => ['type' => 'object', 'description' => '各字段的补充说明映射（可选）'], 'confidence' => ['type' => 'number', 'description' => '建议置信度 0-1（可选）']], 'required' => ['fields']], 'secretary');
         $registry->register('suggest_kb_update', 'Suggest KB Update', 'Submit a system knowledge base update suggestion when the KB lacks an answer; the suggestion is stored for platform review (does NOT change the KB directly)', SuggestKbUpdateTool::class, ['type' => 'object', 'properties' => ['trigger_query' => ['type' => 'string', 'description' => '触发提案的用户原始问题'], 'suggested_content' => ['type' => 'string', 'description' => '建议补充进知识库的内容（markdown，须基于已核实的事实）'], 'target_module' => ['type' => 'string', 'description' => '目标模块标识（可选，如 customer）'], 'target_doc' => ['type' => 'string', 'description' => '目标文档 identity（可选，如 customer/usage.md；不确定则留空）']], 'required' => ['trigger_query', 'suggested_content']], 'secretary', 'L2');
+
+        // 预设任务链三工具（引擎开关关闭时不注册，秘书模板中的 slug 自动跳过）
+        if (config('ai.task_chains.enabled')) {
+            $registry->register('list_task_chains', 'List Task Chains', 'List available preset task chains and unfinished chain runs of current conversation; call before starting or resuming a chain', ListTaskChainsTool::class, ['type' => 'object', 'properties' => []], 'secretary');
+            $registry->register('start_task_chain', 'Start Task Chain', 'Start a preset task chain (multi-step guided flow); shows the chain plan to the user for confirmation before creating the run', StartTaskChainTool::class, ['type' => 'object', 'properties' => ['chain_key' => ['type' => 'string', 'description' => '链定义 key（先用 list_task_chains 查询）']], 'required' => ['chain_key']], 'secretary', 'L2');
+            $registry->register('advance_task_chain', 'Advance Task Chain', 'Advance the current task chain by one step: submit step_input for input steps, submit step_output after an L2 tool step was executed via confirmation, or skip an optional step', AdvanceTaskChainTool::class, ['type' => 'object', 'properties' => ['run_id' => ['type' => 'integer', 'description' => '运行实例 ID（可选，缺省取当前会话最新未完成链）'], 'step_input' => ['type' => 'object', 'description' => 'input 步的用户输入（按步骤 input_schema 提交）'], 'step_output' => ['type' => 'object', 'description' => 'L2 工具步经确认门执行后的结果回填'], 'skip' => ['type' => 'boolean', 'description' => '跳过当前可选步']]], 'secretary');
+        }
     }
 }

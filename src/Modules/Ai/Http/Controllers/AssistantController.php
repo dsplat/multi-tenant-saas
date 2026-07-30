@@ -14,8 +14,10 @@ use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversationMessage;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService;
+use MultiTenantSaas\Modules\Ai\Services\Agent\ToolConversationContext;
 use MultiTenantSaas\Modules\Ai\Services\Ai\StreamChunk;
 use MultiTenantSaas\Modules\Ai\Services\Assistant\TenantSetupChecker;
+use MultiTenantSaas\Modules\Ai\Services\TaskChain\TaskChainRegistry;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -338,7 +340,7 @@ class AssistantController extends Controller
      * 返回四块：
      *  - page_suggestions   按当前页面路由规则匹配的建议话术
      *  - history_suggestions 最近会话主题（继续聊入口）
-     *  - task_chains         预设任务链（引擎就位前返回空数组，见 docs/task-chain.md）
+     *  - task_chains         预设任务链目录（引擎关闭时返回空数组，见 docs/task-chain.md）
      *  - setup_checklist     租户设置完善度（仅 tenant_admin 返回）
      */
     public function suggestions(Request $request): JsonResponse
@@ -353,8 +355,10 @@ class AssistantController extends Controller
         $data = [
             'page_suggestions' => $this->pageSuggestions((string) ($validated['route'] ?? '')),
             'history_suggestions' => $this->historySuggestions($tenantId),
-            // 预设任务链契约先行：引擎实现前固定空数组（docs/task-chain.md）
-            'task_chains' => [],
+            // 预设任务链目录：引擎开启时返回轻量视图，关闭时保持空数组契约
+            'task_chains' => config('ai.task_chains.enabled')
+                ? app(TaskChainRegistry::class)->catalog()
+                : [],
             'setup_checklist' => null,
         ];
 
@@ -496,6 +500,8 @@ class AssistantController extends Controller
         $result = null;
 
         try {
+            // 会话感知工具（如任务链三工具）需要当前会话 ID，执行前注入
+            app(ToolConversationContext::class)->set($conversationId);
             $result = $this->toolRegistry->execute($toolSlug, $arguments, $tenantId);
             if (is_array($result) && ($result['error'] ?? false)) {
                 $error = $result['message'] ?? '工具执行失败';

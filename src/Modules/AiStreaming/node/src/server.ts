@@ -43,20 +43,31 @@ interface ResolvePayload {
   tools: Array<{ type: 'function'; function: { name: string; description?: string; parameters?: Record<string, unknown> } }>
 }
 
+interface AuthContext {
+  authorization: string
+  tenantId?: string
+}
+
 class PhpApiError extends Error {
   constructor(public status: number, message: string) {
     super(message)
   }
 }
 
-async function phpPost<T>(path: string, authorization: string, body: unknown): Promise<T> {
+async function phpPost<T>(path: string, auth: AuthContext, body: unknown): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'Authorization': auth.authorization,
+  }
+  // 透传浏览器的 X-Tenant-ID：多租户 Operator 切换团队后回调 PHP 才能命中正确租户
+  if (auth.tenantId) {
+    headers['X-Tenant-ID'] = auth.tenantId
+  }
+
   const response = await fetch(`${PHP_API_BASE}${path}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': authorization,
-    },
+    headers,
     body: JSON.stringify(body),
   })
 
@@ -71,7 +82,7 @@ async function phpPost<T>(path: string, authorization: string, body: unknown): P
 
 // ---------- 工具桥接：LLM tool_call → PHP tools/execute ----------
 
-function buildTools(resolved: ResolvePayload, authorization: string) {
+function buildTools(resolved: ResolvePayload, auth: AuthContext) {
   const tools: Record<string, Tool> = {}
 
   for (const def of resolved.tools ?? []) {
@@ -83,7 +94,7 @@ function buildTools(resolved: ResolvePayload, authorization: string) {
       parameters: jsonSchema(fn.parameters ?? { type: 'object', properties: {} }),
       execute: async (args: unknown) => {
         try {
-          const data = await phpPost<{ result: unknown }>('/ai-streaming/tools/execute', authorization, {
+          const data = await phpPost<{ result: unknown }>('/ai-streaming/tools/execute', auth, {
             agent_id: resolved.agent_id,
             tool: fn.name,
             arguments: args ?? {},
@@ -111,6 +122,7 @@ app.post('/chat', async (c) => {
   if (!authorization) {
     return c.json({ success: false, message: '缺少 Authorization 头' }, 401)
   }
+  const auth: AuthContext = { authorization, tenantId: c.req.header('x-tenant-id') }
 
   const body = await c.req.json<{ agent_id?: number; messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> }>().catch(() => null)
   if (!body?.agent_id || !Array.isArray(body.messages) || body.messages.length === 0) {
@@ -120,7 +132,7 @@ app.post('/chat', async (c) => {
   // 1. 回调 PHP：鉴权 + 配额检查 + Agent 配置解析（失败即拒绝，零 LLM 开销）
   let resolved: ResolvePayload
   try {
-    resolved = await phpPost<ResolvePayload>('/ai-streaming/resolve', authorization, { agent_id: body.agent_id })
+    resolved = await phpPost<ResolvePayload>('/ai-streaming/resolve', auth, { agent_id: body.agent_id })
   } catch (error) {
     const status = error instanceof PhpApiError ? error.status : 502
     return c.json({ success: false, message: error instanceof Error ? error.message : String(error) }, status as 402)
@@ -140,12 +152,12 @@ app.post('/chat', async (c) => {
     messages: body.messages,
     temperature: resolved.temperature,
     maxTokens: resolved.max_tokens,
-    tools: buildTools(resolved, authorization),
+    tools: buildTools(resolved, auth),
     maxSteps: Math.max(1, resolved.max_tool_calls) + 1,
     onFinish: async ({ usage, finishReason, steps }) => {
       // 3. 流结束后回调 PHP 结算 token（失败仅告警，不影响已完成的响应）
       try {
-        await phpPost('/ai-streaming/usage/report', authorization, {
+        await phpPost('/ai-streaming/usage/report', auth, {
           agent_id: resolved.agent_id,
           model: resolved.model,
           input_tokens: usage.promptTokens ?? 0,

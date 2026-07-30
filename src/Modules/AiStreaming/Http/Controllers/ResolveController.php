@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Contracts\AgentServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
 use MultiTenantSaas\Modules\Ai\Services\AiUsageService;
 
@@ -37,9 +38,8 @@ class ResolveController extends AiStreamingController
      *     security={{"sanctum":{}}},
      *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
-     *         required={"agent_id"},
      *
-     *         @OA\Property(property="agent_id", type="integer", example=1)
+     *         @OA\Property(property="agent_id", type="integer", nullable=true, example=1, description="省略时兑底到租户的系统小助手（role=system_secretary）")
      *     )),
      *
      *     @OA\Response(response=200, description="会话配置（model/base_url/api_key/system_prompt/tools/...）"),
@@ -53,10 +53,29 @@ class ResolveController extends AiStreamingController
         $this->ensureEnabled();
 
         $data = $request->validate([
-            'agent_id' => ['required', 'integer'],
+            'agent_id' => ['nullable', 'integer'],
         ]);
 
         $tenantId = $this->resolveTenantId();
+
+        // agent_id 省略时兑底到系统小助手（与 AssistantController 主入口一致），
+        // 前端小助手无需预先知道秘书的 agent_id 即可直连 Node 引擎
+        if (empty($data['agent_id'])) {
+            $secretary = Agent::where('tenant_id', $tenantId)
+                ->where('role', 'system_secretary')
+                ->where('enabled', true)
+                ->first();
+
+            if ($secretary === null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'AI 小助手尚未初始化，请联系平台管理员执行 secretary:install。',
+                ], 404);
+            }
+
+            $data['agent_id'] = (int) $secretary->agent_id;
+        }
+
         $agent = $this->ensureAgentForTenant((int) $data['agent_id'], $tenantId);
 
         // 配额/预算前置检查（超限即拒绝，不产生任何 LLM 开销）
@@ -92,8 +111,9 @@ class ResolveController extends AiStreamingController
             'temperature' => (float) ($modelConfig['temperature'] ?? 0.7),
             'max_tokens' => (int) ($modelConfig['max_tokens'] ?? 4096),
             'max_tool_calls' => (int) ($modelConfig['max_tool_calls'] ?? config('ai-streaming.max_tool_calls', 5)),
-            // OpenAI Function Calling 格式工具定义（执行仍回调 PHP）
-            'tools' => $this->toolRegistry->getToolDefinitions((array) ($agent->tools ?? [])),
+            // OpenAI Function Calling 格式工具定义（执行仍回调 PHP）。
+            // 排除 L2 需确认工具：Node 链路暂无确认门，不下发即不会被 LLM 调用
+            'tools' => $this->toolRegistry->getToolDefinitions($this->filterConfirmableTools((array) ($agent->tools ?? []))),
         ];
 
         // direct 模式：下发 api_key（仅限 Node 与 PHP 同机/内网回环链路）
@@ -105,5 +125,21 @@ class ResolveController extends AiStreamingController
             'success' => true,
             'data' => $payload,
         ]);
+    }
+
+    /**
+     * 过滤掉需用户确认的 L2 工具（Node 链路暂不支持确认门，
+     * ToolExecuteController 侧有同样的拒执防线，双重保险）
+     *
+     * @param  string[]  $slugs
+     * @return string[]
+     */
+    private function filterConfirmableTools(array $slugs): array
+    {
+        return array_values(array_filter($slugs, function (string $slug): bool {
+            $tool = $this->toolRegistry->get($slug);
+
+            return $tool === null || ! $tool->requiresConfirmation();
+        }));
     }
 }

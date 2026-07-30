@@ -63,6 +63,16 @@ class ToolExecuteController extends AiStreamingController
             ], 403);
         }
 
+        // L2 确认门防线：需用户确认的变更类工具不得经 Node 链路直接执行
+        //（resolve 已不下发这类工具，此处是防绕过的兼底拒执）
+        $toolDef = $this->toolRegistry->get($data['tool']);
+        if ($toolDef !== null && $toolDef->requiresConfirmation()) {
+            return response()->json([
+                'success' => false,
+                'message' => "工具 [{$data['tool']}] 需用户确认后执行，流式链路暂不支持",
+            ], 403);
+        }
+
         // ToolRegistry::execute 内部已将处理器异常封装为 ['error'=>true, ...]，
         // 此处仅需兜底工具未注册等注册表层异常
         try {

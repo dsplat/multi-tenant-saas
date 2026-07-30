@@ -79,26 +79,26 @@ async function handleSend(text?: string) {
   if (!intent || streaming.value) return
 
   input.value = ''
+
+  // 多轮记忆：Node 引擎无状态，取此前轮次纯文本历史随请求上行（截最近 20 条控 payload）
+  const history = store.messages
+    .filter(m => !m.isError && m.content)
+    .slice(-20)
+    .map(m => ({ role: m.role, content: m.content }))
+
   store.pushUserMessage(intent)
 
   const assistantMsg = store.startAssistantMessage()
   store.setStreaming(true)
   await scrollToBottom()
 
-  // 转派后定向目标员工；带上会话 ID 续接
+  // 转派后定向目标员工；未指定时由服务端兑底系统小助手
   const payload = {
     ...pageContext.value,
     agent_id: store.targetAgentId ?? undefined,
-    conversation_id: store.conversationId ?? undefined,
   }
 
   await send(payload, intent, {
-    onMeta: (meta) => {
-      // 首帧会话元信息 → 持久化 conversation_id（刷新不丢）
-      if (meta.conversation_id && meta.conversation_id !== store.conversationId) {
-        store.setConversationId(meta.conversation_id)
-      }
-    },
     onText: (t) => store.appendText(assistantMsg.id, t),
     onToolCall: (calls) => store.appendToolCalls(assistantMsg.id, calls),
     onFormFill: (suggestion) => store.setFormFill(assistantMsg.id, suggestion),
@@ -109,7 +109,7 @@ async function handleSend(text?: string) {
       store.finishMessage(assistantMsg.id)
       store.pushError(msg, action)
     },
-  })
+  }, history)
 
   store.setStreaming(false)
   await scrollToBottom()

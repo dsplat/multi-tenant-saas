@@ -16,6 +16,26 @@ function nextId(): string {
 /** 会话持久化 key（刷新不丢：conversation_id + 转派目标一起存） */
 const CONVERSATION_STORAGE_KEY = 'ai_assistant_conversation'
 
+/** 消息本地持久化 key（Node 流式链路无服务端会话，刷新恢复靠本地） */
+const MESSAGES_STORAGE_KEY = 'ai_assistant_messages'
+/** 本地持久化消息上限（控 localStorage 体积） */
+const MESSAGES_PERSIST_LIMIT = 50
+
+function loadPersistedMessages(): ChatMessage[] {
+  try {
+    const raw = localStorage.getItem(MESSAGES_STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    // 只恢复文本内容（卡片/确认态不跨刷新恢复）
+    return parsed
+      .filter((m: any) => m && typeof m.content === 'string' && (m.role === 'user' || m.role === 'assistant'))
+      .map((m: any) => ({ id: String(m.id ?? nextId()), role: m.role, content: m.content, timestamp: Number(m.timestamp) || Date.now() }))
+  } catch {
+    return []
+  }
+}
+
 interface PersistedConversation {
   id: number
   agentId: string | null
@@ -57,7 +77,7 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   const currentModule = ref('')
 
   // ─── 对话 ─────────────────────────────────────────────────
-  const messages = ref<ChatMessage[]>([])
+  const messages = ref<ChatMessage[]>(loadPersistedMessages())
   /** 是否正在流式输出 */
   const streaming = ref(false)
   const persisted = loadPersistedConversation()
@@ -106,6 +126,17 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     savePinnedPreference(next === 'pinned')
   }
 
+  /** 消息本地持久化（仅存文本轮次，截最近 N 条） */
+  function persistMessages() {
+    try {
+      const slim = messages.value
+        .filter(m => m.content && !m.isError)
+        .slice(-MESSAGES_PERSIST_LIMIT)
+        .map(m => ({ id: m.id, role: m.role, content: m.content, timestamp: m.timestamp }))
+      localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(slim))
+    } catch { /* 存储不可用时静默降级 */ }
+  }
+
   function pushUserMessage(content: string): ChatMessage {
     const msg: ChatMessage = {
       id: nextId(),
@@ -114,6 +145,7 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
       timestamp: Date.now(),
     }
     messages.value.push(msg)
+    persistMessages()
     return msg
   }
 
@@ -188,6 +220,7 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   function finishMessage(msgId: string) {
     const msg = messages.value.find(m => m.id === msgId)
     if (msg) msg.streaming = false
+    persistMessages()
   }
 
   /** 追加一条错误消息（降级提示，不阻断） */
@@ -258,6 +291,7 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     targetAgentId.value = null
     targetAgentName.value = null
     persistConversation()
+    try { localStorage.removeItem(MESSAGES_STORAGE_KEY) } catch { /* 静默降级 */ }
   }
 
   /** 切换到历史会话（多会话管理）：清空当前消息并重置 hydrated，由历史恢复流程重新拉取 */

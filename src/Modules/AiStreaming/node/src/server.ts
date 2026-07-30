@@ -125,14 +125,15 @@ app.post('/chat', async (c) => {
   const auth: AuthContext = { authorization, tenantId: c.req.header('x-tenant-id') }
 
   const body = await c.req.json<{ agent_id?: number; messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> }>().catch(() => null)
-  if (!body?.agent_id || !Array.isArray(body.messages) || body.messages.length === 0) {
-    return c.json({ success: false, message: '参数错误：agent_id 与 messages 必填' }, 422)
+  if (!Array.isArray(body?.messages) || body.messages.length === 0) {
+    return c.json({ success: false, message: '参数错误：messages 必填' }, 422)
   }
 
   // 1. 回调 PHP：鉴权 + 配额检查 + Agent 配置解析（失败即拒绝，零 LLM 开销）
+  // agent_id 省略时由 PHP 兑底到租户的系统小助手（console 小助手入口）
   let resolved: ResolvePayload
   try {
-    resolved = await phpPost<ResolvePayload>('/ai-streaming/resolve', auth, { agent_id: body.agent_id })
+    resolved = await phpPost<ResolvePayload>('/ai-streaming/resolve', auth, { agent_id: body.agent_id ?? null })
   } catch (error) {
     const status = error instanceof PhpApiError ? error.status : 502
     return c.json({ success: false, message: error instanceof Error ? error.message : String(error) }, status as 402)

@@ -6,6 +6,7 @@ use Illuminate\Contracts\Http\Kernel;
 use Mockery;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AiUsageQuota;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Dto\Tool;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
 use MultiTenantSaas\Modules\Ai\Services\AiUsageService;
 use MultiTenantSaas\Modules\Auth\Models\User;
@@ -145,6 +146,7 @@ class AiStreamingControllerTest extends TestCase
             'function' => ['name' => 'demo_tool', 'description' => 'Demo', 'parameters' => ['type' => 'object']],
         ];
         $registryMock = Mockery::mock(ToolRegistry::class);
+        $registryMock->shouldReceive('get')->with('demo_tool')->andReturn(null);
         $registryMock->shouldReceive('getToolDefinitions')->with(['demo_tool'])->andReturn([$toolDefinition]);
         $this->app->instance(ToolRegistry::class, $registryMock);
 
@@ -210,6 +212,7 @@ class AiStreamingControllerTest extends TestCase
         $this->mockUsageServiceOk();
 
         $registryMock = Mockery::mock(ToolRegistry::class);
+        $registryMock->shouldReceive('get')->andReturn(null);
         $registryMock->shouldReceive('getToolDefinitions')->andReturn([]);
         $this->app->instance(ToolRegistry::class, $registryMock);
 
@@ -217,6 +220,60 @@ class AiStreamingControllerTest extends TestCase
             ->postJson('/api/v1/ai-streaming/resolve', ['agent_id' => 1001])
             ->assertStatus(200)
             ->assertJsonMissingPath('data.api_key');
+    }
+
+    public function test_resolve_falls_back_to_system_secretary_without_agent_id(): void
+    {
+        $this->mockUsageServiceOk();
+
+        Agent::forceCreate([
+            'agent_id' => 1003,
+            'tenant_id' => 1001,
+            'name' => '系统小助手',
+            'role' => 'system_secretary',
+            'system_prompt' => 'You are the secretary.',
+            'tools' => [],
+            'model_config' => ['provider' => 'bailian', 'model' => 'qwen-plus'],
+            'enabled' => true,
+        ]);
+
+        $registryMock = Mockery::mock(ToolRegistry::class);
+        $registryMock->shouldReceive('get')->andReturn(null);
+        $registryMock->shouldReceive('getToolDefinitions')->andReturn([]);
+        $this->app->instance(ToolRegistry::class, $registryMock);
+
+        $this->withHeaders($this->authHeaders())
+            ->postJson('/api/v1/ai-streaming/resolve', [])
+            ->assertStatus(200)
+            ->assertJsonPath('data.agent_id', 1003)
+            ->assertJsonPath('data.system_prompt', 'You are the secretary.');
+    }
+
+    public function test_resolve_returns_404_without_agent_id_when_no_secretary(): void
+    {
+        $this->withHeaders($this->authHeaders())
+            ->postJson('/api/v1/ai-streaming/resolve', [])
+            ->assertStatus(404)
+            ->assertJson(['success' => false]);
+    }
+
+    public function test_resolve_filters_confirmable_l2_tools(): void
+    {
+        $this->mockUsageServiceOk();
+        $this->agent->forceFill(['tools' => ['demo_tool', 'l2_write_tool']])->save();
+
+        $l2Tool = new Tool('l2_write_tool', 'L2 写工具', 'desc', [], 'Handler', 'core', Tool::RISK_L2);
+
+        $registryMock = Mockery::mock(ToolRegistry::class);
+        $registryMock->shouldReceive('get')->with('demo_tool')->andReturn(null);
+        $registryMock->shouldReceive('get')->with('l2_write_tool')->andReturn($l2Tool);
+        // L2 工具被过滤，只下发 demo_tool
+        $registryMock->shouldReceive('getToolDefinitions')->with(['demo_tool'])->andReturn([]);
+        $this->app->instance(ToolRegistry::class, $registryMock);
+
+        $this->withHeaders($this->authHeaders())
+            ->postJson('/api/v1/ai-streaming/resolve', ['agent_id' => 1001])
+            ->assertStatus(200);
     }
 
     public function test_resolve_returns_503_when_module_disabled(): void
@@ -245,6 +302,7 @@ class AiStreamingControllerTest extends TestCase
     public function test_tool_execute_runs_authorized_tool(): void
     {
         $registryMock = Mockery::mock(ToolRegistry::class);
+        $registryMock->shouldReceive('get')->with('demo_tool')->andReturn(null);
         $registryMock->shouldReceive('execute')
             ->with('demo_tool', ['keyword' => 'hello'], 1001)
             ->andReturn(['found' => 2, 'items' => ['a', 'b']]);
@@ -266,6 +324,7 @@ class AiStreamingControllerTest extends TestCase
     public function test_tool_execute_returns_422_when_tool_not_registered(): void
     {
         $registryMock = Mockery::mock(ToolRegistry::class);
+        $registryMock->shouldReceive('get')->with('demo_tool')->andReturn(null);
         $registryMock->shouldReceive('execute')
             ->andThrow(new \RuntimeException('工具 [demo_tool] 未注册'));
         $this->app->instance(ToolRegistry::class, $registryMock);
@@ -276,6 +335,24 @@ class AiStreamingControllerTest extends TestCase
                 'tool' => 'demo_tool',
             ])
             ->assertStatus(422)
+            ->assertJson(['success' => false]);
+    }
+
+    public function test_tool_execute_rejects_confirmable_l2_tool(): void
+    {
+        $l2Tool = new Tool('demo_tool', 'L2 写工具', 'desc', [], 'Handler', 'core', Tool::RISK_L2);
+
+        $registryMock = Mockery::mock(ToolRegistry::class);
+        $registryMock->shouldReceive('get')->with('demo_tool')->andReturn($l2Tool);
+        $this->app->instance(ToolRegistry::class, $registryMock);
+
+        $this->withHeaders($this->authHeaders())
+            ->postJson('/api/v1/ai-streaming/tools/execute', [
+                'agent_id' => 1001,
+                'tool' => 'demo_tool',
+                'arguments' => [],
+            ])
+            ->assertStatus(403)
             ->assertJson(['success' => false]);
     }
 

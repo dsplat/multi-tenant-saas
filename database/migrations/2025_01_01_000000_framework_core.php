@@ -2,280 +2,215 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        // 部分表外键引用 tenants/users（由模块迁移创建，晚于本文件），需临时关闭外键检查
+        Schema::disableForeignKeyConstraints();
 
-        // Table: alert_rules
-        DB::statement(<<<'SQL'
-CREATE TABLE `alert_rules` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `tenant_id` bigint unsigned DEFAULT NULL,
-  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `metric` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `operator` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '>',
-  `threshold` double NOT NULL DEFAULT '0',
-  `severity` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'warning',
-  `channels` json DEFAULT NULL,
-  `cooldown_sec` int NOT NULL DEFAULT '300',
-  `enabled` tinyint(1) NOT NULL DEFAULT '1',
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `alert_rules_tenant_id_enabled_index` (`tenant_id`,`enabled`),
-  KEY `alert_rules_metric_index` (`metric`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
+        Schema::create('alert_rules', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('tenant_id')->nullable();
+            $table->string('name', 100);
+            $table->string('metric', 100);
+            $table->string('operator', 10)->default('>');
+            $table->double('threshold')->default(0);
+            $table->string('severity', 20)->default('warning');
+            $table->json('channels')->nullable();
+            $table->integer('cooldown_sec')->default(300);
+            $table->boolean('enabled')->default(true);
+            $table->timestamps();
 
-        // Table: alerts
-        DB::statement(<<<'SQL'
-CREATE TABLE `alerts` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `tenant_id` bigint unsigned DEFAULT NULL,
-  `rule_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `severity` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `message` text COLLATE utf8mb4_unicode_ci NOT NULL,
-  `context` json DEFAULT NULL,
-  `triggered_at` timestamp NOT NULL,
-  `resolved_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `alerts_tenant_id_triggered_at_index` (`tenant_id`,`triggered_at`),
-  KEY `alerts_rule_name_triggered_at_index` (`rule_name`,`triggered_at`),
-  KEY `alerts_severity_index` (`severity`),
-  KEY `alerts_resolved_at_index` (`resolved_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
+            $table->index(['tenant_id', 'enabled']);
+            $table->index('metric');
+        });
 
-        // Table: api_versions
-        DB::statement(<<<'SQL'
-CREATE TABLE `api_versions` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `version` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'stable',
-  `release_date` date DEFAULT NULL,
-  `sunset_date` date DEFAULT NULL,
-  `notes` text COLLATE utf8mb4_unicode_ci,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `api_versions_version_unique` (`version`),
-  KEY `api_versions_status_index` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
+        Schema::create('alerts', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('tenant_id')->nullable();
+            $table->string('rule_name', 100);
+            $table->string('severity', 20);
+            $table->text('message');
+            $table->json('context')->nullable();
+            $table->timestamp('triggered_at');
+            $table->timestamp('resolved_at')->nullable();
+            $table->timestamps();
 
-        // Table: cache
-        DB::statement(<<<'SQL'
-CREATE TABLE `cache` (
-  `key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `value` mediumtext COLLATE utf8mb4_unicode_ci NOT NULL,
-  `expiration` int NOT NULL,
-  PRIMARY KEY (`key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
+            $table->index(['tenant_id', 'triggered_at']);
+            $table->index(['rule_name', 'triggered_at']);
+            $table->index('severity');
+            $table->index('resolved_at');
+        });
 
-        // Table: cache_locks
-        DB::statement(<<<'SQL'
-CREATE TABLE `cache_locks` (
-  `key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `owner` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `expiration` int NOT NULL,
-  PRIMARY KEY (`key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
+        Schema::create('api_versions', function (Blueprint $table) {
+            $table->id();
+            $table->string('version', 20)->unique();
+            $table->string('status', 20)->default('stable');
+            $table->date('release_date')->nullable();
+            $table->date('sunset_date')->nullable();
+            $table->text('notes')->nullable();
+            $table->timestamps();
 
-        // Table: email_verification_tokens
-        DB::statement(<<<'SQL'
-CREATE TABLE `email_verification_tokens` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `token` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `email_verification_tokens_email_index` (`email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
+            $table->index('status');
+        });
 
-        // Table: export_tasks
-        DB::statement(<<<'SQL'
-CREATE TABLE `export_tasks` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `tenant_id` bigint unsigned DEFAULT NULL,
-  `user_id` bigint unsigned DEFAULT NULL,
-  `job_class` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `payload` json DEFAULT NULL,
-  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
-  `file_path` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `error` tinyint(1) NOT NULL DEFAULT '0',
-  `completed_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `export_tasks_tenant_id_status_index` (`tenant_id`,`status`),
-  KEY `export_tasks_user_id_index` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
+        Schema::create('cache', function (Blueprint $table) {
+            $table->string('key')->primary();
+            $table->mediumText('value');
+            $table->integer('expiration');
+        });
 
-        // Table: import_jobs
-        DB::statement(<<<'SQL'
-CREATE TABLE `import_jobs` (
-  `import_job_id` bigint unsigned NOT NULL,
-  `tenant_id` bigint unsigned NOT NULL,
-  `type` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'customer',
-  `file_path` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
-  `total` int unsigned NOT NULL DEFAULT '0',
-  `success` int unsigned NOT NULL DEFAULT '0',
-  `failed` int unsigned NOT NULL DEFAULT '0',
-  `skipped` int unsigned NOT NULL DEFAULT '0',
-  `error_log` json DEFAULT NULL,
-  `field_mapping` json DEFAULT NULL,
-  `metadata` json DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  `deleted_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`import_job_id`),
-  KEY `import_jobs_tenant_id_status_index` (`tenant_id`,`status`),
-  KEY `import_jobs_tenant_id_created_at_index` (`tenant_id`,`created_at`),
-  CONSTRAINT `import_jobs_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`tenant_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
+        Schema::create('cache_locks', function (Blueprint $table) {
+            $table->string('key')->primary();
+            $table->string('owner');
+            $table->integer('expiration');
+        });
 
-        // Table: password_reset_tokens
-        DB::statement(<<<'SQL'
-CREATE TABLE `password_reset_tokens` (
-  `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `token` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`email`),
-  KEY `password_reset_tokens_token_index` (`token`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
+        Schema::create('email_verification_tokens', function (Blueprint $table) {
+            $table->id();
+            $table->string('email');
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
 
-        // Table: personal_access_tokens
-        DB::statement(<<<'SQL'
-CREATE TABLE `personal_access_tokens` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `tokenable_type` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `tokenable_id` bigint unsigned NOT NULL,
-  `name` text COLLATE utf8mb4_unicode_ci NOT NULL,
-  `token` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `abilities` text COLLATE utf8mb4_unicode_ci,
-  `last_used_at` timestamp NULL DEFAULT NULL,
-  `expires_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `personal_access_tokens_token_unique` (`token`),
-  KEY `personal_access_tokens_tokenable_type_tokenable_id_index` (`tokenable_type`,`tokenable_id`),
-  KEY `personal_access_tokens_expires_at_index` (`expires_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=75 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
+            $table->index('email');
+        });
 
-        // Table: rate_limit_rules
-        DB::statement(<<<'SQL'
-CREATE TABLE `rate_limit_rules` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `tenant_id` bigint unsigned DEFAULT NULL,
-  `scope` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'user',
-  `pattern` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `max_attempts` int unsigned NOT NULL DEFAULT '60',
-  `decay_sec` int unsigned NOT NULL DEFAULT '60',
-  `strategy` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'fixed',
-  `enabled` tinyint(1) NOT NULL DEFAULT '1',
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `rate_limit_rules_tenant_id_enabled_index` (`tenant_id`,`enabled`),
-  KEY `rate_limit_rules_scope_enabled_index` (`scope`,`enabled`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
+        Schema::create('export_tasks', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('tenant_id')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->string('job_class');
+            $table->json('payload')->nullable();
+            $table->string('status', 20)->default('pending');
+            $table->string('file_path', 500)->nullable();
+            $table->boolean('error')->default(false);
+            $table->text('error_message')->nullable();
+            $table->timestamp('completed_at')->nullable();
+            $table->timestamps();
 
-        // Table: sessions
-        DB::statement(<<<'SQL'
-CREATE TABLE `sessions` (
-  `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `user_id` bigint unsigned DEFAULT NULL,
-  `ip_address` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `user_agent` text COLLATE utf8mb4_unicode_ci,
-  `payload` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
-  `last_activity` int NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `sessions_user_id_index` (`user_id`),
-  KEY `sessions_last_activity_index` (`last_activity`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
+            $table->index(['tenant_id', 'status']);
+            $table->index('user_id');
+        });
 
-        // Table: structured_logs
-        DB::statement(<<<'SQL'
-CREATE TABLE `structured_logs` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `tenant_id` bigint unsigned DEFAULT NULL,
-  `user_id` bigint unsigned DEFAULT NULL,
-  `category` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `action` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `context` json DEFAULT NULL,
-  `ip_address` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `user_agent` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `structured_logs_tenant_id_category_created_at_index` (`tenant_id`,`category`,`created_at`),
-  KEY `structured_logs_user_id_created_at_index` (`user_id`,`created_at`),
-  KEY `structured_logs_action_index` (`action`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
+        Schema::create('import_jobs', function (Blueprint $table) {
+            // 主键由应用层 ID 生成器（config/id.php）分配，非自增
+            $table->unsignedBigInteger('import_job_id')->primary();
+            $table->unsignedBigInteger('tenant_id');
+            $table->string('type', 50)->default('customer');
+            $table->string('file_path', 500);
+            $table->string('status', 20)->default('pending');
+            $table->unsignedInteger('total')->default(0);
+            $table->unsignedInteger('success')->default(0);
+            $table->unsignedInteger('failed')->default(0);
+            $table->unsignedInteger('skipped')->default(0);
+            $table->json('error_log')->nullable();
+            $table->json('field_mapping')->nullable();
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+            $table->softDeletes();
 
-        // Table: user_preferences
-        DB::statement(<<<'SQL'
-CREATE TABLE `user_preferences` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `user_id` bigint unsigned NOT NULL,
-  `preferences` json DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `user_preferences_user_id_unique` (`user_id`),
-  CONSTRAINT `user_preferences_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
+            $table->index(['tenant_id', 'status']);
+            $table->index(['tenant_id', 'created_at']);
+            $table->foreign('tenant_id')->references('tenant_id')->on('tenants')->cascadeOnDelete();
+        });
 
-        // Table: modules
-        DB::statement(<<<'SQL'
-CREATE TABLE `modules` (
-  `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `version` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0.0.0',
-  `status` enum('installed','enabled','disabled') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'installed',
-  `config` json DEFAULT NULL,
-  `installed_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
+        Schema::create('password_reset_tokens', function (Blueprint $table) {
+            $table->string('email')->primary();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
 
-        // Table: tenant_modules
-        DB::statement(<<<'SQL'
-CREATE TABLE `tenant_modules` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `tenant_id` bigint unsigned NOT NULL,
-  `module_name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `status` enum('enabled','disabled') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'enabled',
-  `config` json DEFAULT NULL,
-  `enabled_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `tenant_modules_tenant_id_module_name_unique` (`tenant_id`,`module_name`),
-  KEY `tenant_modules_tenant_id_index` (`tenant_id`),
-  KEY `tenant_modules_module_name_index` (`module_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
+            $table->index('token');
+        });
+
+        Schema::create('personal_access_tokens', function (Blueprint $table) {
+            $table->id();
+            $table->string('tokenable_type');
+            $table->unsignedBigInteger('tokenable_id');
+            $table->text('name');
+            $table->string('token', 64)->unique();
+            $table->text('abilities')->nullable();
+            $table->timestamp('last_used_at')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+
+            $table->index(['tokenable_type', 'tokenable_id']);
+            $table->index('expires_at');
+        });
+
+        Schema::create('rate_limit_rules', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('tenant_id')->nullable();
+            $table->string('scope', 20)->default('user');
+            $table->string('pattern', 200)->nullable();
+            $table->unsignedInteger('max_attempts')->default(60);
+            $table->unsignedInteger('decay_sec')->default(60);
+            $table->string('strategy', 30)->default('fixed');
+            $table->boolean('enabled')->default(true);
+            $table->timestamps();
+
+            $table->index(['tenant_id', 'enabled']);
+            $table->index(['scope', 'enabled']);
+        });
+
+        Schema::create('sessions', function (Blueprint $table) {
+            $table->string('id')->primary();
+            $table->unsignedBigInteger('user_id')->nullable()->index();
+            $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
+            $table->longText('payload');
+            $table->integer('last_activity')->index();
+        });
+
+        Schema::create('structured_logs', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('tenant_id')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->string('category', 30);
+            $table->string('action', 100);
+            $table->json('context')->nullable();
+            $table->string('ip_address', 45)->nullable();
+            $table->string('user_agent', 500)->nullable();
+            $table->timestamp('created_at')->nullable();
+
+            $table->index(['tenant_id', 'category', 'created_at']);
+            $table->index(['user_id', 'created_at']);
+            $table->index('action');
+        });
+
+        Schema::create('user_preferences', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('user_id')->unique();
+            $table->json('preferences')->nullable();
+            $table->timestamps();
+
+            $table->foreign('user_id')->references('user_id')->on('users')->cascadeOnDelete();
+        });
+
+        Schema::create('modules', function (Blueprint $table) {
+            $table->string('name', 50)->primary();
+            $table->string('version', 20)->default('0.0.0');
+            $table->enum('status', ['installed', 'enabled', 'disabled'])->default('installed');
+            $table->json('config')->nullable();
+            $table->timestamp('installed_at')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('tenant_modules', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('tenant_id');
+            $table->string('module_name', 50);
+            $table->enum('status', ['enabled', 'disabled'])->default('enabled');
+            $table->json('config')->nullable();
+            $table->timestamp('enabled_at')->nullable();
+            $table->timestamps();
+
+            $table->unique(['tenant_id', 'module_name']);
+            $table->index('tenant_id');
+            $table->index('module_name');
+        });
 
         // Table: jobs（Laravel 队列）
         Schema::create('jobs', function (Blueprint $table) {
@@ -300,7 +235,7 @@ SQL);
             $table->index(['connection', 'queue', 'failed_at']);
         });
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        Schema::enableForeignKeyConstraints();
     }
 
     public function down(): void

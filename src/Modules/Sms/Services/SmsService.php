@@ -29,16 +29,6 @@ use MultiTenantSaas\Modules\Sms\Models\SmsUnsubscribe;
 class SmsService
 {
     /**
-     * 向后兼容：静态调用代理到容器实例。
-     *
-     * @deprecated 请改用构造器注入
-     */
-    public static function __callStatic(string $method, array $arguments): mixed
-    {
-        return app(static::class)->{$method}(...$arguments);
-    }
-
-    /**
      * 发送验证码短信，成功返回传入的 $code，失败返回 false。
      *
      * 配置从当前租户 TenantSetting(group=sms) 读取，未配置则返回 false。

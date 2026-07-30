@@ -18,16 +18,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class ExcelService
 {
     /**
-     * 向后兼容：静态调用代理到容器实例。
-     *
-     * @deprecated 请改用构造器注入
-     */
-    public static function __callStatic(string $method, array $arguments): mixed
-    {
-        return app(static::class)->{$method}(...$arguments);
-    }
-
-    /**
      * 导出数组数据到 Excel
      *
      * @param  array|Collection  $data  数据行数组

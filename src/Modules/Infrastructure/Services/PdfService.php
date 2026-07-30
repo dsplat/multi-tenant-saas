@@ -15,16 +15,6 @@ use Symfony\Component\HttpFoundation\Response;
 class PdfService
 {
     /**
-     * 向后兼容：静态调用代理到容器实例。
-     *
-     * @deprecated 请改用构造器注入
-     */
-    public static function __callStatic(string $method, array $arguments): mixed
-    {
-        return app(static::class)->{$method}(...$arguments);
-    }
-
-    /**
      * 生成 PDF 文件
      */
     public function generate(string $view, array $data = [], ?string $outputPath = null): string

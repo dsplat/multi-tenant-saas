@@ -5,9 +5,9 @@ namespace MultiTenantSaas\Modules\Billing\Services;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionHistory;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
-use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Services\Traits\ResolvesPlan;
 
@@ -29,16 +29,6 @@ class PlanChangeService
     use ResolvesPlan;
 
     public function __construct(private readonly TenantContextContract $tenantContext) {}
-
-    /**
-     * 向后兼容：静态调用代理到容器实例。
-     *
-     * @deprecated 请改用构造器注入
-     */
-    public static function __callStatic(string $method, array $arguments): mixed
-    {
-        return app(static::class)->{$method}(...$arguments);
-    }
 
     /**
      * 计算按比例差价

@@ -5,8 +5,8 @@ namespace MultiTenantSaas\Modules\Auth\Services;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Auth\Models\Permission;
 use MultiTenantSaas\Modules\Auth\Models\Role;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
@@ -26,16 +26,6 @@ class RbacService
     private const CACHE_TTL = 3600;
 
     public function __construct(private readonly TenantContextContract $tenantContext) {}
-
-    /**
-     * 向后兼容：静态调用代理到容器实例。
-     *
-     * @deprecated 请改用构造器注入
-     */
-    public static function __callStatic(string $method, array $arguments): mixed
-    {
-        return app(static::class)->{$method}(...$arguments);
-    }
 
     /**
      * 检查当前用户（Operator 或 User）是否拥有指定权限

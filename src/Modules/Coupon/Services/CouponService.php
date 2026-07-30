@@ -35,16 +35,6 @@ class CouponService
     public function __construct(private readonly TenantContextContract $tenantContext) {}
 
     /**
-     * 向后兼容：静态调用代理到容器实例。
-     *
-     * @deprecated 请改用构造器注入
-     */
-    public static function __callStatic(string $method, array $arguments): mixed
-    {
-        return app(static::class)->{$method}(...$arguments);
-    }
-
-    /**
      * 创建优惠券
      *
      * @param  array  $data  优惠券属性，支持键:

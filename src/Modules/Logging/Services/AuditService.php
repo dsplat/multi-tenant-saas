@@ -14,16 +14,6 @@ class AuditService
     public function __construct(private readonly TenantContextContract $tenantContext) {}
 
     /**
-     * 向后兼容：静态调用代理到容器实例。
-     *
-     * @deprecated 请改用构造器注入
-     */
-    public static function __callStatic(string $method, array $arguments): mixed
-    {
-        return app(static::class)->{$method}(...$arguments);
-    }
-
-    /**
      * 记录操作
      */
     public function log(

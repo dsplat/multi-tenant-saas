@@ -13,16 +13,6 @@ use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 class TenantSettingService
 {
     /**
-     * 向后兼容：静态调用代理到容器实例。
-     *
-     * @deprecated 请改用构造器注入
-     */
-    public static function __callStatic(string $method, array $arguments): mixed
-    {
-        return app(static::class)->{$method}(...$arguments);
-    }
-
-    /**
      * 获取配置
      */
     public function get(int $tenantId, string $group, string $key, mixed $default = null): mixed

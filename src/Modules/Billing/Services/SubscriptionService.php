@@ -24,16 +24,6 @@ class SubscriptionService
     ) {}
 
     /**
-     * 向后兼容：静态调用代理到容器实例。
-     *
-     * @deprecated 请改用构造器注入
-     */
-    public static function __callStatic(string $method, array $arguments): mixed
-    {
-        return app(static::class)->{$method}(...$arguments);
-    }
-
-    /**
      * 订阅计划
      */
     public function subscribe(int $tenantId, int $planId, string $billingCycle = 'monthly', bool $startTrial = false): Tenant
@@ -335,7 +325,7 @@ class SubscriptionService
         }
 
         try {
-            $orderNo = 'SUB-'.date('Ymd').'-'.str_pad((string) $tenant->tenant_id, 6, '0', STR_PAD_LEFT);
+            $orderNo = 'SUB-' . date('Ymd') . '-' . str_pad((string) $tenant->tenant_id, 6, '0', STR_PAD_LEFT);
 
             FinancialRecord::create([
                 'tenant_id' => $tenant->tenant_id,

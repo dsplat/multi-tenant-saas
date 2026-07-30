@@ -13,7 +13,7 @@ class TicketComment extends Model
 
     protected $primaryKey = 'comment_id';
 
-    protected $fillable = ['content'];
+    protected $fillable = ['ticket_id', 'user_id', 'content'];
 
     public function ticket(): BelongsTo
     {

@@ -16,6 +16,7 @@
       "version": "1.0.0",
       "priority": 50,
       "requires_core": ">=2.0.0",
+      "provider": "MultiTenantSaas\\Modules\\Ticket\\TicketServiceProvider",
       "default_enabled": true,
       "tenant_toggleable": false
     }

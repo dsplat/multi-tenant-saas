@@ -77,9 +77,9 @@ class ChannelWebhookController
             return $this->ack('', 403);
         }
 
-        $inbound = $provider->parseInbound($rawBody, $query);
+        $inboundMessages = $provider->parseInbound($rawBody, $query);
 
-        if ($inbound !== null) {
+        foreach ($inboundMessages as $inbound) {
             $this->router->handleInbound($tenantId, $inbound);
         }
 

@@ -167,9 +167,10 @@ class EnterpriseWechatAppDriverTest extends TestCase
             . '</xml>';
 
         $body = $this->encryptedBody($plainXml);
-        $msg = $this->driver->parseInbound($body, []);
+        $messages = $this->driver->parseInbound($body, []);
 
-        $this->assertNotNull($msg);
+        $this->assertCount(1, $messages);
+        $msg = $messages[0];
         $this->assertSame('enterprise_wechat_app', $msg->channel);
         $this->assertSame('direct', $msg->conversationType);
         $this->assertSame('zhangsan', $msg->externalConvId);
@@ -192,9 +193,10 @@ class EnterpriseWechatAppDriverTest extends TestCase
             . '</xml>';
 
         $body = $this->encryptedBody($plainXml);
-        $msg = $this->driver->parseInbound($body, []);
+        $messages = $this->driver->parseInbound($body, []);
 
-        $this->assertNotNull($msg);
+        $this->assertCount(1, $messages);
+        $msg = $messages[0];
         $this->assertSame('image', $msg->msgType);
         $this->assertSame('https://example.com/pic.jpg', $msg->content);
         $this->assertSame('lisi', $msg->externalConvId);
@@ -212,9 +214,10 @@ class EnterpriseWechatAppDriverTest extends TestCase
             . '</xml>';
 
         $body = $this->encryptedBody($plainXml);
-        $msg = $this->driver->parseInbound($body, []);
+        $messages = $this->driver->parseInbound($body, []);
 
-        $this->assertNotNull($msg);
+        $this->assertCount(1, $messages);
+        $msg = $messages[0];
         $this->assertSame('location', $msg->msgType);
         $this->assertSame('北京市朝阳区', $msg->content);
     }
@@ -229,7 +232,7 @@ class EnterpriseWechatAppDriverTest extends TestCase
 
         $body = $this->encryptedBody($plainXml);
 
-        $this->assertNull($this->driver->parseInbound($body, []));
+        $this->assertSame([], $this->driver->parseInbound($body, []));
     }
 
     public function test_parse_inbound_ignores_empty_from_user(): void
@@ -242,7 +245,7 @@ class EnterpriseWechatAppDriverTest extends TestCase
 
         $body = $this->encryptedBody($plainXml);
 
-        $this->assertNull($this->driver->parseInbound($body, []));
+        $this->assertSame([], $this->driver->parseInbound($body, []));
     }
 
     // ---------- parseInbound: 群聊 ----------
@@ -260,9 +263,10 @@ class EnterpriseWechatAppDriverTest extends TestCase
             . '</xml>';
 
         $body = $this->encryptedBody($plainXml);
-        $msg = $this->driver->parseInbound($body, []);
+        $messages = $this->driver->parseInbound($body, []);
 
-        $this->assertNotNull($msg);
+        $this->assertCount(1, $messages);
+        $msg = $messages[0];
         $this->assertSame('group', $msg->conversationType);
         $this->assertSame('CHATID001', $msg->externalConvId);
         $this->assertSame('internal', $msg->senderType);
@@ -280,9 +284,10 @@ class EnterpriseWechatAppDriverTest extends TestCase
             . '</xml>';
 
         $body = $this->encryptedBody($plainXml);
-        $msg = $this->driver->parseInbound($body, []);
+        $messages = $this->driver->parseInbound($body, []);
 
-        $this->assertNotNull($msg);
+        $this->assertCount(1, $messages);
+        $msg = $messages[0];
         $this->assertSame('group', $msg->conversationType);
         $this->assertSame('CHATID002', $msg->externalConvId);
         $this->assertNull($msg->conversationTitle);
@@ -292,8 +297,8 @@ class EnterpriseWechatAppDriverTest extends TestCase
 
     public function test_parse_inbound_rejects_invalid_body(): void
     {
-        $this->assertNull($this->driver->parseInbound('not-xml', []));
-        $this->assertNull($this->driver->parseInbound('', []));
+        $this->assertSame([], $this->driver->parseInbound('not-xml', []));
+        $this->assertSame([], $this->driver->parseInbound('', []));
     }
 
     public function test_parse_inbound_rejects_wrong_corp_id(): void
@@ -304,7 +309,7 @@ class EnterpriseWechatAppDriverTest extends TestCase
         $encrypt = $this->encrypt($plainXml, 'other-corp');
         $body = "<xml><Encrypt><![CDATA[{$encrypt}]]></Encrypt></xml>";
 
-        $this->assertNull($this->driver->parseInbound($body, []));
+        $this->assertSame([], $this->driver->parseInbound($body, []));
     }
 
     // ---------- sendMessage ----------

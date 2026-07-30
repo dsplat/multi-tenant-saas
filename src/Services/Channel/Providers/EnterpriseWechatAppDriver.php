@@ -80,19 +80,19 @@ class EnterpriseWechatAppDriver implements ChannelContract
         );
     }
 
-    public function parseInbound(string $rawBody, array $query): ?InboundMessage
+    public function parseInbound(string $rawBody, array $query): array
     {
         $payload = $this->decryptBody($rawBody);
 
         if ($payload === null) {
-            return null;
+            return [];
         }
 
         // 群聊回调带 ChatId（事件/消息均然）；应用回调不推送群消息正文，仅建/维会话
         $chatId = $this->str($payload['ChatId'] ?? '');
 
         if ($chatId !== '') {
-            return new InboundMessage(
+            return [new InboundMessage(
                 channel: self::TYPE,
                 conversationType: 'group',
                 externalConvId: $chatId,
@@ -103,10 +103,12 @@ class EnterpriseWechatAppDriver implements ChannelContract
                 platformMsgId: null,
                 conversationTitle: $this->str($payload['Name'] ?? '') ?: null,
                 raw: $payload,
-            );
+            )];
         }
 
-        return $this->parseDirectMessage($payload);
+        $msg = $this->parseDirectMessage($payload);
+
+        return $msg !== null ? [$msg] : [];
     }
 
     public function sendMessage(Conversation $conversation, array $message): bool

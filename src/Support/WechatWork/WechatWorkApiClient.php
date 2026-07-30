@@ -154,4 +154,115 @@ class WechatWorkApiClient
 
         return true;
     }
+
+    // ========== 微信客服 API（kf scope，独立 token） ==========
+
+    /**
+     * 获取客服 access_token（corp + kf_secret，与自建应用 token 不同 scope）
+     */
+    public function kfAccessToken(string $kfSecret): string
+    {
+        if ($this->corpId === '' || $kfSecret === '') {
+            return '';
+        }
+
+        $cacheKey = "wechat_work:kf_token:{$this->corpId}";
+        $cached = cache()->get($cacheKey);
+
+        if ($cached !== null) {
+            return (string) $cached;
+        }
+
+        $response = Http::timeout(15)->get(self::API_BASE . '/gettoken', [
+            'corpid' => $this->corpId,
+            'corpsecret' => $kfSecret,
+        ]);
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] kf gettoken 失败', [
+                'corp_id' => $this->corpId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return '';
+        }
+
+        $token = (string) $response->json('access_token');
+        $expiresIn = (int) ($response->json('expires_in') ?? 7200);
+
+        cache()->put($cacheKey, $token, max($expiresIn - 300, 60));
+
+        return $token;
+    }
+
+    /**
+     * 拉取客服消息（kf/sync_msg）
+     *
+     * @return array{msg_list: list<array<string, mixed>>, next_cursor: string}
+     */
+    public function kfSyncMsg(string $kfSecret, string $cursor = '', string $token = '', int $limit = 1000): array
+    {
+        $accessToken = $this->kfAccessToken($kfSecret);
+
+        if ($accessToken === '') {
+            return ['msg_list' => [], 'next_cursor' => ''];
+        }
+
+        $response = Http::timeout(15)->post(self::API_BASE . "/kf/sync_msg?access_token={$accessToken}", [
+            'cursor' => $cursor,
+            'token' => $token,
+            'limit' => $limit,
+        ]);
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] kf/sync_msg 失败', [
+                'corp_id' => $this->corpId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return ['msg_list' => [], 'next_cursor' => ''];
+        }
+
+        return [
+            'msg_list' => $response->json('msg_list') ?? [],
+            'next_cursor' => (string) ($response->json('next_cursor') ?? ''),
+        ];
+    }
+
+    /**
+     * 发送客服消息（kf/send_msg）
+     *
+     * @param  array<string, mixed>  $message  msgtype 及对应内容体
+     */
+    public function kfSendMsg(string $kfSecret, string $externalUserId, string $openKfId, array $message): bool
+    {
+        $accessToken = $this->kfAccessToken($kfSecret);
+
+        if ($accessToken === '') {
+            return false;
+        }
+
+        $payload = array_merge([
+            'touser' => $externalUserId,
+            'open_kfid' => $openKfId,
+            'msgtype' => $message['msgtype'] ?? 'text',
+        ], $message);
+
+        $response = Http::timeout(15)->post(self::API_BASE . "/kf/send_msg?access_token={$accessToken}", $payload);
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] kf/send_msg 失败', [
+                'corp_id' => $this->corpId,
+                'open_kfid' => $openKfId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return false;
+        }
+
+        return true;
+    }
 }

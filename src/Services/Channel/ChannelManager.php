@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use MultiTenantSaas\Contracts\ChannelContract;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Services\Channel\Providers\EnterpriseWechatAppDriver;
+use MultiTenantSaas\Services\Channel\Providers\EnterpriseWechatKfDriver;
 use RuntimeException;
 
 /**
@@ -32,7 +33,7 @@ class ChannelManager
     {
         // 驱动按需注册（下游可经 extend() 追加）
         $this->drivers[EnterpriseWechatAppDriver::TYPE] = EnterpriseWechatAppDriver::class;
-        // Phase 2：$this->drivers['enterprise_wechat_kf'] = EnterpriseWechatKfDriver::class;
+        $this->drivers[EnterpriseWechatKfDriver::TYPE] = EnterpriseWechatKfDriver::class;
     }
 
     /**

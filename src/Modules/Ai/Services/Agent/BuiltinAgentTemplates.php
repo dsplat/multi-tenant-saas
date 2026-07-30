@@ -85,7 +85,7 @@ final class BuiltinAgentTemplates
                     'system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'suggest_kb_update', 'list_agents', 'delegate_to_agent', 'enable_agent',
                     'list_task_chains', 'start_task_chain', 'advance_task_chain',
                     'tag_customer', 'create_script_draft', 'save_oauth_config', 'create_distribution_plan',
-                    'manage_tags', 'ai_auto_tag', 'create_live_code', 'create_product', 'issue_coupon',
+                    'manage_tags', 'ai_auto_tag', 'create_live_code', 'send_message', 'create_product', 'issue_coupon',
                     'create_sms_signature', 'send_sms_batch', 'schedule_sms_batch', 'create_poster',
                     'adjust_points', 'create_moments_sop', 'create_mass_push',
                 ],

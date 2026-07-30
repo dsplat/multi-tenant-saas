@@ -66,12 +66,21 @@ class BillingServiceProvider extends ModuleServiceProvider
     {
         $registry = app(ToolRegistryContract::class);
 
-        $registry->register('billing_get_current_plan', 'Billing Get Current Plan', 'Get current plan', BillingGetCurrentPlanHandler::class, ['type' => 'object', 'properties' => []], 'billing', 'L1');
-        $registry->register('billing_subscribe', 'Billing Subscribe', 'Subscribe', BillingSubscribeHandler::class, ['type' => 'object', 'properties' => ['plan_id' => ['type' => 'integer', 'description' => '计划ID']], 'required' => ['plan_id']], 'billing', 'L2');
-        $registry->register('billing_change_plan', 'Billing Change Plan', 'Change plan', BillingChangePlanHandler::class, ['type' => 'object', 'properties' => ['plan_id' => ['type' => 'integer', 'description' => '新计划ID']], 'required' => ['plan_id']], 'billing', 'L2');
-        $registry->register('billing_cancel', 'Billing Cancel', 'Cancel', BillingCancelHandler::class, ['type' => 'object', 'properties' => []], 'billing', 'L2');
-        $registry->register('billing_start_trial', 'Billing Start Trial', 'Start trial', BillingStartTrialHandler::class, ['type' => 'object', 'properties' => ['plan_id' => ['type' => 'integer', 'description' => '计划ID']], 'required' => ['plan_id']], 'billing', 'L2');
-        $registry->register('billing_get_history', 'Billing Get History', 'Get history', BillingGetHistoryHandler::class, ['type' => 'object', 'properties' => []], 'billing', 'L1');
-        $registry->register('billing_is_in_trial', 'Billing Is In Trial', 'Is in trial', BillingIsInTrialHandler::class, ['type' => 'object', 'properties' => []], 'billing', 'L1');
+        $emptySchema = ['type' => 'object', 'properties' => []];
+        $planIdSchema = fn (string $desc) => ['type' => 'object', 'properties' => ['plan_id' => ['type' => 'integer', 'description' => $desc]], 'required' => ['plan_id']];
+
+        $tools = [
+            ['billing_get_current_plan', 'Billing Get Current Plan', 'Get current plan', BillingGetCurrentPlanHandler::class, $emptySchema, 'L1'],
+            ['billing_subscribe', 'Billing Subscribe', 'Subscribe', BillingSubscribeHandler::class, $planIdSchema('计划ID'), 'L2'],
+            ['billing_change_plan', 'Billing Change Plan', 'Change plan', BillingChangePlanHandler::class, $planIdSchema('新计划ID'), 'L2'],
+            ['billing_cancel', 'Billing Cancel', 'Cancel', BillingCancelHandler::class, $emptySchema, 'L2'],
+            ['billing_start_trial', 'Billing Start Trial', 'Start trial', BillingStartTrialHandler::class, $planIdSchema('计划ID'), 'L2'],
+            ['billing_get_history', 'Billing Get History', 'Get history', BillingGetHistoryHandler::class, $emptySchema, 'L1'],
+            ['billing_is_in_trial', 'Billing Is In Trial', 'Is in trial', BillingIsInTrialHandler::class, $emptySchema, 'L1'],
+        ];
+
+        foreach ($tools as [$name, $title, $description, $handler, $schema, $level]) {
+            $registry->register($name, $title, $description, $handler, $schema, 'billing', $level);
+        }
     }
 }

@@ -95,11 +95,12 @@ class ExportServiceTest extends TestCase
         $service = app(ExportService::class);
 
         $taskId = $service->createAsyncTask('TestJob', [], 2001);
-        $service->updateTaskStatus($taskId, ExportService::STATUS_FAILED);
+        $service->updateTaskStatus($taskId, ExportService::STATUS_FAILED, null, 'disk full');
 
         $task = $service->getTaskStatus($taskId);
         $this->assertEquals(ExportService::STATUS_FAILED, $task->status);
         $this->assertTrue((bool) $task->error);
+        $this->assertEquals('disk full', $task->error_message);
     }
 
     public function test_task_status_lifecycle(): void

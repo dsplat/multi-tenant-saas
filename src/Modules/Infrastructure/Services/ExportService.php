@@ -150,9 +150,10 @@ class ExportService
      * @param  int  $taskId  任务 ID
      * @param  string  $status  状态
      * @param  string|null  $filePath  生成的文件路径
+     * @param  string|null  $errorMessage  失败原因（仅 failed 状态时写入）
      * @return int 受影响行数
      */
-    public function updateTaskStatus(int $taskId, string $status, ?string $filePath = null): int
+    public function updateTaskStatus(int $taskId, string $status, ?string $filePath = null, ?string $errorMessage = null): int
     {
         $update = ['status' => $status, 'updated_at' => now()];
 
@@ -163,6 +164,7 @@ class ExportService
 
         if ($status === self::STATUS_FAILED) {
             $update['error'] = true;
+            $update['error_message'] = $errorMessage;
         }
 
         return DB::table(self::TABLE)->where('id', $taskId)->update($update);

@@ -5,13 +5,13 @@ use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Http\Controllers\ChannelWebhookController;
 use MultiTenantSaas\Modules\Auth\Http\Controllers\TenantOAuthController;
 use MultiTenantSaas\Modules\Event\Services\BroadcastingService;
-use MultiTenantSaas\Modules\Notification\Services\InAppNotificationService;
+use MultiTenantSaas\Modules\Notification\Http\Controllers\InAppNotificationController;
 use MultiTenantSaas\Modules\Payment\Http\Controllers\TenantPaymentController;
 
-// ========== 支付回调（无需认证） ==========
+// ========== 支付回调（无需认证，PayService 内验签） ==========
 Route::post('/v1/pay/wechat/notify', [TenantPaymentController::class, 'wechatNotify']);
 Route::post('/v1/pay/alipay/notify', [TenantPaymentController::class, 'alipayNotify']);
-Route::get('/v1/pay/wechat/notify', [TenantPaymentController::class, 'wechatNotify']);
+// 支付宝同步回跳 return_url 为浏览器 GET（参数同样带签），保留 GET 入口；微信 v3 回调仅 POST
 Route::get('/v1/pay/alipay/notify', [TenantPaymentController::class, 'alipayNotify']);
 Route::post('/v1/pay/wechat/refund-notify', [TenantPaymentController::class, 'wechatRefundNotify']);
 Route::post('/v1/pay/alipay/refund-notify', [TenantPaymentController::class, 'alipayRefundNotify']);
@@ -24,123 +24,17 @@ Route::get('/v1/auth/{provider}/callback', [TenantOAuthController::class, 'callb
 Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(function () {
 
     // 站内通知中心
-    Route::get('/in-app-notifications', function (Request $request) {
-        $userId = (int) $request->user()->id;
-        $service = app(InAppNotificationService::class);
-        $result = $service->list($userId, [
-            'type' => $request->query('type'),
-            'unread_only' => $request->boolean('unread_only'),
-            'per_page' => (int) $request->input('per_page', 20),
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'data' => $result->items(),
-            'meta' => [
-                'current_page' => $result->currentPage(),
-                'last_page' => $result->lastPage(),
-                'per_page' => $result->perPage(),
-                'total' => $result->total(),
-                'unread_count' => $service->getUnreadCount($userId),
-                'unread_by_type' => $service->getUnreadCountByType($userId),
-            ],
-        ]);
-    });
-
-    Route::get('/in-app-notifications/categories', function () {
-        return response()->json([
-            'success' => true,
-            'data' => app(InAppNotificationService::class)->getCategories(),
-        ]);
-    });
-
-    Route::get('/in-app-notifications/unread-count', function (Request $request) {
-        $userId = (int) $request->user()->id;
-
-        return response()->json([
-            'success' => true,
-            'unread_count' => app(InAppNotificationService::class)->getUnreadCount($userId),
-            'unread_by_type' => app(InAppNotificationService::class)->getUnreadCountByType($userId),
-        ]);
-    });
-
-    Route::post('/in-app-notifications/{id}/read', function (int $id) {
-        $userId = (int) auth()->id();
-        $ok = app(InAppNotificationService::class)->markAsRead($id, $userId);
-
-        if (! $ok) {
-            return response()->json(['success' => false, 'message' => trans('notification.not_found')], 404);
-        }
-
-        return response()->json(['success' => true, 'message' => trans('notification.marked_read')]);
-    });
-
-    Route::post('/in-app-notifications/read/batch', function (Request $request) {
-        $data = $request->validate([
-            'ids' => ['required', 'array'],
-            'ids.*' => ['integer'],
-        ]);
-        $count = app(InAppNotificationService::class)->markBatchRead($data['ids'], (int) auth()->id());
-
-        return response()->json(['success' => true, 'marked_count' => $count]);
-    });
-
-    Route::post('/in-app-notifications/read-all', function () {
-        $count = app(InAppNotificationService::class)->markAllRead((int) auth()->id());
-
-        return response()->json(['success' => true, 'marked_count' => $count, 'message' => trans('notification.all_marked_read')]);
-    });
-
-    Route::delete('/in-app-notifications/{id}', function (int $id) {
-        $ok = app(InAppNotificationService::class)->delete($id, (int) auth()->id());
-
-        if (! $ok) {
-            return response()->json(['success' => false, 'message' => trans('notification.not_found')], 404);
-        }
-
-        return response()->json(['success' => true, 'message' => trans('notification.deleted')]);
-    });
-
-    Route::delete('/in-app-notifications/read/clear', function () {
-        $count = app(InAppNotificationService::class)->clearRead((int) auth()->id());
-
-        return response()->json(['success' => true, 'cleared_count' => $count, 'message' => trans('notification.read_cleared')]);
-    });
-
-    Route::get('/in-app-notifications/preferences', function () {
-        return response()->json([
-            'success' => true,
-            'data' => app(InAppNotificationService::class)->getPreferences((int) auth()->id()),
-        ]);
-    });
-
-    Route::post('/in-app-notifications/preferences', function (Request $request) {
-        $data = $request->validate([
-            'channel' => ['required', 'string', 'max:30'],
-            'type' => ['nullable', 'string', 'max:100'],
-            'enabled' => ['required', 'boolean'],
-        ]);
-        app(InAppNotificationService::class)->setPreference(
-            (int) auth()->id(),
-            $data['channel'],
-            $data['type'] ?? null,
-            $data['enabled']
-        );
-
-        return response()->json(['success' => true, 'message' => trans('common.updated')]);
-    });
-
-    Route::post('/in-app-notifications/preferences/batch', function (Request $request) {
-        $data = $request->validate([
-            'preferences' => ['required', 'array'],
-            'preferences.*.channel' => ['required', 'string', 'max:30'],
-            'preferences.*.type' => ['nullable', 'string', 'max:100'],
-            'preferences.*.enabled' => ['required', 'boolean'],
-        ]);
-        app(InAppNotificationService::class)->batchSetPreferences((int) auth()->id(), $data['preferences']);
-
-        return response()->json(['success' => true, 'message' => trans('common.updated')]);
-    });
+    Route::get('/in-app-notifications', [InAppNotificationController::class, 'index']);
+    Route::get('/in-app-notifications/categories', [InAppNotificationController::class, 'categories']);
+    Route::get('/in-app-notifications/unread-count', [InAppNotificationController::class, 'unreadCount']);
+    Route::post('/in-app-notifications/{id}/read', [InAppNotificationController::class, 'markAsRead']);
+    Route::post('/in-app-notifications/read/batch', [InAppNotificationController::class, 'markBatchRead']);
+    Route::post('/in-app-notifications/read-all', [InAppNotificationController::class, 'markAllRead']);
+    Route::delete('/in-app-notifications/{id}', [InAppNotificationController::class, 'destroy']);
+    Route::delete('/in-app-notifications/read/clear', [InAppNotificationController::class, 'clearRead']);
+    Route::get('/in-app-notifications/preferences', [InAppNotificationController::class, 'getPreferences']);
+    Route::post('/in-app-notifications/preferences', [InAppNotificationController::class, 'setPreference']);
+    Route::post('/in-app-notifications/preferences/batch', [InAppNotificationController::class, 'batchSetPreferences']);
 
     // 实时广播
     Route::get('/broadcast/history', function (Request $request) {

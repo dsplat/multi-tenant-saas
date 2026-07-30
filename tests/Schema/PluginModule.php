@@ -67,7 +67,8 @@ class PluginModule implements SchemaModuleInterface
             $table->json('payload')->nullable();
             $table->string('status', 20)->default('pending');
             $table->string('file_path', 500)->nullable();
-            $table->text('error')->nullable();
+            $table->boolean('error')->default(false);
+            $table->text('error_message')->nullable();
             $table->timestamp('completed_at')->nullable();
             $table->timestamps();
 

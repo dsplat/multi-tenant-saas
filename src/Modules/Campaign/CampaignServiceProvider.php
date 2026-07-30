@@ -2,10 +2,17 @@
 
 namespace MultiTenantSaas\Modules\Campaign;
 
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\Route;
+use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Campaign\Console\CampaignProcessDueCommand;
 use MultiTenantSaas\Modules\Campaign\Services\CampaignTaskExecutor;
 use MultiTenantSaas\Modules\Campaign\Services\PlanCompiler;
+use MultiTenantSaas\Modules\Campaign\Services\PlaybookRegistry;
+use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignPlanCommitTool;
+use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignPlanDraftTool;
+use MultiTenantSaas\Modules\Campaign\Listeners\CampaignEventSubscriber;
+use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignStatusTool;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
 
 /**
@@ -19,10 +26,17 @@ class CampaignServiceProvider extends ModuleServiceProvider
 {
     protected string $moduleName = 'campaign';
 
+    protected function bootModule(): void
+    {
+        $this->registerTools();
+        $this->registerEventSubscriber();
+    }
+
     protected function registerModuleBindings(): void
     {
         $this->app->singleton(PlanCompiler::class);
         $this->app->singleton(CampaignTaskExecutor::class);
+        $this->app->singleton(PlaybookRegistry::class);
     }
 
     protected function registerModuleCommands(): void
@@ -50,5 +64,87 @@ class CampaignServiceProvider extends ModuleServiceProvider
                 ->prefix('api/v1')
                 ->group($tenantRoute);
         }
+    }
+
+    /**
+     * 注册 Campaign 三工具（引擎开关关闭时不注册，AI 可选性铁律）
+     */
+    private function registerTools(): void
+    {
+        if (! config('ai.campaign.enabled')) {
+            return;
+        }
+
+        $registry = $this->app->make(ToolRegistryContract::class);
+
+        $registry->register(
+            'campaign_plan_draft',
+            'Campaign Plan Draft',
+            'Create or revise a campaign execution plan (AI co-creation); stores the plan_doc to DB for iterative refinement before committing',
+            CampaignPlanDraftTool::class,
+            [
+                'type' => 'object',
+                'properties' => [
+                    'playbook_key' => ['type' => 'string', 'description' => 'Playbook 标识（可选，提供方法论和骨架）'],
+                    'plan_id' => ['type' => 'integer', 'description' => '已有计划 ID（可选，传则为修订）'],
+                    'user_input' => ['type' => 'string', 'description' => '用户对活动的需求描述'],
+                    'anchor_type' => ['type' => 'string', 'description' => '锚点业务对象类型（可选，如 event）'],
+                    'anchor_id' => ['type' => 'integer', 'description' => '锚点业务对象 ID（可选）'],
+                ],
+                'required' => ['user_input'],
+            ],
+            'campaign'
+        );
+
+        $registry->register(
+            'campaign_plan_commit',
+            'Campaign Plan Commit',
+            'Finalize and compile a campaign plan into scheduled tasks; validates the plan_doc and generates campaign_tasks records. This action is irreversible - requires user confirmation',
+            CampaignPlanCommitTool::class,
+            [
+                'type' => 'object',
+                'properties' => [
+                    'plan_id' => ['type' => 'integer', 'description' => '计划 ID（plan_doc 已存 DB，无需传入）'],
+                    'anchor_times' => ['type' => 'object', 'description' => '锚点时间映射 {anchor_name: datetime}（如 {"event.starts_at": "2026-09-01 09:00"}）'],
+                ],
+                'required' => ['plan_id'],
+            ],
+            'campaign',
+            'L2'
+        );
+
+        $registry->register(
+            'campaign_status',
+            'Campaign Status',
+            'Query the status and progress of a campaign plan including task execution details and pending confirmations',
+            CampaignStatusTool::class,
+            [
+                'type' => 'object',
+                'properties' => [
+                    'plan_id' => ['type' => 'integer', 'description' => '计划 ID'],
+                ],
+                'required' => ['plan_id'],
+            ],
+            'campaign'
+        );
+    }
+
+    /**
+     * 注册事件订阅器（仅 campaign 启用且配置了 listen_events 时）
+     */
+    private function registerEventSubscriber(): void
+    {
+        if (! config('ai.campaign.enabled')) {
+            return;
+        }
+
+        $listenEvents = config('ai.campaign.listen_events', []);
+        if ($listenEvents === []) {
+            return;
+        }
+
+        $this->app->make(Dispatcher::class)->subscribe(
+            $this->app->make(CampaignEventSubscriber::class)
+        );
     }
 }

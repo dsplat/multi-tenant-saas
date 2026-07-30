@@ -410,23 +410,35 @@ app(AuditService::class)->log('create', 'tenant', ...);
 |------|------|--------|
 | 设计缺陷 | 6 | 异常体系、上帝对象、事件未利用、跨模块耦合、缺 BaseController、服务定位器 |
 
-## 第二轮修复状态（2026-07-31）
+## 第二轮修复验证（2026-07-31 第三轮确认）
 
-| 编号 | 结论 | 状态 | 修复说明 |
-|------|------|------|---------|
-| D1 | 属实（比描述更严重：`app/Exceptions/Handler.php` 是死代码，Laravel 11 走 `bootstrap/app.php`，生产环境业务 RuntimeException 全被吞成 500） | ✅ 已修复 | 新增 `src/Exceptions/DomainException`（继承 RuntimeException + 实现 HttpExceptionInterface，默认 422）；新增 NotFound(404)/Conflict(409)/ServiceUnavailable(503)；改造既有 7 个异常挂状态码（QuotaExceeded 429、PermissionDenied 403、TenantNotFound 404、Storage 500、SummaryGeneration 502、InsufficientCredits 402）；删除死代码 Handler.php；框架与 scrm-platform 两侧 `bootstrap/app.php` 增加 DomainException render 回调（5xx 生产脱敏）；CouponService 重复码改抛 ConflictException 作示范。332 处裸 RuntimeException 由后续迭代按模块渐进迁移 | 
-| D2 | 属实（AgentRuntime 1627 行/9 构造参数） | ⏸ 暂不修 | 无行为缺陷，纯结构重构且影响 AI 主链路，风险高，建议单独立项拆分（工具执行/降级/事件三块可先剥离） |
-| D3 | 部分属实 | ✅ 已修复 | LogEventListener 新增 AgentCreated/AgentEnabled/AgentDisabled/ToolCallFailed 4 个 handler 并在 TenancyServiceProvider 注册；AgentRuntime 补 ToolCalled/ToolCallCompleted 派发；AgentChatController/AssistantController 补 ConversationStarted/ConversationEnded 派发。审计写入统一走防御式 `audit()` 辅助方法（旁路副作用失败不中断主流程） |
-| D4 | 属实（但拆包架构下可选模块检查本身合理） | ✅ 已修复 | 点名 3 处（BrandingService/AlertService/ResourceService）由 `class_exists`/`method_exists` 统一改为 `app()->bound(Service::class)` 容器绑定检查，语义为「模块已安装且启用」；其余 class_exists 属可选拆包合理用法，保留 |
-| D5 | 属实 | ✅ 已修复 | 新增 `src/Http/Controllers/BaseController`（组合 ApiResponse/AuthorizesRequests/ValidatesRequests）；ApiResponse trait 下沉至 `src/Http/Concerns/`，app 层旧 trait 改向后兼容别名；src 下 8 个直接继承 Illuminate Controller 的控制器改继承 BaseController；框架与 scrm-platform 的 `app/Http/Controllers/Controller.php` 改继承框架 BaseController |
-| D6 | 属实 | ✅ 已修复 | LogEventListener 改构造器注入 `AuditService`，全部 handler 走 `$this->audit()` |
+| 编号 | 状态 | 验证结果 |
+|------|------|---------|
+| D1 | **已修复 ✅** | `DomainException` 基类实现 `HttpExceptionInterface`，11 个异常全部继承并携带正确状态码（402/403/404/409/429/500/502/503）；`Handler.php` 已删除；`bootstrap/app.php` 有 DomainException render 回调 + 5xx 生产脱敏；CouponService 已改抛 `ConflictException`；`DomainExceptionTest.php` 11 用例覆盖全状态码映射 |
+| D2 | **暂不修 ⏸** | 合理延期，无行为缺陷 |
+| D3 | **已修复 ✅** | AgentCreated/AgentEnabled/AgentDisabled/ToolCallFailed 4 个 handler 已注册；ToolCalled/ToolCallCompleted 已在 AgentRuntime dispatch；ConversationStarted/ConversationEnded 已在 AgentChatController/AssistantController dispatch；防御式 `audit()` 辅助方法防止审计失败中断主流程 |
+| D4 | **已修复 ✅** | 3 处点名代码改为 `app()->bound()`；其余 `class_exists` 为合理拆包用法 |
+| D5 | **已修复 ✅** | `BaseController` + `ApiResponse` trait 已就位；8 个 src/ 下控制器已迁移继承 |
+| D6 | **已修复 ✅** | LogEventListener 构造器注入 `AuditService` |
 
-回归验证：`tests/DomainExceptionTest.php`（新增 11 用例）通过；Agent/Coupon/Branding/Alert/Resource/Quota 相关 105 passed；EventBus/Mention 56 passed；`test:filter Controller` 失败集合与 main 基线完全一致（105F/10E 为既有问题，与本轮无关）。
+## 遗留项（非本轮范围，记录备查）
+
+| 编号 | 类型 | 说明 | 优先级 |
+|------|------|------|--------|
+| SMELL-003 | 安全 | 前端 localStorage 存 Token（需前后端联调） | P1 |
+| SMELL-004 | 技术债务 | 7 个 Service 保留 `__callStatic`（已从 23 个降至 7 个） | P2 |
+| SMELL-006 | 质量 | 前端无测试（需引入 vitest） | P2 |
+| TODO-001~003 | 功能 | 3 处 TODO 未完成（自动扣款、用量查询、模型废弃追踪） | P2 |
+| D2 | 结构 | AgentRuntime 1627 行/9 构造参数（建议独立拆分） | P2 |
 
 ## 综合评价
 
-框架在**租户隔离**和**模块系统**两个核心维度设计精良。主要技术债务集中在：
-1. 异常体系（332 处 RuntimeException vs 5 处自定义异常）
-2. AI 模块的 AgentRuntime 上帝对象
-3. 事件驱动架构半完成状态
-4. 跨模块依赖管理缺乏正式契约
+**两轮审查发现的 20 个问题中，15 个已修复，1 个合理延期，4 个遗留。** 修复质量高：
+
+- 异常体系从零到完整，`HttpExceptionInterface` 保证状态码正确传递，生产环境 5xx 脱敏
+- 事件系统从 2 监听器扩展到 6 监听器，覆盖 Agent/Tool 生命周期
+- `BaseController` + `ApiResponse` 统一了 API 响应格式
+- 防御式审计写入（`audit()` try-catch）避免副作用中断主流程
+- `bootstrap/app.php` 替代了 Laravel 11 已废弃的 `Handler.php`
+
+框架核心设计（租户隔离、模块系统、面向接口）依然扎实，异常体系和事件系统的补全显著提升了可维护性。

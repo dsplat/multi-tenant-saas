@@ -5,20 +5,27 @@ namespace MultiTenantSaas\Modules\Campaign\Services;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
+use MultiTenantSaas\Modules\Ai\Services\Agent\HeadlessAgentService;
+use MultiTenantSaas\Modules\Ai\Services\TaskChain\TaskChainRunner;
 use MultiTenantSaas\Modules\Campaign\Models\CampaignTask;
 
 /**
- * Campaign 任务执行器（docs/event-plan.md Phase 0）
+ * Campaign 任务执行器（docs/event-plan.md Phase 0 + Phase 2）
  *
- * Phase 0 范围：
+ * Phase 0：
  * - action.type=tool → 占位符替换 → ToolRegistry::execute
  * - assignee_type=human → 保持 running 等 complete API
- * - agent ReAct / task_chain / on_event 执行为 Phase 2，遇到置 failed
+ *
+ * Phase 2：
+ * - action.type=task_chain → TaskChainRunner::start + 循环 advance（forceL2）
+ * - action.type=agent_react → HeadlessAgentService::execute
  */
 class CampaignTaskExecutor
 {
     public function __construct(
         private readonly ToolRegistryContract $toolRegistry,
+        private readonly TaskChainRunner $runner,
+        private readonly HeadlessAgentService $headless,
     ) {}
 
     /**
@@ -37,8 +44,8 @@ class CampaignTaskExecutor
         try {
             match ($actionType) {
                 'tool' => $this->executeTool($task, $action),
-                'task_chain' => $this->unsupported($task, 'task_chain 组合为 Phase 2'),
-                'agent_react' => $this->unsupported($task, 'agent ReAct 为 Phase 2'),
+                'task_chain' => $this->executeTaskChain($task, $action),
+                'agent_react' => $this->executeAgentReact($task, $action),
                 default => $this->executeHumanOrSystem($task),
             };
         } catch (\Throwable $e) {
@@ -84,6 +91,134 @@ class CampaignTaskExecutor
     }
 
     /**
+     * task_chain 执行：启动链 + 循环 advance 直到完成/失败
+     *
+     * forceL2：campaign plan 本身已 L2 确认（commit 过确认门），链内 L2 工具视为预审批
+     */
+    private function executeTaskChain(CampaignTask $task, array $action): void
+    {
+        $chainKey = $action['chain_key'] ?? '';
+
+        if ($chainKey === '') {
+            $task->update([
+                'status' => CampaignTask::STATUS_FAILED,
+                'output' => ['error' => 'action.chain_key 缺失'],
+            ]);
+
+            return;
+        }
+
+        $tenantId = (int) $task->tenant_id;
+        $presetArgs = $action['args'] ?? [];
+
+        // 启动链（conversationId=null，campaign 触发无归属会话）
+        $state = $this->runner->start($chainKey, $tenantId, null, forceL2: true);
+
+        if ($state['error'] ?? false) {
+            $task->update([
+                'status' => CampaignTask::STATUS_FAILED,
+                'output' => ['error' => $state['message'] ?? '链启动失败'],
+            ]);
+
+            return;
+        }
+
+        // 循环 advance 直到终态
+        $maxIterations = 20;
+
+        for ($i = 0; $i < $maxIterations; $i++) {
+            $status = $state['status'] ?? '';
+
+            if ($status === 'completed') {
+                $task->update([
+                    'status' => CampaignTask::STATUS_DONE,
+                    'output' => $state,
+                ]);
+
+                return;
+            }
+
+            if ($status === 'failed') {
+                $task->update([
+                    'status' => CampaignTask::STATUS_FAILED,
+                    'output' => $state,
+                ]);
+
+                return;
+            }
+
+            // 为 input 步提供预定义 args
+            $stepInput = [];
+            $currentStep = $state['current_step'] ?? 0;
+
+            if (isset($presetArgs["step_{$currentStep}"])) {
+                $stepInput = $presetArgs["step_{$currentStep}"];
+            }
+
+            $state = $this->runner->advance(
+                $state['run_id'],
+                $tenantId,
+                $stepInput,
+                [],
+                false,
+                forceL2: true
+            );
+
+            if ($state['error'] ?? false) {
+                $task->update([
+                    'status' => CampaignTask::STATUS_FAILED,
+                    'output' => $state,
+                ]);
+
+                return;
+            }
+        }
+
+        // 超过最大迭代次数
+        $task->update([
+            'status' => CampaignTask::STATUS_FAILED,
+            'output' => ['error' => '任务链执行超过最大迭代次数', 'last_state' => $state],
+        ]);
+    }
+
+    /**
+     * agent_react 执行：调用 HeadlessAgentService 执行无用户交互的短 ReAct 会话
+     */
+    private function executeAgentReact(CampaignTask $task, array $action): void
+    {
+        $role = $action['role'] ?? '';
+        $promptTemplate = $action['prompt'] ?? '';
+
+        if ($role === '' || $promptTemplate === '') {
+            $task->update([
+                'status' => CampaignTask::STATUS_FAILED,
+                'output' => ['error' => 'agent_react 缺少 role 或 prompt'],
+            ]);
+
+            return;
+        }
+
+        // 解析 prompt 中的占位符
+        $resolvedPrompt = $this->replaceString($promptTemplate, $task);
+
+        $result = $this->headless->execute($role, $resolvedPrompt, (int) $task->tenant_id);
+
+        if ($result->partial) {
+            $task->update([
+                'status' => CampaignTask::STATUS_FAILED,
+                'output' => ['error' => 'agent_react 执行失败（partial）: ' . $result->error, 'tool_calls_log' => $result->toolCallsLog],
+            ]);
+
+            return;
+        }
+
+        $task->update([
+            'status' => CampaignTask::STATUS_DONE,
+            'output' => ['text' => $result->text, 'tool_calls_log' => $result->toolCallsLog],
+        ]);
+    }
+
+    /**
      * human / system 任务：保持 running 等外部 complete
      *
      * assignee_type=human 的任务不自动执行，等待管理 API complete 置 done。
@@ -100,17 +235,6 @@ class CampaignTaskExecutor
         $task->update([
             'status' => CampaignTask::STATUS_DONE,
             'output' => ['message' => '无操作（system 空任务）'],
-        ]);
-    }
-
-    /**
-     * 不支持的执行类型 → 置 failed
-     */
-    private function unsupported(CampaignTask $task, string $reason): void
-    {
-        $task->update([
-            'status' => CampaignTask::STATUS_FAILED,
-            'output' => ['error' => "暂不支持：{$reason}"],
         ]);
     }
 

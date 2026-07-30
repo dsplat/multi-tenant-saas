@@ -6,6 +6,8 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Ai\Models\TaskChainRun;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
+use MultiTenantSaas\Modules\Ai\Services\Agent\Dto\HeadlessResult;
+use MultiTenantSaas\Modules\Ai\Services\Agent\HeadlessAgentService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolConversationContext;
 use MultiTenantSaas\Modules\Ai\Services\TaskChain\TaskChainRegistry;
 use MultiTenantSaas\Modules\Ai\Services\TaskChain\TaskChainRunner;
@@ -39,9 +41,11 @@ class TaskChainTest extends TestCase
         return new TaskChainRegistry;
     }
 
-    private function runner(): TaskChainRunner
+    private function runner(?HeadlessAgentService $headless = null): TaskChainRunner
     {
-        return new TaskChainRunner($this->registry(), $this->app->make(ToolRegistryContract::class));
+        $headless ??= $this->createMock(HeadlessAgentService::class);
+
+        return new TaskChainRunner($this->registry(), $this->app->make(ToolRegistryContract::class), $headless);
     }
 
     /**
@@ -178,15 +182,112 @@ class TaskChainTest extends TestCase
         $this->assertSame(TaskChainRun::STATUS_COMPLETED, $completed['status']);
     }
 
-    public function test_delegate_step_fails_with_phase2_hint(): void
+    public function test_delegate_step_prepare_returns_ready_hint(): void
     {
         config(['ai.task_chains.extra_chain_classes' => [TaskChainDelegateChains::class]]);
         $runner = $this->runner();
 
+        // 启动链：首步为 delegate → 两阶段模式置 ready + 指引 advance
         $started = $runner->start('delegate_chain', self::TENANT, self::CONVERSATION);
 
-        $this->assertSame(TaskChainRun::STATUS_FAILED, $started['status']);
-        $this->assertStringContainsString('Phase 2', $started['next_action']);
+        $this->assertSame(TaskChainRun::STATUS_RUNNING, $started['status']);
+        $this->assertSame('ready', $started['steps'][0]['status']);
+        $this->assertStringContainsString('delegate', $started['next_action']);
+        $this->assertStringContainsString('advance_task_chain', $started['next_action']);
+    }
+
+    public function test_delegate_step_executes_headless_and_completes(): void
+    {
+        config(['ai.task_chains.extra_chain_classes' => [TaskChainDelegateChains::class]]);
+
+        $headless = $this->createMock(HeadlessAgentService::class);
+        $headless->expects($this->once())
+            ->method('execute')
+            ->with('sales', $this->anything(), self::TENANT)
+            ->willReturn(new HeadlessResult(text: '方案已生成：春季促销计划', partial: false));
+
+        $runner = $this->runner($headless);
+
+        $started = $runner->start('delegate_chain', self::TENANT, self::CONVERSATION);
+        $completed = $runner->advance($started['run_id'], self::TENANT);
+
+        $this->assertSame(TaskChainRun::STATUS_COMPLETED, $completed['status']);
+        $this->assertSame('done', $completed['steps'][0]['status']);
+    }
+
+    public function test_delegate_step_partial_result_fails_step(): void
+    {
+        config(['ai.task_chains.extra_chain_classes' => [TaskChainDelegateChains::class]]);
+
+        $headless = $this->createMock(HeadlessAgentService::class);
+        $headless->method('execute')
+            ->willReturn(new HeadlessResult(text: '', partial: true, error: 'API timeout'));
+
+        $runner = $this->runner($headless);
+
+        $started = $runner->start('delegate_chain', self::TENANT, self::CONVERSATION);
+        $failed = $runner->advance($started['run_id'], self::TENANT);
+
+        $this->assertSame(TaskChainRun::STATUS_FAILED, $failed['status']);
+        $this->assertStringContainsString('delegate 执行失败', $failed['next_action']);
+    }
+
+    public function test_delegate_step_manual_override_with_step_output(): void
+    {
+        config(['ai.task_chains.extra_chain_classes' => [TaskChainDelegateChains::class]]);
+
+        $headless = $this->createMock(HeadlessAgentService::class);
+        $headless->expects($this->never())->method('execute');
+
+        $runner = $this->runner($headless);
+
+        $started = $runner->start('delegate_chain', self::TENANT, self::CONVERSATION);
+        // 手动回填 step_output 跳过 headless 执行
+        $completed = $runner->advance($started['run_id'], self::TENANT, [], ['text' => '人工覆盖结果']);
+
+        $this->assertSame(TaskChainRun::STATUS_COMPLETED, $completed['status']);
+    }
+
+    public function test_delegate_step_rejects_system_secretary_self_reference(): void
+    {
+        config(['ai.task_chains.extra_chain_classes' => [TaskChainSecretaryDelegateChains::class]]);
+        $runner = $this->runner();
+
+        $started = $runner->start('secretary_delegate_chain', self::TENANT, self::CONVERSATION);
+        $failed = $runner->advance($started['run_id'], self::TENANT);
+
+        $this->assertSame(TaskChainRun::STATUS_FAILED, $failed['status']);
+        $this->assertStringContainsString('system_secretary', $failed['next_action']);
+    }
+
+    // ── Upload 步 ──
+
+    public function test_upload_step_waits_for_input_then_completes(): void
+    {
+        config(['ai.task_chains.extra_chain_classes' => [TaskChainUploadChains::class]]);
+        $runner = $this->runner();
+
+        // 启动链：首步为 upload → waiting_input
+        $started = $runner->start('upload_chain', self::TENANT, self::CONVERSATION);
+        $this->assertSame(TaskChainRun::STATUS_WAITING_INPUT, $started['status']);
+        $this->assertStringContainsString('上传文件', $started['next_action']);
+
+        // 提交 file_id → 完成
+        $completed = $runner->advance($started['run_id'], self::TENANT, ['file_id' => 'file_abc123']);
+        $this->assertSame(TaskChainRun::STATUS_COMPLETED, $completed['status']);
+        $this->assertSame('done', $completed['steps'][0]['status']);
+    }
+
+    public function test_upload_step_optional_can_be_skipped(): void
+    {
+        config(['ai.task_chains.extra_chain_classes' => [TaskChainUploadOptionalChains::class]]);
+        $runner = $this->runner();
+
+        $started = $runner->start('upload_optional_chain', self::TENANT, self::CONVERSATION);
+        $skipped = $runner->advance($started['run_id'], self::TENANT, skip: true);
+
+        $this->assertSame(TaskChainRun::STATUS_COMPLETED, $skipped['status']);
+        $this->assertSame('skipped', $skipped['steps'][0]['status']);
     }
 
     // ── 中断续跑与隔离 ──
@@ -360,7 +461,7 @@ class TaskChainInvalidChains
 }
 
 /**
- * 测试链：delegate 步（Phase 2 才支持）
+ * 测试链：delegate 步（含 args.prompt 占位符）
  */
 class TaskChainDelegateChains
 {
@@ -370,7 +471,79 @@ class TaskChainDelegateChains
             [
                 'key' => 'delegate_chain',
                 'title' => '转派链',
-                'steps' => [['name' => '转派', 'type' => 'delegate', 'agent_role' => 'sales']],
+                'steps' => [[
+                    'name' => '转派',
+                    'type' => 'delegate',
+                    'agent_role' => 'sales',
+                    'args' => ['prompt' => '请执行转派任务'],
+                    'output_key' => 'delegate_result',
+                ]],
+            ],
+        ];
+    }
+}
+
+/**
+ * 测试链：delegate 给 system_secretary（应被拒绝）
+ */
+class TaskChainSecretaryDelegateChains
+{
+    public static function chains(): array
+    {
+        return [
+            [
+                'key' => 'secretary_delegate_chain',
+                'title' => '秘书自引用链',
+                'steps' => [[
+                    'name' => '自引用',
+                    'type' => 'delegate',
+                    'agent_role' => 'system_secretary',
+                    'args' => ['prompt' => '自引用测试'],
+                    'output_key' => 'result',
+                ]],
+            ],
+        ];
+    }
+}
+
+/**
+ * 测试链：upload 步
+ */
+class TaskChainUploadChains
+{
+    public static function chains(): array
+    {
+        return [
+            [
+                'key' => 'upload_chain',
+                'title' => '上传链',
+                'steps' => [[
+                    'name' => '上传文件',
+                    'type' => 'upload',
+                    'output_key' => 'file_id',
+                ]],
+            ],
+        ];
+    }
+}
+
+/**
+ * 测试链：upload 步（optional）
+ */
+class TaskChainUploadOptionalChains
+{
+    public static function chains(): array
+    {
+        return [
+            [
+                'key' => 'upload_optional_chain',
+                'title' => '可选上传链',
+                'steps' => [[
+                    'name' => '可选上传',
+                    'type' => 'upload',
+                    'output_key' => 'file_id',
+                    'optional' => true,
+                ]],
             ],
         ];
     }

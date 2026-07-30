@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Ai\Services\TaskChain;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Ai\Models\TaskChainRun;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Dto\Tool;
+use MultiTenantSaas\Modules\Ai\Services\Agent\HeadlessAgentService;
 
 /**
  * 任务链执行器（docs/task-chain.md 第五节，Phase 1：tool / input 步）
@@ -27,6 +28,7 @@ class TaskChainRunner
     public function __construct(
         private readonly TaskChainRegistry $registry,
         private readonly ToolRegistryContract $toolRegistry,
+        private readonly HeadlessAgentService $headless,
     ) {}
 
     /**
@@ -34,7 +36,7 @@ class TaskChainRunner
      *
      * @return array<string, mixed> 统一状态视图；链不存在时 {error: true, message}
      */
-    public function start(string $chainKey, int $tenantId, int $conversationId): array
+    public function start(string $chainKey, int $tenantId, ?int $conversationId, bool $forceL2 = false): array
     {
         $chain = $this->registry->find($chainKey);
 
@@ -59,7 +61,7 @@ class TaskChainRunner
             'status' => TaskChainRun::STATUS_RUNNING,
         ]);
 
-        return $this->prepareCurrentStep($run, $chain);
+        return $this->prepareCurrentStep($run, $chain, $forceL2);
     }
 
     /**
@@ -69,7 +71,7 @@ class TaskChainRunner
      * @param  array<string, mixed>  $stepOutput  L2 工具步经确认门执行后的结果回填
      * @return array<string, mixed> 统一状态视图
      */
-    public function advance(int $runId, int $tenantId, array $stepInput = [], array $stepOutput = [], bool $skip = false): array
+    public function advance(int $runId, int $tenantId, array $stepInput = [], array $stepOutput = [], bool $skip = false, bool $forceL2 = false): array
     {
         /** @var TaskChainRun|null $run */
         $run = TaskChainRun::where('run_id', $runId)->where('tenant_id', $tenantId)->first();
@@ -105,8 +107,10 @@ class TaskChainRunner
 
         return match ($step['type']) {
             'input' => $this->advanceInputStep($run, $chain, $step, $stepInput),
-            'tool' => $this->advanceToolStep($run, $chain, $step, $stepOutput, $tenantId),
-            default => $this->failStep($run, $step, "步骤类型 [{$step['type']}] 将在 Phase 2 支持，当前无法执行"),
+            'tool' => $this->advanceToolStep($run, $chain, $step, $stepOutput, $tenantId, $forceL2),
+            'delegate' => $this->advanceDelegateStep($run, $chain, $step, $stepOutput, $tenantId),
+            'upload' => $this->advanceUploadStep($run, $chain, $step, $stepInput),
+            default => $this->failStep($run, $step, "步骤类型 [{$step['type']}] 不支持"),
         };
     }
 
@@ -147,7 +151,7 @@ class TaskChainRunner
     /**
      * tool 步：L1 直接执行；L2 走确认门（等 step_output 回填）
      */
-    private function advanceToolStep(TaskChainRun $run, array $chain, array $step, array $stepOutput, int $tenantId): array
+    private function advanceToolStep(TaskChainRun $run, array $chain, array $step, array $stepOutput, int $tenantId, bool $forceL2 = false): array
     {
         // L2 步已由 LLM 经确认门执行完毕，本次调用只是回填结果推进
         if ($stepOutput !== []) {
@@ -163,7 +167,7 @@ class TaskChainRunner
 
         $args = $this->resolvePlaceholders($step['args'], $this->context($run));
 
-        if ($tool->risk === Tool::RISK_L2) {
+        if ($tool->risk === Tool::RISK_L2 && ! $forceL2) {
             // 铁律：L2 工具不得由 Runner 直接执行（会绕过确认卡片）
             $run->status = TaskChainRun::STATUS_WAITING_CONFIRM;
             $this->setStepStatus($run, $run->current_step, 'waiting');
@@ -174,6 +178,7 @@ class TaskChainRunner
             return $this->view($run, "本步需用户确认：请直接调用工具 [{$slug}]（参数建议：{$argsJson}）执行，用户确认完成后调用 advance_task_chain 以 step_output 提交执行结果");
         }
 
+        // L1 或 forceL2 → 直接执行
         $result = $this->toolRegistry->execute($slug, $args, $tenantId);
 
         if (is_array($result) && ($result['error'] ?? false) === true) {
@@ -216,16 +221,83 @@ class TaskChainRunner
     }
 
     /**
+     * delegate 步就位提示：与 tool 步相同的两阶段模式（避免级联）
+     */
+    private function prepareDelegateStep(TaskChainRun $run, array $step): array
+    {
+        $run->status = TaskChainRun::STATUS_RUNNING;
+        $this->setStepStatus($run, $run->current_step, 'ready');
+        $run->save();
+
+        $role = (string) ($step['agent_role'] ?? 'unknown');
+
+        return $this->view($run, "下一步为 delegate 步 [{$role}]，请调用 advance_task_chain 推进执行");
+    }
+
+    /**
+     * delegate 步执行：调用 HeadlessAgentService 执行无用户交互的短 ReAct 会话
+     */
+    private function advanceDelegateStep(TaskChainRun $run, array $chain, array $step, array $stepOutput, int $tenantId): array
+    {
+        // 手动回填（headless 失败后人工覆盖）
+        if ($stepOutput !== []) {
+            return $this->completeStep($run, $chain, $step, $stepOutput);
+        }
+
+        $agentRole = (string) ($step['agent_role'] ?? '');
+
+        // 自引用防护：禁止 delegate 给秘书（秘书跑链时不能 delegate 给自己）
+        if ($agentRole === 'system_secretary') {
+            return $this->failStep($run, $step, '禁止 delegate 给 system_secretary（自引用循环）');
+        }
+
+        // 解析 prompt 中的占位符
+        $promptTemplate = (string) ($step['args']['prompt'] ?? '');
+        $resolvedPrompt = $this->resolvePlaceholderString($promptTemplate, $this->context($run));
+
+        if ($resolvedPrompt === '') {
+            return $this->failStep($run, $step, 'delegate 步缺少 args.prompt 模板');
+        }
+
+        // 调用 HeadlessAgentService
+        $result = $this->headless->execute($agentRole, $resolvedPrompt, $tenantId);
+
+        if ($result->partial) {
+            return $this->failStep($run, $step, 'delegate 执行失败（partial）：' . ($result->error ?: '超过最大轮次'));
+        }
+
+        return $this->completeStep($run, $chain, $step, $result->text);
+    }
+
+    /**
+     * upload 步：语义等同 input 步但前端渲染为上传组件
+     */
+    private function advanceUploadStep(TaskChainRun $run, array $chain, array $step, array $stepInput): array
+    {
+        if ($stepInput === []) {
+            $run->status = TaskChainRun::STATUS_WAITING_INPUT;
+            $this->setStepStatus($run, $run->current_step, 'waiting');
+            $run->save();
+
+            return $this->view($run, "请让用户上传文件，然后调用 advance_task_chain 以 step_input={file_id: xxx} 提交");
+        }
+
+        return $this->completeStep($run, $chain, $step, $stepInput);
+    }
+
+    /**
      * 按当前步类型置状态并生成 next_action（不执行工具）
      */
-    private function prepareCurrentStep(TaskChainRun $run, array $chain): array
+    private function prepareCurrentStep(TaskChainRun $run, array $chain, bool $forceL2 = false): array
     {
         $step = $chain['steps'][$run->current_step];
 
         return match ($step['type']) {
             'input' => $this->advanceInputStep($run, $chain, $step, []),
             'tool' => $this->prepareToolStep($run, $step),
-            default => $this->failStep($run, $step, "步骤类型 [{$step['type']}] 将在 Phase 2 支持，当前无法执行"),
+            'delegate' => $this->prepareDelegateStep($run, $step),
+            'upload' => $this->advanceUploadStep($run, $chain, $step, []),
+            default => $this->failStep($run, $step, "步骤类型 [{$step['type']}] 不支持"),
         };
     }
 
@@ -314,12 +386,20 @@ class TaskChainRunner
                 return $value;
             }
 
-            return preg_replace_callback('/\{\{\s*([\w.]+)\s*\}\}/', function (array $matches) use ($context) {
-                $replacement = $context[$matches[1]] ?? $matches[0];
-
-                return is_array($replacement) ? json_encode($replacement, JSON_UNESCAPED_UNICODE) : (string) $replacement;
-            }, $value);
+            return $this->resolvePlaceholderString($value, $context);
         }, $args);
+    }
+
+    /**
+     * 单个字符串中的占位符替换
+     */
+    private function resolvePlaceholderString(string $value, array $context): string
+    {
+        return preg_replace_callback('/\{\{\s*([\w.]+)\s*\}\}/', function (array $matches) use ($context) {
+            $replacement = $context[$matches[1]] ?? $matches[0];
+
+            return is_array($replacement) ? json_encode($replacement, JSON_UNESCAPED_UNICODE) : (string) $replacement;
+        }, $value);
     }
 
     /**

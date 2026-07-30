@@ -62,8 +62,6 @@ class PlanCompiler
             // trigger 类型合法性
             if (! in_array($triggerType, ['relative', 'at_time', 'on_event', 'recurring'], true)) {
                 $errors[] = "任务 [{$key}] trigger.type 无效：{$triggerType}";
-            } elseif ($triggerType === 'recurring') {
-                $errors[] = "任务 [{$key}] trigger.type=recurring 暂不支持（Phase 2）";
             }
 
             // relative 必须有 anchor + offset
@@ -144,6 +142,13 @@ class PlanCompiler
 
             $trigger = $taskDef['trigger'] ?? [];
             $triggerType = $trigger['type'] ?? '';
+
+            // recurring 展开为多个 at_time 任务
+            if ($triggerType === 'recurring') {
+                $this->expandRecurring($plan, $taskDef, $trigger, $anchorTimes, $existingTasks, $compiledKeys);
+
+                continue;
+            }
 
             // 解析触发时间
             $scheduledAt = null;
@@ -265,6 +270,111 @@ class PlanCompiler
         }
 
         return $base;
+    }
+
+    /**
+     * recurring 展开：从 from 到 until 按 interval 展开为多个 at_time 任务
+     *
+     * 每个展开任务的 task_key = {original_key}_{index}（如 daily_sms_0, daily_sms_1）
+     * 每个展开任务继承原任务的 assignee/action/execution_mode
+     * 时间部分用 at 字段覆盖（如 at: "09:30" → 每天 09:30）
+     *
+     * @param  array  &$compiledKeys  已编译 key 列表（用于 diff 删除判断）
+     */
+    private function expandRecurring(
+        CampaignPlan $plan,
+        array $taskDef,
+        array $trigger,
+        array $anchorTimes,
+        $existingTasks,
+        array &$compiledKeys,
+    ): void {
+        $originalKey = $taskDef['key'];
+        $fromOffset = $trigger['from'] ?? '+0d';
+        $untilOffset = $trigger['until'] ?? '+0d';
+        $intervalStr = $trigger['interval'] ?? '1d';
+        $atTime = $trigger['at'] ?? null;
+        $anchor = $trigger['anchor'] ?? '';
+
+        // 解析锡点基础时间
+        if ($anchor !== '' && isset($anchorTimes[$anchor])) {
+            $baseTime = Carbon::parse($anchorTimes[$anchor]);
+        } else {
+            // 无锡点时以编译时刻为基准
+            $baseTime = Carbon::now();
+        }
+
+        // 解析 from 和 until 为绝对时间
+        $startTime = $this->resolveRelative($baseTime->toDateTimeString(), ['offset' => $fromOffset]);
+        $endTime = $this->resolveRelative($baseTime->toDateTimeString(), ['offset' => $untilOffset]);
+
+        // 解析 interval
+        $intervalDays = 1;
+        if (preg_match('/^(\d+)([dhm])$/', $intervalStr, $m)) {
+            $amount = (int) $m[1];
+            $intervalDays = match ($m[2]) {
+                'd' => $amount,
+                'h' => $amount / 24,
+                'm' => $amount / 1440,
+            };
+        }
+
+        $phaseKey = $taskDef['_phase_key'] ?? null;
+        $assignee = $taskDef['assignee'] ?? [];
+        $action = $taskDef['action'] ?? [];
+        $executionMode = $taskDef['execution_mode'] ?? (($taskDef['require_confirm'] ?? false) ? 'require_confirm' : 'auto');
+
+        $index = 0;
+        $current = $startTime->copy();
+
+        while ($current->lte($endTime)) {
+            $expandedKey = "{$originalKey}_{$index}";
+            $compiledKeys[] = $expandedKey;
+
+            // 应用 at 时间覆盖
+            $scheduledAt = $current->copy();
+            if ($atTime !== null) {
+                $parts = explode(':', $atTime);
+                $scheduledAt->setTime((int) ($parts[0] ?? 0), (int) ($parts[1] ?? 0), 0);
+            }
+
+            $attributes = [
+                'title' => ($taskDef['title'] ?? $originalKey) . " (#{$index})",
+                'phase_key' => $phaseKey,
+                'trigger_type' => 'at_time',
+                'scheduled_at' => $scheduledAt,
+                'listen_event' => null,
+                'assignee_type' => $assignee['type'] ?? 'system',
+                'assignee_ref' => $assignee['role'] ?? $assignee['ref'] ?? null,
+                'action' => $action,
+                'execution_mode' => $executionMode,
+                'depends_on' => $taskDef['depends_on'] ?? [],
+            ];
+
+            $existing = $existingTasks->get($expandedKey);
+
+            if ($existing) {
+                if (! in_array($existing->status, [CampaignTask::STATUS_DONE, CampaignTask::STATUS_RUNNING], true)) {
+                    $existing->update($attributes);
+                }
+            } else {
+                CampaignTask::create(array_merge($attributes, [
+                    'tenant_id' => $plan->tenant_id,
+                    'plan_id' => $plan->plan_id,
+                    'task_key' => $expandedKey,
+                    'status' => CampaignTask::STATUS_PENDING,
+                ]));
+            }
+
+            // 按 interval 推进
+            if ($intervalDays >= 1) {
+                $current->addDays((int) $intervalDays);
+            } else {
+                $current->addMinutes((int) ($intervalDays * 1440));
+            }
+
+            $index++;
+        }
     }
 
     /**

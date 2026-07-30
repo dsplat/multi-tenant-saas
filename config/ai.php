@@ -254,6 +254,10 @@ return [
     */
     'campaign' => [
         'enabled' => (bool) env('AI_CAMPAIGN_ENABLED', false),
+        'extra_playbook_classes' => [],
+        // on_event 任务监听的事件类列表（下游通过 ServiceProvider 追加业务事件）
+        // 仅列入此处的事件类才会被 CampaignEventSubscriber 监听
+        'listen_events' => [],
     ],
 
     /*

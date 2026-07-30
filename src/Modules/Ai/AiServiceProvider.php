@@ -24,6 +24,7 @@ use MultiTenantSaas\Modules\Ai\Services\Agent\AgentRuntime;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AuditLogService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\EntityMemoryService;
+use MultiTenantSaas\Modules\Ai\Services\Agent\HeadlessAgentService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\MemoryCompressor;
 use MultiTenantSaas\Modules\Ai\Services\Agent\MemoryPipeline;
 use MultiTenantSaas\Modules\Ai\Services\Agent\PromptService;
@@ -173,11 +174,17 @@ class AiServiceProvider extends ModuleServiceProvider
         // 工具执行会话上下文：必须 scoped（Octane / queue worker 下每请求/每任务重置）
         $this->app->scoped(ToolConversationContext::class);
 
-        // 预设任务链引擎（docs/task-chain.md Phase 1）
+        // 预设任务链引擎（docs/task-chain.md Phase 1+2）
         $this->app->singleton(TaskChainRegistry::class, fn () => new TaskChainRegistry);
+        $this->app->singleton(HeadlessAgentService::class, fn ($app) => new HeadlessAgentService(
+            $app->make(ToolRegistryContract::class),
+            $app->make(AiTextServiceContract::class),
+            $app->make(ToolConversationContext::class),
+        ));
         $this->app->singleton(TaskChainRunner::class, fn ($app) => new TaskChainRunner(
             $app->make(TaskChainRegistry::class),
             $app->make(ToolRegistryContract::class),
+            $app->make(HeadlessAgentService::class),
         ));
 
         $this->registerFrameworkTools();

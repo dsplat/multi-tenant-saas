@@ -16,7 +16,7 @@ class TaskChainModule implements SchemaModuleInterface
         Schema::create('task_chain_runs', function (Blueprint $table) {
             $table->unsignedBigInteger('run_id')->primary();
             $table->unsignedBigInteger('tenant_id');
-            $table->unsignedBigInteger('conversation_id');
+            $table->unsignedBigInteger('conversation_id')->nullable();
             $table->string('chain_key', 100);
             $table->json('steps_state');
             $table->unsignedInteger('current_step')->default(0);

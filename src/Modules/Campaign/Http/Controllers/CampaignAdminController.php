@@ -3,8 +3,10 @@
 namespace MultiTenantSaas\Modules\Campaign\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Campaign\Models\CampaignPlan;
 use MultiTenantSaas\Modules\Campaign\Models\CampaignTask;
@@ -214,5 +216,191 @@ class CampaignAdminController extends Controller
         ]);
 
         return response()->json(['success' => true, 'data' => $task->refresh()]);
+    }
+
+    // ==================== 活动日历（极简排期） ====================
+
+    /**
+     * 日历数据源：任务列表（可按活动 / 日期范围过滤）
+     *
+     * query: plan_id?（缺省=全部活动）、from?/to?（月范围）
+     */
+    public function tasksIndex(Request $request): JsonResponse
+    {
+        $query = CampaignTask::query()
+            ->with('plan:plan_id,plan_doc')
+            ->whereNotNull('scheduled_at')
+            ->orderBy('scheduled_at');
+
+        if ($request->filled('plan_id')) {
+            $query->where('plan_id', (int) $request->query('plan_id'));
+        }
+        if ($request->filled('from')) {
+            $query->where('scheduled_at', '>=', Carbon::parse($request->query('from'))->startOfDay());
+        }
+        if ($request->filled('to')) {
+            $query->where('scheduled_at', '<=', Carbon::parse($request->query('to'))->endOfDay());
+        }
+
+        $tasks = $query->get()->map(fn (CampaignTask $t) => [
+            'task_id' => $t->task_id,
+            'plan_id' => $t->plan_id,
+            'plan_name' => $t->plan->plan_doc['title'] ?? ($t->plan->plan_doc['name'] ?? ''),
+            'title' => $t->title,
+            'scheduled_at' => $t->scheduled_at?->toDateTimeString(),
+            'status' => $t->status,
+            'remind' => $t->execution_mode === CampaignTask::MODE_REQUIRE_CONFIRM,
+        ]);
+
+        return response()->json(['success' => true, 'data' => $tasks]);
+    }
+
+    /**
+     * 创建活动（manual 计划，status 直接 scheduled，无 DSL 校验）
+     */
+    public function storeManualPlan(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:120',
+        ]);
+
+        $operator = $request->user();
+
+        $plan = CampaignPlan::create([
+            'tenant_id' => (int) TenantContext::getId(),
+            'plan_doc' => [
+                'schema' => 'campaign.plan/v1',
+                'manual' => true,
+                'title' => $validated['name'],
+                'phases' => [],
+            ],
+            'status' => CampaignPlan::STATUS_SCHEDULED,
+            'created_by' => (int) $operator->operator_id,
+        ]);
+
+        return response()->json(['success' => true, 'data' => $plan], 201);
+    }
+
+    /**
+     * 加一件事（日历快速添加：标题 + 日期时间 + 提醒）
+     */
+    public function addTask(Request $request, int $planId): JsonResponse
+    {
+        $plan = CampaignPlan::where('plan_id', $planId)->first();
+
+        if (! $plan) {
+            return response()->json(['success' => false, 'message' => '活动不存在'], 404);
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:200',
+            'scheduled_at' => 'required|date',
+            'remind' => 'nullable|boolean',
+        ]);
+
+        $remind = (bool) ($validated['remind'] ?? false);
+
+        $task = CampaignTask::create([
+            'tenant_id' => (int) TenantContext::getId(),
+            'plan_id' => $plan->plan_id,
+            'task_key' => 'm_' . Str::lower(Str::random(12)),
+            'title' => $validated['title'],
+            'trigger_type' => CampaignTask::TRIGGER_AT_TIME,
+            'scheduled_at' => Carbon::parse($validated['scheduled_at']),
+            'assignee_type' => 'system',
+            'action' => ['type' => 'human'],
+            'execution_mode' => $remind ? CampaignTask::MODE_REQUIRE_CONFIRM : CampaignTask::MODE_AUTO,
+            'depends_on' => [],
+            'status' => CampaignTask::STATUS_PENDING,
+        ]);
+
+        return response()->json(['success' => true, 'data' => $task], 201);
+    }
+
+    /**
+     * 编辑任务（改标题 / 改期 / 提醒开关 / 一键完成）
+     */
+    public function updateTask(Request $request, int $taskId): JsonResponse
+    {
+        $task = CampaignTask::where('task_id', $taskId)->first();
+
+        if (! $task) {
+            return response()->json(['success' => false, 'message' => '任务不存在'], 404);
+        }
+
+        if ($task->isTerminal()) {
+            return response()->json(['success' => false, 'message' => '任务已终结，不可修改'], 422);
+        }
+
+        $validated = $request->validate([
+            'title' => 'nullable|string|max:200',
+            'scheduled_at' => 'nullable|date',
+            'remind' => 'nullable|boolean',
+            'status' => 'nullable|in:done,pending',
+        ]);
+
+        $attributes = [];
+
+        if (array_key_exists('title', $validated) && $validated['title'] !== null) {
+            $attributes['title'] = $validated['title'];
+        }
+        if (array_key_exists('scheduled_at', $validated) && $validated['scheduled_at'] !== null) {
+            $attributes['scheduled_at'] = Carbon::parse($validated['scheduled_at']);
+        }
+        if (array_key_exists('remind', $validated) && $validated['remind'] !== null) {
+            $attributes['execution_mode'] = $validated['remind']
+                ? CampaignTask::MODE_REQUIRE_CONFIRM
+                : CampaignTask::MODE_AUTO;
+        }
+
+        // 一键完成（todo 语义：从 pending/awaiting_confirm/running 直接置 done）
+        if (($validated['status'] ?? null) === 'done') {
+            $attributes['status'] = CampaignTask::STATUS_DONE;
+            $attributes['output'] = ['message' => '手动完成'];
+            $attributes['executed_at'] = Carbon::now();
+        }
+
+        if ($attributes !== []) {
+            $task->update($attributes);
+        }
+
+        return response()->json(['success' => true, 'data' => $task->refresh()]);
+    }
+
+    /**
+     * 删除任务
+     */
+    public function deleteTask(int $taskId): JsonResponse
+    {
+        $task = CampaignTask::where('task_id', $taskId)->first();
+
+        if (! $task) {
+            return response()->json(['success' => false, 'message' => '任务不存在'], 404);
+        }
+
+        $task->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * 删除活动（仅 manual 计划，连同其任务）
+     */
+    public function deletePlan(int $planId): JsonResponse
+    {
+        $plan = CampaignPlan::where('plan_id', $planId)->first();
+
+        if (! $plan) {
+            return response()->json(['success' => false, 'message' => '活动不存在'], 404);
+        }
+
+        if (! ($plan->plan_doc['manual'] ?? false)) {
+            return response()->json(['success' => false, 'message' => '仅可删除手动创建的活动'], 422);
+        }
+
+        CampaignTask::where('plan_id', $plan->plan_id)->delete();
+        $plan->delete();
+
+        return response()->json(['success' => true]);
     }
 }

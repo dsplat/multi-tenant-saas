@@ -223,9 +223,10 @@ const MODULE_LABELS: Record<string, string> = {
   content: '内容管理', marketing: '营销活动', membership: '会员运营', platform: '系统管理',
   analytics: '数据分析', staff: '团队管理', sms: '触达运营', product: '交易转化',
   knowledge: '知识库', lottery: '抽奖活动', distribution: '分销管理', coupon: '优惠券',
-  voting: '投票活动',
+  voting: '投票活动', campaign: '活动运营',
   // Downstream project business modules (PascalCase — self-contained under app/Modules)
   Customer: '客户运营', Ai: 'AI 能力', AI: 'AI 能力', Channel: '渠道与获客', Community: '社群运营',
+  Campaign: '活动运营',
   Content: '内容管理', Marketing: '营销活动', Membership: '会员运营', Analytics: '数据分析',
   Staff: '团队管理', Product: '交易转化', Knowledge: '知识库', Lottery: '抽奖活动',
   Distribution: '分销管理', Coupon: '优惠券', Voting: '投票活动', Event: '活动管理',

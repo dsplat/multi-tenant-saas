@@ -6,7 +6,7 @@
  * AI 产出标注：assistant 消息带「AI」徽标，与用户消息视觉区分。
  * assistant 正文按 Markdown 渲染（加粗/列表/链接），站内链接点击路由切换、面板不关闭。
  */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAssistantStore } from '../../stores/assistant'
 import type { ChatMessage } from '../types'
@@ -110,16 +110,54 @@ function handleNavigate(routePath: string) {
 
 /** 自动跳转：最新消息含 navigate 时自动执行一次路由跳转，无需用户手动点击 */
 const autoNavigated = ref(false)
-onMounted(() => {
-  if (autoNavigated.value || isUser.value) return
-  const navs = navigateActions.value
-  if (navs.length === 0) return
-  // 仅对最新一条 assistant 消息自动跳转（避免历史消息滚动时误触发）
+/** 自动转接：最新消息含 delegate 时自动执行转派，无需用户手动点击按钮 */
+const autoDelegated = ref(false)
+
+/** 是否是当前最新 assistant 消息（避免历史消息触发自动动作） */
+function isLatestAssistantMessage(): boolean {
   const msgs = store.messages
   const lastAssistant = [...msgs].reverse().find(m => m.role === 'assistant')
-  if (lastAssistant?.id !== props.message.id) return
-  autoNavigated.value = true
-  safePush(navs[0].route_path)
+  return lastAssistant?.id === props.message.id
+}
+
+/** 尝试自动转接（onMounted + watch 共用） */
+function tryAutoDelegate() {
+  if (autoDelegated.value || isUser.value) return
+  if (!isLatestAssistantMessage()) return
+  const delegates = delegateActions.value
+  if (delegates.length === 0) return
+  autoDelegated.value = true
+  const d = delegates[0]
+  emit('delegate', {
+    agentId: String(d.agent_id),
+    agentName: String(d.agent_name || ''),
+    handoffMessage: String(d.handoff_message || ''),
+  })
+}
+
+onMounted(() => {
+  if (isUser.value) return
+  if (!isLatestAssistantMessage()) return
+
+  // 自动跳转
+  if (!autoNavigated.value) {
+    const navs = navigateActions.value
+    if (navs.length > 0) {
+      autoNavigated.value = true
+      safePush(navs[0].route_path)
+    }
+  }
+
+  // 自动转接（历史消息恢复时 toolCalls 已存在）
+  tryAutoDelegate()
+})
+
+/**
+ * 流式场景：组件已挂载但 toolCalls 还没到达，需 watch delegateActions 变化后立即自动执行
+ * 仅触发一次（autoDelegated 门控）
+ */
+watch(delegateActions, (newVal) => {
+  if (newVal.length > 0) tryAutoDelegate()
 })
 
 function handleDelegate(a: Record<string, any>) {

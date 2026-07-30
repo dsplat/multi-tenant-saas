@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { getAllModuleRoutes } from '../module-loader'
+import { createAuthGuard } from './guards'
 
 // 绝对路径从 Vite root（项目根）开始
 const frameworkLayouts = import.meta.glob('/vendor/dsplat/multi-tenant-saas/resources/pages/console/ui/*/layouts/*.vue')
@@ -98,32 +99,6 @@ export const routesReady = getAllModuleRoutes().then(moduleRoutes => {
   })
 })
 
-router.beforeEach(async (to, _from, next) => {
-  if (to.meta.requiresAuth !== false) {
-    const userStore = useUserStore()
-    if (!userStore.token) {
-      next({ name: 'Login', query: { redirect: to.fullPath } })
-      return
-    }
-    if (!userStore.user) {
-      try {
-        await userStore.fetchUser()
-      } catch {
-        userStore.token = null
-        localStorage.removeItem('auth_token')
-        next({ name: 'Login', query: { redirect: to.fullPath } })
-        return
-      }
-    }
-    // 无租户用户只能访问申请页，其余页面引导去申请创建团队
-    const needsTenant = to.meta.requiresTenant !== false
-    const hasTenant = !!userStore.tenantId
-    if (needsTenant && !hasTenant && to.name !== 'ApplyTeam') {
-      next({ name: 'ApplyTeam' })
-      return
-    }
-  }
-  next()
-})
+router.beforeEach(createAuthGuard(() => useUserStore()))
 
 export default router

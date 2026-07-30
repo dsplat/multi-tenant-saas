@@ -84,7 +84,7 @@ export const useUserStore = defineStore('user', () => {
       // Legacy User login
       const { user: userData, auth_token, tenant_id } = data
       setToken(auth_token)
-      userData.tenant_id = tenant_id
+      userData.tenant_id = tenant_id != null ? String(tenant_id) : tenant_id
       user.value = userData
       permissions.value = userData.permissions || []
       if (tenant_id) {

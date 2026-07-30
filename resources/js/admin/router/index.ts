@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { getAllModuleRoutes } from '../module-loader'
+import { createAuthGuard } from './guards'
 
 // 绝对路径从 Vite root（项目根）开始
 // 框架自带页面（vendor 内，框架开发时此 glob 为空，走本地）
@@ -96,25 +97,6 @@ getAllModuleRoutes().then(moduleRoutes => {
   }
 })
 
-router.beforeEach(async (to, _from, next) => {
-  if (to.meta.requiresAuth !== false) {
-    const userStore = useUserStore()
-    if (!userStore.token) {
-      next({ name: 'Login', query: { redirect: to.fullPath } })
-      return
-    }
-    if (!userStore.user) {
-      try {
-        await userStore.fetchUser()
-      } catch {
-        userStore.token = null
-        localStorage.removeItem('admin_token')
-        next({ name: 'Login', query: { redirect: to.fullPath } })
-        return
-      }
-    }
-  }
-  next()
-})
+router.beforeEach(createAuthGuard(() => useUserStore()))
 
 export default router

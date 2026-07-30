@@ -35,9 +35,13 @@ use MultiTenantSaas\Context\TenantConfigStore;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Events\AgentCreated;
+use MultiTenantSaas\Events\AgentDisabled;
+use MultiTenantSaas\Events\AgentEnabled;
 use MultiTenantSaas\Events\TenantActivated;
 use MultiTenantSaas\Events\TenantCreated;
 use MultiTenantSaas\Events\TenantSuspended;
+use MultiTenantSaas\Events\ToolCallFailed;
 use MultiTenantSaas\Events\UserLoggedIn;
 use MultiTenantSaas\Events\UserRegistered;
 use MultiTenantSaas\Listeners\AttachTenantAdminOnActivated;
@@ -207,6 +211,11 @@ class TenancyServiceProvider extends ServiceProvider
         Event::listen(TenantActivated::class, AttachTenantAdminOnActivated::class);
         Event::listen(UserRegistered::class, [LogEventListener::class, 'handleUserRegistered']);
         Event::listen(UserLoggedIn::class, [LogEventListener::class, 'handleUserLoggedIn']);
+        // Agent 生命周期与工具失败事件 → 审计日志
+        Event::listen(AgentCreated::class, [LogEventListener::class, 'handleAgentCreated']);
+        Event::listen(AgentEnabled::class, [LogEventListener::class, 'handleAgentEnabled']);
+        Event::listen(AgentDisabled::class, [LogEventListener::class, 'handleAgentDisabled']);
+        Event::listen(ToolCallFailed::class, [LogEventListener::class, 'handleToolCallFailed']);
 
         // 启动已启用模块
         $this->app->make(ModuleBootstrapper::class)->bootstrap();

@@ -6,7 +6,6 @@ namespace MultiTenantSaas\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
 use MultiTenantSaas\Modules\Ai\Mcp\McpException;
 use MultiTenantSaas\Modules\Ai\Mcp\McpToolRegistry;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -16,7 +15,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *
  * 处理 MCP 协议请求，支持标准 JSON-RPC 响应和 SSE 流式响应。
  */
-class McpServerController extends Controller
+class McpServerController extends BaseController
 {
     /** MCP 协议版本 */
     private const PROTOCOL_VERSION = '2024-11-05';

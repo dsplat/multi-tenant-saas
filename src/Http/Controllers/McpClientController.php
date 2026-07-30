@@ -6,11 +6,10 @@ namespace MultiTenantSaas\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
 use MultiTenantSaas\Modules\ApiToken\Models\McpClient;
 use MultiTenantSaas\Modules\Auth\Services\RbacService;
 
-class McpClientController extends Controller
+class McpClientController extends BaseController
 {
     /**
      * 列出当前租户的所有 MCP 客户端

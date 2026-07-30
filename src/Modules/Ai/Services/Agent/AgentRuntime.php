@@ -13,6 +13,8 @@ use MultiTenantSaas\Contracts\AiTextServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Contracts\WorkflowEngineContract;
+use MultiTenantSaas\Events\ToolCallCompleted;
+use MultiTenantSaas\Events\ToolCalled;
 use MultiTenantSaas\Events\ToolCallFailed;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
@@ -968,6 +970,8 @@ class AgentRuntime implements AgentRuntimeContract
         $toolOutput = null;
         $toolError = null;
 
+        ToolCalled::dispatch($tenantId, $agentId, $conversationId, $toolName);
+
         try {
             // 会话感知工具（如任务链三工具）需要当前会话 ID，执行前注入
             app(ToolConversationContext::class)->set($conversationId);
@@ -992,6 +996,8 @@ class AgentRuntime implements AgentRuntimeContract
             ]);
 
             ToolCallFailed::dispatch($tenantId, $agentId, $conversationId, $toolName, $toolError, $toolArguments);
+        } else {
+            ToolCallCompleted::dispatch($tenantId, $agentId, $conversationId, $toolName);
         }
 
         $durationMs = (int) ((microtime(true) - $startTime) * 1000);

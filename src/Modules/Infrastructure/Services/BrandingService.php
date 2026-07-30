@@ -237,7 +237,8 @@ class BrandingService
      */
     private function storeAsset(int $tenantId, UploadedFile $file, string $category): string
     {
-        if (class_exists(FileService::class)) {
+        // Storage 模块未安装时容器无绑定，回退直接写入磁盘
+        if (app()->bound(FileService::class)) {
             $upload = app(FileService::class)->upload($file, $tenantId, null, 'branding', null, true);
 
             return app(FileService::class)->getUrl($upload);

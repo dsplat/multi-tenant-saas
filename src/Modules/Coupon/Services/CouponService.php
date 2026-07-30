@@ -9,6 +9,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\ConflictException;
 use MultiTenantSaas\Modules\Coupon\Models\Coupon;
 use MultiTenantSaas\Modules\Coupon\Models\CouponShare;
 use MultiTenantSaas\Modules\Coupon\Models\CouponUsage;
@@ -44,7 +45,7 @@ class CouponService
      *                       max_uses, max_uses_per_tenant, starts_at,
      *                       expires_at, is_active, metadata, prefix
      *
-     * @throws \RuntimeException 优惠码重复
+     * @throws ConflictException 优惠码重复
      */
     public function createCoupon(array $data): Coupon
     {
@@ -54,7 +55,7 @@ class CouponService
             return Coupon::create($this->buildAttributes($data, $code));
         } catch (QueryException $e) {
             if ($this->isDuplicateException($e)) {
-                throw new \RuntimeException(trans('subscription.coupon_code_exists'), 0, $e);
+                throw new ConflictException(trans('subscription.coupon_code_exists'), 0, $e);
             }
             throw $e;
         }

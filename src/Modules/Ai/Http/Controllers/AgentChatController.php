@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\AgentRuntimeContract;
 use MultiTenantSaas\Contracts\AgentServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Events\ConversationEnded;
+use MultiTenantSaas\Events\ConversationStarted;
 use MultiTenantSaas\Modules\Ai\Http\Requests\SendMessageRequest;
 use MultiTenantSaas\Modules\Ai\Http\Requests\StartChatRequest;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
@@ -81,6 +83,9 @@ class AgentChatController extends Controller
         ]);
 
         $conversationId = (int) $conversation->conversation_id;
+
+        ConversationStarted::dispatch($tenantId, $agentId, $conversationId);
+
         $message = $request->validated('message');
         $options = $request->validated('options', []);
 
@@ -331,6 +336,8 @@ class AgentChatController extends Controller
 
         // 删除会话
         $conversation->delete();
+
+        ConversationEnded::dispatch($tenantId, (int) $conversation->agent_id, $conversationId);
 
         return response()->json([
             'success' => true,

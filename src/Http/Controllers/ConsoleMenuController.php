@@ -4,9 +4,8 @@ namespace MultiTenantSaas\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
 
-class ConsoleMenuController extends Controller
+class ConsoleMenuController extends BaseController
 {
     /**
      * 默认租户后台菜单配置。

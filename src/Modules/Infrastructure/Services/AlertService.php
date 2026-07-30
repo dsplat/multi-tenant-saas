@@ -316,7 +316,8 @@ class AlertService
      */
     protected function sendSms(string $severity, string $ruleName, string $message, array $context): void
     {
-        if (! class_exists(SmsService::class)) {
+        // Sms 模块未安装时容器无绑定，静默跳过
+        if (! app()->bound(SmsService::class)) {
             return;
         }
 

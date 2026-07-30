@@ -316,7 +316,8 @@ class ResourceService
                 'metric' => implode(', ', array_column($alerts, 'metric')),
             ]);
 
-            if (class_exists(NotificationService::class) && method_exists(NotificationService::class, 'sendToTenantAdmins')) {
+            // Notification 模块未安装时容器无绑定，静默跳过
+            if (app()->bound(NotificationService::class)) {
                 app(NotificationService::class)->sendToTenantAdmins(
                     $tenantId,
                     trans('common.resource_alert_sent'),

@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Contracts\AgentRuntimeContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
+use MultiTenantSaas\Events\ConversationEnded;
+use MultiTenantSaas\Events\ConversationStarted;
 use MultiTenantSaas\Modules\Ai\DTOs\PageContext;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
@@ -147,13 +149,17 @@ class AssistantController extends Controller
             }
         }
 
-        return AgentConversation::create([
+        $conversation = AgentConversation::create([
             'tenant_id' => $tenantId,
             'agent_id' => $agentId,
             'channel' => 'assistant',
             'subject' => '页面助手会话',
             'status' => 'active',
         ]);
+
+        ConversationStarted::dispatch($tenantId, $agentId, (int) $conversation->conversation_id);
+
+        return $conversation;
     }
 
     /**
@@ -326,6 +332,8 @@ class AssistantController extends Controller
 
         AgentConversationMessage::where('conversation_id', $conversationId)->delete();
         $conversation->delete();
+
+        ConversationEnded::dispatch($tenantId, (int) $conversation->agent_id, $conversationId);
 
         return response()->json([
             'success' => true,

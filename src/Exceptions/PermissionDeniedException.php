@@ -2,9 +2,10 @@
 
 namespace MultiTenantSaas\Exceptions;
 
-use Exception;
-
-class PermissionDeniedException extends Exception
+/**
+ * 权限不足 / 跨租户访问被拒 → 403
+ */
+class PermissionDeniedException extends DomainException
 {
-    //
+    protected int $statusCode = 403;
 }

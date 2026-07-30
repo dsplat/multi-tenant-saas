@@ -2,9 +2,10 @@
 
 namespace MultiTenantSaas\Exceptions;
 
-use Exception;
-
-class QuotaExceededException extends Exception
+/**
+ * 配额超限 → 429
+ */
+class QuotaExceededException extends DomainException
 {
-    //
+    protected int $statusCode = 429;
 }

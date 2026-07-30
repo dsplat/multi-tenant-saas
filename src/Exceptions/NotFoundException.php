@@ -3,9 +3,9 @@
 namespace MultiTenantSaas\Exceptions;
 
 /**
- * 租户不存在 → 404
+ * 资源不存在 → 404
  */
-class TenantNotFoundException extends DomainException
+class NotFoundException extends DomainException
 {
     protected int $statusCode = 404;
 }

@@ -60,15 +60,34 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 422);
         });
 
-        // 生产环境隐藏详细错误（保留 HttpException 原始状态码，如 403/404）
+        // 领域异常 → 按异常声明的状态码返回统一 JSON 结构（500 级在生产环境隐藏细节）
+        $exceptions->render(function (\MultiTenantSaas\Exceptions\DomainException $e) {
+            $statusCode = $e->getStatusCode();
+            $message = ($statusCode >= 500 && app()->environment('production'))
+                ? '服务器内部错误'
+                : $e->getMessage();
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $statusCode);
+        });
+
+        // 生产环境隐藏 500 级错误细节（携带 <500 状态码的异常保留原状态码渲染）
         $exceptions->renderable(function (\Throwable $e) {
             if (app()->environment('production')) {
+                $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+
                 // HttpException（abort() 抛出的 403/404/429 等）保留原状态码和消息
-                if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => $e->getMessage() ?: 'Request failed',
-                    ], $e->getStatusCode());
+                if ($statusCode < 500) {
+                    if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => $e->getMessage() ?: 'Request failed',
+                        ], $statusCode);
+                    }
+
+                    return null;
                 }
 
                 // 其他未知异常统一 500，不暴露细节

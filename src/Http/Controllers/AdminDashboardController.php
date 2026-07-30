@@ -4,10 +4,9 @@ namespace MultiTenantSaas\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 
-class AdminDashboardController extends Controller
+class AdminDashboardController extends BaseController
 {
     public function index(Request $request): JsonResponse
     {

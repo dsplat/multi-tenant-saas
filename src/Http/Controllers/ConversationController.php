@@ -6,7 +6,6 @@ namespace MultiTenantSaas\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controller;
 
 /**
  * Conversation Center — stub controller
@@ -14,7 +13,7 @@ use Illuminate\Routing\Controller;
  * 路由已在 src/Routes/ai.php 和 src/Modules/Ai/Routes/api.php 中注册，
  * 返回空数据 stub，后续填充业务逻辑。
  */
-class ConversationController extends Controller
+class ConversationController extends BaseController
 {
     public function index(): JsonResponse
     {

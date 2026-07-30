@@ -225,10 +225,208 @@ PRIMARY KEY (`import_job_id`),
 | TODO (未完成项) | 3 |
 | **合计** | **14** |
 
-## 不构成问题的项（审查后排除）
+## 第一轮修复状态
 
-以下项目在初审中被提出，经验证后**不作为问题记录**:
+| 编号 | 状态 | 说明 |
+|------|------|------|
+| BUG-001 | **已修复** | 微信 GET 路由已移除，仅保留支付宝 GET（return_url 同步回跳需要） |
+| BUG-002 | **已修复** | 迁移已新增 `error_message TEXT NULL` 列，ExportService 接受 errorMessage 参数 |
+| BUG-003 | **已修复** | 迁移已全部重构为 Schema Builder，无 AUTO_INCREMENT 残留 |
+| SMELL-001 | **已修复** | 通知路由已提取为 InAppNotificationController |
+| SMELL-002 | **已修复** | CSP 头已添加，仅对 HTML 页面下发 |
+| SMELL-003 | 未修复 | localStorage 存 Token（需前后端联调，影响面大） |
+| SMELL-004 | 未修复 | __callStatic 广泛使用（需制定迁移计划） |
+| SMELL-005 | **已修复** | BillingServiceProvider 工具注册已重构为数组+循环 |
+| SMELL-006 | 未修复 | 前端无测试（需引入 vitest） |
+| SMELL-007 | **已修复** | 迁移已全部重构为 Schema Builder |
+| SMELL-008 | **不修复** | import_jobs 主键为应用层 ID 生成器分配，已有注释说明 |
 
-- **迁移使用原始 SQL**: 确认存在（SMELL-007），但考虑到这是框架级迁移且已在线上运行，标记为低优先级 SMELL 而非 BUG。
-- **`export_tasks.error` 字段类型**: 确认作为布尔使用（BUG-002），字段名有误导性但功能上可用。
-- **支付 GET 路由兼容性**: 微信支付 v2 旧版确实有 GET 验证场景，但 v3 回调统一为 POST，且控制器未做方法区分，仍标记为 BUG。
+---
+
+# 第二轮审查 — 框架设计与维护
+
+> 审查日期: 2026-07-30
+> 重点: 异常体系、事件系统、服务层设计、模块间耦合、可维护性
+
+---
+
+## D1 — 异常体系形同虚设
+
+**严重程度**: HIGH | **影响范围**: 全框架
+
+框架定义了 7 个自定义异常类（`src/Exceptions/`），但实际代码中**几乎不使用**：
+
+| 自定义异常 | 被引用次数 |
+|-----------|-----------|
+| `QuotaExceededException` | 1 |
+| `PermissionDeniedException` | 1 |
+| `StorageException` | 1 |
+| `SummaryGenerationException` | 1 |
+| `McpException` | 1 |
+| `InsufficientCreditsException` | 0（仅定义） |
+| `TenantNotFoundException` | 0（仅定义） |
+
+与此同时，全框架有 **332 处 `throw new \RuntimeException`**。
+
+**具体问题**:
+
+1. **Exception Handler 将所有 `\RuntimeException` 映射为 HTTP 422**（`app/Exceptions/Handler.php:211-216`），但很多场景应返回不同状态码：
+   - 优惠券不存在 → 应为 404，实际返回 422
+   - 支付配置缺失 → 应为 503，实际返回 422
+   - 并发冲突 → 应为 409，实际返回 422
+
+2. **无法按异常类型做差异化处理**（如重试、告警、降级），因为所有业务错误都是 `\RuntimeException`。
+
+3. **CouponService 单个类抛出 15+ 种不同的 RuntimeException**，每种都有不同的业务语义。
+
+**建议**:
+- 为每个模块定义领域异常（如 `CouponNotFoundException`, `CouponExpiredException`）
+- 在 Exception Handler 中按异常类型映射 HTTP 状态码
+- 逐步替换 `\RuntimeException` 为领域异常
+
+---
+
+## D2 — AgentRuntime 上帝对象
+
+**严重程度**: MEDIUM | **影响范围**: AI 模块
+
+`src/Modules/Ai/Services/Agent/AgentRuntime.php`:
+- **1626 行代码**
+- **9 个构造函数参数**（5 必选 + 4 可选）
+- 职责包括：ReAct 循环、流式处理、记忆压缩、降级容错、工具执行、会话管理
+
+```php
+public function __construct(
+    private AiTextServiceContract $aiService,
+    private ToolRegistryContract $toolRegistry,
+    private AgentMonitorContract $monitor,
+    private TenantContextContract $tenantContext,
+    private ?WorkflowEngineContract $workflowEngine = null,
+    private ?MemoryCompressor $memoryCompressor = null,
+    private ?ActionConfirmService $actionConfirm = null,
+    private ?MemoryPipeline $memoryPipeline = null,
+    private ?PromptService $promptService = null,
+)
+```
+
+**建议**: 拆分为 `AgentConversationManager`、`AgentToolExecutor`、`AgentStreamHandler` 等职责单一的类。
+
+---
+
+## D3 — 事件系统严重未充分利用
+
+**严重程度**: MEDIUM | **影响范围**: 全框架
+
+14 个领域事件已定义，但只有 **2 个监听器**注册在 `TenancyServiceProvider`：
+
+| 事件 | 有监听器? |
+|------|----------|
+| TenantCreated | LogEventListener |
+| TenantSuspended | LogEventListener |
+| TenantActivated | LogEventListener + AttachTenantAdmin |
+| UserRegistered | LogEventListener |
+| UserLoggedIn | LogEventListener |
+| AgentCreated | **无** |
+| AgentEnabled | **无** |
+| AgentDisabled | **无** |
+| ConversationStarted | **无** |
+| ConversationEnded | **无** |
+| MessageReceived | **无** |
+| ToolCalled | **无** |
+| ToolCallCompleted | **无** |
+| ToolCallFailed | **无** |
+
+**问题**: Agent/Conversation/Tool 系列事件被 `dispatch()` 触发但无人监听，要么是预留接口未完成，要么是事件驱动架构半途而废。
+
+**建议**: 补充关键监听器（如 ToolCallFailed → 告警、AgentDisabled → 通知租户），或移除未使用的事件定义。
+
+---
+
+## D4 — 跨模块依赖通过 class_exists 运行时检查
+
+**严重程度**: MEDIUM | **影响范围**: 全框架
+
+全框架有 **36 处** `class_exists()` 或 `app()->bound()` 检查来处理可选模块依赖：
+
+```php
+// ResourceService.php:319
+if (class_exists(NotificationService::class) && method_exists(NotificationService::class, 'sendToTenantAdmins')) {
+    app(NotificationService::class)->sendToTenantAdmins(...);
+}
+
+// AlertService.php:319
+if (! class_exists(SmsService::class)) {
+    return;
+}
+
+// BrandingService.php:240
+if (class_exists(FileService::class)) {
+    ...
+}
+```
+
+**问题**:
+- `method_exists()` 检查意味着接口契约不明确
+- 散落在各处，无法统一管理
+- 模块间依赖关系不透明
+
+**建议**: 为可选跨模块依赖定义 Contract 接口（如 `NotifiableContract`），通过 DI 容器的 `?Type` 可选注入替代 `class_exists` 检查。
+
+---
+
+## D5 — 缺少框架级 BaseController
+
+**严重程度**: LOW | **影响范围**: 全框架
+
+66 个 Controller 全部直接继承 `Illuminate\Routing\Controller`，没有框架自定义的基类。
+
+**问题**:
+- 每个 Controller 重复编写 `return response()->json(['success' => true, 'data' => ...])` 模式
+- 无法统一添加 API 响应格式、分页格式、错误处理
+- 部分 Controller 有 `errorResponse()` 方法（如 TenantKeyController），部分没有
+
+**建议**: 定义 `BaseController` 提供 `successResponse()` / `errorResponse()` / `paginatedResponse()` 统一方法。
+
+---
+
+## D6 — LogEventListener 使用服务定位器
+
+**严重程度**: LOW | **影响范围**: Listeners
+
+```php
+// LogEventListener.php:29
+app(AuditService::class)->log('create', 'tenant', ...);
+```
+
+所有 5 个事件处理方法都使用 `app()` 而非构造器注入。
+
+**建议**: 改为构造器注入 `AuditService`，符合 Laravel 推荐的依赖注入模式，也便于测试 mock。
+
+---
+
+## 第二轮统计
+
+| 级别 | 数量 | 关键项 |
+|------|------|--------|
+| 设计缺陷 | 6 | 异常体系、上帝对象、事件未利用、跨模块耦合、缺 BaseController、服务定位器 |
+
+## 第二轮修复状态（2026-07-31）
+
+| 编号 | 结论 | 状态 | 修复说明 |
+|------|------|------|---------|
+| D1 | 属实（比描述更严重：`app/Exceptions/Handler.php` 是死代码，Laravel 11 走 `bootstrap/app.php`，生产环境业务 RuntimeException 全被吞成 500） | ✅ 已修复 | 新增 `src/Exceptions/DomainException`（继承 RuntimeException + 实现 HttpExceptionInterface，默认 422）；新增 NotFound(404)/Conflict(409)/ServiceUnavailable(503)；改造既有 7 个异常挂状态码（QuotaExceeded 429、PermissionDenied 403、TenantNotFound 404、Storage 500、SummaryGeneration 502、InsufficientCredits 402）；删除死代码 Handler.php；框架与 scrm-platform 两侧 `bootstrap/app.php` 增加 DomainException render 回调（5xx 生产脱敏）；CouponService 重复码改抛 ConflictException 作示范。332 处裸 RuntimeException 由后续迭代按模块渐进迁移 | 
+| D2 | 属实（AgentRuntime 1627 行/9 构造参数） | ⏸ 暂不修 | 无行为缺陷，纯结构重构且影响 AI 主链路，风险高，建议单独立项拆分（工具执行/降级/事件三块可先剥离） |
+| D3 | 部分属实 | ✅ 已修复 | LogEventListener 新增 AgentCreated/AgentEnabled/AgentDisabled/ToolCallFailed 4 个 handler 并在 TenancyServiceProvider 注册；AgentRuntime 补 ToolCalled/ToolCallCompleted 派发；AgentChatController/AssistantController 补 ConversationStarted/ConversationEnded 派发。审计写入统一走防御式 `audit()` 辅助方法（旁路副作用失败不中断主流程） |
+| D4 | 属实（但拆包架构下可选模块检查本身合理） | ✅ 已修复 | 点名 3 处（BrandingService/AlertService/ResourceService）由 `class_exists`/`method_exists` 统一改为 `app()->bound(Service::class)` 容器绑定检查，语义为「模块已安装且启用」；其余 class_exists 属可选拆包合理用法，保留 |
+| D5 | 属实 | ✅ 已修复 | 新增 `src/Http/Controllers/BaseController`（组合 ApiResponse/AuthorizesRequests/ValidatesRequests）；ApiResponse trait 下沉至 `src/Http/Concerns/`，app 层旧 trait 改向后兼容别名；src 下 8 个直接继承 Illuminate Controller 的控制器改继承 BaseController；框架与 scrm-platform 的 `app/Http/Controllers/Controller.php` 改继承框架 BaseController |
+| D6 | 属实 | ✅ 已修复 | LogEventListener 改构造器注入 `AuditService`，全部 handler 走 `$this->audit()` |
+
+回归验证：`tests/DomainExceptionTest.php`（新增 11 用例）通过；Agent/Coupon/Branding/Alert/Resource/Quota 相关 105 passed；EventBus/Mention 56 passed；`test:filter Controller` 失败集合与 main 基线完全一致（105F/10E 为既有问题，与本轮无关）。
+
+## 综合评价
+
+框架在**租户隔离**和**模块系统**两个核心维度设计精良。主要技术债务集中在：
+1. 异常体系（332 处 RuntimeException vs 5 处自定义异常）
+2. AI 模块的 AgentRuntime 上帝对象
+3. 事件驱动架构半完成状态
+4. 跨模块依赖管理缺乏正式契约

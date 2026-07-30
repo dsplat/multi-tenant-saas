@@ -106,9 +106,45 @@ class WechatWorkChannelTest extends TestCase
             return str_contains($request->url(), '/message/send')
                 && str_contains($request->url(), 'access_token=ww-access-token')
                 && $request['touser'] === 'zhangsan'
-                && $request['msgtype'] === 'text'
+                && $request['msgtype'] === 'markdown'
                 && $request['agentid'] === 1000002
-                && $request['text']['content'] === '你好';
+                && $request['markdown']['content'] === '你好';
+        });
+    }
+
+    public function test_send_message_converts_markdown_to_wechat_subset(): void
+    {
+        $this->fakeApi();
+
+        // 斜体企微不支持应剥离，加粗保留
+        $this->channel->sendMessage($this->createIbot(), 'zhangsan', '**加粗** *斜体*');
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), '/message/send')
+                && $request['msgtype'] === 'markdown'
+                && $request['markdown']['content'] === '**加粗** 斜体';
+        });
+    }
+
+    public function test_send_message_falls_back_to_text_on_markdown_rejection(): void
+    {
+        Http::fake([
+            'qyapi.weixin.qq.com/cgi-bin/gettoken*' => Http::response([
+                'errcode' => 0, 'access_token' => 'ww-access-token', 'expires_in' => 7200,
+            ]),
+            // 第一次 markdown 被拒，回退的 text 发送成功
+            'qyapi.weixin.qq.com/cgi-bin/message/send*' => Http::sequence()
+                ->push(['errcode' => 45009, 'errmsg' => 'api freq out of limit'])
+                ->push(['errcode' => 0, 'errmsg' => 'ok']),
+        ]);
+
+        $ok = $this->channel->sendMessage($this->createIbot(), 'zhangsan', '**加粗**内容');
+
+        $this->assertTrue($ok);
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), '/message/send')
+                && $request['msgtype'] === 'text'
+                && $request['text']['content'] === '加粗内容'; // 回退时剥离 Markdown 语法
         });
     }
 
@@ -153,6 +189,7 @@ class WechatWorkChannelTest extends TestCase
             'qyapi.weixin.qq.com/cgi-bin/message/send*' => Http::response(['errcode' => 81013, 'errmsg' => 'user not found']),
         ]);
 
+        // markdown 与回退 text 均失败才算失败
         $ok = $this->channel->sendMessage($this->createIbot(), 'nobody', '你好');
 
         $this->assertFalse($ok);

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Modules\Ibot\Contracts\IbotChannelContract;
 use MultiTenantSaas\Modules\Ibot\DTOs\IbotInboundMessage;
 use MultiTenantSaas\Modules\Ibot\Models\Ibot;
+use MultiTenantSaas\Support\Messaging\MarkdownAdapter;
 
 /**
  * Telegram 频道（Bot API）
@@ -16,7 +17,8 @@ use MultiTenantSaas\Modules\Ibot\Models\Ibot;
  * 凭证：credentials.bot_token（必填）、credentials.bot_username（生成 t.me 绑定链接用）。
  *
  * 约束（docs/ibot.md 第二节）：每个 Bot Token 同时只允许一个活跃轮询器；
- * 出向消息按 4096 字符上限自动分段。
+ * 出向短消息优先 parse_mode=HTML 渲染（失败回退纯文本重发），
+ * 超长消息按 4096 字符上限纯文本自动分段（避免 HTML 标签被切断）。
  */
 class TelegramChannel implements IbotChannelContract
 {
@@ -54,25 +56,55 @@ class TelegramChannel implements IbotChannelContract
             return false;
         }
 
+        // 短消息走 HTML 渲染；超长文本直接纯文本分段，避免标签跨段被切断
+        $html = MarkdownAdapter::toTelegramHtml($text);
+
+        if (mb_strlen($html) <= self::CHUNK_SIZE) {
+            if ($this->sendChunk($ibot, $token, $externalId, $html, 'HTML')) {
+                return true;
+            }
+
+            // HTML 被拒（如标签不合法）时回退纯文本重发一次
+            return $this->sendChunk($ibot, $token, $externalId, MarkdownAdapter::toPlain($text));
+        }
+
         $ok = true;
 
-        foreach ($this->splitText($text) as $chunk) {
-            $response = $this->http(15)->post($this->apiUrl($token, 'sendMessage'), [
-                'chat_id' => $externalId,
-                'text' => $chunk,
-            ]);
-
-            if (! $response->successful() || ! ($response->json('ok') ?? false)) {
-                Log::warning('[Ibot] Telegram sendMessage 失败', [
-                    'ibot_id' => $ibot->ibot_id,
-                    'status' => $response->status(),
-                    'body' => mb_substr($response->body(), 0, 500),
-                ]);
-                $ok = false;
-            }
+        foreach ($this->splitText(MarkdownAdapter::toPlain($text)) as $chunk) {
+            $ok = $this->sendChunk($ibot, $token, $externalId, $chunk) && $ok;
         }
 
         return $ok;
+    }
+
+    /**
+     * 发送单段消息（$parseMode 为 null 时纯文本）
+     */
+    private function sendChunk(Ibot $ibot, string $token, string $externalId, string $text, ?string $parseMode = null): bool
+    {
+        $payload = [
+            'chat_id' => $externalId,
+            'text' => $text,
+        ];
+
+        if ($parseMode !== null) {
+            $payload['parse_mode'] = $parseMode;
+        }
+
+        $response = $this->http(15)->post($this->apiUrl($token, 'sendMessage'), $payload);
+
+        if (! $response->successful() || ! ($response->json('ok') ?? false)) {
+            Log::warning('[Ibot] Telegram sendMessage 失败', [
+                'ibot_id' => $ibot->ibot_id,
+                'parse_mode' => $parseMode,
+                'status' => $response->status(),
+                'body' => mb_substr($response->body(), 0, 500),
+            ]);
+
+            return false;
+        }
+
+        return true;
     }
 
     /**

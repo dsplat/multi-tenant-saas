@@ -107,4 +107,15 @@ class WechatWorkApiClient
             'text' => ['content' => $content],
         ]);
     }
+
+    /**
+     * 发送 markdown 应用消息（仅企业微信客户端渲染，content 上限 4096 字节）
+     */
+    public function sendMarkdown(string $toUser, string $content): bool
+    {
+        return $this->sendMessage($toUser, [
+            'msgtype' => 'markdown',
+            'markdown' => ['content' => $content],
+        ]);
+    }
 }

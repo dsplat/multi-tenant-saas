@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Ibot\Services\Channels;
 use MultiTenantSaas\Modules\Ibot\Contracts\IbotChannelContract;
 use MultiTenantSaas\Modules\Ibot\DTOs\IbotInboundMessage;
 use MultiTenantSaas\Modules\Ibot\Models\Ibot;
+use MultiTenantSaas\Support\Messaging\MarkdownAdapter;
 use MultiTenantSaas\Support\WechatWork\WechatWorkApiClient;
 use MultiTenantSaas\Support\WechatWork\WechatWorkCrypto;
 
@@ -17,11 +18,12 @@ use MultiTenantSaas\Support\WechatWork\WechatWorkCrypto;
  * 凭证：credentials.corp_id / corp_secret / agent_id（必填），
  * token / encoding_aes_key（回调验签与加解密）。
  * external_id 为组织内成员 userid；出向经「发送应用消息」API，
- * 按 2048 字节上限自动分段。
+ * markdown 渲染优先（仅企业微信客户端支持），失败逐段回退纯文本，
+ * 按 2000 字节上限自动分段。
  */
 class WechatWorkChannel implements IbotChannelContract
 {
-    // 企微 text 消息 content 上限 2048 字节（UTF-8），留余量
+    // 企微 text 上限 2048 / markdown 上限 4096 字节（UTF-8），按小值留余量
     private const CHUNK_BYTES = 2000;
 
     /**
@@ -57,8 +59,14 @@ class WechatWorkChannel implements IbotChannelContract
         $client = $this->apiClient($ibot);
         $ok = true;
 
-        foreach ($this->splitText($text) as $chunk) {
-            $ok = $client->sendText($externalId, $chunk) && $ok;
+        // AI 输出为标准 Markdown，先降级为企微 markdown 子集再分段发送
+        foreach ($this->splitText(MarkdownAdapter::toWechatWorkMarkdown($text)) as $chunk) {
+            if ($client->sendMarkdown($externalId, $chunk)) {
+                continue;
+            }
+
+            // markdown 被拒（如老客户端/内容问题）时该段回退纯文本
+            $ok = $client->sendText($externalId, MarkdownAdapter::toPlain($chunk)) && $ok;
         }
 
         return $ok;

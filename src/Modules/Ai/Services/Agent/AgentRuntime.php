@@ -228,6 +228,7 @@ class AgentRuntime implements AgentRuntimeContract
      * @param  array  $options  可选配置 {
      *                          max_tool_calls?: int,
      *                          temperature?: float,
+     *                          exclude_tools?: list<string>,
      *                          ...
      *                          }
      * @return AgentResponse {message, tool_calls, token_usage, finish_reason}
@@ -268,7 +269,7 @@ class AgentRuntime implements AgentRuntimeContract
 
         // 构建 tools 定义（合并模板工具，确保模板新增工具自动可用）
         $toolDefinitions = [];
-        $effectiveTools = $this->resolveEffectiveTools($agent);
+        $effectiveTools = $this->resolveEffectiveTools($agent, $options['exclude_tools'] ?? []);
         if (! empty($effectiveTools)) {
             $toolDefinitions = $this->toolRegistry->getToolDefinitions($effectiveTools);
         }
@@ -436,8 +437,9 @@ class AgentRuntime implements AgentRuntimeContract
      *
      * @param  int  $conversationId  会话 ID
      * @param  array  $toolResults  工具执行结果列表
+     * @param  array  $options  可选配置 {exclude_tools?: list<string>}
      */
-    public function continueWithToolResults(int $conversationId, array $toolResults): AgentResponse
+    public function continueWithToolResults(int $conversationId, array $toolResults, array $options = []): AgentResponse
     {
         $tenantId = $this->resolveTenantId();
 
@@ -483,7 +485,7 @@ class AgentRuntime implements AgentRuntimeContract
 
         // 构建 tools 定义（合并模板工具）
         $toolDefinitions = [];
-        $effectiveTools = $this->resolveEffectiveTools($agent);
+        $effectiveTools = $this->resolveEffectiveTools($agent, $options['exclude_tools'] ?? []);
         if (! empty($effectiveTools)) {
             $toolDefinitions = $this->toolRegistry->getToolDefinitions($effectiveTools);
         }
@@ -664,7 +666,7 @@ class AgentRuntime implements AgentRuntimeContract
         // 构建上下文与工具定义（合并模板工具，确保模板新增工具自动可用）
         $context = $this->buildContext($agent, $conversationId, $message);
         $toolDefinitions = [];
-        $effectiveTools = $this->resolveEffectiveTools($agent);
+        $effectiveTools = $this->resolveEffectiveTools($agent, $options['exclude_tools'] ?? []);
         if (! empty($effectiveTools)) {
             $toolDefinitions = $this->toolRegistry->getToolDefinitions($effectiveTools);
         }
@@ -1559,30 +1561,33 @@ class AgentRuntime implements AgentRuntimeContract
     }
 
     /**
-     * 解析 Agent 的有效工具列表（DB 快照 ∪ 模板最新工具）
+     * 解析 Agent 的有效工具列表（DB 快照 ∪ 模板最新工具，另支持渠道级排除）
      *
      * Agent 创建时从模板 clone tools 到 DB，之后模板新增工具不会自动同步。
      * 此方法在运行时将模板工具合并进来（只增不减），确保模板迭代后已有 Agent 也能使用新工具。
      *
+     * $excludeTools 用于渠道级裁剪：如 IM 渠道（ibot）无前端渲染能力，
+     * 需排除 navigate / suggest_form_fill 等仅 console 前端可消费的 UI 指令工具。
+     *
+     * @param  list<string>  $excludeTools  需排除的工具 slug 列表
      * @return list<string>
      */
-    private function resolveEffectiveTools(Agent $agent): array
+    private function resolveEffectiveTools(Agent $agent, array $excludeTools = []): array
     {
         $dbTools = $agent->tools ?? [];
 
         // 尝试按 role 匹配预置模板
         $template = BuiltinAgentTemplates::findByKey($agent->role ?? '');
-        if ($template === null) {
-            return $dbTools;
-        }
-
         $templateTools = $template['tools'] ?? [];
-        if (empty($templateTools)) {
-            return $dbTools;
-        }
 
         // 合并：DB 已有 + 模板新增（去重，保持顺序）
-        return array_values(array_unique(array_merge($dbTools, $templateTools)));
+        $tools = array_values(array_unique(array_merge($dbTools, $templateTools)));
+
+        if ($excludeTools === []) {
+            return $tools;
+        }
+
+        return array_values(array_diff($tools, $excludeTools));
     }
 
     /**

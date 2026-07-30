@@ -226,4 +226,51 @@ class AgentRuntimeTest extends TestCase
         $this->assertEquals(70, $response->tokenUsage['completion_tokens']);
         $this->assertEquals(250, $response->tokenUsage['total_tokens']);
     }
+
+    public function test_exclude_tools_removes_ui_tools_from_definitions(): void
+    {
+        $this->createAgent(['tools' => ['navigate', 'suggest_form_fill', 'search_customer']]);
+        $this->createConversation();
+
+        // 排除后只剩 search_customer 传给 ToolRegistry
+        $this->toolRegistryMock->shouldReceive('getToolDefinitions')
+            ->once()
+            ->with(['search_customer'])
+            ->andReturn([['type' => 'function', 'function' => ['name' => 'search_customer']]]);
+
+        $this->aiServiceMock->shouldReceive('chat')
+            ->once()
+            ->andReturn(AiResponse::fromArray([
+                'content' => 'OK',
+                'finish_reason' => 'stop',
+                'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 2, 'total_tokens' => 12],
+            ]));
+
+        $response = $this->runtime->run(1001, 2001, 'Hi', [
+            'exclude_tools' => ['navigate', 'suggest_form_fill'],
+        ]);
+
+        $this->assertEquals('stop', $response->finishReason);
+    }
+
+    public function test_exclude_all_tools_yields_no_tool_definitions(): void
+    {
+        $this->createAgent(['tools' => ['navigate']]);
+        $this->createConversation();
+
+        // 全部被排除 → 不应调用 getToolDefinitions
+        $this->toolRegistryMock->shouldNotReceive('getToolDefinitions');
+
+        $this->aiServiceMock->shouldReceive('chat')
+            ->once()
+            ->andReturn(AiResponse::fromArray([
+                'content' => 'OK',
+                'finish_reason' => 'stop',
+                'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 2, 'total_tokens' => 12],
+            ]));
+
+        $response = $this->runtime->run(1001, 2001, 'Hi', ['exclude_tools' => ['navigate']]);
+
+        $this->assertEquals('stop', $response->finishReason);
+    }
 }

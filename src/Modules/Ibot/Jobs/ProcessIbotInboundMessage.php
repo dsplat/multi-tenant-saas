@@ -38,6 +38,12 @@ class ProcessIbotInboundMessage implements ShouldQueue
 
     public int $timeout = 120;
 
+    /**
+     * IM 渠道排除的 UI 指令工具：返回值仅 console 前端能渲染（跳页/填表），
+     * IM 里无对应前端，暴露给模型只会劫走业务意图并空转到工具调用上限。
+     */
+    private const EXCLUDED_UI_TOOLS = ['navigate', 'suggest_form_fill'];
+
     public function __construct(
         private readonly int $tenantId,
         private readonly int $ibotId,
@@ -89,7 +95,7 @@ class ProcessIbotInboundMessage implements ShouldQueue
             }
         }
 
-        // ── 正常 run()（开启 L2 拦截）──
+        // ── 正常 run()（开启 L2 拦截，裁剪 console 专属 UI 工具）──
         $response = $runtime->run(
             (int) $agent->agent_id,
             (int) $conversation->conversation_id,
@@ -97,6 +103,7 @@ class ProcessIbotInboundMessage implements ShouldQueue
             [
                 'intercept_l2' => true,
                 'confirm_ttl' => config('ai.ibot.confirm_ttl', 600),
+                'exclude_tools' => self::EXCLUDED_UI_TOOLS,
             ],
         );
 
@@ -201,7 +208,7 @@ class ProcessIbotInboundMessage implements ShouldQueue
                 'tool_name' => $toolSlug,
                 'tool_call_id' => $toolCallId,
                 'content' => $toolResultContent,
-            ]]);
+            ]], ['exclude_tools' => self::EXCLUDED_UI_TOOLS]);
 
             $this->clearPendingMeta($conversation);
 

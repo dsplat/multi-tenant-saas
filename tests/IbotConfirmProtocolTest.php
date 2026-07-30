@@ -218,4 +218,62 @@ class IbotConfirmProtocolTest extends TestCase
         $conversation->refresh();
         $this->assertArrayNotHasKey('ibot_pending_confirm', $conversation->metadata ?? []);
     }
+
+    public function test_run_and_continue_exclude_console_ui_tools(): void
+    {
+        [$operator, $ibot, $binding, $conversation] = $this->setupEntities();
+
+        $issued = $this->actionConfirm->issue(1001, 2001, 'tag_customer', ['user_id' => 5], 'call_1');
+
+        $conversation->update(['metadata' => ['ibot_pending_confirm' => [
+            'token' => $issued['token'],
+            'args_hash' => $issued['args_hash'],
+            'tool_slug' => 'tag_customer',
+            'tool_name' => '给客户打标签',
+            'arguments' => ['user_id' => 5],
+        ]]]);
+
+        $runtimeMock = Mockery::mock(AgentRuntime::class);
+        // 确认后续答：continueWithToolResults 也须排除 UI 工具
+        $runtimeMock->shouldReceive('continueWithToolResults')->once()
+            ->withArgs(function ($conversationId, $toolResults, $options = []) {
+                return in_array('navigate', $options['exclude_tools'] ?? [], true)
+                    && in_array('suggest_form_fill', $options['exclude_tools'] ?? [], true);
+            })
+            ->andReturn(AgentResponse::fromArray(['message' => '已执行完成', 'finish_reason' => 'stop']));
+
+        $toolRegistryMock = Mockery::mock(ToolRegistryContract::class);
+        $toolRegistryMock->shouldReceive('execute')->once()->andReturn(['success' => true]);
+        $this->app->instance(ToolRegistryContract::class, $toolRegistryMock);
+
+        $channelMock = Mockery::mock(IbotChannelContract::class);
+        $channelMock->shouldReceive('sendMessage')->once();
+
+        $resolverMock = Mockery::mock(IbotChannelResolver::class);
+        $resolverMock->shouldReceive('resolve')->andReturn($channelMock);
+
+        $job = new ProcessIbotInboundMessage(1001, $ibot->ibot_id, $binding->binding_id, '确认');
+        $job->handle($runtimeMock, $resolverMock);
+
+        // 确认流程走完：pending metadata 已清除
+        $conversation->refresh();
+        $this->assertArrayNotHasKey('ibot_pending_confirm', $conversation->metadata ?? []);
+
+        // 新一轮普通消息：run() 也须排除 UI 工具
+        $runtimeMock2 = Mockery::mock(AgentRuntime::class);
+        $runtimeMock2->shouldReceive('run')->once()
+            ->withArgs(function ($agentId, $conversationId, $message, $options = []) {
+                return in_array('navigate', $options['exclude_tools'] ?? [], true)
+                    && in_array('suggest_form_fill', $options['exclude_tools'] ?? [], true);
+            })
+            ->andReturn(AgentResponse::fromArray(['message' => '回复', 'finish_reason' => 'stop']));
+
+        $channelMock2 = Mockery::mock(IbotChannelContract::class);
+        $channelMock2->shouldReceive('sendMessage')->once();
+        $resolverMock2 = Mockery::mock(IbotChannelResolver::class);
+        $resolverMock2->shouldReceive('resolve')->andReturn($channelMock2);
+
+        $job2 = new ProcessIbotInboundMessage(1001, $ibot->ibot_id, $binding->binding_id, '帮我创建短信签名');
+        $job2->handle($runtimeMock2, $resolverMock2);
+    }
 }

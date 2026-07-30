@@ -180,7 +180,7 @@ class PlanCompiler
                 'assignee_type' => $assignee['type'] ?? 'system',
                 'assignee_ref' => $assignee['role'] ?? $assignee['ref'] ?? null,
                 'action' => $action,
-                'execution_mode' => $taskDef['execution_mode'] ?? 'auto',
+                'execution_mode' => $taskDef['execution_mode'] ?? (($taskDef['require_confirm'] ?? false) ? 'require_confirm' : 'auto'),
                 'depends_on' => $taskDef['depends_on'] ?? [],
             ];
 

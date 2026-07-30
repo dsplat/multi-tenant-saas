@@ -89,19 +89,19 @@ class EnterpriseWechatAppDriver implements ChannelContract
         }
 
         // 群聊回调带 ChatId（事件/消息均然）；应用回调不推送群消息正文，仅建/维会话
-        $chatId = (string) ($payload['ChatId'] ?? '');
+        $chatId = $this->str($payload['ChatId'] ?? '');
 
         if ($chatId !== '') {
             return new InboundMessage(
                 channel: self::TYPE,
                 conversationType: 'group',
                 externalConvId: $chatId,
-                senderExternalId: (string) ($payload['FromUserName'] ?? ''),
+                senderExternalId: $this->str($payload['FromUserName'] ?? ''),
                 senderType: self::SENDER_INTERNAL,
                 msgType: 'event',
                 content: '',
                 platformMsgId: null,
-                conversationTitle: (string) ($payload['Name'] ?? '') ?: null,
+                conversationTitle: $this->str($payload['Name'] ?? '') ?: null,
                 raw: $payload,
             );
         }
@@ -129,20 +129,20 @@ class EnterpriseWechatAppDriver implements ChannelContract
      */
     private function parseDirectMessage(array $payload): ?InboundMessage
     {
-        $msgType = (string) ($payload['MsgType'] ?? '');
-        $fromUser = (string) ($payload['FromUserName'] ?? '');
+        $msgType = $this->str($payload['MsgType'] ?? '');
+        $fromUser = $this->str($payload['FromUserName'] ?? '');
 
         if ($fromUser === '' || $msgType === '' || $msgType === 'event') {
             return null;
         }
 
         $content = match ($msgType) {
-            'text' => (string) ($payload['Content'] ?? ''),
-            'image' => (string) ($payload['PicUrl'] ?? ''),
-            'voice' => (string) ($payload['MediaId'] ?? ''),
-            'video', 'shortvideo' => (string) ($payload['MediaId'] ?? ''),
-            'location' => (string) ($payload['Label'] ?? ''),
-            'link' => (string) ($payload['Url'] ?? ''),
+            'text' => $this->str($payload['Content'] ?? ''),
+            'image' => $this->str($payload['PicUrl'] ?? ''),
+            'voice' => $this->str($payload['MediaId'] ?? ''),
+            'video', 'shortvideo' => $this->str($payload['MediaId'] ?? ''),
+            'location' => $this->str($payload['Label'] ?? ''),
+            'link' => $this->str($payload['Url'] ?? ''),
             default => '',
         };
 
@@ -193,6 +193,14 @@ class EnterpriseWechatAppDriver implements ChannelContract
         $xml = @simplexml_load_string($rawBody, 'SimpleXMLElement', LIBXML_NOCDATA);
 
         return $xml !== false ? (string) ($xml->Encrypt ?? '') : '';
+    }
+
+    /**
+     * 安全取字符串值（SimpleXML + json_encode 空 CDATA 会产生空数组）。
+     */
+    private function str(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
     }
 
     /**

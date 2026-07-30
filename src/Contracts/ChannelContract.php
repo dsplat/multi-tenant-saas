@@ -39,12 +39,17 @@ interface ChannelContract
     public function verifySignature(array $query, string $rawBody): bool;
 
     /**
-     * 从原始回调体解析出归一化入向消息。
-     * 非消息事件（关注/进入会话等）或不支持的类型返回 null（控制器直接 ACK）。
+     * 从原始回调体解析出归一化入向消息列表。
+     *
+     * 返回数组（0~N 条）：
+     * - 自建应用：回调即消息，返回 0 或 1 条
+     * - 客服：回调仅通知，驱动内部调 sync_msg 拉取，可能多条
+     * - 非消息事件（关注/进入会话等）或不支持的类型返回空数组（控制器直接 ACK）
      *
      * @param  array<string, mixed>  $query
+     * @return list<InboundMessage>
      */
-    public function parseInbound(string $rawBody, array $query): ?InboundMessage;
+    public function parseInbound(string $rawBody, array $query): array;
 
     /**
      * 向会话发送消息（驱动按会话类型/元数据路由到 message/send、appchat、kf 等）。

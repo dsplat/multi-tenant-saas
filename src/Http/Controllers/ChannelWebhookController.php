@@ -7,6 +7,7 @@ namespace MultiTenantSaas\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Services\Channel\ChannelManager;
 use MultiTenantSaas\Services\Channel\MessageRouter;
@@ -36,6 +37,9 @@ class ChannelWebhookController
         if ($tenantId === null) {
             return $this->ack('', 404);
         }
+
+        // 设置租户上下文（webhook 无中间件，手动设置以激活 TenantScope）
+        TenantContext::setTenantId((string) $tenantId);
 
         if (! $this->channels->hasDriver($type)) {
             return $this->ack('', 404);

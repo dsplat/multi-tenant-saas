@@ -250,6 +250,12 @@ class AgentRuntime implements AgentRuntimeContract
 
         $maxToolCalls = $options['max_tool_calls'] ?? ($agent->model_config['max_tool_calls'] ?? 5);
 
+        // L2 拦截（opt-in）：无确认卡片的非流式渠道（如 ibot IM）开启后，
+        // L2 工具不直接执行，签发确认令牌交由调用方实现确认协议；
+        // 默认 false 保持既有调用方行为不变
+        $interceptL2 = (bool) ($options['intercept_l2'] ?? false);
+        $confirmTtl = isset($options['confirm_ttl']) ? (int) $options['confirm_ttl'] : null;
+
         // 自动触发记忆压缩（如果 MemoryCompressor 已注入）
         $maxTokens = $options['max_tokens'] ?? ($agent->model_config['max_tokens'] ?? 8000);
         $this->compressMemory($conversationId, $maxTokens);
@@ -351,6 +357,45 @@ class AgentRuntime implements AgentRuntimeContract
                 $assistantMsg['tool_calls'] = $aiResponse->toolCalls;
             }
             $context[] = $assistantMsg;
+
+            // L2 风险工具拦截：不执行，签发确认令牌后结束本轮（与 runStream 同构）
+            if ($interceptL2) {
+                [$execCalls, $pendingCalls] = $this->partitionByRisk($aiResponse->toolCalls);
+
+                if ($pendingCalls !== []) {
+                    // 同轮 L1 工具照常执行落库（确认后续答时上下文完整）
+                    foreach ($execCalls as $execCall) {
+                        $this->executeSingleToolCall($execCall, $conversationId, $agentId, $tenantId);
+                    }
+
+                    $pendingConfirmations = [];
+                    foreach ($pendingCalls as $pendingCall) {
+                        $pendingConfirmations[] = $this->issuePendingConfirmation(
+                            $pendingCall, $conversationId, $tenantId, $confirmTtl,
+                        );
+                    }
+
+                    $this->monitor->logConversationTurn($conversationId, $agentId, [
+                        'message' => $message,
+                        'response' => $aiResponse->content,
+                        'token_usage' => $totalUsage,
+                        'tool_calls' => $aiResponse->toolCalls,
+                        'loop_count' => $loopCount,
+                        'pending_confirmation' => true,
+                    ]);
+
+                    return AgentResponse::fromArray([
+                        'message' => $aiResponse->content,
+                        'tool_calls' => $allToolCalls,
+                        'token_usage' => $totalUsage,
+                        'finish_reason' => 'pending_confirmation',
+                        'pending_confirmations' => $pendingConfirmations,
+                        'agent_id' => $agentId,
+                        'conversation_id' => $conversationId,
+                        'model' => $aiResponse->model,
+                    ]);
+                }
+            }
 
             // 执行每个工具调用
             foreach ($aiResponse->toolCalls as $toolCall) {
@@ -1021,9 +1066,10 @@ class AgentRuntime implements AgentRuntimeContract
      * 为单个 L2 工具调用签发确认令牌，返回前端确认卡片载荷
      *
      * @param  array  $toolCall  L2 工具调用（OpenAI 格式）
+     * @param  int|null  $ttlSeconds  自定义令牌有效期（IM 文本确认场景放宽），null 用默认
      * @return array 确认卡片载荷（token/args_hash/expires_in/tool_slug/tool_name/arguments/conversation_id）
      */
-    private function issuePendingConfirmation(array $toolCall, int $conversationId, int $tenantId): array
+    private function issuePendingConfirmation(array $toolCall, int $conversationId, int $tenantId, ?int $ttlSeconds = null): array
     {
         $slug = $toolCall['function']['name'] ?? $toolCall['name'] ?? '';
         $arguments = $toolCall['function']['arguments'] ?? $toolCall['arguments'] ?? [];
@@ -1033,7 +1079,7 @@ class AgentRuntime implements AgentRuntimeContract
         }
 
         $toolCallId = $toolCall['id'] ?? $toolCall['tool_call_id'] ?? null;
-        $issued = $this->actionConfirm->issue($tenantId, $conversationId, $slug, $arguments, $toolCallId);
+        $issued = $this->actionConfirm->issue($tenantId, $conversationId, $slug, $arguments, $toolCallId, $ttlSeconds);
 
         $tool = $this->toolRegistry->get($slug);
 

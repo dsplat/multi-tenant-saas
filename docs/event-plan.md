@@ -1,6 +1,7 @@
 # 活动运营编排（Event Plan / Campaign）设计规范
 
-> 状态：设计稿（本轮仅交付设计，编排引擎实现为后续独立任务）
+> 状态：**Phase 0 已实施**（排期骨架：两表 + 编译器 + 调度 + 待办确认 + 管理 API）；Phase 1/2/3 未启动
+> 实现位置：`src/Modules/Campaign/`（独立模块，composer split 产出 `dsplat/multi-tenant-saas-module-campaign`）
 > 关联：`docs/task-chain.md`（会话内任务链）· AI 小助手完整化计划 · SCRM Event 模块
 > 核心思想：**Plan 即文档（JSON/YAML 可移植），Schedule 即数据（编译散入数据库）**
 
@@ -117,6 +118,10 @@ revisions: []                            # [{at, reason, changed_task_keys}]
 Plan 文档 → campaign_tasks 是一次**编译**：解析锚点为绝对时间、展开 recurring、校验工具存在与依赖无环。
 文档是源码，任务表是编译产物；重排期 = 重编译（幂等，按 task key diff 增量更新未执行任务）。
 
+**Phase 0 实现说明**：编译器（`PlanCompiler::compile`）采用调用方注入 `anchor_times`
+（如 `['event.starts_at' => '2026-08-10 09:00']`），不绑定具体业务对象类型；
+下游对接 Event 时再做 AnchorResolver 自动解析。主键命名为 `plan_id`/`task_id`（框架 HasGlobalId 惯例）。
+
 ### campaign_plans 表
 
 | 字段 | 类型 | 说明 |
@@ -214,9 +219,10 @@ Plan 阶段的多轮共创就是普通秘书对话 + `campaign_plan_draft` 反�
 
 ## 十、分期实施与验收
 
-**Phase 0（排期骨架）**：两表迁移 + 编译器（relative/at_time）+ `campaign:process-due` + 异步待办确认门 + 手工建计划 API。
-验收：不经 AI，手工提交一份 plan_doc 可编译落库并到点触发 sms/mass_push 类任务；require_confirm 任务出现待办且批准后执行。
-（纯手工排期日历本身就是产品能力）
+**Phase 0（排期骨架）✅ 已实施**：两表迁移 + 编译器（relative/at_time）+ `campaign:process-due` + 异步待办确认门 + 手工建计划 API。
+实现：`src/Modules/Campaign/`（CampaignServiceProvider / PlanCompiler / CampaignTaskExecutor /
+CampaignProcessDueCommand / CampaignAdminController / CampaignTaskPendingNotification）。
+开关：`AI_CAMPAIGN_ENABLED`（默认 false）；调度：SchedulerService `campaign-process-due` */5min。
 
 **Phase 1（AI 共创）**：`campaign_plan_draft/commit` 工具 + PlaybookRegistry + 首个 playbook + 前端时间轴视图。
 验收：对话中从"我要办一场线下课"到计划定稿编译全程走通，L2 定稿必出确认卡片。

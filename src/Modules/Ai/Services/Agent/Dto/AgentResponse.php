@@ -12,7 +12,8 @@ namespace MultiTenantSaas\Modules\Ai\Services\Agent\Dto;
  *  - message:         AI 助手的文本回复内容
  *  - toolCalls:       AI 请求调用的工具列表（OpenAI Function Calling 格式）
  *  - tokenUsage:      本次对话的 Token 用量统计
- *  - finishReason:    对话结束原因（stop / tool_calls / length / error / max_tool_calls 等）
+ *  - finishReason:    对话结束原因（stop / tool_calls / length / error / max_tool_calls / pending_confirmation 等）
+ *  - pendingConfirmations: L2 待确认载荷列表（仅 finish_reason=pending_confirmation 且非流式 intercept_l2 时有值）
  *  - agentId:         Agent ID
  *  - conversationId:  会话 ID
  *  - model:           实际使用的模型名称
@@ -26,6 +27,7 @@ final class AgentResponse
         public readonly array $toolCalls = [],
         public readonly array $tokenUsage = [],
         public readonly string $finishReason = '',
+        public readonly array $pendingConfirmations = [],
         public readonly int $agentId = 0,
         public readonly int $conversationId = 0,
         public readonly string $model = '',
@@ -41,6 +43,7 @@ final class AgentResponse
      *                       tool_calls?: array,
      *                       token_usage?: array,
      *                       finish_reason?: string,
+     *                       pending_confirmations?: array,
      *                       agent_id?: int,
      *                       conversation_id?: int,
      *                       model?: string,
@@ -55,6 +58,7 @@ final class AgentResponse
             toolCalls: (array) ($data['tool_calls'] ?? []),
             tokenUsage: (array) ($data['token_usage'] ?? []),
             finishReason: (string) ($data['finish_reason'] ?? ''),
+            pendingConfirmations: (array) ($data['pending_confirmations'] ?? []),
             agentId: (int) ($data['agent_id'] ?? 0),
             conversationId: (int) ($data['conversation_id'] ?? 0),
             model: (string) ($data['model'] ?? ''),

@@ -1,7 +1,9 @@
 # AI 消息小助理（ibot）设计规范
 
-> 状态：设计稿（插队任务，优先于 task-chain / event-plan 实施）
+> 状态：**Phase 0/1 已上线生产**（Telegram + 企业微信双频道，蓝眼兔租户实测通过，L2 IM 内文本确认已实施）；
+> Phase 2/3（Connector / 微信 iLink / 飞书 / 钉钉 / 微信客服）未启动
 > 关联：`docs/task-chain.md` · `docs/event-plan.md` · AI 小助手完整化计划
+> 实现位置：`src/Modules/Ibot/` · 共享 SDK `src/Support/WechatWork/` · 渲染适配 `src/Support/Messaging/MarkdownAdapter.php`
 > 核心思想：**ibot 是各 IM 平台上的机器人实体，operator 扫码添加后，随身携带自己的 AI 小助理**
 
 ## 一、定位与边界
@@ -84,9 +86,9 @@ ibot 的参照形态是 OpenClaw 个人 AI 网关：channel 插件 + 常驻 Gate
 | operator_id | bigint index | |
 | ibot_id | bigint FK | |
 | external_id | string | 平台侧身份：chat_id（TG）/ userid（企微/钉钉）/ open_id（飞书）/ external_userid（微信客服） |
+| conversation_id | bigint nullable | 承载对话的 agent_conversation（首次消息时创建并复用） |
 | is_default_channel | boolean | 默认消息通道（每 operator 至多一个 true） |
 | status | string | pending（码已发未扫）/ active / revoked |
-| bound_at | timestamp nullable | |
 
 唯一约束：`(operator_id, ibot_id)`、`(ibot_id, external_id)`。
 
@@ -120,15 +122,24 @@ IM 消息进来时租户上下文即 binding.tenant_id，无需对话内切换�
   → 解析 operator + tenant + agent（ibot.agent_id ?? system_secretary）
   → AgentConversation(channel=<channel_type>, staff_id=operator_id) 复用或新建
   → AgentRuntime::run（非流式，IM 无流式语义）
-  → Provider.sendMessage 回复（超长回复分段，Markdown 按平台能力降级为纯文本）
+  → Channel.sendMessage 回复（超长回复分段，按频道渲染适配，见下）
 ```
+
+**按频道渲染适配（已实施，`MarkdownAdapter`）**：AI 回复的 Markdown 不再一律降级纯文本，
+而是转换到各频道原生富文本能力，转换/发送失败时回退纯文本（宁可丢格式不可丢消息）：
+
+- **Telegram**：`toTelegramHtml`（HTML parse_mode，≤4000 字符整发；被平台拒绝时回退 `toPlain` 重发一次；超长直接纯文本分段）
+- **企业微信**：`toWechatWorkMarkdown`（企微 markdown 子集：斜体/删除线降级、围栏代码降级引用块、图片降级链接），按 2000 字节分段逐段 `sendMarkdown`，失败段回退 `sendText` 纯文本
+- 未适配频道：`toPlain` 纯文本兜底
 
 - webhook 路由无认证但强制验签，验签失败 403 并记日志
 - AI 执行放队列 Job（IM 平台要求收到即 ACK，同步跑 ReAct 会超时）：
-  落消息即 ACK → Job 执行 → bot 主动推结果
+  落消息即 ACK → `ProcessIbotInboundMessage` Job 执行 → bot 主动推结果
 - 会话记忆与 Web 端一致（同一 AI 会话体系）；IM 会话与 Web 会话独立，不合并
+- **现状**：Telegram long polling 由 artisan 常驻命令 `ibot:telegram:poll` 承载（Connector 就绪后迁入）；
+  企微 webhook 路由 `GET/POST /api/v1/public/ibot/webhook/wechat-work/{ibotId}`（验签 + AES 加解密）
 
-### Connector（长连接与私有 API 的常驻承载，对齐 OpenClaw Gateway + 插件）
+### Connector（长连接与私有 API 的常驻承载，对齐 OpenClaw Gateway + 插件）⏳ 未实施（Phase 2）
 
 webhook 频道（企微/微信客服/TG webhook）平台直推 PHP，不经 Connector；
 长连接与 iLink 频道需要常驻进程，由独立 Node.js Connector 承载：
@@ -152,19 +163,31 @@ webhook 频道（企微/微信客服/TG webhook）平台直推 PHP，不经 Conn
 - 这就是「默认消息通道」的落点：task-chain 的待办、event-plan 的 require_confirm 待确认、
   系统告警，统一经此出口触达 operator 的 IM
 
-## 六、L2 写操作：IM 内文本确认
+## 六、L2 写操作：IM 内文本确认 ✅ 已实施
 
-IM 没有 Web 端的确认卡片，采用文本确认协议：
+IM 没有 Web 端的确认卡片，采用文本确认协议（`ProcessIbotInboundMessage` 内实现）：
 
 ```
-AI：即将执行【创建优惠券：满100减20，1000张，7天有效】，回复"确认"执行，回复其他内容取消。
+AI：即将执行【创建优惠券】
+coupon_name: 满100减20
+amount: 1000
+
+回复"确认"执行，回复其他内容取消（10 分钟内有效）。
 operator：确认
 AI：已创建 ✓ 优惠券 ID 8821
 ```
 
-- 沿用 ActionConfirmService 的令牌机制（签发/一次性消费/args_hash 防篡改），仅把"点卡片"换成"回复确认词"
-- TTL 放宽到 IM 场景合理值（10 分钟），超时后回复"确认"提示已过期需重新发起
-- 确认词命中采用精确匹配（"确认"/"yes"），其余任何回复视为取消——宁可误取消不可误执行
+实现要点：
+
+- `AgentRuntime::run()` 支持 `options['intercept_l2']`（opt-in，仅 ibot 开启）：L2 工具不直接执行，
+  经 `partitionByRisk()` 分级后签发确认令牌，返回 `finish_reason='pending_confirmation'` + `pendingConfirmations` 载荷
+- 确认载荷写入 `AgentConversation.metadata['ibot_pending_confirm']`（token/args_hash/tool_slug/tool_name/arguments/expires_in）
+- 入站消息先查 pending：确认词精确匹配（trim 后 `确认` 或不分大小写 `yes`）→ consume → 权限校验（tenant_admin）→ ToolRegistry::execute → continueWithToolResults 让 LLM 收尾
+- 非确认词 → consume 作废令牌 → 审计 ai_action_cancel → 回发「已取消【工具名】」→ 该消息作为新输入继续 run()
+- 令牌过期/无效 → 清 metadata → 回发过期提示 → 消息作为新输入继续
+- TTL 配置：`config('ai.ibot.confirm_ttl')`（env `AI_IBOT_CONFIRM_TTL`，默认 600s）
+- 同轮多个 L2：全部签发，IM 侧只取第一个，回复中附「一次只能确认一个操作，其余请分步发起」
+- 审计动作对齐 Web 端：`ai_action_execute` / `ai_action_cancel`（resource_type=agent_tool）
 
 ## 七、与既有通道代码的关系（ibot 独立，不背 Channel 收敛使命）
 
@@ -186,39 +209,46 @@ ibot 与频道会话/聊天消息体系完全是两件事：
 3. scrm Channel 模块（活码/欢迎语/模板消息/客服 AI）现状保留；将来全渠道客服收件箱若启动，
   另行设计，不与 ibot 混同
 
-## 八、管理与工具契约
+## 八、管理与工具契约（已实施，与原设计有调整）
 
-控制台「消息小助理」管理页（框架层，admin/console 共用）：
+### 控制台配置中心（console 「随身助理」页 `/ibot-settings`）
 
-- 租户管理员：ibots CRUD（配置各平台凭证、选人格 agent、启停）
-- operator 个人：查看各频道绑定状态、生成绑定二维码、设默认通道、解绑
+- 租户管理员（`rbac.permission:setting.update`）：ibots CRUD，管理 API `api/v1/tenant/ibot/ibots*`
+  （`IbotAdminController`）：凭证脱敏回显（`****` + 尾 4 位，提交时掩码值视为未修改）、
+  局部合并更新、启停、删除保护（存在 active 绑定时拒删）
+- operator 个人（`api/v1/tenants/{tenantId}/ibot/*`，`IbotBindingController`）：
+  查各频道绑定状态、生成绑定码、设默认通道、解绑
 
-秘书工具（Web 端助手也能管理 ibot）：
+### 秘书工具（实际落地：AI 引导配置三件套，非原设计三工具）
 
 | slug | risk | 语义 |
 |---|---|---|
-| `ibot_list_bindings` | L1 | 我的各频道绑定状态与默认通道 |
-| `ibot_generate_bind_qr` | L1 | 生成指定频道的绑定二维码 |
-| `ibot_set_default_channel` | **L2** | 设定默认消息通道 |
+| `ibot_setup_status` | L1 | 各频道配置/绑定状态总览，给 AI 判断下一步引导话术 |
+| `save_ibot_config` | **L2** | 保存/更新频道凭证（字段白名单，仅 telegram/wechat_work） |
+| `generate_ibot_bind_code` | **L2** | 生成绑定码（TG 附 `t.me/<bot>?start=<码>` 链接） |
+
+> 原设计的 `ibot_list_bindings` / `ibot_generate_bind_qr` / `ibot_set_default_channel` 未实现：
+> 绑定状态已并入 `ibot_setup_status`，生码已由 `generate_ibot_bind_code` 覆盖，
+> 设默认通道目前仅控制台操作（低频动作，暂不工具化）
 
 ## 九、分期实施与验收
 
-**Phase 0（骨架 + Telegram 全链路）**：两表迁移 + IbotGateway + TelegramProvider（默认 long polling，
-先用 artisan 常驻命令承载、Connector 就绪后迁入；生产可切 webhook）+ 绑定码流程 + 入方向 Job 化执行。
-验收：BotFather 建一个 bot，无公网回调配置下 operator 扫码绑定并在 TG 内完成一次 L1 查询对话往返。
+**Phase 0（骨架 + Telegram 全链路）✅ 已上线**：两表迁移 + IbotGateway + TelegramChannel
+（long polling，artisan `ibot:telegram:poll` 常驻承载）+ 绑定码流程 + 入方向 Job 化执行。
+验收已达成：生产 TG bot 扫码绑定并完成 L1 查询对话往返。
 
-**Phase 1（企微 + 确认与通知）**：WechatWorkProvider（webhook，Token+EncodingAESKey 加解密、
-可信 IP 配置指引与连通自检工具，防静默失败）+ L2 文本确认 +
-Notification ibot 驱动 + 默认通道设定 + 管理页。
-验收：企微内扫码绑定并对话；L2 操作出现文本确认且回复非确认词即取消；
-一条系统通知经默认通道推达 IM。
+**Phase 1（企微 + 确认与通知）✅ 已上线**：WechatWorkChannel
+（webhook，Token+EncodingAESKey 加解密，共享 SDK `WechatWorkApiClient`）+
+Notification ibot 驱动（`IbotNotificationChannel` + `IbotNotifier`，未绑定/失败由 database/mail 兜底）+
+默认通道设定 + 管理页 + L2 IM 内文本确认（第六节）。
+追加交付（超出原计划）：配置中心页 + 管理 API + AI 引导配置三工具 + MarkdownAdapter 按频道渲染。
 
-**Phase 2（Connector + 微信个人号 iLink）**：Node Connector（插件化通道承载）+
+**Phase 2（Connector + 微信个人号 iLink）⏳ 未启动**：Node Connector（插件化通道承载）+
 微信 iLink 通道（扫码登录、凭证持久化、掉线告警）+ 配对管理页。
 验收：手机微信扫码完成 iLink 登录，operator 加好友绑定后全链路对话往返；
 Connector 重启后 session 恢复、消息不丢；Connector 关闭不影响 webhook 频道。
 
-**Phase 3（飞书 WS + 钉钉 Stream + 微信客服）**：Connector 新增飞书 WS / 钉钉 Stream 插件
+**Phase 3（飞书 WS + 钉钉 Stream + 微信客服）⏳ 未启动**：Connector 新增飞书 WS / 钉钉 Stream 插件
 （钉钉仅 Stream，5 凭证配置）+ 微信客服 webhook Provider；QQ 视社区插件成熟度评估预留。
 验收：五平台六频道全通；飞书/钉钉在无公网回调配置下（纯出站长连接）正常收发。
 

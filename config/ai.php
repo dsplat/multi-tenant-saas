@@ -232,6 +232,8 @@ return [
     'ibot' => [
         'enabled' => (bool) env('AI_IBOT_ENABLED', false),
         'bind_code_ttl' => (int) env('AI_IBOT_BIND_CODE_TTL', 600),
+        // IM 内 L2 文本确认令牌有效期（秒）：比 Web 确认卡片（300s）放宽，IM 回复节奏更慢
+        'confirm_ttl' => (int) env('AI_IBOT_CONFIRM_TTL', 600),
         'telegram' => [
             'api_base' => env('AI_IBOT_TELEGRAM_API_BASE', 'https://api.telegram.org'),
             'poll_timeout' => (int) env('AI_IBOT_TELEGRAM_POLL_TIMEOUT', 30),
@@ -239,6 +241,19 @@ return [
             'proxy' => env('AI_IBOT_TELEGRAM_PROXY'),
         ],
         'extra_channels' => [],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Campaign 排期引擎（docs/event-plan.md Phase 0）
+    |--------------------------------------------------------------------------
+    |
+    | 平台级开关：AI_CAMPAIGN_ENABLED=true 启用 campaign:process-due 调度。
+    | 默认关闭（AI 可选性铁律）。
+    |
+    */
+    'campaign' => [
+        'enabled' => (bool) env('AI_CAMPAIGN_ENABLED', false),
     ],
 
     /*

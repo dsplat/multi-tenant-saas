@@ -32,14 +32,16 @@ class ActionConfirmService
      * @param  string  $toolSlug  L2 工具标识
      * @param  array  $arguments  LLM 生成的工具参数（原样存服务端，执行时不信任前端回传）
      * @param  string|null  $toolCallId  OpenAI tool_call id（续答时保持上下文配对）
+     * @param  int|null  $ttlSeconds  自定义有效期（秒），null 用默认 TTL_SECONDS；IM 文本确认场景放宽用
      * @return array{token: string, args_hash: string, expires_in: int}
      */
-    public function issue(int $tenantId, int $conversationId, string $toolSlug, array $arguments, ?string $toolCallId = null): array
+    public function issue(int $tenantId, int $conversationId, string $toolSlug, array $arguments, ?string $toolCallId = null, ?int $ttlSeconds = null): array
     {
+        $ttl = $ttlSeconds !== null && $ttlSeconds > 0 ? $ttlSeconds : self::TTL_SECONDS;
         $token = Str::random(48);
         $argsHash = $this->hashArguments($arguments);
 
-        Cache::put(self::CACHE_PREFIX.$token, [
+        Cache::put(self::CACHE_PREFIX . $token, [
             'tenant_id' => $tenantId,
             'conversation_id' => $conversationId,
             'tool_slug' => $toolSlug,
@@ -47,12 +49,12 @@ class ActionConfirmService
             'args_hash' => $argsHash,
             'tool_call_id' => $toolCallId,
             'issued_at' => now()->timestamp,
-        ], self::TTL_SECONDS);
+        ], $ttl);
 
         return [
             'token' => $token,
             'args_hash' => $argsHash,
-            'expires_in' => self::TTL_SECONDS,
+            'expires_in' => $ttl,
         ];
     }
 
@@ -69,7 +71,7 @@ class ActionConfirmService
      */
     public function consume(string $token, int $tenantId, int $conversationId, string $argsHash): array
     {
-        $key = self::CACHE_PREFIX.$token;
+        $key = self::CACHE_PREFIX . $token;
         $payload = Cache::get($key);
 
         if (! is_array($payload)) {

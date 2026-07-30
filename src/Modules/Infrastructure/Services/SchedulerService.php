@@ -103,6 +103,12 @@ class SchedulerService
             'schedule' => 'dailyAt:02:00',
             'description' => '自动备份所有活跃租户数据',
         ]);
+
+        $this->addTask($schedule, 'campaign-process-due', [
+            'command' => 'campaign:process-due',
+            'schedule' => 'cron:*/5 * * * *',
+            'description' => 'Campaign 排期任务到点触发（跨租户扫描）',
+        ]);
     }
 
     /**

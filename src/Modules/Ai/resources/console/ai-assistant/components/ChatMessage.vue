@@ -135,27 +135,35 @@ function tryAutoDelegate() {
   })
 }
 
+/** 尝试自动跳转（onMounted + watch 共用） */
+function tryAutoNavigate() {
+  if (autoNavigated.value || isUser.value) return
+  if (!isLatestAssistantMessage()) return
+  const navs = navigateActions.value
+  if (navs.length === 0) return
+  autoNavigated.value = true
+  safePush(navs[0].route_path)
+}
+
 onMounted(() => {
   if (isUser.value) return
   if (!isLatestAssistantMessage()) return
 
-  // 自动跳转
-  if (!autoNavigated.value) {
-    const navs = navigateActions.value
-    if (navs.length > 0) {
-      autoNavigated.value = true
-      safePush(navs[0].route_path)
-    }
-  }
+  // 自动跳转（历史消息恢复时 toolCalls 已存在）
+  tryAutoNavigate()
 
   // 自动转接（历史消息恢复时 toolCalls 已存在）
   tryAutoDelegate()
 })
 
 /**
- * 流式场景：组件已挂载但 toolCalls 还没到达，需 watch delegateActions 变化后立即自动执行
- * 仅触发一次（autoDelegated 门控）
+ * 流式场景：组件已挂载但 toolCalls 还没到达，需 watch 变化后立即自动执行
+ * 仅触发一次（autoNavigated / autoDelegated 门控）
  */
+watch(navigateActions, (newVal) => {
+  if (newVal.length > 0) tryAutoNavigate()
+})
+
 watch(delegateActions, (newVal) => {
   if (newVal.length > 0) tryAutoDelegate()
 })

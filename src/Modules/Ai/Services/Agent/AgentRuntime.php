@@ -251,7 +251,7 @@ class AgentRuntime implements AgentRuntimeContract
             ]);
         }
 
-        $maxToolCalls = $options['max_tool_calls'] ?? ($agent->model_config['max_tool_calls'] ?? 5);
+        $maxToolCalls = $options['max_tool_calls'] ?? $agent->effectiveMaxToolCalls();
 
         // L2 拦截（opt-in）：无确认卡片的非流式渠道（如 ibot IM）开启后，
         // L2 工具不直接执行，签发确认令牌交由调用方实现确认协议；
@@ -659,7 +659,7 @@ class AgentRuntime implements AgentRuntimeContract
             ]);
         }
 
-        $maxToolCalls = $options['max_tool_calls'] ?? ($agent->model_config['max_tool_calls'] ?? 5);
+        $maxToolCalls = $options['max_tool_calls'] ?? $agent->effectiveMaxToolCalls();
         $maxTokens = $options['max_tokens'] ?? ($agent->model_config['max_tokens'] ?? 8000);
 
         // 保存用户消息

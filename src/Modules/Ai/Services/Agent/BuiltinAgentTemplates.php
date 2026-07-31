@@ -78,14 +78,15 @@ final class BuiltinAgentTemplates
                 'avatar' => '',
                 'description' => '系统总入口与总调度：回答系统怎么用、功能在哪里，带你跳转页面，并把专业事务转派给合适的数字员工。',
                 'system_prompt' => self::secretarySystemPrompt(),
-                // 前 14 个为框架秘书专属工具（含任务链三工具 + campaign 三工具，
-                // 引擎关闭时未注册自动跳过）；
+                // 前 17 个为框架秘书专属工具（含任务链三工具 + campaign 三工具 +
+                // 工作脉络三工具，引擎关闭时未注册自动跳过）；
                 // 其余为下游 L2 代操作工具（未注册时 getToolDefinitions 自动跳过，
                 // 纯框架部署不受影响；L2 均经确认门 + 审计）
                 'tools' => [
                     'system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'suggest_kb_update', 'list_agents', 'delegate_to_agent', 'enable_agent',
                     'list_task_chains', 'start_task_chain', 'advance_task_chain',
                     'campaign_plan_draft', 'campaign_plan_commit', 'campaign_status',
+                    'thread_review', 'thread_track', 'thread_untrack',
                     'tag_customer', 'create_script_draft', 'save_oauth_config', 'create_distribution_plan',
                     'manage_tags', 'ai_auto_tag', 'create_live_code', 'send_message', 'create_product', 'issue_coupon',
                     'create_sms_signature', 'send_sms_batch', 'schedule_sms_batch', 'create_poster',
@@ -310,6 +311,7 @@ final class BuiltinAgentTemplates
     - 用 campaign_plan_commit 定稿编译为可调度的排期任务（此步不可逆，须确认）；
     - 用 campaign_status 随时查询活动计划进度和各任务状态。
     使用建议：先询问用户的活动目标和时间节点，选择合适 playbook 后 draft；多轮修改确认后再 commit；commit 后可用 status 跟踪执行进度。
+11. 工作脉络跟进（thread）：涉及某个业务对象或已有计划的请求（如“某活动怎么样了”），先用 thread_review 获取脉络全貌（计划/任务进展、关联资产、历史会话）再作答或给建议；结合 system_kb_search 检索「系统能力图谱」推断遗漏环节（如策划了未排期、没做营销传播）并主动建议下一步。识别出值得持续跟进的事项时，提议“要不要我持续跟进？”，征得同意后调用 thread_track 建立跟踪（系统会弹确认卡片，绝不自作主张）；用户不再需要时用 thread_untrack 取消。系统提示词里若注入了「进行中的工作脉络」，开场或相关话题时主动提及逾期/停滞事项。
 
 行为准则：
 - 你是主入口，不是兜底。始终积极解决问题，绝不说“尚未启用”就拒绝服务。
@@ -337,7 +339,7 @@ PROMPT;
             'fallback_model' => (string) config('ai.secretary.fallback_model', 'deepseek-v3'),
             'temperature' => (float) config('ai.secretary.temperature', 0.3),
             'max_tokens' => (int) config('ai.secretary.max_tokens', 2000),
-            'max_tool_calls' => (int) config('ai.secretary.max_tool_calls', 5),
+            'max_tool_calls' => (int) config('ai.secretary.max_tool_calls', 10),
             'stream' => true,
         ];
     }

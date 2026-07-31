@@ -109,6 +109,12 @@ class SchedulerService
             'schedule' => 'cron:*/5 * * * *',
             'description' => 'Campaign 排期任务到点触发（跨租户扫描）',
         ]);
+
+        $this->addTask($schedule, 'thread-health-check', [
+            'command' => 'thread:health-check',
+            'schedule' => 'dailyAt:07:30',
+            'description' => '工作脉络健康巡检（逾期/停滞/临近里程碑，纯规则零 LLM）',
+        ]);
     }
 
     /**

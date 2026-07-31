@@ -72,8 +72,17 @@ class CampaignPlanCommitTool implements ToolHandlerContract
             ];
         }
 
-        // 4. 刷新并返回结果
+        // 4. 定稿即自动跟踪（天然脉络：operator 已在确认门确认，本身即跟踪授权，
+        // 免二次确认），进入每日巡检与会话摘要注入范围
         $plan->refresh();
+        $plan->forceFill([
+            'metadata' => array_merge((array) $plan->metadata, [
+                'tracked' => true,
+                'tracked_at' => now()->toDateTimeString(),
+            ]),
+        ])->save();
+
+        // 5. 返回结果
         $tasks = $plan->tasks()->orderBy('scheduled_at')->get();
 
         return [

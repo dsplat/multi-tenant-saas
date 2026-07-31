@@ -99,6 +99,8 @@ function buildTools(resolved: ResolvePayload, auth: AuthContext) {
             agent_id: resolved.agent_id,
             tool: fn.name,
             arguments: args ?? {},
+            // L2 确认门：确认令牌绑定会话，PHP 遇 L2 工具时据此签发 pending_confirmation
+            conversation_id: resolved.conversation_id ?? null,
           })
           return data.result
         } catch (error) {

@@ -76,12 +76,15 @@ class CampaignPlanCompilerTest extends TestCase
         $this->assertStringContainsString('重复', implode(' ', $errors));
     }
 
-    public function test_validate_rejects_recurring(): void
+    public function test_validate_accepts_recurring(): void
     {
+        // recurring 已随 expandRecurring 落地（03d1077），validate 视为合法类型
         $doc = $this->validPlanDoc();
-        $doc['phases'][0]['tasks'][0]['trigger'] = ['type' => 'recurring', 'anchor' => 'event.starts_at'];
+        $doc['phases'][0]['tasks'][0]['trigger'] = [
+            'type' => 'recurring', 'from' => '+0d', 'until' => '+2d', 'interval' => '1d', 'at' => '09:30',
+        ];
         $errors = $this->compiler->validate($doc);
-        $this->assertStringContainsString('Phase 2', implode(' ', $errors));
+        $this->assertEmpty($errors);
     }
 
     public function test_validate_rejects_dependency_cycle(): void

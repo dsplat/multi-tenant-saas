@@ -257,6 +257,17 @@ export function useAssistantStream() {
             } as FormFillSuggestion)
           } else if (result?.action === 'workflow' && result.steps) {
             callbacks.onWorkflow(result as WorkflowSuggestion)
+          } else if (result?.action === 'pending_confirmation' && result.token) {
+            // L2 确认门：PHP 签发的确认载荷经工具结果帧透传，渲染确认卡片
+            callbacks.onPendingConfirmation?.({
+              token: result.token,
+              args_hash: result.args_hash,
+              expires_in: result.expires_in ?? 300,
+              tool_slug: result.tool_slug,
+              tool_name: result.tool_name ?? result.tool_slug,
+              arguments: result.arguments ?? {},
+              conversation_id: result.conversation_id,
+            } as ActionConfirmData)
           }
           break
         }

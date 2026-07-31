@@ -41,6 +41,7 @@ class CampaignPlan extends Model
         'plan_doc',
         'status',
         'playbook_key',
+        'metadata',
         'created_by',
     ];
 
@@ -48,6 +49,7 @@ class CampaignPlan extends Model
     {
         return [
             'plan_doc' => 'array',
+            'metadata' => 'array',
         ];
     }
 

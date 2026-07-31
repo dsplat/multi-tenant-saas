@@ -6,6 +6,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Campaign\Console\CampaignProcessDueCommand;
+use MultiTenantSaas\Modules\Campaign\Console\ThreadHealthCheckCommand;
 use MultiTenantSaas\Modules\Campaign\Services\CampaignTaskExecutor;
 use MultiTenantSaas\Modules\Campaign\Services\PlanCompiler;
 use MultiTenantSaas\Modules\Campaign\Services\PlaybookRegistry;
@@ -13,6 +14,9 @@ use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignPlanCommitTool;
 use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignPlanDraftTool;
 use MultiTenantSaas\Modules\Campaign\Listeners\CampaignEventSubscriber;
 use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignStatusTool;
+use MultiTenantSaas\Modules\Campaign\Services\Tools\ThreadReviewTool;
+use MultiTenantSaas\Modules\Campaign\Services\Tools\ThreadTrackTool;
+use MultiTenantSaas\Modules\Campaign\Services\Tools\ThreadUntrackTool;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
 
 /**
@@ -44,6 +48,7 @@ class CampaignServiceProvider extends ModuleServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 CampaignProcessDueCommand::class,
+                ThreadHealthCheckCommand::class,
             ]);
         }
     }
@@ -126,6 +131,73 @@ class CampaignServiceProvider extends ModuleServiceProvider
                 'required' => ['plan_id'],
             ],
             'campaign'
+        );
+
+        $this->registerThreadTools($registry);
+    }
+
+    /**
+     * 注册工作脉络三工具（项目大脑 Phase 2，额外受 ai.brain.enabled 门控）
+     *
+     * category=secretary：脉络是小助手的理解单元（不限于 campaign 业务），
+     * 跟踪载体复用 CampaignPlan 故代码落在本模块。
+     */
+    private function registerThreadTools(ToolRegistryContract $registry): void
+    {
+        if (! config('ai.brain.enabled')) {
+            return;
+        }
+
+        $threadLocator = [
+            'anchor_type' => ['type' => 'string', 'description' => '锚点业务对象类型（如 event、customer，与 anchor_id 搭配）'],
+            'anchor_id' => ['type' => 'integer', 'description' => '锚点业务对象 ID'],
+            'plan_id' => ['type' => 'integer', 'description' => '计划 ID（无锚点线索时直接传）'],
+        ];
+
+        $registry->register(
+            'thread_review',
+            'Thread Review',
+            'Get a full snapshot of a work thread (any business object or plan): plans and task progress, linked marketing assets, related conversation history. Use before giving suggestions to discover gaps like missing promotion or scheduling',
+            ThreadReviewTool::class,
+            [
+                'type' => 'object',
+                'properties' => $threadLocator,
+                'required' => [],
+            ],
+            'secretary'
+        );
+
+        $registry->register(
+            'thread_track',
+            'Thread Track',
+            'Start tracking a work thread for daily health checks and proactive follow-up reminders. Propose to the user first - requires user confirmation',
+            ThreadTrackTool::class,
+            [
+                'type' => 'object',
+                'properties' => $threadLocator + [
+                    'title' => ['type' => 'string', 'description' => '脉络标题（新建跟踪载体时用，可选）'],
+                    'note' => ['type' => 'string', 'description' => '跟踪意图备注（可选）'],
+                ],
+                'required' => [],
+            ],
+            'secretary',
+            'L2'
+        );
+
+        $registry->register(
+            'thread_untrack',
+            'Thread Untrack',
+            'Stop tracking a work thread; it will no longer appear in daily health checks or proactive reminders. Requires user confirmation',
+            ThreadUntrackTool::class,
+            [
+                'type' => 'object',
+                'properties' => [
+                    'plan_id' => ['type' => 'integer', 'description' => '跟踪载体计划 ID'],
+                ],
+                'required' => ['plan_id'],
+            ],
+            'secretary',
+            'L2'
         );
     }
 

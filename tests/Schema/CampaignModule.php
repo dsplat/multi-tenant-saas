@@ -21,6 +21,7 @@ class CampaignModule implements SchemaModuleInterface
             $table->json('plan_doc');
             $table->string('status', 20)->default('planning');
             $table->string('playbook_key', 100)->nullable();
+            $table->json('metadata')->nullable();
             $table->unsignedBigInteger('created_by');
             $table->timestamps();
 

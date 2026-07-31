@@ -13,6 +13,7 @@ use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
 use MultiTenantSaas\Modules\Ai\Services\AiUsageService;
+use MultiTenantSaas\Modules\Campaign\Services\ThreadDigestService;
 
 /**
  * @OA\Tag(
@@ -113,15 +114,18 @@ class ResolveController extends AiStreamingController
             'provider' => $providerName,
             'model' => $modelConfig['model'] ?? config('ai.default_model'),
             'base_url' => rtrim((string) $baseUrl, '/'),
-            // 模板优先的有效 prompt（用户自定义过才用 DB 快照），与 AgentRuntime 兑底口径一致
-            'system_prompt' => $agent->effectiveSystemPrompt(),
+            // 模板优先的有效 prompt（用户自定义过才用 DB 快照），与 AgentRuntime 兜底口径一致；
+            // 系统小助手附加活跃脉络摘要（项目大脑 Phase 1b，ai.brain.enabled 默认关闭）
+            'system_prompt' => $this->composeSystemPrompt($agent, $tenantId),
             'temperature' => (float) ($modelConfig['temperature'] ?? 0.7),
             'max_tokens' => (int) ($modelConfig['max_tokens'] ?? 4096),
-            'max_tool_calls' => (int) ($modelConfig['max_tool_calls'] ?? config('ai-streaming.max_tool_calls', 5)),
+            // 秘书强制走平台级配置，其余 Agent 用租户 model_config（与 AgentRuntime 口径一致）
+            'max_tool_calls' => $agent->effectiveMaxToolCalls((int) config('ai-streaming.max_tool_calls', 5)),
             // OpenAI Function Calling 格式工具定义（执行仍回调 PHP）。
             // effectiveTools = DB 快照 ∪ 模板最新工具，与 AgentRuntime 非流式链路一致。
-            // 排除 L2 需确认工具：Node 链路暂无确认门，不下发即不会被 LLM 调用
-            'tools' => $this->toolRegistry->getToolDefinitions($this->filterConfirmableTools($agent->effectiveTools())),
+            // L2 需确认工具照常下发：tools/execute 侧确认门拦截签发令牌，
+            // 经前端确认卡片由用户确认后才真正执行（不降级风险语义）
+            'tools' => $this->toolRegistry->getToolDefinitions($agent->effectiveTools()),
         ];
 
         // direct 模式：下发 api_key（仅限 Node 与 PHP 同机/内网回环链路）
@@ -133,6 +137,28 @@ class ResolveController extends AiStreamingController
             'success' => true,
             'data' => $payload,
         ]);
+    }
+
+    /**
+     * 有效 system_prompt + 活跃脉络摘要附录（项目大脑 Phase 1b）
+     *
+     * 仅系统小助手注入（resolve 也服务业务数字员工，不得污染其上下文）；
+     * ai.brain.enabled 默认关闭；Campaign 模块未安装时静默跳过（软依赖，
+     * AiStreaming 不声明对 campaign 包的 composer 依赖）。
+     */
+    private function composeSystemPrompt(Agent $agent, int $tenantId): string
+    {
+        $prompt = $agent->effectiveSystemPrompt();
+
+        if ($agent->role !== 'system_secretary'
+            || ! config('ai.brain.enabled')
+            || ! class_exists(ThreadDigestService::class)) {
+            return $prompt;
+        }
+
+        $digest = app(ThreadDigestService::class)->buildDigest($tenantId);
+
+        return $digest === '' ? $prompt : $prompt."\n\n".$digest;
     }
 
     /**
@@ -166,21 +192,5 @@ class ResolveController extends AiStreamingController
         ConversationStarted::dispatch($tenantId, $agentId, (int) $conversation->conversation_id);
 
         return (int) $conversation->conversation_id;
-    }
-
-    /**
-     * 过滤掉需用户确认的 L2 工具（Node 链路暂不支持确认门，
-     * ToolExecuteController 侧有同样的拒执防线，双重保险）
-     *
-     * @param  string[]  $slugs
-     * @return string[]
-     */
-    private function filterConfirmableTools(array $slugs): array
-    {
-        return array_values(array_filter($slugs, function (string $slug): bool {
-            $tool = $this->toolRegistry->get($slug);
-
-            return $tool === null || ! $tool->requiresConfirmation();
-        }));
     }
 }

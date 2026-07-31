@@ -143,7 +143,8 @@ return [
         'fallback_model' => env('SECRETARY_AI_FALLBACK_MODEL', 'deepseek-v4-flash'),
         'temperature' => (float) env('SECRETARY_AI_TEMPERATURE', 0.3),
         'max_tokens' => (int) env('SECRETARY_AI_MAX_TOKENS', 2000),
-        'max_tool_calls' => (int) env('SECRETARY_AI_MAX_TOOL_CALLS', 5),
+        // 默认 10：thread_review→kb_search→draft 多步推理链会触顶旧默认 5
+        'max_tool_calls' => (int) env('SECRETARY_AI_MAX_TOOL_CALLS', 10),
         'build_timeout' => (int) env('SECRETARY_BUILD_TIMEOUT', 180),
         'build_max_tokens' => (int) env('SECRETARY_BUILD_MAX_TOKENS', 4000),
         // 下游扩展模板类（需提供静态 definitions(): array，如 ScrmAgentTemplates），
@@ -274,6 +275,30 @@ return [
     'task_chains' => [
         'enabled' => (bool) env('AI_TASK_CHAINS_ENABLED', false),
         'extra_chain_classes' => [],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | 项目大脑（工作脉络跟踪与主动推理）
+    |--------------------------------------------------------------------------
+    |
+    | enabled：活跃脉络摘要注入（resolve）总开关，默认关闭（AI 可选性铁律）。
+    | background_reasoning：thread:health-check 巡检异常脉络后追加一次 LLM
+    | 分析（可选增强），默认关闭；巡检本身纯规则零 LLM 不受此开关影响。
+    | billing：后台推理计费主体 platform（平台买单）/ tenant（租户买单），
+    | 用量始终记入真实 tenant_id（scenario=brain），与秘书通道分流。
+    | 硬限额：每脉络每日最多一次后台推理、单次 token 上限。
+    |
+    */
+    'brain' => [
+        'enabled' => (bool) env('AI_BRAIN_ENABLED', false),
+        'background_reasoning' => (bool) env('AI_BRAIN_BACKGROUND_REASONING', false),
+        'billing' => env('AI_BRAIN_BILLING', 'platform'),
+        'max_daily_runs_per_thread' => (int) env('AI_BRAIN_MAX_DAILY_RUNS_PER_THREAD', 1),
+        'max_tokens_per_run' => (int) env('AI_BRAIN_MAX_TOKENS_PER_RUN', 4096),
+        // 下游资产探测器类列表（实现 ThreadAssetProbeContract，供 thread_review
+        // 聚合锚点对象的关联资产与完整度事实，与 extra_chain_classes 扩展模式一致）
+        'asset_probes' => [],
     ],
 
     /*

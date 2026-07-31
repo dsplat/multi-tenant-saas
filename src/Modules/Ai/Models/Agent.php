@@ -102,6 +102,25 @@ class Agent extends Model
         return $templatePrompt !== '' ? $templatePrompt : $dbPrompt;
     }
 
+    /**
+     * 有效工具调用步数上限
+     *
+     * 系统小秘书强制走平台级 config('ai.secretary.max_tool_calls')（与
+     * resolveModelConfig 口径一致，存量租户 DB 快照的旧值 5 不再生效，
+     * thread_review→kb_search→draft 多步推理链不触顶）；其余 Agent 仍用
+     * 租户维护的 model_config。
+     *
+     * AgentRuntime（非流式）与 AiStreaming Resolve（Node 流式链路）共用。
+     */
+    public function effectiveMaxToolCalls(int $default = 5): int
+    {
+        if (($this->role ?? '') === 'system_secretary') {
+            return (int) config('ai.secretary.max_tool_calls', 10);
+        }
+
+        return (int) ($this->model_config['max_tool_calls'] ?? $default);
+    }
+
     public function messages(): HasManyThrough
     {
         return $this->hasManyThrough(

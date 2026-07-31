@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Console\Commands;
 
 use Illuminate\Console\Command;
+use MultiTenantSaas\Modules\Ai\Services\SystemKb\CapabilityMapGenerator;
 use MultiTenantSaas\Modules\Ai\Services\SystemKb\ConsoleRouteMapGenerator;
 use MultiTenantSaas\Modules\Ai\Services\SystemKb\FeatureMapGenerator;
 use MultiTenantSaas\Modules\Ai\Services\SystemKb\ToolCatalogGenerator;
@@ -21,15 +22,16 @@ use MultiTenantSaas\Modules\Ai\Services\SystemKb\ToolCatalogGenerator;
 class SecretaryKbIndexCommand extends Command
 {
     protected $signature = 'secretary:kb:index
-        {--only= : 仅生成指定索引（routes|tools|features）}
+        {--only= : 仅生成指定索引（routes|tools|features|capabilities）}
         {--check : 检查模式：不写文件，仅比对是否过期（过期 exit 1）}';
 
-    protected $description = '生成系统级 KB 索引（控制台路由地图/AI 工具目录/API 功能分布图）';
+    protected $description = '生成系统级 KB 索引（控制台路由地图/AI 工具目录/API 功能分布图/系统能力图谱）';
 
     public function handle(
         ConsoleRouteMapGenerator $routeMap,
         ToolCatalogGenerator $toolCatalog,
         FeatureMapGenerator $featureMap,
+        CapabilityMapGenerator $capabilityMap,
     ): int {
         $targetDir = $this->resolveTargetDir();
 
@@ -46,6 +48,8 @@ class SecretaryKbIndexCommand extends Command
             'routes' => ['console-route-map.md', fn () => $routeMap->generate()],
             'tools' => ['tool-catalog.md', fn () => $toolCatalog->generate()],
             'features' => ['api-feature-map.md', fn () => $featureMap->generate()],
+            // 能力图谱：模块能力→工具→典型后续动作（AI 推断下一步的知识源）
+            'capabilities' => ['capability-map.md', fn () => $capabilityMap->generate()],
         ];
 
         $stale = [];

@@ -1584,8 +1584,8 @@ class AgentRuntime implements AgentRuntimeContract
     {
         $dbTools = $agent->tools ?? [];
 
-        // 尝试按 role 匹配预置模板
-        $template = BuiltinAgentTemplates::findByKey($agent->role ?? '');
+        // 按 role 匹配预置模板（走注册表：框架模板 + 下游 extra_template_classes，template_key/role 双匹配）
+        $template = AgentTemplateRegistry::findByKey($agent->role ?? '');
         $templateTools = $template['tools'] ?? [];
 
         // 合并：DB 已有 + 模板新增（去重，保持顺序）

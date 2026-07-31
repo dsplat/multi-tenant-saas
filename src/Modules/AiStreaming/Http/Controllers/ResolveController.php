@@ -8,7 +8,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Contracts\AgentServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Events\ConversationStarted;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
+use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
 use MultiTenantSaas\Modules\Ai\Services\AiUsageService;
 
@@ -39,7 +41,8 @@ class ResolveController extends AiStreamingController
      *
      *     @OA\RequestBody(required=true, @OA\JsonContent(
      *
-     *         @OA\Property(property="agent_id", type="integer", nullable=true, example=1, description="省略时兑底到租户的系统小助手（role=system_secretary）")
+     *         @OA\Property(property="agent_id", type="integer", nullable=true, example=1, description="省略时兑底到租户的系统小助手（role=system_secretary）"),
+     *         @OA\Property(property="conversation_id", type="integer", nullable=true, example=100, description="续接已有会话；省略或无效时创建新会话")
      *     )),
      *
      *     @OA\Response(response=200, description="会话配置（model/base_url/api_key/system_prompt/tools/...）"),
@@ -54,6 +57,7 @@ class ResolveController extends AiStreamingController
 
         $data = $request->validate([
             'agent_id' => ['nullable', 'integer'],
+            'conversation_id' => ['nullable', 'integer'],
         ]);
 
         $tenantId = $this->resolveTenantId();
@@ -104,10 +108,13 @@ class ResolveController extends AiStreamingController
         $payload = [
             'tenant_id' => $tenantId,
             'agent_id' => (int) $agent->agent_id,
+            // 会话续接/创建：消息落库归属（Node 经 2: data 帧下发给前端持久化）
+            'conversation_id' => $this->resolveConversationId($tenantId, (int) $agent->agent_id, $data['conversation_id'] ?? null),
             'provider' => $providerName,
             'model' => $modelConfig['model'] ?? config('ai.default_model'),
             'base_url' => rtrim((string) $baseUrl, '/'),
-            'system_prompt' => (string) ($agent->system_prompt ?? ''),
+            // 模板优先的有效 prompt（用户自定义过才用 DB 快照），与 AgentRuntime 兑底口径一致
+            'system_prompt' => $agent->effectiveSystemPrompt(),
             'temperature' => (float) ($modelConfig['temperature'] ?? 0.7),
             'max_tokens' => (int) ($modelConfig['max_tokens'] ?? 4096),
             'max_tool_calls' => (int) ($modelConfig['max_tool_calls'] ?? config('ai-streaming.max_tool_calls', 5)),
@@ -126,6 +133,39 @@ class ResolveController extends AiStreamingController
             'success' => true,
             'data' => $payload,
         ]);
+    }
+
+    /**
+     * 续接已有会话（校验租户与 Agent 归属），无效或缺省时创建新会话。
+     *
+     * channel 沿用 'assistant'：与 PHP 直连链路同一产品面（历史列表/继续聊/删除
+     * 均按 channel=assistant 过滤），传输链路差异记录在 metadata.source。
+     */
+    private function resolveConversationId(int $tenantId, int $agentId, ?int $conversationId): int
+    {
+        if ($conversationId !== null && $conversationId > 0) {
+            $existing = AgentConversation::where('tenant_id', $tenantId)
+                ->where('conversation_id', $conversationId)
+                ->where('agent_id', $agentId)
+                ->first();
+
+            if ($existing !== null) {
+                return (int) $existing->conversation_id;
+            }
+        }
+
+        $conversation = AgentConversation::create([
+            'tenant_id' => $tenantId,
+            'agent_id' => $agentId,
+            'channel' => 'assistant',
+            'subject' => '页面助手会话',
+            'status' => 'active',
+            'metadata' => ['source' => 'ai-streaming'],
+        ]);
+
+        ConversationStarted::dispatch($tenantId, $agentId, (int) $conversation->conversation_id);
+
+        return (int) $conversation->conversation_id;
     }
 
     /**

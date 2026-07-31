@@ -17,7 +17,7 @@
 
 import { serve } from '@hono/node-server'
 import { createOpenAI } from '@ai-sdk/openai'
-import { jsonSchema, streamText, tool, type Tool } from 'ai'
+import { jsonSchema, streamText, tool, StreamData, type Tool } from 'ai'
 import { Hono } from 'hono'
 
 const VERSION = '1.0.0'
@@ -32,6 +32,7 @@ const FALLBACK_API_KEY = process.env.AI_STREAMING_API_KEY ?? ''
 interface ResolvePayload {
   tenant_id: number
   agent_id: number
+  conversation_id?: number
   provider: string
   model: string
   base_url: string
@@ -124,16 +125,21 @@ app.post('/chat', async (c) => {
   }
   const auth: AuthContext = { authorization, tenantId: c.req.header('x-tenant-id') }
 
-  const body = await c.req.json<{ agent_id?: number; messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> }>().catch(() => null)
+  const body = await c.req.json<{ agent_id?: number; conversation_id?: number; messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> }>().catch(() => null)
   if (!Array.isArray(body?.messages) || body.messages.length === 0) {
     return c.json({ success: false, message: '参数错误：messages 必填' }, 422)
   }
+  const inputMessages = body.messages
 
   // 1. 回调 PHP：鉴权 + 配额检查 + Agent 配置解析（失败即拒绝，零 LLM 开销）
   // agent_id 省略时由 PHP 兑底到租户的系统小助手（console 小助手入口）
+  // conversation_id 由 PHP 续接/创建（落库归属），Node 不管理会话
   let resolved: ResolvePayload
   try {
-    resolved = await phpPost<ResolvePayload>('/ai-streaming/resolve', auth, { agent_id: body.agent_id ?? null })
+    resolved = await phpPost<ResolvePayload>('/ai-streaming/resolve', auth, {
+      agent_id: body.agent_id ?? null,
+      conversation_id: body.conversation_id ?? null,
+    })
   } catch (error) {
     const status = error instanceof PhpApiError ? error.status : 502
     return c.json({ success: false, message: error instanceof Error ? error.message : String(error) }, status as 402)
@@ -147,15 +153,23 @@ app.post('/chat', async (c) => {
   // 2. 直连 LLM（OpenAI 兼容端点），SSE 流式转发
   const provider = createOpenAI({ baseURL: resolved.base_url, apiKey, compatibility: 'compatible' })
 
+  // 会话元信息经 2: data 帧下发前端（前端持久化 conversation_id 用于续接/历史恢复）
+  const streamData = new StreamData()
+  if (resolved.conversation_id) {
+    streamData.append({ type: 'meta', conversation_id: resolved.conversation_id, agent_id: resolved.agent_id })
+  }
+
   const result = streamText({
     model: provider.chat(resolved.model),
     system: resolved.system_prompt || undefined,
-    messages: body.messages,
+    messages: inputMessages,
     temperature: resolved.temperature,
     maxTokens: resolved.max_tokens,
     tools: buildTools(resolved, auth),
     maxSteps: Math.max(1, resolved.max_tool_calls) + 1,
-    onFinish: async ({ usage, finishReason, steps }) => {
+    onFinish: async ({ text, usage, finishReason, steps }) => {
+      streamData.close().catch(() => {})
+
       // 3. 流结束后回调 PHP 结算 token（失败仅告警，不影响已完成的响应）
       try {
         await phpPost('/ai-streaming/usage/report', auth, {
@@ -168,10 +182,29 @@ app.post('/chat', async (c) => {
       } catch (error) {
         console.error('[ai-streaming] usage report failed:', error)
       }
+
+      // 4. 本轮消息落库（落库语义归 PHP，Node 仅搬运；失败仅告警）
+      if (resolved.conversation_id) {
+        try {
+          const lastUser = [...inputMessages].reverse().find((m) => m.role === 'user')
+          const toolCalls = (steps ?? []).flatMap((step) =>
+            (step.toolCalls ?? []).map((call) => ({ name: call.toolName, arguments: call.args ?? {} })),
+          )
+          await phpPost('/ai-streaming/messages/report', auth, {
+            conversation_id: resolved.conversation_id,
+            agent_id: resolved.agent_id,
+            user_message: lastUser?.content ?? null,
+            assistant_message: text ?? '',
+            tool_calls: toolCalls,
+          })
+        } catch (error) {
+          console.error('[ai-streaming] message report failed:', error)
+        }
+      }
     },
   })
 
-  return result.toDataStreamResponse()
+  return result.toDataStreamResponse({ data: streamData })
 })
 
 serve({ fetch: app.fetch, hostname: HOST, port: PORT }, (info) => {

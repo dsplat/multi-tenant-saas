@@ -70,6 +70,13 @@ class AgentService implements AgentServiceContract
     {
         $agent = $this->findAgentForCurrentTenant($agentId);
 
+        // 用户显式改 prompt 时标记自定义：之后 effectiveSystemPrompt 尊重 DB 快照，
+        // 不再被模板迭代覆盖（未改过的 Agent 始终跟随模板最新 prompt）
+        $metadata = $data['metadata'] ?? $agent->metadata;
+        if (isset($data['system_prompt']) && $data['system_prompt'] !== $agent->system_prompt) {
+            $metadata = array_merge((array) ($metadata ?? []), ['prompt_customized' => true]);
+        }
+
         DB::beginTransaction();
         try {
             $agent->update([
@@ -83,7 +90,7 @@ class AgentService implements AgentServiceContract
                 'feature_keys' => $data['feature_keys'] ?? $agent->feature_keys,
                 'model_config' => $data['model_config'] ?? $agent->model_config,
                 'enabled' => $data['enabled'] ?? $agent->enabled,
-                'metadata' => $data['metadata'] ?? $agent->metadata,
+                'metadata' => $metadata,
             ]);
 
             DB::commit();

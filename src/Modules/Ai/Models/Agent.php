@@ -78,6 +78,30 @@ class Agent extends Model
         return array_values(array_unique(array_merge($dbTools, $templateTools)));
     }
 
+    /**
+     * 有效系统提示词（模板优先，除非用户自定义过）
+     *
+     * Agent 创建时从模板 clone system_prompt 到 DB，之后模板迭代（如新增
+     * navigate 指令）不会自动同步。此方法运行时优先取模板最新 prompt；
+     * 仅当用户显式改过 prompt（metadata.prompt_customized）时尊重 DB 快照。
+     *
+     * AgentRuntime（非流式兑底）与 AiStreaming Resolve（Node 流式链路）共用。
+     */
+    public function effectiveSystemPrompt(): string
+    {
+        $dbPrompt = (string) ($this->system_prompt ?? '');
+
+        $metadata = (array) ($this->metadata ?? []);
+        if (! empty($metadata['prompt_customized'])) {
+            return $dbPrompt;
+        }
+
+        $template = AgentTemplateRegistry::findByKey($this->role ?? '');
+        $templatePrompt = (string) ($template['system_prompt'] ?? '');
+
+        return $templatePrompt !== '' ? $templatePrompt : $dbPrompt;
+    }
+
     public function messages(): HasManyThrough
     {
         return $this->hasManyThrough(

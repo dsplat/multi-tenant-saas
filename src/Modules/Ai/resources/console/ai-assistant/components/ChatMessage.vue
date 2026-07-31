@@ -83,8 +83,15 @@ function toolDisplay(call: any): { icon: string; text: string } {
     case 'enable_agent':
       return { icon: '🔓', text: args.agent_name ? `启用「${args.agent_name}」` : '启用数字员工' }
     default:
-      return { icon: '⚙️', text: '处理中…' }
+      // 未登记词条的业务工具（如下游 create_event 等）：通用文案 + 状态后缀区分进度
+      return { icon: '⚙️', text: '执行操作' }
   }
+}
+
+/** 工具卡片状态：running 执行中 / error 失败 / 其余（含无状态的历史消息）视为完成 */
+function toolStatus(call: any): 'running' | 'done' | 'error' {
+  if (call?.status === 'running' || call?.status === 'error') return call.status
+  return 'done'
 }
 
 /** 秘书 navigate 带路：从 toolCalls 提取跳转指令 */
@@ -194,11 +201,14 @@ function handleConfirmResolved(payload: { status: any; feedback: string | null; 
     </div>
 
     <div class="msg-body">
-      <!-- 工具调用卡片（可看见，人性化文案） -->
+      <!-- 工具调用卡片（可看见，人性化文案 + 执行状态） -->
       <div v-if="message.toolCalls?.length" class="tool-calls">
-        <div v-for="(call, i) in message.toolCalls" :key="i" class="tool-card">
+        <div v-for="(call, i) in message.toolCalls" :key="i" class="tool-card" :class="`status-${toolStatus(call)}`">
           <span class="tool-icon">{{ toolDisplay(call).icon }}</span>
           <span class="tool-name">{{ toolDisplay(call).text }}</span>
+          <span v-if="toolStatus(call) === 'running'" class="tool-status running">执行中…</span>
+          <span v-else-if="toolStatus(call) === 'error'" class="tool-status error">⚠ 失败</span>
+          <span v-else class="tool-status done">✓</span>
         </div>
       </div>
 
@@ -422,6 +432,25 @@ function handleConfirmResolved(payload: { status: any; feedback: string | null; 
 }
 .tool-icon { font-size: 12px; }
 .tool-name { font-weight: 600; color: var(--text-color-primary, #0f172a); }
+.tool-status {
+  margin-left: 2px;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.tool-status.done { color: var(--ac, #10b981); font-weight: 700; }
+.tool-status.error { color: var(--badge-danger-fg, #f5222d); font-weight: 600; }
+.tool-status.running {
+  color: var(--text-color-secondary, #64748b);
+  animation: status-pulse 1.2s ease-in-out infinite;
+}
+@keyframes status-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+.tool-card.status-error {
+  background: color-mix(in srgb, var(--badge-danger-fg, #f5222d) 6%, transparent);
+  border-color: color-mix(in srgb, var(--badge-danger-fg, #f5222d) 25%, transparent);
+}
 
 /* 思考等待提示 */
 .thinking-indicator {

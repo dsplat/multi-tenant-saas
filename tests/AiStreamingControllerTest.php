@@ -232,6 +232,8 @@ class AiStreamingControllerTest extends TestCase
             'name' => '系统小助手',
             'role' => 'system_secretary',
             'system_prompt' => 'You are the secretary.',
+            // 标记为已自定义：effectiveSystemPrompt 尊重 DB 快照而非模板最新 prompt
+            'metadata' => ['prompt_customized' => true],
             'tools' => [],
             'model_config' => ['provider' => 'bailian', 'model' => 'qwen-plus'],
             'enabled' => true,

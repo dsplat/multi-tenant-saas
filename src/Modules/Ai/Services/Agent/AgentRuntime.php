@@ -1195,9 +1195,9 @@ class AgentRuntime implements AgentRuntimeContract
     }
 
     /**
-     * Prompt 解析链：PromptService(operator>tenant>system) → agent.system_prompt → 空
+     * Prompt 解析链：PromptService(operator>tenant>system) → agent.effectiveSystemPrompt → 空
      *
-     * fail-open：PromptService 异常时降级到 agent.system_prompt。
+     * fail-open：PromptService 异常时降级到模板优先的有效 prompt（与 Node 流式链路口径一致）。
      */
     private function resolveSystemPrompt(Agent $agent, int $conversationId): string
     {
@@ -1217,7 +1217,7 @@ class AgentRuntime implements AgentRuntimeContract
             }
         }
 
-        return $agent->system_prompt ?? '';
+        return $agent->effectiveSystemPrompt();
     }
 
     /**

@@ -96,11 +96,19 @@ async function handleSend(text?: string) {
   const payload = {
     ...pageContext.value,
     agent_id: store.targetAgentId ?? undefined,
+    // 续接已有会话（新会话由服务端创建并经 meta 帧下发）
+    conversation_id: store.conversationId ?? undefined,
   }
 
   await send(payload, intent, {
+    onMeta: (meta) => {
+      if (meta.conversation_id && meta.conversation_id !== store.conversationId) {
+        store.setConversationId(meta.conversation_id)
+      }
+    },
     onText: (t) => store.appendText(assistantMsg.id, t),
     onToolCall: (calls) => store.appendToolCalls(assistantMsg.id, calls),
+    onToolResult: (toolCallId, result) => store.completeToolCall(assistantMsg.id, toolCallId, !!result?.error),
     onFormFill: (suggestion) => store.setFormFill(assistantMsg.id, suggestion),
     onWorkflow: (wf) => store.setWorkflow(assistantMsg.id, wf),
     onPendingConfirmation: (confirm) => store.setActionConfirm(assistantMsg.id, confirm),

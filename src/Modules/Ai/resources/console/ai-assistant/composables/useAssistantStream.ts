@@ -41,10 +41,12 @@ export interface HistoryTurn {
 }
 
 export interface StreamCallbacks {
-  /** 会话元信息（Node 链路无服务端会话，不再触发；保留签名兼容） */
+  /** 会话元信息（Node 链路经 2: data 帧下发 conversation_id，前端持久化用于续接） */
   onMeta?: (meta: ConversationMeta) => void
   onText: (text: string) => void
   onToolCall: (calls: ToolCall[]) => void
+  /** 工具结果帧（a: 行）：回填工具卡片执行状态 */
+  onToolResult?: (toolCallId: string, result: any) => void
   onFormFill: (suggestion: FormFillSuggestion) => void
   onWorkflow: (workflow: WorkflowSuggestion) => void
   onPendingConfirmation?: (data: ActionConfirmData) => void
@@ -119,6 +121,9 @@ export function useAssistantStream() {
       // 转派后定向目标员工；缺省由 PHP resolve 兑底系统小助手
       const agentId = Number(pageContext.agent_id)
       if (Number.isFinite(agentId) && agentId > 0) body.agent_id = agentId
+      // 续接已有会话（缺省由 PHP resolve 创建新会话并经 2: 帧下发）
+      const conversationId = Number(pageContext.conversation_id)
+      if (Number.isFinite(conversationId) && conversationId > 0) body.conversation_id = conversationId
 
       // 复用 axios 的认证头（Bearer + X-Tenant-ID）
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -168,7 +173,7 @@ export function useAssistantStream() {
 
   /**
    * 消费 data stream 行协议（Vercel AI SDK：每行「类型:JSON」）。
-   *  0: 文本增量   9: 工具调用   a: 工具结果   3: 错误   d: 流结束
+   *  0: 文本增量   2: 自定义数据（会话元信息）   9: 工具调用   a: 工具结果   3: 错误   d: 流结束
    */
   async function consumeStream(body: ReadableStream<Uint8Array>, callbacks: StreamCallbacks): Promise<void> {
     const reader = body.getReader()
@@ -221,13 +226,28 @@ export function useAssistantStream() {
           if (typeof text === 'string') callbacks.onText(text)
           break
         }
-        case '9': { // 工具调用
-          const call = JSON.parse(payload)
-          callbacks.onToolCall([{ name: call.toolName, arguments: call.args ?? {} }])
+        case '2': { // 自定义数据帧（数组）：Node 下发的会话元信息
+          const items = JSON.parse(payload)
+          if (Array.isArray(items)) {
+            for (const item of items) {
+              if (item?.type === 'meta' && item.conversation_id) {
+                callbacks.onMeta?.({ conversation_id: Number(item.conversation_id), agent_id: item.agent_id ?? null })
+              }
+            }
+          }
           break
         }
-        case 'a': { // 工具结果：识别结构化建议标记（引擎哑管道，语义在前端）
-          const result = JSON.parse(payload)?.result
+        case '9': { // 工具调用（执行中，结果帧到达后回填状态）
+          const call = JSON.parse(payload)
+          callbacks.onToolCall([{ id: call.toolCallId, name: call.toolName, arguments: call.args ?? {}, status: 'running' }])
+          break
+        }
+        case 'a': { // 工具结果：回填卡片状态 + 识别结构化建议标记（引擎哑管道，语义在前端）
+          const parsed = JSON.parse(payload)
+          const result = parsed?.result
+          if (parsed?.toolCallId) {
+            callbacks.onToolResult?.(String(parsed.toolCallId), result)
+          }
           if (result?.action === 'form_fill' && result.fields) {
             callbacks.onFormFill({
               fields: result.fields,

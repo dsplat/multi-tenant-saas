@@ -174,6 +174,13 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     if (msg) msg.toolCalls = [...(msg.toolCalls || []), ...calls]
   }
 
+  /** 工具结果到达：按 toolCallId 回填卡片执行状态 */
+  function completeToolCall(msgId: string, toolCallId: string, isError = false) {
+    const msg = messages.value.find((m: ChatMessage) => m.id === msgId)
+    const call = msg?.toolCalls?.find((c: ToolCall) => c.id === toolCallId)
+    if (call) call.status = isError ? 'error' : 'done'
+  }
+
   /** 向指定 assistant 消息设置表单填充建议 */
   function setFormFill(msgId: string, suggestion: FormFillSuggestion) {
     const msg = messages.value.find(m => m.id === msgId)
@@ -219,7 +226,13 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   /** 结束指定消息的流式状态 */
   function finishMessage(msgId: string) {
     const msg = messages.value.find(m => m.id === msgId)
-    if (msg) msg.streaming = false
+    if (msg) {
+      msg.streaming = false
+      // 兑底：流已结束，未收到结果帧的工具调用视为已完成（避免卡在执行中）
+      msg.toolCalls?.forEach((c: ToolCall) => {
+        if (c.status === 'running') c.status = 'done'
+      })
+    }
     persistMessages()
   }
 
@@ -322,7 +335,7 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     // actions
     setAvailability, setUserEnabled, setModule,
     openPanel, closePanel, togglePin,
-    pushUserMessage, startAssistantMessage, appendText, appendToolCalls, setFormFill, setWorkflow,
+    pushUserMessage, startAssistantMessage, appendText, appendToolCalls, completeToolCall, setFormFill, setWorkflow,
     setActionConfirm, updateActionConfirmStatus, pushAssistantMessage,
     finishMessage, pushError, setStreaming, setConversationId, setTargetAgent, clearMessages,
     switchConversation, startNewConversation,

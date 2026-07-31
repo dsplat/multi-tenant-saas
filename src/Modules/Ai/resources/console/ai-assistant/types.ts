@@ -127,11 +127,18 @@ export interface ActionConfirmData {
 /** 确认卡片交互状态 */
 export type ActionConfirmStatus = 'pending' | 'confirming' | 'executed' | 'cancelled' | 'expired' | 'error'
 
+/** 工具调用执行状态（Node 链路：9: 帧置 running，a: 帧置 done/error） */
+export type ToolCallStatus = 'running' | 'done' | 'error'
+
 /** 工具调用结构 */
 export interface ToolCall {
+  /** 调用 ID（Node 链路 toolCallId，用于结果帧回填状态） */
+  id?: string
   slug?: string
   name?: string
   arguments?: Record<string, any>
+  /** 执行状态（缺省视为已完成，兼容 PHP 链路历史消息） */
+  status?: ToolCallStatus
   [key: string]: any
 }
 

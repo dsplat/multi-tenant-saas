@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentTemplateRegistry;
 
 /**
  * Agent 模型（数字员工）
@@ -53,6 +54,28 @@ class Agent extends Model
     public function conversations(): HasMany
     {
         return $this->hasMany(AgentConversation::class, 'agent_id', 'agent_id');
+    }
+
+    /**
+     * 有效工具列表（DB 快照 ∪ 模板最新工具，去重保序）
+     *
+     * Agent 创建时从模板 clone tools 到 DB，之后模板新增工具不会自动同步。
+     * 此方法在运行时将模板工具合并进来（只增不减），模板查找走
+     * AgentTemplateRegistry（框架模板 + 下游 extra_template_classes）。
+     *
+     * AgentRuntime（非流式）与 AiStreaming Resolve/ToolExecute（Node 流式链路）
+     * 均以此为唯一事实源，避免工具可见性不一致。
+     *
+     * @return list<string>
+     */
+    public function effectiveTools(): array
+    {
+        $dbTools = $this->tools ?? [];
+
+        $template = AgentTemplateRegistry::findByKey($this->role ?? '');
+        $templateTools = $template['tools'] ?? [];
+
+        return array_values(array_unique(array_merge($dbTools, $templateTools)));
     }
 
     public function messages(): HasManyThrough

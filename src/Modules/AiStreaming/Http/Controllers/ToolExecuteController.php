@@ -54,8 +54,8 @@ class ToolExecuteController extends AiStreamingController
         $tenantId = $this->resolveTenantId();
         $agent = $this->ensureAgentForTenant((int) $data['agent_id'], $tenantId);
 
-        // 越权防线：只允许执行 Agent 显式授权的工具
-        $allowedTools = (array) ($agent->tools ?? []);
+        // 越权防线：只允许执行 Agent 授权的工具（DB 快照 ∪ 模板，与 resolve 下发口径一致）
+        $allowedTools = $agent->effectiveTools();
         if (! in_array($data['tool'], $allowedTools, true)) {
             return response()->json([
                 'success' => false,

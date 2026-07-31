@@ -1569,10 +1569,7 @@ class AgentRuntime implements AgentRuntimeContract
     }
 
     /**
-     * 解析 Agent 的有效工具列表（DB 快照 ∪ 模板最新工具，另支持渠道级排除）
-     *
-     * Agent 创建时从模板 clone tools 到 DB，之后模板新增工具不会自动同步。
-     * 此方法在运行时将模板工具合并进来（只增不减），确保模板迭代后已有 Agent 也能使用新工具。
+     * 解析 Agent 的有效工具列表（Agent::effectiveTools 基础上支持渠道级排除）
      *
      * $excludeTools 用于渠道级裁剪：如 IM 渠道（ibot）无前端渲染能力，
      * 需排除 navigate / suggest_form_fill 等仅 console 前端可消费的 UI 指令工具。
@@ -1582,14 +1579,7 @@ class AgentRuntime implements AgentRuntimeContract
      */
     private function resolveEffectiveTools(Agent $agent, array $excludeTools = []): array
     {
-        $dbTools = $agent->tools ?? [];
-
-        // 按 role 匹配预置模板（走注册表：框架模板 + 下游 extra_template_classes，template_key/role 双匹配）
-        $template = AgentTemplateRegistry::findByKey($agent->role ?? '');
-        $templateTools = $template['tools'] ?? [];
-
-        // 合并：DB 已有 + 模板新增（去重，保持顺序）
-        $tools = array_values(array_unique(array_merge($dbTools, $templateTools)));
+        $tools = $agent->effectiveTools();
 
         if ($excludeTools === []) {
             return $tools;

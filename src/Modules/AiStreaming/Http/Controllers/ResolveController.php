@@ -112,8 +112,9 @@ class ResolveController extends AiStreamingController
             'max_tokens' => (int) ($modelConfig['max_tokens'] ?? 4096),
             'max_tool_calls' => (int) ($modelConfig['max_tool_calls'] ?? config('ai-streaming.max_tool_calls', 5)),
             // OpenAI Function Calling 格式工具定义（执行仍回调 PHP）。
+            // effectiveTools = DB 快照 ∪ 模板最新工具，与 AgentRuntime 非流式链路一致。
             // 排除 L2 需确认工具：Node 链路暂无确认门，不下发即不会被 LLM 调用
-            'tools' => $this->toolRegistry->getToolDefinitions($this->filterConfirmableTools((array) ($agent->tools ?? []))),
+            'tools' => $this->toolRegistry->getToolDefinitions($this->filterConfirmableTools($agent->effectiveTools())),
         ];
 
         // direct 模式：下发 api_key（仅限 Node 与 PHP 同机/内网回环链路）

@@ -93,7 +93,7 @@ function buildTools(resolved: ResolvePayload, auth: AuthContext) {
     tools[fn.name] = tool({
       description: fn.description ?? '',
       parameters: jsonSchema(fn.parameters ?? { type: 'object', properties: {} }),
-      execute: async (args: unknown) => {
+      execute: async (args: unknown, options?: { toolCallId?: string }) => {
         try {
           const data = await phpPost<{ result: unknown }>('/ai-streaming/tools/execute', auth, {
             agent_id: resolved.agent_id,
@@ -101,6 +101,8 @@ function buildTools(resolved: ResolvePayload, auth: AuthContext) {
             arguments: args ?? {},
             // L2 确认门：确认令牌绑定会话，PHP 遇 L2 工具时据此签发 pending_confirmation
             conversation_id: resolved.conversation_id ?? null,
+            // LLM 原生 tool_call id：随令牌存储，确认后续答时与落库的 assistant.tool_calls 配对
+            tool_call_id: options?.toolCallId ?? null,
           })
           return data.result
         } catch (error) {
@@ -189,8 +191,9 @@ app.post('/chat', async (c) => {
       if (resolved.conversation_id) {
         try {
           const lastUser = [...inputMessages].reverse().find((m) => m.role === 'user')
+          // 保留 LLM 原生 tool_call id：PHP 续答时需按 OpenAI 协议与 tool 消息成对回放
           const toolCalls = (steps ?? []).flatMap((step) =>
-            (step.toolCalls ?? []).map((call) => ({ name: call.toolName, arguments: call.args ?? {} })),
+            (step.toolCalls ?? []).map((call) => ({ id: call.toolCallId, name: call.toolName, arguments: call.args ?? {} })),
           )
           await phpPost('/ai-streaming/messages/report', auth, {
             conversation_id: resolved.conversation_id,

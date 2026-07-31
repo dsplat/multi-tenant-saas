@@ -588,15 +588,25 @@ class AgentRuntime implements AgentRuntimeContract
             ];
 
             if ($msg->role === 'assistant' && $msg->tool_calls !== null) {
-                $contextMsg['tool_calls'] = $msg->tool_calls;
+                $contextMsg['tool_calls'] = $this->normalizeToolCalls((array) $msg->tool_calls, (int) $msg->id);
             }
 
-            if ($msg->role === 'tool' && $msg->tool_call_id !== null) {
-                $contextMsg['tool_call_id'] = $msg->tool_call_id;
+            if ($msg->role === 'tool') {
+                if ($msg->tool_call_id !== null) {
+                    $contextMsg['tool_call_id'] = $msg->tool_call_id;
+                }
+                // 临时携带工具名供配对回填（reconcile 后移除，不会下发 LLM）
+                $toolName = ($msg->metadata ?? [])['tool_name'] ?? '';
+                if ($toolName !== '') {
+                    $contextMsg['_tool_name'] = $toolName;
+                }
             }
 
             $context[] = $contextMsg;
         }
+
+        // 修复 assistant.tool_calls 与 tool 消息的配对关系（严格 OpenAI 协议要求成对）
+        $context = $this->reconcileToolCallPairs($context);
 
         // 应用截断策略（如果 MemoryCompressor 已注入）
         if ($this->memoryCompressor !== null) {
@@ -609,6 +619,168 @@ class AgentRuntime implements AgentRuntimeContract
         }
 
         return $context;
+    }
+
+    /**
+     * 归一化 assistant.tool_calls 为 OpenAI 标准格式
+     *
+     * Node 流式引擎早期落库的是展示用平铺格式 {name, arguments}（无 function 嵌套），
+     * 直接透传会被严格校验的 LLM API 拒绝（tool_calls.0.function Field required）。
+     * 缺 id 时以消息 ID 合成确定性 id；arguments 统一为 JSON 字符串。
+     *
+     * @param  array  $toolCalls  落库的 tool_calls（标准或平铺格式）
+     * @param  int  $messageId  消息 ID（合成确定性 id 用）
+     * @return array OpenAI 标准 tool_calls
+     */
+    private function normalizeToolCalls(array $toolCalls, int $messageId): array
+    {
+        $normalized = [];
+
+        foreach (array_values($toolCalls) as $i => $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            // 已是标准格式：补齐 id/type，arguments 统一为 JSON 字符串
+            if (isset($item['function']['name'])) {
+                $item['id'] = (string) ($item['id'] ?? "call_{$messageId}_{$i}");
+                $item['type'] = $item['type'] ?? 'function';
+                if (! is_string($item['function']['arguments'] ?? null)) {
+                    $item['function']['arguments'] = json_encode($item['function']['arguments'] ?? [], JSON_UNESCAPED_UNICODE) ?: '{}';
+                }
+                $normalized[] = $item;
+
+                continue;
+            }
+
+            // 平铺格式 {id?, name, arguments} → 标准格式
+            $name = (string) ($item['name'] ?? '');
+            if ($name === '') {
+                continue;
+            }
+            $arguments = $item['arguments'] ?? [];
+            $normalized[] = [
+                'id' => (string) (($item['id'] ?? null) ?: "call_{$messageId}_{$i}"),
+                'type' => 'function',
+                'function' => [
+                    'name' => $name,
+                    'arguments' => is_string($arguments) ? $arguments : (json_encode($arguments, JSON_UNESCAPED_UNICODE) ?: '{}'),
+                ],
+            ];
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * 配对修复 assistant.tool_calls 与后续 tool 消息
+     *
+     * 严格 OpenAI 协议要求每个 tool_call 均有配对的 tool 响应消息。历史中存在
+     * Node 流内已解决但结果未落库的 tool_call（只报汇 assistant 消息）：
+     * - 缺 tool_call_id 的 tool 消息按工具名/顺序回填 id
+     * - 无响应的 tool_call 剔除（保留 assistant 文本）
+     * - 无法配对的孤儿 tool 消息降级为 user 观察文本，信息不丢且协议合法
+     *
+     * @param  array  $context  归一化后的消息上下文（tool 消息可携临时 _tool_name）
+     * @return array 配对修复后的上下文（已移除 _tool_name）
+     */
+    private function reconcileToolCallPairs(array $context): array
+    {
+        $result = [];
+        $count = count($context);
+
+        for ($i = 0; $i < $count; $i++) {
+            $msg = $context[$i];
+            $role = $msg['role'] ?? '';
+
+            if ($role !== 'assistant' || empty($msg['tool_calls'])) {
+                if ($role === 'tool' && empty($msg['tool_call_id'])) {
+                    // 前方无 assistant.tool_calls 可配对的孤儿 tool 消息 → 降级保留信息
+                    $msg = ['role' => 'user', 'content' => '[工具执行结果] ' . ($msg['content'] ?? '')];
+                }
+                unset($msg['_tool_name']);
+                $result[] = $msg;
+
+                continue;
+            }
+
+            // 收集紧随其后的 tool 消息段
+            $toolMsgs = [];
+            $j = $i + 1;
+            while ($j < $count && ($context[$j]['role'] ?? '') === 'tool') {
+                $toolMsgs[] = $context[$j];
+                $j++;
+            }
+
+            $calls = array_values($msg['tool_calls']);
+            $callIds = array_values(array_filter(array_map(fn ($call) => $call['id'] ?? '', $calls)));
+            $matchedIds = [];
+
+            // 已有 id 的 tool 消息先登记（仅限 id 确实存在于本轮 tool_calls）；
+            // 缺 id 的优先按工具名其次按顺序回填
+            foreach ($toolMsgs as &$toolMsg) {
+                if (! empty($toolMsg['tool_call_id'])) {
+                    if (in_array($toolMsg['tool_call_id'], $callIds, true)) {
+                        $matchedIds[] = $toolMsg['tool_call_id'];
+                    }
+
+                    continue;
+                }
+
+                $assigned = null;
+                $toolName = $toolMsg['_tool_name'] ?? '';
+                foreach ($calls as $call) {
+                    $callId = $call['id'] ?? '';
+                    if ($callId === '' || in_array($callId, $matchedIds, true)) {
+                        continue;
+                    }
+                    if ($toolName === '' || ($call['function']['name'] ?? '') === $toolName) {
+                        $assigned = $callId;
+                        break;
+                    }
+                }
+                if ($assigned === null) {
+                    foreach ($calls as $call) {
+                        $callId = $call['id'] ?? '';
+                        if ($callId !== '' && ! in_array($callId, $matchedIds, true)) {
+                            $assigned = $callId;
+                            break;
+                        }
+                    }
+                }
+                if ($assigned !== null) {
+                    $toolMsg['tool_call_id'] = $assigned;
+                    $matchedIds[] = $assigned;
+                }
+            }
+            unset($toolMsg);
+
+            // 剔除无响应的 tool_call（全部无响应则去掉 tool_calls 字段）
+            $paired = array_values(array_filter(
+                $calls,
+                fn ($call) => in_array($call['id'] ?? '', $matchedIds, true),
+            ));
+            if ($paired !== []) {
+                $msg['tool_calls'] = $paired;
+            } else {
+                unset($msg['tool_calls']);
+            }
+            unset($msg['_tool_name']);
+            $result[] = $msg;
+
+            foreach ($toolMsgs as $toolMsg) {
+                if (! empty($toolMsg['tool_call_id']) && in_array($toolMsg['tool_call_id'], $matchedIds, true)) {
+                    unset($toolMsg['_tool_name']);
+                    $result[] = $toolMsg;
+                } else {
+                    $result[] = ['role' => 'user', 'content' => '[工具执行结果] ' . ($toolMsg['content'] ?? '')];
+                }
+            }
+
+            $i = $j - 1;
+        }
+
+        return $result;
     }
 
     /**

@@ -42,7 +42,7 @@ class CampaignPlanToolTest extends TestCase
     {
         $planDoc = $this->validPlanDoc();
         $aiService = $this->mockAiForDraft($planDoc);
-        $tool = new CampaignPlanDraftTool($aiService, new PlaybookRegistry);
+        $tool = $this->makeDraftTool($aiService);
 
         $result = $tool([
             'playbook_key' => 'demo_sms_sequence',
@@ -73,7 +73,7 @@ class CampaignPlanToolTest extends TestCase
 
         $revisedDoc = $this->validPlanDoc('修订版活动');
         $aiService = $this->mockAiForDraft($revisedDoc);
-        $tool = new CampaignPlanDraftTool($aiService, new PlaybookRegistry);
+        $tool = $this->makeDraftTool($aiService);
 
         $result = $tool([
             'plan_id' => $plan->plan_id,
@@ -91,7 +91,7 @@ class CampaignPlanToolTest extends TestCase
     public function test_draft_fails_without_user_input(): void
     {
         $aiService = $this->createMock(AiTextServiceContract::class);
-        $tool = new CampaignPlanDraftTool($aiService, new PlaybookRegistry);
+        $tool = $this->makeDraftTool($aiService);
 
         $result = $tool([], self::TENANT);
 
@@ -104,12 +104,28 @@ class CampaignPlanToolTest extends TestCase
         $aiService = $this->createMock(AiTextServiceContract::class);
         $aiService->method('chat')->willThrowException(new \RuntimeException('API down'));
 
-        $tool = new CampaignPlanDraftTool($aiService, new PlaybookRegistry);
+        $tool = $this->makeDraftTool($aiService);
 
         $result = $tool(['user_input' => '测试'], self::TENANT);
 
         $this->assertTrue($result['error']);
         $this->assertStringContainsString('失败', $result['message']);
+    }
+
+    public function test_draft_surfaces_validation_errors_for_self_healing(): void
+    {
+        // LLM 生成 action.type=tool 但缺 tool slug → draft 阶段即时暴露校验问题供 LLM 修订
+        $badDoc = $this->validPlanDoc();
+        $badDoc['phases'][0]['tasks'][0]['action'] = ['type' => 'tool'];
+        $aiService = $this->mockAiForDraft($badDoc);
+        $tool = $this->makeDraftTool($aiService);
+
+        $result = $tool(['user_input' => '做一个活动'], self::TENANT);
+
+        $this->assertFalse($result['error'] ?? false);
+        $this->assertNotEmpty($result['validation_errors']);
+        $this->assertStringContainsString('缺少 tool slug', implode('；', $result['validation_errors']));
+        $this->assertArrayHasKey('hint', $result);
     }
 
     // ── Commit 工具 ──
@@ -259,6 +275,11 @@ class CampaignPlanToolTest extends TestCase
     }
 
     // ── Helpers ──
+
+    private function makeDraftTool(AiTextServiceContract $aiService): CampaignPlanDraftTool
+    {
+        return new CampaignPlanDraftTool($aiService, new PlaybookRegistry, $this->app->make(PlanCompiler::class));
+    }
 
     private function validPlanDoc(string $title = '测试活动'): array
     {

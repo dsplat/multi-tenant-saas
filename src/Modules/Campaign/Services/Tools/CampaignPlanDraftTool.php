@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\AiTextServiceContract;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
 use MultiTenantSaas\Modules\Campaign\Models\CampaignPlan;
+use MultiTenantSaas\Modules\Campaign\Services\PlanCompiler;
 use MultiTenantSaas\Modules\Campaign\Services\PlaybookRegistry;
 
 /**
@@ -26,6 +27,7 @@ class CampaignPlanDraftTool implements ToolHandlerContract
     public function __construct(
         private readonly AiTextServiceContract $aiTextService,
         private readonly PlaybookRegistry $playbookRegistry,
+        private readonly PlanCompiler $planCompiler,
     ) {}
 
     public function __invoke(array $arguments, int $tenantId): mixed
@@ -99,14 +101,17 @@ class CampaignPlanDraftTool implements ToolHandlerContract
             $savedPlanId = $plan->plan_id;
         }
 
-        // 5. 返回预览
+        // 5. 即时校验：把问题暴露在 draft 阶段让 LLM 自愈修订，而非留到 commit 才拦截
+        $validationErrors = $this->planCompiler->validate($planDoc);
+
+        // 6. 返回预览
         $phases = $planDoc['phases'] ?? [];
         $taskCount = 0;
         foreach ($phases as $phase) {
             $taskCount += count($phase['tasks'] ?? []);
         }
 
-        return [
+        $result = [
             'plan_id' => $savedPlanId,
             'plan_doc_preview' => [
                 'title' => $planDoc['title'] ?? '（未命名）',
@@ -118,8 +123,15 @@ class CampaignPlanDraftTool implements ToolHandlerContract
                     'tasks_count' => count($p['tasks'] ?? []),
                 ], $phases),
             ],
-            'validation_errors' => [],
+            'validation_errors' => $validationErrors,
         ];
+
+        if ($validationErrors !== []) {
+            $result['hint'] = '计划存在校验问题，直接 commit 会失败。请再次调用 campaign_plan_draft'
+                . '（带 plan_id 与针对上述问题的修订说明 user_input）修复后再定稿';
+        }
+
+        return $result;
     }
 
     private function buildPrompt(string $userInput, ?array $currentDoc, string $methodology): string
@@ -152,6 +164,11 @@ class CampaignPlanDraftTool implements ToolHandlerContract
         $parts[] = '  ]';
         $parts[] = '}';
         $parts[] = '```';
+        $parts[] = '';
+        $parts[] = '## action.type 硬性规则';
+        $parts[] = '- "tool"：必须同时提供 "tool" 字段且值为系统已注册的工具 slug；不确定有哪些工具时禁用此类型';
+        $parts[] = '- "human"：人工待办（到点通知操作人执行），没有合适工具的任务一律用 human，这是默认选择';
+        $parts[] = '- trigger.type=relative 必须带 anchor 与 offset；recurring 必须带 from/until/interval';
 
         if ($methodology !== '') {
             $parts[] = '';

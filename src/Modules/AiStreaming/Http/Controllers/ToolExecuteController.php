@@ -54,6 +54,7 @@ class ToolExecuteController extends AiStreamingController
             'tool' => ['required', 'string', 'max:100'],
             'arguments' => ['sometimes', 'array'],
             'conversation_id' => ['sometimes', 'nullable', 'integer'],
+            'tool_call_id' => ['sometimes', 'nullable', 'string', 'max:100'],
         ]);
 
         $tenantId = $this->resolveTenantId();
@@ -87,7 +88,10 @@ class ToolExecuteController extends AiStreamingController
             }
 
             $arguments = (array) ($data['arguments'] ?? []);
-            $issued = $this->actionConfirm->issue($tenantId, $conversationId, $data['tool'], $arguments);
+            // LLM 原生 tool_call id 随令牌存储：确认后续答时 tool 消息据此与 assistant.tool_calls 配对
+            $issued = $this->actionConfirm->issue(
+                $tenantId, $conversationId, $data['tool'], $arguments, $data['tool_call_id'] ?? null,
+            );
 
             return response()->json([
                 'success' => true,

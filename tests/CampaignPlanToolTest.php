@@ -128,6 +128,17 @@ class CampaignPlanToolTest extends TestCase
         $this->assertArrayHasKey('hint', $result);
     }
 
+    public function test_draft_reports_required_anchors(): void
+    {
+        // draft 即告知 commit 时需提供的全部锚点
+        $aiService = $this->mockAiForDraft($this->validPlanDoc());
+        $tool = $this->makeDraftTool($aiService);
+
+        $result = $tool(['user_input' => '做一个活动'], self::TENANT);
+
+        $this->assertSame(['event.starts_at'], $result['required_anchors']);
+    }
+
     // ── Commit 工具 ──
 
     public function test_commit_compiles_plan_and_creates_tasks(): void
@@ -159,6 +170,37 @@ class CampaignPlanToolTest extends TestCase
         $tasks = CampaignTask::where('plan_id', $plan->plan_id)->get();
         $this->assertCount(1, $tasks);
         $this->assertSame(CampaignTask::STATUS_PENDING, $tasks->first()->status);
+    }
+
+    public function test_commit_returns_all_missing_anchors_at_once(): void
+    {
+        // 多锚点缺失时一次性全部列出，LLM 一轮补齐避免多次往返
+        $this->registerStubTool('send_sms');
+        $doc = $this->validPlanDoc();
+        $doc['phases'][0]['tasks'][] = [
+            'key' => 'stream_notice',
+            'title' => '直播提醒',
+            'trigger' => ['type' => 'relative', 'anchor' => 'kickoff_stream', 'offset' => '-1h'],
+            'action' => ['type' => 'human'],
+            'execution_mode' => 'auto',
+        ];
+        $plan = CampaignPlan::create([
+            'tenant_id' => self::TENANT,
+            'plan_doc' => $doc,
+            'status' => CampaignPlan::STATUS_PLANNING,
+            'created_by' => 0,
+        ]);
+
+        $tool = new CampaignPlanCommitTool($this->app->make(PlanCompiler::class));
+
+        $result = $tool(['plan_id' => $plan->plan_id, 'anchor_times' => []], self::TENANT);
+
+        $this->assertTrue($result['error']);
+        $this->assertEqualsCanonicalizing(['event.starts_at', 'kickoff_stream'], $result['missing_anchors']);
+
+        // 计划仍在 planning，补齐锚点后可重新提交
+        $plan->refresh();
+        $this->assertSame(CampaignPlan::STATUS_PLANNING, $plan->status);
     }
 
     public function test_commit_rejects_non_planning_plan(): void

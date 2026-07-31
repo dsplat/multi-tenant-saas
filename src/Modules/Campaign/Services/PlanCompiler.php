@@ -109,6 +109,31 @@ class PlanCompiler
     }
 
     /**
+     * 收集计划文档引用的全部锚点名（relative.anchor + recurring.anchor）
+     *
+     * commit 前可据此预知需提供哪些 anchor_times，避免逐个报错的多轮往返。
+     *
+     * @return list<string> 去重后的锚点名列表
+     */
+    public function collectRequiredAnchors(array $planDoc): array
+    {
+        $anchors = [];
+
+        foreach ($this->flattenTasks($planDoc) as $task) {
+            $trigger = $task['trigger'] ?? [];
+            $type = $trigger['type'] ?? '';
+            if (in_array($type, ['relative', 'recurring'], true)) {
+                $anchor = (string) ($trigger['anchor'] ?? '');
+                if ($anchor !== '') {
+                    $anchors[] = $anchor;
+                }
+            }
+        }
+
+        return array_values(array_unique($anchors));
+    }
+
+    /**
      * 编译计划：plan_doc → campaign_tasks（幂等，按 task_key diff）
      *
      * @param  CampaignPlan  $plan  待编译计划（status 须为 planning/scheduled）
@@ -124,6 +149,12 @@ class PlanCompiler
         $errors = $this->validate($planDoc);
         if ($errors !== []) {
             throw new \RuntimeException('计划校验不通过：' . implode('；', $errors));
+        }
+
+        // 锚点一次性预检：缺失全部列出，避免逐个报错的多轮往返
+        $missingAnchors = array_values(array_diff($this->collectRequiredAnchors($planDoc), array_keys($anchorTimes)));
+        if ($missingAnchors !== []) {
+            throw new \RuntimeException('锚点时间缺失：' . implode('、', $missingAnchors) . '（请在 anchor_times 中一次性提供全部锚点）');
         }
 
         $tasks = $this->flattenTasks($planDoc);

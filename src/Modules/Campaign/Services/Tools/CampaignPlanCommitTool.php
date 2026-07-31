@@ -62,6 +62,19 @@ class CampaignPlanCommitTool implements ToolHandlerContract
             ];
         }
 
+        // 2.5 锚点一次性预检：结构化返回全部缺失锚点，LLM 可一轮补齐后重试
+        $missingAnchors = array_values(array_diff(
+            $this->compiler->collectRequiredAnchors($planDoc),
+            array_keys($anchorTimes),
+        ));
+        if ($missingAnchors !== []) {
+            return [
+                'error' => true,
+                'message' => '锚点时间缺失，请在 anchor_times 参数中一次性提供全部锚点后重新提交（缺少的时间先向用户确认）',
+                'missing_anchors' => $missingAnchors,
+            ];
+        }
+
         // 3. 编译
         try {
             $this->compiler->compile($plan, $anchorTimes);

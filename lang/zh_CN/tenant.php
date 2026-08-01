@@ -121,4 +121,16 @@ return [
     'hierarchy_resource_shared' => '父团队 :parent 已向子团队 :child 共享资源 :resource_type#:resource_id',
     'hierarchy_not_found' => '父-子团队关系不存在：父 :parent，子 :child',
     'hierarchy_billing_aggregated' => '层级计费聚合完成：父团队 :parent，周期 :period，合计 :total',
+
+    // Slug 治理
+    'slug' => [
+        'blacklisted' => '该标识已被系统保留，无法使用',
+        'taken' => '该标识已被其他租户使用',
+        'too_short' => '标识长度不能少于 :min 个字符',
+        'too_long' => '标识长度不能超过 63 个字符',
+        'invalid_format' => '标识仅允许小写字母、数字和连字符，且不能以连字符开头或结尾',
+        'set_with_warning' => '标识已设置，但存在潜在风险，可能会被管理员审核打回',
+        'rejected' => 'Slug 已打回，该租户已降级为 ID 访问',
+        'restored' => 'Slug 已恢复',
+    ],
 ];

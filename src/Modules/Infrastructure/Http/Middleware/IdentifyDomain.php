@@ -60,6 +60,18 @@ class IdentifyDomain
             return self::DOMAIN_ADMIN;
         }
 
+        // Console域名（共享管理后台，如 console.example.com）
+        $consoleDomain = config('domain.platform_domains.console');
+        if ($consoleDomain && $host === $consoleDomain) {
+            return self::DOMAIN_CONSOLE;
+        }
+
+        // App域名（共享前端，如 app.example.com）
+        $appDomain = config('domain.platform_domains.app');
+        if ($appDomain && $host === $appDomain) {
+            return self::DOMAIN_APP;
+        }
+
         // 路径区分
         if (str_starts_with($path, '/admin')) {
             return self::DOMAIN_ADMIN;

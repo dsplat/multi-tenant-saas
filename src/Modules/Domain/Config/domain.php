@@ -9,6 +9,7 @@ return [
     'platform_domains' => [
         'admin' => env('PLATFORM_ADMIN_DOMAIN', 'admin.example.com'),
         'app' => env('PLATFORM_APP_DOMAIN', 'app.example.com'),
+        'console' => env('PLATFORM_CONSOLE_DOMAIN', 'console.example.com'),
     ],
 
     /*
@@ -71,8 +72,37 @@ return [
         env('PLATFORM_MAIN_DOMAIN'),
         env('PLATFORM_ADMIN_DOMAIN'),
         env('PLATFORM_APP_DOMAIN'),
+        env('PLATFORM_CONSOLE_DOMAIN'),
         env('PLATFORM_API_DOMAIN'),
     ]),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Slug 治理配置
+    |--------------------------------------------------------------------------
+    |
+    | 租户 slug 用于共享域名路径前缀（app_domain/{slug}/）和二级域名。
+    | 三层防护：黑名单硬拒 → AI 风险评估 → 后台打回。
+    |
+    */
+    'reserved_slugs' => array_merge([
+        // 系统保留
+        'api', 'admin', 'console', 'app', 'login', 'register', 'auth',
+        'assets', 'static', 'public', 'cdn', 'mail', 'www', 'webmail',
+        'localhost', 'test', 'demo', 'staging', 'dev',
+        // 通用高风险
+        'official', 'support', 'help', 'service', 'system', 'root',
+        'administrator', 'webmaster', 'postmaster', 'abuse', 'security',
+    ], array_filter([
+        // 品牌保护（从 .env 注入，框架不硬编码）
+        env('PLATFORM_BRAND_SLUG'),
+    ])),
+
+    // Slug 最小长度
+    'slug_min_length' => (int) env('SLUG_MIN_LENGTH', 3),
+
+    // Slug 合法字符正则（小写字母、数字、连字符，不以连字符开头/结尾）
+    'slug_pattern' => '/^[a-z0-9]([a-z0-9\-]{1,61}[a-z0-9])?$/',
 
     /*
     |--------------------------------------------------------------------------

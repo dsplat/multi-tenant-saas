@@ -17,6 +17,7 @@ class CoreModule implements SchemaModuleInterface
             $table->bigInteger('tenant_id')->unsigned()->primary();
             $table->string('name', 100);
             $table->string('slug', 100)->nullable()->unique();
+            $table->string('slug_status', 20)->nullable();
             $table->string('domain', 255)->nullable()->unique();
             $table->string('logo', 500)->nullable();
             $table->text('description')->nullable();

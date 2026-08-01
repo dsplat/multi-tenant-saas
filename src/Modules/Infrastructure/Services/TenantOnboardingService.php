@@ -14,6 +14,7 @@ use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
+use MultiTenantSaas\Exceptions\StorageException;
 
 /**
  * 租户引导式注册服务（Operator 直连租户模式）
@@ -132,7 +133,7 @@ class TenantOnboardingService
 
         // 同一 Operator 同时只允许一个进行中的会话
         if ($operatorId && Cache::has(self::OPERATOR_INDEX_PREFIX . $operatorId)) {
-            throw new \RuntimeException(trans('tenant.onboarding.registration_failed'));
+            throw new StorageException(trans('tenant.onboarding.registration_failed'));
         }
 
         $token = Str::random(64);
@@ -349,22 +350,17 @@ class TenantOnboardingService
      */
     protected function createTenant(array $basic, array $domain, SubscriptionPlan $plan): Tenant
     {
-        $subdomain = $domain['subdomain'] ?? $domain['domain'] ?? null;
         $customDomain = $domain['domain'] ?? null;
-        $domainType = $domain['domain_type']
-            ?? (! empty($customDomain) ? 'custom' : 'subdomain');
+        $slug = $domain['subdomain'] ?: $this->generateUniqueSlug($basic['name']);
 
-        $slug = $subdomain ?: $this->generateUniqueSlug($basic['name']);
-
-        if ($domainType !== 'custom' || empty($customDomain)) {
-            // 子域名模式：自动生成 {slug}.{wildcard_base} 作为 domain
-            $wildcardBase = config('domain.wildcard_base');
-            $customDomain = $wildcardBase ? "{$slug}.{$wildcardBase}" : null;
-        }
+        // 域名 >> slug：新租户默认 domain=null（免费层走共享域名 + slug 路径）
+        // 仅当明确提供自定义域名时才设置 domain 字段
+        // 二级域名（保证金层）由后续业务流程单独开通，不在注册时自动生成
 
         return Tenant::create([
             'name' => $basic['name'],
             'slug' => $slug,
+            'slug_status' => 'active',
             'domain' => $customDomain,
             'subscription_plan' => $plan->name,
             'subscription_plan_id' => $plan->subscription_plan_id,

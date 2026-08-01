@@ -45,6 +45,7 @@ class Tenant extends Model
         'tenant_id',
         'name',
         'slug',
+        'slug_status',
         'domain',
         'logo',
         'description',

@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Domain\Http\Controllers\ReservedDomainController;
+use MultiTenantSaas\Modules\Domain\Http\Controllers\SlugController;
 use MultiTenantSaas\Modules\Domain\Http\Controllers\TenantDomainController;
 
 Route::prefix('domains')->group(function () {
@@ -17,4 +18,10 @@ Route::prefix('domains')->group(function () {
 Route::prefix('reserved-domains')->group(function () {
     Route::get('/', [ReservedDomainController::class, 'index'])->middleware('rbac.permission:domain.manage');
     Route::put('/', [ReservedDomainController::class, 'update'])->middleware('rbac.permission:domain.manage');
+});
+
+// Slug 治理（Admin 端）
+Route::prefix('tenants/{tenantId}/slug')->middleware('rbac.permission:domain.manage')->group(function () {
+    Route::post('/reject', [SlugController::class, 'reject']);
+    Route::post('/restore', [SlugController::class, 'restore']);
 });

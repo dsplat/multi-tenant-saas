@@ -57,6 +57,12 @@ const router = createRouter({
       meta: { title: '申请创建团队', requiresAuth: true, requiresTenant: false },
     },
     {
+      path: '/select-tenant',
+      name: 'SelectTenant',
+      component: resolveView('SelectTenant'),
+      meta: { title: '选择团队', requiresAuth: true, requiresTenant: false },
+    },
+    {
       path: '/',
       name: 'ConsoleRoot',
       component: resolveLayout('ConsoleLayout'),

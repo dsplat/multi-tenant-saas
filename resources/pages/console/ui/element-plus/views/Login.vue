@@ -79,6 +79,12 @@ const handleLogin = async () => {
       router.push('/apply')
       return
     }
+    // 多租户 Operator：跳转团队选择页
+    const tenants = res.data?.tenants || userStore.user?.tenants || []
+    if (tenants.length > 1) {
+      router.push('/select-tenant')
+      return
+    }
     const redirect = (route.query.redirect as string) || '/dashboard'
     router.push(redirect)
   } catch (e: any) {

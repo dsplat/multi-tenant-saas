@@ -6,6 +6,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
+use MultiTenantSaas\Modules\Domain\Services\SlugService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
 class TenantService
@@ -62,7 +63,9 @@ class TenantService
             // 基础字段 + 允许透传 fillable 字段
             $baseFields = [
                 'name' => $data['name'],
-                'slug' => $data['slug'],
+                // 未提供 slug 时自动生成 t-xxxxxx 免费兜底子域名（创建即存在）
+                'slug' => $data['slug'] ?? (new SlugService)->generateUniqueAutoSlug(),
+                'slug_status' => 'active',
                 'status' => $data['status'] ?? 'active',
                 'subscription_plan' => $data['plan'] ?? 'free',
                 'domain' => $data['domain'] ?? null,

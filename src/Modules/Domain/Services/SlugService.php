@@ -3,7 +3,9 @@
 namespace MultiTenantSaas\Modules\Domain\Services;
 
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
 /**
@@ -23,6 +25,51 @@ class SlugService
     public const STATUS_REJECTED = 'rejected';
 
     /**
+     * 系统自动 slug 前缀（t-xxxxxx 免费兜底子域名）。
+     *
+     * 该前缀为系统保留：创建租户时自动生成 t-<随机码> 写入 slug 字段，
+     * 用户自定义 slug 禁止使用此前缀（避免与自动码命名空间冲突）。
+     */
+    public const AUTO_PREFIX = 't-';
+
+    /**
+     * 生成系统自动 slug（t-<随机码>），创建租户时作为免费兜底子域名。
+     *
+     * - 与用户自定义 slug 共用 slug 字段、走完全一致的二级域名链路；
+     * - 字符集剔除易混字符（0/o/1/l/i），码长由 config('domain.auto_slug_length') 控制；
+     * - 唯一性校验 + 重试，杜绝与既有 slug 碰撞。
+     */
+    public function generateUniqueAutoSlug(): string
+    {
+        $length = (int) config('domain.auto_slug_length', 6);
+        $alphabet = config('domain.auto_slug_alphabet', 'abcdefghjkmnpqrstuvwxyz23456789');
+        $max = strlen($alphabet) - 1;
+
+        for ($attempt = 0; $attempt < 20; $attempt++) {
+            $code = '';
+            for ($i = 0; $i < $length; $i++) {
+                $code .= $alphabet[random_int(0, $max)];
+            }
+            $slug = self::AUTO_PREFIX . $code;
+
+            if (! Tenant::where('slug', $slug)->exists()) {
+                return $slug;
+            }
+        }
+
+        // 极端碰撞兜底：加长随机后缀
+        return self::AUTO_PREFIX . Str::lower(Str::random(10));
+    }
+
+    /**
+     * 判断 slug 是否落入系统自动码保留前缀（用户不可设置）。
+     */
+    public function isReservedAutoPrefix(string $slug): bool
+    {
+        return str_starts_with($slug, self::AUTO_PREFIX);
+    }
+
+    /**
      * 设置/变更租户 slug
      *
      * @return array{slug: string, status: string, risk_level: string, risk_reason: ?string}
@@ -35,6 +82,13 @@ class SlugService
 
         // 格式校验
         $this->validateFormat($slug);
+
+        // 保留前缀硬拒：t- 开头为系统自动码命名空间，用户自定义 slug 不可占用
+        if ($this->isReservedAutoPrefix($slug)) {
+            throw ValidationException::withMessages([
+                'slug' => [trans('tenant.slug.reserved_prefix', ['prefix' => self::AUTO_PREFIX])],
+            ]);
+        }
 
         // 层级一：黑名单硬拒
         if ($this->isBlacklisted($slug)) {
@@ -153,6 +207,11 @@ class SlugService
             return ['available' => false, 'reason' => 'too_short', 'risk_level' => null];
         }
 
+        // 保留前缀（t- 系统自动码）
+        if ($this->isReservedAutoPrefix($slug)) {
+            return ['available' => false, 'reason' => 'reserved_prefix', 'risk_level' => null];
+        }
+
         // 黑名单
         if ($this->isBlacklisted($slug)) {
             return ['available' => false, 'reason' => 'blacklisted', 'risk_level' => null];
@@ -187,7 +246,7 @@ class SlugService
 
         // 动态黑名单（system_settings 表，Admin 后台可管理）
         try {
-            $dynamicBlacklist = \MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting::get(
+            $dynamicBlacklist = SystemSetting::get(
                 'slug_blacklist',
                 []
             );

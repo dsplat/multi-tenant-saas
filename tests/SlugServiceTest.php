@@ -174,4 +174,56 @@ class SlugServiceTest extends TestCase
         $this->assertTrue($result['available']);
         $this->assertEquals('medium', $result['risk_level']);
     }
+
+    // ========================================
+    // 自动子域名（t-xxxxxx 免费兜底）
+    // ========================================
+
+    public function test_generate_unique_auto_slug_has_reserved_prefix_and_length(): void
+    {
+        $slug = $this->service->generateUniqueAutoSlug();
+
+        $this->assertStringStartsWith(SlugService::AUTO_PREFIX, $slug);
+        // 默认 auto_slug_length=6，加 t- 前缀共 8 字符
+        $this->assertSame(2 + (int) config('domain.auto_slug_length', 6), strlen($slug));
+        // 随机部分仅含合法字符集（剔除易混字符）
+        $code = substr($slug, strlen(SlugService::AUTO_PREFIX));
+        $this->assertMatchesRegularExpression('/^[a-z0-9]+$/', $code);
+        $this->assertDoesNotMatchRegularExpression('/[01iol]/', $code);
+    }
+
+    public function test_generate_unique_auto_slug_avoids_collision(): void
+    {
+        // 生成多个自动码互不重复，且不与既有 slug 碰撞
+        $seen = [];
+        for ($i = 0; $i < 50; $i++) {
+            $slug = $this->service->generateUniqueAutoSlug();
+            $this->assertNotContains($slug, $seen, '自动码出现重复');
+            $this->assertFalse(Tenant::where('slug', $slug)->exists(), '自动码与既有 slug 碰撞');
+            $seen[] = $slug;
+        }
+    }
+
+    public function test_set_slug_rejects_reserved_auto_prefix(): void
+    {
+        $this->expectException(ValidationException::class);
+
+        // 用户自定义 slug 不可占用 t- 保留前缀
+        $this->service->setSlug(3002, 't-abc123');
+    }
+
+    public function test_check_availability_reserved_prefix(): void
+    {
+        $result = $this->service->checkAvailability('t-xyz789');
+
+        $this->assertFalse($result['available']);
+        $this->assertEquals('reserved_prefix', $result['reason']);
+    }
+
+    public function test_is_reserved_auto_prefix(): void
+    {
+        $this->assertTrue($this->service->isReservedAutoPrefix('t-a3f9k2'));
+        $this->assertFalse($this->service->isReservedAutoPrefix('lanyantu'));
+        $this->assertFalse($this->service->isReservedAutoPrefix('shop-t-1'));
+    }
 }

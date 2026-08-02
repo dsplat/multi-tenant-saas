@@ -125,6 +125,7 @@ return [
     // Slug 治理
     'slug' => [
         'blacklisted' => '该标识已被系统保留，无法使用',
+        'reserved_prefix' => '该标识前缀 :prefix 为系统保留（自动子域名），无法使用',
         'taken' => '该标识已被其他租户使用',
         'too_short' => '标识长度不能少于 :min 个字符',
         'too_long' => '标识长度不能超过 63 个字符',

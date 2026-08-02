@@ -31,6 +31,8 @@ class GenerateNginxDeploy extends Command
         $this->line("  发布目录:   <comment>{$result['deploy_path']}</comment>");
         $this->line("  白名单map:  {$result['auth_map']}");
         $this->line("  SNI证书map: {$result['ssl_map']}");
+        $this->line("  SEO/GEO map:{$result['seo_map']}");
+        $this->line("  AI爬虫map: {$result['bot_map']}");
         $this->line("  基桩server: {$result['stub']}");
         $this->line("  顶层include:{$result['top_include']}");
         $this->newLine();

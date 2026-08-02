@@ -31,6 +31,17 @@ server {
         return 444;
     }
 
+    # ★ GEO（生成式引擎优化）防护：拦截各厂 AI 爬虫（map $http_user_agent $is_ai_bot）
+    #   平台无法控制租户内容，统一禁止 AI 爬虫抓取训练/检索
+    if ($is_ai_bot) {
+        return 403;
+    }
+
+    # ★ SEO/GEO 隔离：非收录域名（平台子域名含 t-xxxxxx）下发 noindex 响应头
+    #   值由 map $seo_allowed $x_robots_tag 提供；收录域名置空不下发。
+    #   注意 nginx add_header 继承规则：location 内另有 add_header 时须自行补充（见 /h5/ /console/）
+    add_header X-Robots-Tag $x_robots_tag always;
+
     root {{ROOT}};
     index index.html;
 
@@ -40,6 +51,16 @@ server {
     # API → 直连 php-fpm（废除 9100 nginx 代理层；Host 头经 fastcgi 天然透传给 IdentifyTenant）
     location /api/ {
         try_files $uri /index.php?$query_string;
+    }
+
+    # robots.txt：按 $seo_allowed 动态下发（收录域名开放；子域名含 t- 限制禁收）
+    location = /robots.txt {
+        default_type "text/plain";
+        add_header X-Robots-Tag $x_robots_tag always;
+        if ($seo_allowed = 1) {
+            return 200 "User-agent: *\nAllow: /\n";
+        }
+        return 200 "User-agent: *\nDisallow: /\n";
     }
 
     location ~ [^/]\.php(/|$) {
@@ -55,6 +76,7 @@ server {
     # H5 终端用户 SPA
     location ^~ /h5/ {
         add_header Cache-Control "no-cache";
+        add_header X-Robots-Tag $x_robots_tag always;
         alias {{ROOT}}/h5/;
         index index.html;
         try_files $uri $uri/ /h5/index.html;
@@ -63,6 +85,7 @@ server {
     # Console SPA
     location ^~ /console/ {
         add_header Cache-Control "no-cache";
+        add_header X-Robots-Tag $x_robots_tag always;
         alias {{ROOT}}/console/;
         index index.html;
         try_files $uri $uri/ /console/index.html;

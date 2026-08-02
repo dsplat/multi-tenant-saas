@@ -189,6 +189,92 @@ class NginxConfigServiceTest extends TestCase
         $this->removeDir($base);
     }
 
+    // ========================================
+    // SEO/GEO 隔离（seo.map / bot.map / 基桩防护）
+    // ========================================
+
+    public function test_seo_map_allows_platform_and_custom_denies_subdomain(): void
+    {
+        $this->platformConfig();
+        // 自定义域名租户（可收录） + 纯二级域名租户（含 t- 自动码，禁收）
+        $this->createTenant(['slug' => 'lanyantu', 'slug_status' => 'active', 'domain' => 'scrm.lanyantu.com']);
+        $this->createTenant(['slug' => 't-a3f9k2', 'slug_status' => 'active', 'domain' => null]);
+
+        $service = new NginxConfigService;
+        $outputPath = sys_get_temp_dir() . '/test-seo-' . uniqid() . '.map';
+        $service->generateSeoMap($outputPath);
+        $content = file_get_contents($outputPath);
+        unlink($outputPath);
+
+        // default 0：子域名（含 t-）默认禁收
+        $this->assertStringContainsString('map $host $seo_allowed {', $content);
+        $this->assertStringContainsString('default 0;', $content);
+        // 平台域名 = 1
+        $this->assertMatchesRegularExpression('/app\.dsplat\.com\s+1;/', $content);
+        // 自定义域名 = 1
+        $this->assertMatchesRegularExpression('/scrm\.lanyantu\.com\s+1;/', $content);
+        // 二级域名（含 t-）不列出（走 default 0）
+        $this->assertStringNotContainsString('lanyantu.dsplat.com', $content);
+        $this->assertStringNotContainsString('t-a3f9k2.dsplat.com', $content);
+        // 派生 X-Robots-Tag map
+        $this->assertStringContainsString('map $seo_allowed $x_robots_tag {', $content);
+        $this->assertStringContainsString('noindex, nofollow', $content);
+    }
+
+    public function test_bot_map_blocks_known_ai_crawlers(): void
+    {
+        $service = new NginxConfigService;
+        $outputPath = sys_get_temp_dir() . '/test-bot-' . uniqid() . '.map';
+        $service->generateBotMap($outputPath);
+        $content = file_get_contents($outputPath);
+        unlink($outputPath);
+
+        $this->assertStringContainsString('map $http_user_agent $is_ai_bot {', $content);
+        $this->assertStringContainsString('default 0;', $content);
+        // 主流 AI 爬虫均被拦截（不区分大小写 ~*）
+        foreach (['GPTBot', 'ClaudeBot', 'anthropic-ai', 'Bytespider', 'CCBot', 'PerplexityBot', 'Google-Extended'] as $bot) {
+            $this->assertStringContainsString($bot, $content, "AI 爬虫 {$bot} 未被拦截");
+        }
+    }
+
+    public function test_deploy_bundle_generates_seo_and_bot_maps(): void
+    {
+        $this->platformConfig();
+        $this->createTenant(['slug' => 'lanyantu', 'slug_status' => 'active', 'domain' => null]);
+
+        $base = sys_get_temp_dir() . '/nginx-seobot-' . uniqid();
+        $service = new NginxConfigService;
+        $result = $service->generateDeployBundle($base);
+
+        $this->assertFileExists($result['seo_map']);
+        $this->assertFileExists($result['bot_map']);
+
+        $this->removeDir($base);
+    }
+
+    public function test_stub_contains_seo_geo_protection(): void
+    {
+        $this->platformConfig();
+        $this->createTenant(['slug' => 'lanyantu', 'slug_status' => 'active', 'domain' => null]);
+
+        $base = sys_get_temp_dir() . '/nginx-stub-' . uniqid();
+        $service = new NginxConfigService;
+        $result = $service->generateDeployBundle($base);
+        $stub = file_get_contents($result['stub']);
+
+        // AI 爬虫 UA 拦截（GEO）
+        $this->assertStringContainsString('if ($is_ai_bot)', $stub);
+        $this->assertStringContainsString('return 403', $stub);
+        // noindex 响应头
+        $this->assertStringContainsString('add_header X-Robots-Tag $x_robots_tag always', $stub);
+        // 动态 robots.txt
+        $this->assertStringContainsString('location = /robots.txt', $stub);
+        $this->assertStringContainsString('if ($seo_allowed = 1)', $stub);
+        $this->assertStringContainsString('Disallow: /', $stub);
+
+        $this->removeDir($base);
+    }
+
     protected function removeDir(string $dir): void
     {
         if (! is_dir($dir)) {

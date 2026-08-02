@@ -80,6 +80,9 @@ class DomainService
 
         TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'domain_status', self::STATUS_APPROVED);
         TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'domain_verified_at', now()->toDateTimeString());
+
+        // 自定义域名生效后，自动子域名（t-xxxxxx 免费兜底）退役
+        $this->deactivateAutoSlug($tenantId);
     }
 
     public function rejectDomain(int $tenantId, string $reason = ''): void
@@ -204,6 +207,9 @@ class DomainService
                 TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'domain_verified_at', now()->toDateTimeString());
                 TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'verification_method', 'file');
 
+                // 自定义域名生效后，自动子域名（t-xxxxxx 免费兜底）退役
+                $this->deactivateAutoSlug($tenantId);
+
                 Log::info('DomainService: domain ownership verified', [
                     'tenant_id' => $tenantId,
                     'domain' => $domain,
@@ -259,6 +265,28 @@ class DomainService
             'attempts' => (int) TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'verification_attempts', 0),
             'max_attempts' => (int) config('domain.verification.max_attempts', 5),
         ];
+    }
+
+    /**
+     * 自定义域名生效后，退役自动子域名（t-xxxxxx 免费兜底）。
+     *
+     * 仅当当前 slug 为系统自动码（AUTO_PREFIX）时才失活：用户付费设置的
+     * 自定义 slug 属二级域名付费层，不随自定义域名自动退役。
+     * 失活后 slug_status=rejected，NginxConfigService 重生成时自动从白名单移除。
+     */
+    protected function deactivateAutoSlug(int $tenantId): void
+    {
+        $tenant = Tenant::find($tenantId);
+
+        if (! $tenant || empty($tenant->slug)) {
+            return;
+        }
+
+        $slugService = new SlugService;
+
+        if ($slugService->isReservedAutoPrefix($tenant->slug)) {
+            $slugService->rejectSlug($tenantId, '自定义域名生效，自动子域名退役');
+        }
     }
 
     /**

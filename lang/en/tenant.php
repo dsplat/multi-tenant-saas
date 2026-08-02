@@ -121,4 +121,17 @@ return [
     'hierarchy_resource_shared' => 'Parent :parent shared resource :resource_type#:resource_id to child :child',
     'hierarchy_not_found' => 'Parent-child tenant relationship not found: parent :parent, child :child',
     'hierarchy_billing_aggregated' => 'Hierarchy billing aggregated: parent :parent, period :period, total :total',
+
+    // Slug governance
+    'slug' => [
+        'blacklisted' => 'This identifier is reserved by the system and cannot be used',
+        'reserved_prefix' => 'The identifier prefix :prefix is reserved (auto subdomain) and cannot be used',
+        'taken' => 'This identifier is already used by another tenant',
+        'too_short' => 'The identifier must be at least :min characters long',
+        'too_long' => 'The identifier cannot exceed 63 characters',
+        'invalid_format' => 'The identifier may only contain lowercase letters, digits and hyphens, and cannot start or end with a hyphen',
+        'set_with_warning' => 'Identifier set, but potential risk detected; it may be rejected by an administrator',
+        'rejected' => 'Slug rejected; this tenant has been downgraded to ID access',
+        'restored' => 'Slug restored',
+    ],
 ];

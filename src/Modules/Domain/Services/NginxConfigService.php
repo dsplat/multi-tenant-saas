@@ -72,11 +72,7 @@ class NginxConfigService
 
         // 平台域名（始终允许；admin/app 可能指向同一域名，必须去重——
         // nginx map 键重复会触发 [emerg] conflicting parameter 致 nginx -t 失败）
-        $platformDomains = array_values(array_unique(array_filter([
-            config('domain.platform_domains.admin'),
-            config('domain.platform_domains.app'),
-            config('domain.platform_domains.console'),
-        ])));
+        $platformDomains = $this->platformDomains();
         $platformLines = $platformDomains
             ? implode("\n", array_map(fn ($d) => sprintf('    %-30s 1;', $d), $platformDomains))
             : '    # (未配置平台域名)';
@@ -141,6 +137,167 @@ class NginxConfigService
             $domainsBlock,
             '    ',
             '    # AUTO_GENERATED_DOMAINS_END',
+            '}',
+            '',
+        ]);
+
+        File::ensureDirectoryExists(dirname($outputPath));
+        File::put($outputPath, $mapContent);
+    }
+
+    /**
+     * 平台域名（去重）。admin/app 可能指向同一域名。
+     *
+     * @return string[]
+     */
+    protected function platformDomains(): array
+    {
+        return array_values(array_unique(array_filter([
+            config('domain.platform_domains.admin'),
+            config('domain.platform_domains.app'),
+            config('domain.platform_domains.console'),
+        ])));
+    }
+
+    /**
+     * 生成 SEO/GEO 许可 map（map $host $seo_allowed）。
+     *
+     * default 0：平台无法控制租户内容，默认禁止 SEO（搜索引擎）/GEO（生成式引擎）收录。
+     *   - 平台域名（平台自有内容）→ 1
+     *   - 租户自定义域名（tenants.domain，租户自控内容）→ 1
+     *   - 二级域名（{slug}.<base>，含 t-xxxxxx 自动码）→ 0（default，不列出）
+     *
+     * 基桩据此对 $seo_allowed=0 的域名下发限制性 robots.txt + X-Robots-Tag noindex，
+     * 并按 User-Agent 拦截各厂 AI 爬虫（GEO 防护）。
+     */
+    public function generateSeoMap(?string $outputPath = null): void
+    {
+        $outputPath = $outputPath ?? config('domain.seo_map_file', '/etc/nginx/conf.d/seo.map');
+        $generatedAt = now()->format('Y-m-d H:i:s');
+
+        // 平台域名（平台自有内容，可收录）
+        $platformDomains = $this->platformDomains();
+        $platformLines = $platformDomains
+            ? implode("\n", array_map(fn ($d) => sprintf('    %-30s 1;', $d), $platformDomains))
+            : '    # (未配置平台域名)';
+
+        // 租户自定义域名（租户自控内容，可收录）；排除与平台域名重复者避免 map 键冲突
+        $emitted = array_flip($platformDomains);
+        $domainLines = [];
+        Tenant::query()
+            ->whereNotNull('domain')
+            ->where('status', 'active')
+            ->orderBy('domain')
+            ->get(['tenant_id', 'name', 'domain'])
+            ->each(function ($tenant) use (&$domainLines, &$emitted) {
+                if ($tenant->domain && ! isset($emitted[$tenant->domain])) {
+                    $emitted[$tenant->domain] = true;
+                    $domainLines[] = sprintf(
+                        '    %-30s 1;  # %s (tenant_id: %s)',
+                        $tenant->domain,
+                        $tenant->name,
+                        $tenant->tenant_id
+                    );
+                }
+            });
+
+        $domainsBlock = count($domainLines) > 0
+            ? implode("\n", $domainLines)
+            : '    # (暂无企业自定义域名)';
+
+        $mapContent = implode("\n", [
+            '# ===================================================',
+            '# SEO/GEO 许可 map（map $host $seo_allowed）',
+            '#',
+            '# 此文件由脚本自动生成，请勿手动编辑',
+            '# default 0：平台子域名（含 t-xxxxxx）禁止 SEO/GEO 收录（平台无法控制租户内容）',
+            '# 仅平台域名与租户自定义域名为 1（可收录）',
+            "# 更新时间: {$generatedAt}",
+            '# ===================================================',
+            '',
+            'map $host $seo_allowed {',
+            '    default 0;  # 平台子域名（含 t-xxxxxx）默认禁止收录',
+            '',
+            '    # ===== 平台域名（平台自有内容，可收录） =====',
+            $platformLines,
+            '',
+            '    # ===== 租户自定义域名（租户自控内容，可收录） =====',
+            $domainsBlock,
+            '}',
+            '',
+            '# 由 $seo_allowed 派生的 X-Robots-Tag 响应头值：',
+            '# 非收录域名（0）下发 noindex,nofollow；收录域名（1）置空（nginx 空值不下发该头）',
+            'map $seo_allowed $x_robots_tag {',
+            '    default "noindex, nofollow";',
+            '    1       "";',
+            '}',
+            '',
+        ]);
+
+        File::ensureDirectoryExists(dirname($outputPath));
+        File::put($outputPath, $mapContent);
+    }
+
+    /**
+     * 生成 AI 爬虫拦截 map（map $http_user_agent $is_ai_bot）。
+     *
+     * GEO（生成式引擎优化）防护：平台无法控制租户内容，统一拦截各厂 AI 爬虫
+     * 对租户域名的抓取（避免租户内容被训练/检索）。匹配不区分大小写（~*）。
+     *
+     * 覆盖主流 AI 爬虫：OpenAI(GPTBot/OAI-SearchBot)、Anthropic(ClaudeBot/anthropic-ai)、
+     * 字节(Bytespider)、Common Crawl(CCBot)、Perplexity、Google-Extended、Meta、
+     * Mistral、Cohere、Amazonbot、Applebot-Extended 等。
+     */
+    public function generateBotMap(?string $outputPath = null): void
+    {
+        $outputPath = $outputPath ?? config('domain.bot_map_file', '/etc/nginx/conf.d/bot.map');
+        $generatedAt = now()->format('Y-m-d H:i:s');
+
+        $bots = [
+            'GPTBot' => 'OpenAI',
+            'OAI-SearchBot' => 'OpenAI',
+            'ChatGPT-User' => 'OpenAI',
+            'ClaudeBot' => 'Anthropic',
+            'Claude-Web' => 'Anthropic',
+            'anthropic-ai' => 'Anthropic',
+            'Bytespider' => 'ByteDance',
+            'CCBot' => 'Common Crawl',
+            'PerplexityBot' => 'Perplexity',
+            'Google-Extended' => 'Google',
+            'FacebookBot' => 'Meta',
+            'Meta-ExternalAgent' => 'Meta',
+            'MistralAI-User' => 'Mistral',
+            'cohere-ai' => 'Cohere',
+            'Amazonbot' => 'Amazon',
+            'Applebot-Extended' => 'Apple',
+            'YouBot' => 'You.com',
+            'ImagesiftBot' => 'Imagesift',
+            'Timpibot' => 'Timpi',
+            'Omgilibot' => 'Omgili',
+            'webzio-extended' => 'Webz.io',
+            'Diffbot' => 'Diffbot',
+        ];
+
+        $botLines = implode("\n", array_map(
+            fn ($ua, $vendor) => sprintf('    ~*%-28s 1;  # %s', $ua, $vendor),
+            array_keys($bots),
+            array_values($bots)
+        ));
+
+        $mapContent = implode("\n", [
+            '# ===================================================',
+            '# AI 爬虫拦截 map（map $http_user_agent $is_ai_bot）',
+            '#',
+            '# 此文件由脚本自动生成，请勿手动编辑',
+            '# GEO（生成式引擎优化）防护：拦截各厂 AI 爬虫抓取租户内容',
+            '# 基桩对 $is_ai_bot=1 的请求 return 403',
+            "# 更新时间: {$generatedAt}",
+            '# ===================================================',
+            '',
+            'map $http_user_agent $is_ai_bot {',
+            '    default 0;  # 默认放行（仅拦截明确识别的 AI 爬虫）',
+            '',
+            $botLines,
             '}',
             '',
         ]);
@@ -353,7 +510,7 @@ class NginxConfigService
     /**
      * 一键生成全部 nginx 产物到发布目录。
      *
-     * @return array{deploy_path:string,auth_map:string,ssl_map:string,stub:string,top_include:string,domains:string[]}
+     * @return array{deploy_path:string,auth_map:string,ssl_map:string,seo_map:string,bot_map:string,stub:string,top_include:string,domains:string[]}
      */
     public function generateDeployBundle(?string $basePath = null): array
     {
@@ -369,6 +526,12 @@ class NginxConfigService
         $sslMap = "{$deployPath}/maps/ssl.map";
         $this->generateSslMap($sslMap);
 
+        $seoMap = "{$deployPath}/maps/seo.map";
+        $this->generateSeoMap($seoMap);
+
+        $botMap = "{$deployPath}/maps/bot.map";
+        $this->generateBotMap($botMap);
+
         $stubFile = "{$deployPath}/stubs/tenant-server.conf";
         File::put($stubFile, $this->renderTenantServerStub());
 
@@ -381,6 +544,8 @@ class NginxConfigService
             'deploy_path' => $deployPath,
             'auth_map' => $authMap,
             'ssl_map' => $sslMap,
+            'seo_map' => $seoMap,
+            'bot_map' => $botMap,
             'stub' => $stubFile,
             'top_include' => $topFile,
             'domains' => $links,

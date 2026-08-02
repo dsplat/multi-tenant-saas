@@ -9,12 +9,13 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Events\TenantActivated;
 use MultiTenantSaas\Events\TenantCreated;
+use MultiTenantSaas\Exceptions\StorageException;
 use MultiTenantSaas\Modules\Auth\Models\Role;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
+use MultiTenantSaas\Modules\Domain\Services\SlugService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
-use MultiTenantSaas\Exceptions\StorageException;
 
 /**
  * 租户引导式注册服务（Operator 直连租户模式）
@@ -351,11 +352,12 @@ class TenantOnboardingService
     protected function createTenant(array $basic, array $domain, SubscriptionPlan $plan): Tenant
     {
         $customDomain = $domain['domain'] ?? null;
-        $slug = $domain['subdomain'] ?: $this->generateUniqueSlug($basic['name']);
+        // 注册时明确指定子域名（保证金层）则用之；否则自动生成 t-xxxxxx 免费兜底子域名。
+        // t-xxxxxx 与用户 slug 共用 slug 字段、走一致的二级域名链路；用户后续自行设置 slug 后即覆盖失效。
+        $slug = $domain['subdomain'] ?: (new SlugService)->generateUniqueAutoSlug();
 
-        // 域名 >> slug：新租户默认 domain=null（免费层走共享域名 + slug 路径）
+        // 域名 >> slug：新租户默认 domain=null（免费层走 t-xxxxxx 子域名）
         // 仅当明确提供自定义域名时才设置 domain 字段
-        // 二级域名（保证金层）由后续业务流程单独开通，不在注册时自动生成
 
         return Tenant::create([
             'name' => $basic['name'],

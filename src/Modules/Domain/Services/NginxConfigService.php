@@ -70,15 +70,22 @@ class NginxConfigService
         $outputPath = $outputPath ?? $this->domainMapFile;
         $generatedAt = now()->format('Y-m-d H:i:s');
 
-        // 平台域名（始终允许）
-        $platformDomains = array_values(array_filter([
+        // 平台域名（始终允许；admin/app 可能指向同一域名，必须去重——
+        // nginx map 键重复会触发 [emerg] conflicting parameter 致 nginx -t 失败）
+        $platformDomains = array_values(array_unique(array_filter([
             config('domain.platform_domains.admin'),
             config('domain.platform_domains.app'),
             config('domain.platform_domains.console'),
-        ]));
+        ])));
         $platformLines = $platformDomains
             ? implode("\n", array_map(fn ($d) => sprintf('    %-30s 1;', $d), $platformDomains))
             : '    # (未配置平台域名)';
+
+        // 已放行域名集合（平台 + 二级域名）：自定义域名需排除，避免 map 键冲突
+        $emitted = array_flip($platformDomains);
+        foreach ($this->subdomainDomains() as $subdomain) {
+            $emitted[$subdomain] = true;
+        }
 
         // 企业自定义域名
         $tenants = Tenant::query()
@@ -89,7 +96,8 @@ class NginxConfigService
 
         $domainLines = [];
         foreach ($tenants as $tenant) {
-            if ($tenant->domain) {
+            if ($tenant->domain && ! isset($emitted[$tenant->domain])) {
+                $emitted[$tenant->domain] = true;
                 $domainLines[] = sprintf(
                     '    %-30s 1;  # %s (tenant_id: %s)',
                     $tenant->domain,
@@ -196,27 +204,45 @@ class NginxConfigService
      */
     protected function subdomainEntries(): string
     {
-        $wildcardBase = config('domain.wildcard_base');
-
-        if (! $wildcardBase) {
+        if (! config('domain.wildcard_base')) {
             return '    # (未配置通配基础域名)';
         }
 
-        $slugs = Tenant::query()
+        $domains = $this->subdomainDomains();
+
+        if ($domains === []) {
+            return '    # (暂无启用的租户二级域名)';
+        }
+
+        return implode("\n", array_map(
+            fn ($d) => sprintf('    %-30s 1;  # slug: %s', $d, explode('.', $d)[0]),
+            $domains
+        ));
+    }
+
+    /**
+     * 已启用租户的二级域名列表（{slug}.<wildcard_base>）。
+     *
+     * @return string[]
+     */
+    protected function subdomainDomains(): array
+    {
+        $wildcardBase = config('domain.wildcard_base');
+
+        if (! $wildcardBase) {
+            return [];
+        }
+
+        return Tenant::query()
             ->where('status', 'active')
             ->where('slug_status', 'active')
             ->whereNotNull('slug')
             ->where('slug', '!=', '')
             ->orderBy('slug')
-            ->pluck('slug');
-
-        if ($slugs->isEmpty()) {
-            return '    # (暂无启用的租户二级域名)';
-        }
-
-        return $slugs->map(
-            fn ($slug) => sprintf('    %-30s 1;  # slug: %s', "{$slug}.{$wildcardBase}", $slug)
-        )->implode("\n");
+            ->pluck('slug')
+            ->map(fn ($slug) => "{$slug}.{$wildcardBase}")
+            ->values()
+            ->all();
     }
 
     /**

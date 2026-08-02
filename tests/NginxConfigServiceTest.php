@@ -116,6 +116,40 @@ class NginxConfigServiceTest extends TestCase
         $this->assertStringNotContainsString('~^.*', $content);
     }
 
+    public function test_whitelist_dedupes_overlapping_domains_to_avoid_nginx_map_conflict(): void
+    {
+        // 防御性：nginx map 键重复会触发 [emerg] conflicting parameter 致全站 reload 失败。
+        // 即使配置出现重叠（如 admin/app 误指同域名、自定义域名撞上二级域名），
+        // 生成的 map 也必须保证每个域名键唯一。
+        config(['domain.wildcard_base' => 'dsplat.com']);
+        config(['domain.platform_domains.admin' => 'social.dsplat.com']);
+        config(['domain.platform_domains.app' => 'social.dsplat.com']); // 与 admin 重叠
+        config(['domain.platform_domains.console' => 'console.dsplat.com']);
+
+        // 某租户自定义域名撞上已放行的二级域名
+        $this->createTenant(['slug' => 'acme', 'slug_status' => 'active', 'domain' => 'acme.dsplat.com']);
+
+        $service = new NginxConfigService;
+        $outputPath = sys_get_temp_dir() . '/test-dedup-' . uniqid() . '.map';
+        $service->generateDomainWhitelistMap($outputPath);
+        $content = file_get_contents($outputPath);
+        unlink($outputPath);
+
+        // 重叠的平台域名仅出现一次
+        $this->assertSame(
+            1,
+            preg_match_all('/^\s*social\.dsplat\.com\s+1;/m', $content),
+            '平台域名重叠未去重，会触发 nginx map conflicting parameter'
+        );
+        // 撞上二级域名的自定义域名不重复放行（acme.dsplat.com 已由 slug 放行）
+        $this->assertSame(
+            1,
+            preg_match_all('/^\s*acme\.dsplat\.com\s+1;/m', $content),
+            '自定义域名与二级域名重叠未去重'
+        );
+        $this->assertStringContainsString('console.dsplat.com', $content);
+    }
+
     public function test_authorized_domains_merges_custom_and_subdomain(): void
     {
         $this->platformConfig();

@@ -495,11 +495,17 @@ class AuthImprovementsTest extends TestCase
     // Phase 3c: Nginx 通配白名单
     // =============================================
 
-    public function test_nginx_config_generates_wildcard_entry(): void
+    public function test_nginx_config_generates_explicit_subdomain_entries(): void
     {
         config(['domain.wildcard_base' => 'scrm.com']);
         config(['domain.platform_domains.admin' => 'admin.scrm.com']);
         config(['domain.platform_domains.app' => 'app.scrm.com']);
+        config(['domain.platform_domains.console' => 'console.scrm.com']);
+
+        // 已配置 slug 的活跃租户 → 精确放行
+        $this->createTestTenant(['tenant_id' => 1001, 'slug' => 'acme', 'slug_status' => 'active', 'domain' => null]);
+        // slug 被打回 → 不放行
+        $this->createTestTenant(['tenant_id' => 1002, 'slug' => 'rejected', 'slug_status' => 'rejected', 'domain' => null]);
 
         $service = new NginxConfigService;
         $outputPath = sys_get_temp_dir() . '/test-domains-' . uniqid() . '.map';
@@ -509,9 +515,15 @@ class AuthImprovementsTest extends TestCase
         $content = file_get_contents($outputPath);
         unlink($outputPath);
 
-        $this->assertStringContainsString('~^.*\.scrm\.com$', $content);
-        $this->assertStringContainsString('个人用户子域名通配', $content);
+        // 精确放行已配置 slug
+        $this->assertStringContainsString('acme.scrm.com', $content);
+        // 平台域名（含 console）
         $this->assertStringContainsString('admin.scrm.com', $content);
+        $this->assertStringContainsString('console.scrm.com', $content);
+        // 被打回的 slug 不放行
+        $this->assertStringNotContainsString('rejected.scrm.com', $content);
+        // 安全关键：不再通配放行所有子域名
+        $this->assertStringNotContainsString('~^.*\.scrm\.com$', $content);
     }
 
     public function test_nginx_config_without_wildcard_base(): void

@@ -4,6 +4,8 @@ namespace MultiTenantSaas\Modules\Domain;
 
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
+use MultiTenantSaas\Modules\Domain\Commands\GenerateNginxDeploy;
+use MultiTenantSaas\Modules\Domain\Commands\GenerateNginxDomainMap;
 
 class DomainServiceProvider extends ModuleServiceProvider
 {
@@ -12,6 +14,16 @@ class DomainServiceProvider extends ModuleServiceProvider
     protected function registerModuleBindings(): void
     {
         //
+    }
+
+    protected function registerModuleCommands(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                GenerateNginxDomainMap::class,
+                GenerateNginxDeploy::class,
+            ]);
+        }
     }
 
     protected function bootModule(): void

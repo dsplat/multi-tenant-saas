@@ -60,6 +60,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Nginx 域名接入层发布目录
+    |--------------------------------------------------------------------------
+    |
+    | 租户域名接入层的全部 nginx 产物（白名单 map / SNI 证书 map / 基桩 server /
+    | 域名软链接）统一落在「系统发布目录」下，系统 nginx 仅需 include 一次顶层
+    | 文件 dsplat-tenants.conf 即可。默认 base_path('deploy/nginx')。
+    |
+    */
+    'nginx_deploy_path' => env('NGINX_DEPLOY_PATH'),
+
+    // 基桩 server 直连的 php-fpm 端口（废除 9100 nginx 代理层）
+    'nginx_fastcgi_port' => (int) env('NGINX_FASTCGI_PORT', 9001),
+
+    // 基桩 server 的 webroot（默认 public_path()）
+    'nginx_public_path' => env('NGINX_PUBLIC_PATH'),
+
+    // nginx 二进制路径（--reload 时用；生产常为 /usr/local/nginx/sbin/nginx）
+    'nginx_binary' => env('NGINX_BINARY', 'nginx'),
+
+    // 基桩 access/error 日志目录
+    'nginx_log_dir' => env('NGINX_LOG_DIR', '/home/wwwlogs'),
+
+    /*
+    |--------------------------------------------------------------------------
     | 域名黑名单（保留域名）
     |--------------------------------------------------------------------------
     |

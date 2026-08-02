@@ -31,9 +31,11 @@ server {
         return 444;
     }
 
-    # ★ GEO（生成式引擎优化）防护：拦截各厂 AI 爬虫（map $http_user_agent $is_ai_bot）
-    #   平台无法控制租户内容，统一禁止 AI 爬虫抓取训练/检索
-    if ($is_ai_bot) {
+    # ★ GEO（生成式引擎优化）防护：拦截各厂 AI 爬虫
+    #   仅对「非收录域名」（平台子域名含 t-xxxxxx，$seo_allowed=0）拦截 AI 爬虫；
+    #   收录域名（平台域名/租户自定义域名，$seo_allowed=1）放行 AI 爬虫（GEO 开放）。
+    #   $block_ai_bot = ($is_ai_bot=1 且 $seo_allowed=0)，由 maps/bot.map 派生。
+    if ($block_ai_bot) {
         return 403;
     }
 

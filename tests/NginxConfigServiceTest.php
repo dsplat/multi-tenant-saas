@@ -235,6 +235,9 @@ class NginxConfigServiceTest extends TestCase
         foreach (['GPTBot', 'ClaudeBot', 'anthropic-ai', 'Bytespider', 'CCBot', 'PerplexityBot', 'Google-Extended'] as $bot) {
             $this->assertStringContainsString($bot, $content, "AI 爬虫 {$bot} 未被拦截");
         }
+        // 条件拦截派生 map：仅「AI 爬虫 且 非收录域名」拦截，收录域名（自定义）放行
+        $this->assertStringContainsString('map "$is_ai_bot:$seo_allowed" $block_ai_bot {', $content);
+        $this->assertStringContainsString('"1:0"    1;', $content);
     }
 
     public function test_deploy_bundle_generates_seo_and_bot_maps(): void
@@ -262,8 +265,8 @@ class NginxConfigServiceTest extends TestCase
         $result = $service->generateDeployBundle($base);
         $stub = file_get_contents($result['stub']);
 
-        // AI 爬虫 UA 拦截（GEO）
-        $this->assertStringContainsString('if ($is_ai_bot)', $stub);
+        // AI 爬虫 UA 条件拦截（GEO）：仅非收录域名拦截，收录域名放行
+        $this->assertStringContainsString('if ($block_ai_bot)', $stub);
         $this->assertStringContainsString('return 403', $stub);
         // noindex 响应头
         $this->assertStringContainsString('add_header X-Robots-Tag $x_robots_tag always', $stub);

@@ -241,8 +241,13 @@ class NginxConfigService
     /**
      * 生成 AI 爬虫拦截 map（map $http_user_agent $is_ai_bot）。
      *
-     * GEO（生成式引擎优化）防护：平台无法控制租户内容，统一拦截各厂 AI 爬虫
-     * 对租户域名的抓取（避免租户内容被训练/检索）。匹配不区分大小写（~*）。
+     * GEO（生成式引擎优化）防护：平台无法控制租户内容，拦截各厂 AI 爬虫
+     * 对非收录域名（平台子域名含 t-xxxxxx）的抓取（避免租户内容被训练/检索）。
+     * 匹配不区分大小写（~*）。
+     *
+     * 同时派生 $block_ai_bot（map "$is_ai_bot:$seo_allowed"）：仅当「是 AI 爬虫
+     * 且 $seo_allowed=0」时为 1，基桩据此 return 403——收录域名（平台域名/租户
+     * 自定义域名，$seo_allowed=1）放行 AI 爬虫（GEO 开放）。
      *
      * 覆盖主流 AI 爬虫：OpenAI(GPTBot/OAI-SearchBot)、Anthropic(ClaudeBot/anthropic-ai)、
      * 字节(Bytespider)、Common Crawl(CCBot)、Perplexity、Google-Extended、Meta、
@@ -289,8 +294,8 @@ class NginxConfigService
             '# AI 爬虫拦截 map（map $http_user_agent $is_ai_bot）',
             '#',
             '# 此文件由脚本自动生成，请勿手动编辑',
-            '# GEO（生成式引擎优化）防护：拦截各厂 AI 爬虫抓取租户内容',
-            '# 基桩对 $is_ai_bot=1 的请求 return 403',
+            '# GEO（生成式引擎优化）防护：识别各厂 AI 爬虫',
+            '# 基桩据 $block_ai_bot（$is_ai_bot 且 非收录域名）return 403',
             "# 更新时间: {$generatedAt}",
             '# ===================================================',
             '',
@@ -298,6 +303,14 @@ class NginxConfigService
             '    default 0;  # 默认放行（仅拦截明确识别的 AI 爬虫）',
             '',
             $botLines,
+            '}',
+            '',
+            '# 条件拦截派生：仅对「非收录域名」（$seo_allowed=0）拦截 AI 爬虫。',
+            '# 收录域名（平台域名/租户自定义域名，$seo_allowed=1）放行 AI 爬虫（GEO 开放）。',
+            '# 键为 "$is_ai_bot:$seo_allowed"，"1:0" 即「是 AI 爬虫 且 非收录」→ 拦截。',
+            'map "$is_ai_bot:$seo_allowed" $block_ai_bot {',
+            '    "1:0"    1;',
+            '    default  0;',
             '}',
             '',
         ]);

@@ -26,7 +26,7 @@
 | System Overview | [zh](zh/architecture/system-overview.md) | — |
 | **SPA Architecture** | [zh](spa-architecture.md) | — |
 | AI Module Architecture | [zh](zh/architecture/ai-module.md) | — |
-| Multi-Domain Architecture | [zh](zh/architecture/multi-domain.md) | — |
+| Multi-Domain Architecture | 已删除，见 [tenant.md](tenant.md) 第二节 | — |
 | Tenant Isolation | [zh](zh/architecture/tenant-isolation.md) | — |
 | Data Model Design | [zh](zh/architecture/data-model.md) | — |
 | Design Decisions | [zh](zh/architecture/design-decisions.md) | — |
@@ -53,7 +53,7 @@
 |---|---|---|
 | Quickstart | [zh](zh/guides/quickstart.md) | [en](en/guides/quickstart.md) |
 | Four-Layer Access | [zh](zh/guides/four-layer-access.md) | — |
-| Domain Configuration | [zh](zh/guides/domain-config.md) | — |
+| Domain Configuration | 已删除，见 [nginx-guide.md](zh/deployment/nginx-guide.md) | — |
 | RBAC & Permissions | [zh](zh/guides/rbac-guide.md) | — |
 | AI Module Guide | [zh](zh/guides/ai-module-guide.md) | — |
 | Billing Configuration | [zh](zh/guides/billing-config.md) | — |

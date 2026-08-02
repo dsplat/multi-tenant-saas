@@ -3,7 +3,7 @@
 > **文档性质**: 系统现状权威描述
 > **最后更新**: 2026-08-01
 > **关联文档**: `docs/auth.md`（认证与权限）、`docs/zh/deployment/nginx-guide.md`（部署配置）
-> **废弃文档**: `docs/zh/architecture/multi-domain.md`（已合并入本文第二节）
+> **已删除旧文档**: `docs/zh/architecture/multi-domain.md`、`docs/zh/guides/domain-config.md`（内容已合并入本文及 `nginx-guide.md`）
 
 ---
 
@@ -52,7 +52,7 @@ Tenant
 
 # 二、域名体系（三层接入阶梯）
 
-> 本节为域名架构权威描述。旧文档 `docs/zh/architecture/multi-domain.md` 已废弃。
+> 本节为域名架构权威描述。旧文档 `multi-domain.md`、`domain-config.md` 已删除，内容合并入本节。
 
 ### 2.0 设计原则
 
@@ -255,6 +255,15 @@ null → active → rejected → (重新设置) → active
 | `active` | `/{slug}/` + 二级域名（如已开通） |
 | `rejected` | 仅 `/{tenant_id}/`，二级域名同步停用 |
 
+#### 自动子域名（t-xxxxxx 免费兜底）
+
+租户创建即自动获得保留前缀子域名 `{t-xxxxxx}.{wildcard_base}` 作为免费访问兜底，无需租户操作：
+
+- 前缀 `t-` 为系统保留（`SlugService::isReservedAutoPrefix`），租户不可手动设置该前缀的 slug。
+- 码长由 `auto_slug_length`（默认 6）控制，字符集 `auto_slug_alphabet` 排除易混字符（0/1/i/o/l）。
+- 租户设置付费 slug 或绑定自定义域名生效后，自动码退役（`slug_status=rejected`，slug 字段保留）。
+- 自动子域名经统一基桩承接，但 SEO/GEO 禁止收录（见 2.8 / 第八节）。
+
 ### 2.7 配置项（config/domain.php）
 
 | 配置 | 环境变量 | 说明 |
@@ -269,10 +278,40 @@ null → active → rejected → (重新设置) → active
 | `icp_check_enabled` | `DOMAIN_ICP_CHECK_ENABLED` | 备案检查开关 |
 | `nginx_map_file` | `DOMAIN_NGINX_MAP_FILE` | 域名白名单文件路径 |
 | `ssl_certs_path` | `DOMAIN_SSL_CERTS_PATH` | SSL 证书目录 |
+| `auto_slug_length` | `AUTO_SLUG_LENGTH` | 自动子域名随机码长度（默认 6） |
+| `auto_slug_alphabet` | `AUTO_SLUG_ALPHABET` | 自动码字符集（默认排除 0/1/i/o/l） |
+| `seo_map_file` | `DOMAIN_SEO_MAP_FILE` | SEO/GEO 许可 map 文件路径 |
+| `bot_map_file` | `DOMAIN_BOT_MAP_FILE` | AI 爬虫拦截 map 文件路径 |
 
 ### 2.8 Nginx 配置生成
 
-**域名白名单**（`NginxConfigService::generateDomainWhitelistMap`）：
+所有租户域名接入层产物由 `NginxConfigService::generateDeployBundle()` 一键生成（命令 `php artisan domains:generate-nginx`），落在 `domain.nginx_deploy_path`（默认 `base_path('deploy/nginx')`）：
+
+```
+{deploy_path}/
+├── dsplat-tenants.conf      顶层 include（系统 nginx 在 http{} 层仅 include 一次）
+├── maps/
+│   ├── tenant-auth.map      map $host $domain_allowed（白名单，default 0）
+│   ├── ssl.map              map $ssl_server_name $ssl_cert_file/$ssl_key_file（SNI 动态证书）
+│   ├── seo.map              map $host $seo_allowed + map $seo_allowed $x_robots_tag
+│   └── bot.map              map $http_user_agent $is_ai_bot + map "$is_ai_bot:$seo_allowed" $block_ai_bot
+├── stubs/
+│   └── tenant-server.conf   基桩：唯一 443 default_server，catch-all 所有租户域名
+└── tenants-enabled/         每域名一个软链接 → 基桩（巡检清单，不驱动路由）
+```
+
+**统一基桩模型**：自定义域名与二级域名（含 t-xxxxxx）共用同一个 default_server 基桩，不为每个自定义域名手写 vhost。平台域名（admin/app/console）有独立精确 vhost，优先级高于 default_server，不受基桩影响。基桩行为全部由 map 变量驱动：
+
+| 变量 | 定义文件 | 键源 | 作用 |
+|---|---|---|---|
+| `$domain_allowed` | tenant-auth.map | `$host` | 白名单，`0` → `return 444` 断连（恶意/未配置域名）|
+| `$seo_allowed` | seo.map | `$host` | 平台域名+自定义域名=`1`（可收录）；二级域名走 default `0`（禁收录）|
+| `$x_robots_tag` | seo.map | `$seo_allowed` | `0`→`noindex, nofollow`；`1`→空（不下发）|
+| `$is_ai_bot` | bot.map | `$http_user_agent` | 识别各厂 AI 爬虫（GPTBot/ClaudeBot/Bytespider 等 22 种）|
+| `$block_ai_bot` | bot.map | `"$is_ai_bot:$seo_allowed"` | `"1:0"`→`1`：仅对非收录域名拦 AI 爬虫 `return 403`；自定义域名放行（GEO 开放）|
+| `$ssl_cert_file`/`$ssl_key_file` | ssl.map | `$ssl_server_name` | SNI 动态选证书，default 为通配证书 |
+
+**域名白名单**（`generateDomainWhitelistMap`）——二级域名精确放行已配置 slug，不做通配：
 
 ```nginx
 map $host $domain_allowed {
@@ -283,8 +322,8 @@ map $host $domain_allowed {
     {app_domain}       1;
     {console_domain}   1;
 
-    # 二级域名通配（如启用）
-    ~^.*\.{wildcard_base}$  1;
+    # 租户二级域名（仅已配置且 slug_status=active，精确放行）
+    {slug}.{wildcard_base}  1;  # slug: {slug}
 
     # 内部服务
     127.0.0.1          1;
@@ -297,7 +336,7 @@ map $host $domain_allowed {
 }
 ```
 
-**SSL 证书映射**（`NginxConfigService::generateSslMap`）：
+**SSL 证书映射**（`generateSslMap`）——仅收录「domain 非空 + ssl_uploaded_at 非空 + `certs/{domain}.crt` 存在」的租户，default 指向通配证书：
 
 ```nginx
 map $ssl_server_name $ssl_cert_file {
@@ -307,6 +346,56 @@ map $ssl_server_name $ssl_cert_file {
 map $ssl_server_name $ssl_key_file {
     default           {certs_path}/default.key;
     {tenant_domain}   {certs_path}/{tenant_domain}.key;
+}
+```
+
+**SEO/GEO 许可**（`generateSeoMap`）：
+
+```nginx
+map $host $seo_allowed {
+    default 0;                 # 二级域名（含 t-xxxxxx）默认禁收录
+    {platform_domain}  1;      # 平台域名可收录
+    {tenant_domain}    1;      # 自定义域名可收录
+}
+map $seo_allowed $x_robots_tag {
+    default "noindex, nofollow";
+    1       "";                # 收录域名置空，不下发该头
+}
+```
+
+**AI 爬虫拦截**（`generateBotMap`）：
+
+```nginx
+map $http_user_agent $is_ai_bot {
+    default 0;
+    ~*GPTBot          1;  # OpenAI
+    ~*ClaudeBot       1;  # Anthropic
+    ~*Bytespider      1;  # ByteDance
+    # ... 共 22 种主流 AI 爬虫
+}
+# 条件拦截：仅「是 AI 爬虫 且 非收录域名」拦截，自定义域名放行（GEO 开放）
+map "$is_ai_bot:$seo_allowed" $block_ai_bot {
+    "1:0"    1;
+    default  0;
+}
+```
+
+**基桩**（`stubs/tenant-server.conf`，443 default_server）核心拦截链：
+
+```nginx
+server {
+    listen 443 ssl http2 default_server;
+    server_name _;
+    ssl_certificate     $ssl_cert_file;
+    ssl_certificate_key $ssl_key_file;
+
+    if ($domain_allowed = 0) { return 444; }   # 恶意域名断连（零带宽）
+    if ($block_ai_bot)       { return 403; }   # 非收录域名拦 AI 爬虫
+    add_header X-Robots-Tag $x_robots_tag always;  # 非收录域名 noindex
+
+    location /api/ { try_files $uri /index.php?$query_string; }  # 直连 fastcgi 9001
+    location = /robots.txt { /* 按 $seo_allowed 动态 Allow/Disallow */ }
+    # /h5/ /console/ SPA，各自补充 X-Robots-Tag（nginx add_header 继承规则）
 }
 ```
 
@@ -464,12 +553,29 @@ Model::query() → WHERE tenant_id = {current_tenant_id}
 
 ## 八、Nginx 配置
 
-> 配置模板由 `NginxConfigService` 自动生成，具体域名从 `config/domain.php` 读取。
-> 详细部署配置参见 `docs/zh/deployment/nginx-guide.md`。
+租户域名接入层由 `NginxConfigService` 自动生成（命令 `php artisan domains:generate-nginx`），系统 nginx 仅需在 http{} 层 include 一次顶层文件 `dsplat-tenants.conf`。产物结构、map 变量与基桩模型详见第二节 2.8；配置项见 2.7。
 
-域名白名单和 SSL 映射的生成格式见第二节 2.8 小节。
+### 8.1 SEO/GEO 分层模型
 
-配置项见第二节 2.7 小节。
+平台无法控制租户内容，故按域名层级差异化收录策略：
+
+| 层级 | 形态 | seo_allowed | SEO/GEO | AI 爬虫 |
+|---|---|---|---|---|
+| 免费兜底（自动）| `t-xxxxxx.{wildcard_base}` | 0 | 禁止（noindex + Disallow robots）| 403 |
+| 付费二级域名 | `{slug}.{wildcard_base}` | 0 | 禁止 | 403 |
+| 自定义域名 | `{tenant_domain}` | 1 | 开放 | 放行 |
+| 平台域名 | admin/app/console | 1 | 开放 | 放行 |
+
+policy 由单一 `$seo_allowed` 变量驱动：基桩同一条 `if ($block_ai_bot) return 403` 据此对子域名禁 GEO、对自定义域名开放 GEO。
+
+### 8.2 自定义域名接入基桩
+
+自定义域名经统一基桩承接（无需独立 vhost），SNI 证书须先纳入 ssl.map：
+
+1. 证书软链接进受管目录（命名匹配 `{domain}.crt/.key`）：`certs/{domain}.crt → 实际证书`（软链接避免副本，续签原地生效）。
+2. 置租户 `ssl_uploaded_at`（`generateSslMap` 仅收录 domain 非空 + ssl_uploaded_at 非空 + 证书文件存在的租户）。
+3. `domains:generate-nginx` 重生成 → 确认 ssl.map 含该域名证书映射 → `nginx -t && nginx -s reload`。
+4. 验证：SNI 返回该域名证书；AI 爬虫 UA 返回 200（GEO 开放）；无 noindex 头；robots.txt 为 `Allow: /`。
 
 ---
 
@@ -560,5 +666,5 @@ Model::query() → WHERE tenant_id = {current_tenant_id}
 
 | 文档 | 处理 |
 |---|---|
-| `docs/zh/architecture/multi-domain.md` | 废弃，内容已合并入本文第二节 |
-| `docs/zh/guides/domain-config.md` | 待更新（操作指南层，待代码落地后同步） |
+| `docs/zh/architecture/multi-domain.md` | 已删除，内容合并入本文第二节 |
+| `docs/zh/guides/domain-config.md` | 已删除，操作指南以 [`docs/zh/deployment/nginx-guide.md`](zh/deployment/nginx-guide.md) 为准 |

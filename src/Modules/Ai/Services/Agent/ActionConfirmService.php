@@ -6,6 +6,8 @@ namespace MultiTenantSaas\Modules\Ai\Services\Agent;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
 
 /**
  * L2 操作确认令牌服务（AI 代操作的人类确认点）
@@ -75,7 +77,7 @@ class ActionConfirmService
         $payload = Cache::get($key);
 
         if (! is_array($payload)) {
-            throw new \RuntimeException('确认凭证不存在或已过期，请重新发起操作');
+            throw new NotFoundException('确认凭证不存在或已过期，请重新发起操作');
         }
 
         // 一次性消费：校验前即删除，杜绝并发重放
@@ -83,11 +85,11 @@ class ActionConfirmService
 
         if ((int) ($payload['tenant_id'] ?? 0) !== $tenantId
             || (int) ($payload['conversation_id'] ?? 0) !== $conversationId) {
-            throw new \RuntimeException('确认凭证与当前会话不匹配');
+            throw new DomainException('确认凭证与当前会话不匹配');
         }
 
         if (! hash_equals((string) ($payload['args_hash'] ?? ''), $argsHash)) {
-            throw new \RuntimeException('操作参数与确认时不一致，已拒绝执行');
+            throw new DomainException('操作参数与确认时不一致，已拒绝执行');
         }
 
         return $payload;

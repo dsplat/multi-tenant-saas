@@ -10,7 +10,10 @@ use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentChatClient;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentContextBuilder;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentRuntime;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentToolExecutor;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Dto\AgentResponse;
 use MultiTenantSaas\Modules\Ai\Services\Ai\AiResponse;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
@@ -46,8 +49,13 @@ class AgentRuntimeTest extends TestCase
         $this->monitorMock->shouldReceive('logToolCall')->andReturnNull();
 
         $tenantContext = $this->app->make(TenantContextContract::class);
+        $toolExecutor = new AgentToolExecutor($this->toolRegistryMock, $this->monitorMock);
+        $contextBuilder = new AgentContextBuilder($toolExecutor, $tenantContext);
+        $chatClient = new AgentChatClient($this->aiServiceMock, $this->toolRegistryMock);
         $this->runtime = new AgentRuntime(
-            $this->aiServiceMock,
+            $toolExecutor,
+            $contextBuilder,
+            $chatClient,
             $this->toolRegistryMock,
             $this->monitorMock,
             $tenantContext,

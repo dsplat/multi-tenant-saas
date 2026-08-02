@@ -12,6 +12,7 @@ use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Events\AgentCreated;
 use MultiTenantSaas\Events\AgentDisabled;
 use MultiTenantSaas\Events\AgentEnabled;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentTool;
 use MultiTenantSaas\Scopes\TenantScope;
@@ -339,7 +340,7 @@ class AgentService implements AgentServiceContract
         $tenantId = $this->tenantContext->resolveId();
 
         if ($tenantId === null) {
-            throw new \RuntimeException('无法从团队上下文解析 tenant_id');
+            throw new DomainException('无法从团队上下文解析 tenant_id');
         }
 
         return (int) $tenantId;

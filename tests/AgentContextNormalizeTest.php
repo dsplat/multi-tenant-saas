@@ -11,7 +11,10 @@ use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversationMessage;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentChatClient;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentContextBuilder;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentRuntime;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentToolExecutor;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\AgentModule;
 use MultiTenantSaas\Tests\Schema\AiModule;
@@ -40,11 +43,17 @@ class AgentContextNormalizeTest extends TestCase
         $monitor->shouldReceive('logConversationTurn')->andReturnNull();
         $monitor->shouldReceive('logToolCall')->andReturnNull();
 
+        $tenantContext = $this->app->make(TenantContextContract::class);
+        $toolExecutor = new AgentToolExecutor(Mockery::mock(ToolRegistryContract::class), $monitor);
+        $contextBuilder = new AgentContextBuilder($toolExecutor, $tenantContext);
+        $chatClient = new AgentChatClient(Mockery::mock(AiTextServiceContract::class), Mockery::mock(ToolRegistryContract::class));
         $this->runtime = new AgentRuntime(
-            Mockery::mock(AiTextServiceContract::class),
+            $toolExecutor,
+            $contextBuilder,
+            $chatClient,
             Mockery::mock(ToolRegistryContract::class),
             $monitor,
-            $this->app->make(TenantContextContract::class),
+            $tenantContext,
         );
 
         Agent::forceCreate([

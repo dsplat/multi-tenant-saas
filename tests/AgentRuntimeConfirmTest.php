@@ -11,7 +11,10 @@ use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentChatClient;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentContextBuilder;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentRuntime;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentToolExecutor;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Dto\Tool;
 use MultiTenantSaas\Modules\Ai\Services\Ai\StreamChunk;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
@@ -63,14 +66,18 @@ class AgentRuntimeConfirmTest extends TestCase
 
     protected function makeRuntime(?ActionConfirmService $actionConfirm): AgentRuntime
     {
+        $tenantContext = $this->app->make(TenantContextContract::class);
+        $toolExecutor = new AgentToolExecutor($this->toolRegistryMock, $this->monitorMock, $actionConfirm);
+        $contextBuilder = new AgentContextBuilder($toolExecutor, $tenantContext);
+        $chatClient = new AgentChatClient($this->aiServiceMock, $this->toolRegistryMock);
+
         return new AgentRuntime(
-            $this->aiServiceMock,
+            $toolExecutor,
+            $contextBuilder,
+            $chatClient,
             $this->toolRegistryMock,
             $this->monitorMock,
-            $this->app->make(TenantContextContract::class),
-            null,
-            null,
-            $actionConfirm,
+            $tenantContext,
         );
     }
 

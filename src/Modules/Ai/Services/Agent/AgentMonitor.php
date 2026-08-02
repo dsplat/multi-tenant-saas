@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Modules\Ai\Services\Agent;
 
 use MultiTenantSaas\Contracts\AgentMonitorContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Models\AgentToolLog;
@@ -192,7 +193,7 @@ class AgentMonitor implements AgentMonitorContract
         $tenantId = $this->tenantContext->resolveId();
 
         if ($tenantId === null) {
-            throw new \RuntimeException('无法从团队上下文解析 tenant_id');
+            throw new DomainException('无法从团队上下文解析 tenant_id');
         }
 
         return (int) $tenantId;

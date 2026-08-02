@@ -6,10 +6,10 @@ namespace MultiTenantSaas\Services\Channel;
 
 use InvalidArgumentException;
 use MultiTenantSaas\Contracts\ChannelContract;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Services\Channel\Providers\EnterpriseWechatAppDriver;
 use MultiTenantSaas\Services\Channel\Providers\EnterpriseWechatKfDriver;
-use RuntimeException;
 
 /**
  * 渠道管理器 —— 租户感知的 Provider 工厂
@@ -71,7 +71,7 @@ class ChannelManager
         $config = $this->credentials($type, $tenantId);
 
         if ($config === []) {
-            throw new RuntimeException("Channel [{$type}] not configured for tenant {$tenantId}");
+            throw new ServiceUnavailableException("Channel [{$type}] not configured for tenant {$tenantId}");
         }
 
         return $this->resolved[$cacheKey] = new $class($config);

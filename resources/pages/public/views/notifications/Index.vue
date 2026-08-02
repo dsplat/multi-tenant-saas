@@ -12,6 +12,14 @@
     <div class="filters">
       <button :class="['filter-btn', !filterType && !unreadOnly && 'active']" @click="setFilter()">全部</button>
       <button :class="['filter-btn', unreadOnly && 'active']" @click="setFilter('', true)">未读 ({{ unreadCount }})</button>
+      <button
+        v-for="t in typeOptions"
+        :key="t.value"
+        :class="['filter-btn', filterType === t.value && !unreadOnly && 'active']"
+        @click="setFilter(t.value)"
+      >
+        {{ t.label }}<span v-if="unreadByType[t.value]"> ({{ unreadByType[t.value] }})</span>
+      </button>
     </div>
 
     <!-- 列表 -->
@@ -54,6 +62,15 @@ const lastPage = ref(1)
 const unreadCount = ref(0)
 const filterType = ref('')
 const unreadOnly = ref(false)
+const unreadByType = ref<Record<string, number>>({})
+
+// 与后端 InAppNotification::TYPES 保持一致
+const typeOptions = [
+  { value: 'system', label: '系统' },
+  { value: 'bill', label: '账单' },
+  { value: 'ai', label: 'AI' },
+  { value: 'security', label: '安全' },
+]
 
 onMounted(() => fetchList())
 
@@ -73,6 +90,7 @@ async function fetchList() {
     currentPage.value = data.meta?.current_page || 1
     lastPage.value = data.meta?.last_page || 1
     unreadCount.value = data.meta?.unread_count || 0
+    unreadByType.value = data.meta?.unread_by_type || {}
   } catch {}
   loading.value = false
 }

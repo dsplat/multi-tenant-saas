@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use MultiTenantSaas\Modules\Auth\Models\OauthAccount;
 use MultiTenantSaas\Modules\Auth\Models\User;
 
@@ -37,6 +38,43 @@ class UserProfileController extends Controller
                 'email_verified_at' => $user->email_verified_at?->toISOString(),
                 'phone_verified_at' => $user->phone_verified_at?->toISOString(),
             ],
+            'message' => trans('common.updated'),
+        ]);
+    }
+
+    /**
+     * 上传头像。
+     *
+     * 文件存入 public 磁盘的 avatars/ 目录，按 user_id 命名（自动覆盖旧头像），
+     * 头像属于平台级身份资产，不走租户 Storage 模块（后者受 RBAC 限制仅 Operator 可用）。
+     */
+    public function uploadAvatar(Request $request): JsonResponse
+    {
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
+        ]);
+
+        /** @var User $user */
+        $user = $request->user();
+        $file = $request->file('avatar');
+
+        $disk = Storage::disk('public');
+
+        // 按 user_id 固定文件名；先清理旧头像（含不同扩展名的历史文件），避免孤儿文件
+        foreach ($disk->files('avatars') as $existing) {
+            if (pathinfo($existing, PATHINFO_FILENAME) === (string) $user->user_id) {
+                $disk->delete($existing);
+            }
+        }
+
+        $path = $file->storeAs('avatars', $user->user_id . '.' . $file->getClientOriginalExtension(), 'public');
+        $url = $disk->url($path);
+
+        $user->update(['avatar' => $url]);
+
+        return response()->json([
+            'success' => true,
+            'data' => ['avatar' => $url],
             'message' => trans('common.updated'),
         ]);
     }

@@ -18,6 +18,7 @@ Route::prefix('auth')->group(function () {
 
     // 用户资料管理
     Route::put('/profile', [UserProfileController::class, 'updateProfile']);
+    Route::post('/profile/avatar', [UserProfileController::class, 'uploadAvatar']);
     Route::put('/password', [UserProfileController::class, 'changePassword']);
     Route::get('/oauth-bindings', [UserProfileController::class, 'oauthBindings']);
     Route::delete('/oauth-bindings/{provider}', [UserProfileController::class, 'unbindOAuth']);

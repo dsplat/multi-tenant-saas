@@ -1,7 +1,7 @@
 # 已知问题清单
 
 > 基于 2026-07-20 深度代码审查发现
-> **最后更新**: 2026-08-01（批量修复 + 源码验证清理）
+> **最后更新**: 2026-08-01（低优先级批次清零：4 修复 + 5 源码验证不存在 + 1 保留）
 > 审查覆盖：Auth、Operator、Infrastructure、User 四大模块
 
 ---
@@ -10,10 +10,10 @@
 
 | 严重度 | 总数 | 已修复 | 误报/非 bug | 未修复 |
 |--------|------|--------|------------|--------|
-| 严重 | 8 | 8 | 1 | 0 |
-| 中等 | 12 | 8 | 4 | 0 |
-| 低 | 10 | 1 | 0 | 9 |
-| **总计** | **30** | **17** | **5** | **9** |
+| 严重 | 8 | 7 | 1 | 0 |
+| 中等 | 12 | 7 | 5 | 0 |
+| 低 | 10 | 4 | 5 | 1 |
+| **总计** | **30** | **18** | **11** | **1** |
 
 ---
 
@@ -143,15 +143,63 @@
 
 ## 三、低优先级问题（代码质量改进）
 
+### ~~BUG-021: HTTP 客户端不统一~~ ✅ 已修复
+
+**状态**: 已修复 — 公共前台 SPA 主流为原生 fetch（18 个文件），仅 AcceptInvite.vue、Onboarding.vue 两个异类用 axios；已将二者转为 fetch（Onboarding 引入 postJson 统一封装），public 视图已无 axios 残留。
+
+---
+
+### ~~BUG-022: Dashboard.vue email_verified 字段名不一致~~ ❌ 不存在
+
+**状态**: 源码验证不成立 — Dashboard.vue 当前全部使用 `email_verified_at`，与后端一致，全库无 `email_verified` 残留。
+
+---
+
+### ~~BUG-023: Profile.vue 缺少头像上传~~ ✅ 已修复
+
+**状态**: 已修复 — 新增 `POST /api/v1/auth/profile/avatar`（UserProfileController::uploadAvatar）：图片校验（jpg/png/gif/webp ≤2MB）、存入 public 磁盘 `avatars/{user_id}.{ext}` 固定命名、换扩展名时清理历史文件无孤儿；Profile.vue 增加头像预览 + 上传 UI。头像属平台级身份资产，不走受 RBAC 限制的租户 Storage 模块。
+
+---
+
+### ~~BUG-024: Security.vue 缺少“添加 MFA 设备”入口~~ ❌ 不存在
+
+**状态**: 源码验证不成立 — Security.vue 已有完整「添加 TOTP 设备」流程（setup 取密钥 → 输入验证码 → confirm 绑定 → 刷新设备列表），后端 `/api/v1/mfa/totp/setup|confirm` 路由齐备。
+
+---
+
+### ~~BUG-025: notifications/Index.vue filterType 未实现~~ ✅ 已修复
+
+**状态**: 已修复 — 筛选栏补齐类型按钮（系统/账单/AI/安全，与后端 InAppNotification::TYPES 对齐），点击设置 filterType 并携带 `type` 参数请求，按钮附带 `unread_by_type` 未读计数。
+
+---
+
+### ~~BUG-026: FormRequest 类未被使用（User 模块）~~ ❌ 不存在
+
+**状态**: 源码验证不成立 — StoreMemberRequest 已接入 TenantMemberController::store，StoreTenantRequest/UpdateTenantRequest 已接入 TenantController::store/update。
+
+---
+
+### ~~BUG-027: UserSearchService SQL LIKE 通配符未转义~~ ❌ 不存在
+
+**状态**: 源码验证不成立 — UserSearchService 已有 `str_replace(['%', '_'], ['\%', '\_'], $query)` 转义。
+
+---
+
 ### ~~BUG-028: OAuth 服务静态方法设计~~ ✅ 已修复
 
 **状态**: 已修复 — `__callStatic` 已全量清除（从 23 处降至 0），OAuth 服务已改用实例方法 + 构造器注入。
 
 ---
 
-### 其余 BUG-021~027, BUG-029~030
+### ~~BUG-029: SAML Metadata 返回类型错误~~ ❌ 不存在
 
-**状态**: ⚠️ 仍存在 — 详见原文。
+**状态**: 源码验证不成立 — `samlMetadata()` 当前声明为 `: Response`（非 JsonResponse），与 XML 返回一致。
+
+---
+
+### BUG-030: BindSessionDomain Octane 风险
+
+**状态**: ⚠️ 保留 — 通过 `config()` 修改 `session.domain` 在 Octane 下有跨请求持久化风险。保留决策：Octane Level 1 方案已定性为鸡肋不推广，当前未启用 Octane，无实际风险；若未来启用 Octane 需一并重构。
 
 ---
 
@@ -159,9 +207,9 @@
 
 | 严重度 | 总数 | 已修复 | 误报/非 bug | 未修复 |
 |--------|------|--------|------------|--------|
-| 严重 | 8 | 8 | 1 (BUG-002) | 0 |
-| 中等 | 12 | 8 | 4 (BUG-014/015/016/017/018) | 0 |
-| 低 | 10 | 1 | 0 | 9 (BUG-021~027/029~030) |
-| **总计** | **30** | **17** | **5** | **9** |
+| 严重 | 8 | 7 | 1 (BUG-002) | 0 |
+| 中等 | 12 | 7 | 5 (BUG-014/015/016/017/018) | 0 |
+| 低 | 10 | 4 (BUG-021/023/025/028) | 5 (BUG-022/024/026/027/029) | 1 (BUG-030) |
+| **总计** | **30** | **18** | **11** | **1** |
 
-> 剩余 9 个低优先级项为代码质量改进（技术债），无安全/功能影响。
+> 唯一保留项 BUG-030 为 Octane 前置风险，当前未启用 Octane，无实际影响。

@@ -126,7 +126,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
 const router = useRouter()
@@ -156,9 +155,22 @@ const planForm = ref({
 // 已登录 Operator 判断（用 operator_token）
 const isLoggedIn = computed(() => !!localStorage.getItem('operator_token'))
 
-const operatorAuthHeader = computed(() => ({
-  Authorization: `Bearer ${localStorage.getItem('operator_token') || ''}`,
-}))
+// 统一 POST JSON 请求（携带 operator_token）
+async function postJson(url: string, body: Record<string, any>) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('operator_token') || ''}`,
+    },
+    body: JSON.stringify(body),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok || data.success === false) {
+    throw new Error(data.message || '请求失败')
+  }
+  return data
+}
 
 // 检查是否有 onboarding token（URL 参数），支持断点续填
 onMounted(async () => {
@@ -166,13 +178,9 @@ onMounted(async () => {
   if (token && isLoggedIn.value) {
     onboardingToken.value = token
     try {
-      const res = await axios.post(
-        '/api/v1/tenants/onboarding/status',
-        { onboarding_token: token },
-        { headers: operatorAuthHeader.value },
-      )
-      if (res.data.success && res.data.data.current_step > 1) {
-        currentStep.value = res.data.data.current_step
+      const res = await postJson('/api/v1/tenants/onboarding/status', { onboarding_token: token })
+      if (res.success && res.data.current_step > 1) {
+        currentStep.value = res.data.current_step
       }
     } catch {
       // token 无效，从头开始
@@ -188,17 +196,13 @@ const startOnboarding = async () => {
   }
   loading.value = true
   try {
-    const res = await axios.post(
-      '/api/v1/tenants/onboarding/start',
-      form.value,
-      { headers: operatorAuthHeader.value },
-    )
-    if (res.data.success) {
-      onboardingToken.value = res.data.data.onboarding_token
+    const res = await postJson('/api/v1/tenants/onboarding/start', form.value)
+    if (res.success) {
+      onboardingToken.value = res.data.onboarding_token
       currentStep.value = 2
     }
   } catch (err: any) {
-    ElMessage.error(err.response?.data?.message || '提交失败，请重试')
+    ElMessage.error(err.message || '提交失败，请重试')
   } finally {
     loading.value = false
   }
@@ -212,14 +216,13 @@ const saveStep2 = async () => {
   }
   loading.value = true
   try {
-    await axios.post(
-      '/api/v1/tenants/onboarding/2',
-      { onboarding_token: onboardingToken.value, ...orgForm.value },
-      { headers: operatorAuthHeader.value },
-    )
+    await postJson('/api/v1/tenants/onboarding/2', {
+      onboarding_token: onboardingToken.value,
+      ...orgForm.value,
+    })
     currentStep.value = 3
   } catch (err: any) {
-    ElMessage.error(err.response?.data?.message || '提交失败，请重试')
+    ElMessage.error(err.message || '提交失败，请重试')
   } finally {
     loading.value = false
   }
@@ -234,32 +237,28 @@ const saveStep3 = async () => {
   loading.value = true
   try {
     // 跳过支付步骤（试用版无支付）
-    await axios.post(
-      '/api/v1/tenants/onboarding/3',
-      { onboarding_token: onboardingToken.value, ...planForm.value },
-      { headers: operatorAuthHeader.value },
-    )
+    await postJson('/api/v1/tenants/onboarding/3', {
+      onboarding_token: onboardingToken.value,
+      ...planForm.value,
+    })
     // Step4：跳过支付直接完成
-    await axios.post(
-      '/api/v1/tenants/onboarding/4',
-      { onboarding_token: onboardingToken.value, skip: true },
-      { headers: operatorAuthHeader.value },
-    )
+    await postJson('/api/v1/tenants/onboarding/4', {
+      onboarding_token: onboardingToken.value,
+      skip: true,
+    })
     // 完成注册
-    const res = await axios.post(
-      '/api/v1/tenants/onboarding/complete',
-      { onboarding_token: onboardingToken.value },
-      { headers: operatorAuthHeader.value },
-    )
-    if (res.data.success) {
+    const res = await postJson('/api/v1/tenants/onboarding/complete', {
+      onboarding_token: onboardingToken.value,
+    })
+    if (res.success) {
       submittedTenant.value = {
-        name: res.data.data.name,
-        status: res.data.data.status,
+        name: res.data.name,
+        status: res.data.status,
       }
       currentStep.value = 4
     }
   } catch (err: any) {
-    ElMessage.error(err.response?.data?.message || '提交失败，请重试')
+    ElMessage.error(err.message || '提交失败，请重试')
   } finally {
     loading.value = false
   }

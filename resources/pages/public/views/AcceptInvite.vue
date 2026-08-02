@@ -58,7 +58,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { Promotion } from '@element-plus/icons-vue'
 
@@ -104,17 +103,24 @@ const handleAccept = async () => {
     if (!valid) return
     loading.value = true
     try {
-      const res = await axios.post('/api/v1/operator/accept-invite', {
-        token: form.value.token,
-        password: form.value.password,
-        password_confirmation: form.value.password_confirmation,
+      const res = await fetch('/api/v1/operator/accept-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: form.value.token,
+          password: form.value.password,
+          password_confirmation: form.value.password_confirmation,
+        }),
       })
-      if (res.data.success) {
+      const data = await res.json()
+      if (data.success) {
         accepted.value = true
         ElMessage.success('邀请已接受，请登录')
+      } else {
+        ElMessage.error(data.message || '接受邀请失败，请检查邀请码')
       }
-    } catch (err: any) {
-      ElMessage.error(err.response?.data?.message || '接受邀请失败，请检查邀请码')
+    } catch {
+      ElMessage.error('接受邀请失败，请检查邀请码')
     } finally {
       loading.value = false
     }

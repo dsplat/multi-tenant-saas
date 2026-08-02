@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Auth\Http\Controllers\AuthController;
 use MultiTenantSaas\Modules\Auth\Http\Controllers\TenantOAuthController;
+use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\RejectPlatformDomain;
 
 // 公开路由（无需认证）
 Route::prefix('auth')->group(function () {
@@ -41,6 +42,6 @@ Route::prefix('auth')->group(function () {
 Route::post('/admin/auth/login', [AuthController::class, 'adminLogin'])
     ->middleware('throttle:20,1');
 
-// 租户管理员登录（公开，无需认证）
+// 租户管理员登录（公开，无需认证，禁止平台域名）
 Route::post('/console/auth/login', [AuthController::class, 'consoleLogin'])
-    ->middleware('throttle:20,1');
+    ->middleware(['throttle:20,1', RejectPlatformDomain::class]);

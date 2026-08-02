@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Auth\Http\Controllers\AuthController;
 use MultiTenantSaas\Modules\Auth\Http\Controllers\MfaController;
 use MultiTenantSaas\Modules\Auth\Http\Controllers\UserProfileController;
+use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\RejectPlatformDomain;
 
 // 认证路由（需要 auth:sanctum）
 Route::prefix('auth')->group(function () {
@@ -28,8 +29,8 @@ Route::prefix('admin/auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'adminLogout']);
 });
 
-// 租户管理员认证路由（需要 auth:sanctum）
-Route::prefix('console/auth')->group(function () {
+// 租户管理员认证路由（需要 auth:sanctum，禁止平台域名访问）
+Route::prefix('console/auth')->middleware(RejectPlatformDomain::class)->group(function () {
     Route::get('/user', [AuthController::class, 'consoleUser']);
     Route::post('/logout', [AuthController::class, 'consoleLogout']);
 });

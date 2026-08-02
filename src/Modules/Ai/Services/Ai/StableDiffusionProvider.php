@@ -8,6 +8,8 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Exceptions\NotFoundException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use Throwable;
 
 /**
@@ -66,7 +68,7 @@ class StableDiffusionProvider
         $key = (string) $this->config('api_key', '');
 
         if ($key === '') {
-            throw new \RuntimeException(trans('ai.provider_not_configured', ['provider' => 'stability']));
+            throw new ServiceUnavailableException(trans('ai.provider_not_configured', ['provider' => 'stability']));
         }
 
         return $key;
@@ -113,7 +115,7 @@ class StableDiffusionProvider
         $slug = self::MODEL_SLUG_MAP[$model] ?? null;
 
         if ($slug === null) {
-            throw new \RuntimeException(trans('ai.model_not_supported', [
+            throw new ServiceUnavailableException(trans('ai.model_not_supported', [
                 'provider' => 'stability',
                 'model' => $model,
             ]));
@@ -152,7 +154,7 @@ class StableDiffusionProvider
             'body' => $body,
         ]);
 
-        throw new \RuntimeException(trans($errorKey, ['provider' => 'stability']) . ' [' . $status . ']');
+        throw new ServiceUnavailableException(trans($errorKey, ['provider' => 'stability']) . ' [' . $status . ']');
     }
 
     /**
@@ -208,7 +210,7 @@ class StableDiffusionProvider
         $slug = $this->resolveSlug($model);
 
         if (! is_file($imagePath)) {
-            throw new \RuntimeException(trans('ai.image_input_not_found'));
+            throw new NotFoundException(trans('ai.image_input_not_found'));
         }
 
         $formData = array_merge([
@@ -254,7 +256,7 @@ class StableDiffusionProvider
         $this->resolveSlug($model);
 
         if (! is_file($imagePath)) {
-            throw new \RuntimeException(trans('ai.image_input_not_found'));
+            throw new NotFoundException(trans('ai.image_input_not_found'));
         }
 
         $request = $this->http()
@@ -262,7 +264,7 @@ class StableDiffusionProvider
 
         if ($maskPath !== null) {
             if (! is_file($maskPath)) {
-                throw new \RuntimeException(trans('ai.image_mask_not_found'));
+                throw new NotFoundException(trans('ai.image_mask_not_found'));
             }
 
             $request = $request->attach('mask', (string) file_get_contents($maskPath), basename($maskPath));
@@ -283,7 +285,7 @@ class StableDiffusionProvider
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_connection_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, 'editImage', $model);
         } catch (Throwable $e) {
@@ -291,7 +293,7 @@ class StableDiffusionProvider
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_api_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {
@@ -367,7 +369,7 @@ class StableDiffusionProvider
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_connection_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, $operation, $model);
         } catch (Throwable $e) {
@@ -375,7 +377,7 @@ class StableDiffusionProvider
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_api_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -402,7 +404,7 @@ class StableDiffusionProvider
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_connection_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, $operation, $model);
         } catch (Throwable $e) {
@@ -410,7 +412,7 @@ class StableDiffusionProvider
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_api_error', ['provider' => 'stability']) . ': ' . $e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {

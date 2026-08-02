@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Infrastructure\Services;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use MultiTenantSaas\Contracts\IsolationStrategyContract;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Isolation\DatabasePerTenantStrategy;
 use MultiTenantSaas\Isolation\SchemaPerTenantStrategy;
 use MultiTenantSaas\Isolation\SharedDatabaseStrategy;
@@ -166,7 +167,7 @@ class IsolationService
 
         $current = $tenant->isolation_type ?: $this->defaultType();
         if ($current !== $fromStrategy) {
-            throw new RuntimeException(
+            throw new DomainException(
                 trans('tenant.isolation_migrate_type_mismatch', ['current' => $current, 'from' => $fromStrategy])
             );
         }
@@ -280,7 +281,7 @@ class IsolationService
                 ->count();
             $expectedCount = count($rows);
             if ($count !== $expectedCount) {
-                throw new RuntimeException(
+                throw new DomainException(
                     trans('tenant.isolation_migrate_verify_failed', [
                         'table' => $table,
                         'expected' => $expectedCount,

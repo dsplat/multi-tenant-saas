@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Form\Models\Form;
 use MultiTenantSaas\Modules\Form\Models\FormField;
 use MultiTenantSaas\Modules\Form\Models\FormSubmission;
@@ -95,21 +96,21 @@ class FormBuilderService
         $form = Form::findOrFail($formId);
 
         if ($form->status !== 'published') {
-            throw new \RuntimeException(trans('form.form_not_published'));
+            throw new DomainException(trans('form.form_not_published'));
         }
 
         if ($form->start_at && Carbon::parse($form->start_at)->isFuture()) {
-            throw new \RuntimeException(trans('form.form_not_started'));
+            throw new DomainException(trans('form.form_not_started'));
         }
 
         if ($form->end_at && Carbon::parse($form->end_at)->isPast()) {
-            throw new \RuntimeException(trans('form.form_ended'));
+            throw new DomainException(trans('form.form_ended'));
         }
 
         if ($form->submit_limit > 0) {
             $count = FormSubmission::where('form_id', $formId)->count();
             if ($count >= $form->submit_limit) {
-                throw new \RuntimeException(trans('form.form_submit_limit'));
+                throw new DomainException(trans('form.form_submit_limit'));
             }
         }
 
@@ -137,7 +138,7 @@ class FormBuilderService
             $value = $formData[$field->field_key] ?? null;
 
             if ($field->is_required && empty($value) && $value !== '0' && $value !== 0) {
-                throw new \RuntimeException(trans('form.field_required', ['field' => $field->label]));
+                throw new DomainException(trans('form.field_required', ['field' => $field->label]));
             }
 
             if ($value !== null && $value !== '') {
@@ -156,14 +157,14 @@ class FormBuilderService
     protected function validateFieldValue(FormField $field, mixed $value): mixed
     {
         return match ($field->field_type) {
-            'number' => is_numeric($value) ? (float) $value : throw new \RuntimeException("{$field->label} 必须是数字"),
-            'email' => filter_var($value, FILTER_VALIDATE_EMAIL) ? $value : throw new \RuntimeException("{$field->label} 格式不正确"),
-            'phone' => preg_match('/^1[3-9]\d{9}$/', $value) ? $value : throw new \RuntimeException("{$field->label} 格式不正确"),
-            'select', 'radio' => in_array($value, $field->options ?? []) ? $value : throw new \RuntimeException("{$field->label} 选项无效"),
+            'number' => is_numeric($value) ? (float) $value : throw new DomainException("{$field->label} 必须是数字"),
+            'email' => filter_var($value, FILTER_VALIDATE_EMAIL) ? $value : throw new DomainException("{$field->label} 格式不正确"),
+            'phone' => preg_match('/^1[3-9]\d{9}$/', $value) ? $value : throw new DomainException("{$field->label} 格式不正确"),
+            'select', 'radio' => in_array($value, $field->options ?? []) ? $value : throw new DomainException("{$field->label} 选项无效"),
             'multi_select', 'checkbox' => is_array($value) ? $value : [$value],
             'date' => Carbon::parse($value)->toDateString(),
             'datetime' => Carbon::parse($value)->toDateTimeString(),
-            'time' => preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $value) ? $value : throw new \RuntimeException("{$field->label} 时间格式不正确"),
+            'time' => preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $value) ? $value : throw new DomainException("{$field->label} 时间格式不正确"),
             'rating' => max(1, min(5, (int) $value)),
             'signature' => $this->validateSignature($field, $value),
             'location' => $this->validateLocation($field, $value),
@@ -179,12 +180,12 @@ class FormBuilderService
     protected function validateSignature(FormField $field, mixed $value): string
     {
         if (! is_string($value)) {
-            throw new \RuntimeException("{$field->label} 签名数据格式不正确");
+            throw new DomainException("{$field->label} 签名数据格式不正确");
         }
 
         // 验证 base64 格式（支持 data:image/png;base64,... 或纯 base64）
         if (! preg_match('/^(data:image\/(png|jpeg|svg\+xml);base64,)?[A-Za-z0-9+\/=]+$/', $value)) {
-            throw new \RuntimeException("{$field->label} 签名数据格式不正确");
+            throw new DomainException("{$field->label} 签名数据格式不正确");
         }
 
         return $value;
@@ -197,26 +198,26 @@ class FormBuilderService
     protected function validateLocation(FormField $field, mixed $value): array
     {
         if (! is_array($value)) {
-            throw new \RuntimeException("{$field->label} 位置数据格式不正确");
+            throw new DomainException("{$field->label} 位置数据格式不正确");
         }
 
         if (! isset($value['lat']) || ! isset($value['lng'])) {
-            throw new \RuntimeException("{$field->label} 缺少经纬度信息");
+            throw new DomainException("{$field->label} 缺少经纬度信息");
         }
 
         if (! is_numeric($value['lat']) || ! is_numeric($value['lng'])) {
-            throw new \RuntimeException("{$field->label} 经纬度必须是数字");
+            throw new DomainException("{$field->label} 经纬度必须是数字");
         }
 
         $lat = (float) $value['lat'];
         $lng = (float) $value['lng'];
 
         if ($lat < -90 || $lat > 90) {
-            throw new \RuntimeException("{$field->label} 纬度范围不正确");
+            throw new DomainException("{$field->label} 纬度范围不正确");
         }
 
         if ($lng < -180 || $lng > 180) {
-            throw new \RuntimeException("{$field->label} 经度范围不正确");
+            throw new DomainException("{$field->label} 经度范围不正确");
         }
 
         return [
@@ -234,7 +235,7 @@ class FormBuilderService
     protected function validateCascader(FormField $field, mixed $value): array
     {
         if (! is_array($value)) {
-            throw new \RuntimeException("{$field->label} 级联选择数据格式不正确");
+            throw new DomainException("{$field->label} 级联选择数据格式不正确");
         }
 
         // 验证每一级的值
@@ -244,7 +245,7 @@ class FormBuilderService
 
         foreach ($value as $level => $item) {
             if (! is_string($item) && ! is_numeric($item)) {
-                throw new \RuntimeException("{$field->label} 第 " . ($level + 1) . ' 级选择值格式不正确');
+                throw new DomainException("{$field->label} 第 " . ($level + 1) . ' 级选择值格式不正确');
             }
 
             // 查找当前级别是否有该选项
@@ -260,7 +261,7 @@ class FormBuilderService
             }
 
             if (! $found) {
-                throw new \RuntimeException("{$field->label} 第 " . ($level + 1) . ' 级选择值无效');
+                throw new DomainException("{$field->label} 第 " . ($level + 1) . ' 级选择值无效');
             }
         }
 

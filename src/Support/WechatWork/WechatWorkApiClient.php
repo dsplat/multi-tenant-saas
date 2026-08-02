@@ -155,6 +155,81 @@ class WechatWorkApiClient
         return true;
     }
 
+    // ========== 客户群 API（externalcontact scope） ==========
+
+    /**
+     * 获取客户群列表（分页）
+     *
+     * @param  int  $limit  每页数量（最大 1000）
+     * @param  string  $cursor  分页游标
+     * @return array{group_chat_list: array, next_cursor: string}
+     */
+    public function groupChatList(int $limit = 1000, string $cursor = ''): array
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return ['group_chat_list' => [], 'next_cursor' => ''];
+        }
+
+        $payload = ['status_filter' => 0, 'limit' => min($limit, 1000)];
+        if ($cursor !== '') {
+            $payload['cursor'] = $cursor;
+        }
+
+        $response = Http::timeout(15)->post(
+            self::API_BASE . "/externalcontact/groupchat/list?access_token={$accessToken}",
+            $payload
+        );
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] groupchat/list 失败', [
+                'corp_id' => $this->corpId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return ['group_chat_list' => [], 'next_cursor' => ''];
+        }
+
+        return [
+            'group_chat_list' => $response->json('group_chat_list', []),
+            'next_cursor' => $response->json('next_cursor', ''),
+        ];
+    }
+
+    /**
+     * 获取客户群详情（含成员列表）
+     *
+     * @return array<string, mixed>|null 群详情（name/owner/member_list/member_count 等）
+     */
+    public function groupChatGet(string $chatId, bool $needName = true): ?array
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return null;
+        }
+
+        $response = Http::timeout(15)->post(
+            self::API_BASE . "/externalcontact/groupchat/get?access_token={$accessToken}",
+            ['chat_id' => $chatId, 'need_name' => $needName ? 1 : 0]
+        );
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] groupchat/get 失败', [
+                'corp_id' => $this->corpId,
+                'chat_id' => $chatId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return null;
+        }
+
+        return $response->json('group_chat');
+    }
+
     // ========== 微信客服 API（kf scope，独立 token） ==========
 
     /**

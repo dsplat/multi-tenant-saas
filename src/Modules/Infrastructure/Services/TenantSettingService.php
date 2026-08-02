@@ -6,9 +6,7 @@ use MultiTenantSaas\Context\TenantConfigStore;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 
 /**
- * 租户配置服务（DI 实例方法）。
- *
- * 向后兼容：保留 __callStatic 代理，新代码应通过构造器注入使用。
+ * 租户配置服务。
  */
 class TenantSettingService
 {

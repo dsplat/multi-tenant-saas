@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
 use MultiTenantSaas\Modules\Ai\Models\AgentTool;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Dto\Tool;
@@ -144,19 +146,19 @@ class ToolRegistry implements ToolRegistryContract
         $tool = $this->get($slug);
 
         if ($tool === null) {
-            throw new \RuntimeException("工具 [{$slug}] 未注册");
+            throw new DomainException("工具 [{$slug}] 未注册");
         }
 
         $handlerClass = $tool->handlerClass;
 
         if (empty($handlerClass) || ! class_exists($handlerClass)) {
-            throw new \RuntimeException("工具 [{$slug}] 的处理器类 [{$handlerClass}] 不存在");
+            throw new NotFoundException("工具 [{$slug}] 的处理器类 [{$handlerClass}] 不存在");
         }
 
         $handler = $this->container->make($handlerClass);
 
         if (! $handler instanceof ToolHandlerContract) {
-            throw new \RuntimeException(
+            throw new DomainException(
                 "工具 [{$slug}] 的处理器类 [{$handlerClass}] 必须实现 ToolHandlerContract 接口"
             );
         }

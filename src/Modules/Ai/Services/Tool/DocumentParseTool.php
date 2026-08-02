@@ -3,9 +3,13 @@
 namespace MultiTenantSaas\Modules\Ai\Services\Tool;
 
 use Illuminate\Support\Facades\Storage;
+use MultiTenantSaas\Exceptions\NotFoundException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
+use MultiTenantSaas\Exceptions\StorageException;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
 use MultiTenantSaas\Modules\Storage\Models\FileUpload;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use Smalot\PdfParser\Parser;
 use Throwable;
 use ZipArchive;
 
@@ -109,8 +113,8 @@ class DocumentParseTool implements ToolHandlerContract
 
         // PDF（可选依赖 smalot/pdfparser）
         if ($extension === 'pdf' || $mime === 'application/pdf') {
-            if (! class_exists(\Smalot\PdfParser\Parser::class)) {
-                throw new \RuntimeException('PDF 解析组件未安装（smalot/pdfparser），请将文档转存为 docx 或 txt 后重新上传');
+            if (! class_exists(Parser::class)) {
+                throw new ServiceUnavailableException('PDF 解析组件未安装（smalot/pdfparser），请将文档转存为 docx 或 txt 后重新上传');
             }
 
             return ['pdf', $this->withLocalPath($file, fn (string $path) => $this->parsePdf($path))];
@@ -139,7 +143,7 @@ class DocumentParseTool implements ToolHandlerContract
             $path = Storage::disk($disk)->path($file->path);
 
             if (! is_string($path) || ! is_file($path)) {
-                throw new \RuntimeException('not a local file');
+                throw new StorageException('not a local file');
             }
         } catch (Throwable $e) {
             $tempPath = (string) tempnam(sys_get_temp_dir(), 'doc_parse_');
@@ -190,7 +194,7 @@ class DocumentParseTool implements ToolHandlerContract
         $zip = new ZipArchive;
 
         if ($zip->open($path) !== true) {
-            throw new \RuntimeException('docx 文件损坏或无法读取');
+            throw new StorageException('docx 文件损坏或无法读取');
         }
 
         try {
@@ -200,7 +204,7 @@ class DocumentParseTool implements ToolHandlerContract
         }
 
         if ($xml === false) {
-            throw new \RuntimeException('docx 内容缺失（word/document.xml 不存在）');
+            throw new NotFoundException('docx 内容缺失（word/document.xml 不存在）');
         }
 
         // 段落与换行符转为 \n，再剥离全部 XML 标签
@@ -215,7 +219,7 @@ class DocumentParseTool implements ToolHandlerContract
      */
     protected function parsePdf(string $path): string
     {
-        $parser = new \Smalot\PdfParser\Parser;
+        $parser = new Parser;
 
         return $parser->parseFile($path)->getText();
     }

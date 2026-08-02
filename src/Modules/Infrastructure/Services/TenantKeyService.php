@@ -5,6 +5,10 @@ namespace MultiTenantSaas\Modules\Infrastructure\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use MultiTenantSaas\Exceptions\ConflictException;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
+use MultiTenantSaas\Exceptions\StorageException;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantKey;
 use MultiTenantSaas\Scopes\TenantScope;
 
@@ -34,7 +38,7 @@ class TenantKeyService
     public function generateKey(int $tenantId): TenantKey
     {
         if ($this->getActiveKey($tenantId) !== null) {
-            throw new \RuntimeException(trans('tenant.key_already_exists'));
+            throw new ConflictException(trans('tenant.key_already_exists'));
         }
 
         $plain = random_bytes(self::KEY_LENGTH_BYTES);
@@ -52,7 +56,7 @@ class TenantKeyService
     public function importByok(int $tenantId, string $providedKey): TenantKey
     {
         if ($this->getActiveKey($tenantId) !== null) {
-            throw new \RuntimeException(trans('tenant.key_already_exists'));
+            throw new ConflictException(trans('tenant.key_already_exists'));
         }
 
         $plain = $this->normalizeByokKey($providedKey);
@@ -89,7 +93,7 @@ class TenantKeyService
     {
         $key = $this->getActiveKey($tenantId);
         if ($key === null) {
-            throw new \RuntimeException(trans('tenant.key_not_found'));
+            throw new NotFoundException(trans('tenant.key_not_found'));
         }
 
         return $this->encryptWithKey($plaintext, $this->decryptKey($key));
@@ -119,7 +123,7 @@ class TenantKeyService
             }
         }
 
-        throw new \RuntimeException(trans('tenant.key_decrypt_failed'));
+        throw new StorageException(trans('tenant.key_decrypt_failed'));
     }
 
     /**
@@ -136,7 +140,7 @@ class TenantKeyService
     {
         $oldKey = $this->getActiveKey($tenantId);
         if ($oldKey === null) {
-            throw new \RuntimeException(trans('tenant.key_not_found'));
+            throw new NotFoundException(trans('tenant.key_not_found'));
         }
 
         DB::beginTransaction();
@@ -179,7 +183,7 @@ class TenantKeyService
         $newKey = $newKey ?? $this->getActiveKey($tenantId);
 
         if ($oldKey === null || $newKey === null) {
-            throw new \RuntimeException(trans('tenant.key_not_found'));
+            throw new NotFoundException(trans('tenant.key_not_found'));
         }
 
         $oldPlain = $this->decryptKey($oldKey);
@@ -292,7 +296,7 @@ class TenantKeyService
             }
         }
 
-        throw new \RuntimeException(trans('tenant.key_byok_invalid'));
+        throw new DomainException(trans('tenant.key_byok_invalid'));
     }
 
     /**
@@ -305,7 +309,7 @@ class TenantKeyService
         $encrypted = openssl_encrypt($plaintext, $this->cipher(), $masterKey, OPENSSL_RAW_DATA, $iv);
 
         if ($encrypted === false) {
-            throw new \RuntimeException(trans('tenant.key_decrypt_failed'));
+            throw new StorageException(trans('tenant.key_decrypt_failed'));
         }
 
         return base64_encode($iv . $encrypted);
@@ -320,7 +324,7 @@ class TenantKeyService
         $raw = base64_decode($payload, true);
 
         if ($raw === false) {
-            throw new \RuntimeException(trans('tenant.key_decrypt_failed'));
+            throw new StorageException(trans('tenant.key_decrypt_failed'));
         }
 
         $iv = substr($raw, 0, self::IV_LENGTH_BYTES);
@@ -328,7 +332,7 @@ class TenantKeyService
         $decrypted = openssl_decrypt($ciphertext, $this->cipher(), $masterKey, OPENSSL_RAW_DATA, $iv);
 
         if ($decrypted === false) {
-            throw new \RuntimeException(trans('tenant.key_decrypt_failed'));
+            throw new StorageException(trans('tenant.key_decrypt_failed'));
         }
 
         return $decrypted;
@@ -343,7 +347,7 @@ class TenantKeyService
         $encrypted = openssl_encrypt($plaintext, $this->cipher(), $key, OPENSSL_RAW_DATA, $iv);
 
         if ($encrypted === false) {
-            throw new \RuntimeException(trans('tenant.key_decrypt_failed'));
+            throw new StorageException(trans('tenant.key_decrypt_failed'));
         }
 
         return base64_encode($iv . $encrypted);
@@ -359,7 +363,7 @@ class TenantKeyService
         $raw = base64_decode($payload, true);
 
         if ($raw === false) {
-            throw new \RuntimeException(trans('tenant.key_decrypt_failed'));
+            throw new StorageException(trans('tenant.key_decrypt_failed'));
         }
 
         $iv = substr($raw, 0, self::IV_LENGTH_BYTES);
@@ -367,7 +371,7 @@ class TenantKeyService
         $decrypted = openssl_decrypt($ciphertext, $this->cipher(), $key, OPENSSL_RAW_DATA, $iv);
 
         if ($decrypted === false) {
-            throw new \RuntimeException(trans('tenant.key_decrypt_failed'));
+            throw new StorageException(trans('tenant.key_decrypt_failed'));
         }
 
         return $decrypted;
@@ -382,7 +386,7 @@ class TenantKeyService
     {
         $key = config('tenancy.encryption.master_key');
         if (empty($key)) {
-            throw new \RuntimeException(trans('tenant.key_master_key_missing'));
+            throw new DomainException(trans('tenant.key_master_key_missing'));
         }
 
         return hash('sha256', (string) $key, true);

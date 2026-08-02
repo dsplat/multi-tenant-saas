@@ -3,12 +3,15 @@
 namespace MultiTenantSaas\Modules\Ai\Services;
 
 use Illuminate\Http\UploadedFile;
-
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+
 use Illuminate\Support\Str;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Modules\Ai\Services\Ai\Providers\BailianImageProvider;
 use MultiTenantSaas\Modules\Ai\Services\Ai\Providers\DalleImageProvider;
@@ -365,7 +368,7 @@ class AiImageService
         $class = self::PROVIDER_CLASS_MAP[$providerCode] ?? null;
 
         if ($class === null) {
-            throw new RuntimeException(trans('ai.provider_not_implemented', ['provider' => $providerCode]));
+            throw new ServiceUnavailableException(trans('ai.provider_not_implemented', ['provider' => $providerCode]));
         }
 
         return $this->providerCache[$providerCode] = app($class);
@@ -512,7 +515,7 @@ class AiImageService
         $file = FileUpload::find($this->normalizeId($fileUploadId));
 
         if ($file === null) {
-            throw new RuntimeException(trans('ai.image_input_not_found'));
+            throw new NotFoundException(trans('ai.image_input_not_found'));
         }
 
         return $file;
@@ -681,13 +684,13 @@ class AiImageService
     protected function assertPrompt(string $prompt): void
     {
         if (trim($prompt) === '') {
-            throw new RuntimeException(trans('ai.invalid_prompt'));
+            throw new DomainException(trans('ai.invalid_prompt'));
         }
 
         $max = (int) config('ai.image.max_prompt_length', 4000);
 
         if ($max > 0 && mb_strlen($prompt) > $max) {
-            throw new RuntimeException(trans('ai.image_prompt_too_long', ['max' => $max]));
+            throw new DomainException(trans('ai.image_prompt_too_long', ['max' => $max]));
         }
     }
 

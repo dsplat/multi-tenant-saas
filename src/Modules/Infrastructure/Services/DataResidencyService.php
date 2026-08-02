@@ -3,6 +3,9 @@
 namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use RuntimeException;
@@ -75,7 +78,7 @@ class DataResidencyService
         $config = $regions[$region] ?? null;
 
         if (! is_array($config)) {
-            throw new RuntimeException(
+            throw new DomainException(
                 trans('tenant.residency_region_unsupported', ['region' => $region])
             );
         }
@@ -138,19 +141,19 @@ class DataResidencyService
     public function setTenantRegion(int $tenantId, string $region): void
     {
         if (! $this->isValidRegion($region)) {
-            throw new RuntimeException(
+            throw new DomainException(
                 trans('tenant.residency_region_unsupported', ['region' => $region])
             );
         }
 
         $tenant = Tenant::find($tenantId);
         if ($tenant === null) {
-            throw new RuntimeException(trans('tenant.not_found'));
+            throw new NotFoundException(trans('tenant.not_found'));
         }
 
         $plan = (string) ($tenant->subscription_plan ?? 'free');
         if (! $this->isRegionAllowedForPlan($plan, $region)) {
-            throw new RuntimeException(
+            throw new DomainException(
                 trans('tenant.residency_region_not_allowed_by_plan', [
                     'region' => $region,
                     'plan' => $plan,
@@ -224,7 +227,7 @@ class DataResidencyService
         }
 
         if ($throwOnFailure) {
-            throw new RuntimeException(
+            throw new DomainException(
                 trans('tenant.residency_violation', [
                     'expected' => $tenantRegion,
                     'actual' => $dataRegion,
@@ -259,22 +262,22 @@ class DataResidencyService
     public function migrateRegion(int $tenantId, string $fromRegion, string $toRegion): void
     {
         if (! (bool) config('tenancy.residency.cross_region_migration_enabled', true)) {
-            throw new RuntimeException(trans('tenant.residency_migration_disabled'));
+            throw new ServiceUnavailableException(trans('tenant.residency_migration_disabled'));
         }
 
         if (! $this->isValidRegion($fromRegion) || ! $this->isValidRegion($toRegion)) {
-            throw new RuntimeException(trans('tenant.residency_region_unsupported', [
+            throw new DomainException(trans('tenant.residency_region_unsupported', [
                 'region' => $fromRegion . '/' . $toRegion,
             ]));
         }
 
         if ($fromRegion === $toRegion) {
-            throw new RuntimeException(trans('tenant.residency_migration_same_region'));
+            throw new DomainException(trans('tenant.residency_migration_same_region'));
         }
 
         $current = $this->getTenantRegion($tenantId);
         if ($current !== $fromRegion) {
-            throw new RuntimeException(
+            throw new DomainException(
                 trans('tenant.residency_migration_mismatch', [
                     'current' => $current,
                     'from' => $fromRegion,
@@ -284,12 +287,12 @@ class DataResidencyService
 
         $tenant = Tenant::find($tenantId);
         if ($tenant === null) {
-            throw new RuntimeException(trans('tenant.not_found'));
+            throw new NotFoundException(trans('tenant.not_found'));
         }
 
         $plan = (string) ($tenant->subscription_plan ?? 'free');
         if (! $this->isRegionAllowedForPlan($plan, $toRegion)) {
-            throw new RuntimeException(
+            throw new DomainException(
                 trans('tenant.residency_region_not_allowed_by_plan', [
                     'region' => $toRegion,
                     'plan' => $plan,

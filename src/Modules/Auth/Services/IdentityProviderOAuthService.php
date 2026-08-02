@@ -2,8 +2,11 @@
 
 namespace MultiTenantSaas\Modules\Auth\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Auth\Models\OauthAccount;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
@@ -44,7 +47,7 @@ class IdentityProviderOAuthService
             // 标准协议：{login_path}?client_id=&redirect_uri=&state=&provider=
             $state = Str::random(32);
             // 存 state 到 cache（5 分钟有效）
-            \Illuminate\Support\Facades\Cache::put("idp_state:{$state}", $tenantId, 300);
+            Cache::put("idp_state:{$state}", $tenantId, 300);
 
             $params = http_build_query([
                 'client_id' => $this->getClientId($tenantId),
@@ -95,13 +98,13 @@ class IdentityProviderOAuthService
         $state = (string) request()->input('state', '');
 
         if ($code === '' || $state === '') {
-            throw new \RuntimeException(trans('common.invalid_request'));
+            throw new DomainException(trans('common.invalid_request'));
         }
 
         // 验证 state（防 CSRF）
-        $cachedTenant = \Illuminate\Support\Facades\Cache::pull("idp_state:{$state}");
+        $cachedTenant = Cache::pull("idp_state:{$state}");
         if ($cachedTenant === null) {
-            throw new \RuntimeException(trans('common.oauth_state_invalid'));
+            throw new DomainException(trans('common.oauth_state_invalid'));
         }
 
         // 用 code 换 token（POST /token）
@@ -118,7 +121,7 @@ class IdentityProviderOAuthService
 
         if (! $response->successful()) {
             $err = $response->json('error_description', $response->json('message', 'Token exchange failed'));
-            throw new \RuntimeException($err);
+            throw new DomainException($err);
         }
 
         $data = $response->json();
@@ -134,7 +137,7 @@ class IdentityProviderOAuthService
         $token = (string) request()->input('token', '');
 
         if ($token === '') {
-            throw new \RuntimeException(trans('common.invalid_request'));
+            throw new DomainException(trans('common.invalid_request'));
         }
 
         $base = $this->getBaseUrl($tenantId);
@@ -153,13 +156,13 @@ class IdentityProviderOAuthService
         ]);
 
         if (! $response->successful()) {
-            throw new \RuntimeException('Identity provider verification failed');
+            throw new ServiceUnavailableException('Identity provider verification failed');
         }
 
         $data = $response->json();
 
         if (empty($data['success']) || empty($data['data']['valid'])) {
-            throw new \RuntimeException('Identity provider token invalid');
+            throw new DomainException('Identity provider token invalid');
         }
 
         $idpUser = $data['data']['user'] ?? [];
@@ -217,7 +220,7 @@ class IdentityProviderOAuthService
         $oauthBindings = $idpUser['oauth_bindings'] ?? [];
 
         if ($guid === '') {
-            throw new \RuntimeException('IdP returned empty user identifier');
+            throw new ServiceUnavailableException('IdP returned empty user identifier');
         }
 
         $nsProvider = app(SocialiteService::class)->namespacedProvider($provider, $tenantId);

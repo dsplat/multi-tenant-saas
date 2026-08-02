@@ -3,12 +3,15 @@
 namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
 use Barryvdh\DomPDF\Facade\Pdf;
-
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+
 use Illuminate\Support\Facades\Storage;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
+use MultiTenantSaas\Exceptions\PermissionDeniedException;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -182,16 +185,16 @@ class ExportService
         $task = DB::table(self::TABLE)->where('id', $taskId)->first();
 
         if (! $task) {
-            throw new \RuntimeException(trans('common.task_not_found'));
+            throw new NotFoundException(trans('common.task_not_found'));
         }
 
         if ($task->status !== self::STATUS_COMPLETED) {
-            throw new \RuntimeException(trans('common.task_not_completed'));
+            throw new DomainException(trans('common.task_not_completed'));
         }
 
         $path = $task->file_path ?? '';
         if (! $path || ! Storage::disk(self::DISK)->exists($path)) {
-            throw new \RuntimeException(trans('common.file_not_found'));
+            throw new NotFoundException(trans('common.file_not_found'));
         }
 
         $tenantId = TenantContext::getId();
@@ -202,7 +205,7 @@ class ExportService
         // 用户级权限检查：当前用户必须为该导出任务的所有者
         $userId = auth()->id();
         if (! $userId || (int) ($task->user_id ?? 0) !== (int) $userId) {
-            throw new \RuntimeException(trans('common.cross_tenant_forbidden'));
+            throw new PermissionDeniedException(trans('common.cross_tenant_forbidden'));
         }
 
         return Storage::disk(self::DISK)->download($path);

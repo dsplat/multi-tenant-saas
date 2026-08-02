@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Auth\Models\OauthAccount;
 use MultiTenantSaas\Modules\Auth\Models\SsoProvider;
 use MultiTenantSaas\Modules\Auth\Models\User;
@@ -117,7 +119,7 @@ class SsoService
     public function initiate(SsoProvider $provider, string $acsUrl): array
     {
         if (! $provider->isActive()) {
-            throw new \RuntimeException(trans('auth.sso_provider_disabled'));
+            throw new ServiceUnavailableException(trans('auth.sso_provider_disabled'));
         }
 
         $state = Str::random(32);
@@ -127,7 +129,7 @@ class SsoService
         } elseif ($provider->isOidc()) {
             $url = $this->buildOidcAuthorizeUrl($provider, $acsUrl, $state);
         } else {
-            throw new \RuntimeException(trans('auth.sso_provider_type_invalid'));
+            throw new DomainException(trans('auth.sso_provider_type_invalid'));
         }
 
         return ['redirect_url' => $url, 'state' => $state];
@@ -142,7 +144,7 @@ class SsoService
     public function handleCallback(SsoProvider $provider, array $input, string $acsUrl): array
     {
         if (! $provider->isActive()) {
-            throw new \RuntimeException(trans('auth.sso_provider_disabled'));
+            throw new ServiceUnavailableException(trans('auth.sso_provider_disabled'));
         }
 
         if ($provider->isSaml()) {
@@ -150,13 +152,13 @@ class SsoService
         } elseif ($provider->isOidc()) {
             $rawAttributes = $this->handleOidcCallback($provider, $input, $acsUrl);
         } else {
-            throw new \RuntimeException(trans('auth.sso_provider_type_invalid'));
+            throw new DomainException(trans('auth.sso_provider_type_invalid'));
         }
 
         $attributes = $this->mapAttributes($provider, $rawAttributes);
 
         if (empty($attributes['external_id'])) {
-            throw new \RuntimeException(trans('auth.sso_external_id_missing'));
+            throw new DomainException(trans('auth.sso_external_id_missing'));
         }
 
         [$user, $isNew] = $this->findOrCreateUser($provider, $attributes);
@@ -239,7 +241,7 @@ class SsoService
     {
         $xml = base64_decode($samlResponseBase64, true);
         if ($xml === false) {
-            throw new \RuntimeException(trans('auth.saml_response_invalid'));
+            throw new DomainException(trans('auth.saml_response_invalid'));
         }
 
         return $this->parseSamlResponseXml($xml);
@@ -259,7 +261,7 @@ class SsoService
         libxml_use_internal_errors($previousLibxml);
 
         if (! $loaded) {
-            throw new \RuntimeException(trans('auth.saml_response_invalid'));
+            throw new DomainException(trans('auth.saml_response_invalid'));
         }
 
         $xpath = new \DOMXPath($doc);
@@ -415,12 +417,12 @@ class SsoService
         ]);
 
         if (! $response->successful()) {
-            throw new \RuntimeException(trans('auth.oidc_token_exchange_failed'));
+            throw new ServiceUnavailableException(trans('auth.oidc_token_exchange_failed'));
         }
 
         $tokenData = $response->json();
         if (! is_array($tokenData) || empty($tokenData['access_token'])) {
-            throw new \RuntimeException(trans('auth.oidc_token_exchange_failed'));
+            throw new ServiceUnavailableException(trans('auth.oidc_token_exchange_failed'));
         }
 
         return $tokenData;
@@ -436,12 +438,12 @@ class SsoService
         $response = Http::withToken($accessToken)->get($provider->userinfo_url ?? '');
 
         if (! $response->successful()) {
-            throw new \RuntimeException(trans('auth.oidc_userinfo_failed'));
+            throw new ServiceUnavailableException(trans('auth.oidc_userinfo_failed'));
         }
 
         $userinfo = $response->json();
         if (! is_array($userinfo)) {
-            throw new \RuntimeException(trans('auth.oidc_userinfo_failed'));
+            throw new ServiceUnavailableException(trans('auth.oidc_userinfo_failed'));
         }
 
         return $userinfo;
@@ -570,18 +572,18 @@ class SsoService
     {
         $samlResponse = (string) ($input['SAMLResponse'] ?? '');
         if ($samlResponse === '') {
-            throw new \RuntimeException(trans('auth.saml_response_missing'));
+            throw new DomainException(trans('auth.saml_response_missing'));
         }
 
         $xml = base64_decode($samlResponse, true);
         if ($xml === false) {
-            throw new \RuntimeException(trans('auth.saml_response_invalid'));
+            throw new DomainException(trans('auth.saml_response_invalid'));
         }
 
         // 签名校验（如果配置了证书则强制校验）
         $certificate = (string) ($provider->certificate ?? '');
         if ($certificate !== '' && ! $this->verifySamlSignature($xml, $certificate)) {
-            throw new \RuntimeException(trans('auth.saml_signature_invalid'));
+            throw new DomainException(trans('auth.saml_signature_invalid'));
         }
 
         $parsed = $this->parseSamlResponseXml($xml);
@@ -604,7 +606,7 @@ class SsoService
     {
         $code = (string) ($input['code'] ?? '');
         if ($code === '') {
-            throw new \RuntimeException(trans('auth.oidc_code_missing'));
+            throw new DomainException(trans('auth.oidc_code_missing'));
         }
 
         $tokenData = $this->exchangeOidcCode($provider, $code, $acsUrl);
@@ -628,18 +630,18 @@ class SsoService
     {
         $parts = explode('.', $jwt);
         if (count($parts) < 2) {
-            throw new \RuntimeException(trans('auth.oidc_jwt_invalid'));
+            throw new DomainException(trans('auth.oidc_jwt_invalid'));
         }
 
         $payload = base64_decode(strtr($parts[1], '-_', '+/'), true);
         if ($payload === false) {
-            throw new \RuntimeException(trans('auth.oidc_jwt_invalid'));
+            throw new DomainException(trans('auth.oidc_jwt_invalid'));
         }
 
         $data = json_decode($payload, true);
 
         if (! is_array($data)) {
-            throw new \RuntimeException(trans('auth.oidc_jwt_invalid'));
+            throw new DomainException(trans('auth.oidc_jwt_invalid'));
         }
 
         return $data;
@@ -713,7 +715,7 @@ class SsoService
         ]);
 
         if ($validator->fails()) {
-            throw new \RuntimeException(implode(';', $validator->errors()->all()));
+            throw new DomainException(implode(';', $validator->errors()->all()));
         }
     }
 }

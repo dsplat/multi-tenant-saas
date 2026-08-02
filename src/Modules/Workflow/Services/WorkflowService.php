@@ -9,6 +9,8 @@ use Illuminate\Support\Collection;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Contracts\WorkflowEngineContract;
 use MultiTenantSaas\Contracts\WorkflowServiceContract;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Workflow\Models\Workflow;
 use MultiTenantSaas\Modules\Workflow\Models\WorkflowExecution;
 
@@ -85,11 +87,11 @@ class WorkflowService implements WorkflowServiceContract
         }
 
         if ($workflow->status !== 'active') {
-            throw new \RuntimeException("Workflow {$workflowId} is not active");
+            throw new DomainException("Workflow {$workflowId} is not active");
         }
 
         if (! $workflow->enabled) {
-            throw new \RuntimeException("Workflow {$workflowId} is disabled");
+            throw new ServiceUnavailableException("Workflow {$workflowId} is disabled");
         }
 
         return $this->engine->execute($workflow, $context);

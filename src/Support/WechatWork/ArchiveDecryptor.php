@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Support\WechatWork;
 
-use RuntimeException;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 
 class ArchiveDecryptor
 {
@@ -13,7 +14,7 @@ class ArchiveDecryptor
     public function __construct(string $encodingAesKey)
     {
         if ($encodingAesKey === '') {
-            throw new RuntimeException('encodingAesKey is required');
+            throw new DomainException('encodingAesKey is required');
         }
 
         $this->aesKey = substr(base64_decode($encodingAesKey . '='), 0, 32);
@@ -66,13 +67,13 @@ class ArchiveDecryptor
         $privateKey = openssl_pkey_get_private($privateKeyPem);
 
         if ($privateKey === false) {
-            throw new RuntimeException('Invalid RSA private key');
+            throw new ServiceUnavailableException('Invalid RSA private key');
         }
 
         $decrypted = '';
 
         if (! openssl_private_decrypt(base64_decode($encryptedKey), $decrypted, $privateKey)) {
-            throw new RuntimeException('RSA decryption failed');
+            throw new ServiceUnavailableException('RSA decryption failed');
         }
 
         return $decrypted;

@@ -8,6 +8,7 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use Throwable;
 
 /**
@@ -90,7 +91,7 @@ class RunwayProvider
         $key = (string) $this->config('api_key', '');
 
         if ($key === '') {
-            throw new \RuntimeException(trans('ai.provider_not_configured', ['provider' => 'runway']));
+            throw new ServiceUnavailableException(trans('ai.provider_not_configured', ['provider' => 'runway']));
         }
 
         return $key;
@@ -132,7 +133,7 @@ class RunwayProvider
     protected function assertModelSupported(string $model): void
     {
         if (! in_array($model, self::SUPPORTED_MODELS, true)) {
-            throw new \RuntimeException(trans('ai.model_not_supported', [
+            throw new ServiceUnavailableException(trans('ai.model_not_supported', [
                 'provider' => 'runway',
                 'model' => $model,
             ]));
@@ -179,7 +180,7 @@ class RunwayProvider
             'body' => $body,
         ]);
 
-        throw new \RuntimeException(trans($errorKey, ['provider' => 'runway']) . ' [' . $status . ']');
+        throw new ServiceUnavailableException(trans($errorKey, ['provider' => 'runway']) . ' [' . $status . ']');
     }
 
     /**
@@ -306,7 +307,7 @@ class RunwayProvider
                 'task_id' => $taskId,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'runway']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_connection_error', ['provider' => 'runway']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, 'getTaskStatus', '');
         } catch (Throwable $e) {
@@ -314,7 +315,7 @@ class RunwayProvider
                 'task_id' => $taskId,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'runway']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_api_error', ['provider' => 'runway']) . ': ' . $e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {
@@ -340,7 +341,7 @@ class RunwayProvider
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'runway']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_connection_error', ['provider' => 'runway']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, $operation, $model);
         } catch (Throwable $e) {
@@ -348,7 +349,7 @@ class RunwayProvider
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'runway']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_api_error', ['provider' => 'runway']) . ': ' . $e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {

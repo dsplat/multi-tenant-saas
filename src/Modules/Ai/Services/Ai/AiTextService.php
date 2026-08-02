@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\Ai\Services\Ai;
 
 use MultiTenantSaas\Contracts\AiTextServiceContract;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Ai\Services\Ai\Drivers\AiDriverContract;
 
 /**
@@ -101,7 +102,7 @@ class AiTextService implements AiTextServiceContract
         $class = $this->config['drivers'][$name] ?? null;
 
         if ($class === null || ! class_exists($class) || ! is_subclass_of($class, AiDriverContract::class)) {
-            throw new \RuntimeException("AI driver [{$name}] is not registered in config(ai.drivers).");
+            throw new DomainException("AI driver [{$name}] is not registered in config(ai.drivers).");
         }
 
         return $this->drivers[$name] = new $class;

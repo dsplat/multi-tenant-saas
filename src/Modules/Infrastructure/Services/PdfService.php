@@ -3,14 +3,13 @@
 namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
 use Barryvdh\DomPDF\Facade\Pdf;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * PDF 服务（DI 实例方法）。
+ * PDF 服务。
  *
  * 集成 barryvdh/laravel-dompdf
- *
- * 向后兼容：保留 __callStatic 代理，新代码应通过构造器注入使用。
  */
 class PdfService
 {
@@ -22,7 +21,7 @@ class PdfService
         try {
             $pdf = Pdf::loadView($view, $data);
         } catch (\Throwable $e) {
-            throw new \RuntimeException('PDF service unavailable: ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException('PDF service unavailable: ' . $e->getMessage(), 0, $e);
         }
 
         if ($outputPath) {

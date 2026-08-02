@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Auth\Models\OauthAccount;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Auth\Services\Concerns\ManagesOAuthState;
@@ -55,7 +57,7 @@ class WechatWorkOAuthService
         $secret = TenantSetting::get($tenantId, 'oauth', 'wechat_work_secret', '');
 
         if (empty($corpId) || empty($secret)) {
-            throw new \RuntimeException(trans('common.oauth_not_configured', ['provider' => 'wechat_work', 'tenant' => $tenantId]));
+            throw new ServiceUnavailableException(trans('common.oauth_not_configured', ['provider' => 'wechat_work', 'tenant' => $tenantId]));
         }
 
         return [
@@ -105,7 +107,7 @@ class WechatWorkOAuthService
         $this->verifyState($state, $tenantId, 'wechat_work');
 
         if ($code === '') {
-            throw new \RuntimeException(trans('common.invalid_request'));
+            throw new DomainException(trans('common.invalid_request'));
         }
 
         $accessToken = $this->getAccessToken($tenantId);
@@ -117,7 +119,7 @@ class WechatWorkOAuthService
             // 非企业成员扫码，返回数据中无 userid，仅有 openid
             $openId = $userIdentity['openid'] ?? $userIdentity['OpenId'] ?? '';
             if ($openId === '') {
-                throw new \RuntimeException('WechatWork: neither UserId nor OpenId returned');
+                throw new ServiceUnavailableException('WechatWork: neither UserId nor OpenId returned');
             }
             $userId = $openId;
         }
@@ -164,7 +166,7 @@ class WechatWorkOAuthService
         $expiresIn = (int) ($data['expires_in'] ?? 7200);
 
         if ($token === '') {
-            throw new \RuntimeException('WechatWork: empty access_token returned');
+            throw new ServiceUnavailableException('WechatWork: empty access_token returned');
         }
 
         // 提前 5 分钟过期，避免边界问题
@@ -220,7 +222,7 @@ class WechatWorkOAuthService
                 'status' => $resp->status(),
                 'body' => $resp->body(),
             ]);
-            throw new \RuntimeException("WechatWork API request failed: HTTP {$resp->status()}");
+            throw new ServiceUnavailableException("WechatWork API request failed: HTTP {$resp->status()}");
         }
 
         $data = $resp->json();
@@ -233,7 +235,7 @@ class WechatWorkOAuthService
                 'errcode' => $errCode,
                 'errmsg' => $errMsg,
             ]);
-            throw new \RuntimeException("WechatWork API error [{$errCode}]: {$errMsg}");
+            throw new ServiceUnavailableException("WechatWork API error [{$errCode}]: {$errMsg}");
         }
 
         return $data;

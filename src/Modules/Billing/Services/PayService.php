@@ -4,6 +4,8 @@ namespace MultiTenantSaas\Modules\Billing\Services;
 
 use Illuminate\Http\Request;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use Yansongda\Pay\Pay;
 
@@ -60,7 +62,7 @@ class PayService
         $config = array_filter($config, fn ($v) => $v !== '' && $v !== null);
 
         if (empty($config)) {
-            throw new \RuntimeException("租户 {$tenantId} 未配置 {$driver} 支付");
+            throw new ServiceUnavailableException("租户 {$tenantId} 未配置 {$driver} 支付");
         }
 
         return Pay::$driver($config);
@@ -144,7 +146,7 @@ class PayService
         $tenantId = $request->query('tenant_id');
 
         if (! $tenantId) {
-            throw new \RuntimeException(trans('payment.missing_tenant_callback'));
+            throw new DomainException(trans('payment.missing_tenant_callback'));
         }
 
         // 使用租户配置创建 Pay 实例（包含验签）

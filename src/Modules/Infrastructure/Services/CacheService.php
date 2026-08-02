@@ -3,9 +3,10 @@
 namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
 use Illuminate\Support\Facades\Cache;
-
 use Illuminate\Support\Facades\Log;
+
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 /**
@@ -142,7 +143,7 @@ class CacheService
     public function clearAll(): bool
     {
         if (TenantContext::getDomainType() !== 'admin') {
-            throw new \RuntimeException(trans('common.admin_only'));
+            throw new DomainException(trans('common.admin_only'));
         }
 
         Cache::flush();

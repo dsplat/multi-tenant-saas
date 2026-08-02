@@ -3,13 +3,14 @@
 namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-
 use Illuminate\Support\Collection;
+
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 /**
@@ -96,7 +97,7 @@ class AlertService
     {
         $name = $rule['name'] ?? '';
         if (empty($name)) {
-            throw new \RuntimeException(trans('common.rule_name_required'));
+            throw new DomainException(trans('common.rule_name_required'));
         }
 
         $id = DB::table(self::TABLE_RULES)->insertGetId([

@@ -235,7 +235,7 @@ PRIMARY KEY (`import_job_id`),
 | SMELL-001 | **已修复** | 通知路由已提取为 InAppNotificationController |
 | SMELL-002 | **已修复** | CSP 头已添加，仅对 HTML 页面下发 |
 | SMELL-003 | 未修复 | localStorage 存 Token（需前后端联调，影响面大） |
-| SMELL-004 | 未修复 | __callStatic 广泛使用（需制定迁移计划） |
+| SMELL-004 | **已修复** | __callStatic 已全部清除（7 个残留注释已删除，实际无静态调用） |
 | SMELL-005 | **已修复** | BillingServiceProvider 工具注册已重构为数组+循环 |
 | SMELL-006 | 未修复 | 前端无测试（需引入 vitest） |
 | SMELL-007 | **已修复** | 迁移已全部重构为 Schema Builder |
@@ -426,19 +426,49 @@ app(AuditService::class)->log('create', 'tenant', ...);
 | 编号 | 类型 | 说明 | 优先级 |
 |------|------|------|--------|
 | SMELL-003 | 安全 | 前端 localStorage 存 Token（需前后端联调） | P1 |
-| SMELL-004 | 技术债务 | 7 个 Service 保留 `__callStatic`（已从 23 个降至 7 个） | P2 |
-| SMELL-006 | 质量 | 前端无测试（需引入 vitest） | P2 |
-| TODO-001~003 | 功能 | 3 处 TODO 未完成（自动扣款、用量查询、模型废弃追踪） | P2 |
-| D2 | 结构 | AgentRuntime 1627 行/9 构造参数（建议独立拆分） | P2 |
 
-## 综合评价
+---
 
-**两轮审查发现的 20 个问题中，15 个已修复，1 个合理延期，4 个遗留。** 修复质量高：
+# 第四轮审查 — 最终确认
 
-- 异常体系从零到完整，`HttpExceptionInterface` 保证状态码正确传递，生产环境 5xx 脱敏
-- 事件系统从 2 监听器扩展到 6 监听器，覆盖 Agent/Tool 生命周期
-- `BaseController` + `ApiResponse` 统一了 API 响应格式
-- 防御式审计写入（`audit()` try-catch）避免副作用中断主流程
-- `bootstrap/app.php` 替代了 Laravel 11 已废弃的 `Handler.php`
+> 审查日期: 2026-08-01
+> 方法: 逐项源码验证
 
-框架核心设计（租户隔离、模块系统、面向接口）依然扎实，异常体系和事件系统的补全显著提升了可维护性。
+## 验证结果
+
+| 检查项 | 结果 | 详情 |
+|--------|------|------|
+| `throw new \RuntimeException` | **0 处** ✅ | 从 332 处清零 |
+| `__callStatic` | **0 处** ✅ | 从 23 处清零 |
+| 领域异常体系 | **420 处 throw，157 处 import** ✅ | 覆盖 DomainException/NotFoundException/ConflictException/ServiceUnavailableException/QuotaExceededException/PermissionDeniedException/StorageException/InsufficientCreditsException |
+| 架构守卫 pre-commit | **5 项检查** ✅ | 大小写冲突、模块 PascalCase、PSR-4 一致性、RuntimeException 禁用、KB 索引新鲜度 |
+| 前端测试 | **5 个测试文件** ✅ | admin: guards + user-store + tenant-store; console: guards + user-store |
+| AgentRuntime 拆分 | **已完成** ✅ | 1627 行→763 行，拆出 AgentChatClient(267) / AgentContextBuilder(345) / AgentToolExecutor(388) |
+| TODO 残留 | **1 处** | ApiTokenService.php:384（依赖外部 API，合理保留） |
+| localStorage Token | **未修复** | 架构决策，需前后端联调 |
+
+## 测试质量确认
+
+前端测试覆盖了关键路径：
+- **路由守卫**: 公开页放行、未登录跳转、token 失效清理、已登录放行
+- **User Store**: 权限判断、登录/登出、token 持久化、init 容错（403 重试、401 清除、5xx 保留 token）
+- **Console User Store**: MFA 场景、Operator 多租户选择、Legacy User 登录、租户上下文管理
+
+## 最终综合评价
+
+**四轮审查累计发现 22 个问题，已修复 21 个，1 个遗留。**
+
+框架质量从第一轮到第四轮有显著提升：
+
+| 维度 | 第一轮 | 第四轮 |
+|------|--------|--------|
+| RuntimeException | 332 处 | 0 处 |
+| 自定义异常使用 | 5 处 | 420 处 |
+| __callStatic | 23 处 | 0 处 |
+| 事件监听器 | 2 个 | 6 个 |
+| 前端测试 | 0 个 | 5 个文件 |
+| 架构守卫 | 无 | pre-commit 5 项检查 |
+| API 响应格式 | 各 Controller 自行编写 | BaseController + ApiResponse 统一 |
+| AgentRuntime | 1627 行/9 参数 | 763 行/8 参数 + 3 协作者 |
+
+核心架构（租户隔离 fail-closed、模块系统拓扑排序、19 个 Contract 接口）始终扎实，技术债已大幅清理。

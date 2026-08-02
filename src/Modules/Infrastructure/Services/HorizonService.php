@@ -5,11 +5,9 @@ namespace MultiTenantSaas\Modules\Infrastructure\Services;
 use Laravel\Horizon\Horizon;
 
 /**
- * 队列监控服务（DI 实例方法）。
+ * 队列监控服务。
  *
  * 集成 laravel/horizon
- *
- * 向后兼容：保留 __callStatic 代理，新代码应通过构造器注入使用。
  */
 class HorizonService
 {

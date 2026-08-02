@@ -3,9 +3,12 @@
 namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use MultiTenantSaas\Exceptions\DomainException;
+
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
+use MultiTenantSaas\Exceptions\StorageException;
 use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
 use MultiTenantSaas\Modules\Billing\Models\FinancialRecord;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
@@ -253,7 +256,7 @@ class TenantProfileService
             throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new \RuntimeException(trans('common.trial_start_failed') . ': ' . $e->getMessage(), 0, $e);
+            throw new StorageException(trans('common.trial_start_failed') . ': ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -286,7 +289,7 @@ class TenantProfileService
     public function migrateData(int $sourceTenantId, int $targetTenantId, array $resources = ['users', 'files', 'settings']): array
     {
         if ($sourceTenantId === $targetTenantId) {
-            throw new \RuntimeException(trans('common.migration_same_tenant'));
+            throw new DomainException(trans('common.migration_same_tenant'));
         }
 
         $migrated = [];
@@ -323,7 +326,7 @@ class TenantProfileService
             return $migrated;
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new \RuntimeException(trans('common.data_migration_failed') . ': ' . $e->getMessage(), 0, $e);
+            throw new StorageException(trans('common.data_migration_failed') . ': ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -394,7 +397,7 @@ class TenantProfileService
             return $counts;
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new \RuntimeException(trans('common.cleanup_failed') . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('common.cleanup_failed') . ': ' . $e->getMessage(), 0, $e);
         }
     }
 }

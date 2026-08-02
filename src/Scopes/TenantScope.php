@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Scope;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Exceptions\DomainException;
 
 /**
  * 租户全局作用域（fail-closed）
@@ -66,7 +67,7 @@ class TenantScope implements Scope
         $tenantId = TenantContext::getId();
 
         if ($tenantId) {
-            $builder->where($model->getTable().'.tenant_id', $tenantId);
+            $builder->where($model->getTable() . '.tenant_id', $tenantId);
 
             return;
         }
@@ -134,7 +135,7 @@ class TenantScope implements Scope
         $domainType = TenantContext::getDomainType();
 
         if ($domainType !== 'admin') {
-            throw new \RuntimeException(
+            throw new DomainException(
                 "安全限制：{$method}() 仅允许在系统后台 (admin) 使用，当前域名类型: {$domainType}"
             );
         }

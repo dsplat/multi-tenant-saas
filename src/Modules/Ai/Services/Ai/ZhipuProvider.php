@@ -9,6 +9,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\AiProviderContract;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use Psr\Http\Message\StreamInterface;
 use Throwable;
 
@@ -71,7 +72,7 @@ class ZhipuProvider implements AiProviderContract
         $key = (string) $this->config('api_key', '');
 
         if ($key === '') {
-            throw new \RuntimeException(trans('ai.provider_not_configured', ['provider' => 'zhipu']));
+            throw new ServiceUnavailableException(trans('ai.provider_not_configured', ['provider' => 'zhipu']));
         }
 
         return $key;
@@ -109,7 +110,7 @@ class ZhipuProvider implements AiProviderContract
         $parts = explode('.', $apiKey, 2);
 
         if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
-            throw new \RuntimeException(trans('ai.provider_auth_failed', ['provider' => 'zhipu']));
+            throw new ServiceUnavailableException(trans('ai.provider_auth_failed', ['provider' => 'zhipu']));
         }
 
         [$id, $secret] = $parts;
@@ -164,7 +165,7 @@ class ZhipuProvider implements AiProviderContract
     protected function assertModelSupported(string $model): void
     {
         if (! in_array($model, self::SUPPORTED_MODELS, true)) {
-            throw new \RuntimeException(trans('ai.model_not_supported', [
+            throw new ServiceUnavailableException(trans('ai.model_not_supported', [
                 'provider' => 'zhipu',
                 'model' => $model,
             ]));
@@ -201,7 +202,7 @@ class ZhipuProvider implements AiProviderContract
             'body' => $body,
         ]);
 
-        throw new \RuntimeException(trans($errorKey, ['provider' => 'zhipu']) . ' [' . $status . ']');
+        throw new ServiceUnavailableException(trans($errorKey, ['provider' => 'zhipu']) . ' [' . $status . ']');
     }
 
     /**
@@ -223,7 +224,7 @@ class ZhipuProvider implements AiProviderContract
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_connection_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, 'chatCompletion', $model);
         } catch (Throwable $e) {
@@ -231,7 +232,7 @@ class ZhipuProvider implements AiProviderContract
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_api_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {
@@ -298,7 +299,7 @@ class ZhipuProvider implements AiProviderContract
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_connection_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, 'embeddings', $model);
         } catch (Throwable $e) {
@@ -306,7 +307,7 @@ class ZhipuProvider implements AiProviderContract
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_api_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {
@@ -358,7 +359,7 @@ class ZhipuProvider implements AiProviderContract
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_connection_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, 'streamChatCompletion', $model);
         } catch (Throwable $e) {
@@ -366,7 +367,7 @@ class ZhipuProvider implements AiProviderContract
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_api_error', ['provider' => 'zhipu']) . ': ' . $e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {

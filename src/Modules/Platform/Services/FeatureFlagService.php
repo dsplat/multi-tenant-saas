@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Exceptions\NotFoundException;
 use MultiTenantSaas\Modules\Infrastructure\Models\FeatureFlag;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
@@ -504,7 +505,7 @@ class FeatureFlagService
     {
         $flag = $this->find($name);
         if (! $flag) {
-            throw new \RuntimeException(trans('common.feature_flag_not_found', ['name' => $name]));
+            throw new NotFoundException(trans('common.feature_flag_not_found', ['name' => $name]));
         }
 
         return $flag;

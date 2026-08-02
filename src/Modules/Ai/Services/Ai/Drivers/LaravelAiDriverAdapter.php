@@ -6,10 +6,11 @@ namespace MultiTenantSaas\Modules\Ai\Services\Ai\Drivers;
 
 use Generator;
 use Illuminate\Support\Arr;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Ai\Services\Ai\AiResponse;
 use MultiTenantSaas\Modules\Ai\Services\Ai\Providers\LaravelAiProviderAdapter;
 use MultiTenantSaas\Modules\Ai\Services\Ai\StreamChunk;
-use RuntimeException;
 
 /**
  * Laravel AI SDK Driver 适配器
@@ -99,7 +100,7 @@ class LaravelAiDriverAdapter implements AiDriverContract
         $providerConfig = $this->resolvedConfig['providers'][$name] ?? null;
 
         if (! $providerConfig) {
-            throw new RuntimeException("Provider [{$name}] 未配置");
+            throw new ServiceUnavailableException("Provider [{$name}] 未配置");
         }
 
         if (! isset($providerConfig['driver'])) {
@@ -109,7 +110,7 @@ class LaravelAiDriverAdapter implements AiDriverContract
         $provider = new LaravelAiProviderAdapter($providerConfig);
 
         if (! $provider->isAvailable()) {
-            throw new RuntimeException("Provider [{$name}] 不可用（缺少 API Key）");
+            throw new DomainException("Provider [{$name}] 不可用（缺少 API Key）");
         }
 
         $this->providers[$name] = $provider;

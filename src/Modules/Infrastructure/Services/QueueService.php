@@ -3,12 +3,14 @@
 namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
 use Illuminate\Support\Collection;
-
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
+
 use Laravel\Horizon\Contracts\JobRepository;
 use Laravel\Horizon\Horizon;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
+use MultiTenantSaas\Exceptions\StorageException;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 /**
@@ -139,7 +141,7 @@ class QueueService
     public function retryFailed(string|int $jobId): bool
     {
         if (! $this->isHorizonAvailable()) {
-            throw new \RuntimeException(trans('common.horizon_not_available'));
+            throw new ServiceUnavailableException(trans('common.horizon_not_available'));
         }
 
         try {
@@ -155,7 +157,7 @@ class QueueService
 
             return true;
         } catch (\Throwable $e) {
-            throw new \RuntimeException(trans('common.job_retry_failed') . ': ' . $e->getMessage(), 0, $e);
+            throw new StorageException(trans('common.job_retry_failed') . ': ' . $e->getMessage(), 0, $e);
         }
     }
 

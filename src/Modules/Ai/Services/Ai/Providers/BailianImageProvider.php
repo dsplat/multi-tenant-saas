@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Modules\Ai\Services\Ai\Providers;
 
 use Illuminate\Support\Facades\Http;
-use RuntimeException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 
 /**
  * 阿里云百炼图片生成提供商（OpenAI 兼容 images 端点）
@@ -27,7 +27,7 @@ class BailianImageProvider
         $apiKey = (string) ($config['api_key'] ?? $config['key'] ?? '');
 
         if ($baseUrl === '' || $apiKey === '') {
-            throw new RuntimeException('bailian provider 未配置（AI_BAILIAN_BASE_URL / AI_BAILIAN_API_KEY）');
+            throw new ServiceUnavailableException('bailian provider 未配置（AI_BAILIAN_BASE_URL / AI_BAILIAN_API_KEY）');
         }
 
         $size = (string) ($options['size'] ?? config('ai.image.default_size', '1024x1024'));
@@ -45,7 +45,7 @@ class BailianImageProvider
         if ($response->failed()) {
             $message = (string) ($response->json('error.message') ?? $response->body());
 
-            throw new RuntimeException("bailian 图片生成失败（HTTP {$response->status()}）：{$message}");
+            throw new ServiceUnavailableException("bailian 图片生成失败（HTTP {$response->status()}）：{$message}");
         }
 
         $images = [];
@@ -59,7 +59,7 @@ class BailianImageProvider
         }
 
         if ($images === []) {
-            throw new RuntimeException('bailian 图片生成返回空结果');
+            throw new ServiceUnavailableException('bailian 图片生成返回空结果');
         }
 
         return [
@@ -79,7 +79,7 @@ class BailianImageProvider
      */
     public function imageToImage(string $model, string $imagePath, string $prompt, array $options = []): array
     {
-        throw new RuntimeException(trans('ai.image_operation_not_supported', [
+        throw new ServiceUnavailableException(trans('ai.image_operation_not_supported', [
             'provider' => 'bailian',
             'operation' => 'image_to_image',
         ]));
@@ -90,7 +90,7 @@ class BailianImageProvider
      */
     public function editImage(string $model, string $imagePath, ?string $maskPath, string $prompt, array $options = []): array
     {
-        throw new RuntimeException(trans('ai.image_operation_not_supported', [
+        throw new ServiceUnavailableException(trans('ai.image_operation_not_supported', [
             'provider' => 'bailian',
             'operation' => 'edit_image',
         ]));
@@ -101,7 +101,7 @@ class BailianImageProvider
      */
     public function styleTransfer(string $model, string $imagePath, string $stylePrompt, array $options = []): array
     {
-        throw new RuntimeException(trans('ai.image_operation_not_supported', [
+        throw new ServiceUnavailableException(trans('ai.image_operation_not_supported', [
             'provider' => 'bailian',
             'operation' => 'style_transfer',
         ]));

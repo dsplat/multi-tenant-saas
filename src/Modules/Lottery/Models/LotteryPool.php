@@ -10,9 +10,9 @@ use MultiTenantSaas\Concerns\HasGlobalId;
 /**
  * 抽奖池模型（遗留）
  *
+ * @deprecated 旧版表结构，缺少 tenant_id 字段。新功能请使用 LotteryActivity + LotteryActivityPrize。
+ *
  * 映射到已有的 lottery_pools 表。
- * 注意：此为旧版表结构，缺少 tenant_id 字段。
- * 新功能请使用 LotteryActivity + LotteryActivityPrize。
  */
 class LotteryPool extends Model
 {

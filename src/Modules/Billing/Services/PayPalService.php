@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Billing\Services;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 
 /**
@@ -44,7 +45,7 @@ class PayPalService
         $config = app(PayService::class)->exportPaymentConfig($tenantId)['paypal'] ?? [];
 
         if (empty($config['client_id']) || empty($config['client_secret'])) {
-            throw new \RuntimeException(trans('payment.driver_not_configured', ['driver' => 'paypal', 'tenant' => $tenantId]));
+            throw new ServiceUnavailableException(trans('payment.driver_not_configured', ['driver' => 'paypal', 'tenant' => $tenantId]));
         }
 
         // 真实密钥需从 TenantSetting 取（export 时被掩码）
@@ -62,7 +63,7 @@ class PayPalService
                 ]);
 
             if (! $resp->successful()) {
-                throw new \RuntimeException(trans('payment.paypal_token_failed') . ': ' . $resp->body());
+                throw new ServiceUnavailableException(trans('payment.paypal_token_failed') . ': ' . $resp->body());
             }
 
             return $resp->json('access_token');
@@ -110,7 +111,7 @@ class PayPalService
 
         if (! $resp->successful()) {
             Log::error('[PayPalService] createOrder failed', ['order_no' => $orderNo, 'resp' => $resp->body()]);
-            throw new \RuntimeException(trans('payment.paypal_create_failed') . ': ' . $resp->body());
+            throw new ServiceUnavailableException(trans('payment.paypal_create_failed') . ': ' . $resp->body());
         }
 
         $data = $resp->json();
@@ -140,7 +141,7 @@ class PayPalService
             ->post($this->baseUrl($mode) . '/v2/checkout/orders/' . $paypalOrderId . '/capture');
 
         if (! $resp->successful()) {
-            throw new \RuntimeException(trans('payment.paypal_capture_failed') . ': ' . $resp->body());
+            throw new ServiceUnavailableException(trans('payment.paypal_capture_failed') . ': ' . $resp->body());
         }
 
         $data = $resp->json();
@@ -177,7 +178,7 @@ class PayPalService
             ->post($this->baseUrl($mode) . '/v2/payments/captures/' . $captureId . '/refund', $payload);
 
         if (! $resp->successful()) {
-            throw new \RuntimeException(trans('payment.paypal_refund_failed') . ': ' . $resp->body());
+            throw new ServiceUnavailableException(trans('payment.paypal_refund_failed') . ': ' . $resp->body());
         }
 
         $data = $resp->json();
@@ -200,7 +201,7 @@ class PayPalService
     public function handleWebhook(int $tenantId, array $payload, array $headers = []): array
     {
         if (! $this->verifyWebhookSignature($tenantId, $payload, $headers)) {
-            throw new \RuntimeException(trans('payment.paypal_signature_invalid'));
+            throw new ServiceUnavailableException(trans('payment.paypal_signature_invalid'));
         }
 
         $eventType = $payload['event_type'] ?? '';
@@ -233,7 +234,7 @@ class PayPalService
     {
         $webhookId = TenantSetting::get($tenantId, 'payment', 'paypal_webhook_id', '');
         if (empty($webhookId)) {
-            throw new \RuntimeException(trans('payment.paypal_webhook_not_configured'));
+            throw new ServiceUnavailableException(trans('payment.paypal_webhook_not_configured'));
         }
 
         $mode = TenantSetting::get($tenantId, 'payment', 'paypal_mode', 'sandbox');

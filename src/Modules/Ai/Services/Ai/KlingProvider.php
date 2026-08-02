@@ -8,6 +8,7 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use Throwable;
 
 /**
@@ -87,7 +88,7 @@ class KlingProvider
         $key = (string) $this->config('api_key', '');
 
         if ($key === '') {
-            throw new \RuntimeException(trans('ai.provider_not_configured', ['provider' => 'kling']));
+            throw new ServiceUnavailableException(trans('ai.provider_not_configured', ['provider' => 'kling']));
         }
 
         return $key;
@@ -129,7 +130,7 @@ class KlingProvider
     protected function assertModelSupported(string $model): void
     {
         if (! in_array($model, self::SUPPORTED_MODELS, true)) {
-            throw new \RuntimeException(trans('ai.model_not_supported', [
+            throw new ServiceUnavailableException(trans('ai.model_not_supported', [
                 'provider' => 'kling',
                 'model' => $model,
             ]));
@@ -176,7 +177,7 @@ class KlingProvider
             'body' => $body,
         ]);
 
-        throw new \RuntimeException(trans($errorKey, ['provider' => 'kling']) . ' [' . $status . ']');
+        throw new ServiceUnavailableException(trans($errorKey, ['provider' => 'kling']) . ' [' . $status . ']');
     }
 
     /**
@@ -272,7 +273,7 @@ class KlingProvider
      */
     public function submitVideoEdit(string $model, string $videoUrl, string $prompt, array $options = []): array
     {
-        throw new \RuntimeException(trans('ai.video_operation_not_supported', [
+        throw new ServiceUnavailableException(trans('ai.video_operation_not_supported', [
             'provider' => 'kling',
             'operation' => 'video_edit',
         ]));
@@ -301,7 +302,7 @@ class KlingProvider
                 'task_id' => $taskId,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'kling']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_connection_error', ['provider' => 'kling']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, 'getTaskStatus', '');
         } catch (Throwable $e) {
@@ -309,7 +310,7 @@ class KlingProvider
                 'task_id' => $taskId,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'kling']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_api_error', ['provider' => 'kling']) . ': ' . $e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {
@@ -335,7 +336,7 @@ class KlingProvider
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_connection_error', ['provider' => 'kling']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_connection_error', ['provider' => 'kling']) . ': ' . $e->getMessage(), 0, $e);
         } catch (RequestException $e) {
             $this->throwHttpError($e->response, $operation, $model);
         } catch (Throwable $e) {
@@ -343,7 +344,7 @@ class KlingProvider
                 'model' => $model,
                 'message' => $e->getMessage(),
             ]);
-            throw new \RuntimeException(trans('ai.provider_api_error', ['provider' => 'kling']) . ': ' . $e->getMessage(), 0, $e);
+            throw new ServiceUnavailableException(trans('ai.provider_api_error', ['provider' => 'kling']) . ': ' . $e->getMessage(), 0, $e);
         }
 
         if (! $response->successful()) {

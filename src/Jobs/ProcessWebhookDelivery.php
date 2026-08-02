@@ -9,6 +9,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
+use MultiTenantSaas\Exceptions\StorageException;
 use MultiTenantSaas\Modules\Infrastructure\Models\Webhook;
 use MultiTenantSaas\Modules\Infrastructure\Models\WebhookDelivery;
 use MultiTenantSaas\Modules\Infrastructure\Services\WebhookService;
@@ -93,7 +94,7 @@ class ProcessWebhookDelivery implements ShouldQueue
                     'error_message' => 'HTTP ' . $statusCode,
                 ]);
 
-                throw new \RuntimeException('Webhook delivery failed with HTTP status ' . $statusCode);
+                throw new StorageException('Webhook delivery failed with HTTP status ' . $statusCode);
             }
         } catch (ConnectionException $e) {
             $durationMs = (int) ((microtime(true) - $start) * 1000);

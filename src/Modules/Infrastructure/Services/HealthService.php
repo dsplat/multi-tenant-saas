@@ -16,11 +16,9 @@ use Spatie\Health\Checks\Checks\UsedDiskSpaceCheck;
 use Spatie\Health\Facades\Health;
 
 /**
- * 健康检查服务（DI 实例方法）。
+ * 健康检查服务。
  *
  * 集成 spatie/laravel-health
- *
- * 向后兼容：保留 __callStatic 代理，新代码应通过构造器注入使用。
  */
 class HealthService
 {

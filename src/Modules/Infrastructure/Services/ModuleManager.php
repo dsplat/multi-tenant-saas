@@ -5,6 +5,9 @@ namespace MultiTenantSaas\Modules\Infrastructure\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 
 /**
  * 模块管理器 (业务层)
@@ -177,12 +180,12 @@ class ModuleManager
     {
         // 系统级必须已启用
         if (! $this->isEnabled($name)) {
-            throw new \RuntimeException("模块 [{$name}] 系统级未启用");
+            throw new ServiceUnavailableException("模块 [{$name}] 系统级未启用");
         }
 
         // 必须支持租户级切换
         if (! $this->registry->tenantToggleable($name)) {
-            throw new \RuntimeException("模块 [{$name}] 不支持租户级切换");
+            throw new DomainException("模块 [{$name}] 不支持租户级切换");
         }
 
         $existing = DB::table('tenant_modules')
@@ -216,7 +219,7 @@ class ModuleManager
     public function disableForTenant(string $name, int $tenantId): bool
     {
         if (! $this->registry->tenantToggleable($name)) {
-            throw new \RuntimeException("模块 [{$name}] 不支持租户级切换");
+            throw new DomainException("模块 [{$name}] 不支持租户级切换");
         }
 
         $affected = DB::table('tenant_modules')
@@ -260,7 +263,7 @@ class ModuleManager
     public function enable(string $name): bool
     {
         if (! $this->registry->has($name)) {
-            throw new \RuntimeException("模块 [{$name}] 未安装 (磁盘上不存在)");
+            throw new NotFoundException("模块 [{$name}] 未安装 (磁盘上不存在)");
         }
 
         $this->ensureModulesTable();
@@ -298,7 +301,7 @@ class ModuleManager
     public function disable(string $name): bool
     {
         if (! $this->registry->has($name)) {
-            throw new \RuntimeException("模块 [{$name}] 未安装 (磁盘上不存在)");
+            throw new NotFoundException("模块 [{$name}] 未安装 (磁盘上不存在)");
         }
 
         $this->ensureModulesTable();
@@ -416,7 +419,7 @@ class ModuleManager
     protected function ensureModulesTable(): void
     {
         if (! Schema::hasTable('modules')) {
-            throw new \RuntimeException('modules 表不存在, 请先运行迁移');
+            throw new NotFoundException('modules 表不存在, 请先运行迁移');
         }
     }
 

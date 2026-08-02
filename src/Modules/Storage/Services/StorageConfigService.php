@@ -3,6 +3,9 @@
 namespace MultiTenantSaas\Modules\Storage\Services;
 
 use Illuminate\Support\Facades\Storage;
+use League\Flysystem\AwsS3V3\AwsS3V3Adapter;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting;
 use MultiTenantSaas\Modules\Infrastructure\Services\TenantSettingService;
 
@@ -75,7 +78,7 @@ class StorageConfigService
             return self::PLATFORM_DISK;
         }
 
-        throw new \RuntimeException(
+        throw new ServiceUnavailableException(
             '对象存储未配置：租户未配置专属存储时预设使用平台存储，'
             . '请在平台后台配置存储（OSS/S3，开发环境可选 local 驱动）'
         );
@@ -89,7 +92,7 @@ class StorageConfigService
         if ($disk === self::TENANT_DISK && $tenantId !== null && $this->registeredTenantId !== $tenantId) {
             $config = $this->getTenantOssConfig($tenantId);
             if ($config === null) {
-                throw new \RuntimeException("Tenant {$tenantId} OSS config missing for disk {$disk}");
+                throw new DomainException("Tenant {$tenantId} OSS config missing for disk {$disk}");
             }
             $this->registerDisk(self::TENANT_DISK, $config);
             $this->registeredTenantId = $tenantId;
@@ -98,7 +101,7 @@ class StorageConfigService
         if ($disk === self::PLATFORM_DISK && ! $this->platformDiskRegistered) {
             $config = $this->getPlatformOssConfig();
             if ($config === null) {
-                throw new \RuntimeException('Platform OSS config missing for disk ' . $disk);
+                throw new DomainException('Platform OSS config missing for disk ' . $disk);
             }
             $this->registerDisk(self::PLATFORM_DISK, $config);
             $this->platformDiskRegistered = true;
@@ -260,8 +263,8 @@ class StorageConfigService
             return;
         }
 
-        if (($config['driver'] ?? 's3') === 's3' && ! class_exists(\League\Flysystem\AwsS3V3\AwsS3V3Adapter::class)) {
-            throw new \RuntimeException(
+        if (($config['driver'] ?? 's3') === 's3' && ! class_exists(AwsS3V3Adapter::class)) {
+            throw new DomainException(
                 'S3 storage requires league/flysystem-aws-s3-v3. Run: composer require league/flysystem-aws-s3-v3'
             );
         }

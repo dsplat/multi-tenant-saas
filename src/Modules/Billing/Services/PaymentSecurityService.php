@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Billing\Models\PaymentOrder;
 
 /**
@@ -32,11 +34,11 @@ class PaymentSecurityService
     public function setPaymentPassword(int $userId, string $password): void
     {
         if (! config('pay.security.payment_password_enabled', false)) {
-            throw new \RuntimeException(trans('payment.password_feature_disabled'));
+            throw new ServiceUnavailableException(trans('payment.password_feature_disabled'));
         }
 
         if (strlen($password) < 6) {
-            throw new \RuntimeException(trans('payment.password_too_short'));
+            throw new DomainException(trans('payment.password_too_short'));
         }
 
         $tenantId = (int) (TenantContext::getId() ?? 0);

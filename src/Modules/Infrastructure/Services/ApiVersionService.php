@@ -3,12 +3,14 @@
 namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use MultiTenantSaas\Exceptions\ConflictException;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 /**
@@ -48,12 +50,12 @@ class ApiVersionService
     {
         $versionStr = $version['version'] ?? '';
         if (empty($versionStr)) {
-            throw new \RuntimeException(trans('common.version_required'));
+            throw new DomainException(trans('common.version_required'));
         }
 
         $exists = DB::table(self::TABLE)->where('version', $versionStr)->exists();
         if ($exists) {
-            throw new \RuntimeException(trans('common.version_already_exists', ['version' => $versionStr]));
+            throw new ConflictException(trans('common.version_already_exists', ['version' => $versionStr]));
         }
 
         return (int) DB::table(self::TABLE)->insertGetId([

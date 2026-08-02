@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Auth\Models\Permission;
 use MultiTenantSaas\Modules\Auth\Models\Role;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
@@ -156,7 +157,7 @@ class RbacService
         $role = Role::findOrFail($roleId);
 
         if ($role->is_system) {
-            throw new \RuntimeException(trans('tenant.system_role_protected'));
+            throw new DomainException(trans('tenant.system_role_protected'));
         }
 
         $role->permissions()->sync($permissionIds);
@@ -168,7 +169,7 @@ class RbacService
         $role = Role::findOrFail($roleId);
 
         if ($role->is_system) {
-            throw new \RuntimeException(trans('tenant.system_role_no_delete'));
+            throw new DomainException(trans('tenant.system_role_no_delete'));
         }
 
         DB::table('operator_tenants')

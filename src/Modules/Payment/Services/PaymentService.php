@@ -4,6 +4,8 @@ namespace MultiTenantSaas\Modules\Payment\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
 use MultiTenantSaas\Modules\Billing\Models\PaymentOrder;
 
@@ -160,7 +162,7 @@ class PaymentService
         Log::info('MantouPay H5 prepay response', ['trade_no' => $order->out_trade_no, 'resp' => $resp]);
 
         if (! ($resp['status'] ?? false)) {
-            throw new \RuntimeException(trans('payment.h5_preorder_failed') . ': ' . ($resp['message'] ?? trans('common.unknown_error')));
+            throw new ServiceUnavailableException(trans('payment.h5_preorder_failed') . ': ' . ($resp['message'] ?? trans('common.unknown_error')));
         }
 
         return $resp['data'];
@@ -216,7 +218,7 @@ class PaymentService
         Log::info('MantouPay Native prepay response', ['trade_no' => $order->out_trade_no, 'resp' => $resp]);
 
         if (! ($resp['status'] ?? false)) {
-            throw new \RuntimeException(trans('payment.native_preorder_failed') . ': ' . ($resp['message'] ?? trans('common.unknown_error')));
+            throw new ServiceUnavailableException(trans('payment.native_preorder_failed') . ': ' . ($resp['message'] ?? trans('common.unknown_error')));
         }
 
         return $resp['data'];
@@ -270,7 +272,7 @@ class PaymentService
         Log::info('MantouPay JSAPI prepay response', ['trade_no' => $order->out_trade_no, 'resp' => $resp]);
 
         if (! ($resp['status'] ?? false)) {
-            throw new \RuntimeException(trans('payment.jsapi_preorder_failed') . ': ' . ($resp['message'] ?? trans('common.unknown_error')));
+            throw new ServiceUnavailableException(trans('payment.jsapi_preorder_failed') . ': ' . ($resp['message'] ?? trans('common.unknown_error')));
         }
 
         return $resp['data'];
@@ -356,7 +358,7 @@ class PaymentService
         $localSign = strtoupper(md5($str));
 
         if ($sign !== $localSign) {
-            throw new \RuntimeException(trans('payment.signature_invalid'));
+            throw new DomainException(trans('payment.signature_invalid'));
         }
 
         return $params;

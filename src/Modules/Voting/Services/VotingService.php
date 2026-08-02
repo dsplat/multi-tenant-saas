@@ -3,11 +3,12 @@
 namespace MultiTenantSaas\Modules\Voting\Services;
 
 use Carbon\Carbon;
-
 use Illuminate\Pagination\LengthAwarePaginator;
+
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\Voting\Models\Vote;
 use MultiTenantSaas\Modules\Voting\Models\VoteOption;
@@ -152,27 +153,27 @@ class VotingService
     protected function validateVote(Vote $vote, array $optionIds, int $userId, int $tenantId, ?string $ipAddress, ?string $fingerprint = null): void
     {
         if ($vote->status !== 'active') {
-            throw new \RuntimeException(trans('voting.vote_not_active'));
+            throw new DomainException(trans('voting.vote_not_active'));
         }
 
         if (Carbon::parse($vote->start_at)->isFuture()) {
-            throw new \RuntimeException(trans('voting.vote_not_started'));
+            throw new DomainException(trans('voting.vote_not_started'));
         }
 
         if (Carbon::parse($vote->end_at)->isPast()) {
-            throw new \RuntimeException(trans('voting.vote_ended'));
+            throw new DomainException(trans('voting.vote_ended'));
         }
 
         // 单选校验
         if ($vote->vote_type === 'single' && count($optionIds) > 1) {
-            throw new \RuntimeException(trans('voting.vote_single_only'));
+            throw new DomainException(trans('voting.vote_single_only'));
         }
 
         // 总投票次数限制
         if ($vote->total_limit > 0) {
             $totalVotes = VoteRecord::where('vote_id', $vote->getKey())->count();
             if ($totalVotes >= $vote->total_limit) {
-                throw new \RuntimeException(trans('voting.vote_total_limit'));
+                throw new DomainException(trans('voting.vote_total_limit'));
             }
         }
 
@@ -182,7 +183,7 @@ class VotingService
                 ->whereDate('created_at', today())
                 ->count();
             if ($todayVotes >= $vote->daily_limit) {
-                throw new \RuntimeException(trans('voting.vote_daily_limit'));
+                throw new DomainException(trans('voting.vote_daily_limit'));
             }
         }
 
@@ -193,7 +194,7 @@ class VotingService
                 ->whereDate('created_at', today())
                 ->count();
             if ($userTodayVotes >= $vote->daily_limit_per_user) {
-                throw new \RuntimeException(trans('voting.vote_user_daily_limit'));
+                throw new DomainException(trans('voting.vote_user_daily_limit'));
             }
         }
 
@@ -203,7 +204,7 @@ class VotingService
                 ->where('user_id', $userId)
                 ->count();
             if ($userTotalVotes >= $vote->total_limit_per_user) {
-                throw new \RuntimeException(trans('voting.vote_user_total_limit'));
+                throw new DomainException(trans('voting.vote_user_total_limit'));
             }
         }
 
@@ -214,7 +215,7 @@ class VotingService
                 ->where('created_at', '>=', now()->subSeconds(10))
                 ->count();
             if ($ipRecent >= 10) {
-                throw new \RuntimeException(trans('voting.vote_ip_limit'));
+                throw new DomainException(trans('voting.vote_ip_limit'));
             }
         }
 
@@ -225,7 +226,7 @@ class VotingService
                 ->where('created_at', '>=', now()->subSeconds(30))
                 ->count();
             if ($fingerprintRecent >= 5) {
-                throw new \RuntimeException(trans('voting.vote_fingerprint_limit'));
+                throw new DomainException(trans('voting.vote_fingerprint_limit'));
             }
         }
 
@@ -233,7 +234,7 @@ class VotingService
         $validOptionIds = $vote->options->pluck('vote_option_id')->toArray();
         foreach ($optionIds as $optionId) {
             if (! in_array((int) $optionId, $validOptionIds)) {
-                throw new \RuntimeException(trans('voting.vote_invalid_option'));
+                throw new DomainException(trans('voting.vote_invalid_option'));
             }
         }
     }

@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Contracts\WorkflowEngineContract;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
 use MultiTenantSaas\Modules\Workflow\Models\Workflow;
 use MultiTenantSaas\Modules\Workflow\Models\WorkflowExecution;
 use MultiTenantSaas\Modules\Workflow\Services\Nodes\ActionNode;
@@ -53,13 +55,13 @@ class WorkflowEngine implements WorkflowEngineContract
             $nodes = $workflow->nodes()->orderBy('order')->get()->toArray();
 
             if (empty($nodes)) {
-                throw new \RuntimeException('Workflow has no nodes');
+                throw new DomainException('Workflow has no nodes');
             }
 
             $currentNode = $this->findStartNode($nodes);
 
             if ($currentNode === null) {
-                throw new \RuntimeException('Workflow has no start node');
+                throw new DomainException('Workflow has no start node');
             }
 
             while ($currentNode !== null) {
@@ -168,13 +170,13 @@ class WorkflowEngine implements WorkflowEngineContract
     public function retry(WorkflowExecution $execution, array $context = []): WorkflowExecution
     {
         if ($execution->status !== 'failed') {
-            throw new \RuntimeException('Only failed executions can be retried');
+            throw new DomainException('Only failed executions can be retried');
         }
 
         $workflow = $execution->workflow;
 
         if ($workflow === null) {
-            throw new \RuntimeException('Workflow not found for execution');
+            throw new NotFoundException('Workflow not found for execution');
         }
 
         return $this->execute($workflow, ! empty($context) ? $context : ($execution->context ?? []));

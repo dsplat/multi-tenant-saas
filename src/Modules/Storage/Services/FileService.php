@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
+use MultiTenantSaas\Exceptions\QuotaExceededException;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Storage\Models\FileUpload;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -80,18 +83,18 @@ class FileService
 
         // 验证文件大小
         if ($file->getSize() > self::MAX_FILE_SIZE) {
-            throw new \RuntimeException(trans('file.size_exceeded'));
+            throw new QuotaExceededException(trans('file.size_exceeded'));
         }
 
         // 验证文件类型
         $mimeType = $file->getMimeType();
         if (! empty(self::ALLOWED_MIME_TYPES) && ! in_array($mimeType, self::ALLOWED_MIME_TYPES)) {
-            throw new \RuntimeException(trans('file.type_not_supported') . ": {$mimeType}");
+            throw new DomainException(trans('file.type_not_supported') . ": {$mimeType}");
         }
 
         // 检查存储配额
         if (! $this->checkStorageQuota($tenantId, $file->getSize())) {
-            throw new \RuntimeException(trans('file.quota_exceeded'));
+            throw new QuotaExceededException(trans('file.quota_exceeded'));
         }
 
         // 计算文件哈希
@@ -173,18 +176,18 @@ class FileService
 
         // 验证文件大小
         if ($file->getSize() > self::MAX_FILE_SIZE) {
-            throw new \RuntimeException(trans('file.size_exceeded'));
+            throw new QuotaExceededException(trans('file.size_exceeded'));
         }
 
         // 验证文件类型
         $mimeType = $file->getMimeType();
         if (! empty(self::ALLOWED_MIME_TYPES) && ! in_array($mimeType, self::ALLOWED_MIME_TYPES)) {
-            throw new \RuntimeException(trans('file.type_not_supported') . ": {$mimeType}");
+            throw new DomainException(trans('file.type_not_supported') . ": {$mimeType}");
         }
 
         // 检查存储配额
         if (! $this->checkStorageQuota($tenantId, $file->getSize())) {
-            throw new \RuntimeException(trans('file.quota_exceeded'));
+            throw new QuotaExceededException(trans('file.quota_exceeded'));
         }
 
         // 计算文件哈希
@@ -355,7 +358,7 @@ class FileService
         $this->storageConfig->ensureDiskRegistered($file->disk, $file->tenant_id);
 
         if (! Storage::disk($file->disk)->exists($file->path)) {
-            throw new \RuntimeException(trans('file.not_found'));
+            throw new NotFoundException(trans('file.not_found'));
         }
 
         return Storage::disk($file->disk)->download($file->path, $file->filename);

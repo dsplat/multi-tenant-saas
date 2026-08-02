@@ -4,6 +4,8 @@ namespace MultiTenantSaas\Modules\Ai\Services;
 
 use Illuminate\Support\Collection;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
 use MultiTenantSaas\Modules\Ai\Models\AiPrompt;
 use MultiTenantSaas\Scopes\TenantScope;
 use RuntimeException;
@@ -121,7 +123,7 @@ class AiTextService
         $decoded = json_decode($content, true);
 
         if (! is_array($decoded)) {
-            throw new RuntimeException(trans('ai.json_parse_failed'));
+            throw new DomainException(trans('ai.json_parse_failed'));
         }
 
         $response['json'] = $decoded;
@@ -187,11 +189,11 @@ class AiTextService
         $name = trim((string) ($data['name'] ?? ''));
 
         if ($name === '') {
-            throw new RuntimeException(trans('ai.prompt_name_required'));
+            throw new DomainException(trans('ai.prompt_name_required'));
         }
 
         if ($this->nameExistsForCurrentTenant($name)) {
-            throw new RuntimeException(trans('ai.prompt_name_exists'));
+            throw new DomainException(trans('ai.prompt_name_exists'));
         }
 
         // tenant_id 由 BelongsToTenant 自动填充当前租户，禁止手动指定以避免越权
@@ -220,18 +222,18 @@ class AiTextService
         $prompt = $this->getPrompt($id);
 
         if ($prompt === null) {
-            throw new RuntimeException(trans('ai.prompt_not_found'));
+            throw new NotFoundException(trans('ai.prompt_not_found'));
         }
 
         if (isset($data['name'])) {
             $newName = trim((string) $data['name']);
 
             if ($newName === '') {
-                throw new RuntimeException(trans('ai.prompt_name_required'));
+                throw new DomainException(trans('ai.prompt_name_required'));
             }
 
             if ($newName !== $prompt->name && $this->nameExistsForCurrentTenant($newName)) {
-                throw new RuntimeException(trans('ai.prompt_name_exists'));
+                throw new DomainException(trans('ai.prompt_name_exists'));
             }
 
             $data['name'] = $newName;
@@ -262,11 +264,11 @@ class AiTextService
         $prompt = $this->getPrompt($id);
 
         if ($prompt === null) {
-            throw new RuntimeException(trans('ai.prompt_not_found'));
+            throw new NotFoundException(trans('ai.prompt_not_found'));
         }
 
         if ($prompt->isSystemLevel()) {
-            throw new RuntimeException(trans('ai.prompt_system_only'));
+            throw new DomainException(trans('ai.prompt_system_only'));
         }
 
         return (bool) $prompt->delete();
@@ -381,11 +383,11 @@ class AiTextService
         $prompt = $this->findByName($name);
 
         if ($prompt === null) {
-            throw new RuntimeException(trans('ai.prompt_not_found'));
+            throw new NotFoundException(trans('ai.prompt_not_found'));
         }
 
         if (! $prompt->isActive()) {
-            throw new RuntimeException(trans('ai.prompt_not_active'));
+            throw new DomainException(trans('ai.prompt_not_active'));
         }
 
         $rendered = $this->render($prompt, $variables);
@@ -513,7 +515,7 @@ class AiTextService
             }
 
             if (! empty($definition['required']) && ! array_key_exists($name, $variables)) {
-                throw new RuntimeException(trans('ai.prompt_variable_missing', ['name' => $name]));
+                throw new DomainException(trans('ai.prompt_variable_missing', ['name' => $name]));
             }
         }
     }

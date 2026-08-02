@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use MultiTenantSaas\Contracts\IsolationStrategyContract;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
-use RuntimeException;
 use Throwable;
 
 /**
@@ -40,7 +40,7 @@ class SchemaPerTenantStrategy implements IsolationStrategyContract
     public function setupDatabase(Tenant $tenant): void
     {
         if ($this->baseDriver() !== 'pgsql') {
-            throw new RuntimeException(trans('tenant.isolation_schema_unsupported'));
+            throw new DomainException(trans('tenant.isolation_schema_unsupported'));
         }
 
         if (empty($tenant->schema_name)) {
@@ -63,7 +63,7 @@ class SchemaPerTenantStrategy implements IsolationStrategyContract
         $connection = $this->connectionName($tenant);
 
         if ($this->baseDriver() !== 'pgsql') {
-            throw new RuntimeException(trans('tenant.isolation_schema_unsupported'));
+            throw new DomainException(trans('tenant.isolation_schema_unsupported'));
         }
 
         $schema = $tenant->schema_name;

@@ -135,7 +135,32 @@ def check_psr4():
 
 
 # ---------------------------------------------------------------------------
-# 检查 4：AI KB 索引新鲜度（警告，不阻断）
+# 检查 4：禁止新增 throw new RuntimeException（应使用 DomainException 体系）
+# ---------------------------------------------------------------------------
+def check_no_runtime_exception():
+    """src/ 下新增的 PHP 行不得包含 throw new \\RuntimeException。"""
+    re_throw = re.compile(r'throw\s+new\s+\\?RuntimeException')
+    # 只检查新增的行（git diff --cached -U0 +行）
+    out = subprocess.run(
+        ["git", "diff", "--cached", "-U0", "--diff-filter=ACMR", "--", "src/"],
+        capture_output=True, text=True, cwd=ROOT,
+    )
+    current_file = ""
+    for line in out.stdout.splitlines():
+        if line.startswith("+++ b/"):
+            current_file = line[6:]
+        elif line.startswith("+") and not line.startswith("+++"):
+            if current_file.endswith(".php") and re_throw.search(line):
+                errors.append(
+                    f"RuntimeException 禁用：{current_file} 中新增了 throw new RuntimeException\n"
+                    f"          → 请使用 DomainException/NotFoundException/ServiceUnavailableException 等领域异常\n"
+                    f"          → 参考: src/Exceptions/ 目录下的 11 个异常类"
+                )
+                break  # 每文件报一次即可
+
+
+# ---------------------------------------------------------------------------
+# 检查 5：AI KB 索引新鲜度（警告，不阻断）
 # ---------------------------------------------------------------------------
 def check_kb_index_freshness():
     """routes.ts / 工具注册 / module-loader 变更时，提醒重新生成 AI KB 索引。"""
@@ -159,6 +184,7 @@ def main():
     check_case_collisions()
     check_module_pascalcase()
     check_psr4()
+    check_no_runtime_exception()
     check_kb_index_freshness()
 
     for w in warnings:

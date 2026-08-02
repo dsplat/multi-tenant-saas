@@ -9,6 +9,9 @@ use Illuminate\Support\Str;
 use MultiTenantSaas\Contracts\AiProviderContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Enums\AiModelEnum;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\QuotaExceededException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Ai\Models\AiModelAlias;
 use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Modules\Ai\Services\Ai\Providers\LaravelAiProviderAdapter;
@@ -254,7 +257,7 @@ class AiGatewayService
     public function streamChat(string $model, array $messages, array $options = []): \Generator
     {
         if (! $this->isStreamingEnabled()) {
-            throw new \RuntimeException(trans('ai.streaming_disabled'));
+            throw new ServiceUnavailableException(trans('ai.streaming_disabled'));
         }
 
         $this->assertMessages($messages);
@@ -317,7 +320,7 @@ class AiGatewayService
 
         if ($alias !== null) {
             if ($alias->isDeprecated()) {
-                throw new \RuntimeException(trans('ai.model_deprecated', ['model' => $model]));
+                throw new DomainException(trans('ai.model_deprecated', ['model' => $model]));
             }
 
             $providerCode = $alias->provider ?: $this->defaultProvider();
@@ -329,7 +332,7 @@ class AiGatewayService
 
         if ($enum !== null) {
             if ($enum->isDeprecated()) {
-                throw new \RuntimeException(trans('ai.model_deprecated', ['model' => $model]));
+                throw new DomainException(trans('ai.model_deprecated', ['model' => $model]));
             }
 
             return [$enum->value, $enum->provider()];
@@ -354,7 +357,7 @@ class AiGatewayService
         $class = self::PROVIDER_CLASS_MAP[$providerCode] ?? null;
 
         if ($class === null) {
-            throw new \RuntimeException(trans('ai.provider_not_implemented', ['provider' => $providerCode]));
+            throw new ServiceUnavailableException(trans('ai.provider_not_implemented', ['provider' => $providerCode]));
         }
 
         // laravel/ai 适配器需要传入 provider 配置
@@ -397,7 +400,7 @@ class AiGatewayService
                 'retry_in' => $retryIn,
             ]);
 
-            throw new \RuntimeException(trans('ai.rate_limited', ['seconds' => $retryIn]));
+            throw new QuotaExceededException(trans('ai.rate_limited', ['seconds' => $retryIn]));
         }
 
         RateLimiter::hit($key, 60);
@@ -567,7 +570,7 @@ class AiGatewayService
     protected function assertMessages(array $messages): void
     {
         if ($messages === []) {
-            throw new \RuntimeException(trans('ai.invalid_messages'));
+            throw new DomainException(trans('ai.invalid_messages'));
         }
     }
 
@@ -579,7 +582,7 @@ class AiGatewayService
     protected function assertPrompt(string $prompt): void
     {
         if (trim($prompt) === '') {
-            throw new \RuntimeException(trans('ai.invalid_prompt'));
+            throw new DomainException(trans('ai.invalid_prompt'));
         }
     }
 
@@ -594,14 +597,14 @@ class AiGatewayService
     {
         if (is_string($input)) {
             if (trim($input) === '') {
-                throw new \RuntimeException(trans('ai.invalid_input'));
+                throw new DomainException(trans('ai.invalid_input'));
             }
 
             return;
         }
 
         if ($input === []) {
-            throw new \RuntimeException(trans('ai.invalid_input'));
+            throw new DomainException(trans('ai.invalid_input'));
         }
     }
 

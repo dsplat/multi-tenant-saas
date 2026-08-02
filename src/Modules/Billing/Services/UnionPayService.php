@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Modules\Billing\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 
 /**
@@ -52,7 +53,7 @@ class UnionPayService
         $returnUrl = TenantSetting::get($tenantId, 'payment', 'unionpay_return_url', '');
 
         if (empty($merId)) {
-            throw new \RuntimeException(trans('payment.driver_not_configured', ['driver' => 'unionpay', 'tenant' => $tenantId]));
+            throw new ServiceUnavailableException(trans('payment.driver_not_configured', ['driver' => 'unionpay', 'tenant' => $tenantId]));
         }
 
         $params = [
@@ -112,7 +113,7 @@ class UnionPayService
         $resp = Http::asForm()->post($this->baseUrl($mode) . '/gateway/api/queryTrans.do', $params);
 
         if (! $resp->successful()) {
-            throw new \RuntimeException(trans('payment.unionpay_query_failed') . ': ' . $resp->body());
+            throw new ServiceUnavailableException(trans('payment.unionpay_query_failed') . ': ' . $resp->body());
         }
 
         parse_str($resp->body(), $data);
@@ -164,7 +165,7 @@ class UnionPayService
         $resp = Http::asForm()->post($this->baseUrl($mode) . '/gateway/api/visualizationTransReq.do', $params);
 
         if (! $resp->successful()) {
-            throw new \RuntimeException(trans('payment.unionpay_refund_failed') . ': ' . $resp->body());
+            throw new ServiceUnavailableException(trans('payment.unionpay_refund_failed') . ': ' . $resp->body());
         }
 
         parse_str($resp->body(), $data);
@@ -187,7 +188,7 @@ class UnionPayService
     {
         // 验证签名
         if (! $this->verifySignature($tenantId, $payload)) {
-            throw new \RuntimeException(trans('payment.unionpay_signature_invalid'));
+            throw new ServiceUnavailableException(trans('payment.unionpay_signature_invalid'));
         }
 
         $respCode = $payload['respCode'] ?? '';

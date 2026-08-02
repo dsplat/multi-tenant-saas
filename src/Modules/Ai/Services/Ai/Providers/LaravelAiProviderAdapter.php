@@ -15,7 +15,7 @@ use Laravel\Ai\Streaming\Events\StreamEnd;
 use Laravel\Ai\Streaming\Events\TextDelta;
 use Laravel\Ai\Streaming\Events\ToolCall as ToolCallEvent;
 use MultiTenantSaas\Contracts\AiProviderContract;
-use RuntimeException;
+use MultiTenantSaas\Exceptions\DomainException;
 use Throwable;
 
 /**
@@ -114,7 +114,7 @@ class LaravelAiProviderAdapter implements AiProviderContract
                 'raw' => ['response' => $response],
             ];
         } catch (Throwable $e) {
-            throw new \RuntimeException(
+            throw new DomainException(
                 "Laravel AI SDK [{$this->labProvider}] 请求失败: {$e->getMessage()}",
                 (int) $e->getCode(),
                 $e
@@ -169,7 +169,7 @@ class LaravelAiProviderAdapter implements AiProviderContract
                 'raw' => ['response' => $response],
             ];
         } catch (Throwable $e) {
-            throw new \RuntimeException(
+            throw new DomainException(
                 "Laravel AI SDK [{$this->labProvider}] embeddings 请求失败: {$e->getMessage()}",
                 (int) $e->getCode(),
                 $e
@@ -246,7 +246,7 @@ class LaravelAiProviderAdapter implements AiProviderContract
                 }
             }
         } catch (Throwable $e) {
-            throw new \RuntimeException(
+            throw new DomainException(
                 "Laravel AI SDK [{$this->labProvider}] 流式请求失败: {$e->getMessage()}",
                 (int) $e->getCode(),
                 $e
@@ -268,11 +268,11 @@ class LaravelAiProviderAdapter implements AiProviderContract
 
         $response = Http::withToken($this->resolveApiKey())
             ->timeout($timeout)
-            ->post($this->resolveBaseUrl().'/chat/completions', $body);
+            ->post($this->resolveBaseUrl() . '/chat/completions', $body);
 
         if ($response->failed()) {
-            throw new RuntimeException(
-                "OpenAI API 请求失败 [{$response->status()}]: ".$response->body()
+            throw new DomainException(
+                "OpenAI API 请求失败 [{$response->status()}]: " . $response->body()
             );
         }
 
@@ -311,11 +311,11 @@ class LaravelAiProviderAdapter implements AiProviderContract
             ->withHeaders(['Accept' => 'text/event-stream'])
             ->timeout($timeout)
             ->withOptions(['stream' => true])
-            ->post($this->resolveBaseUrl().'/chat/completions', $body);
+            ->post($this->resolveBaseUrl() . '/chat/completions', $body);
 
         if ($response->failed()) {
-            throw new RuntimeException(
-                "OpenAI API 流式请求失败 [{$response->status()}]: ".$response->body()
+            throw new DomainException(
+                "OpenAI API 流式请求失败 [{$response->status()}]: " . $response->body()
             );
         }
 
@@ -470,7 +470,8 @@ class LaravelAiProviderAdapter implements AiProviderContract
 
             if ($role === 'system') {
                 // system 消息拼接为 instructions
-                $instructions .= ($instructions !== '' ? "\n\n" : '').$content;
+                $instructions .= ($instructions !== '' ? "\n\n" : '') . $content;
+
                 continue;
             }
 

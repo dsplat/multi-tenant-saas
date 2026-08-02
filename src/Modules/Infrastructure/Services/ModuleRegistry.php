@@ -2,6 +2,8 @@
 
 namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
+use MultiTenantSaas\Exceptions\DomainException;
+
 /**
  * 模块注册表 (纯读取层)
  *
@@ -386,7 +388,7 @@ class ModuleRegistry
             }
 
             if (isset($visiting[$name])) {
-                throw new \RuntimeException("检测到循环依赖: {$name}");
+                throw new DomainException("检测到循环依赖: {$name}");
             }
 
             $visiting[$name] = true;

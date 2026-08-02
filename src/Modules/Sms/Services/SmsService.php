@@ -13,7 +13,7 @@ use MultiTenantSaas\Modules\Sms\Models\SmsTemplate;
 use MultiTenantSaas\Modules\Sms\Models\SmsUnsubscribe;
 
 /**
- * 短信发送服务（DI 实例方法）。
+ * 短信发送服务。
  *
  * 配置读取优先级：租户级 TenantSetting > 系统级 config（当前不兑底）
  *
@@ -23,8 +23,6 @@ use MultiTenantSaas\Modules\Sms\Models\SmsUnsubscribe;
  * driver=http→ 通用 HTTP 短信网关（自定义 endpoint）
  *
  * 扩展功能：模板管理、批量发送、到达率统计、退订管理
- *
- * 向后兼容：保留 __callStatic 代理，新代码应通过构造器注入使用。
  */
 class SmsService
 {

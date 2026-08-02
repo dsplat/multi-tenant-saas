@@ -7,9 +7,10 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
 use MultiTenantSaas\Modules\ApiToken\Models\UserApiToken;
 use MultiTenantSaas\Modules\ApiToken\Models\UserApiTokenHistory;
-use RuntimeException;
 
 /**
  * API Token 模块服务
@@ -77,7 +78,7 @@ class ApiTokenService
             $item = collect($list)->firstWhere('name', $tokenName);
 
             if (! $item) {
-                throw new RuntimeException('[ApiTokenService] ' . trans('apitoken.token_not_found') . ': ' . $tokenName);
+                throw new NotFoundException('[ApiTokenService] ' . trans('apitoken.token_not_found') . ': ' . $tokenName);
             }
         }
 
@@ -86,7 +87,7 @@ class ApiTokenService
         $rawKey = $keyResult['key'] ?? null;
 
         if (! $rawKey || str_contains((string) $rawKey, '****')) {
-            throw new RuntimeException('[ApiTokenService] ' . trans('apitoken.key_incomplete') . ': ' . $item['id']);
+            throw new DomainException('[ApiTokenService] ' . trans('apitoken.key_incomplete') . ': ' . $item['id']);
         }
 
         // 加 sk- 前缀存储，保证 getDecryptedKey() 返回可直接使用的完整 key
@@ -247,14 +248,14 @@ class ApiTokenService
         $list = $this->getList('/api/token/', ['keyword' => $tokenName, 'size' => 5]);
         $item = collect($list)->firstWhere('name', $tokenName);
         if (! $item) {
-            throw new RuntimeException('[ApiTokenService] ' . trans('apitoken.promo_token_not_found') . ': ' . $tokenName);
+            throw new NotFoundException('[ApiTokenService] ' . trans('apitoken.promo_token_not_found') . ': ' . $tokenName);
         }
 
         $keyResult = $this->post('/api/token/' . (int) $item['id'] . '/key', []);
         $rawKey = $keyResult['key'] ?? null;
 
         if (! $rawKey || str_contains((string) $rawKey, '****')) {
-            throw new RuntimeException('[ApiTokenService] ' . trans('apitoken.promo_key_incomplete') . ': ' . $item['id']);
+            throw new DomainException('[ApiTokenService] ' . trans('apitoken.promo_key_incomplete') . ': ' . $item['id']);
         }
 
         $fullKey = str_starts_with($rawKey, 'sk-') ? $rawKey : 'sk-' . $rawKey;
@@ -527,7 +528,7 @@ class ApiTokenService
                 'status' => $response->status(),
                 'body' => mb_substr($body, 0, 500),
             ]);
-            throw new RuntimeException(
+            throw new DomainException(
                 '[ApiTokenService] ' . $method . ' ' . $path . ' ' . trans('apitoken.http_failed') . ': HTTP ' . $response->status()
             );
         }
@@ -541,7 +542,7 @@ class ApiTokenService
                 'path' => $path,
                 'message' => $message,
             ]);
-            throw new RuntimeException(
+            throw new DomainException(
                 '[ApiTokenService] ' . $method . ' ' . $path . ' ' . trans('apitoken.business_failed') . ': ' . $message
             );
         }

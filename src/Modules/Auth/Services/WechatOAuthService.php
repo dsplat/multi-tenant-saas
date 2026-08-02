@@ -5,6 +5,8 @@ namespace MultiTenantSaas\Modules\Auth\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Auth\Models\OauthAccount;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Auth\Services\Concerns\ManagesOAuthState;
@@ -50,7 +52,7 @@ class WechatOAuthService
         $secret = TenantSetting::get($tenantId, 'oauth', 'wechat_client_secret', '');
 
         if (empty($appId) || empty($secret)) {
-            throw new \RuntimeException(trans('common.oauth_not_configured', ['provider' => 'wechat', 'tenant' => $tenantId]));
+            throw new ServiceUnavailableException(trans('common.oauth_not_configured', ['provider' => 'wechat', 'tenant' => $tenantId]));
         }
 
         return [
@@ -95,7 +97,7 @@ class WechatOAuthService
         $this->verifyState($state, $tenantId, 'wechat');
 
         if ($code === '') {
-            throw new \RuntimeException(trans('common.invalid_request'));
+            throw new DomainException(trans('common.invalid_request'));
         }
 
         $config = $this->getConfig($tenantId);
@@ -163,7 +165,7 @@ class WechatOAuthService
                 'status' => $resp->status(),
                 'body' => $resp->body(),
             ]);
-            throw new \RuntimeException("Wechat API request failed: HTTP {$resp->status()}");
+            throw new ServiceUnavailableException("Wechat API request failed: HTTP {$resp->status()}");
         }
 
         $data = $resp->json();
@@ -176,7 +178,7 @@ class WechatOAuthService
                 'errcode' => $errCode,
                 'errmsg' => $errMsg,
             ]);
-            throw new \RuntimeException("Wechat API error [{$errCode}]: {$errMsg}");
+            throw new ServiceUnavailableException("Wechat API error [{$errCode}]: {$errMsg}");
         }
 
         return $data;

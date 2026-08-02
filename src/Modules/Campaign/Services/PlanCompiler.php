@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Modules\Campaign\Services;
 
 use Carbon\Carbon;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Campaign\Models\CampaignPlan;
 use MultiTenantSaas\Modules\Campaign\Models\CampaignTask;
 
@@ -148,13 +149,13 @@ class PlanCompiler
         // 编译前校验
         $errors = $this->validate($planDoc);
         if ($errors !== []) {
-            throw new \RuntimeException('计划校验不通过：' . implode('；', $errors));
+            throw new DomainException('计划校验不通过：' . implode('；', $errors));
         }
 
         // 锚点一次性预检：缺失全部列出，避免逐个报错的多轮往返
         $missingAnchors = array_values(array_diff($this->collectRequiredAnchors($planDoc), array_keys($anchorTimes)));
         if ($missingAnchors !== []) {
-            throw new \RuntimeException('锚点时间缺失：' . implode('、', $missingAnchors) . '（请在 anchor_times 中一次性提供全部锚点）');
+            throw new DomainException('锚点时间缺失：' . implode('、', $missingAnchors) . '（请在 anchor_times 中一次性提供全部锚点）');
         }
 
         $tasks = $this->flattenTasks($planDoc);
@@ -189,7 +190,7 @@ class PlanCompiler
             if ($triggerType === 'relative') {
                 $anchorKey = $trigger['anchor'] ?? '';
                 if (! isset($anchorTimes[$anchorKey])) {
-                    throw new \RuntimeException("锚点时间缺失：{$anchorKey}（任务 {$key}）");
+                    throw new DomainException("锚点时间缺失：{$anchorKey}（任务 {$key}）");
                 }
                 $scheduledAt = $this->resolveRelative($anchorTimes[$anchorKey], $trigger);
                 $dbTriggerType = 'at_time';

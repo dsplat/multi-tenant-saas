@@ -3,12 +3,13 @@
 namespace MultiTenantSaas\Modules\User\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-
 use Illuminate\Database\Eloquent\Collection;
+
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Exceptions\StorageException;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Logging\Models\AuditLog;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
@@ -91,7 +92,7 @@ class UserProfileService
             throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new \RuntimeException(trans('common.profile_update_failed') . ': ' . $e->getMessage(), 0, $e);
+            throw new StorageException(trans('common.profile_update_failed') . ': ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -171,7 +172,7 @@ class UserProfileService
             throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new \RuntimeException(trans('common.preferences_update_failed') . ': ' . $e->getMessage(), 0, $e);
+            throw new StorageException(trans('common.preferences_update_failed') . ': ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -200,7 +201,7 @@ class UserProfileService
             return self::DEFAULT_PREFERENCES;
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new \RuntimeException(trans('common.preferences_reset_failed') . ': ' . $e->getMessage(), 0, $e);
+            throw new StorageException(trans('common.preferences_reset_failed') . ': ' . $e->getMessage(), 0, $e);
         }
     }
 

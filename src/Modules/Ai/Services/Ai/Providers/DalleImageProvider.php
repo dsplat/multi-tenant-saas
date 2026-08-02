@@ -6,6 +6,7 @@ namespace MultiTenantSaas\Modules\Ai\Services\Ai\Providers;
 
 use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Image;
+use MultiTenantSaas\Exceptions\DomainException;
 
 /**
  * DALL-E 图片生成提供商（基于 laravel/ai Image API）
@@ -58,7 +59,7 @@ class DalleImageProvider
      */
     public function imageToImage(string $model, string $imagePath, string $prompt, array $options = []): array
     {
-        throw new \RuntimeException(trans('ai.image_operation_not_supported', [
+        throw new DomainException(trans('ai.image_operation_not_supported', [
             'provider' => 'dalle',
             'operation' => 'image_to_image',
         ]));
@@ -69,7 +70,7 @@ class DalleImageProvider
      */
     public function editImage(string $model, string $imagePath, ?string $maskPath, string $prompt, array $options = []): array
     {
-        throw new \RuntimeException(trans('ai.image_operation_not_supported', [
+        throw new DomainException(trans('ai.image_operation_not_supported', [
             'provider' => 'dalle',
             'operation' => 'edit_image',
         ]));
@@ -80,7 +81,7 @@ class DalleImageProvider
      */
     public function styleTransfer(string $model, string $imagePath, string $stylePrompt, array $options = []): array
     {
-        throw new \RuntimeException(trans('ai.image_operation_not_supported', [
+        throw new DomainException(trans('ai.image_operation_not_supported', [
             'provider' => 'dalle',
             'operation' => 'style_transfer',
         ]));

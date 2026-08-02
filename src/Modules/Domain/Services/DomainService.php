@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
@@ -74,7 +75,7 @@ class DomainService
         $tenant = Tenant::findOrFail($tenantId);
 
         if (empty($tenant->domain)) {
-            throw new \RuntimeException(trans('domain.not_configured'));
+            throw new ServiceUnavailableException(trans('domain.not_configured'));
         }
 
         TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'domain_status', self::STATUS_APPROVED);
@@ -164,7 +165,7 @@ class DomainService
         $domain = $tenant->domain;
 
         if (empty($domain)) {
-            throw new \RuntimeException(trans('domain.not_configured'));
+            throw new ServiceUnavailableException(trans('domain.not_configured'));
         }
 
         $token = TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'verification_token');

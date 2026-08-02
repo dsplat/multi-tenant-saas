@@ -3,10 +3,12 @@
 namespace MultiTenantSaas\Modules\Billing\Services;
 
 use Carbon\Carbon;
-
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
 use MultiTenantSaas\Modules\Billing\Models\Invoice;
 use MultiTenantSaas\Modules\Infrastructure\Services\PdfService;
 
@@ -86,7 +88,7 @@ class InvoiceService
         $invoice = $this->findInvoice($invoiceId);
 
         if ($invoice->status !== Invoice::STATUS_DRAFT) {
-            throw new \RuntimeException(trans('payment.invoice_status_invalid'));
+            throw new DomainException(trans('payment.invoice_status_invalid'));
         }
 
         $invoice->status = Invoice::STATUS_ISSUED;
@@ -104,7 +106,7 @@ class InvoiceService
         $invoice = $this->findInvoice($invoiceId);
 
         if ($invoice->status !== Invoice::STATUS_ISSUED) {
-            throw new \RuntimeException(trans('payment.invoice_status_invalid'));
+            throw new DomainException(trans('payment.invoice_status_invalid'));
         }
 
         $invoice->status = Invoice::STATUS_PAID;
@@ -121,15 +123,15 @@ class InvoiceService
         $invoice = $this->findInvoice($invoiceId);
 
         if ($invoice->status === Invoice::STATUS_VOID) {
-            throw new \RuntimeException(trans('payment.invoice_already_void'));
+            throw new DomainException(trans('payment.invoice_already_void'));
         }
 
         if ($invoice->status === Invoice::STATUS_PAID) {
-            throw new \RuntimeException(trans('payment.invoice_cannot_void_paid'));
+            throw new DomainException(trans('payment.invoice_cannot_void_paid'));
         }
 
         if ($invoice->status !== Invoice::STATUS_ISSUED) {
-            throw new \RuntimeException(trans('payment.invoice_cannot_void'));
+            throw new DomainException(trans('payment.invoice_cannot_void'));
         }
 
         $invoice->status = Invoice::STATUS_VOID;
@@ -146,7 +148,7 @@ class InvoiceService
         $invoice = $this->findInvoice($invoiceId);
 
         if ($invoice->status !== Invoice::STATUS_DRAFT) {
-            throw new \RuntimeException(trans('payment.invoice_status_invalid'));
+            throw new DomainException(trans('payment.invoice_status_invalid'));
         }
 
         $invoice->status = Invoice::STATUS_CANCELLED;
@@ -273,7 +275,7 @@ class InvoiceService
         $invoice = Invoice::find($invoiceId);
 
         if (! $invoice) {
-            throw new \RuntimeException(trans('payment.invoice_not_found'));
+            throw new NotFoundException(trans('payment.invoice_not_found'));
         }
 
         return $invoice;

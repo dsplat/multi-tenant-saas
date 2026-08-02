@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Infrastructure\Services;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Infrastructure\Models\BrandingConfig;
 use MultiTenantSaas\Scopes\TenantScope;
 
@@ -132,13 +133,13 @@ class BrandingService
     public function setCustomDomain(int $tenantId, string $domain): BrandingConfig
     {
         if (! config('tenancy.branding.custom_domain_enabled', true)) {
-            throw new \RuntimeException(trans('tenant.branding_domain_invalid'));
+            throw new DomainException(trans('tenant.branding_domain_invalid'));
         }
 
         $domain = strtolower(trim($domain));
 
         if (! $this->isValidDomain($domain)) {
-            throw new \RuntimeException(trans('tenant.branding_domain_invalid'));
+            throw new DomainException(trans('tenant.branding_domain_invalid'));
         }
 
         $inUse = BrandingConfig::withoutGlobalScope(TenantScope::class)
@@ -147,7 +148,7 @@ class BrandingService
             ->exists();
 
         if ($inUse) {
-            throw new \RuntimeException(trans('tenant.branding_domain_in_use'));
+            throw new DomainException(trans('tenant.branding_domain_in_use'));
         }
 
         return $this->updateConfig($tenantId, ['custom_domain' => $domain]);
@@ -221,11 +222,11 @@ class BrandingService
         $maxSize = (int) config('tenancy.branding.logo_max_size', 2097152);
 
         if (! empty($allowed) && ! in_array($mime, $allowed, true)) {
-            throw new \RuntimeException(trans('tenant.branding_logo_invalid'));
+            throw new DomainException(trans('tenant.branding_logo_invalid'));
         }
 
         if ($file->getSize() > $maxSize) {
-            throw new \RuntimeException(trans('tenant.branding_logo_too_large'));
+            throw new DomainException(trans('tenant.branding_logo_too_large'));
         }
     }
 

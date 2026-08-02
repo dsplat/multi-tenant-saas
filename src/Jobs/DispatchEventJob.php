@@ -10,6 +10,9 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\EventHandler;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
+use MultiTenantSaas\Exceptions\StorageException;
 use MultiTenantSaas\Modules\Event\Models\EventSubscription;
 use MultiTenantSaas\Modules\Infrastructure\Services\WebhookService;
 use MultiTenantSaas\Modules\Monitoring\Models\DeadLetter;
@@ -76,7 +79,7 @@ class DispatchEventJob implements ShouldQueue
     protected function dispatchInternal(string $handler): void
     {
         if (! class_exists($handler)) {
-            throw new \RuntimeException(
+            throw new NotFoundException(
                 trans('common.event_subscription_handler_not_found', ['handler' => $handler])
             );
         }
@@ -85,7 +88,7 @@ class DispatchEventJob implements ShouldQueue
         $instance = app($handler);
 
         if (! $instance instanceof EventHandler) {
-            throw new \RuntimeException(
+            throw new DomainException(
                 trans('common.event_subscription_handler_invalid', ['handler' => $handler])
             );
         }
@@ -115,7 +118,7 @@ class DispatchEventJob implements ShouldQueue
         ])->timeout($timeout)->withBody($body, 'application/json')->post($subscription->handler);
 
         if ($response->status() < 200 || $response->status() >= 300) {
-            throw new \RuntimeException('Webhook delivery failed with HTTP status ' . $response->status());
+            throw new StorageException('Webhook delivery failed with HTTP status ' . $response->status());
         }
     }
 

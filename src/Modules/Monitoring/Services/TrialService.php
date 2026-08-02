@@ -3,10 +3,11 @@
 namespace MultiTenantSaas\Modules\Monitoring\Services;
 
 use Carbon\Carbon;
-
 use Illuminate\Support\Facades\DB;
+
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Billing\Models\FinancialRecord;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionHistory;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
@@ -49,11 +50,11 @@ class TrialService
         $plan = SubscriptionPlan::findOrFail($planId);
 
         if (! $plan->is_active) {
-            throw new \RuntimeException(trans('subscription.plan_not_available'));
+            throw new DomainException(trans('subscription.plan_not_available'));
         }
 
         if ($this->isInTrial($tenant)) {
-            throw new \RuntimeException(trans('subscription.trial_already_active'));
+            throw new DomainException(trans('subscription.trial_already_active'));
         }
 
         $days = $trialDays ?? ($plan->hasTrial() ? $plan->trial_days : self::DEFAULT_TRIAL_DAYS);
@@ -139,13 +140,13 @@ class TrialService
     public function extendTrial(int $tenantId, int $days, ?string $reason = null): Tenant
     {
         if ($days <= 0) {
-            throw new \RuntimeException(trans('subscription.trial_extend_invalid_days'));
+            throw new DomainException(trans('subscription.trial_extend_invalid_days'));
         }
 
         $tenant = Tenant::findOrFail($tenantId);
 
         if (! $tenant->trial_ends_at) {
-            throw new \RuntimeException(trans('subscription.trial_not_in_trial'));
+            throw new DomainException(trans('subscription.trial_not_in_trial'));
         }
 
         $base = $this->isInTrial($tenant) ? $tenant->trial_ends_at : now();

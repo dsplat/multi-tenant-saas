@@ -6,6 +6,7 @@ use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Auth\Models\OauthAccount;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
@@ -88,7 +89,7 @@ class SocialiteService
         $config = array_filter($config, fn ($v) => $v !== '' && $v !== null);
 
         if (empty($config['client_id']) || empty($config['client_secret'])) {
-            throw new \RuntimeException(trans('common.oauth_not_configured', ['provider' => $provider, 'tenant' => $tenantId]));
+            throw new ServiceUnavailableException(trans('common.oauth_not_configured', ['provider' => $provider, 'tenant' => $tenantId]));
         }
 
         // 保存原始配置到 app 容器（请求级隔离）

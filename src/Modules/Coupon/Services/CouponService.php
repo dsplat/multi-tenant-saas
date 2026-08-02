@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Exceptions\ConflictException;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
+use MultiTenantSaas\Exceptions\PermissionDeniedException;
+use MultiTenantSaas\Exceptions\QuotaExceededException;
 use MultiTenantSaas\Modules\Coupon\Models\Coupon;
 use MultiTenantSaas\Modules\Coupon\Models\CouponShare;
 use MultiTenantSaas\Modules\Coupon\Models\CouponUsage;
@@ -77,7 +81,7 @@ class CouponService
 
         do {
             if (++$attempts > $maxAttempts) {
-                throw new \RuntimeException('Failed to generate unique coupon code after ' . $maxAttempts . ' attempts.');
+                throw new DomainException('Failed to generate unique coupon code after ' . $maxAttempts . ' attempts.');
             }
 
             $suffix = '';
@@ -144,31 +148,31 @@ class CouponService
         $coupon = Coupon::byCode($code)->first();
 
         if (! $coupon) {
-            throw new \RuntimeException(trans('subscription.coupon_not_found'));
+            throw new NotFoundException(trans('subscription.coupon_not_found'));
         }
 
         if (! $coupon->isActive()) {
-            throw new \RuntimeException(trans('subscription.coupon_not_active'));
+            throw new DomainException(trans('subscription.coupon_not_active'));
         }
 
         if (! $coupon->hasStarted()) {
-            throw new \RuntimeException(trans('subscription.coupon_not_started'));
+            throw new DomainException(trans('subscription.coupon_not_started'));
         }
 
         if ($coupon->hasExpired()) {
-            throw new \RuntimeException(trans('subscription.coupon_expired'));
+            throw new DomainException(trans('subscription.coupon_expired'));
         }
 
         if ($coupon->hasReachedMaxUses()) {
-            throw new \RuntimeException(trans('subscription.coupon_usage_limit_reached'));
+            throw new QuotaExceededException(trans('subscription.coupon_usage_limit_reached'));
         }
 
         if ($tenantId && ! $this->checkTenantQuota($coupon, $tenantId)) {
-            throw new \RuntimeException(trans('subscription.coupon_per_tenant_limit_reached'));
+            throw new QuotaExceededException(trans('subscription.coupon_per_tenant_limit_reached'));
         }
 
         if ($coupon->min_amount !== null && (float) $amount < (float) $coupon->min_amount) {
-            throw new \RuntimeException(
+            throw new DomainException(
                 trans('subscription.coupon_min_amount_not_met', ['min_amount' => $coupon->min_amount])
             );
         }
@@ -176,7 +180,7 @@ class CouponService
         if ($coupon->applies_to === Coupon::APPLIES_TO_SUBSCRIPTION
             && $coupon->subscription_plan_id !== null
             && (string) $coupon->subscription_plan_id !== (string) $planId) {
-            throw new \RuntimeException(trans('subscription.coupon_plan_not_applicable'));
+            throw new DomainException(trans('subscription.coupon_plan_not_applicable'));
         }
 
         return $coupon;
@@ -204,7 +208,7 @@ class CouponService
             $locked = Coupon::where('coupon_id', $coupon->coupon_id)->lockForUpdate()->first();
 
             if (! $locked || ! $locked->isActive() || ! $locked->hasStarted() || $locked->hasExpired() || $locked->hasReachedMaxUses()) {
-                throw new \RuntimeException(trans('subscription.coupon_invalid'));
+                throw new DomainException(trans('subscription.coupon_invalid'));
             }
 
             $discount = $this->calculateDiscount($locked, $amount);
@@ -214,7 +218,7 @@ class CouponService
                     ->where('tenant_id', $tenantId)
                     ->count();
                 if ($usedByTenant >= $locked->max_uses_per_tenant) {
-                    throw new \RuntimeException(trans('subscription.coupon_per_tenant_limit_reached'));
+                    throw new QuotaExceededException(trans('subscription.coupon_per_tenant_limit_reached'));
                 }
             }
 
@@ -424,7 +428,7 @@ class CouponService
         $template = $this->findCoupon($templateId);
 
         if (! $template->isTemplate()) {
-            throw new \RuntimeException('指定优惠券不是模板');
+            throw new DomainException('指定优惠券不是模板');
         }
 
         $updatableFields = [
@@ -458,12 +462,12 @@ class CouponService
         $template = $this->findCoupon($templateId);
 
         if (! $template->isTemplate()) {
-            throw new \RuntimeException('指定优惠券不是模板');
+            throw new DomainException('指定优惠券不是模板');
         }
 
         $generatedCount = Coupon::where('template_id', $templateId)->count();
         if ($generatedCount > 0) {
-            throw new \RuntimeException("该模板已生成 {$generatedCount} 张优惠券，无法删除");
+            throw new DomainException("该模板已生成 {$generatedCount} 张优惠券，无法删除");
         }
 
         return $template->delete();
@@ -518,11 +522,11 @@ class CouponService
         $template = $this->findCoupon($templateId);
 
         if (! $template->isTemplate()) {
-            throw new \RuntimeException('指定优惠券不是模板');
+            throw new DomainException('指定优惠券不是模板');
         }
 
         if (! $template->isActive()) {
-            throw new \RuntimeException('模板已停用，无法生成优惠券');
+            throw new DomainException('模板已停用，无法生成优惠券');
         }
 
         $attributes = [
@@ -555,7 +559,7 @@ class CouponService
         $template = $this->findCoupon($templateId);
 
         if (! $template->isTemplate()) {
-            throw new \RuntimeException('指定优惠券不是模板');
+            throw new DomainException('指定优惠券不是模板');
         }
 
         $template->is_active = true;
@@ -572,7 +576,7 @@ class CouponService
         $template = $this->findCoupon($templateId);
 
         if (! $template->isTemplate()) {
-            throw new \RuntimeException('指定优惠券不是模板');
+            throw new DomainException('指定优惠券不是模板');
         }
 
         $template->is_active = false;
@@ -602,11 +606,11 @@ class CouponService
         $template = $this->findCoupon($templateId);
 
         if (! $template->isTemplate()) {
-            throw new \RuntimeException('指定优惠券不是模板');
+            throw new DomainException('指定优惠券不是模板');
         }
 
         if (! $template->isActive()) {
-            throw new \RuntimeException('模板已停用，无法发券');
+            throw new DomainException('模板已停用，无法发券');
         }
 
         // 去重并校验
@@ -657,11 +661,11 @@ class CouponService
         $template = $this->findCoupon($couponTemplateId);
 
         if (! $template->isTemplate()) {
-            throw new \RuntimeException('指定优惠券不是模板');
+            throw new DomainException('指定优惠券不是模板');
         }
 
         if (! $template->isActive()) {
-            throw new \RuntimeException('模板已停用，无法分享');
+            throw new DomainException('模板已停用，无法分享');
         }
 
         $shareCode = strtoupper(Str::random(16));
@@ -693,22 +697,22 @@ class CouponService
                 ->first();
 
             if (! $share) {
-                throw new \RuntimeException('分享链接无效或已使用');
+                throw new ConflictException('分享链接无效或已使用');
             }
 
             // 租户隔离校验
             if ((int) $share->tenant_id !== $tenantId) {
-                throw new \RuntimeException('无权接受此分享');
+                throw new PermissionDeniedException('无权接受此分享');
             }
 
             if ((int) $share->sharer_id === $receiverId) {
-                throw new \RuntimeException('不能接受自己的分享');
+                throw new DomainException('不能接受自己的分享');
             }
 
             $template = $this->findCoupon($share->coupon_template_id);
 
             if (! $template->isActive()) {
-                throw new \RuntimeException('优惠券模板已停用');
+                throw new DomainException('优惠券模板已停用');
             }
 
             // 向被分享人发券
@@ -832,7 +836,7 @@ class CouponService
         $coupon = Coupon::find($couponId);
 
         if (! $coupon) {
-            throw new \RuntimeException(trans('subscription.coupon_not_found'));
+            throw new NotFoundException(trans('subscription.coupon_not_found'));
         }
 
         return $coupon;

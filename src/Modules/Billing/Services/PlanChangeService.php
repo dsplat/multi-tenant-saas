@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionHistory;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
@@ -97,18 +98,18 @@ class PlanChangeService
         $newPlan = SubscriptionPlan::findOrFail($newPlanId);
 
         if (! $newPlan->is_active) {
-            throw new \RuntimeException('subscription.plan_not_available');
+            throw new DomainException('subscription.plan_not_available');
         }
 
         if ($tenant->status === 'suspended') {
-            throw new \RuntimeException('subscription.tenant_suspended');
+            throw new DomainException('subscription.tenant_suspended');
         }
 
         $oldPlan = $this->resolveCurrentPlan($tenant->tenant_id);
         $prorationResult = $this->computeProrationResult($tenant, $newPlan, $effectiveTiming);
 
         if ($oldPlan && $oldPlan->getKey() === $newPlan->getKey()) {
-            throw new \RuntimeException('subscription.plan_unchanged');
+            throw new DomainException('subscription.plan_unchanged');
         }
 
         $action = $this->resolveAction($oldPlan, $newPlan);

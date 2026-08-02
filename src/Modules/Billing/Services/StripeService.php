@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Modules\Billing\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 
 /**
@@ -37,7 +38,7 @@ class StripeService
         $key = TenantSetting::get($tenantId, 'payment', 'stripe_secret_key', '');
 
         if (empty($key)) {
-            throw new \RuntimeException(trans('payment.driver_not_configured', ['driver' => 'stripe', 'tenant' => $tenantId]));
+            throw new ServiceUnavailableException(trans('payment.driver_not_configured', ['driver' => 'stripe', 'tenant' => $tenantId]));
         }
 
         return $key;
@@ -82,7 +83,7 @@ class StripeService
 
         if (! $resp->successful()) {
             Log::error('[StripeService] createCheckoutSession failed', ['order_no' => $orderNo, 'resp' => $resp->body()]);
-            throw new \RuntimeException(trans('payment.stripe_create_failed') . ': ' . $resp->body());
+            throw new ServiceUnavailableException(trans('payment.stripe_create_failed') . ': ' . $resp->body());
         }
 
         $data = $resp->json();
@@ -111,7 +112,7 @@ class StripeService
             ]);
 
         if (! $resp->successful()) {
-            throw new \RuntimeException(trans('payment.stripe_intent_failed') . ': ' . $resp->body());
+            throw new ServiceUnavailableException(trans('payment.stripe_intent_failed') . ': ' . $resp->body());
         }
 
         $data = $resp->json();
@@ -143,7 +144,7 @@ class StripeService
             ->post(self::BASE_URL . '/v1/refunds', $payload);
 
         if (! $resp->successful()) {
-            throw new \RuntimeException(trans('payment.stripe_refund_failed') . ': ' . $resp->body());
+            throw new ServiceUnavailableException(trans('payment.stripe_refund_failed') . ': ' . $resp->body());
         }
 
         $data = $resp->json();
@@ -169,7 +170,7 @@ class StripeService
     public function handleWebhook(int $tenantId, array $payload, string $signatureHeader): array
     {
         if (! $this->verifyWebhookSignature($tenantId, $payload, $signatureHeader)) {
-            throw new \RuntimeException(trans('payment.stripe_signature_invalid'));
+            throw new ServiceUnavailableException(trans('payment.stripe_signature_invalid'));
         }
 
         $eventType = $payload['type'] ?? '';
@@ -199,7 +200,7 @@ class StripeService
         $webhookSecret = TenantSetting::get($tenantId, 'payment', 'stripe_webhook_secret', '');
 
         if (empty($webhookSecret)) {
-            throw new \RuntimeException(trans('payment.stripe_webhook_secret_not_configured'));
+            throw new ServiceUnavailableException(trans('payment.stripe_webhook_secret_not_configured'));
         }
 
         // Stripe 签名格式：t=...,v1=...

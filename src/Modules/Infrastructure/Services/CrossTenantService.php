@@ -6,6 +6,9 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
+use MultiTenantSaas\Exceptions\ConflictException;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantHierarchy;
 use MultiTenantSaas\Scopes\TenantScope;
@@ -51,18 +54,18 @@ class CrossTenantService
         ?array $permissionScope = null
     ): TenantHierarchy {
         if ($parentTenantId === $childTenantId) {
-            throw new RuntimeException(trans('tenant.hierarchy_self_reference'));
+            throw new DomainException(trans('tenant.hierarchy_self_reference'));
         }
 
         if (! Tenant::where('tenant_id', $parentTenantId)->exists()) {
-            throw new RuntimeException(trans('tenant.hierarchy_parent_not_found'));
+            throw new NotFoundException(trans('tenant.hierarchy_parent_not_found'));
         }
         if (! Tenant::where('tenant_id', $childTenantId)->exists()) {
-            throw new RuntimeException(trans('tenant.hierarchy_child_not_found'));
+            throw new NotFoundException(trans('tenant.hierarchy_child_not_found'));
         }
 
         if (! in_array($relationType, TenantHierarchy::TYPES, true)) {
-            throw new RuntimeException(
+            throw new DomainException(
                 trans('tenant.hierarchy_relation_type_invalid', ['type' => $relationType])
             );
         }
@@ -73,7 +76,7 @@ class CrossTenantService
             ->exists();
 
         if ($existing) {
-            throw new RuntimeException(trans('tenant.hierarchy_already_exists'));
+            throw new ConflictException(trans('tenant.hierarchy_already_exists'));
         }
 
         return TenantHierarchy::withoutGlobalScope(TenantScope::class)->create([
@@ -292,7 +295,7 @@ class CrossTenantService
     {
         $parent = Tenant::find($parentTenantId);
         if ($parent === null) {
-            throw new RuntimeException(trans('tenant.hierarchy_parent_not_found'));
+            throw new NotFoundException(trans('tenant.hierarchy_parent_not_found'));
         }
 
         $aggregate = $this->aggregateBilling($parentTenantId, $period);
@@ -338,7 +341,7 @@ class CrossTenantService
         $hierarchy = TenantHierarchy::findByChild($parentTenantId, $childTenantId);
 
         if ($hierarchy === null) {
-            throw new RuntimeException(
+            throw new NotFoundException(
                 trans('tenant.hierarchy_not_found', [
                     'parent' => $parentTenantId,
                     'child' => $childTenantId,

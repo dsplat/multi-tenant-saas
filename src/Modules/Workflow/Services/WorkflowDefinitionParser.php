@@ -6,6 +6,7 @@ namespace MultiTenantSaas\Modules\Workflow\Services;
 
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\DTOs\WorkflowDefinition;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Workflow\Models\Workflow;
 use MultiTenantSaas\Modules\Workflow\Models\WorkflowNode;
 
@@ -315,7 +316,7 @@ class WorkflowDefinitionParser
         $json = json_encode($definition, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
         if ($json === false) {
-            throw new \RuntimeException(
+            throw new DomainException(
                 'Failed to encode workflow to JSON: ' . json_last_error_msg()
             );
         }

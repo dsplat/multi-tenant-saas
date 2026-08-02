@@ -3,9 +3,13 @@
 namespace MultiTenantSaas\Modules\Plugin\Services;
 
 use Illuminate\Support\Collection;
-
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
+
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
+use MultiTenantSaas\Exceptions\StorageException;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 /**
@@ -50,7 +54,7 @@ class PluginService
         $manifest = $this->readManifest($pluginName);
 
         if (! $manifest) {
-            throw new \RuntimeException(trans('common.plugin_not_found', ['name' => $pluginName]));
+            throw new NotFoundException(trans('common.plugin_not_found', ['name' => $pluginName]));
         }
 
         $existing = DB::table(self::TABLE_PLUGINS)
@@ -59,7 +63,7 @@ class PluginService
             ->exists();
 
         if ($existing) {
-            throw new \RuntimeException(trans('common.plugin_already_installed'));
+            throw new DomainException(trans('common.plugin_already_installed'));
         }
 
         // 依赖检查
@@ -112,7 +116,7 @@ class PluginService
         $plugin = $this->findPlugin($pluginName, $tenantId);
 
         if (! $plugin) {
-            throw new \RuntimeException(trans('common.plugin_not_installed'));
+            throw new ServiceUnavailableException(trans('common.plugin_not_installed'));
         }
 
         // 触发清理钩子
@@ -134,7 +138,7 @@ class PluginService
             return true;
         } catch (\Exception $e) {
             DB::rollBack();
-            throw new \RuntimeException(trans('common.plugin_uninstall_failed') . ': ' . $e->getMessage(), 0, $e);
+            throw new StorageException(trans('common.plugin_uninstall_failed') . ': ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -151,7 +155,7 @@ class PluginService
     {
         $plugin = $this->findPlugin($pluginName, $tenantId);
         if (! $plugin) {
-            throw new \RuntimeException(trans('common.plugin_not_installed'));
+            throw new ServiceUnavailableException(trans('common.plugin_not_installed'));
         }
 
         $this->triggerHook($pluginName, 'enable');
@@ -180,7 +184,7 @@ class PluginService
     {
         $plugin = $this->findPlugin($pluginName, $tenantId);
         if (! $plugin) {
-            throw new \RuntimeException(trans('common.plugin_not_installed'));
+            throw new ServiceUnavailableException(trans('common.plugin_not_installed'));
         }
 
         $this->triggerHook($pluginName, 'disable');
@@ -229,7 +233,7 @@ class PluginService
     {
         $plugin = $this->findPlugin($pluginName, $tenantId);
         if (! $plugin) {
-            throw new \RuntimeException(trans('common.plugin_not_installed'));
+            throw new ServiceUnavailableException(trans('common.plugin_not_installed'));
         }
 
         $affected = DB::table(self::TABLE_PLUGINS)
@@ -310,7 +314,7 @@ class PluginService
             if (str_starts_with($dep, 'ext-')) {
                 $extName = substr($dep, 4);
                 if (! extension_loaded($extName)) {
-                    throw new \RuntimeException(trans('common.plugin_dep_missing', ['dep' => $dep]));
+                    throw new ServiceUnavailableException(trans('common.plugin_dep_missing', ['dep' => $dep]));
                 }
 
                 continue;
@@ -320,14 +324,14 @@ class PluginService
                 $depName = substr($dep, 7);
                 $installed = DB::table(self::TABLE_PLUGINS)->where('name', $depName)->exists();
                 if (! $installed) {
-                    throw new \RuntimeException(trans('common.plugin_dep_missing', ['dep' => $dep]));
+                    throw new ServiceUnavailableException(trans('common.plugin_dep_missing', ['dep' => $dep]));
                 }
 
                 continue;
             }
 
             if (! class_exists($dep)) {
-                throw new \RuntimeException(trans('common.plugin_dep_missing', ['dep' => $dep]));
+                throw new ServiceUnavailableException(trans('common.plugin_dep_missing', ['dep' => $dep]));
             }
         }
 

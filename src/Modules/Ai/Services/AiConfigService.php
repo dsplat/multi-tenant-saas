@@ -4,6 +4,8 @@ namespace MultiTenantSaas\Modules\Ai\Services;
 
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
 
 /**
@@ -89,7 +91,7 @@ class AiConfigService
     public function setCategoryEnabled(string $category, bool $enabled): AiTenantConfig
     {
         if (! in_array($category, AiTenantConfig::CATEGORIES, true)) {
-            throw new \RuntimeException(trans('ai.ai_capability_disabled', ['category' => $category]));
+            throw new ServiceUnavailableException(trans('ai.ai_capability_disabled', ['category' => $category]));
         }
 
         $config = $this->getOrCreateConfig();
@@ -201,7 +203,7 @@ class AiConfigService
     public function setOverageAction(string $action): AiTenantConfig
     {
         if (! in_array($action, AiTenantConfig::OVERAGE_ACTIONS, true)) {
-            throw new \RuntimeException(trans('ai.overage_action_invalid', ['action' => $action]));
+            throw new DomainException(trans('ai.overage_action_invalid', ['action' => $action]));
         }
 
         $config = $this->getOrCreateConfig();
@@ -269,7 +271,7 @@ class AiConfigService
     public function import(array $data): AiTenantConfig
     {
         if ($data === []) {
-            throw new \RuntimeException(trans('ai.config_import_invalid'));
+            throw new DomainException(trans('ai.config_import_invalid'));
         }
 
         $config = $this->getOrCreateConfig();
@@ -299,7 +301,7 @@ class AiConfigService
         if (array_key_exists('overage_action', $data)) {
             $action = (string) $data['overage_action'];
             if (! in_array($action, AiTenantConfig::OVERAGE_ACTIONS, true)) {
-                throw new \RuntimeException(trans('ai.overage_action_invalid', ['action' => $action]));
+                throw new DomainException(trans('ai.overage_action_invalid', ['action' => $action]));
             }
             $config->overage_action = $action;
         }

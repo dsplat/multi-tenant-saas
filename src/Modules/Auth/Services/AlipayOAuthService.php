@@ -5,6 +5,8 @@ namespace MultiTenantSaas\Modules\Auth\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Auth\Models\OauthAccount;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Auth\Services\Concerns\ManagesOAuthState;
@@ -65,7 +67,7 @@ class AlipayOAuthService
         $privateKey = TenantSetting::get($tenantId, 'oauth', 'alipay_private_key', '');
 
         if (empty($appId) || empty($privateKey)) {
-            throw new \RuntimeException(trans('common.oauth_not_configured', ['provider' => 'alipay', 'tenant' => $tenantId]));
+            throw new ServiceUnavailableException(trans('common.oauth_not_configured', ['provider' => 'alipay', 'tenant' => $tenantId]));
         }
 
         return [
@@ -112,7 +114,7 @@ class AlipayOAuthService
         $this->verifyState($state, $tenantId, 'alipay');
 
         if ($authCode === '') {
-            throw new \RuntimeException(trans('common.invalid_request'));
+            throw new DomainException(trans('common.invalid_request'));
         }
 
         $tokenData = $this->getAccessToken($tenantId, $authCode);
@@ -193,7 +195,7 @@ class AlipayOAuthService
                 'status' => $resp->status(),
                 'body' => $resp->body(),
             ]);
-            throw new \RuntimeException('Alipay gateway request failed: HTTP ' . $resp->status());
+            throw new ServiceUnavailableException('Alipay gateway request failed: HTTP ' . $resp->status());
         }
 
         $data = $resp->json();
@@ -207,13 +209,13 @@ class AlipayOAuthService
                 'code' => $code,
                 'msg' => $msg,
             ]);
-            throw new \RuntimeException('Alipay gateway error: ' . $msg);
+            throw new ServiceUnavailableException('Alipay gateway error: ' . $msg);
         }
 
         $responseKey = str_replace('.', '_', $method) . '_response';
 
         if (! isset($data[$responseKey])) {
-            throw new \RuntimeException('Alipay gateway response key missing: ' . $responseKey);
+            throw new ServiceUnavailableException('Alipay gateway response key missing: ' . $responseKey);
         }
 
         $responseData = $data[$responseKey];
@@ -223,7 +225,7 @@ class AlipayOAuthService
             Log::error('[AlipayOAuthService] gateway response sign verification failed', [
                 'method' => $method,
             ]);
-            throw new \RuntimeException('Alipay gateway response signature verification failed');
+            throw new ServiceUnavailableException('Alipay gateway response signature verification failed');
         }
 
         return $responseData;
@@ -248,7 +250,7 @@ class AlipayOAuthService
         $data = http_build_query($params);
 
         if (! openssl_sign($data, $signature, $privateKeyPem, OPENSSL_ALGO_SHA256)) {
-            throw new \RuntimeException('Alipay RSA2 sign failed');
+            throw new ServiceUnavailableException('Alipay RSA2 sign failed');
         }
 
         return base64_encode($signature);
@@ -317,7 +319,7 @@ class AlipayOAuthService
     {
         $providerId = $alipayUser['user_id'] ?? '';
         if ($providerId === '') {
-            throw new \RuntimeException('Alipay user_id missing');
+            throw new DomainException('Alipay user_id missing');
         }
 
         $nsProvider = app(SocialiteService::class)->namespacedProvider('alipay', $tenantId);

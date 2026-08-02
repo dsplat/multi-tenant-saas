@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Billing\Services;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Billing\Models\FinancialRecord;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionHistory;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
@@ -12,15 +13,13 @@ use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Notification\Services\NotificationService;
 
 /**
- * 订阅服务（DI 实例方法）。
- *
- * 向后兼容：保留 __callStatic 代理，旧代码 app(SubscriptionService::class)->method() 仍可用，
- * 新代码应通过构造器注入使用。
+ * 订阅服务。
  */
 class SubscriptionService
 {
     public function __construct(
         private readonly TenantContextContract $tenantContext,
+        private readonly ?PayService $payService = null,
     ) {}
 
     /**
@@ -32,7 +31,7 @@ class SubscriptionService
         $plan = SubscriptionPlan::findOrFail($planId);
 
         if (! $plan->is_active) {
-            throw new \RuntimeException(trans('subscription.plan_not_available'));
+            throw new DomainException(trans('subscription.plan_not_available'));
         }
 
         $now = now();
@@ -106,7 +105,7 @@ class SubscriptionService
         $oldPlan = $this->getCurrentPlan($tenantId);
 
         if (! $newPlan->is_active) {
-            throw new \RuntimeException(trans('subscription.plan_not_available'));
+            throw new DomainException(trans('subscription.plan_not_available'));
         }
 
         // 计算按比例退补金额
@@ -340,11 +339,26 @@ class SubscriptionService
                 ],
             ]);
 
-            // TODO: 调用 PayService 发起自动扣款
+            // 尝试通过 PayService 发起自动扣款
+            $charged = false;
+            if ($this->payService && $this->payService->isConfigured($tenant->tenant_id, 'wechat')) {
+                try {
+                    $this->payService->wechatH5($tenant->tenant_id, (float) $plan->price_monthly, $orderNo);
+                    $charged = true;
+                } catch (\Throwable $e) {
+                    Log::warning('自动扣款发起失败，降级为待支付', [
+                        'tenant_id' => $tenant->tenant_id,
+                        'order_no' => $orderNo,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
             Log::info('自动续费订单已创建', [
                 'tenant_id' => $tenant->tenant_id,
                 'order_no' => $orderNo,
                 'amount' => $plan->price_monthly,
+                'charged' => $charged,
             ]);
 
             $tenant->subscription_expires_at = now()->copy()->addMonth();

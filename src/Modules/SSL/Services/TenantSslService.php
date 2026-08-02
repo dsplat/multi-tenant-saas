@@ -3,6 +3,8 @@
 namespace MultiTenantSaas\Modules\SSL\Services;
 
 use Carbon\Carbon;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\StorageException;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use RuntimeException;
 
@@ -36,7 +38,7 @@ class TenantSslService
         $domain = $tenant->domain;
 
         if (! $domain) {
-            throw new RuntimeException(trans('ssl.no_domain'));
+            throw new DomainException(trans('ssl.no_domain'));
         }
 
         // 解析证书过期时间
@@ -48,7 +50,7 @@ class TenantSslService
         // 确保目录存在
         $dir = $this->certsPath;
         if (! is_dir($dir) && ! mkdir($dir, 0750, true)) {
-            throw new RuntimeException("无法创建证书目录: {$dir}");
+            throw new StorageException("无法创建证书目录: {$dir}");
         }
 
         // 规范化 PEM 内容（确保有换行结尾）
@@ -60,13 +62,13 @@ class TenantSslService
 
         // 写入证书（可被 nginx 读取，不对外公开）
         if (file_put_contents($certFile, $certContent) === false) {
-            throw new RuntimeException("证书文件写入失败: {$certFile}");
+            throw new StorageException("证书文件写入失败: {$certFile}");
         }
         chmod($certFile, 0644);
 
         // 写入私钥（仅所有者可读，600）
         if (file_put_contents($keyFile, $keyContent) === false) {
-            throw new RuntimeException("私钥文件写入失败: {$keyFile}");
+            throw new StorageException("私钥文件写入失败: {$keyFile}");
         }
         chmod($keyFile, 0600);
 

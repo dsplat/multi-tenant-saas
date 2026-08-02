@@ -3,13 +3,16 @@
 namespace MultiTenantSaas\Modules\Monitoring\Services;
 
 use Barryvdh\DomPDF\Facade\Pdf;
-
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Infrastructure\Services\ExcelService;
 use MultiTenantSaas\Modules\Infrastructure\Services\PdfService;
 use MultiTenantSaas\Modules\Monitoring\Models\CustomReport;
@@ -222,7 +225,7 @@ class ReportService
             self::FORMAT_CSV => $this->exportCsv($rows),
             self::FORMAT_EXCEL => $this->exportExcel($rows),
             self::FORMAT_PDF => $this->exportPdf($data),
-            default => throw new \RuntimeException(trans('common.report_format_invalid')),
+            default => throw new DomainException(trans('common.report_format_invalid')),
         };
     }
 
@@ -239,7 +242,7 @@ class ReportService
             self::FREQUENCY_DAILY => '0 8 * * *',          // 每日 08:00
             self::FREQUENCY_WEEKLY => '0 8 * * 1',         // 每周一 08:00
             self::FREQUENCY_MONTHLY => '0 8 1 * *',        // 每月 1 日 08:00
-            default => throw new \RuntimeException(trans('common.report_frequency_invalid')),
+            default => throw new DomainException(trans('common.report_frequency_invalid')),
         };
     }
 
@@ -302,7 +305,7 @@ class ReportService
     {
         $templates = (array) config('tenancy.reports.templates', []);
         if (! isset($templates[$templateName])) {
-            throw new \RuntimeException(trans('common.report_template_not_found'));
+            throw new NotFoundException(trans('common.report_template_not_found'));
         }
 
         return (array) $templates[$templateName];
@@ -720,7 +723,7 @@ class ReportService
             $writer->save($tempFile);
             $content = (string) file_get_contents($tempFile);
         } catch (Throwable $e) {
-            throw new \RuntimeException(trans('common.report_export_unavailable'), 0, $e);
+            throw new ServiceUnavailableException(trans('common.report_export_unavailable'), 0, $e);
         } finally {
             $spreadsheet->disconnectWorksheets();
             if (file_exists($tempFile)) {
@@ -741,7 +744,7 @@ class ReportService
     protected function exportPdf(array $data): string
     {
         if (! class_exists(Pdf::class)) {
-            throw new \RuntimeException(trans('common.report_export_unavailable'));
+            throw new ServiceUnavailableException(trans('common.report_export_unavailable'));
         }
 
         $view = (string) config('tenancy.reports.pdf_view', 'pdf.report');
@@ -749,7 +752,7 @@ class ReportService
         try {
             return (string) app(PdfService::class)->generate($view, $data);
         } catch (Throwable $e) {
-            throw new \RuntimeException(trans('common.report_export_unavailable'), 0, $e);
+            throw new ServiceUnavailableException(trans('common.report_export_unavailable'), 0, $e);
         }
     }
 

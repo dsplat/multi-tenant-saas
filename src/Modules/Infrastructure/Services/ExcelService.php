@@ -8,12 +8,9 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Excel 服务（DI 实例方法）。
+ * Excel 服务。
  *
  * 基于 phpoffice/phpspreadsheet 2.0 原生实现
- *
- * 向后兼容：保留 __callStatic 代理，旧代码 ExcelService::exportArray(...) 仍可用，
- * 新代码应通过构造器注入使用。
  */
 class ExcelService
 {

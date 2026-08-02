@@ -4,6 +4,8 @@ namespace MultiTenantSaas\Modules\Notification\Services;
 
 use Illuminate\Database\Eloquent\Builder;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
 use MultiTenantSaas\Modules\Notification\Models\MailTemplate;
 
 /**
@@ -46,7 +48,7 @@ class MailTemplateService
         $template = MailTemplate::find($id);
 
         if (! $template) {
-            throw new \RuntimeException(trans('notification.mail_templates.not_found'));
+            throw new NotFoundException(trans('notification.mail_templates.not_found'));
         }
 
         return $template;
@@ -229,7 +231,7 @@ class MailTemplateService
     public function toggleStatus(int $id, string $status): MailTemplate
     {
         if (! in_array($status, MailTemplate::STATUSES, true)) {
-            throw new \RuntimeException(trans('notification.mail_templates.invalid_status'));
+            throw new DomainException(trans('notification.mail_templates.invalid_status'));
         }
 
         $template = $this->get($id);

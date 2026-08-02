@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Ai\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
 use MultiTenantSaas\Modules\Ai\Models\AiUsageQuota;
@@ -197,7 +198,7 @@ class AiUsageService
         $message = $this->buildExceededMessage($category, $used, $limit);
 
         if ($action === AiTenantConfig::OVERAGE_BLOCK) {
-            throw new \RuntimeException($message);
+            throw new DomainException($message);
         }
 
         if ($action === AiTenantConfig::OVERAGE_WARN) {
@@ -238,7 +239,7 @@ class AiUsageService
         ]);
 
         if ($action === AiTenantConfig::OVERAGE_BLOCK) {
-            throw new \RuntimeException($message);
+            throw new DomainException($message);
         }
 
         if ($action === AiTenantConfig::OVERAGE_WARN) {

@@ -4,6 +4,8 @@ namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
 use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
 use MultiTenantSaas\Modules\Auth\Models\Permission;
 use MultiTenantSaas\Modules\Auth\Models\Role;
@@ -47,16 +49,16 @@ class TenantCloneService
     {
         $source = Tenant::find($sourceTenantId);
         if ($source === null) {
-            throw new RuntimeException(trans('tenant.clone_source_not_found'));
+            throw new NotFoundException(trans('tenant.clone_source_not_found'));
         }
 
         $slug = $targetBasic['slug'] ?? null;
         if (empty($slug)) {
-            throw new RuntimeException(trans('tenant.clone_slug_required'));
+            throw new DomainException(trans('tenant.clone_slug_required'));
         }
 
         if (Tenant::where('slug', $slug)->exists()) {
-            throw new RuntimeException(trans('tenant.clone_slug_in_use'));
+            throw new DomainException(trans('tenant.clone_slug_in_use'));
         }
 
         $target = DB::transaction(function () use ($source, $targetBasic, $slug) {
@@ -104,7 +106,7 @@ class TenantCloneService
     {
         $tenant = Tenant::find($tenantId);
         if ($tenant === null) {
-            throw new RuntimeException(trans('tenant.not_found'));
+            throw new NotFoundException(trans('tenant.not_found'));
         }
 
         $settings = $this->exportSettings($tenantId);
@@ -147,11 +149,11 @@ class TenantCloneService
     {
         $target = Tenant::find($targetTenantId);
         if ($target === null) {
-            throw new RuntimeException(trans('tenant.not_found'));
+            throw new NotFoundException(trans('tenant.not_found'));
         }
 
         if (! isset($snapshot['version'], $snapshot['tenant'])) {
-            throw new RuntimeException(trans('tenant.clone_snapshot_invalid'));
+            throw new DomainException(trans('tenant.clone_snapshot_invalid'));
         }
 
         DB::transaction(function () use ($snapshot, $targetTenantId) {
@@ -173,7 +175,7 @@ class TenantCloneService
     {
         $data = json_decode($json, true);
         if (! is_array($data)) {
-            throw new RuntimeException(trans('tenant.clone_snapshot_invalid'));
+            throw new DomainException(trans('tenant.clone_snapshot_invalid'));
         }
 
         $this->importSnapshot($data, $targetTenantId);

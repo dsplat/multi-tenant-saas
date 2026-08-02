@@ -6,6 +6,7 @@ namespace MultiTenantSaas\Modules\Workflow\Services;
 
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\WorkflowEngineContract;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Workflow\Models\WorkflowExecution;
 
 class RetryService
@@ -57,7 +58,7 @@ class RetryService
     public function retry(WorkflowExecution $execution, array $overrideContext = []): WorkflowExecution
     {
         if (! $this->canRetry($execution)) {
-            throw new \RuntimeException(
+            throw new DomainException(
                 "Execution cannot be retried. Status: {$execution->status}, Retry count: " .
                 $this->getRetryCount($execution) . ", Max: {$this->maxRetries}"
             );

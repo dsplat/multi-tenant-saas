@@ -7,8 +7,9 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use MultiTenantSaas\Contracts\IsolationStrategyContract;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
-use RuntimeException;
 use Throwable;
 
 /**
@@ -158,7 +159,7 @@ class DatabasePerTenantStrategy implements IsolationStrategyContract
                 DB::connection($admin)->statement('CREATE DATABASE "' . $name . '"');
             }
         } catch (Throwable $e) {
-            throw new RuntimeException(
+            throw new ServiceUnavailableException(
                 trans('tenant.isolation_database_create_failed', ['error' => $e->getMessage()]),
                 0,
                 $e
@@ -192,7 +193,7 @@ class DatabasePerTenantStrategy implements IsolationStrategyContract
                 DB::connection($admin)->statement('DROP DATABASE IF EXISTS "' . $name . '"');
             }
         } catch (Throwable $e) {
-            throw new RuntimeException(
+            throw new DomainException(
                 trans('tenant.isolation_database_drop_failed', ['error' => $e->getMessage()]),
                 0,
                 $e

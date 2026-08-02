@@ -5,6 +5,8 @@ namespace MultiTenantSaas\Modules\Infrastructure\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
 
 /**
  * 备份服务
@@ -68,14 +70,14 @@ class BackupService
         $fullPath = storage_path('app/' . $backupPath);
 
         if (! File::exists($fullPath)) {
-            throw new \RuntimeException("Backup file not found: {$backupPath}");
+            throw new NotFoundException("Backup file not found: {$backupPath}");
         }
 
         $json = gzdecode(File::get($fullPath));
         $data = json_decode($json, true);
 
         if (! is_array($data) || ($data['type'] ?? '') !== 'tenant') {
-            throw new \RuntimeException('Invalid tenant backup file');
+            throw new DomainException('Invalid tenant backup file');
         }
 
         $targetTenantId = $tenantId ?? $data['tenant_id'];

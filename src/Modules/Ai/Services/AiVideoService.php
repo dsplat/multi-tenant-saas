@@ -3,13 +3,16 @@
 namespace MultiTenantSaas\Modules\Ai\Services;
 
 use Carbon\Carbon;
-
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Ai\Models\AiRequest;
 use MultiTenantSaas\Modules\Ai\Services\Ai\KlingProvider;
 use MultiTenantSaas\Modules\Ai\Services\Ai\RunwayProvider;
@@ -161,7 +164,7 @@ class AiVideoService
         $count = (int) ($options['count'] ?? 4);
 
         if ($count <= 0) {
-            throw new RuntimeException(trans('ai.video_frame_count_invalid'));
+            throw new DomainException(trans('ai.video_frame_count_invalid'));
         }
 
         $file = $this->getInputFile($fileUploadId);
@@ -209,7 +212,7 @@ class AiVideoService
         $log = AiRequest::find($this->normalizeId($requestId));
 
         if ($log === null) {
-            throw new RuntimeException(trans('ai.video_task_not_found'));
+            throw new NotFoundException(trans('ai.video_task_not_found'));
         }
 
         $metadata = is_array($log->metadata) ? $log->metadata : [];
@@ -480,7 +483,7 @@ class AiVideoService
         $class = self::PROVIDER_CLASS_MAP[$providerCode] ?? null;
 
         if ($class === null) {
-            throw new RuntimeException(trans('ai.provider_not_implemented', ['provider' => $providerCode]));
+            throw new ServiceUnavailableException(trans('ai.provider_not_implemented', ['provider' => $providerCode]));
         }
 
         return $this->providerCache[$providerCode] = app($class);
@@ -594,7 +597,7 @@ class AiVideoService
         $file = FileUpload::find($this->normalizeId($fileUploadId));
 
         if ($file === null) {
-            throw new RuntimeException(trans('ai.video_input_not_found'));
+            throw new NotFoundException(trans('ai.video_input_not_found'));
         }
 
         return $file;
@@ -761,13 +764,13 @@ class AiVideoService
     protected function assertPrompt(string $prompt): void
     {
         if (trim($prompt) === '') {
-            throw new RuntimeException(trans('ai.invalid_prompt'));
+            throw new DomainException(trans('ai.invalid_prompt'));
         }
 
         $max = (int) config('ai.video.max_prompt_length', 4000);
 
         if ($max > 0 && mb_strlen($prompt) > $max) {
-            throw new RuntimeException(trans('ai.video_prompt_too_long', ['max' => $max]));
+            throw new DomainException(trans('ai.video_prompt_too_long', ['max' => $max]));
         }
     }
 

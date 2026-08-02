@@ -5,6 +5,8 @@ namespace MultiTenantSaas\Modules\Billing\Services;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
 use MultiTenantSaas\Modules\Billing\Models\TaxRule;
 
 /**
@@ -60,7 +62,7 @@ class TaxService
         $region = strtoupper($region);
 
         if (! $this->isSupportedRegion($region)) {
-            throw new \RuntimeException(trans('payment.tax_region_unsupported'));
+            throw new DomainException(trans('payment.tax_region_unsupported'));
         }
 
         if ($this->isExempt($region, $productType)) {
@@ -100,7 +102,7 @@ class TaxService
             'EU' => $this->validateEuVatNumber($taxNumber),
             'UK' => $this->validateUkVatNumber($taxNumber),
             'US' => $this->validateUsEinNumber($taxNumber),
-            default => throw new \RuntimeException(trans('payment.tax_region_unsupported')),
+            default => throw new DomainException(trans('payment.tax_region_unsupported')),
         };
     }
 
@@ -223,7 +225,7 @@ class TaxService
             return self::DEFAULT_RATE_CONFIG[$region];
         }
 
-        throw new \RuntimeException(trans('payment.tax_rule_not_found'));
+        throw new NotFoundException(trans('payment.tax_rule_not_found'));
     }
 
     /**

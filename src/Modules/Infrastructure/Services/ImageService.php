@@ -3,6 +3,8 @@
 namespace MultiTenantSaas\Modules\Infrastructure\Services;
 
 use Illuminate\Support\Facades\File;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
 
 /**
  * 图片处理服务
@@ -157,12 +159,12 @@ class ImageService
     protected function loadImage(string $path)
     {
         if (! File::exists($path)) {
-            throw new \RuntimeException("Image file not found: {$path}");
+            throw new NotFoundException("Image file not found: {$path}");
         }
 
         $info = getimagesize($path);
         if ($info === false) {
-            throw new \RuntimeException("Invalid image file: {$path}");
+            throw new DomainException("Invalid image file: {$path}");
         }
 
         return match ($info[2]) {
@@ -170,7 +172,7 @@ class ImageService
             IMAGETYPE_PNG => imagecreatefrompng($path),
             IMAGETYPE_GIF => imagecreatefromgif($path),
             IMAGETYPE_WEBP => imagecreatefromwebp($path),
-            default => throw new \RuntimeException("Unsupported image type: {$info[2]}"),
+            default => throw new DomainException("Unsupported image type: {$info[2]}"),
         };
     }
 

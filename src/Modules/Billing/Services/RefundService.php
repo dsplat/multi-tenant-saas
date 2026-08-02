@@ -3,9 +3,11 @@
 namespace MultiTenantSaas\Modules\Billing\Services;
 
 use Illuminate\Http\Request;
-
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\TenantContextContract;
+
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
 use MultiTenantSaas\Modules\Billing\Models\FinancialRecord;
 use MultiTenantSaas\Modules\Billing\Models\PaymentOrder;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
@@ -37,15 +39,15 @@ class RefundService
             ->first();
 
         if (! $order) {
-            throw new \RuntimeException(trans('payment.order_not_found'));
+            throw new NotFoundException(trans('payment.order_not_found'));
         }
 
         if ($order->status !== 'paid' && $order->status !== 'completed') {
-            throw new \RuntimeException(trans('payment.order_status_invalid'));
+            throw new DomainException(trans('payment.order_status_invalid'));
         }
 
         if ($refundAmount > floatval($order->amount)) {
-            throw new \RuntimeException(trans('payment.refund_amount_exceeds'));
+            throw new DomainException(trans('payment.refund_amount_exceeds'));
         }
 
         $driver = $order->driver;
@@ -60,7 +62,7 @@ class RefundService
             } elseif ($driver === 'alipay') {
                 $result = $this->alipayRefund($pay, $order, $refundNo, $refundAmount, $reason);
             } else {
-                throw new \RuntimeException(trans('payment.unsupported_driver') . ": {$driver}");
+                throw new DomainException(trans('payment.unsupported_driver') . ": {$driver}");
             }
 
             // 更新订单状态
@@ -160,7 +162,7 @@ class RefundService
             ->first();
 
         if (! $order) {
-            throw new \RuntimeException(trans('payment.order_not_found'));
+            throw new NotFoundException(trans('payment.order_not_found'));
         }
 
         $extra = $order->extra ?? [];
@@ -235,7 +237,7 @@ class RefundService
         $tenantId = $request->query('tenant_id');
 
         if (! $tenantId) {
-            throw new \RuntimeException(trans('payment.missing_tenant_callback'));
+            throw new DomainException(trans('payment.missing_tenant_callback'));
         }
 
         $pay = app(PayService::class)->createPayInstancePublic((int) $tenantId, $driver);

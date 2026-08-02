@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
 use MultiTenantSaas\Modules\Billing\Models\CreditTransaction;
 use MultiTenantSaas\Modules\Billing\Models\FinancialRecord;
+use MultiTenantSaas\Modules\Billing\Services\PayService;
 use MultiTenantSaas\Modules\Notification\Services\NotificationService;
 
 class ProcessCreditExpiry extends Command
@@ -166,8 +167,21 @@ class ProcessCreditExpiry extends Command
                     ],
                 ]);
 
-                // TODO: 调用 PayService 发起自动扣款
-                // 目前仅记录订单，实际扣款需对接支付网关
+                // 尝试通过 PayService 发起自动扣款
+                $payService = app(PayService::class);
+                $charged = false;
+                if ($payService->isConfigured($account->tenant_id, 'wechat')) {
+                    try {
+                        $payService->wechatH5($account->tenant_id, (float) $rechargeAmount, $orderNo);
+                        $charged = true;
+                    } catch (\Throwable $e) {
+                        Log::warning('自动充值扣款发起失败，降级为待支付', [
+                            'tenant_id' => $account->tenant_id,
+                            'order_no' => $orderNo,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
 
                 Log::info(trans('credit.auto_recharge_triggered'), [
                     'tenant_id' => $account->tenant_id,

@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Exceptions\DomainException;
+use MultiTenantSaas\Exceptions\NotFoundException;
 use MultiTenantSaas\Jobs\CleanupSandboxJob;
 use MultiTenantSaas\Modules\Infrastructure\Models\SandboxEnvironment;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
@@ -112,15 +114,15 @@ class SandboxService
     {
         $sandbox = $this->findSandbox($sandboxId);
         if (! $sandbox) {
-            throw new \RuntimeException(trans('common.sandbox_not_found'));
+            throw new NotFoundException(trans('common.sandbox_not_found'));
         }
         if (! $sandbox->isUsable()) {
-            throw new \RuntimeException(trans('common.sandbox_expired'));
+            throw new DomainException(trans('common.sandbox_expired'));
         }
 
         $tenant = Tenant::where('tenant_id', $sandbox->sandbox_tenant_id)->first();
         if (! $tenant) {
-            throw new \RuntimeException(trans('common.sandbox_not_found'));
+            throw new NotFoundException(trans('common.sandbox_not_found'));
         }
 
         TenantContext::setTenantId((string) $tenant->tenant_id);

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
 use MultiTenantSaas\Modules\Lottery\Models\LotteryActivity;
 use MultiTenantSaas\Modules\Lottery\Models\LotteryActivityPrize;
@@ -152,16 +153,16 @@ class LotteryService
 
         // 检查活动状态
         if ($activity->status !== 'active') {
-            throw new \RuntimeException(trans('lottery.activity_not_active'));
+            throw new DomainException(trans('lottery.activity_not_active'));
         }
 
         // 检查时间范围
         $now = now();
         if ($activity->start_at && $now->lt($activity->start_at)) {
-            throw new \RuntimeException(trans('lottery.activity_not_started'));
+            throw new DomainException(trans('lottery.activity_not_started'));
         }
         if ($activity->end_at && $now->gt($activity->end_at)) {
-            throw new \RuntimeException(trans('lottery.activity_ended'));
+            throw new DomainException(trans('lottery.activity_ended'));
         }
 
         // 检查黑名单

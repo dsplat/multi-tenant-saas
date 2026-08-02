@@ -180,7 +180,7 @@ async function handleLogin() {
         router.push({
           name: 'mfa-verify',
           query: {
-            user_id: String(payload.user_id),
+            challenge_token: payload.challenge_token || '',
             types: (payload.available_types || []).join(','),
           },
         })

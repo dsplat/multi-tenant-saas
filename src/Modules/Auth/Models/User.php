@@ -83,4 +83,29 @@ class User extends Authenticatable
     {
         return $this->hasMany(CreditAccount::class, 'user_id', 'user_id');
     }
+
+    public function mfaDevices(): HasMany
+    {
+        return $this->hasMany(MfaDevice::class, 'user_id', 'user_id');
+    }
+
+    public function mfaRecoveryCodes(): HasMany
+    {
+        return $this->hasMany(MfaRecoveryCode::class, 'user_id', 'user_id');
+    }
+
+    public function sessions(): HasMany
+    {
+        return $this->hasMany(UserSession::class, 'user_id', 'user_id');
+    }
+
+    public function trustedDevices(): HasMany
+    {
+        return $this->hasMany(TrustedDevice::class, 'user_id', 'user_id');
+    }
+
+    public function passwordHistories(): HasMany
+    {
+        return $this->hasMany(PasswordHistory::class, 'user_id', 'user_id');
+    }
 }

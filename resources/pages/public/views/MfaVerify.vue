@@ -71,7 +71,7 @@ const code = ref('')
 const selectedType = ref('')
 const resendTimer = ref(0)
 
-const userId = computed(() => Number(route.query.user_id) || 0)
+const challengeToken = computed(() => (route.query.challenge_token as string) || '')
 const availableTypes = computed(() => {
   const types = (route.query.types as string) || ''
   return types.split(',').filter(Boolean)
@@ -144,7 +144,7 @@ async function handleVerify() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        user_id: userId.value,
+        challenge_token: challengeToken.value,
         type: selectedType.value,
         code: code.value,
       }),

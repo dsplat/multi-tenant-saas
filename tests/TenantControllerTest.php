@@ -16,6 +16,8 @@ class TenantControllerTest extends TestCase
 
     private User $admin;
 
+    private Operator $operator;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -28,7 +30,7 @@ class TenantControllerTest extends TestCase
         ]);
 
         // 创建平台级 operator
-        $operator = Operator::create([
+        $this->operator = Operator::create([
             'email' => 'admin@example.com',
             'name' => 'Super Admin',
             'scope' => 'platform',
@@ -44,7 +46,7 @@ class TenantControllerTest extends TestCase
 
         // 创建 operator_tenants 映射
         OperatorTenant::create([
-            'operator_id' => $operator->operator_id,
+            'operator_id' => $this->operator->operator_id,
             'tenant_id' => 9007199254740991, // 平台租户
             'user_id' => $this->admin->user_id,
             'role' => 'super_admin',
@@ -72,7 +74,7 @@ class TenantControllerTest extends TestCase
             'status' => 'active',
         ]);
 
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->operator, 'sanctum')
             ->getJson('/api/v1/tenants');
 
         $response->assertStatus(200)
@@ -83,7 +85,7 @@ class TenantControllerTest extends TestCase
 
     public function test_store_tenant(): void
     {
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->operator, 'sanctum')
             ->postJson('/api/v1/tenants', [
                 'name' => 'New Tenant',
                 'slug' => 'new-tenant',
@@ -103,7 +105,7 @@ class TenantControllerTest extends TestCase
 
     public function test_store_tenant_with_contact_info(): void
     {
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->operator, 'sanctum')
             ->postJson('/api/v1/tenants', [
                 'name' => 'Contact Tenant',
                 'slug' => 'contact-tenant',
@@ -124,7 +126,7 @@ class TenantControllerTest extends TestCase
 
     public function test_store_tenant_requires_name(): void
     {
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->operator, 'sanctum')
             ->postJson('/api/v1/tenants', [
                 'slug' => 'no-name',
             ]);
@@ -140,7 +142,7 @@ class TenantControllerTest extends TestCase
             'status' => 'active',
         ]);
 
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->operator, 'sanctum')
             ->postJson('/api/v1/tenants', [
                 'name' => 'Duplicate',
                 'slug' => 'existing-slug',
@@ -159,7 +161,7 @@ class TenantControllerTest extends TestCase
             'status' => 'active',
         ]);
 
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->operator, 'sanctum')
             ->getJson("/api/v1/tenants/{$tenant->tenant_id}");
 
         $response->assertStatus(200)
@@ -169,7 +171,7 @@ class TenantControllerTest extends TestCase
 
     public function test_show_nonexistent_tenant(): void
     {
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->operator, 'sanctum')
             ->getJson('/api/v1/tenants/99999999');
 
         $response->assertStatus(404);
@@ -185,7 +187,7 @@ class TenantControllerTest extends TestCase
             'status' => 'active',
         ]);
 
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->operator, 'sanctum')
             ->putJson("/api/v1/tenants/{$tenant->tenant_id}", [
                 'name' => 'Updated Name',
             ]);
@@ -205,7 +207,7 @@ class TenantControllerTest extends TestCase
             'status' => 'active',
         ]);
 
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->operator, 'sanctum')
             ->deleteJson("/api/v1/tenants/{$tenant->tenant_id}");
 
         $response->assertStatus(200)
@@ -222,7 +224,7 @@ class TenantControllerTest extends TestCase
             'status' => 'active',
         ]);
 
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->operator, 'sanctum')
             ->postJson("/api/v1/tenants/{$tenant->tenant_id}/suspend");
 
         $response->assertStatus(200)
@@ -242,7 +244,7 @@ class TenantControllerTest extends TestCase
             'status' => 'suspended',
         ]);
 
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->operator, 'sanctum')
             ->postJson("/api/v1/tenants/{$tenant->tenant_id}/activate");
 
         $response->assertStatus(200)

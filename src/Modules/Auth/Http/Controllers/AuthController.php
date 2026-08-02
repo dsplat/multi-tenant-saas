@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -14,6 +15,7 @@ use MultiTenantSaas\Events\UserLoggedIn;
 use MultiTenantSaas\Events\UserRegistered;
 use MultiTenantSaas\Jobs\SendEmailVerificationJob;
 use MultiTenantSaas\Jobs\SendPasswordResetJob;
+use MultiTenantSaas\Modules\Auth\Http\Requests\ResetPasswordRequest;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Auth\Services\MfaService;
 use MultiTenantSaas\Modules\Auth\Services\PasswordPolicyService;
@@ -60,6 +62,7 @@ class AuthController extends Controller
             return $rejected;
         }
 
+        // 内联验证（非 FormRequest）：delegated 拒绝必须优先于字段验证返回
         $request->validate([
             'email' => 'required|email',
             'password' => 'required|string',
@@ -89,11 +92,15 @@ class AuthController extends Controller
 
         // MFA 检查
         if ($this->mfaService->hasMfaEnabled($user->user_id)) {
+            // 生成一次性 challenge_token，避免在 URL 中暴露 user_id
+            $challengeToken = Str::random(64);
+            Cache::put("mfa_challenge:{$challengeToken}", $user->user_id, now()->addMinutes(5));
+
             return response()->json([
                 'success' => true,
                 'data' => [
                     'mfa_required' => true,
-                    'user_id' => $user->user_id,
+                    'challenge_token' => $challengeToken,
                     'available_types' => $this->mfaService->getAvailableChallengeTypes($user->user_id),
                 ],
             ]);
@@ -111,6 +118,7 @@ class AuthController extends Controller
             return $rejected;
         }
 
+        // 内联验证（非 FormRequest）：delegated 拒绝必须优先于字段验证返回
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
@@ -660,7 +668,7 @@ class AuthController extends Controller
     }
 
     /**
-     * MFA 验证（临时 token 换完整 token）。
+     * MFA 验证（临时 challenge_token 换完整 token）。
      */
     public function mfaVerify(Request $request): JsonResponse
     {
@@ -670,15 +678,22 @@ class AuthController extends Controller
             'type' => 'required|string|in:totp,email,sms,recovery',
         ]);
 
-        $userId = $this->mfaService->verifyChallenge(
-            $request->challenge_token,
-            $request->code,
-            $request->type
-        );
+        // 从缓存解析 challenge_token → user_id（一次性，5 分钟过期）
+        $cacheKey = "mfa_challenge:{$request->challenge_token}";
+        $userId = Cache::get($cacheKey);
 
         if (! $userId) {
             return response()->json(['success' => false, 'message' => trans('auth.mfa_invalid_code')], 401);
         }
+
+        $valid = $this->mfaService->verifyChallenge((int) $userId, $request->code, $request->type);
+
+        if (! $valid) {
+            return response()->json(['success' => false, 'message' => trans('auth.mfa_invalid_code')], 401);
+        }
+
+        // 验证成功，销毁 challenge_token（一次性使用）
+        Cache::forget($cacheKey);
 
         $user = User::find($userId);
         if (! $user) {
@@ -772,14 +787,8 @@ class AuthController extends Controller
     /**
      * 重置密码。
      */
-    public function resetPassword(Request $request): JsonResponse
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
-        $request->validate([
-            'email' => 'required|email',
-            'token' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
         $user = User::where('email', $request->email)->first();
 
         if (! $user) {

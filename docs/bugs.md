@@ -1,7 +1,7 @@
 # 已知问题清单
 
 > 基于 2026-07-20 深度代码审查发现
-> **最后更新**: 2026-08-01（源码验证后清理误报）
+> **最后更新**: 2026-08-01（批量修复 + 源码验证清理）
 > 审查覆盖：Auth、Operator、Infrastructure、User 四大模块
 
 ---
@@ -10,10 +10,10 @@
 
 | 严重度 | 总数 | 已修复 | 误报/非 bug | 未修复 |
 |--------|------|--------|------------|--------|
-| 严重 | 8 | 7 | 1 | 0 |
-| 中等 | 12 | 5 | 3 | 4 |
+| 严重 | 8 | 8 | 1 | 0 |
+| 中等 | 12 | 8 | 4 | 0 |
 | 低 | 10 | 1 | 0 | 9 |
-| **总计** | **30** | **13** | **4** | **13** |
+| **总计** | **30** | **17** | **5** | **9** |
 
 ---
 
@@ -61,15 +61,9 @@
 
 ---
 
-### BUG-008: MfaVerify.vue user_id 暴露在 URL 中
+### ~~BUG-008: MfaVerify.vue user_id 暴露在 URL 中~~ ✅ 已修复
 
-**状态**: ⚠️ 仍存在
-
-**影响范围**: MFA 验证流程
-
-**文件**: `resources/pages/public/views/MfaVerify.vue`
-
-**修复方案**: 后端应关联 user_id 到待验证的临时 session，而非信任前端传入的 user_id。
+**状态**: 已修复 — 登录时生成一次性 `challenge_token`（Cache 5min），前端传 token 而非 user_id；后端从缓存解析 user_id，验证后销毁 token。
 
 ---
 
@@ -81,19 +75,15 @@
 
 ---
 
-### BUG-010: FormRequest 未使用
+### ~~BUG-010: FormRequest 未使用~~ ✅ 已修复
 
-**状态**: ⚠️ 仍存在
-
-**影响范围**: Auth 模块验证逻辑 — `LoginRequest`、`RegisterRequest`、`ResetPasswordRequest` 已定义但未被控制器引用。
+**状态**: 已修复 — `resetPassword` 已改用 `ResetPasswordRequest`；login/register 保留内联验证（delegated 拒绝必须优先于字段验证返回，已加注释）。
 
 ---
 
-### BUG-011: User 模型缺少关系定义
+### ~~BUG-011: User 模型缺少关系定义~~ ✅ 已修复
 
-**状态**: ⚠️ 仍存在
-
-**影响范围**: User 模型缺少 `mfaDevices()`、`mfaRecoveryCodes()`、`sessions()`、`trustedDevices()`、`passwordHistories()` 关系。
+**状态**: 已修复 — 补充 `mfaDevices()`、`mfaRecoveryCodes()`、`sessions()`、`trustedDevices()`、`passwordHistories()` 五个 HasMany 关系。
 
 ---
 
@@ -109,15 +99,15 @@
 
 ---
 
-### BUG-014: MailerService SMTP 密码明文存储
+### ~~BUG-014: MailerService SMTP 密码明文存储~~ ❌ 误报
 
-**状态**: ⚠️ 仍存在
+**状态**: 误报 — `TenantMailConfigController` 已标记 `smtp_password => true`（加密存储），`TenantSetting` 模型有 `is_encrypted` + `Crypt::decryptString` 完整链路。
 
 ---
 
-### BUG-015: admin.php 和 api.php 路由权限粒度不一致
+### ~~BUG-015: admin.php 和 api.php 路由权限粒度不一致~~ — 设计合理
 
-**状态**: ⚠️ 仍存在
+**状态**: 非 bug — 通知路由面向所有认证用户（无需 RBAC），广播管理/模块配置面向运营（需 RBAC），权限粒度与访问层级匹配。
 
 ---
 
@@ -145,9 +135,9 @@
 
 ---
 
-### BUG-020: TenantController::suspend/activate 缺少租户归属检查
+### ~~BUG-020: TenantController::suspend/activate 缺少租户归属检查~~ ✅ 已修复
 
-**状态**: ⚠️ 仍存在
+**状态**: 已修复 — 补充 `ensureTenantAccessOrSuperAdmin()` 调用（与 show/update/destroy 对齐）；修复 NotificationService 缺少 User import。
 
 ---
 
@@ -169,9 +159,9 @@
 
 | 严重度 | 总数 | 已修复 | 误报/非 bug | 未修复 |
 |--------|------|--------|------------|--------|
-| 严重 | 8 | 7 | 1 (BUG-002) | 0 |
-| 中等 | 12 | 5 | 3 (BUG-016/017/018) | 4 (BUG-010/011/014/015) |
-| 低 | 10 | 1 | 0 | 9 |
-| **总计** | **30** | **13** | **4** | **13** |
+| 严重 | 8 | 8 | 1 (BUG-002) | 0 |
+| 中等 | 12 | 8 | 4 (BUG-014/015/016/017/018) | 0 |
+| 低 | 10 | 1 | 0 | 9 (BUG-021~027/029~030) |
+| **总计** | **30** | **17** | **5** | **9** |
 
-> 另有 BUG-008（MFA user_id 暴露）和 BUG-020（租户归属检查）待排期修复。
+> 剩余 9 个低优先级项为代码质量改进（技术债），无安全/功能影响。

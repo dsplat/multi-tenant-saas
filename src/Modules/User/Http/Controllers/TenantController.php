@@ -242,6 +242,8 @@ class TenantController extends Controller
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
 
+        $this->ensureTenantAccessOrSuperAdmin($request, $tenantId);
+
         $request->validate([
             'reason' => 'nullable|string|max:500',
         ]);
@@ -290,6 +292,8 @@ class TenantController extends Controller
         if (! app(RbacService::class)->check('tenant.activate')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
         }
+
+        $this->ensureTenantAccessOrSuperAdmin($request, $tenantId);
 
         $tenant = Tenant::findOrFail($tenantId);
 

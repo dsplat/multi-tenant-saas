@@ -42,6 +42,22 @@ class NginxConfigServiceTest extends TestCase
         config(['domain.platform_domains.console' => 'console.dsplat.com']);
     }
 
+    public function test_domain_module_config_is_merged_from_file(): void
+    {
+        // 回归：mergeModuleConfig 曾困于大小写（Str::studly('domain')='Domain' 拼接，
+        // 而实际文件为 Config/domain.php），在 Linux 生产 file_exists 失败 → 配置静默
+        // 未合并，config('domain.*') 全为 null。此测试断言「默认值」已合并（不手动设值），
+        // 在大小写敏感的 Linux CI 上可捕获该缺陷。
+        $this->assertNotEmpty(
+            config('domain.wildcard_base'),
+            'domain.wildcard_base 默认值未合并（模块配置文件未被加载）'
+        );
+        $this->assertSame(9001, config('domain.nginx_fastcgi_port'));
+        $this->assertIsArray(config('domain.platform_domains'));
+        $this->assertArrayHasKey('admin', config('domain.platform_domains'));
+        $this->assertArrayHasKey('console', config('domain.platform_domains'));
+    }
+
     public function test_deploy_bundle_generates_all_artifacts(): void
     {
         $this->platformConfig();

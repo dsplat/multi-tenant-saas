@@ -46,12 +46,35 @@ abstract class ModuleServiceProvider extends ServiceProvider
      */
     protected function mergeModuleConfig(): void
     {
-        $configPath = $this->getModulePath('Config/' . Str::studly($this->moduleName) . '.php')
-            ?? $this->getModulePath('Config/' . strtolower($this->moduleName) . '.php');
+        $configPath = $this->resolveModuleConfigPath();
 
-        if ($configPath && file_exists($configPath)) {
+        if ($configPath) {
             $this->mergeConfigFrom($configPath, strtolower($this->moduleName));
         }
+    }
+
+    /**
+     * 解析模块配置文件路径（兼容 PascalCase 与 lowercase 两种命名）。
+     *
+     * Linux 文件系统大小写敏感：Str::studly('domain') = 'Domain'，而实际文件
+     * 可能命名为 domain.php。必须用 file_exists 对两种候选逐一探测——
+     * getModulePath() 永远返回非 null 路径字符串，`??` 短路不会 fallback，
+     * 直接拼接会导致小写命名的配置文件在生产（Linux）静默加载失败。
+     */
+    protected function resolveModuleConfigPath(): ?string
+    {
+        $candidates = [
+            $this->getModulePath('Config/' . Str::studly($this->moduleName) . '.php'),
+            $this->getModulePath('Config/' . strtolower($this->moduleName) . '.php'),
+        ];
+
+        foreach ($candidates as $path) {
+            if ($path && file_exists($path)) {
+                return $path;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -144,10 +167,9 @@ abstract class ModuleServiceProvider extends ServiceProvider
      */
     public function publishModuleAssets(): void
     {
-        $configPath = $this->getModulePath('Config/' . Str::studly($this->moduleName) . '.php')
-            ?? $this->getModulePath('Config/' . strtolower($this->moduleName) . '.php');
+        $configPath = $this->resolveModuleConfigPath();
 
-        if ($configPath && file_exists($configPath)) {
+        if ($configPath) {
             $this->publishes([
                 $configPath => config_path(basename($configPath)),
             ], $this->moduleName . '-config');

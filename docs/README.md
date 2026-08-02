@@ -24,6 +24,8 @@
 | Document | 中文 | English |
 |---|---|---|
 | System Overview | [zh](zh/architecture/system-overview.md) | — |
+| **Design Principles & Pitfalls** | [zh](zh/architecture/design-principles.md) | — |
+| **Framework Internals** | [zh](zh/architecture/framework-internals.md) | — |
 | **SPA Architecture** | [zh](spa-architecture.md) | — |
 | AI Module Architecture | [zh](zh/architecture/ai-module.md) | — |
 | Multi-Domain Architecture | 已删除，见 [tenant.md](tenant.md) 第二节 | — |
@@ -89,6 +91,17 @@
 | PHP SDK Quickstart | [zh](zh/examples/php-sdk-quickstart.md) | — |
 | REST API Examples | [zh](zh/examples/rest-api-examples.md) | — |
 
+### Code Review (代码审查)
+| Document | 说明 |
+|---|---|
+| [Review Bugs](review_bugs.md) | 四轮深度审查记录（22 个问题，21 已修复） |
+| [Known Bugs](bugs.md) | Auth/Operator 模块已知问题（30 个，11 已修复） |
+
+### Meta (元数据)
+| Document | 说明 |
+|---|---|
+| [manifest.json](manifest.json) | 文档版本追踪（文件 ↔ 代码信号映射） |
+
 ---
 
-**Version**: v2.9.0 | **Last Updated**: 2026-07-19
+**Version**: v2.9.0 | **Last Updated**: 2026-08-01

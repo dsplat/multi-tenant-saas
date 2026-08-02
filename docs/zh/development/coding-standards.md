@@ -1,5 +1,114 @@
 # 编码规范
 
+**最后更新**: 2026-08-01
+
+---
+
+## 异常体系（强制）
+
+### 禁止裸 RuntimeException
+
+框架已全量迁移至领域异常体系，`src/` 下禁止 `throw new \RuntimeException`（pre-commit 钩子自动拦截）。
+
+### 异常层级
+
+```
+DomainException (extends RuntimeException, implements HttpExceptionInterface)
+  ├── NotFoundException          → 404
+  ├── ConflictException          → 409
+  ├── ServiceUnavailableException → 503
+  ├── QuotaExceededException     → 429
+  ├── PermissionDeniedException  → 403
+  ├── InsufficientCreditsException → 402
+  ├── StorageException           → 500
+  ├── SummaryGenerationException → 502
+  └── TenantNotFoundException    → 404
+```
+
+### 使用示例
+
+```php
+use MultiTenantSaas\Exceptions\NotFoundException;
+use MultiTenantSaas\Exceptions\ConflictException;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
+
+// 资源不存在 → 404
+throw new NotFoundException(trans('payment.order_not_found'));
+
+// 业务冲突 → 409
+throw new ConflictException(trans('subscription.coupon_code_exists'));
+
+// 依赖服务不可用 → 503
+throw new ServiceUnavailableException(trans('payment.driver_not_configured', ['driver' => 'stripe']));
+
+// 业务校验失败 → 422（DomainException 默认）
+throw new DomainException(trans('subscription.plan_not_available'));
+```
+
+### 自定义领域异常
+
+```php
+use MultiTenantSaas\Exceptions\DomainException;
+
+class PaymentDeclinedException extends DomainException
+{
+    protected int $statusCode = 402;
+}
+```
+
+---
+
+## Controller 规范
+
+### 基类
+
+所有 Controller 必须继承 `MultiTenantSaas\Http\Controllers\BaseController`，不要直接继承 `Illuminate\Routing\Controller`。
+
+`BaseController` 提供统一 API 响应方法：
+
+```php
+use MultiTenantSaas\Http\Controllers\BaseController;
+
+class TenantController extends BaseController
+{
+    public function show(Tenant $tenant): JsonResponse
+    {
+        return $this->successResponse(new TenantResource($tenant));
+    }
+
+    public function store(StoreTenantRequest $request): JsonResponse
+    {
+        $tenant = Tenant::create($request->validated());
+        return $this->createdResponse(new TenantResource($tenant));
+    }
+
+    public function destroy(Tenant $tenant): JsonResponse
+    {
+        $tenant->delete();
+        return $this->deletedResponse();
+    }
+
+    public function index(Request $request): JsonResponse
+    {
+        $tenants = Tenant::paginate($request->input('per_page', 15));
+        return $this->paginatedResponse($tenants);
+    }
+}
+```
+
+### 可用响应方法
+
+| 方法 | 状态码 | 说明 |
+|------|--------|------|
+| `successResponse($data, $message)` | 200 | 成功 |
+| `createdResponse($data, $message)` | 201 | 创建成功 |
+| `deletedResponse($message)` | 200 | 删除成功 |
+| `errorResponse($message, $statusCode, $errors)` | 自定义 | 错误 |
+| `notFoundResponse($message)` | 404 | 未找到 |
+| `forbiddenResponse($message)` | 403 | 禁止访问 |
+| `validationErrorResponse($errors, $message)` | 422 | 验证失败 |
+| `paginatedResponse($paginator, $message)` | 200 | 分页数据 |
+
 ## API Resource 层
 
 ### 基本原则

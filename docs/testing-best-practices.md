@@ -1,7 +1,7 @@
 # 框架测试 Bug 分析与最佳实践
 
 > 从权限模型重构中发现的 150+ 个测试失败，提炼出框架开发的核心教训
-> **最后更新**: 2026-07-20
+> **最后更新**: 2026-08-01
 
 ---
 
@@ -321,3 +321,41 @@ public function test_admin_can_access(): void
 | 租户隔离 | 1 | 数据查询必须租户过滤 |
 
 **核心教训**：框架开发需要系统性思维，不是简单的代码堆砌。每个设计决策都会影响整个生态系统的稳定性和可维护性。
+
+---
+
+## 六、当前测试基础设施
+
+### 6.1 后端测试
+
+| 维度 | 数据 |
+|------|------|
+| 测试文件 | 216+ 个 |
+| 测试用例 | 2379+ 个 |
+| 测试引擎 | PHPUnit 10/11 + Orchestra Testbench |
+| 并行执行 | `brianium/paratest`（`composer test`） |
+| 双引擎 | SQLite（CI 快速）+ MySQL（生产验证） |
+| Schema 管理 | 模块化 Schema Module（`$uses` 声明按需建表） |
+| SQLite 优化 | PRAGMA journal_mode=OFF, synchronous=OFF, 200MB cache |
+| 数据重置 | DELETE 而非 DROP/CREATE（快 10-50 倍） |
+
+### 6.2 前端测试
+
+| 维度 | 数据 |
+|------|------|
+| 测试框架 | Vitest |
+| 测试文件 | 5 个（admin guards/user-store/tenant-store, console guards/user-store） |
+| 覆盖范围 | 路由守卫、Store 权限判断、登录/登出/init、MFA 场景、Operator 多租户 |
+
+### 6.3 架构守卫（pre-commit）
+
+`scripts/architecture_guard.py` 在每次提交前自动检查：
+
+1. **大小写冲突** — macOS 隐身、Linux 生产爆炸
+2. **模块目录 PascalCase** — `src/Modules/<Name>` 必须大驼峰
+3. **PSR-4 一致性** — namespace 声明匹配文件路径
+4. **RuntimeException 禁用** — 新增行不得 `throw new RuntimeException`
+5. **KB 索引新鲜度** — 路由/工具变更时提醒重新生成（警告，不阻断）
+6. **文档新鲜度** — `docs/manifest.json` 中被修改代码涉及的文档需同步更新（警告，不阻断）
+
+文档版本追踪详见 `docs/manifest.json` 和 `scripts/check-docs-freshness.py`。

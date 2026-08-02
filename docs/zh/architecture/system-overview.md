@@ -1,20 +1,22 @@
 # 系统架构概览
 
-**最后更新**: 2026-07-20
+**最后更新**: 2026-08-01
 
 ---
 
 ## 设计原则
 
-1. **租户隔离优先**: 所有数据操作默认按租户隔离
+1. **租户隔离优先**: 所有数据操作默认按租户隔离（fail-closed：无上下文时 WHERE 1=0）
 2. **四重访问架构**: admin/console/app/guest 四层访问控制
 3. **RBAC 细粒度权限**: 角色 + 权限节点，60+ 权限，中间件级路由保护
 4. **双账户体系**: Operator（运营者）+ User（终端用户）完全独立的身份系统
-5. **模块化设计**: 26 个可选模块 + 18 个接口，面向接口架构
+5. **模块化设计**: 30 个可选模块 + 20 个接口，面向接口架构
 6. **配置驱动**: 通过配置文件控制行为，无需修改代码
-7. **领域事件驱动**: 关键操作触发领域事件，异步处理审计/通知
-8. **多 UI 框架支持**: 每个页面支持 Bootstrap 和 Element Plus 两套变体
-9. **模块自动发现**: Vue 页面放在模块目录自动注册到侧边栏
+7. **领域事件驱动**: 14 个领域事件 + 10 个事件监听注册，覆盖租户/Agent/Tool 生命周期
+8. **领域异常体系**: DomainException 基类 + 11 个具体异常，携带 HTTP 状态码（402/403/404/409/429/500/502/503）
+9. **多 UI 框架支持**: 每个页面支持 Bootstrap 和 Element Plus 两套变体
+10. **模块自动发现**: Vue 页面放在模块目录自动注册到侧边栏
+11. **架构守卫**: pre-commit 钩子检查大小写冲突、模块命名、PSR-4 一致性、RuntimeException 禁用
 
 ---
 
@@ -125,7 +127,7 @@
 
 ## 模块系统
 
-框架内置 26 个模块，每个模块是独立的 Composer 包，通过 `ModuleServiceProvider` 基类自动注册路由、迁移和配置。
+框架内置 30 个模块，每个模块是独立的 Composer 包，通过 `ModuleServiceProvider` 基类自动注册路由、迁移和配置。
 
 ```
 src/Modules/
@@ -292,7 +294,7 @@ multi-tenant-saas/
 │   ├── Mail/               # 邮件类
 │   ├── Middleware/         # 中间件
 │   ├── Models/             # 框架模型
-│   ├── Modules/            # 26 个模块（独立 Composer 包）
+│   ├── Modules/            # 30 个模块（独立 Composer 包）
 │   ├── Scopes/             # 全局作用域（TenantScope）
 │   ├── Services/           # 服务层
 │   └── TenancyServiceProvider.php
@@ -379,8 +381,3 @@ src/Services/
 - **Web服务器**: Nginx + PHP-FPM
 - **前端**: Vue.js 3 + TypeScript + Vite + Element Plus
 - **UI 框架**: Element Plus (主) + Bootstrap (备选)，通过目录隔离支持双 UI 框架
-
----
-
-**文档版本**: v2.6.0
-**最后更新**: 2026-07-16

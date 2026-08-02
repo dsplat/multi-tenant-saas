@@ -100,7 +100,7 @@ LLM 本质是概率性的、不透明的。让它值得信赖的唯一办法，�
 | 能力类型 | 框架载体 | 说明 | 降级方式 |
 |---------|---------|------|---------|
 | 文本生成 | `AiTextService::complete/chat` | 文案 / 摘要 / 话术 / 报告 | 人工编辑 / 模板 |
-| 对话推理（ReAct） | `AgentRuntime::run/runStream` | 多轮对话 + 工具调用循环 | 转人工 / 关键词机器人 |
+| 对话推理（ReAct） | `AgentRuntime`（编排）→ `AgentChatClient`（推理）→ `AgentToolExecutor`（工具执行） | 多轮对话 + 工具调用循环 | 转人工 / 关键词机器人 |
 | 图像生成 | `AiImageService` | 海报 / 配图 / 提示词成图 | 模板渲染 / 人工设计 |
 | 视频生成 | `AiVideoService` | 短视频脚本 / 素材 | 人工制作 |
 | RAG 检索问答 | `Knowledge` 模块 + 外部 KB | 基于知识库的问答 | 关键词搜索 |
@@ -116,7 +116,7 @@ LLM 本质是概率性的、不透明的。让它值得信赖的唯一办法，�
 | 能力 | 框架载体 | 状态 |
 |------|---------|------|
 | 推理服务（文本/图像/视频/embedding） | `AiTextService` / `AiImageService` / `AiVideoService` / `AiGatewayService` | ✅ 已实现 |
-| Agent 运行时（ReAct + 流式 + 记忆压缩 + 降级容错） | `AgentRuntime`（`run`/`runStream`/`continueWithToolResults`/`compressMemory`） | ✅ 已实现 |
+| Agent 运行时（ReAct + 流式 + 记忆压缩 + 降级容错） | `AgentRuntime`（编排）+ `AgentChatClient`（推理 + 降级）+ `AgentContextBuilder`（上下文）+ `AgentToolExecutor`（工具执行 + L2 确认） | ✅ 已实现 |
 | 工具注册与执行 | `ToolRegistry` + `ToolRegistryContract` + 13 内置工具 | ✅ 已实现 |
 | 能力抽象 | `CapabilityRegistry` + `CapabilityContract` + `CapabilityResult`（自带 confidence/tokenUsage/durationMs） | ✅ 已实现 |
 | **特性开关（租户级）** | `AiConfigService::isCategoryEnabled/enableCategory/disableCategory` | ✅ 已实现 |
@@ -139,7 +139,7 @@ LLM 本质是概率性的、不透明的。让它值得信赖的唯一办法，�
 | 禁止自建 | 必须复用框架 |
 |---------|------------|
 | 推理客户端 / HTTP 调 LLM | `AiTextService` / `AiImageService` / `AiGatewayService` |
-| ReAct 循环 / 工具调用编排 | `AgentRuntime` |
+| ReAct 循环 / 工具调用编排 | `AgentRuntime`（编排）+ `AgentToolExecutor`（执行） |
 | 工具注册表 | `ToolRegistry` |
 | 特性开关 | `AiConfigService::isCategoryEnabled` |
 | 配额 / 计费 | `AiUsageService` |
@@ -168,12 +168,12 @@ LLM 本质是概率性的、不透明的。让它值得信赖的唯一办法，�
 |----|------|------|
 | 推理层 | `AiTextServiceContract` | `chat()` / `complete()` / `streamChat()`，driver 抽象（laravel-ai / mock） |
 | 多模态 | `AiImageService` / `AiVideoService` | 图像、视频生成 |
-| Agent 运行时 | `AgentRuntime` | `run()` / `runStream()`（SSE 流式）/ `continueWithToolResults()` / `compressMemory()`，内置 **ReAct 循环 + 工具调用 + 记忆压缩 + 降级容错** |
+| Agent 运行时 | `AgentRuntime`（编排）+ `AgentChatClient`（推理 + 降级）+ `AgentContextBuilder`（上下文组装）+ `AgentToolExecutor`（工具执行 + L2 确认） | `run()` / `runStream()`（SSE 流式）/ `continueWithToolResults()` / `compressMemory()`，内置 **ReAct 循环 + 工具调用 + 记忆压缩 + 降级容错** |
 | 工具系统 | `ToolRegistry` + `ToolRegistryContract` | 工具注册/定义/执行，含 13 个内置工具（Database/Http/Cache/Queue/Email…） |
 | MCP | `McpToolRegistry` / `McpSkillGenerator` | MCP 协议工具，可把能力暴露给外部 AI 工具 |
 | 治理 | `AiConfigService` / `AiUsageService` / `CapabilityRegistry` / `AgentMonitor` | 租户配置、用量计费、能力注册、监控 |
 
-**关键点**：框架的 `AgentRuntime` 已实现完整的"LLM 思考→调工具→再思考"循环和流式输出，**项目不需要自己造轮子**。
+**关键点**：框架的 `AgentRuntime`（编排）+ `AgentChatClient`（推理）+ `AgentToolExecutor`（工具执行）已实现完整的"LLM 思考→调工具→再思考"循环和流式输出，**项目不需要自己造轮子**。
 
 ## 2. 项目 AI 员工层现状（scrm-platform，骨架在、引擎缺）
 
@@ -204,9 +204,11 @@ config/agent-roles.php        ❌ 未被读取
 graph TB
     A[前端 AgentChat.vue SSE] --> B[AgentController.streamConversation]
     B --> C[AgentService.streamConversation 待补]
-    C --> D[框架 AgentRuntime.runStream]
-    D --> E[AiTextService.streamChat 调LLM]
-    D --> F[ToolRegistry.execute]
+    C --> D[框架 AgentRuntime 编排]
+    D --> D1[AgentChatClient 推理]
+    D --> D2[AgentToolExecutor 工具执行]
+    D1 --> E[AiTextService.streamChat 调LLM]
+    D2 --> F[ToolRegistry.execute]
     F --> G[25个SCRM业务工具 已注册]
     H[8个AgentRoles 死代码] -.映射为Agent配置.-> C
 ```
@@ -729,8 +731,8 @@ if ($result->degraded) { /* 可选：记录/提示「本次为规则结果」 */
 | 能力 | 层 | 状态 |
 |------|----|------|
 | PageContext 上下文协议（结构定义 + SDK） | 框架 | ⬜ 待建 |
-| 意图识别 + 路由分发器（route → agent） | 框架 | ⬜ 待建（可作为一个「路由 agent」用 `AgentRuntime` 实现） |
-| Agent 执行（ReAct + 流式 + 工具调用） | 框架 | ✅ `AgentRuntime` |
+| 意图识别 + 路由分发器（route → agent） | 框架 | ⬜ 待建（可作为一个「路由 agent」用 `AgentRuntime` 编排实现） |
+| Agent 执行（ReAct + 流式 + 工具调用） | 框架 | ✅ `AgentRuntime`（编排）+ `AgentChatClient`（推理）+ `AgentToolExecutor`（执行） |
 | 工具注册与执行 | 框架 | ✅ `ToolRegistry` |
 | 可选性降级 | 框架 | ⬜ `AiOptional`（见第六部分） |
 | 各模块 agent 定义 + 上下文提供器 + 动作执行器 | 项目 | ⬜ 项目实现（调既定 Service） |
@@ -741,7 +743,7 @@ if ($result->degraded) { /* 可选：记录/提示「本次为规则结果」 */
 ```
 1. 前端发送 PageContext + user_intent
 2. 框架意图识别 → 路由到模块 agent
-3. AgentRuntime::runStream 执行 ReAct：
+3. AgentRuntime 编排 → AgentChatClient 推理 → AgentToolExecutor 执行 ReAct：
    - 读操作工具 → 直接执行返回数据
    - 写操作工具 → 生成「草稿/预览」，绝不直接落库
 4. 流式返回：思考链 + 工具链 + 草稿（前端实时展示「正在调用 XX 能力」）
@@ -780,7 +782,7 @@ graph TB
     end
     subgraph FW[框架层 multi_tenant_saas · AI 基础设施]
         AIOPT[AiOptional 可选性包装器 待建]
-        RT[AgentRuntime ReAct+流式]
+        RT[AgentRuntime 编排 + AgentChatClient 推理 + AgentToolExecutor 执行]
         TXT[AiTextService / AiImageService / AiVideoService]
         REG[ToolRegistry / CapabilityRegistry]
         GOV[AiConfigService 开关 · AiUsageService 配额 · AgentMonitor 监控]
@@ -836,8 +838,10 @@ graph TB
 graph TB
     FE[前端页面 PageContext + 意图] --> ROUTER[框架 意图识别路由]
     ROUTER --> AGENT[模块 agent 营销/客户/分析]
-    AGENT --> RUNTIME[AgentRuntime.runStream ReAct]
-    RUNTIME --> READ{读操作工具}
+    AGENT --> RUNTIME[AgentRuntime 编排]
+    RUNTIME --> CHATCLIENT[AgentChatClient 推理]
+    RUNTIME --> TOOLEXEC[AgentToolExecutor 执行]
+    TOOLEXEC --> READ{读操作工具}
     READ -->|是| DATA[直接返回数据]
     READ -->|否 写操作| DRAFT[生成草稿/预览]
     DRAFT --> CONFIRM{人确认}

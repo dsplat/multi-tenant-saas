@@ -182,7 +182,7 @@ public function handleGithubCallback(Request $request)
             'user' => $result['user'],
             'token' => $result['token'],
         ]);
-    } catch (\RuntimeException $e) {
+    } catch (\MultiTenantSaas\Exceptions\DomainException $e) {
         return response()->json([
             'success' => false,
             'message' => $e->getMessage(),

@@ -24,7 +24,7 @@ ibot 把 AI 小助手从 Web 控制台延伸到 operator 的日常 IM 里：
 设计原则（沿用既定铁律）：
 
 - **AI 可选性**：ibot 网关故障只影响 IM 侧交互，Web 控制台助手、业务模块完全不受影响
-- **执行永远经既定链路**：IM 消息进来走同一个 AgentRuntime + ToolRegistry，不另建 AI 调用路径
+- **执行永远经既定链路**：IM 消息进来走同一个 AgentRuntime（编排）+ AgentToolExecutor（工具执行）+ ToolRegistry，不另建 AI 调用路径
 - **写操作必确认**：L2 工具在 IM 内走文本确认（见第六节），不绕过风险分级
 
 ## 二、各平台机器人形态与传输协议（对齐 OpenClaw 研究）
@@ -121,7 +121,7 @@ IM 消息进来时租户上下文即 binding.tenant_id，无需对话内切换�
   → external_id 查 binding（未绑定 → 回发引导绑定话术）
   → 解析 operator + tenant + agent（ibot.agent_id ?? system_secretary）
   → AgentConversation(channel=<channel_type>, staff_id=operator_id) 复用或新建
-  → AgentRuntime::run（非流式，IM 无流式语义）
+  → AgentRuntime::run（编排）→ AgentChatClient（推理）→ AgentToolExecutor（工具执行），非流式，IM 无流式语义
   → Channel.sendMessage 回复（超长回复分段，按频道渲染适配，见下）
 ```
 
@@ -179,7 +179,7 @@ AI：已创建 ✓ 优惠券 ID 8821
 
 实现要点：
 
-- `AgentRuntime::run()` 支持 `options['intercept_l2']`（opt-in，仅 ibot 开启）：L2 工具不直接执行，
+- `AgentRuntime::run()` 支持 `options['intercept_l2']`（opt-in，仅 ibot 开启）：L2 工具由 AgentToolExecutor 拦截，不直接执行，
   经 `partitionByRisk()` 分级后签发确认令牌，返回 `finish_reason='pending_confirmation'` + `pendingConfirmations` 载荷
 - 确认载荷写入 `AgentConversation.metadata['ibot_pending_confirm']`（token/args_hash/tool_slug/tool_name/arguments/expires_in）
 - 入站消息先查 pending：确认词精确匹配（trim 后 `确认` 或不分大小写 `yes`）→ consume → 权限校验（tenant_admin）→ ToolRegistry::execute → continueWithToolResults 让 LLM 收尾

@@ -161,7 +161,7 @@ Plan 文档 → campaign_tasks 是一次**编译**：解析锚点为绝对时间
 - **执行分派**：
   - `execution_mode = require_confirm` → 置 `awaiting_confirm`，发**异步待办通知**（复用 Notification，
     非 ActionConfirmService——后者 300 秒 TTL + 会话绑定，不适配日历场景），人批准后进入执行
-  - `assignee = agent` → 派发 Job，短 ReAct 会话执行 action（AgentRuntime 现有链路，产出写回 output）
+  - `assignee = agent` → 派发 Job，短 ReAct 会话执行 action（AgentRuntime 编排 → AgentToolExecutor 执行，产出写回 output）
   - `assignee = human` → 生成待办，人完成后手动置 done（可附产出）
   - `action.type = task_chain` → 启动一条任务链 run，链 completed 回写任务 done
 - **on_event 任务**：编译时登记监听（如 `OrderPaidEvent`），事件到达且归属该 plan 的锚定对象时触发执行

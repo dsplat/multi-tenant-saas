@@ -1,0 +1,338 @@
+{
+  "version": "2.9.0",
+  "generated_at": "2026-08-03",
+  "code_ref": "HEAD",
+  "stats": {
+    "modules": 30,
+    "contracts": 20,
+    "exceptions": 11,
+    "events": 14,
+    "event_listeners": 10,
+    "test_files_php": 216,
+    "test_files_frontend": 5
+  },
+  "files": [
+    {
+      "path": "docs/README.md",
+      "scope": "index",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/Modules/*",
+        "src/Contracts/*",
+        "src/Exceptions/*"
+      ]
+    },
+    {
+      "path": "docs/zh/architecture/system-overview.md",
+      "scope": "architecture",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/Modules/*",
+        "src/Contracts/*",
+        "src/Scopes/*",
+        "src/Concerns/*",
+        "src/Events/*",
+        "src/Listeners/*"
+      ]
+    },
+    {
+      "path": "docs/zh/architecture/ai-module.md",
+      "scope": "ai-module",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/Modules/Ai/**",
+        "src/Contracts/Agent*",
+        "src/Contracts/Ai*",
+        "src/Contracts/Tool*",
+        "src/Contracts/Mcp*"
+      ]
+    },
+    {
+      "path": "docs/zh/architecture/design-principles.md",
+      "scope": "design-principles",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/Exceptions/*",
+        "src/Scopes/*",
+        "src/Concerns/*",
+        "bootstrap/app.php",
+        "scripts/architecture_guard.py"
+      ]
+    },
+    {
+      "path": "docs/zh/architecture/framework-internals.md",
+      "scope": "framework-internals",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/TenancyServiceProvider.php",
+        "src/Modules/Contracts/ModuleServiceProvider.php",
+        "src/Modules/Infrastructure/Services/Module*",
+        "src/Context/*",
+        "src/Isolation/*",
+        "bootstrap/app.php"
+      ]
+    },
+    {
+      "path": "docs/zh/architecture/tenant-isolation.md",
+      "scope": "tenant-isolation",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/Scopes/TenantScope.php",
+        "src/Concerns/BelongsToTenant.php",
+        "src/Context/TenantContext.php",
+        "src/Isolation/*"
+      ]
+    },
+    {
+      "path": "docs/zh/architecture/data-model.md",
+      "scope": "data-model",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "database/migrations/*",
+        "src/Modules/*/Database/migrations/*"
+      ]
+    },
+    {
+      "path": "docs/tenant.md",
+      "scope": "tenant-system",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/Modules/Infrastructure/Models/Tenant.php",
+        "src/Modules/User/**",
+        "src/Modules/Domain/**"
+      ]
+    },
+    {
+      "path": "docs/auth.md",
+      "scope": "auth-system",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/Modules/Auth/**",
+        "src/Modules/Operator/**"
+      ]
+    },
+    {
+      "path": "docs/channel.md",
+      "scope": "channel-system",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/Services/Channel/**",
+        "src/Contracts/ChannelContract.php",
+        "src/Modules/Conversation/**"
+      ]
+    },
+    {
+      "path": "docs/spa-architecture.md",
+      "scope": "spa-architecture",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "resources/js/**",
+        "resources/pages/**"
+      ]
+    },
+    {
+      "path": "docs/zh/development/coding-standards.md",
+      "scope": "coding-standards",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/Exceptions/*",
+        "src/Http/Controllers/*",
+        "src/Http/Concerns/*",
+        "scripts/architecture_guard.py"
+      ]
+    },
+    {
+      "path": "docs/testing-best-practices.md",
+      "scope": "testing",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "tests/**",
+        "resources/js/admin/tests/**",
+        "resources/js/console/tests/**",
+        ".githooks/*"
+      ]
+    },
+    {
+      "path": "docs/bugs.md",
+      "scope": "known-bugs",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/Modules/Auth/**",
+        "src/Modules/Operator/**"
+      ]
+    },
+    {
+      "path": "docs/review_bugs.md",
+      "scope": "code-review",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/**",
+        "routes/**",
+        "database/**",
+        "resources/js/**"
+      ]
+    },
+    {
+      "path": "docs/ibot.md",
+      "scope": "ibot-module",
+      "last_synced": "2026-08-01",
+      "tracked_signals": [
+        "src/Modules/Ibot/**"
+      ]
+    },
+    {
+      "path": "docs/event-plan.md",
+      "scope": "campaign-module",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/Modules/Campaign/**"
+      ]
+    },
+    {
+      "path": "docs/task-chain.md",
+      "scope": "task-chain",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/Modules/Ai/Services/Agent/**",
+        "src/Contracts/WorkflowEngineContract.php"
+      ]
+    },
+    {
+      "path": "docs/ai-usage-architecture.md",
+      "scope": "ai-architecture",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/Modules/Ai/**",
+        "src/Contracts/Agent*",
+        "src/Contracts/Ai*"
+      ]
+    },
+    {
+      "path": "docs/system-secretary-design.md",
+      "scope": "secretary-design",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/Modules/Ai/Services/SystemKb/**",
+        "src/Modules/Ai/Services/Agent/AgentRuntime.php",
+        "src/Modules/Ai/Services/Agent/AgentChatClient.php",
+        "src/Modules/Ai/Services/Agent/AgentContextBuilder.php",
+        "src/Modules/Ai/Services/Agent/AgentToolExecutor.php"
+      ]
+    },
+    {
+      "path": "docs/mcp-tool-unification.md",
+      "scope": "mcp-unification",
+      "last_synced": "2026-08-01",
+      "tracked_signals": [
+        "src/Contracts/ToolRegistryContract.php",
+        "src/Contracts/McpToolRegistryContract.php",
+        "src/Modules/Ai/Mcp/**"
+      ]
+    },
+    {
+      "path": "docs/downstream-architecture.md",
+      "scope": "downstream-guide",
+      "last_synced": "2026-08-03",
+      "tracked_signals": [
+        "src/Modules/Contracts/ModuleServiceProvider.php",
+        "composer.json"
+      ]
+    },
+    {
+      "path": "docs/todo.md",
+      "scope": "todo-tracking",
+      "last_synced": "2026-08-01",
+      "tracked_signals": []
+    }
+  ],
+  "check_rules": [
+    {
+      "signal": "src/Exceptions/*.php",
+      "action": "update",
+      "targets": [
+        "docs/zh/architecture/design-principles.md",
+        "docs/zh/development/coding-standards.md"
+      ]
+    },
+    {
+      "signal": "src/Modules/*/composer.json",
+      "action": "count_change",
+      "targets": [
+        "docs/README.md",
+        "docs/zh/architecture/system-overview.md"
+      ],
+      "counter": "modules"
+    },
+    {
+      "signal": "src/Contracts/*.php",
+      "action": "count_change",
+      "targets": [
+        "docs/README.md",
+        "docs/zh/architecture/system-overview.md"
+      ],
+      "counter": "contracts"
+    },
+    {
+      "signal": "src/Events/*.php",
+      "action": "count_change",
+      "targets": [
+        "docs/zh/architecture/system-overview.md",
+        "docs/zh/architecture/framework-internals.md"
+      ],
+      "counter": "events"
+    },
+    {
+      "signal": "src/Modules/Ai/Services/Agent/*.php",
+      "action": "update",
+      "targets": [
+        "docs/zh/architecture/ai-module.md",
+        "docs/ai-usage-architecture.md"
+      ]
+    },
+    {
+      "signal": "src/Scopes/*.php",
+      "action": "update",
+      "targets": [
+        "docs/zh/architecture/tenant-isolation.md",
+        "docs/zh/architecture/design-principles.md"
+      ]
+    },
+    {
+      "signal": "bootstrap/app.php",
+      "action": "update",
+      "targets": [
+        "docs/zh/architecture/design-principles.md",
+        "docs/zh/architecture/system-overview.md",
+        "docs/zh/architecture/framework-internals.md"
+      ]
+    },
+    {
+      "signal": "database/migrations/*.php",
+      "action": "update",
+      "targets": [
+        "docs/zh/architecture/data-model.md"
+      ]
+    },
+    {
+      "signal": "src/Http/Controllers/*.php",
+      "action": "update",
+      "targets": [
+        "docs/zh/development/coding-standards.md"
+      ]
+    },
+    {
+      "signal": "resources/js/**/*.test.ts",
+      "action": "update",
+      "targets": [
+        "docs/testing-best-practices.md"
+      ]
+    },
+    {
+      "signal": "src/TenancyServiceProvider.php",
+      "action": "update",
+      "targets": [
+        "docs/zh/architecture/framework-internals.md"
+      ]
+    }
+  ]
+}

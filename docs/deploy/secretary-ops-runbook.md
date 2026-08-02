@@ -106,7 +106,7 @@ curl -s -o /dev/null -w "%{http_code}" \
 | `404` | 模型名错误 | 核对 `SECRETARY_AI_MODEL` 是否在百炼已开通 |
 | 超时/无法连接 | 服务器出网限制 | 检查防火墙/代理是否放行 dashscope.aliyuncs.com:443 |
 
-> 主模型失败时 AgentRuntime 会自动降级到 `SECRETARY_AI_FALLBACK_MODEL`；若两者同 provider（默认都走百炼），key 失效会导致双双失败。
+> 主模型失败时 AgentRuntime → AgentChatClient 会自动降级到 `SECRETARY_AI_FALLBACK_MODEL`；若两者同 provider（默认都走百炼），key 失效会导致双双失败。
 
 ### 4.2 知识库检索无结果
 

@@ -9,11 +9,17 @@ multi_tenant_saas 框架架构守卫（pre-commit 钩子核心逻辑）
   3. PSR-4 一致性：PHP 文件的 namespace 声明必须匹配其文件路径
      （MultiTenantSaas\ → src/，App\ → app/，Database\Factories\ → database/factories/，
        Database\Seeders\ → database/seeders/）
+  4. RuntimeException 禁用：src/ 下新增行不得 throw new RuntimeException
+
+警告式检查（不阻断，仅提醒）：
+  5. AI KB 索引新鲜度：路由/工具变更时提醒重新生成
+  6. 文档新鲜度：docs/manifest.json 中被修改代码涉及的文档是否需要同步更新
 
 框架为拆分包（部署为 vendor/dsplat/multi-tenant-saas），模块结构较松散，
 故不设"散落目录"边界检查；聚焦大小写与命名空间一致性这两类机器可判的硬伤。
 """
 
+import json
 import re
 import subprocess
 import sys
@@ -180,12 +186,54 @@ def check_kb_index_freshness():
         )
 
 
+# ---------------------------------------------------------------------------
+# 检查 6：文档新鲜度（警告，不阻断）
+# ---------------------------------------------------------------------------
+def check_docs_freshness():
+    """检查 docs/manifest.json 中被修改代码涉及的文档是否需要同步更新。"""
+    manifest_path = ROOT / "docs" / "manifest.json"
+    if not manifest_path.exists():
+        return
+
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return
+
+    staged = set(staged_files("ACMR"))
+    if not staged:
+        return
+
+    stale_docs = set()
+    for entry in manifest.get("files", []):
+        doc_path = entry["path"]
+        last_synced = entry.get("last_synced", "1970-01-01")
+        signals = entry.get("tracked_signals", [])
+
+        for signal in signals:
+            # 简化匹配：检查暂存文件是否匹配信号前缀
+            signal_prefix = signal.replace("**", "").replace("*", "")
+            for f in staged:
+                if f.startswith(signal_prefix) or f.startswith("src/" + signal_prefix):
+                    # 检查文档最后同步日期是否早于今天
+                    from datetime import date
+                    if last_synced < date.today().isoformat():
+                        stale_docs.add(doc_path)
+                    break
+
+    if stale_docs:
+        warnings.append(
+            f"以下文档可能需要同步更新（代码已变更但文档未更新）：{', '.join(sorted(stale_docs))}"
+        )
+
+
 def main():
     check_case_collisions()
     check_module_pascalcase()
     check_psr4()
     check_no_runtime_exception()
     check_kb_index_freshness()
+    check_docs_freshness()
 
     for w in warnings:
         print(f"\033[33m[架构守卫 WARN]\033[0m {w}")

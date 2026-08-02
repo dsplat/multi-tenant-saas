@@ -13,7 +13,7 @@
 
 | 路线 | 结论 |
 |------|------|
-| **A. Agent 工具（服务端 Function Calling）** | ✅ 采用。复用 AgentRuntime ReAct 循环 + ToolRegistry，工具 handler 委托既有 Service |
+| **A. Agent 工具（服务端 Function Calling）** | ✅ 采用。复用 AgentRuntime（编排）+ AgentToolExecutor（工具执行）+ ToolRegistry，工具 handler 委托既有 Service |
 | B. MCP 协议 | ❌ 不走。MCP 定位是外部 AI 客户端接入面；小助手在服务端进程内，绕道 MCP 徒增 HTTP + 鉴权层。但 scrm MCP 工具背后的 Service 层逻辑可复用 |
 | C. Skill / 前端代点 | ❌ 否决。UI 一改就断、无法审计、绕过后端校验 |
 
@@ -73,7 +73,7 @@
 框架侧：
 1. `Tool` DTO / `agent_tools` 表加 `risk` 字段（默认 L1，向后兼容）
 2. 新建 `ActionConfirmService`：签发/校验/消费 confirm_token（cache 存储）
-3. `AgentRuntime` 流式循环：遇 L2 工具 → 不执行，emit `pending_confirmation`，本轮结束
+3. `AgentRuntime` 流式循环：AgentToolExecutor 遇 L2 工具 → 不执行，emit `pending_confirmation`，本轮结束
 4. `AssistantController` 新增 `POST confirm-action`：校验 token → execute → 审计 → 结果入会话
 5. 前端 `ChatMessage` 新增 ActionConfirmCard（参数摘要 + 确认/取消）
 6. 权限切面：execute 前 RBAC 校验；审计写入
@@ -90,7 +90,7 @@ scrm 侧试点 2–3 个工具（候选）：
 
 ## 8. 测试计划
 
-- 框架：`tests/` 新增 ActionConfirmServiceTest（签发/过期/哈希不符/重放）、AgentRuntime L2 拦截测试；跑 `composer test:filter "Secretary|ActionConfirm|Agent"`
+- 框架：`tests/` 新增 ActionConfirmServiceTest（签发/过期/哈希不符/重放）、AgentToolExecutor L2 拦截测试；跑 `composer test:filter "Secretary|ActionConfirm|Agent"`
 - scrm：每个 L2 工具 handler 单测（委托 Service 断言 + 越权拒绝）
 - E2E：生产浏览器验证确认卡片全流程（确认执行 / 取消续答 / token 过期）
 

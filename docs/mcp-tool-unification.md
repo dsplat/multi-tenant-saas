@@ -9,7 +9,7 @@
 
 | 通道 | 定义结构 | 执行方式 | 风险管控 |
 |---|---|---|---|
-| 内部工具（AgentRuntime ReAct） | `Tool` DTO：slug / schema / **risk L1-L2** / category / handlerClass | 容器实例化 `ToolHandlerContract`，显式传 tenantId | **L2 → ActionConfirmService 确认卡片 + AuditService 审计** |
+| 内部工具（AgentRuntime 编排 → AgentToolExecutor 执行） | `Tool` DTO：slug / schema / **risk L1-L2** / category / handlerClass | 容器实例化 `ToolHandlerContract`，显式传 tenantId | **L2 → ActionConfirmService 确认卡片 + AuditService 审计** |
 | MCP（`api/v1/mcp`，JSON-RPC 2.0） | 数组：name / schema / **Closure** | 直接执行闭包 | **无**——写操作（manage_tags / send_message 等）外部客户端可直接执行 |
 | REST API 控制器 | 路由 + FormRequest | Controller → Service | RBAC 中间件 |
 
@@ -23,7 +23,7 @@
 ## 2. 目标架构
 
 ```
-                       ┌── 内部通道：AgentRuntime ReAct 循环（既有 L2 确认，不变）
+                       ┌── 内部通道：AgentRuntime 编排 → AgentToolExecutor 执行（既有 L2 确认，不变）
 一份工具定义             │
 ToolRegistry ──────────┼── MCP 通道：ToolRegistryMcpBridge（新增）
 (slug/schema/risk       │     tools/list = ToolRegistry->all() → MCP 格式映射

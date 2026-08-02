@@ -647,7 +647,7 @@ monorepo development → git push main
 | **Audit** | `AuditService`, `StructuredLogService`, `LoginLogService` | Audit logging |
 | **Ops** | `CacheService`, `QueueService`, `HealthService`, `AlertService`, `MetricsService`, `SlaService` | Operations |
 | **AI** | `AiGatewayService`, `AiTextService`, `AiImageService`, `AiVideoService`, `AiUsageService` | AI gateway |
-| **Agent** | `AgentService`, `AgentRuntime`, `AgentMonitor`, `ToolRegistry`, `MemoryCompressor` | Agent framework |
+| **Agent** | `AgentService`, `AgentRuntime`, `AgentChatClient`, `AgentContextBuilder`, `AgentToolExecutor`, `AgentMonitor`, `ToolRegistry`, `MemoryCompressor` | Agent framework |
 | **Conversation** | `ConversationService`, `MessageService`, `ReadStateService`, `TagService` | Messaging |
 | **Workflow** | `WorkflowEngine`, `WorkflowService`, `WorkflowRegistry`, `RetryService`, `RollbackService` | Workflow engine |
 | **Channel** | `ChannelManager`, `MessageRouter` | Message channels |

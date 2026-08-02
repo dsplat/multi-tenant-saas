@@ -1,6 +1,6 @@
 # AI 模块架构
 
-**最后更新**: 2026-06-29
+**最后更新**: 2026-08-01
 
 ---
 
@@ -123,6 +123,26 @@ $vec = $gateway->embed('text-embedding-3-small', '要嵌入的文本');
 - `checkBudget` — 预算检查
 - `checkOverage` — 超额策略判定（`block`/`warn`/`allow`）
 - `getUsageSummary / getUsageByCategory / getUsageByModel` — 用量报表
+
+### AgentRuntime（ReAct 循环编排器）
+
+Agent 运行时已拆分为四个职责单一的类：
+
+| 类 | 行数 | 职责 |
+|----|------|------|
+| `AgentRuntime` | ~760 | ReAct 循环编排、消息持久化、工作流链、记忆压缩触发 |
+| `AgentChatClient` | ~270 | AI 推理调用、降级容错、模型配置解析 |
+| `AgentContextBuilder` | ~350 | 上下文组装、Prompt 解析、记忆注入/提取 |
+| `AgentToolExecutor` | ~390 | 工具执行、风险分区（L1/L2）、L2 确认门 |
+
+```
+AgentRuntime（编排器）
+  ├── AgentContextBuilder   组装 system_prompt + 历史 + 新消息
+  ├── AgentChatClient       调用 AI 推理（含 fallback）
+  └── AgentToolExecutor     执行 tool_calls（含 L2 确认）
+```
+
+核心流程：加载 Agent 配置 → 构建上下文 → AI 推理 → 文本返回 / tool_calls 执行后追加结果 → 循环至 max_tool_calls。流式通过 `runStream()` 逐 chunk 产出 `StreamChunk`。
 
 ---
 

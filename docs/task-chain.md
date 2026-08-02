@@ -57,7 +57,7 @@
 | type | 语义 | 执行方 |
 |---|---|---|
 | `tool` | 调用一个已注册工具 | ToolRegistry（沿用 L1/L2 风险分级与确认机制） |
-| `delegate` | 转派给指定角色的数字员工完成一段对话式产出 | AgentRuntime（delegate_to_agent 同款链路） |
+| `delegate` | 转派给指定角色的数字员工完成一段对话式产出 | AgentRuntime（编排）→ AgentChatClient（推理）+ AgentToolExecutor（工具执行） |
 | `input` | 需要用户补充结构化信息 | 前端表单卡片 → 写入链上下文 |
 | `upload` | 需要用户上传文件 | 前端上传 → file_upload_id 写入链上下文 |
 
@@ -112,7 +112,7 @@ config(['ai.task_chains.extra_chain_classes' => [ScrmTaskChains::class]]);
 - `start(chainKey, conversationId)` → 建 run 记录，进入第 0 步
 - `advance(runId, ?stepInput)` → 执行当前步：
   - `tool` 步：组装参数（含上下文占位符替换）→ ToolRegistry 执行；L2 工具走确认卡片，run 置 `waiting_confirm`，确认回调后续推
-  - `delegate` 步：经 AgentRuntime 转派，产出摘要写上下文
+  - `delegate` 步：经 AgentRuntime 编排 → AgentToolExecutor 执行，产出摘要写上下文
   - `input` / `upload` 步：置 `waiting_input`，前端提交后带 stepInput 再次 advance
   - 成功 → `current_step + 1`；到尾 → `completed`
 - **中断续跑**：run 按 conversation_id 可查，开场引导 `task_chains` 字段返回未完成 run 供「继续」入口

@@ -12,7 +12,7 @@
 
 ## 设计原则（继承既有铁律）
 
-- 分层复用：跑在现有 AgentRuntime（ReAct+SSE）、ToolRegistry、BuiltinAgentTemplates、AiAssistant 前端之上，不新建推理循环/工具表/前端面板。
+- 分层复用：跑在现有 AgentRuntime（编排）+ AgentChatClient（推理）+ AgentToolExecutor（工具执行）+ ToolRegistry、BuiltinAgentTemplates、AiAssistant 前端之上，不新建推理循环/工具表/前端面板。
 - 可选性：旁挂增强，独立 feature category `secretary`，关闭时零 DOM 零请求；检索/模型失败 fail-open 降级为"引导用户去对应菜单"。
 - 身份模型：面向 Operator（console 后台）；会话隔离沿用 agent_conversations；系统知识库为平台级静态资产（tenant_id=0）。
 - 转派可控：转派前明示"这个问题交给销售助手处理，继续吗"，人确认后切换（可配置为静默转派）。
@@ -36,7 +36,7 @@ SECRETARY_ENABLED=true
 
 ### 2. 平台买单（不扣租户配额）
 
-- AgentRuntime 用量记账处：小秘书 Agent（role=system_secretary）的调用**跳过 AiUsageService 租户配额扣减**，用量记入平台账（tenant_id=0）供观测与成本核算；
+- AgentRuntime → AgentChatClient 用量记账处：小秘书 Agent（role=system_secretary）的调用**跳过 AiUsageService 租户配额扣减**，用量记入平台账（tenant_id=0）供观测与成本核算；
 - 租户的 AiConfigService category 开关对 `secretary` 独立：平台可全局开/关，租户可自主隐藏入口，但不产生任何租户侧计费。
 
 ## 二、知识库底座（Ai 模块新增 SystemKb 子域）
@@ -74,7 +74,7 @@ SECRETARY_ENABLED=true
 
 ### 5. 知识库构建工具链（生产侧，补齐"谁来写文档"）
 
-现状是框架没有数据字典和模块使用手册，26 个模块文档不能靠人手写，必须工具化：
+现状是框架没有数据字典和模块使用手册，30 个模块文档不能靠人手写，必须工具化：
 
 - **`secretary:kb:build [--module=X] [--changed]`（AI 辅助文档构建器）**：扫描模块的 Routes/Controllers/Services/migrations/前端视图，用 LLM（同 bailian 配置）起草该模块使用手册草稿（功能说明、操作步骤、业务流），输出到 `src/Modules/<X>/resources/kb/`，**人审后提交入库**——文档是代码资产，构建发生在开发/发版时而非运行时；`--changed` 只重建对比上个 tag 有代码变更的模块，实现"每发版增量更新文档"；
 - **覆盖率守卫**：`architecture_guard.py` 新增检查——每个启用模块必须有至少一份 kb 文档、frontmatter 合法、文档内引用的路由/表名真实存在（覆盖缺口=0、失效引用=0，机器自证完备）；pre-commit + CI 双卡口；
@@ -121,7 +121,7 @@ SECRETARY_ENABLED=true
 - `scripts/architecture_guard.py`：kb 覆盖率/frontmatter/引用有效性检查
 - `src/Modules/Ai/Services/SystemKb/`：纯文件型知识库（零 DB，无迁移文件）
 - `BuiltinAgentTemplates.php`：模板 0；`config/ai.php`：bailian provider + secretary 段；`AiServiceProvider`：工具与服务注册
-- AgentRuntime 记账处：secretary 跳过租户配额
+- AgentRuntime → AgentChatClient 记账处：secretary 跳过租户配额
 - `src/Modules/Ai/resources/console/ai-assistant/`：回退逻辑 + navigate/delegate 事件
 - 语料种子：框架 `docs/kb/` 首批手册；scrm 侧按约定放 `app/Modules/<X>/resources/kb/`
 

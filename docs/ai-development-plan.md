@@ -14,7 +14,7 @@
 ## 关键约束
 
 - 落点均在 `src/Modules/Ai/`，与 AiTextService 同层，由 AiServiceProvider 注册。
-- 复用已有基建：AiConfigService（特性开关）、AiUsageService（配额/预算）、AgentMonitor（监控）、AgentRuntime（ReAct 运行时）。
+- 复用已有基建：AiConfigService（特性开关）、AiUsageService（配额/预算）、AgentMonitor（监控）、AgentRuntime（编排）+ AgentChatClient（推理）+ AgentToolExecutor（工具执行）。
 - 项目层禁止自建上述任何能力，必须复用本层。
 - 部署顺序：框架先于项目。
 
@@ -82,7 +82,7 @@ AiResult::success(output, confidence, durationMs)
 ### 依赖（已实现，直接注入）
 
 - `AiConfigService::isCategoryEnabled(string $category): bool`
-- `AiUsageService::checkQuota(string $category): void`（超限抛 RuntimeException）
+- `AiUsageService::checkQuota(string $category): void`（超限抛 QuotaExceededException）
 - `AiUsageService::checkBudget(?float $currentSpend = null): void`
 - `AgentMonitorContract::logConversationTurn(...)` / `logToolCall(...)`
 
@@ -150,7 +150,7 @@ class IntentRouter
 
 ### AssistantController
 
-- `POST ai/assistant`：接收 PageContext + user_intent → IntentRouter 路由 → AgentRuntime::runStream 流式返回。
+- `POST ai/assistant`：接收 PageContext + user_intent → IntentRouter 路由 → AgentRuntime 编排 → AgentChatClient 推理 → AgentToolExecutor 执行，流式返回。
 - 写操作约束：写工具只产出草稿，落库由业务 Service + 人确认完成（路由器/工具层强制）。
 
 ### 路由注册

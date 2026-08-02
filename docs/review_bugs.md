@@ -415,7 +415,7 @@ app(AuditService::class)->log('create', 'tenant', ...);
 | 编号 | 状态 | 验证结果 |
 |------|------|---------|
 | D1 | **已修复 ✅** | `DomainException` 基类实现 `HttpExceptionInterface`，11 个异常全部继承并携带正确状态码（402/403/404/409/429/500/502/503）；`Handler.php` 已删除；`bootstrap/app.php` 有 DomainException render 回调 + 5xx 生产脱敏；CouponService 已改抛 `ConflictException`；`DomainExceptionTest.php` 11 用例覆盖全状态码映射 |
-| D2 | **暂不修 ⏸** | 合理延期，无行为缺陷 |
+| D2 | **已修复 ✅** | AgentRuntime 1627 行→763 行，拆出 AgentChatClient(267) / AgentContextBuilder(345) / AgentToolExecutor(388)，构造参数 9→8（3 个协作者） |
 | D3 | **已修复 ✅** | AgentCreated/AgentEnabled/AgentDisabled/ToolCallFailed 4 个 handler 已注册；ToolCalled/ToolCallCompleted 已在 AgentRuntime dispatch；ConversationStarted/ConversationEnded 已在 AgentChatController/AssistantController dispatch；防御式 `audit()` 辅助方法防止审计失败中断主流程 |
 | D4 | **已修复 ✅** | 3 处点名代码改为 `app()->bound()`；其余 `class_exists` 为合理拆包用法 |
 | D5 | **已修复 ✅** | `BaseController` + `ApiResponse` trait 已就位；8 个 src/ 下控制器已迁移继承 |
@@ -465,7 +465,7 @@ app(AuditService::class)->log('create', 'tenant', ...);
 | RuntimeException | 332 处 | 0 处 |
 | 自定义异常使用 | 5 处 | 420 处 |
 | __callStatic | 23 处 | 0 处 |
-| 事件监听器 | 2 个 | 6 个 |
+| 事件监听器 | 2 个 | 10 个 Event::listen 注册 |
 | 前端测试 | 0 个 | 5 个文件 |
 | 架构守卫 | 无 | pre-commit 5 项检查 |
 | API 响应格式 | 各 Controller 自行编写 | BaseController + ApiResponse 统一 |

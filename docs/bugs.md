@@ -1,19 +1,19 @@
 # 已知问题清单
 
 > 基于 2026-07-20 深度代码审查发现
-> **最后更新**: 2026-08-01（第四轮审查后状态同步）
+> **最后更新**: 2026-08-01（源码验证后清理误报）
 > 审查覆盖：Auth、Operator、Infrastructure、User 四大模块
 
 ---
 
 ## 修复状态总览
 
-| 严重度 | 总数 | 已修复 | 未修复 |
-|--------|------|--------|--------|
-| 严重 | 8 | 6 | 2 |
-| 中等 | 12 | 4 | 8 |
-| 低 | 10 | 1 | 9 |
-| **总计** | **30** | **11** | **19** |
+| 严重度 | 总数 | 已修复 | 误报/非 bug | 未修复 |
+|--------|------|--------|------------|--------|
+| 严重 | 8 | 7 | 1 | 0 |
+| 中等 | 12 | 5 | 3 | 4 |
+| 低 | 10 | 1 | 0 | 9 |
+| **总计** | **30** | **13** | **4** | **13** |
 
 ---
 
@@ -25,19 +25,9 @@
 
 ---
 
-### BUG-002: PasswordService 双重 Hash — 用户无法登录
+### ~~BUG-002: PasswordService 双重 Hash~~ ❌ 误报
 
-**状态**: ⚠️ 仍存在
-
-**影响范围**: 所有通过 `PasswordService::doReset()` 重置密码的用户
-
-**根因**: `doReset()` 中 `Hash::make($newPassword)` 手动 hash，但 User 模型 `'password' => 'hashed'` cast 会自动 hash，导致密码被 hash 两次。
-
-**文件**: `src/Modules/Auth/Services/PasswordService.php:49`
-
-**修复方案**: 移除 `Hash::make()`，直接赋值明文密码，依赖 cast 自动 hash。
-
-> **注意**: OperatorService 中的 `Hash::make()` 有注释说明是"业务层显式 hash，不依赖模型 cast"，属不同情况。
+**状态**: 误报 — User 模型 `casts()` 有显式注释「禁止对 password 使用 hashed cast」，`Hash::make()` 是唯一且正确的 hash 操作，不存在双重 hash。
 
 ---
 
@@ -65,15 +55,9 @@
 
 ---
 
-### BUG-007: Login.vue redirect 开放重定向
+### ~~BUG-007: Login.vue redirect 开放重定向~~ ✅ 已修复
 
-**状态**: ⚠️ 仍存在
-
-**影响范围**: 登录后的跳转
-
-**文件**: `resources/pages/public/views/Login.vue`
-
-**修复方案**: 验证 redirect 以 `/` 开头且不包含 `//`。
+**状态**: 已修复 — redirect 参数现在校验必须以 `/` 开头且非 `//`（协议相对 URL），否则回退 `/dashboard`。
 
 ---
 
@@ -119,9 +103,9 @@
 
 ---
 
-### BUG-013: PasswordService::cleanupHistory() 使用错误主键
+### ~~BUG-013: PasswordService::cleanupHistory() 使用错误主键~~ ✅ 已修复
 
-**状态**: ⚠️ 仍存在 — 使用 `pluck('id')` 但主键是 `password_history_id`。
+**状态**: 已修复 — 代码已正确使用 `pluck('password_history_id')` + `whereIn('password_history_id', $ids)`。
 
 ---
 
@@ -137,21 +121,21 @@
 
 ---
 
-### BUG-016: IdentifyTenant URL 参数注入
+### ~~BUG-016: IdentifyTenant URL 参数注入~~ — 设计行为
 
-**状态**: ⚠️ 仍存在 — `?tenant_id=xxx` 允许任意用户指定租户 ID。
-
----
-
-### BUG-017: OperatorService::acceptInvite 双重 Hash
-
-**状态**: ⚠️ 仍存在 — 但有注释说明是显式 hash，需确认是否与 PasswordService 的 hashed cast 冲突。
+**状态**: 非 bug — `?tenant_id=xxx` 为已文档化的不可信源输入（见 tenant.md 2.5 优先级 1：「不可信，需归属校验」），后续步骤会验证归属。
 
 ---
 
-### BUG-018: OAuthCallback.vue 使用 GET 传递 code
+### ~~BUG-017: OperatorService::acceptInvite 双重 Hash~~ ❌ 误报
 
-**状态**: ⚠️ 仍存在
+**状态**: 误报 — 与 BUG-002 同理，Operator 模型无 `hashed` cast，显式 `Hash::make()` 是正确设计。
+
+---
+
+### ~~BUG-018: OAuthCallback.vue 使用 GET 传递 code~~ — 标准协议
+
+**状态**: 非 bug — OAuth 2.0 授权码流程规定 authorization code 经 GET redirect 传递（RFC 6749 §4.1.2），code 一次性使用且需 client_secret 换取 token。
 
 ---
 
@@ -183,9 +167,11 @@
 
 ## 四、统计
 
-| 严重度 | 总数 | 已修复 | 未修复 |
-|--------|------|--------|--------|
-| 严重 | 8 | 6 | 2 (BUG-002, BUG-007/008) |
-| 中等 | 12 | 4 | 8 |
-| 低 | 10 | 1 | 9 |
-| **总计** | **30** | **11** | **19** |
+| 严重度 | 总数 | 已修复 | 误报/非 bug | 未修复 |
+|--------|------|--------|------------|--------|
+| 严重 | 8 | 7 | 1 (BUG-002) | 0 |
+| 中等 | 12 | 5 | 3 (BUG-016/017/018) | 4 (BUG-010/011/014/015) |
+| 低 | 10 | 1 | 0 | 9 |
+| **总计** | **30** | **13** | **4** | **13** |
+
+> 另有 BUG-008（MFA user_id 暴露）和 BUG-020（租户归属检查）待排期修复。

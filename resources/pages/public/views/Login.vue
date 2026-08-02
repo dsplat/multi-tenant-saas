@@ -203,7 +203,9 @@ async function handleLogin() {
       // 已验证，正常跳转
       localStorage.setItem('user_token', token)
       localStorage.setItem('user_info', JSON.stringify(user))
-      const redirect = (router.currentRoute.value.query.redirect as string) || '/dashboard'
+      const rawRedirect = (router.currentRoute.value.query.redirect as string) || '/dashboard'
+      // 防止开放重定向：仅允许站内相对路径（以 / 开头且非 // 协议相对 URL）
+      const redirect = (rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')) ? rawRedirect : '/dashboard'
       window.location.href = redirect
     } else {
       error.value = data.message || '登录失败'

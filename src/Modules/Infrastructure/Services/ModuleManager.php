@@ -136,7 +136,55 @@ class ModuleManager
         }
 
         // 查询租户级开关
-        return $this->getTenantModuleStatus($name, $tenantId) === 'enabled';
+        if ($this->getTenantModuleStatus($name, $tenantId) !== 'enabled') {
+            return false;
+        }
+
+        // 权益层防御判定（Commerce 模块）：开关开但权益已全部失效时不放行
+        return $this->hasValidEntitlement($name, $tenantId);
+    }
+
+    /**
+     * 模块权益判定（防御式）
+     *
+     * 权益/开关分离：开关只表租户当前意愿，权益决定资格。
+     * - 无权益记录 → 系统授予（管理员手动开通/存量租户），放行
+     * - 有权益记录 → 至少一条 active 且未过期才放行
+     * 表不存在或查询异常时兜底放行，不影响既有功能。
+     */
+    protected function hasValidEntitlement(string $name, int $tenantId): bool
+    {
+        try {
+            if (! Schema::hasTable('module_entitlements')) {
+                return true;
+            }
+
+            $hasRecord = DB::table('module_entitlements')
+                ->where('tenant_id', $tenantId)
+                ->where('module_name', $name)
+                ->exists();
+
+            if (! $hasRecord) {
+                return true;
+            }
+
+            return DB::table('module_entitlements')
+                ->where('tenant_id', $tenantId)
+                ->where('module_name', $name)
+                ->where('status', 'active')
+                ->where(function ($q) {
+                    $q->whereNull('valid_until')->orWhere('valid_until', '>', now());
+                })
+                ->exists();
+        } catch (\Throwable $e) {
+            Log::warning('[ModuleManager] 权益判定异常，兜底放行', [
+                'module' => $name,
+                'tenant_id' => $tenantId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return true;
+        }
     }
 
     /**

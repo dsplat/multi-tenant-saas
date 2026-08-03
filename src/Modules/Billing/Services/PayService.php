@@ -206,4 +206,97 @@ class PayService
             TenantSetting::set($tenantId, 'payment', "{$prefix}_{$key}", $value, $isEncrypted);
         }
     }
+
+    // ========== 平台级支付（租户向平台购买，Commerce 模块使用） ==========
+
+    /**
+     * 获取平台商户配置（config/pay.php 的 default 商户，env 注入）
+     */
+    protected function getPlatformConfig(string $driver): array
+    {
+        $config = config("pay.{$driver}.default", []);
+
+        return array_filter($config, fn ($v) => $v !== '' && $v !== null);
+    }
+
+    /**
+     * 动态创建平台级 Pay 实例
+     */
+    protected function createPlatformPayInstance(string $driver): Pay
+    {
+        $config = $this->getPlatformConfig($driver);
+
+        if (empty($config)) {
+            throw new ServiceUnavailableException("平台 {$driver} 支付商户未配置");
+        }
+
+        return Pay::$driver($config);
+    }
+
+    /**
+     * 检查平台是否已配置支付
+     */
+    public function isPlatformConfigured(string $driver): bool
+    {
+        return ! empty($this->getPlatformConfig($driver));
+    }
+
+    /**
+     * 平台微信支付 - H5（console 后台浏览器场景）
+     */
+    public function platformWechatH5(float $amount, string $orderNo): array
+    {
+        $order = [
+            'out_trade_no' => $orderNo,
+            'total_fee' => intval($amount * 100),
+            'body' => '平台服务购买',
+        ];
+
+        return $this->createPlatformPayInstance('wechat')->h5($order)->toArray();
+    }
+
+    /**
+     * 平台支付宝 - 电脑网站
+     */
+    public function platformAlipayWeb(float $amount, string $orderNo): string
+    {
+        $order = [
+            'out_trade_no' => $orderNo,
+            'total_amount' => $amount,
+            'subject' => '平台服务购买',
+        ];
+
+        return $this->createPlatformPayInstance('alipay')->web($order)->getContent();
+    }
+
+    /**
+     * 平台支付宝 - 手机网站
+     */
+    public function platformAlipayWap(float $amount, string $orderNo): string
+    {
+        $order = [
+            'out_trade_no' => $orderNo,
+            'total_amount' => $amount,
+            'subject' => '平台服务购买',
+        ];
+
+        return $this->createPlatformPayInstance('alipay')->wap($order)->getContent();
+    }
+
+    /**
+     * 处理平台级支付回调（平台商户配置验签，无租户上下文）
+     */
+    public function handlePlatformCallback(string $driver, Request $request): array
+    {
+        $pay = $this->createPlatformPayInstance($driver);
+        $result = $pay->callback($request->all());
+
+        return [
+            'trade_no' => $result->trade_no ?? '',
+            'out_trade_no' => $result->out_trade_no ?? '',
+            'total_fee' => $result->total_fee ?? ($result->total_amount ?? 0),
+            'total_amount' => $result->total_amount ?? 0,
+            'status' => $result->trade_status ?? '',
+        ];
+    }
 }

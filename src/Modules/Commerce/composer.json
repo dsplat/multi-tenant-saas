@@ -1,0 +1,28 @@
+{
+  "name": "dsplat/multi-tenant-saas-module-commerce",
+  "version": "1.0.0",
+  "description": "平台商业体 - 统一SKU、订单、履约（套餐/模块/AI积分包），平台⇄租户交易闭环",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\Commerce\\": ""
+    }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "commerce",
+      "priority": 6,
+      "dependencies": ["billing"],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\Commerce\\CommerceServiceProvider",
+      "tenant_toggleable": false,
+      "default_enabled": true
+    }
+  }
+}

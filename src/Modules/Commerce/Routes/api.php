@@ -20,4 +20,8 @@ Route::prefix('commerce')->group(function () {
     // 供给授权（租户已购供给「代理证」）
     Route::get('/supply-grants', [CommerceSupplyGrantController::class, 'index']);
     Route::get('/supply-grants/{grantId}', [CommerceSupplyGrantController::class, 'show']);
+
+    // 内容包目录（选入前预览）
+    Route::get('/content-packs', [CommerceCatalogController::class, 'contentPacks']);
+    Route::get('/content-packs/{packId}', [CommerceCatalogController::class, 'contentPackShow']);
 });

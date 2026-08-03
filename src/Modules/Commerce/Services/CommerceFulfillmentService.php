@@ -258,6 +258,33 @@ class CommerceFulfillmentService
     }
 
     /**
+     * 平台下架联动：失效指定 SKU 的全部生效供给授权
+     *
+     * 逐条走 Handler::expire（联动项目侧实例下架），无对应 Handler 时直接置 expired。
+     *
+     * @return int 失效的授权数
+     */
+    public function expireGrantsBySku(int $skuId): int
+    {
+        $grants = SupplyGrant::withoutGlobalScope(TenantScope::class)
+            ->where('sku_id', $skuId)
+            ->whereIn('status', [SupplyGrant::STATUS_ACTIVE, SupplyGrant::STATUS_SUSPENDED])
+            ->get();
+
+        foreach ($grants as $grant) {
+            $handler = $this->supplyHandlerFor($grant);
+
+            if ($handler) {
+                $handler->expire($grant);
+            } else {
+                $grant->update(['status' => SupplyGrant::STATUS_EXPIRED]);
+            }
+        }
+
+        return $grants->count();
+    }
+
+    /**
      * 停供（结算逾期等联动，停供不停兑由项目侧处置）
      */
     public function suspendGrant(SupplyGrant $grant): void

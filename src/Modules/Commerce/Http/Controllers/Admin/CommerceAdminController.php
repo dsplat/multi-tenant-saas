@@ -82,6 +82,8 @@ class CommerceAdminController extends Controller
 
     /**
      * 下架 SKU（不物理删除，历史订单保留引用）
+     *
+     * 联动：该 SKU 的全部生效供给授权失效（项目侧实例联动下架）
      */
     public function skuRetire(Request $request, int $skuId)
     {
@@ -90,9 +92,18 @@ class CommerceAdminController extends Controller
         $sku = CommerceSku::findOrFail($skuId);
         $sku->update(['status' => CommerceSku::STATUS_RETIRED]);
 
-        app(AuditService::class)->log('retire', 'commerce_sku', $sku->sku_id, null, ['name' => $sku->name]);
+        $expiredGrants = app(CommerceFulfillmentService::class)->expireGrantsBySku($skuId);
 
-        return response()->json(['success' => true, 'message' => 'SKU 已下架']);
+        app(AuditService::class)->log('retire', 'commerce_sku', $sku->sku_id, null, [
+            'name' => $sku->name,
+            'expired_grants' => $expiredGrants,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'SKU 已下架',
+            'data' => ['expired_grants' => $expiredGrants],
+        ]);
     }
 
     // ========== 订单总览 ==========

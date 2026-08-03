@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * 商业体模块（Commerce）
- * 表: commerce_skus, commerce_orders, commerce_order_items, module_entitlements, supply_grants
+ * 表: commerce_skus, commerce_orders, commerce_order_items, module_entitlements, supply_grants,
+ *     platform_contents, platform_content_packs, platform_content_pack_items
  */
 class CommerceModule implements SchemaModuleInterface
 {
@@ -86,12 +87,46 @@ class CommerceModule implements SchemaModuleInterface
             $table->index(['tenant_id', 'status']);
             $table->index(['sku_id', 'status']);
         });
+
+        Schema::create('platform_contents', function (Blueprint $table) {
+            $table->unsignedBigInteger('content_id')->primary();
+            $table->string('title', 200);
+            $table->string('type', 30)->default('article');
+            $table->text('body')->nullable();
+            $table->string('file_url', 500)->nullable();
+            $table->string('cover_url', 500)->nullable();
+            $table->json('tags')->nullable();
+            $table->string('status', 20)->default('draft');
+            $table->integer('sort_order')->default(0);
+            $table->timestamps();
+            $table->index(['status', 'type']);
+        });
+
+        Schema::create('platform_content_packs', function (Blueprint $table) {
+            $table->unsignedBigInteger('pack_id')->primary();
+            $table->string('name', 200);
+            $table->string('description', 500)->nullable();
+            $table->string('cover_url', 500)->nullable();
+            $table->string('status', 20)->default('draft');
+            $table->integer('sort_order')->default(0);
+            $table->timestamps();
+            $table->index('status');
+        });
+
+        Schema::create('platform_content_pack_items', function (Blueprint $table) {
+            $table->unsignedBigInteger('pack_id');
+            $table->unsignedBigInteger('content_id');
+            $table->integer('sort_order')->default(0);
+            $table->primary(['pack_id', 'content_id']);
+            $table->index('content_id');
+        });
     }
 
     public function getTableNames(): array
     {
         return [
             'commerce_order_items', 'commerce_orders', 'commerce_skus', 'module_entitlements', 'supply_grants',
+            'platform_content_pack_items', 'platform_content_packs', 'platform_contents',
         ];
     }
 }

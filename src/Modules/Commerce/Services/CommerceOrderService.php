@@ -14,7 +14,7 @@ use MultiTenantSaas\Modules\Commerce\Models\CommerceSku;
 /**
  * 商业体订单服务（租户向平台购买）
  *
- * placeOrder：校验 SKU → 快照 payload → 建单（订单:支付单=1:1）；零元单直接履约。
+ * placeOrder：校验 SKU → 快照 payload（content_pack 展开内容包）→ 建单；零元单直接履约。
  * pay：委托 PayService 平台级商户预下单。
  */
 class CommerceOrderService
@@ -65,6 +65,7 @@ class CommerceOrderService
                 'sku' => $sku,
                 'qty' => $qty,
                 'unit_price' => $unitPrice,
+                'payload_snapshot' => $this->buildPayloadSnapshot($sku),
             ];
         }
 
@@ -84,7 +85,7 @@ class CommerceOrderService
                     'unit_price' => $row['unit_price'],
                     'fulfill_status' => CommerceOrderItem::FULFILL_PENDING,
                     'retry_count' => 0,
-                    'payload_snapshot' => $row['sku']->payload ?? [],
+                    'payload_snapshot' => $row['payload_snapshot'],
                 ]);
             }
 
@@ -143,5 +144,23 @@ class CommerceOrderService
     private function generateOrderNo(): string
     {
         return 'CM' . date('YmdHis') . random_int(100000, 999999);
+    }
+
+    /**
+     * 构建订单项 payload 快照
+     *
+     * content_pack 且 payload.pack_id 指向平台内容包时，展开包内已发布内容入快照，
+     * 防库内容后续变更影响已成交订单履约（改价/改内容保护）。
+     */
+    private function buildPayloadSnapshot(CommerceSku $sku): array
+    {
+        $snapshot = $sku->payload ?? [];
+
+        if ($sku->type === CommerceSku::TYPE_CONTENT_PACK && ! empty($snapshot['pack_id'])) {
+            $snapshot['contents'] = app(PlatformContentLibraryService::class)
+                ->getPackSnapshot((int) $snapshot['pack_id']);
+        }
+
+        return $snapshot;
     }
 }

@@ -63,9 +63,9 @@ const tenant = ref({ name: '', tenant_id: '', plan: '' })
 
 const fetchDashboard = async () => {
   const [membersRes, creditsRes, settingsRes] = await Promise.allSettled([
-    axios.get('/tenant/members'),
+    axios.get('/api/v1/tenant/members'),
     axios.get(`/api/v1/tenants/${userStore.tenantId}/credits`),
-    axios.get('/tenant/settings'),
+    axios.get('/api/v1/tenant/settings'),
   ])
 
   if (membersRes.status === 'fulfilled') {

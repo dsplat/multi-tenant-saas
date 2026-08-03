@@ -2,7 +2,6 @@
 
 namespace MultiTenantSaas\Modules\Knowledge;
 
-use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
 use MultiTenantSaas\Modules\Knowledge\Services\ExternalKbService;
@@ -37,23 +36,5 @@ class KnowledgeServiceProvider extends ModuleServiceProvider
         $registry->register('knowledge_delete_connection', 'Knowledge Delete Connection', 'Delete connection', KnowledgeDeleteConnectionHandler::class, ['type' => 'object', 'properties' => ['connection_id' => ['type' => 'integer', 'description' => '连接ID']], 'required' => ['connection_id']], 'knowledge', 'L2');
         $registry->register('knowledge_test_connection', 'Knowledge Test Connection', 'Test connection', KnowledgeTestConnectionHandler::class, ['type' => 'object', 'properties' => ['connection_id' => ['type' => 'integer', 'description' => '连接ID']], 'required' => ['connection_id']], 'knowledge', 'L1');
         $registry->register('knowledge_push_document', 'Knowledge Push Document', 'Push document', KnowledgePushDocumentHandler::class, ['type' => 'object', 'properties' => ['connection_id' => ['type' => 'integer', 'description' => '连接ID'], 'name' => ['type' => 'string', 'description' => '文档名称'], 'content' => ['type' => 'string', 'description' => '文档内容']], 'required' => ['connection_id', 'name', 'content']], 'knowledge', 'L2');
-    }
-
-    /**
-     * 覆写基类路由加载：tenant.php 需挂到 api/v1 前缀（基类默认无前缀），
-     * 并带 tenant.identify 以保证 TenantContext 正确解析。
-     */
-    protected function loadModuleRoutes(): void
-    {
-        if ($this->app->routesAreCached()) {
-            return;
-        }
-
-        $tenantRoute = $this->getModulePath('Routes/tenant.php');
-        if ($tenantRoute && file_exists($tenantRoute)) {
-            Route::middleware(['auth:sanctum', 'throttle:api', 'tenant.identify'])
-                ->prefix('api/v1')
-                ->group($tenantRoute);
-        }
     }
 }

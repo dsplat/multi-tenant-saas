@@ -28,7 +28,8 @@ class SSLServiceProvider extends ModuleServiceProvider
 
         $moduleDir = dirname((new \ReflectionClass($this))->getFileName());
 
-        foreach (['admin.php', 'api.php', 'tenant.php'] as $file) {
+        // tenant.php 由基类统一挂 api/v1 前缀 + tenant.identify
+        foreach (['admin.php', 'api.php'] as $file) {
             $path = $moduleDir . '/Routes/' . $file;
             if (file_exists($path)) {
                 $middleware = ['auth:sanctum', 'throttle:api'];

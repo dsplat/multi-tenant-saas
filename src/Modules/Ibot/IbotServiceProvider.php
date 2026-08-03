@@ -3,7 +3,6 @@
 namespace MultiTenantSaas\Modules\Ibot;
 
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
 use MultiTenantSaas\Modules\Ibot\Console\IbotTelegramPollCommand;
@@ -15,7 +14,6 @@ use MultiTenantSaas\Modules\Ibot\Services\IbotNotifier;
 use MultiTenantSaas\Modules\Ibot\Services\Tools\GenerateIbotBindCodeTool;
 use MultiTenantSaas\Modules\Ibot\Services\Tools\IbotSetupStatusTool;
 use MultiTenantSaas\Modules\Ibot\Services\Tools\SaveIbotConfigTool;
-use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\VerifyOperatorTenant;
 
 /**
  * Ibot 模块 — IM 机器人随身 AI 小助理（docs/ibot.md）
@@ -101,39 +99,6 @@ class IbotServiceProvider extends ModuleServiceProvider
             $this->commands([
                 IbotTelegramPollCommand::class,
             ]);
-        }
-    }
-
-    /**
-     * 覆写基类路由加载：tenant.php 需挂到 api/v1 前缀（基类默认无前缀），
-     * 并带 tenant.identify 保证 TenantContext 正确解析（范式同 Knowledge 模块）。
-     * api.php / public.php 照基类约定自行加载（不能调 parent，否则 tenant.php 会被重复注册）。
-     */
-    protected function loadModuleRoutes(): void
-    {
-        if ($this->app->routesAreCached()) {
-            return;
-        }
-
-        $apiRoute = $this->getModulePath('Routes/api.php');
-        if ($apiRoute && file_exists($apiRoute)) {
-            Route::middleware(['auth:sanctum', 'throttle:api', 'tenant.identify', VerifyOperatorTenant::class])
-                ->prefix('api/v1')
-                ->group($apiRoute);
-        }
-
-        $publicRoute = $this->getModulePath('Routes/public.php');
-        if ($publicRoute && file_exists($publicRoute)) {
-            Route::middleware(['api'])
-                ->prefix('api/v1')
-                ->group($publicRoute);
-        }
-
-        $tenantRoute = $this->getModulePath('Routes/tenant.php');
-        if ($tenantRoute && file_exists($tenantRoute)) {
-            Route::middleware(['auth:sanctum', 'throttle:api', 'tenant.identify'])
-                ->prefix('api/v1')
-                ->group($tenantRoute);
         }
     }
 }

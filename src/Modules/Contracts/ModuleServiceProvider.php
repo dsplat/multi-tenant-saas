@@ -133,9 +133,12 @@ abstract class ModuleServiceProvider extends ServiceProvider
         }
 
         // 租户管理路由
+        // 必须挂 api/v1 前缀：生产 nginx 仅转发 /api/* 到 PHP，无前缀路由不可达；
+        // tenant.identify 保证 TenantContext 解析（与 api.php 一致）。
         $tenantRoute = $moduleDir . '/Routes/tenant.php';
         if (file_exists($tenantRoute)) {
-            Route::middleware(['auth:sanctum', 'throttle:api'])
+            Route::middleware(['auth:sanctum', 'throttle:api', 'tenant.identify'])
+                ->prefix('api/v1')
                 ->group($tenantRoute);
         }
     }

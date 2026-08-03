@@ -3,16 +3,15 @@
 namespace MultiTenantSaas\Modules\Campaign;
 
 use Illuminate\Contracts\Events\Dispatcher;
-use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Campaign\Console\CampaignProcessDueCommand;
 use MultiTenantSaas\Modules\Campaign\Console\ThreadHealthCheckCommand;
+use MultiTenantSaas\Modules\Campaign\Listeners\CampaignEventSubscriber;
 use MultiTenantSaas\Modules\Campaign\Services\CampaignTaskExecutor;
 use MultiTenantSaas\Modules\Campaign\Services\PlanCompiler;
 use MultiTenantSaas\Modules\Campaign\Services\PlaybookRegistry;
 use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignPlanCommitTool;
 use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignPlanDraftTool;
-use MultiTenantSaas\Modules\Campaign\Listeners\CampaignEventSubscriber;
 use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignStatusTool;
 use MultiTenantSaas\Modules\Campaign\Services\Tools\ThreadReviewTool;
 use MultiTenantSaas\Modules\Campaign\Services\Tools\ThreadTrackTool;
@@ -50,24 +49,6 @@ class CampaignServiceProvider extends ModuleServiceProvider
                 CampaignProcessDueCommand::class,
                 ThreadHealthCheckCommand::class,
             ]);
-        }
-    }
-
-    /**
-     * 覆写基类路由加载：tenant.php 需挂到 api/v1 前缀 + tenant.identify
-     * （范式同 Ibot 模块）
-     */
-    protected function loadModuleRoutes(): void
-    {
-        if ($this->app->routesAreCached()) {
-            return;
-        }
-
-        $tenantRoute = $this->getModulePath('Routes/tenant.php');
-        if ($tenantRoute && file_exists($tenantRoute)) {
-            Route::middleware(['auth:sanctum', 'throttle:api', 'tenant.identify'])
-                ->prefix('api/v1')
-                ->group($tenantRoute);
         }
     }
 

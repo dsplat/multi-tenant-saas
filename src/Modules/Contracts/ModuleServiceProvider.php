@@ -109,9 +109,11 @@ abstract class ModuleServiceProvider extends ServiceProvider
         // 注意顺序：tenant.identify 必须在 VerifyOperatorTenant 之前——
         // 归属校验依赖已识别的租户上下文；若先校验，TenantContext::getId()
         // 会 fallback 到 default_tenant_id，Operator 不属于默认租户时误判 403。
+        // 'api' group 必挂：Sanctum 双模认证依赖其中的
+        // EnsureFrontendRequestsAreStateful 启动会话（缺失则 Cookie 会话全部失效）。
         $apiRoute = $moduleDir . '/Routes/api.php';
         if (file_exists($apiRoute)) {
-            Route::middleware(['auth:sanctum', 'throttle:api', 'tenant.identify', VerifyOperatorTenant::class])
+            Route::middleware(['api', 'auth:sanctum', 'throttle:api', 'tenant.identify', VerifyOperatorTenant::class])
                 ->prefix('api/v1')
                 ->group($apiRoute);
         }
@@ -124,10 +126,10 @@ abstract class ModuleServiceProvider extends ServiceProvider
                 ->group($publicRoute);
         }
 
-        // 系统管理路由
+        // 系统管理路由（同样依赖 'api' group 的 stateful 会话中间件）
         $adminRoute = $moduleDir . '/Routes/admin.php';
         if (file_exists($adminRoute)) {
-            Route::middleware(['auth:sanctum', 'throttle:api'])
+            Route::middleware(['api', 'auth:sanctum', 'throttle:api'])
                 ->prefix('api/v1/admin')
                 ->group($adminRoute);
         }
@@ -137,7 +139,7 @@ abstract class ModuleServiceProvider extends ServiceProvider
         // tenant.identify 保证 TenantContext 解析（与 api.php 一致）。
         $tenantRoute = $moduleDir . '/Routes/tenant.php';
         if (file_exists($tenantRoute)) {
-            Route::middleware(['auth:sanctum', 'throttle:api', 'tenant.identify'])
+            Route::middleware(['api', 'auth:sanctum', 'throttle:api', 'tenant.identify'])
                 ->prefix('api/v1')
                 ->group($tenantRoute);
         }

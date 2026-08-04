@@ -63,12 +63,13 @@ function onPaste(e: ClipboardEvent) {
 /** 上传并提取文件内容（失败不阻断对话，chip 上标错可移除） */
 async function addFiles(files: File[]) {
   for (const file of files) {
-    const draft: AttachmentDraft = {
+    attachments.value.push({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       filename: file.name,
       status: 'uploading',
-    }
-    attachments.value.push(draft)
+    })
+    // 取数组内的响应式 proxy 引用：直接改 push 前的原始对象不会触发重渲染
+    const draft = attachments.value[attachments.value.length - 1]
 
     try {
       const form = new FormData()

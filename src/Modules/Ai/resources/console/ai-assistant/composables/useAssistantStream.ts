@@ -60,8 +60,9 @@ export interface StreamCallbacks {
 /**
  * 复刻 PHP PageContext::toPromptContext + buildMessage 的消息包装格式，
  * 页面上下文注入由前端完成（引擎哑管道，不感知上下文语义）。
- * 附件提取文本放在 [页面上下文] 与 [用户请求] 之间，
- * 历史恢复正则 /\[用户请求\]\n(.*)$/su 会自动剥离该块，避免回显冗余。
+ * 附件提取文本放在 [用户请求] 之后：落库端 stripContextWrapper 以
+ * [用户请求] 为界保留其后内容，附件文本随用户消息持久化（“提取内容后保存”）；
+ * 历史恢复时前端用 store 回显（仅含文件名）重建，不受影响。
  */
 function buildContextMessage(ctx: PageContext, userIntent: string, attachments: AttachmentDraft[] = []): string {
   const parts = [
@@ -79,15 +80,14 @@ function buildContextMessage(ctx: PageContext, userIntent: string, attachments: 
     parts.push(`表单状态: ${JSON.stringify(ctx.form_state)}`)
   }
 
-  let message = `[页面上下文]\n${parts.join('\n')}`
-
+  let intent = userIntent
   const ready = attachments.filter(a => a.status === 'ready' && a.content)
   if (ready.length > 0) {
     const blocks = ready.map(a => `[附件: ${a.filename}]\n${a.content}`).join('\n\n')
-    message += `\n\n${blocks}`
+    intent += `\n\n${blocks}`
   }
 
-  return `${message}\n\n[用户请求]\n${userIntent}`
+  return `[页面上下文]\n${parts.join('\n')}\n\n[用户请求]\n${intent}`
 }
 
 export function useAssistantStream() {
@@ -111,7 +111,7 @@ export function useAssistantStream() {
    * @param userIntent  用户本轮输入原话
    * @param callbacks   流式回调
    * @param history     此前轮次的纯文本历史（引擎无状态，多轮记忆由前端携带）
-   * @param attachments 附件提取文本（注入到 [用户请求] 之前，随消息落库保存）
+   * @param attachments 附件提取文本（追加在用户原话后，随消息落库保存）
    */
   async function send(
     pageContext: PageContext & { agent_id?: number | string | null },

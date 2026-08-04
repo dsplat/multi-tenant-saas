@@ -175,14 +175,37 @@ class AssistantController extends Controller
 
     /**
      * 从落库的完整 prompt 中提取用户原话（buildMessage 的逆操作）。
+     * 附件块（[附件: 文件名]\n内容）压缩为文件名摘要，避免历史回显撑爆面板。
      */
     private function extractUserIntent(string $content): string
     {
         if (preg_match('/\[用户请求\]\n(.*)$/su', $content, $m)) {
-            return trim($m[1]);
+            $content = trim($m[1]);
         }
 
-        return $content;
+        return $this->summarizeAttachmentBlocks($content);
+    }
+
+    /**
+     * 附件块压缩：`[附件: 文件名]\n内容` → 汇总为 `📎 文件名1、文件名2` 一行。
+     */
+    private function summarizeAttachmentBlocks(string $content): string
+    {
+        $pos = mb_strpos($content, "\n\n[附件: ");
+        if ($pos === false) {
+            return $content;
+        }
+
+        $userPart = rtrim(mb_substr($content, 0, $pos));
+        $attachPart = mb_substr($content, $pos);
+        preg_match_all('/\[附件: ([^\]]+)\]/u', $attachPart, $names);
+        if ($names[1] === []) {
+            return $userPart;
+        }
+
+        $summary = '📎 ' . implode('、', $names[1]);
+
+        return $userPart === '' ? $summary : $userPart . "\n" . $summary;
     }
 
     /**

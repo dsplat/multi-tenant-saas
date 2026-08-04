@@ -246,6 +246,25 @@ class AssistantHistoryTest extends TestCase
             ->assertJsonPath('data.messages.1.content', '我是小秘书。');
     }
 
+    public function test_history_summarizes_attachment_blocks_in_user_messages(): void
+    {
+        $conversation = $this->createConversation();
+
+        // 附件文本随用户消息落库（[用户请求] 之后），历史回显压缩为文件名摘要
+        AgentConversationMessage::forceCreate([
+            'conversation_id' => $conversation->conversation_id,
+            'role' => 'user',
+            'content' => "[页面上下文]\n当前页面: dashboard\n模块: Dashboard\n\n[用户请求]\n帮我创建这个活动\n\n[附件: 策划案.md]\n# 双十一活动策划\n大段附件正文……",
+            'created_at' => now()->subMinutes(2),
+        ]);
+
+        $response = $this->withHeaders($this->authHeaders())
+            ->getJson("/api/v1/ai/assistant/history?conversation_id={$conversation->conversation_id}");
+
+        $response->assertOk()
+            ->assertJsonPath('data.messages.0.content', "帮我创建这个活动\n📎 策划案.md");
+    }
+
     public function test_history_returns_404_for_nonexistent_conversation(): void
     {
         $this->withHeaders($this->authHeaders())

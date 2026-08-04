@@ -27,7 +27,7 @@ const PORT = Number(process.env.AI_STREAMING_NODE_PORT ?? 9200)
 const PHP_API_BASE = (process.env.AI_STREAMING_PHP_API_BASE ?? 'http://127.0.0.1/api/v1').replace(/\/+$/, '')
 const FALLBACK_API_KEY = process.env.AI_STREAMING_API_KEY ?? ''
 
-// ---------- PHP 契约 API 客户端（透传浏览器 Authorization） ----------
+// ---------- PHP 契约 API 客户端（透传浏览器鉴权：Bearer 或 Cookie 会话） ----------
 
 interface ResolvePayload {
   tenant_id: number
@@ -45,8 +45,20 @@ interface ResolvePayload {
 }
 
 interface AuthContext {
-  authorization: string
+  authorization?: string
+  /** Cookie 会话模式：透传浏览器 Cookie，PHP 侧 stateful 中间件据此解析会话 */
+  cookie?: string
+  /** Cookie 会话模式必需：PHP 依 Origin/Referer 判定 stateful（命中 sanctum.stateful 才启动会话） */
+  origin?: string
+  /** 从浏览器 Cookie 中提取的 XSRF-TOKEN（URL 编码原值），回调 PHP 时作 X-XSRF-TOKEN 头过 CSRF */
+  xsrfToken?: string
   tenantId?: string
+}
+
+/** 从 Cookie 头提取指定 cookie 的原始值（不做 URL 解码，保持与 Laravel 下发时一致） */
+function extractCookieValue(cookieHeader: string, name: string): string | undefined {
+  const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`))
+  return match?.[1] || undefined
 }
 
 class PhpApiError extends Error {
@@ -59,7 +71,20 @@ async function phpPost<T>(path: string, auth: AuthContext, body: unknown): Promi
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'Authorization': auth.authorization,
+  }
+  // 双模鉴权：优先 Bearer（纯 API 客户端）；否则透传 Cookie + Origin 走会话
+  if (auth.authorization) {
+    headers['Authorization'] = auth.authorization
+  }
+  if (auth.cookie) {
+    headers['Cookie'] = auth.cookie
+  }
+  if (auth.origin) {
+    headers['Origin'] = auth.origin
+  }
+  // stateful 写请求需过 CSRF：浏览器 SPA 的 X-XSRF-TOKEN 即 Cookie 中的 XSRF-TOKEN 原值
+  if (auth.xsrfToken) {
+    headers['X-XSRF-TOKEN'] = auth.xsrfToken
   }
   // 透传浏览器的 X-Tenant-ID：多租户 Operator 切换团队后回调 PHP 才能命中正确租户
   if (auth.tenantId) {
@@ -124,10 +149,18 @@ app.get('/health', (c) => c.json({ ok: true, version: VERSION }))
 
 app.post('/chat', async (c) => {
   const authorization = c.req.header('authorization') ?? ''
-  if (!authorization) {
-    return c.json({ success: false, message: '缺少 Authorization 头' }, 401)
+  const cookie = c.req.header('cookie') ?? ''
+  // 双模认证：Bearer token 或 Cookie 会话（SPA stateful）二选一
+  if (!authorization && !cookie) {
+    return c.json({ success: false, message: '缺少认证信息（Authorization 头或会话 Cookie）' }, 401)
   }
-  const auth: AuthContext = { authorization, tenantId: c.req.header('x-tenant-id') }
+  const auth: AuthContext = {
+    authorization: authorization || undefined,
+    cookie: cookie || undefined,
+    origin: c.req.header('origin') || c.req.header('referer') || undefined,
+    xsrfToken: extractCookieValue(cookie, 'XSRF-TOKEN'),
+    tenantId: c.req.header('x-tenant-id'),
+  }
 
   const body = await c.req.json<{ agent_id?: number; conversation_id?: number; messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> }>().catch(() => null)
   if (!Array.isArray(body?.messages) || body.messages.length === 0) {

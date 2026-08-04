@@ -723,7 +723,7 @@ use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Modules\Workflow\Services\WorkflowService;
-use MultiTenantSaas\Services\AuditService;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 class WorkflowController extends Controller
 {
@@ -854,7 +854,7 @@ use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Modules\Plugin\Services\PluginService;
-use MultiTenantSaas\Services\AuditService;
+use MultiTenantSaas\Modules\Logging\Services\AuditService;
 
 class PluginController extends Controller
 {

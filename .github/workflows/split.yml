@@ -27,6 +27,10 @@ jobs:
             repo: multi-tenant-saas-module-billing
           - prefix: 'src/Modules/Campaign'
             repo: multi-tenant-saas-module-campaign
+          - prefix: 'src/Modules/Commerce'
+            repo: multi-tenant-saas-module-commerce
+          - prefix: 'src/Modules/Contracts'
+            repo: multi-tenant-saas-module-contracts
           - prefix: 'src/Modules/Conversation'
             repo: multi-tenant-saas-module-conversation
           - prefix: 'src/Modules/Coupon'

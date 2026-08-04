@@ -218,7 +218,7 @@ volumes:
 ### Dockerfile
 
 ```dockerfile
-FROM php:8.2-fpm-alpine
+FROM php:8.3-fpm-alpine
 
 WORKDIR /var/www/html
 
@@ -261,7 +261,7 @@ RUN php artisan config:cache && \
     php artisan route:cache && \
     php artisan view:cache
 
-EXPOSE 9000
+EXPOSE 9001
 CMD ["php-fpm"]
 ```
 
@@ -337,16 +337,16 @@ spec:
       containers:
         - name: app
           image: registry.example.com/saas-app:1.0.0
-          ports: [{ containerPort: 9000 }]
+          ports: [{ containerPort: 9001 }]
           envFrom:
             - configMapRef: { name: saas-config }
             - secretRef: { name: saas-secret }
           readinessProbe:
-            httpGet: { path: /api/v1/health, port: 9000 }
+            httpGet: { path: /api/v1/health, port: 9001 }
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
-            httpGet: { path: /api/v1/health, port: 9000 }
+            httpGet: { path: /api/v1/health, port: 9001 }
             initialDelaySeconds: 30
             periodSeconds: 30
           resources:
@@ -365,7 +365,7 @@ metadata:
   namespace: saas
 spec:
   selector: { app: saas-app }
-  ports: [{ port: 9000, targetPort: 9000 }]
+  ports: [{ port: 9001, targetPort: 9001 }]
 ```
 
 ### 4. 队列 Worker（Deployment）
@@ -445,14 +445,14 @@ spec:
           - path: /
             pathType: Prefix
             backend:
-              service: { name: saas-app, port: { number: 9000 } }
+              service: { name: saas-app, port: { number: 9001 } }
     - host: ai.lyt.com
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
-              service: { name: saas-app, port: { number: 9000 } }
+              service: { name: saas-app, port: { number: 9001 } }
 ```
 
 ### 7. 数据库与缓存（StatefulSet）
@@ -540,7 +540,7 @@ kubectl rollout undo deploy/saas-app -n saas
 kubectl rollout undo deploy/saas-queue -n saas
 ```
 
-> 生产建议启用 HPA（水平自动伸缩）与 `cert-manager` 自动签发 TLS 证书。详见 [运维手册](运维手册.md)。
+> 生产建议启用 HPA（水平自动伸缩）与 `cert-manager` 自动签发 TLS 证书。详见 [运维手册](operations-manual.md)。
 
 ---
 
@@ -562,7 +562,7 @@ server {
     }
     
     location ~ \.php$ {
-        fastcgi_pass app:9000;
+        fastcgi_pass app:9001;
         fastcgi_index index.php;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         fastcgi_param HTTP_X_ORIGINAL_HOST $host;
@@ -585,7 +585,7 @@ server {
     }
     
     location ~ \.php$ {
-        fastcgi_pass app:9000;
+        fastcgi_pass app:9001;
         fastcgi_index index.php;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         fastcgi_param HTTP_X_ORIGINAL_HOST $host;
@@ -620,7 +620,7 @@ server {
     }
     
     location ~ \.php$ {
-        fastcgi_pass app:9000;
+        fastcgi_pass app:9001;
         fastcgi_index index.php;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         fastcgi_param HTTP_X_ORIGINAL_HOST $host;
@@ -889,4 +889,4 @@ tail -f storage/logs/laravel.log
 ---
 
 **文档版本**: v1.0.0  
-**最后更新**: 2026-06-29
+**最后更新**: 2026-08-04

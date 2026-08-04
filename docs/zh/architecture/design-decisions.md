@@ -1,6 +1,7 @@
 # 设计决策文档
 
 > 记录框架关键设计决策的"为什么"
+> **最后更新**: 2026-08-04
 
 ---
 
@@ -234,3 +235,51 @@
 - `plugins` 表记录租户级插件状态
 - `plugin_dependencies` 表记录插件间依赖关系
 - 插件通过 ServiceProvider 注册路由和服务
+
+---
+
+## 14. 为什么引入 Commerce 模块（SKU/订单/履约/权益分离）
+
+**决策**：通过 `commerce_skus`（平台级商品）+ `commerce_orders`（租户级订单）+ `module_entitlements`（模块权益）三层模型，实现商城消费闭环。
+
+**理由**：
+1. **权益与开关分离**：`tenant_modules` 保持纯开关语义（enabled/disabled），`module_entitlements` 记录权益来源（plan/purchase/system）与有效期，避免「开通即有权益」的语义混淆
+2. **履约可追溯**：订单项 `commerce_order_items` 记录履约状态（pending/fulfilled/failed/revoked），支持重试与审计
+3. **SKU 平台级**：商品表无 `tenant_id`，所有租户共享同一商品目录，由平台统一管理
+4. **Handler 模式**：`fulfill_handler` 标识履约处理器，不同 SKU 类型（plan/module/credit_pack）走不同履约逻辑
+
+**代价**：
+- 需要维护 SKU → 履约 Handler 的映射
+- 订单与支付单 1:1 关联，退款需双向同步
+
+---
+
+## 15. 为什么选择三层域名架构
+
+**决策**：域名分三层——平台域名（admin/console）、租户绑定域名（domain 字段）、共享域名路径前缀（app_domain/{slug}/）。
+
+**理由**：
+1. **平台域名**：`admin.lyt.com` 承载管理后台，`console.lyt.com` 不提供服务（`RejectPlatformDomain` 中间件强制 403）
+2. **租户绑定域名**：`ai.tenant1.com` 通过 `tenants.domain` 字段解析，域名本身即归属证明
+3. **共享域名路径前缀**：`app.example.com/acme/h5/...` 支持无独立域名的租户，通过 URL 第一段 slug 或 tenant_id 解析
+4. **通配子域名兼容**：`*.dsplat.com` 作为旧模式降级方案，优先级最低
+
+**安全保证**：
+- `IdentifyTenant` 中间件按 9 个优先级源解析租户，不可信来源（URL/Header/Cookie）必须校验用户归属
+- `RejectPlatformDomain` 阻止从平台域名访问 console 路由
+
+---
+
+## 16. 为什么引入 AI Streaming 模块（Node SSE 引擎契约）
+
+**决策**：流式对话推理由独立 Node SSE 引擎完成，PHP 侧通过 `AiStreaming` 模块提供契约 API（resolve/tools/execute/messages/report/usage/report）。
+
+**理由**：
+1. **SSE 原生支持**：Node.js 对 Server-Sent Events 的支持比 PHP 更自然，避免 PHP-FPM 长连接占用
+2. **职责分离**：PHP 负责鉴权、配额检查、工具执行、消息持久化；Node 负责流式推理与 chunk 转发
+3. **共享配置**：两条路径（AgentRuntime 非流式 / AiStreaming 流式）共享 Agent 模型配置与 ToolRegistry，无需重复定义
+4. **工具卡片状态**：流式场景下 tool_calls 携带 `tool_card` 状态元数据（pending/running/completed/failed/awaiting_confirmation），前端可渲染工具执行进度
+
+**代价**：
+- 部署复杂度增加：需同时维护 PHP-FPM 和 Node 引擎进程
+- 工具执行跨进程：Node 引擎通过 HTTP 回调 PHP 侧执行工具，增加一次网络往返

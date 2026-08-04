@@ -17,7 +17,7 @@
 ```php
 // 在中间件栈中使用
 $middleware->prepend([
-    \MultiTenantSaas\Middleware\IdentifyDomain::class,
+    \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyDomain::class,
 ]);
 ```
 
@@ -71,7 +71,7 @@ $isAdmin = IdentifyDomain::isAdminDomain($request);
 ```php
 // 在中间件栈中使用
 $middleware->web(prepend: [
-    \MultiTenantSaas\Middleware\IdentifyTenant::class,
+    \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant::class,
 ]);
 ```
 
@@ -237,22 +237,22 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // 1. 域名识别
         $middleware->prepend([
-            \MultiTenantSaas\Middleware\IdentifyDomain::class,
+            \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyDomain::class,
         ]);
         
         // 2. 租户识别
         $middleware->web(prepend: [
-            \MultiTenantSaas\Middleware\IdentifyTenant::class,
+            \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant::class,
         ]);
         
         $middleware->api(prepend: [
-            \MultiTenantSaas\Middleware\IdentifyTenant::class,
+            \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant::class,
         ]);
         
         // 3. 中间件别名
         $middleware->alias([
-            'tenant.ensure' => \MultiTenantSaas\Middleware\EnsureTenantContext::class,
-            'tenant.permission' => \MultiTenantSaas\Middleware\CheckPermission::class,
+            'tenant.ensure' => \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\EnsureTenantContext::class,
+            'tenant.permission' => \MultiTenantSaas\Modules\Operator\Http\Middleware\CheckPermission::class,
         ]);
     })
     ->create();
@@ -319,4 +319,4 @@ class OrderController extends Controller
 ---
 
 **文档版本**: v1.0.0  
-**最后更新**: 2026-06-18
+**最后更新**: 2026-08-04

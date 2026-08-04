@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - PHP ^8.3, Laravel ^13.0
-- Core framework (not a module) — lives in `src/Services/`
+- Core framework — lives in `src/Modules/Infrastructure/Services/`
 - All email must go through `TenantMail` for template rendering + branding
 - Tenant-specific template override + system default fallback (existing pattern)
 - No new dependencies
@@ -21,7 +21,7 @@
 ### Task 1: Create MailerService
 
 **Files:**
-- Create: `src/Services/MailerService.php`
+- Create: `src/Modules/Infrastructure/Services/MailerService.php`
 - Test: `tests/MailerServiceTest.php`
 
 **Interfaces:**
@@ -35,7 +35,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\MailerService;
+use MultiTenantSaas\Modules\Infrastructure\Services\MailerService;
 
 class MailerServiceTest extends TestCase
 {
@@ -92,7 +92,7 @@ class MailerServiceTest extends TestCase
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `composer test:filter -- MailerServiceTest`
-Expected: FAIL with "Class MultiTenantSaas\Services\MailerService does not exist"
+Expected: FAIL with "Class MultiTenantSaas\Modules\Infrastructure\Services\MailerService does not exist"
 
 - [ ] **Step 3: Implement MailerService**
 
@@ -249,7 +249,7 @@ git commit -m "feat: add MailerService with template and raw email sending"
 Add to `register()` method after the SchedulerService line:
 
 ```php
-$this->app->singleton(\MultiTenantSaas\Services\MailerService::class);
+$this->app->singleton(\MultiTenantSaas\Modules\Infrastructure\Services\MailerService::class);
 ```
 
 - [ ] **Step 2: Refactor MfaService to use MailerService**
@@ -257,7 +257,7 @@ $this->app->singleton(\MultiTenantSaas\Services\MailerService::class);
 In `src/Services/MfaService.php`, replace the `Mail::raw()` call (around line 123) with:
 
 ```php
-app(\MultiTenantSaas\Services\MailerService::class)->sendMfaCode($email, $code);
+app(\MultiTenantSaas\Modules\Infrastructure\Services\MailerService::class)->sendMfaCode($email, $code);
 ```
 
 Remove the `use Illuminate\Support\Facades\Mail;` import if no longer needed.
@@ -267,7 +267,7 @@ Remove the `use Illuminate\Support\Facades\Mail;` import if no longer needed.
 In `src/Services/SystemSettingService.php`, replace the `Mail::raw()` test email (around line 226) with:
 
 ```php
-return app(\MultiTenantSaas\Services\MailerService::class)->sendTest($to);
+return app(\MultiTenantSaas\Modules\Infrastructure\Services\MailerService::class)->sendTest($to);
 ```
 
 - [ ] **Step 4: Run tests**
@@ -310,7 +310,7 @@ protected function sendEmail(string $severity, string $ruleName, string $message
         $html .= '<pre>' . e(json_encode($context, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) . '</pre>';
     }
 
-    app(\MultiTenantSaas\Services\MailerService::class)->sendRaw($to, $subject, $html);
+    app(\MultiTenantSaas\Modules\Infrastructure\Services\MailerService::class)->sendRaw($to, $subject, $html);
 }
 ```
 
@@ -346,7 +346,7 @@ Replace the hardcoded `MailMessage` with template-driven content:
 ```php
 public function toMail(object $notifiable): MailMessage
 {
-    $template = app(\MultiTenantSaas\Services\MailTemplateService::class)
+    $template = app(\MultiTenantSaas\Modules\Infrastructure\Services\MailTemplateService::class)
         ->render('billing', [
             'user_name' => $notifiable->name,
             'order_no' => $this->orderNo,
@@ -452,7 +452,7 @@ namespace MultiTenantSaas\Mail;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
-use MultiTenantSaas\Services\MailerService;
+use MultiTenantSaas\Modules\Infrastructure\Services\MailerService;
 
 class TenantInvitationMail extends Mailable
 {
@@ -474,7 +474,7 @@ class TenantInvitationMail extends Mailable
     public function content(): Content
     {
         // 尝试从模板渲染
-        $templateService = app(\MultiTenantSaas\Services\MailTemplateService::class);
+        $templateService = app(\MultiTenantSaas\Modules\Infrastructure\Services\MailTemplateService::class);
         $rendered = $templateService->render('notification', [
             'user_name' => $this->email,
             'tenant_name' => $this->tenantName,
@@ -565,7 +565,7 @@ Create `src/Console/Commands/MailerHealthCheckCommand.php`:
 namespace MultiTenantSaas\Console\Commands;
 
 use Illuminate\Console\Command;
-use MultiTenantSaas\Services\MailerService;
+use MultiTenantSaas\Modules\Infrastructure\Services\MailerService;
 
 class MailerHealthCheckCommand extends Command
 {
@@ -646,7 +646,7 @@ Add to `docs/zh/user-manual.md`:
 ### 发送方式
 
 ```php
-use MultiTenantSaas\Services\MailerService;
+use MultiTenantSaas\Modules\Infrastructure\Services\MailerService;
 
 $mailer = app(MailerService::class);
 

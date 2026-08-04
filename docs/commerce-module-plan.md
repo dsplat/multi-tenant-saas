@@ -1,8 +1,10 @@
 # Commerce 模块技术方案（框架层）
 
-> **文档性质**: 详细技术方案（基于 `commerce-sku.md` 分析，5 项决策已定案）
+> **文档性质**: 详细技术方案（已全部实施，Phase 1/2/3 均已落地）
 > **创建日期**: 2026-08-03
+> **最后更新**: 2026-08-04
 > **前置文档**: `docs/commerce-sku.md`（抽象分析）、`docs/tenant-commerce-plan.md`（需求）
+> **实施状态**: ✅ Phase 1（消费类闭环）✅ Phase 2（供给类）✅ Phase 3（内容库）
 
 ---
 
@@ -47,7 +49,7 @@
 
 ---
 
-## 三、表结构设计（新建 5 张表）
+## 三、表结构设计（新建 8 张表，P1/P2 共 5 张 + P3 内容库 3 张）
 
 均为框架层迁移，落在 `src/Modules/Commerce/Database/migrations/`。
 
@@ -121,7 +123,6 @@ interface CommerceFulfillmentHandler
 {
     public function fulfill(CommerceOrderItem $item): void;   // 正向履约
     public function revoke(CommerceOrderItem $item): void;    // 撤销/退款回收
-    public function expire(object $subject): void;            // 到期处理
 }
 ```
 
@@ -207,13 +208,43 @@ scrm 遵循部署规则：框架变更 → composer update dsplat/* → 部署�
 
 ## 八、实施阶段
 
-| 阶段 | 内容 | 依赖 |
-|---|---|---|
-| **Phase 1**（消费类闭环） | 表结构 + CommerceOrderService + PayService 平台扩展 + CreditPackHandler + ModuleHandler + PlanHandler + 回调履约链 + 补偿任务 | 无外部依赖 |
-| **Phase 2**（供给类） | supply_grants + ContentHandler/MallSupplyHandler 调度 + SupplyProvisionerContract + scrm 侧 Provisioner 实现 | Phase 1 + scrm `points_products` 加 source 字段 |
-| **Phase 3**（内容库） | 平台内容库 + 内容包 SKU + 展示链路（scrm） | Phase 2 |
+| 阶段 | 内容 | 依赖 | 状态 |
+|---|---|---|---|
+| **Phase 1**（消费类闭环） | 表结构 + CommerceOrderService + PayService 平台扩展 + CreditPackHandler + ModuleHandler + PlanHandler + 回调履约链 + 补偿任务 | 无外部依赖 | ✅ 已完成 |
+| **Phase 2**（供给类） | supply_grants + ContentPackHandler/MallSupplyHandler 调度 + SupplyProvisionerContract + scrm 侧 Provisioner 实现 | Phase 1 + scrm `points_products` 加 source 字段 | ✅ 已完成 |
+| **Phase 3**（内容库） | 平台内容库 + 内容包 SKU + 展示链路（scrm） | Phase 2 | ✅ 已完成 |
 
 Phase 1 即可上线「AI 积分购买 + 模块加购 + 套餐购买」三条消费链路，与 P0/P1 需求对齐。
+
+### 8.1 实施落地清单
+
+**新建文件**（`src/Modules/Commerce/`）：
+
+| 类别 | 文件 |
+|---|---|
+| ServiceProvider | `CommerceServiceProvider.php` |
+| 模型 | `CommerceSku.php`, `CommerceOrder.php`, `CommerceOrderItem.php`, `SupplyGrant.php`, `ModuleEntitlement.php`, `PlatformContent.php`, `PlatformContentPack.php`, `PlatformContentPackItem.php` |
+| 服务 | `CommerceOrderService.php`, `CommerceFulfillmentService.php`, `CommerceHandlerRegistry.php`, `SupplyProvisionerRegistry.php`, `PlatformContentLibraryService.php` |
+| Handler | `PlanFulfillmentHandler.php`, `ModuleFulfillmentHandler.php`, `CreditPackFulfillmentHandler.php`, `AbstractSupplyFulfillmentHandler.php`, `ContentPackFulfillmentHandler.php`, `MallSupplyFulfillmentHandler.php` |
+| 控制器（Console） | `CommerceCatalogController.php`, `CommerceOrderController.php`, `CommerceSupplyGrantController.php`, `CommercePayCallbackController.php` |
+| 控制器（Admin） | `CommerceAdminController.php`, `CommerceContentAdminController.php` |
+| 命令 | `ProcessCommerceRetry.php` |
+| 迁移 | `2026_08_03_000001_commerce_module.php`（SKU/订单/订单项/权益）, `2026_08_03_000002_commerce_supply_grants.php`, `2026_08_03_000003_commerce_content_library.php` |
+| 路由 | `Routes/api.php`（Console 端）, `Routes/admin.php`（Admin 端）, `Routes/public.php`（支付回调） |
+
+**新增框架契约**：
+
+| 契约 | 位置 | 说明 |
+|---|---|---|
+| `CommerceFulfillmentHandler` | `src/Contracts/` | 履约 Handler 统一接口（fulfill / revoke） |
+| `SupplyProvisionerContract` | `src/Contracts/` | 供给落地器契约（provisionContent / provisionMallSku / deprovision） |
+
+**PayService 平台扩展**（`src/Modules/Billing/Services/PayService.php`）：
+
+- `platformWechatH5(float $amount, string $orderNo): array` — 平台商户微信 H5 预下单
+- `platformAlipayWeb(float $amount, string $orderNo): string` — 平台商户支付宝 PC 下单
+- `platformAlipayWap(float $amount, string $orderNo): string` — 平台商户支付宝 WAP 下单
+- `handlePlatformCallback(string $driver, Request $request): array` — 平台商户回调验签
 
 ---
 

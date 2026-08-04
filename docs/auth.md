@@ -1,7 +1,7 @@
 # 认证与权限体系
 
 > **文档性质**: 系统现状权威描述（代码即文档）
-> **最后更新**: 2026-07-25
+> **最后更新**: 2026-08-04
 > **关联文档**: `docs/tenant.md`（租户体系）、`docs/idp-protocol-spec.md`（IdP 协议规范）
 
 ---
@@ -45,6 +45,7 @@ HTTP 请求
   → BindSessionDomain（session.domain = 当前 host，生产强制 secure+lax）
   → IdentifyTenant（7 级优先级解析 tenant_id）
   → IdentifyOperator（Operator token 解析）
+  → [路由级] RejectPlatformDomain（平台域名禁止访问 console 后台，403）
   → [路由级] EnsureTenantContext（无租户 → 403）
   → [路由级] auth:sanctum
   → [路由级] rbac.permission:xxx
@@ -287,6 +288,8 @@ POST /api/v1/tenant/auth/mail/test     → 发送测试邮件
 | 域名白名单 | Nginx map 精确匹配 + 通配正则 |
 | 未识别域名 | 403 拒绝（不兜底） |
 | Session Cookie | 绑定完整 host + 生产环境 secure + same_site=lax |
+| 平台域名禁入 | `RejectPlatformDomain` 中间件（平台域名禁止访问 console 后台） |
+| 开放重定向防护 | Login.vue redirect 参数校验（必须 `/` 开头且非 `//`） |
 
 ---
 
@@ -300,6 +303,7 @@ POST /api/v1/tenant/auth/mail/test     → 发送测试邮件
 | `src/Modules/Infrastructure/Http/Middleware/BindSessionDomain.php` | Session Cookie 域名绑定 |
 | `src/Modules/Infrastructure/Http/Middleware/IdentifyTenant.php` | 租户识别（7 级优先级） |
 | `src/Modules/Infrastructure/Http/Middleware/EnsureTenantContext.php` | 强制租户上下文（403） |
+| `src/Modules/Infrastructure/Http/Middleware/RejectPlatformDomain.php` | 平台域名禁止访问 console 后台（403） |
 | `src/Modules/Auth/Http/Middleware/CheckRbacPermission.php` | RBAC 权限检查 |
 
 ### 控制器

@@ -1,6 +1,6 @@
 # 下游项目架构指南
 
-**最后更新**: 2026-08-01
+**最后更新**: 2026-08-04
 
 ## 核心原则
 
@@ -49,32 +49,17 @@ class User extends Authenticatable
 // app/Services/TenantUserService.php
 namespace App\Services;
 
-use MultiTenantSaas\Contracts\UserContract;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Context\TenantContext;
 
 class TenantUserService
 {
-    public function __construct(
-        private UserContract $frameworkUsers
-    ) {}
-
     /**
-     * 同步框架用户到本地
+     * 从框架租户上下文获取当前租户，同步用户到本地
      */
-    public function syncFromFramework(string $frameworkUserId): ?User
+    public function syncCurrentTenant(): ?Tenant
     {
-        $frameworkUser = $this->frameworkUsers->findById($frameworkUserId);
-
-        if (!$frameworkUser) {
-            return null;
-        }
-
-        return User::updateOrCreate(
-            ['framework_user_id' => $frameworkUserId],
-            [
-                'name' => $frameworkUser['name'],
-                'email' => $frameworkUser['email'],
-            ]
-        );
+        return TenantContext::getTenant();
     }
 }
 ```
@@ -104,24 +89,20 @@ class Node extends Model
 namespace App\Modules\VPN\Services;
 
 use App\Models\User;
-use MultiTenantSaas\Contracts\UserContract;
+use MultiTenantSaas\Context\TenantContext;
 
 class VpnService
 {
-    public function __construct(
-        private UserContract $frameworkUsers
-    ) {}
-
     /**
      * 创建 VPN 节点
      */
     public function createNode(string $userId, array $data): Node
     {
-        // 验证用户存在（通过框架 Service）
-        $user = $this->frameworkUsers->findById($userId);
+        // 验证当前租户上下文存在
+        $tenant = TenantContext::getTenant();
 
-        if (!$user) {
-            throw new \InvalidArgumentException("User not found: {$userId}");
+        if (!$tenant) {
+            throw new \InvalidArgumentException("No active tenant context");
         }
 
         // 在本地创建节点
@@ -150,20 +131,22 @@ class VpnService
 
 | Contract | 说明 | 核心方法 |
 |----------|------|----------|
-| `UserContract` | 用户操作 | findById, findByEmail, create, update |
-| `TenantContract` | 租户操作 | findById, create, update, delete |
-| `TenantContextContract` | 上下文 | getId, setId, getDomainType |
+| `TenantContextContract` | 租户上下文 | resolveId, storeTenantId, resolveDomainType, resolveTenant |
+| `CommerceFulfillmentHandler` | 履约 Handler | fulfill, revoke |
+| `SupplyProvisionerContract` | 供给落地 | provisionContent, provisionMallSku, deprovision |
+| `ChannelContract` | 渠道驱动 | type, verifyUrl, verifySignature, parseInbound, sendMessage |
 
 ### 使用方式
 
 ```php
-// 在 ServiceProvider 中注册
-$this->app->bind(\MultiTenantSaas\Contracts\UserContract::class, function ($app) {
-    return new \App\Services\LocalUserService();
+// 在 ServiceProvider 中绑定框架 Contract
+$this->app->bind(\MultiTenantSaas\Contracts\CommerceFulfillmentHandler::class, function ($app) {
+    return new \App\Services\MyFulfillmentHandler();
 });
 
-// 或直接使用框架实现
-$this->app->bind(\MultiTenantSaas\Contracts\UserContract::class, \MultiTenantSaas\Services\UserService::class);
+// 或使用框架上下文（TenantContext 静态方法，无需绑定）
+$tenantId = \MultiTenantSaas\Context\TenantContext::getId();
+$tenant = \MultiTenantSaas\Context\TenantContext::getTenant();
 ```
 
 ---
@@ -208,15 +191,15 @@ Schema::create('users', function (Blueprint $table) {
 // app/Services/FrameworkUserService.php
 namespace App\Services;
 
-use MultiTenantSaas\Contracts\UserContract;
+use MultiTenantSaas\Context\TenantContext;
 
 class FrameworkUserService
 {
-    public function __construct(
-        private UserContract $users
-    ) {}
-
-    // 封装框架调用
+    // 封装框架调用，通过 TenantContext 获取租户上下文
+    public function getCurrentTenantId(): ?string
+    {
+        return TenantContext::getId();
+    }
 }
 ```
 
@@ -239,37 +222,43 @@ use App\Models\User;
 
 ```php
 // 框架提供
-$user = TenantContext::getUser(); // 返回框架 User
+$tenant = TenantContext::getTenant(); // 返回框架 Tenant
+$tenantId = TenantContext::getId();   // 返回当前租户 ID
 
-// 下游转换
-$localUser = User::where('framework_user_id', $user['id'])->first();
+// 下游通过框架中间件自动设置的上下文获取用户
+$user = auth()->user(); // 返回当前认证用户
 ```
 
 ### 场景 2：创建用户
 
 ```php
-// 通过框架 Service
-$frameworkUser = $this->frameworkUsers->create([
+// 直接使用框架模型（通过 Service 层封装）
+use MultiTenantSaas\Modules\User\Models\User;
+
+$frameworkUser = User::create([
     'name' => 'John',
     'email' => 'john@example.com',
+    'tenant_id' => TenantContext::getId(),
 ]);
 
-// 同步到本地
+// 下游同步到本地
 $localUser = User::create([
-    'framework_user_id' => $frameworkUser['id'],
-    'name' => $frameworkUser['name'],
-    'email' => $frameworkUser['email'],
+    'framework_user_id' => $frameworkUser->id,
+    'name' => $frameworkUser->name,
+    'email' => $frameworkUser->email,
 ]);
 ```
 
 ### 场景 3：查询用户
 
 ```php
-// 通过框架 Service 查询
-$users = $this->frameworkUsers->search(['name' => 'John']);
+// 通过框架模型查询
+use MultiTenantSaas\Modules\User\Models\User;
+
+$users = User::where('name', 'like', '%John%')->get();
 
 // 或查询本地同步的数据
-$users = User::where('name', 'like', '%John%')->get();
+$users = \App\Models\User::where('name', 'like', '%John%')->get();
 ```
 
 ---
@@ -290,8 +279,9 @@ src/Modules/MyModule/
 ├── Http/Controllers/              ← 使用 ApiResponse + AuthorizesTenantAccess
 ├── Routes/
 │   ├── api.php                    → /api/v1/...  (auth + tenant)
-│   ├── admin.php                  → /v1/admin/... (auth)
-│   └── tenant.php                 → /tenant/... (auth)
+│   ├── admin.php                  → /api/v1/admin/... (auth)
+│   ├── tenant.php                 → /api/v1/... (auth + tenant，基类统一挂 api/v1 前缀)
+│   └── public.php                 → /api/v1/... (无认证)
 └── resources/
     ├── admin/ui/element-plus/views/*.vue   → 自动发现，侧边栏显示
     └── console/ui/element-plus/views/*.vue → 自动发现，侧边栏显示
@@ -302,6 +292,7 @@ src/Modules/MyModule/
 - **后端**: `ModuleRegistry` 扫描 `src/Modules/*/composer.json` 的 `extra.saas` 字段
 - **前端**: `module-loader.ts` 的 `getModulePageEntries()` 自动发现 Vue 文件并生成侧边栏入口
 - **路由**: `ModuleServiceProvider::loadModuleRoutes()` 自动加载 `Routes/` 下的路由文件
+- **配置**: `resolveModuleConfigPath()` 兼容 PascalCase 与 lowercase 两种命名（Linux 大小写敏感修复）
 
 ### 多 UI 框架支持
 
@@ -347,7 +338,7 @@ src/Modules/MyModule/resources/admin/
 ## 总结
 
 - ✅ 下游有自己的 `App\Models\User`
-- ✅ 通过 `MultiTenantSaas\Contracts\UserContract` 访问框架
+- ✅ 通过 `MultiTenantSaas\Context\TenantContext` 和框架 Contracts 访问框架
 - ✅ Service 层封装框架调用
 - ✅ 通过自定义模块扩展框架功能（无需修改框架代码）
 - ❌ 不直接 `use MultiTenantSaas\Modules\Auth\Models\User`

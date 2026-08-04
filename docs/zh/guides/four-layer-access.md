@@ -1,6 +1,6 @@
 # 四重访问架构
 
-**最后更新**: 2026-06-18
+**最后更新**: 2026-08-04
 
 ---
 
@@ -73,6 +73,8 @@ Route::prefix('admin')->group(function () {
 - 多域名模式: `ai-admin.tenant1.local` 或 `ai.tenant1.local/console/*`
 
 **访问权限**: 仅 `tenant_admin` 角色
+
+> **RejectPlatformDomain**：平台域名（`is_platform_default=true` 的租户域名）禁止访问 Console 路径，请求会被中间件直接拒绝。仅企业租户域名可访问 `/console/*`。
 
 **功能范围**:
 - 租户配置管理
@@ -242,18 +244,20 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // 1. 域名识别
         $middleware->prepend([
-            \MultiTenantSaas\Middleware\IdentifyDomain::class,
+            \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyDomain::class,
         ]);
         
-        // 2. 租户识别
+        // 2. 租户识别 + 运营者身份解析
         $middleware->web(prepend: [
-            \MultiTenantSaas\Middleware\IdentifyTenant::class,
+            \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant::class,
+            \MultiTenantSaas\Modules\Operator\Http\Middleware\IdentifyOperator::class,
         ]);
         
         // 3. 中间件别名
         $middleware->alias([
-            'tenant.ensure' => \MultiTenantSaas\Middleware\EnsureTenantContext::class,
-            'tenant.permission' => \MultiTenantSaas\Middleware\CheckPermission::class,
+            'tenant.ensure' => \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\EnsureTenantContext::class,
+            'tenant.permission' => \MultiTenantSaas\Modules\Operator\Http\Middleware\CheckPermission::class,
+            'reject.platform.domain' => \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\RejectPlatformDomain::class,
         ]);
     })
     ->create();
@@ -312,4 +316,4 @@ curl -H "X-Original-Host: ai.tenant1.local" http://ai.tenant1.local
 ---
 
 **文档版本**: v1.0.0  
-**最后更新**: 2026-06-18
+**最后更新**: 2026-08-04

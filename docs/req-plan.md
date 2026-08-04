@@ -1,5 +1,7 @@
 # multi-tenant-saas 框架 Admin/Console SPA 完善计划
 
+> **最后更新**: 2026-08-04（确认认证 API 已全部实现）
+
 ## 目标
 
 框架作为多租户 SaaS 的基础设施，Admin 后台和 Console 后台应从娘胎里自带完整的管理能力。使用框架的项目只需关注自己的业务模块，无需重复实现登录、权限、租户管理等通用功能。
@@ -60,18 +62,20 @@ Bootstrap 5, Element Plus, Ant Design, Arco Design, Naive UI, TDesign, Varlet, V
 
 ## 二、框架需完善的工作
 
-### 2.1 Admin/Console 认证 API [P0]
+### 2.1 Admin/Console 认证 API [P0] ✅ 已完成
 
 **问题**：框架 auth 模块只有 RBAC 和 SSO 管理路由，缺少基础的登录/登出/用户信息 API。SPA 无法完成认证闭环。
 
+**现状**：已全部实现，见 `AuthController::adminLogin/adminLogout/adminUser/consoleLogin/consoleLogout/consoleUser`。新增 `RejectPlatformDomain` 中间件禁止平台域名访问 console 后台。
+
 **需要**：
 
-- [ ] `POST /api/v1/admin/auth/login` — 管理员登录（session/cookie 模式）
-- [ ] `POST /api/v1/admin/auth/logout` — 管理员登出
-- [ ] `GET /api/v1/admin/auth/user` — 获取当前管理员信息（含 role）
-- [ ] `POST /api/v1/console/auth/login` — 租户管理员登录
-- [ ] `POST /api/v1/console/auth/logout` — 租户管理员登出
-- [ ] `GET /api/v1/console/auth/user` — 获取当前用户信息（含 tenant_id、tenant_name）
+- [x] `POST /api/v1/admin/auth/login` — 管理员登录（session/cookie 模式）
+- [x] `POST /api/v1/admin/auth/logout` — 管理员登出
+- [x] `GET /api/v1/admin/auth/user` — 获取当前管理员信息（含 role）
+- [x] `POST /api/v1/console/auth/login` — 租户管理员登录（含 `RejectPlatformDomain` 中间件）
+- [x] `POST /api/v1/console/auth/logout` — 租户管理员登出
+- [x] `GET /api/v1/console/auth/user` — 获取当前用户信息（含 tenant_id、tenant_name）
 
 **登录响应格式**：
 ```json
@@ -95,17 +99,19 @@ Bootstrap 5, Element Plus, Ant Design, Arco Design, Naive UI, TDesign, Varlet, V
   - 其他域名 → 保持现有行为
 - [ ] 或提供可配置的认证失败处理策略
 
-### 2.3 SPA 路由守卫 [P0]
+### 2.3 SPA 路由守卫 [P0] ✅ 已完成
 
 **问题**：Admin/Console SPA 的 `router/index.ts` 缺少全局路由守卫，未登录用户可直接访问任意页面。
 
+**现状**：已实现 `createAuthGuard` 统一守卫工厂，admin 和 console 的 `router/index.ts` 均已注册 `beforeEach` 守卫，支持 `meta.requiresAuth` 标记。前端测试覆盖守卫场景（guards.test.ts）。
+
 **需要**：
 
-- [ ] `admin/router/index.ts` 添加全局 `beforeEach` 守卫
-- [ ] `console/router/index.ts` 添加全局 `beforeEach` 守卫
-- [ ] 检查认证状态，未认证跳转 Login
-- [ ] 支持 `meta.requiresAuth` 标记
-- [ ] 登录后正确跳转回原始请求页面
+- [x] `admin/router/index.ts` 添加全局 `beforeEach` 守卫
+- [x] `console/router/index.ts` 添加全局 `beforeEach` 守卫
+- [x] 检查认证状态，未认证跳转 Login
+- [x] 支持 `meta.requiresAuth` 标记
+- [x] 登录后正确跳转回原始请求页面
 
 ### 2.4 Admin 侧边栏菜单动态化 [P1]
 

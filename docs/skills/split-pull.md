@@ -47,13 +47,19 @@ composer create-project dsplat/multi-tenant-saas my-app
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-storage"},
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-operator"},
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-ai"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-ai-streaming"},
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-api-token"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-campaign"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-commerce"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-contracts"},
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-conversation"},
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-coupon"},
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-developer-portal"},
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-domain"},
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-event"},
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-form"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-ibot"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-knowledge"},
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-logging"},
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-lottery"},
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-monitoring"},
@@ -62,6 +68,8 @@ composer create-project dsplat/multi-tenant-saas my-app
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-plugin"},
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-sms"},
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-ssl"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-storage"},
+    {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-ticket"},
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-voting"},
     {"type": "vcs", "url": "https://github.com/dsplat/multi-tenant-saas-module-workflow"}
   ]
@@ -134,16 +142,22 @@ composer require dsplat/multi-tenant-saas-module-新模块名 --ignore-platform-
 |------|------|
 | dsplat/multi-tenant-saas | 核心框架 |
 | dsplat/multi-tenant-saas-module-ai | AI 功能 |
+| dsplat/multi-tenant-saas-module-ai-streaming | AI 流式处理 |
 | dsplat/multi-tenant-saas-module-api-token | API Token |
 | dsplat/multi-tenant-saas-module-auth | 认证授权 |
 | dsplat/multi-tenant-saas-module-billing | 计费 |
+| dsplat/multi-tenant-saas-module-campaign | 营销活动 |
+| dsplat/multi-tenant-saas-module-commerce | 电商/订单 |
+| dsplat/multi-tenant-saas-module-contracts | 合同管理 |
 | dsplat/multi-tenant-saas-module-conversation | 会话 |
 | dsplat/multi-tenant-saas-module-coupon | 优惠券 |
 | dsplat/multi-tenant-saas-module-developer-portal | 开发者门户 |
 | dsplat/multi-tenant-saas-module-domain | 域名 |
 | dsplat/multi-tenant-saas-module-event | 事件 |
 | dsplat/multi-tenant-saas-module-form | 表单 |
+| dsplat/multi-tenant-saas-module-ibot | 智能机器人 |
 | dsplat/multi-tenant-saas-module-infrastructure | 基础设施 |
+| dsplat/multi-tenant-saas-module-knowledge | 知识库 |
 | dsplat/multi-tenant-saas-module-logging | 日志 |
 | dsplat/multi-tenant-saas-module-lottery | 抽奖 |
 | dsplat/multi-tenant-saas-module-monitoring | 监控 |
@@ -155,6 +169,7 @@ composer require dsplat/multi-tenant-saas-module-新模块名 --ignore-platform-
 | dsplat/multi-tenant-saas-module-sms | 短信 |
 | dsplat/multi-tenant-saas-module-ssl | SSL |
 | dsplat/multi-tenant-saas-module-storage | 存储 |
+| dsplat/multi-tenant-saas-module-ticket | 工单系统 |
 | dsplat/multi-tenant-saas-module-user | 用户 |
 | dsplat/multi-tenant-saas-module-voting | 投票 |
 | dsplat/multi-tenant-saas-module-workflow | 工作流 |

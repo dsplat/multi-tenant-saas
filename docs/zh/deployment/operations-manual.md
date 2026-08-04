@@ -1,21 +1,21 @@
 # 运维手册
 
-**最后更新**: 2026-06-29
+**最后更新**: 2026-08-04
 **面向对象**: 运维人员（SRE / DevOps）
 **目标**: 提供可操作的生产环境运维指南，覆盖部署检查、环境要求、配置项、启动步骤与健康检查。
 
 > 配套文档：
-> - [发布检查清单](发布检查清单.md) — 逐项打勾式发布流程
-> - [备份恢复流程](备份恢复流程.md) — 数据库备份与恢复
-> - [故障应急手册](故障应急手册.md) — 常见故障、灰度发布、回滚
-> - [监控告警配置](监控告警配置.md) — 监控指标与告警阈值
-> - [部署指南](部署指南.md) — Docker / Kubernetes 部署架构
+> - [发布检查清单](release-checklist.md) — 逐项打勾式发布流程
+> - [备份恢复流程](backup-restore.md) — 数据库备份与恢复
+> - [故障应急手册](incident-response.md) — 常见故障、灰度发布、回滚
+> - [监控告警配置](monitoring-alerting.md) — 监控指标与告警阈值
+> - [部署指南](deployment-guide.md) — Docker / Kubernetes 部署架构
 
 ---
 
 ## 1. 部署检查清单
 
-发布前请对照 [发布检查清单](发布检查清单.md) 逐项确认。核心要点：
+发布前请对照 [发布检查清单](release-checklist.md) 逐项确认。核心要点：
 
 - [ ] 当前分支为 `main`，工作区干净（`git status` 无未提交改动）
 - [ ] `composer install --no-dev` 已执行
@@ -34,8 +34,8 @@
 
 | 组件 | 最低版本 | 推荐版本 | 说明 |
 |------|----------|----------|------|
-| PHP | 8.2 | 8.3+ | 需扩展：`bcmath ctype curl dom gd mbstring pdo pdo_mysql openssl redis zip fileinfo` |
-| Laravel | 12.0 | 12.x | 框架已锁定 |
+| PHP | 8.3 | 8.3+ | 需扩展：`bcmath ctype curl dom gd mbstring pdo pdo_mysql openssl redis zip fileinfo` |
+| Laravel | 13.0 | 13.x | 框架已锁定 |
 | MySQL | 8.0 | 8.0+ | 需 `utf8mb4` 字符集，`innodb` 引擎 |
 | Redis | 6.0 | 7.0+ | 用于缓存 / 队列 / 限流 |
 | Nginx | 1.20 | 1.24+ | 反向代理，需 `fastcgi` 支持 |
@@ -212,15 +212,15 @@ php artisan tinker
 
 | 检查项 | 说明 | 异常处理 |
 |--------|------|----------|
-| 数据库 | 主库连通性 | 见 [故障应急手册](故障应急手册.md#1-数据库故障) |
-| Redis | 缓存连通性 | 见 [故障应急手册](故障应急手册.md#2-redis-故障) |
-| 队列 | worker 存活 | 见 [故障应急手册](故障应急手册.md#3-队列积压) |
+| 数据库 | 主库连通性 | 见 [故障应急手册](incident-response.md#1-数据库故障) |
+| Redis | 缓存连通性 | 见 [故障应急手册](incident-response.md#2-redis-故障) |
+| 队列 | worker 存活 | 见 [故障应急手册](incident-response.md#3-队列积压) |
 | 缓存 | 读写正常 | 检查 Redis 连接 |
 | 调度器 | 最近运行时间 | 检查 cron / scheduler 守护 |
 | 环境 | `APP_ENV=production` | 核对 `.env` |
 | 调试模式 | `APP_DEBUG=false` | 核对 `.env` |
 | 优化状态 | config/route 已缓存 | 重建缓存 |
-| 磁盘空间 | 使用率 < 80% | 见 [故障应急手册](故障应急手册.md#4-磁盘满) |
+| 磁盘空间 | 使用率 < 80% | 见 [故障应急手册](incident-response.md#4-磁盘满) |
 
 ### 5.3 关键服务状态
 
@@ -328,7 +328,7 @@ redis-cli -h redis-master -a ${REDIS_PASSWORD}
 
 ## 8. 数据库运维
 
-> 备份与恢复见 [备份恢复流程](备份恢复流程.md)。
+> 备份与恢复见 [备份恢复流程](backup-restore.md)。
 
 ### 8.1 慢查询排查
 

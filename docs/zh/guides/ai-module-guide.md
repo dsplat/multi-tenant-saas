@@ -1,6 +1,6 @@
 # AI 模块使用指南
 
-**最后更新**: 2026-06-29
+**最后更新**: 2026-08-04
 
 ---
 
@@ -38,7 +38,7 @@ AI_KLING_API_KEY=xxx
 租户级配置由 `AiConfigService` 管理，默认值取自 `config/ai.php` 的 `tenant.*` 节：
 
 ```php
-use MultiTenantSaas\Services\AiConfigService;
+use MultiTenantSaas\Modules\Ai\Services\AiConfigService;
 
 $config = app(AiConfigService::class)->getOrCreateConfig();
 
@@ -66,7 +66,7 @@ $config = app(AiConfigService::class)->setOverageAction('block');
 ### 2.1 基础对话
 
 ```php
-use MultiTenantSaas\Services\AiTextService;
+use MultiTenantSaas\Modules\Ai\Services\AiTextService;
 
 $text = app(AiTextService::class);
 
@@ -93,7 +93,7 @@ $result = $text->chatJsonDefault([
 $data = json_decode($result['content'], true);
 ```
 
-### 2.3 流式输出
+### 2.3 流式输出（Level 1 — PHP SSE）
 
 ```php
 foreach ($text->streamChatDefault($messages) as $chunk) {
@@ -101,6 +101,35 @@ foreach ($text->streamChatDefault($messages) as $chunk) {
     @ob_flush();
 }
 ```
+
+### 2.3a 高级流式（Level 2 — AiStreaming 模块）
+
+`AiStreaming` 模块提供基于 Node.js 的 Level 2 流式能力，支持工具调用确认、流式中断恢复等高级场景：
+
+```php
+use MultiTenantSaas\Modules\AiStreaming\Services\AiStreamingService;
+
+$streaming = app(AiStreamingService::class);
+
+// 发起 L2 流式对话（内部启动 Node.js 子进程）
+$stream = $streaming->streamL2('gpt-4o', $messages, [
+    'tools' => $tools,
+    'on_tool_call' => function ($call) {
+        // 工具卡片：pending → confirming → executing → done/error
+        return $call['status'];
+    },
+]);
+
+foreach ($stream as $event) {
+    match ($event['type']) {
+        'delta' => emit($event['content']),
+        'tool_card' => renderToolCard($event),  // 工具卡片状态推送
+        'done' => close(),
+    };
+}
+```
+
+> L2 流式需要 Node.js >= 18，框架内置 `@multi-tenant/streaming` 包。工具卡片状态流转：`pending` → `confirming` → `executing` → `done` / `error`。
 
 ### 2.4 向量嵌入
 
@@ -131,7 +160,7 @@ $result = $text->chatWithPrompt($prompt->ai_prompt_id, [
 ## 3. 图像 AI
 
 ```php
-use MultiTenantSaas\Services\AiImageService;
+use MultiTenantSaas\Modules\Ai\Services\AiImageService;
 
 $image = app(AiImageService::class);
 
@@ -159,10 +188,30 @@ $result = $image->styleTransfer($fileUploadId, '梵高星空');
 
 ---
 
+## 3A. AgentRuntime（4 类拆分）
+
+AgentRuntime 已拆分为 4 个独立类，各司其职：
+
+| 类 | 职责 |
+|----|------|
+| `AgentRuntime` | 核心调度：消息路由、上下文管理、会话生命周期 |
+| `AgentToolRuntime` | 工具执行：注册、调用、结果回传、权限校验 |
+| `AgentStreamRuntime` | 流式管理：SSE/L2 流式输出、中断恢复 |
+| `AgentMemoryRuntime` | 记忆管理：短期上下文窗口、长期记忆存取 |
+
+```php
+use MultiTenantSaas\Services\Agent\AgentRuntime;
+
+$runtime = app(AgentRuntime::class);
+// 自动注入 AgentToolRuntime、AgentStreamRuntime、AgentMemoryRuntime
+```
+
+---
+
 ## 4. 视频 AI（异步）
 
 ```php
-use MultiTenantSaas\Services\AiVideoService;
+use MultiTenantSaas\Modules\Ai\Services\AiVideoService;
 
 $video = app(AiVideoService::class);
 
@@ -201,7 +250,7 @@ Event::listen('ai.video.task.updated', function (array $payload) {
 ## 5. 用量与配额
 
 ```php
-use MultiTenantSaas\Services\AiUsageService;
+use MultiTenantSaas\Modules\Ai\Services\AiUsageService;
 
 $usage = app(AiUsageService::class);
 
@@ -279,4 +328,5 @@ $usage = $client->ai()->usage(['period' => '2026-06']);
 
 ---
 
-**文档版本**: v1.0.0
+**文档版本**: v1.0.0  
+**最后更新**: 2026-08-04

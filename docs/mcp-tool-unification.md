@@ -1,7 +1,16 @@
 # MCP 工具归一设计（ToolRegistry 单一权威源）
 
-> 状态：设计定稿，待排期实施。
+> 状态：设计定稿，**工具统一口径已落地**（Agent.effectiveTools 合并 DB 快照 + 模板最新工具），**MCP Bridge 代码已实现**（`ToolRegistryMcpBridge` 含 L2 RBAC 策略 + 审计 + 白名单过滤），**Step 1 接线未完成**（Bridge 尚未注入 McpServerController）；Step 2/3（scrm 存量闭包搬迁 + 清尾）未启动。
 > 结论先行：**ToolRegistry 是工具定义的唯一权威源，MCP 降级为协议适配器（Bridge），REST 控制器保持现状不动。**
+
+## 0. 工具统一口径（已落地）
+
+在 MCP Bridge 实施前，工具统一的核心口径已通过 `Agent::effectiveTools()` 落地：
+
+- **Agent.effectiveTools()**：`DB 快照 ∪ 模板最新工具`，去重保序。Agent 创建时从模板 clone tools 到 DB，之后模板新增工具不会自动同步，此方法运行时将模板工具合并进来（只增不减）。
+- **AgentTemplateRegistry**：框架模板 + 下游 `extra_template_classes` 扩展的唯一入口，归一化模板字段（template_id / template_key / role 三元组）。
+- **统一口径**：AgentRuntime（非流式）与 AiStreaming Resolve/ToolExecute（Node 流式链路）均以 `effectiveTools()` 为唯一事实源，避免工具可见性不一致。
+- **resolveEffectiveTools**：`AgentChatClient::resolveEffectiveTools()` 在 `effectiveTools()` 基础上支持渠道级排除（`exclude_tools`）。
 
 ## 1. 背景与问题
 

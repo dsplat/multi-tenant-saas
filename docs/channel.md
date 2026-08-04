@@ -1,6 +1,8 @@
-# Channel 抽象层 + 企业微信会话接入设计
+# Channel 抽象层 + 企业微信会话接入
 
 > Channel 是 Conversation 的数据源抽象——任何外部 IM 平台（企微、公众号、小程序、Slack、Telegram…）都是一个 Channel Provider，框架提供统一抽象层处理「接收 -> 解析 -> 存储 -> 事件」全链路，下游项目只做事件消费。
+>
+> **实施状态**: ✅ Phase 0（抽象层）✅ Phase 1（企微自建应用）✅ Phase 2（企微客服）— 均已落地
 
 ## 设计哲学
 
@@ -45,7 +47,7 @@
 
 ## 二、核心抽象设计（渠道无关）
 
-### 2.1 ChannelContract（重写，替换现有 4 方法脱节版）
+### 2.1 ChannelContract（已实现）
 
 ```php
 interface ChannelContract
@@ -59,13 +61,15 @@ interface ChannelContract
     /** 消息回调验签（POST） */
     public function verifySignature(array $query, string $rawBody): bool;
 
-    /** 从原始回调体解析出归一化入向消息；非消息事件/不支持类型返回 null */
-    public function parseInbound(string $rawBody, array $query): ?InboundMessage;
+    /** 从原始回调体解析出归一化入向消息列表（0~N 条） */
+    public function parseInbound(string $rawBody, array $query): array;
 
     /** 向会话发送消息（按会话类型路由到 message/send / appchat / kf） */
     public function sendMessage(Conversation $conversation, array $message): bool;
 }
 ```
+
+实际位置：`src/Contracts/ChannelContract.php`
 
 ### 2.2 InboundMessage DTO（新建 `src/DTOs/InboundMessage.php`）
 
@@ -87,20 +91,25 @@ final class InboundMessage {
 }
 ```
 
-### 2.3 ChannelManager（改造为租户感知工厂）
+### 2.3 ChannelManager（已实现，租户感知工厂）
 
 ```php
 class ChannelManager {
-    protected array $drivers = [
-        'enterprise_wechat_app' => EnterpriseWechatAppDriver::class,
-        'enterprise_wechat_kf'  => EnterpriseWechatKfDriver::class,
-        // wechat_official / slack / dingtalk 后续
-    ];
+    protected array $drivers = [];       // 驱动按需注册（构造函数中）
+    protected array $resolved = [];      // 已实例化缓存（type:tenantId）
+
     public function resolve(string $type, int $tenantId): ChannelContract; // 从 TenantSetting 读凭证实例化
     public function extend(string $type, string $class): void;             // 下游扩展
     public function enabledChannels(int $tenantId): array;
+    public function credentials(string $type, int $tenantId): array;       // 读取租户渠道凭证
 }
 ```
+
+实际位置：`src/Services/Channel/ChannelManager.php`
+
+已注册驱动：
+- `EnterpriseWechatAppDriver::TYPE` → `EnterpriseWechatAppDriver::class`
+- `EnterpriseWechatKfDriver::TYPE` → `EnterpriseWechatKfDriver::class`
 
 凭证约定：`tenant_settings` group=`channel`，key=`{type}`（如 `enterprise_wechat_app`），value=JSON 加密。
 
@@ -147,51 +156,50 @@ webhook 无认证上下文，租户解析硬豁免 TenantScope（参照 IbotWebh
 
 ### 2.7 容器注册
 
-新建 `src/Services/Channel/ChannelServiceProvider.php`（或并入 TenancyServiceProvider）：单例注册 ChannelManager / MessageRouter / ConversationRouter / EventBusBridge，加载统一路由。
+在 `TenancyServiceProvider` 中单例注册 ChannelManager（`$this->app->singleton(ChannelManager::class)`），加载统一路由。
 
 ## 三、分阶段实施
 
-### Phase 0：Channel 抽象层激活（渠道无关）
+### Phase 0：Channel 抽象层激活（渠道无关） ✅ 已完成
 
-| # | 操作 | 文件 |
+| # | 操作 | 文件 | 状态 |
+|---|---|---|---|
+| 1 | 重写 ChannelContract | `src/Contracts/ChannelContract.php` | ✅ |
+| 2 | 新建 InboundMessage DTO | `src/DTOs/InboundMessage.php` | ✅ |
+| 3 | ChannelManager 改造为租户感知工厂 | `src/Services/Channel/ChannelManager.php` | ✅ |
+| 4 | 新建 ConversationRouter（含外部身份建模） | `src/Services/Channel/ConversationRouter.php` | ✅ |
+| 5 | MessageRouter 修复（消费 InboundMessage） | `src/Services/Channel/MessageRouter.php` | ✅ |
+| 6 | EventBusBridge 增强（注入 conversation + 外部身份） | `src/Services/Channel/EventBusBridge.php` | ✅ |
+| 7 | 新建 ChannelWebhookController | `src/Http/Controllers/ChannelWebhookController.php` | ✅ |
+| 8 | 统一参数化路由替换死代码 | `routes/api.php`（`/v1/channels/{type}/webhook/{tenant_slug?}`） | ✅ |
+| 9 | 容器注册 | `TenancyServiceProvider`（singleton ChannelManager） | ✅ |
+
+### Phase 1：企业微信自建应用驱动（内部，完整双向） ✅ 已完成
+
+| # | 操作 | 状态 |
 |---|---|---|
-| 1 | 重写 ChannelContract | `src/Contracts/ChannelContract.php` |
-| 2 | 新建 InboundMessage DTO | `src/DTOs/InboundMessage.php` |
-| 3 | ChannelManager 改造为租户感知工厂 | `src/Services/Channel/ChannelManager.php` |
-| 4 | 新建 ConversationRouter（含外部身份建模） | `src/Services/Channel/ConversationRouter.php` |
-| 5 | MessageRouter 修复（消费 InboundMessage） | `src/Services/Channel/MessageRouter.php` |
-| 6 | EventBusBridge 增强（注入 conversation + 外部身份） | `src/Services/Channel/EventBusBridge.php` |
-| 7 | 新建 ChannelWebhookController | `src/Http/Controllers/ChannelWebhookController.php` |
-| 8 | 统一参数化路由替换死代码 | `routes/api.php` |
-| 9 | 容器注册 + 路由加载 | 新建 ChannelServiceProvider |
+| 1 | `EnterpriseWechatAppDriver` 对齐新 ChannelContract（verifyUrl/verifySignature/parseInbound/sendMessage） | ✅ |
+| 2 | parseInbound 产出 InboundMessage：单聊 conversationType=direct；群聊（ChatId 存在）=group | ✅ |
+| 3 | WechatWorkApiClient 扩展 `sendGroupMessage(chatid, message)`（appchat/send）；sendMessage 按会话类型分发 | ✅ |
+| 4 | 凭证约定落地 + TenantSetting 读取 | ✅ |
+| 5 | 测试：GET 验证 / POST 单聊 / POST 群聊 / 发送分发 / 会话路由复用 | ✅ |
 
-### Phase 1：企业微信自建应用驱动（内部，完整双向）
+### Phase 2：企业微信客服驱动（外部客户）+ 接收策略可插拔 ✅ 已完成
 
-| # | 操作 |
-|---|---|
-| 1 | 现 `EnterpriseWechatProvider` 重构为 `EnterpriseWechatAppDriver`，对齐新 ChannelContract（verifyUrl/verifySignature/parseInbound/sendMessage） |
-| 2 | parseInbound 产出 InboundMessage：单聊 conversationType=direct；群聊（ChatId 存在）=group，senderExternalId=FromUserName |
-| 3 | WechatWorkApiClient 扩展 `sendGroupMessage(chatid, message)`（appchat/send）；sendMessage 按会话类型分发 |
-| 4 | 凭证约定落地 + TenantSetting 读取 |
-| 5 | 测试：GET 验证 / POST 单聊 / POST 群聊 / 发送分发 / 会话路由复用 |
-
-### Phase 2：企业微信客服驱动（外部客户）+ 接收策略可插拔
-
-| # | 操作 |
-|---|---|
-| 1 | WechatWorkApiClient 扩展 kf API：kf 令牌（corp+kf_secret）、kf/send_msg、kf/sync_msg（拉消息） |
-| 2 | 新建 `EnterpriseWechatKfDriver`：JSON 回调解析（非 XML）、open_kfid/external_userid 提取、kf/send_msg 发送 |
-| 3 | 接收策略抽象 `InboundSourceContract`：`KfCallbackSource`（本期）/ `ArchiveSource`（预留，基于 SessionArchiveService，后续）；按租户配置 `receive_strategy=archive|kf` 选择（默认 kf） |
-| 4 | 客户群：type=group，发送走客服消息/群发（能力受限，明确标注） |
-| 5 | 测试：kf URL 验证 / JSON 消息解析 / 发送 / 策略选择 |
+| # | 操作 | 状态 |
+|---|---|---|
+| 1 | WechatWorkApiClient 扩展 kf API：kf 令牌（corp+kf_secret）、kf/send_msg、kf/sync_msg（拉消息） | ✅ |
+| 2 | 新建 `EnterpriseWechatKfDriver`：JSON 回调解析（非 XML）、open_kfid/external_userid 提取、kf/send_msg 发送 | ✅ |
+| 3 | `KfSyncFetcher`（`src/Services/Channel/Fetchers/`）：客服消息拉取实现 | ✅ |
+| 4 | 客户群：type=group，发送走客服消息/群发（能力受限，明确标注） | ✅ |
 
 ### Phase 3：SCRM 事件消费 + 清理
 
-| # | 操作 |
-|---|---|
-| 1 | SCRM 新建 MessageReceived Listener（客户关联 / 自动回复 / AI 路由） |
-| 2 | SCRM send_message 工具 handler 改调框架 ChannelManager |
-| 3 | 移除 SCRM 重复代码（ChannelProvider 接口 / WechatWorkProvider / ChannelCallbackController / 回调路由） |
+| # | 操作 | 状态 |
+|---|---|---|
+| 1 | SCRM 新建 MessageReceived Listener（客户关联 / 自动回复 / AI 路由） | 待下游实施 |
+| 2 | SCRM send_message 工具 handler 改调框架 ChannelManager | 待下游实施 |
+| 3 | 移除 SCRM 重复代码（ChannelProvider 接口 / WechatWorkProvider / ChannelCallbackController / 回调路由） | 待下游实施 |
 
 ## 四、与 Ibot 的边界（不变，且本设计对 ibot 零影响）
 

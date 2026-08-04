@@ -300,7 +300,7 @@
 | POST | `/ai/video` | 视频生成（异步） |
 | GET | `/ai/usage` | 查询 AI 用量 |
 
-> AI 端点通过 `MultiTenantSaas\SDK\AiResource` 暴露，详见 [AI 模块 API](AI模块API.md)。
+> AI 端点通过 `MultiTenantSaas\SDK\AiResource` 暴露，详见 [AI 模块 API](ai-module-api.md)。
 
 ---
 

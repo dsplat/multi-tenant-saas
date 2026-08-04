@@ -2,6 +2,7 @@
 
 > 版本: 1.0  
 > 状态: 需求提出（待 id.lanyantu.com 实施）  
+> 最后更新: 2026-08-04  
 > 调用方: multi-tenant-saas 框架 → IdentityProviderOAuthService  
 > 被调用方: id.lanyantu.com（蓝眼兔认证中心）
 

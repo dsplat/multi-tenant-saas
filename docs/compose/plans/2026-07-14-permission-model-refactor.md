@@ -769,7 +769,7 @@ OperatorTenant::create([
 ### 8.3 初始化 Artisan 命令
 
 ```php
-// app/Console/Commands/PlatformInitCommand.php
+// src/Modules/Operator/Console/Commands/PlatformInitCommand.php
 class PlatformInitCommand extends Command
 {
     protected $signature = 'platform:init 
@@ -874,7 +874,7 @@ public function create(array $data): Tenant
 ### 8.5 初始化脚本整合
 
 ```php
-// database/seeders/PlatformInitSeeder.php
+// src/Modules/Operator/Database/Seeders/PlatformInitSeeder.php
 class PlatformInitSeeder extends Seeder
 {
     public function run(): void
@@ -1017,14 +1017,14 @@ php artisan platform:verify
 #### Task 1.0: 重构初始化 Seeder
 
 **Files:**
-- Modify: `database/seeders/DatabaseSeeder.php`
-- Modify: `database/seeders/PlatformTenantSeeder.php`
-- Create: `database/seeders/RoleSeeder.php`
-- Create: `database/seeders/PermissionSeeder.php`
-- Create: `database/seeders/RolePermissionSeeder.php`
-- Create: `database/seeders/SuperAdminSeeder.php`
-- Create: `database/seeders/PlatformInitSeeder.php`
-- Create: `app/Console/Commands/PlatformInitCommand.php`
+- Modify: `src/Modules/Operator/Database/Seeders/DatabaseSeeder.php`
+- Modify: `src/Modules/Operator/Database/Seeders/PlatformTenantSeeder.php`
+- Create: `src/Modules/Operator/Database/Seeders/RoleSeeder.php`
+- Create: `src/Modules/Operator/Database/Seeders/PermissionSeeder.php`
+- Create: `src/Modules/Operator/Database/Seeders/RolePermissionSeeder.php`
+- Create: `src/Modules/Operator/Database/Seeders/SuperAdminSeeder.php`
+- Create: `src/Modules/Operator/Database/Seeders/PlatformInitSeeder.php`
+- Create: `src/Modules/Operator/Console/Commands/PlatformInitCommand.php`
 
 **Steps:**
 - [ ] 创建 PlatformInitSeeder（整合所有初始化 seeder）
@@ -1072,7 +1072,7 @@ php artisan platform:verify
 #### Task 2.1: 创建 Operator 模型
 
 **Files:**
-- Create: `src/Models/Operator.php`
+- Create: `src/Modules/Operator/Models/Operator.php`
 
 **Steps:**
 - [ ] 创建 Operator 模型
@@ -1082,7 +1082,7 @@ php artisan platform:verify
 #### Task 2.2: 创建 OperatorTenant 模型
 
 **Files:**
-- Create: `src/Models/OperatorTenant.php`
+- Create: `src/Modules/Operator/Models/OperatorTenant.php`
 
 **Steps:**
 - [ ] 创建 OperatorTenant 模型
@@ -1113,7 +1113,7 @@ php artisan platform:verify
 #### Task 3.1: 创建 OperatorService
 
 **Files:**
-- Create: `src/Services/OperatorService.php`
+- Create: `src/Modules/Operator/Services/OperatorService.php`
 
 **Steps:**
 - [ ] invite(email, tenantId, role) — 邀请 operator
@@ -1140,7 +1140,7 @@ php artisan platform:verify
 #### Task 4.1: 创建 IdentifyOperator 中间件
 
 **Files:**
-- Create: `src/Middleware/IdentifyOperator.php`
+- Create: `src/Modules/Operator/Http/Middleware/IdentifyOperator.php`
 
 **Steps:**
 - [ ] 识别请求是否来自 operator（admin/console 域名）
@@ -1163,7 +1163,7 @@ php artisan platform:verify
 #### Task 5.1: 创建 OperatorController
 
 **Files:**
-- Create: `src/Modules/Auth/Http/Controllers/OperatorController.php`
+- Create: `src/Modules/Operator/Http/Controllers/OperatorController.php`
 
 **Steps:**
 - [ ] invite() — 邀请 operator

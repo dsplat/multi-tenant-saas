@@ -1,6 +1,6 @@
 # 权限控制指南
 
-**最后更新**: 2026-07-20
+**最后更新**: 2026-08-04
 
 ---
 
@@ -52,12 +52,15 @@
 
 ### CheckPermission 中间件
 
+> **注意**：CheckPermission 通过 `IdentifyOperator` 中间件自动解析当前身份（Operator 或 User），两种身份均适用以下权限逻辑。
+
 ```php
 class CheckPermission
 {
     public function handle(Request $request, Closure $next, ?string $role = null): Response
     {
         $domainType = TenantContext::getDomainType();
+        $user = $request->user(); // Operator 或 User，由 IdentifyOperator 解析
         
         return match ($domainType) {
             'admin' => $this->checkAdminAccess($request, $user, $next, $role),
@@ -326,4 +329,4 @@ $this->authorize('manage-members', $tenant);
 ---
 
 **文档版本**: v1.0.0  
-**最后更新**: 2026-06-18
+**最后更新**: 2026-08-04

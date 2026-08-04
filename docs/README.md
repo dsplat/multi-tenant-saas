@@ -27,11 +27,15 @@
 | **Design Principles & Pitfalls** | [zh](zh/architecture/design-principles.md) | — |
 | **Framework Internals** | [zh](zh/architecture/framework-internals.md) | — |
 | **SPA Architecture** | [zh](spa-architecture.md) | — |
+| **SPA Build & Deploy** | [zh](spa-build-deploy.md) | — |
+| **Downstream Architecture** | [zh](downstream-architecture.md) | — |
 | AI Module Architecture | [zh](zh/architecture/ai-module.md) | — |
+| **Tenant System** | [zh](tenant.md) | — |
 | Multi-Domain Architecture | 已删除，见 [tenant.md](tenant.md) 第二节 | — |
 | Tenant Isolation | [zh](zh/architecture/tenant-isolation.md) | — |
 | Data Model Design | [zh](zh/architecture/data-model.md) | — |
 | Design Decisions | [zh](zh/architecture/design-decisions.md) | — |
+| **Channel Architecture** | [zh](channel.md) | — |
 
 ### Deployment (部署运维)
 | Document | 中文 | English |
@@ -84,6 +88,9 @@
 |---|---|---|
 | Framework Upgrade Plan | [zh](zh/requirements/framework-upgrade-plan.md) | — |
 | Upgrade Effort Estimate | [zh](zh/requirements/framework-upgrade-plan-effort.md) | — |
+| **Commerce Module Plan** | [zh](commerce-module-plan.md) | — |
+| **Commerce SKU Analysis** | [zh](commerce-sku.md) | — |
+| **Tenant Commerce Plan** | [zh](tenant-commerce-plan.md) | — |
 
 ### Examples (示例)
 | Document | 中文 | English |
@@ -104,4 +111,4 @@
 
 ---
 
-**Version**: v2.9.0 | **Last Updated**: 2026-08-01
+**Version**: v2.10.0 | **Last Updated**: 2026-08-04

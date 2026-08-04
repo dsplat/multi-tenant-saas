@@ -6,7 +6,7 @@
 
 ## 1. 安装
 
-PHP SDK 随框架包发布，独立于 Laravel，仅依赖 PHP 8.2+ 与 ext-curl。
+PHP SDK 随框架包发布，独立于 Laravel，仅依赖 PHP 8.3+ 与 ext-curl。
 
 ```bash
 composer require dsplat/multi-tenant-saas

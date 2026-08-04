@@ -1,12 +1,12 @@
 # 数据模型设计
 
-**最后更新**: 2026-07-20
+**最后更新**: 2026-08-04
 
 ---
 
 ## 核心数据表
 
-> 以下按业务域分组列出全部 37 张表。
+> 以下按业务域分组列出全部 42 张表。
 
 ### tenants - 租户表
 
@@ -119,24 +119,37 @@
 
 ---
 
-### credit_accounts - 积分账户表
+### credit_accounts - 积分账户表（双余额）
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | credit_account_id | bigint | 主键，16位随机ID |
 | tenant_id | bigint | 租户ID |
 | user_id | bigint | 用户ID（可选，租户级为null） |
-| balance | integer | 余额 |
-| total_earned | integer | 总收入 |
-| total_spent | integer | 总支出 |
-| status | varchar(20) | 状态 |
+| account_type | enum | 账户类型（enterprise/personal） |
+| balance | integer | 总余额（gift_balance + recharge_balance） |
+| gift_balance | integer | 赠送余额（优先扣减） |
+| recharge_balance | integer | 充值余额 |
+| total_recharged | integer | 累计充值 |
+| total_consumed | integer | 累计消费 |
+| expires_at | timestamp | 积分过期时间 |
+| expired_total | integer | 累计过期积分 |
+| last_warning_at | timestamp | 上次低余额预警时间 |
+| auto_recharge_enabled | boolean | 是否启用自动充值 |
+| auto_recharge_threshold | integer | 自动充值触发阈值 |
+| auto_recharge_amount | integer | 自动充值金额 |
+| status | varchar(20) | 状态（active/frozen/closed） |
 | created_at | timestamp | 创建时间 |
 | updated_at | timestamp | 更新时间 |
+
+**双余额设计**：消费时优先扣减 `gift_balance`（赠送余额），不足部分再扣减 `recharge_balance`（充值余额）。详见 `CreditAccount::consume()` 方法。
 
 **索引**：
 - PRIMARY: credit_account_id
 - INDEX: tenant_id
 - INDEX: user_id
+- INDEX: tenant_id + user_id
+- INDEX: tenant_id + account_type
 
 ---
 
@@ -161,6 +174,110 @@
 - INDEX: credit_account_id
 - INDEX: type
 - INDEX: created_at
+
+---
+
+### channels - 渠道凭证表
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| channel_id | bigint | 主键，全局ID |
+| tenant_id | bigint | 租户ID |
+| type | varchar(50) | 频道类型（wechat_work/telegram/wechat_official/sms） |
+| name | varchar(200) | 频道显示名称 |
+| app_id | varchar(200) | 应用ID / CorpID / Bot Username |
+| app_secret | text | 应用密钥（加密存储） |
+| agent_id | varchar(100) | 企微 AgentID 等 |
+| callback_token | varchar(200) | 回调 Token |
+| encoding_aes_key | varchar(200) | 消息加密密钥 |
+| status | varchar(20) | 状态（active/inactive/error） |
+| metadata | json | 扩展配置（webhook_url, proxy 等） |
+| last_connected_at | timestamp | 最后连接时间 |
+| created_at | timestamp | 创建时间 |
+| updated_at | timestamp | 更新时间 |
+
+**索引**：
+- PRIMARY: channel_id
+- INDEX: tenant_id + type
+- INDEX: tenant_id + status
+
+---
+
+### commerce_skus - 商品 SKU 表（平台级）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| sku_id | bigint | 主键，全局ID |
+| name | varchar(120) | 商品名称 |
+| type | varchar(30) | 类型（plan/module/credit_pack/content_pack/mall_supply） |
+| role | varchar(20) | 一级分类（consumer/supply） |
+| lifecycle | varchar(20) | 生命周期（subscription/one_time/consumable/grant） |
+| fulfill_handler | varchar(60) | 履约 Handler 标识 |
+| price | decimal(12,2) | 售价 |
+| billing_cycle | varchar(20) | 计费周期（monthly/yearly，订阅类） |
+| payload | json | 差异化参数（模块名/积分面额/套餐ID等） |
+| refundable | boolean | 是否可退款（积分包恒 false） |
+| status | varchar(20) | 状态（draft/active/retired） |
+| sort_order | integer | 排序 |
+| created_at | timestamp | 创建时间 |
+| updated_at | timestamp | 更新时间 |
+
+**注意**：无 `tenant_id` 字段，平台级商品，所有租户共享。
+
+---
+
+### commerce_orders - 商城订单表
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| order_id | bigint | 主键，全局ID |
+| order_no | varchar(64) | 订单号（唯一） |
+| tenant_id | bigint | 租户ID |
+| amount | decimal(12,2) | 订单金额 |
+| status | varchar(20) | 状态（pending/paid/fulfilled/partial_failed/cancelled/refunded） |
+| payment_order_id | bigint | 关联支付单（PaymentOrder，1:1） |
+| paid_at | timestamp | 支付时间 |
+| operator_id | bigint | 下单 Operator |
+| created_at | timestamp | 创建时间 |
+| updated_at | timestamp | 更新时间 |
+
+---
+
+### commerce_order_items - 商城订单项表
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| item_id | bigint | 主键，全局ID |
+| order_id | bigint | 所属订单 |
+| sku_id | bigint | SKU 引用 |
+| qty | integer | 数量 |
+| unit_price | decimal(12,2) | 单价 |
+| fulfill_status | varchar(20) | 履约状态（pending/fulfilled/failed/revoked） |
+| fulfill_at | timestamp | 履约时间 |
+| retry_count | integer | 重试次数 |
+| fail_reason | varchar(500) | 失败原因 |
+| payload_snapshot | json | 下单时 SKU payload 快照 |
+| created_at | timestamp | 创建时间 |
+| updated_at | timestamp | 更新时间 |
+
+---
+
+### module_entitlements - 模块权益表
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| entitlement_id | bigint | 主键，全局ID |
+| tenant_id | bigint | 租户ID |
+| module_name | varchar(60) | 模块标识 |
+| source | varchar(20) | 权益来源（plan/purchase/system） |
+| source_order_id | bigint | 来源订单 |
+| valid_from | timestamp | 生效时间 |
+| valid_until | timestamp | 失效时间（NULL=永久买断） |
+| status | varchar(20) | 状态（active/expired/revoked） |
+| created_at | timestamp | 创建时间 |
+| updated_at | timestamp | 更新时间 |
+
+**设计说明**：`tenant_modules` 保持纯开关语义（enabled/disabled），`module_entitlements` 记录权益来源与有效期，实现「按套餐开通」与「按订单购买」的分离。
 
 ---
 
@@ -602,7 +719,7 @@
 │ tenant_id   │──┐    │ tenant_id   │    ┌──│ user_id     │
 │ name        │  │    │ user_id     │────┘  │ name        │
 │ slug        │  │    │ role        │       │ email       │
-│ custom_domain│  │    │ is_active   │       │ role        │
+│ domain      │  │    │ is_active   │       │ role        │
 │ status      │  │    └─────────────┘       │ password    │
 │ ...         │  │                          │ ...         │
 └─────────────┘  │                          └─────────────┘
@@ -617,21 +734,50 @@
                  │    └─────────────┘
                  │
                  │    ┌─────────────┐
-                 │    │credit_accounts│
+                 │    │credit_accounts│  ← 双余额（gift_balance + recharge_balance）
                  │    ├─────────────┤
                  ├───▶│ tenant_id   │
                  │    │ user_id     │
                  │    │ balance     │
+                 │    │ gift_balance│
+                 │    │ recharge_balance│
                  │    └─────────────┘
                  │
                  │    ┌─────────────┐
                  │    │credit_transactions│
                  │    ├─────────────┤
-                 └───▶│ tenant_id   │
-                      │ credit_account_id│
-                      │ type        │
-                      │ amount      │
-                      └─────────────┘
+                 ├───▶│ tenant_id   │
+                 │    │ account_id  │
+                 │    │ type        │
+                 │    │ amount      │
+                 │    └─────────────┘
+                 │
+                 │    ┌─────────────┐
+                 │    │  channels   │  ← 结构化频道凭证
+                 │    ├─────────────┤
+                 ├───▶│ tenant_id   │
+                 │    │ type        │
+                 │    │ app_id      │
+                 │    │ status      │
+                 │    └─────────────┘
+                 │
+                 │    ┌──────────────────┐
+                 │    │ commerce_orders   │  ← 商城订单
+                 │    ├──────────────────┤
+                 └───▶│ tenant_id        │
+                      │ order_no         │
+                      │ amount           │
+                      │ status           │
+                      │ payment_order_id │──→ payment_orders
+                      └──────────────────┘
+                              │
+                      ┌───────▼──────────┐
+                      │commerce_order_items│
+                      ├──────────────────┤
+                      │ order_id         │
+                      │ sku_id           │──→ commerce_skus（平台级，无 tenant_id）
+                      │ fulfill_status   │
+                      └──────────────────┘
 ```
 
 ---
@@ -652,5 +798,5 @@ Order::withoutGlobalScope(TenantScope::class)->get();
 
 ---
 
-**文档版本**: v1.0.0  
-**最后更新**: 2026-06-28
+**文档版本**: v1.0.0
+**最后更新**: 2026-08-04

@@ -1,7 +1,7 @@
 # 租户体系
 
 > **文档性质**: 系统现状权威描述
-> **最后更新**: 2026-08-01
+> **最后更新**: 2026-08-04
 > **关联文档**: `docs/auth.md`（认证与权限）、`docs/zh/deployment/nginx-guide.md`（部署配置）
 > **已删除旧文档**: `docs/zh/architecture/multi-domain.md`、`docs/zh/guides/domain-config.md`（内容已合并入本文及 `nginx-guide.md`）
 
@@ -495,11 +495,12 @@ TenantSettingService::preload(int $tenantId): void  // 批量预加载到内存
 
 `tenant_module_defaults` 定义新租户默认开通状态，`plan_modules` 按套餐覆盖。
 
-模块列表（22 个）：
+模块列表（32 个）：
 ```
-plugin, infrastructure, event, billing, logging, auth, operator,
-storage, notification, monitoring, platform, user, developer-portal,
-conversation, workflow, ai, domain, coupon, form, lottery, sms, voting
+ai, ai-streaming, api-token, auth, billing, campaign, commerce, contracts,
+conversation, coupon, developer-portal, domain, event, form, ibot,
+infrastructure, knowledge, logging, lottery, monitoring, notification,
+operator, payment, platform, plugin, sms, ssl, storage, ticket, user, voting, workflow
 ```
 
 ---
@@ -612,9 +613,10 @@ policy 由单一 `$seo_allowed` 变量驱动：基桩同一条 `if ($block_ai_bo
 | `src/Modules/Infrastructure/Services/TenantSettingService.php` | 配置读写服务 |
 | `src/Modules/Infrastructure/Services/BrandingService.php` | 品牌白标服务 |
 | `src/Modules/Domain/Services/DomainService.php` | 域名审核状态机 |
-| `src/Modules/Domain/Services/SlugService.php` | **新增**：Slug 治理（黑名单 + AI 评估 + 打回） |
+| `src/Modules/Domain/Services/SlugService.php` | Slug 治理（黑名单 + AI 评估 + 打回） |
 | `src/Modules/Domain/Services/NginxConfigService.php` | Nginx 配置生成 |
 | `src/Modules/Domain/Http/Controllers/TenantResolveController.php` | 公开租户发现 API |
+| `src/Modules/Domain/Http/Controllers/SlugController.php` | Slug 设置/打回 API |
 | `src/Modules/Infrastructure/Http/Middleware/IdentifyTenant.php` | 租户识别中间件 |
 | `src/Modules/Infrastructure/Http/Middleware/IdentifyDomain.php` | 域名类型识别中间件 |
 | `src/Context/TenantContext.php` | 租户上下文（Request 级） |
@@ -622,6 +624,11 @@ policy 由单一 `$seo_allowed` 变量驱动：基桩同一条 `if ($block_ai_bo
 | `src/Concerns/BelongsToTenant.php` | 模型租户归属 trait |
 | `config/tenancy.php` | 租户全局配置 |
 | `src/Modules/Domain/Config/domain.php` | 域名配置 |
+| `src/Modules/Commerce/` | Commerce 模块（SKU/订单/履约/授权/权益/内容库） |
+| `src/Services/Channel/` | Channel 抽象层（ChannelManager/MessageRouter/ConversationRouter/驱动） |
+| `src/Contracts/ChannelContract.php` | 渠道驱动契约 |
+| `src/Contracts/CommerceFulfillmentHandler.php` | 履约 Handler 契约 |
+| `src/Contracts/SupplyProvisionerContract.php` | 供给落地器契约 |
 
 ---
 

@@ -1,7 +1,7 @@
 # 框架内部机制详解
 
 > 从源码中提炼的实际运行逻辑、启动流程、数据流。
-> **最后更新**: 2026-08-01
+> **最后更新**: 2026-08-04
 > **关联文档**: `docs/zh/architecture/design-principles.md`、`docs/zh/architecture/system-overview.md`
 
 ---
@@ -239,6 +239,7 @@ ModuleManager::isEnabledForTenant(name, tenantId)
 | `CheckFeatureFlag` | `feature.flag` | 路由级 | 功能开关检查 |
 | `VerifyOperatorTenant` | — | 模块路由 | Operator 租户归属校验 |
 | `McpMiddleware` | `mcp.auth` | MCP 路由 | MCP 客户端认证 |
+| `RejectPlatformDomain` | — | 模块路由 | 阻止平台域名访问 console 路由（403） |
 
 ---
 

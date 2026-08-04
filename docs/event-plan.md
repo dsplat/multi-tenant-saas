@@ -1,6 +1,6 @@
 # 活动运营编排（Event Plan / Campaign）设计规范
 
-> 状态：**Phase 0 已实施**（排期骨架：两表 + 编译器 + 调度 + 待办确认 + 管理 API）；Phase 1/2/3 未启动
+> 状态：**Phase 0 已实施**（排期骨架：两表 + 编译器 + 调度 + 待办确认 + 管理 API）；**Phase 1 部分实施**（PlaybookRegistry + CampaignPlanDraftTool + CampaignPlanCommitTool + CampaignStatusTool）；Phase 2/3 未启动
 > 实现位置：`src/Modules/Campaign/`（独立模块，composer split 产出 `dsplat/multi-tenant-saas-module-campaign`）
 > 关联：`docs/task-chain.md`（会话内任务链）· AI 小助手完整化计划 · SCRM Event 模块
 > 核心思想：**Plan 即文档（JSON/YAML 可移植），Schedule 即数据（编译散入数据库）**
@@ -188,14 +188,15 @@ Playbook 是"如何策划某类活动"的 SOP 知识（运营方法论 + 计划�
 
 ## 八、秘书工具契约
 
-| slug | risk | 语义 |
-|---|---|---|
-| `campaign_plan_draft` | L1 | 按 playbook + 用户输入生成/修订计划草案（只改 plan_doc，不落任务） |
-| `campaign_plan_commit` | **L2** | 定稿并编译落库（弹确认卡片展示完整时间轴），plan 进入 `scheduled` |
-| `campaign_status` | L1 | 查询计划进度：各任务状态、待确认项、目标对照数据 |
-| `campaign_plan_revise` | **L2** | 运行中修订：提交新 plan_doc → diff 预览确认 → 重编译未执行任务 |
+| slug | risk | 语义 | 状态 |
+|---|---|---|---|
+| `campaign_plan_draft` | L1 | 按 playbook + 用户输入生成/修订计划草案（只改 plan_doc，不落任务）；返回 `required_anchors` 预检锚点 | ✅ 已实现 |
+| `campaign_plan_commit` | **L2** | 定稿并编译落库（弹确认卡片展示完整时间轴），plan 进入 `scheduled`；锚点一次性预检（缺失全部列出） | ✅ 已实现 |
+| `campaign_status` | L1 | 查询计划进度：各任务状态、待确认项、目标对照数据 | ✅ 已实现 |
+| `campaign_plan_revise` | **L2** | 运行中修订：提交新 plan_doc → diff 预览确认 → 重编译未执行任务 | ⬜ 待实现 |
 
 Plan 阶段的多轮共创就是普通秘书对话 + `campaign_plan_draft` 反复调用，无需新会话形态。
+`campaign_plan_draft` 返回 `required_anchors` 字段，提前告知 commit 时需提供的全部锚点时间，避免定稿时才发现缺失（锚点纪律）。
 
 ## 九、与 task-chain.md 的比较与复用收益
 
@@ -219,13 +220,18 @@ Plan 阶段的多轮共创就是普通秘书对话 + `campaign_plan_draft` 反�
 
 ## 十、分期实施与验收
 
-**Phase 0（排期骨架）✅ 已实施**：两表迁移 + 编译器（relative/at_time）+ `campaign:process-due` + 异步待办确认门 + 手工建计划 API。
+**Phase 0（排期骨架）✅ 已实施**：两表迁移 + 编译器（relative/at_time/recurring 展开）+ `campaign:process-due` + 异步待办确认门 + 手工建计划 API + 锚点一次性预检 + draft 返回 required_anchors。
 实现：`src/Modules/Campaign/`（CampaignServiceProvider / PlanCompiler / CampaignTaskExecutor /
 CampaignProcessDueCommand / CampaignAdminController / CampaignTaskPendingNotification）。
 开关：`AI_CAMPAIGN_ENABLED`（默认 false）；调度：SchedulerService `campaign-process-due` */5min。
+追加交付（超出原计划 Phase 0）：PlaybookRegistry + CampaignPlanDraftTool（含 required_anchors 预检）+ CampaignPlanCommitTool + CampaignStatusTool + ThreadDigestService（项目大脑 Phase 1b）。
 
-**Phase 1（AI 共创）**：`campaign_plan_draft/commit` 工具 + PlaybookRegistry + 首个 playbook + 前端时间轴视图。
-验收：对话中从"我要办一场线下课"到计划定稿编译全程走通，L2 定稿必出确认卡片。
+**Phase 1（AI 共创）部分实施**：`campaign_plan_draft/commit/status` 工具 + PlaybookRegistry + 首个 demo playbook + 前端时间轴视图。
+`CampaignPlanDraftTool` 已实现：LLM 生成 plan_doc → 即时校验 → 返回 required_anchors（锚点一次性预检，避免定稿时才发现缺失）。
+`CampaignPlanCommitTool` 已实现：L2 确认卡片 → 编译落库 → plan 进入 scheduled。
+`CampaignStatusTool` 已实现：查询计划进度、各任务状态、待确认项。
+`PlaybookRegistry` 已实现：框架内置 `demo_sms_sequence` 演示 playbook + 下游 `extra_playbook_classes` 扩展。
+剩余：首个真实业务 playbook（如 `offline_course_launch`）、前端时间轴视图。
 
 **Phase 2（Run 闭环）**：on_event 编译登记（OrderPaidEvent 首个）+ agent 任务 Job 执行 + task_chain action 组合 + recurring 展开。
 验收：购买后通知、开课提醒按锚点自动触发；一个触点成功启动并完成一条任务链。

@@ -433,11 +433,11 @@ POST /api/v1/mfa/sessions/revoke-all
 
 ```bash
 # Get redirect URL
-GET /api/v1/auth/sso/wechat/redirect
+GET /api/v1/auth/wechat/redirect
 # Response: {"url": "https://open.weixin.qq.com/..."}
 
 # Callback
-GET /api/v1/auth/sso/wechat/callback?code=xxx&state=yyy
+GET /api/v1/auth/wechat/callback?code=xxx&state=yyy
 ```
 
 **All endpoints summary:**
@@ -450,8 +450,8 @@ GET /api/v1/auth/sso/wechat/callback?code=xxx&state=yyy
 | POST | `/api/v1/auth/reset-password` | No | Reset password |
 | POST | `/api/v1/auth/verify-email` | No | Verify email |
 | POST | `/api/v1/auth/resend-verification` | No | Resend verification |
-| GET | `/api/v1/auth/sso/{provider}/redirect` | No | SSO redirect |
-| GET | `/api/v1/auth/sso/{provider}/callback` | No | SSO callback |
+| GET | `/api/v1/auth/{provider}/redirect` | No | OAuth redirect |
+| GET | `/api/v1/auth/{provider}/callback` | No | OAuth callback |
 | GET | `/api/v1/auth/me` | Yes | Current user |
 | POST | `/api/v1/auth/logout` | Yes | Logout |
 | POST | `/api/v1/auth/mfa/verify` | Yes | MFA verify |
@@ -517,8 +517,16 @@ php artisan schedule:run
 | `platform` | Data export, API versioning, tenant profiles, cost management |
 | `developer-portal` | API docs, sandbox, SDK |
 | `ai` | Agent, capability engine, MCP, tool registry, memory, AI gateway |
+| `ai-streaming` | AI Streaming pipeline, real-time AI responses |
 | `conversation` | Multi-channel conversation, message routing, channel management |
 | `workflow` | Flow orchestration, node execution, conditional branching |
+| `operator` | Platform operator management, invitation, RBAC |
+| `knowledge` | Knowledge base, document indexing, semantic search |
+| `commerce` | Order management, SKU, checkout flow |
+| `contracts` | Contract templates, generation, signing |
+| `ticket` | Ticket system, SLA tracking, assignment |
+| `campaign` | Campaign activities, referral, gamification |
+| `ibot` | Intelligent bot, multi-turn dialogue, tool calling |
 
 **Feature modules (tenant-toggleable):**
 
@@ -542,7 +550,7 @@ php artisan module:enable billing          # Enable module
 php artisan module:disable ssl             # Disable module
 php artisan tenancy:init mini              # Init with 6 core modules
 php artisan tenancy:init normal            # Init with 14 modules
-php artisan tenancy:init full              # Init with all 22 modules
+php artisan tenancy:init full              # Init with 22 core modules (32 total available)
 ```
 
 ### Module Management API

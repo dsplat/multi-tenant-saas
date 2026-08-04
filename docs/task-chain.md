@@ -1,6 +1,6 @@
 # 预设任务链（Task Chain）设计规范
 
-> 状态：设计稿（本轮仅交付设计，引擎与预设链实现为下一轮独立任务）
+> 状态：**Phase 1/2 已实施**（TaskChainRegistry + TaskChainRunner 全步型 + 三个秘书工具 + 首批预设链）；Phase 3 未启动
 > 关联：AI 小助手完整化计划 · 需求 5「复杂任务编排」
 > 契约预留点：`GET /v1/ai/assistant/suggestions` 已返回 `task_chains` 字段（引擎就位前固定空数组）
 
@@ -172,11 +172,11 @@ config(['ai.task_chains.extra_chain_classes' => [ScrmTaskChains::class]]);
 
 ## 九、分期实施与验收
 
-**Phase 1（引擎最小闭环）**：TaskChainRegistry + task_chain_runs 迁移 + TaskChainRunner（仅 tool/input 步）+ 三个秘书工具 + 单测。
-验收：框架内置一条两步演示链可走通「启动确认 → 逐步推进 → 完成」，中断后可续跑。
+**Phase 1（引擎最小闭环）✅ 已实施**：TaskChainRegistry + task_chain_runs 迁移 + TaskChainRunner（仅 tool/input 步）+ 三个秘书工具 + 单测。
+验收已达成：框架内置一条两步演示链可走通「启动确认 → 逐步推进 → 完成」，中断后可续跑。
 
-**Phase 2（delegate/upload + SCRM 首链）**：delegate/upload 步型 + `launch_marketing_campaign` 全链 + WorkflowProgress 渲染接线 + suggestions.task_chains 实数据。
-验收：生产环境从上传策划文档到活动上线全链走通，每个 L2 步骤均出现确认卡片。
+**Phase 2（delegate/upload + SCRM 首链）✅ 已实施**：delegate/upload 步型 + `launch_marketing_campaign` 全链 + WorkflowProgress 渲染接线 + suggestions.task_chains 实数据。
+验收已达成：生产环境从上传策划文档到活动上线全链走通，每个 L2 步骤均出现确认卡片。
 
 **Phase 3（链目录扩充）**：欢迎旅程链、周报链，以及 Admin 后台链目录管理界面（可选）。
 

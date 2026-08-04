@@ -1,6 +1,6 @@
 # AI 模块 API 参考
 
-**最后更新**: 2026-06-29
+**最后更新**: 2026-08-04
 
 ---
 
@@ -17,7 +17,7 @@ AI 模块以服务层形式提供能力，并通过 PHP SDK（`MultiTenantSaas\S
 统一网关入口，按 provider 路由。
 
 ```php
-$gateway = app(\MultiTenantSaas\Services\AiGatewayService::class);
+$gateway = app(\MultiTenantSaas\Modules\Ai\Services\AiGatewayService::class);
 ```
 
 | 方法 | 签名 | 返回 | 说明 |
@@ -32,7 +32,7 @@ $gateway = app(\MultiTenantSaas\Services\AiGatewayService::class);
 ### AiTextService
 
 ```php
-$text = app(\MultiTenantSaas\Services\AiTextService::class);
+$text = app(\MultiTenantSaas\Modules\Ai\Services\AiTextService::class);
 ```
 
 | 方法 | 说明 |
@@ -64,7 +64,7 @@ $text = app(\MultiTenantSaas\Services\AiTextService::class);
 ### AiImageService
 
 ```php
-$image = app(\MultiTenantSaas\Services\AiImageService::class);
+$image = app(\MultiTenantSaas\Modules\Ai\Services\AiImageService::class);
 ```
 
 | 方法 | 签名 | 说明 |
@@ -79,7 +79,7 @@ $image = app(\MultiTenantSaas\Services\AiImageService::class);
 ### AiVideoService
 
 ```php
-$video = app(\MultiTenantSaas\Services\AiVideoService::class);
+$video = app(\MultiTenantSaas\Modules\Ai\Services\AiVideoService::class);
 ```
 
 | 方法 | 说明 |
@@ -96,7 +96,7 @@ $video = app(\MultiTenantSaas\Services\AiVideoService::class);
 ### AiConfigService
 
 ```php
-$config = app(\MultiTenantSaas\Services\AiConfigService::class);
+$config = app(\MultiTenantSaas\Modules\Ai\Services\AiConfigService::class);
 ```
 
 | 方法 | 说明 |
@@ -116,7 +116,7 @@ $config = app(\MultiTenantSaas\Services\AiConfigService::class);
 ### AiUsageService
 
 ```php
-$usage = app(\MultiTenantSaas\Services\AiUsageService::class);
+$usage = app(\MultiTenantSaas\Modules\Ai\Services\AiUsageService::class);
 ```
 
 | 方法 | 说明 |

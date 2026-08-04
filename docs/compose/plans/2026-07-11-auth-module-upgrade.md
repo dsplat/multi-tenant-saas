@@ -36,10 +36,10 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantUser;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\PasswordPolicyService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Auth\Services\PasswordPolicyService;
 
 class AuthControllerTest extends TestCase
 {
@@ -136,12 +136,12 @@ use MultiTenantSaas\Concerns\HasApiResponse;
 use MultiTenantSaas\Events\UserLoggedIn;
 use MultiTenantSaas\Events\UserRegistered;
 use MultiTenantSaas\Jobs\SendEmailVerificationJob;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantUser;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\MailerService;
-use MultiTenantSaas\Services\PasswordPolicyService;
-use MultiTenantSaas\Services\SessionService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Services\MailerService;
+use MultiTenantSaas\Modules\Auth\Services\PasswordPolicyService;
+use MultiTenantSaas\Modules\Auth\Services\SessionService;
 
 class AuthController extends Controller
 {
@@ -183,7 +183,7 @@ class AuthController extends Controller
         $this->passwordPolicy->recordSuccessfulLogin($user->user_id);
 
         // MFA 检查
-        $mfaService = app(\MultiTenantSaas\Services\MfaService::class);
+        $mfaService = app(\MultiTenantSaas\Modules\Auth\Services\MfaService::class);
         if ($mfaService->hasMfaEnabled($user->user_id)) {
             $challengeToken = $mfaService->createChallengeToken($user->user_id);
 
@@ -298,7 +298,7 @@ class AuthController extends Controller
             'type' => 'required|string|in:totp,email,sms,recovery',
         ]);
 
-        $mfaService = app(\MultiTenantSaas\Services\MfaService::class);
+        $mfaService = app(\MultiTenantSaas\Modules\Auth\Services\MfaService::class);
         $userId = $mfaService->verifyChallenge($request->challenge_token, $request->code, $request->type);
 
         if (! $userId) {
@@ -475,8 +475,8 @@ namespace MultiTenantSaas\Modules\Auth;
 
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
-use MultiTenantSaas\Services\AlipayOAuthService;
-use MultiTenantSaas\Services\SocialiteService;
+use MultiTenantSaas\Modules\Auth\Services\AlipayOAuthService;
+use MultiTenantSaas\Modules\Auth\Services\SocialiteService;
 
 class AuthModuleServiceProvider extends ModuleServiceProvider
 {
@@ -535,10 +535,10 @@ git commit -m "feat: AuthController — login/register/logout/me + email verific
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Models\MfaDevice;
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\TenantUser;
-use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\Auth\Models\MfaDevice;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
+use MultiTenantSaas\Modules\Auth\Models\User;
 
 class MfaControllerTest extends TestCase
 {
@@ -598,8 +598,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Concerns\HasApiResponse;
-use MultiTenantSaas\Services\MfaService;
-use MultiTenantSaas\Services\SessionService;
+use MultiTenantSaas\Modules\Auth\Services\MfaService;
+use MultiTenantSaas\Modules\Auth\Services\SessionService;
 
 class MfaController extends Controller
 {
@@ -779,7 +779,7 @@ git commit -m "feat: MfaController — TOTP setup/verify + session management"
 ### Task 3: Add PasswordService
 
 **Files:**
-- Create: `src/Services/PasswordService.php`
+- Create: `src/Modules/Auth/Services/PasswordService.php`
 - Test: `tests/PasswordServiceTest.php`
 
 **Interfaces:**
@@ -793,8 +793,8 @@ git commit -m "feat: MfaController — TOTP setup/verify + session management"
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Services\PasswordService;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Auth\Services\PasswordService;
 
 class PasswordServiceTest extends TestCase
 {
@@ -851,8 +851,8 @@ Expected: FAIL
 namespace MultiTenantSaas\Services;
 
 use Illuminate\Support\Facades\Hash;
-use MultiTenantSaas\Models\PasswordHistory;
-use MultiTenantSaas\Models\User;
+use MultiTenantSaas\Modules\Auth\Models\PasswordHistory;
+use MultiTenantSaas\Modules\Auth\Models\User;
 
 /**
  * 密码管理服务
@@ -920,7 +920,7 @@ class PasswordService
 - [ ] **Step 4: Register in TenancyServiceProvider**
 
 ```php
-$this->app->singleton(\MultiTenantSaas\Services\PasswordService::class);
+$this->app->singleton(\MultiTenantSaas\Modules\Auth\Services\PasswordService::class);
 ```
 
 - [ ] **Step 5: Run tests**
@@ -931,7 +931,7 @@ Expected: PASS
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/Services/PasswordService.php tests/PasswordServiceTest.php src/TenancyServiceProvider.php
+git add src/Modules/Auth/Services/PasswordService.php tests/PasswordServiceTest.php src/TenancyServiceProvider.php
 git commit -m "feat: PasswordService — changePassword/resetPassword with history"
 ```
 

@@ -1,6 +1,7 @@
 # Code Review — 已确认问题清单
 
 > 审查日期: 2026-07-30
+> 最后验证: 2026-08-04（同步最新代码状态）
 > 审查范围: 全框架 (src/, app/, routes/, database/, resources/js/)
 > 状态标记: [BUG] = 实际缺陷, [SMELL] = 代码异味/设计债务, [TODO] = 未完成项
 
@@ -237,7 +238,7 @@ PRIMARY KEY (`import_job_id`),
 | SMELL-003 | 未修复 | localStorage 存 Token（需前后端联调，影响面大） |
 | SMELL-004 | **已修复** | __callStatic 已全部清除（7 个残留注释已删除，实际无静态调用） |
 | SMELL-005 | **已修复** | BillingServiceProvider 工具注册已重构为数组+循环 |
-| SMELL-006 | 未修复 | 前端无测试（需引入 vitest） |
+| SMELL-006 | **已修复** | 前端已引入 vitest，5 个测试文件覆盖守卫和 Store |
 | SMELL-007 | **已修复** | 迁移已全部重构为 Schema Builder |
 | SMELL-008 | **不修复** | import_jobs 主键为应用层 ID 生成器分配，已有注释说明 |
 
@@ -456,7 +457,9 @@ app(AuditService::class)->log('create', 'tenant', ...);
 
 ## 最终综合评价
 
-**四轮审查累计发现 22 个问题，已修复 21 个，1 个遗留。**
+**四轮审查累计发现 22 个问题，已修复 22 个（含 SMELL-006 前端测试），0 个遗留。**
+
+> 注：SMELL-003（localStorage 存 Token）记录为架构决策，需前后端联调改为 httpOnly cookie，非代码缺陷。
 
 框架质量从第一轮到第四轮有显著提升：
 

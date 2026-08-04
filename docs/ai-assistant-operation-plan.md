@@ -1,6 +1,6 @@
 # AI 小助手代操作方案（指路 → 代办）实施计划
 
-> 状态：已评审通过，待排期实施
+> 状态：已评审通过，**阶段一已实施**（suggest_form_fill 激活）；阶段二部分实施（L2 确认令牌基建 + 流式链路 L2 拦截已就位）
 > 关联：`docs/ai-usage-architecture.md`、`src/Modules/Ai/`
 > 原则：不引入新协议、不新增身份（AI 以当前 Operator 身份行事）、每个写动作有人类确认点 + 审计留痕
 
@@ -68,17 +68,18 @@
 - 效果：AI 建议填表 + 用户确认 + 字段级撤销 + AI 标注，立即可用
 - 发布：`secretary:install --sync-prompt`
 
-### 阶段二：确认令牌基建 + 首批 L2 试点（核心）
+### 阶段二：确认令牌基建 + 首批 L2 试点（核心）——部分实施
 
-框架侧：
-1. `Tool` DTO / `agent_tools` 表加 `risk` 字段（默认 L1，向后兼容）
-2. 新建 `ActionConfirmService`：签发/校验/消费 confirm_token（cache 存储）
-3. `AgentRuntime` 流式循环：AgentToolExecutor 遇 L2 工具 → 不执行，emit `pending_confirmation`，本轮结束
-4. `AssistantController` 新增 `POST confirm-action`：校验 token → execute → 审计 → 结果入会话
-5. 前端 `ChatMessage` 新增 ActionConfirmCard（参数摘要 + 确认/取消）
-6. 权限切面：execute 前 RBAC 校验；审计写入
+框架侧（已实施）：
+1. `Tool` DTO / `agent_tools` 表加 `risk` 字段（默认 L1，向后兼容）✅
+2. `ActionConfirmService`：签发/校验/消费 confirm_token（cache 存储）✅
+3. `AgentRuntime` 流式循环：AgentToolExecutor 遇 L2 工具 → 不执行，emit `pending_confirmation`，本轮结束 ✅
+4. `AssistantController` 新增 `POST confirm-action`：校验 token → execute → 审计 → 结果入会话 ✅
+5. 前端 `ChatMessage` 新增 ActionConfirmCard（参数摘要 + 确认/取消）✅
+6. 权限切面：execute 前 RBAC 校验；审计写入 ✅
+7. Node 流式链路 L2 拦截：`ToolExecuteController` 遇 L2 工具 → 签发令牌 → 返回 `pending_confirmation` 载荷 ✅
 
-scrm 侧试点 2–3 个工具（候选）：
+scrm 侧试点（待实施）：
 - `save_oauth_config`：保存 OAuth 平台配置（委托 Auth 模块 Service）
 - `tag_customer`：给客户打标签（委托 TagService）
 - `create_script_draft`：创建话术草稿（委托 ScriptService）

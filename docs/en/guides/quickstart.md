@@ -34,6 +34,5 @@ php artisan db:seed   # Creates platform tenant
 ## Next Steps
 
 - [User Manual](../user-manual.md) — Full feature documentation
-- [RBAC Guide](rbac-guide.md) — Permission configuration
-- [Billing Config](billing-config.md) — Subscription setup
-- [AI Module Guide](ai-module-guide.md) — AI capabilities
+- [Chinese User Manual](../../zh/user-manual.md) — Detailed feature documentation (Chinese)
+- [API Overview](../../zh/api/api-overview.md) — API reference (Chinese)

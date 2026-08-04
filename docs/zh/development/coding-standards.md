@@ -113,7 +113,7 @@ class TenantController extends BaseController
 
 ### 基本原则
 - **所有 Controller 必须使用 API Resource 返回数据**：禁止直接返回模型或数组
-- **Resource 位置**：`app/Http/Resources/`
+- **Resource 位置**：`src/Modules/{Module}/Http/Resources/`
 - **命名规范**：`{Model}Resource`（如 `UserResource`、`TenantResource`）
 
 ### 数据脱敏规则
@@ -193,7 +193,7 @@ return new UserResource($user);
 ### 类型声明
 - 所有方法参数必须有类型声明
 - 所有方法必须有返回值类型声明
-- 使用 PHP 8.1+ 特性（枚举、只读属性等）
+- 使用 PHP 8.3+ 特性（枚举、只读属性等）
 
 ### 注释规范
 - 使用中文注释
@@ -205,7 +205,7 @@ return new UserResource($user);
 ```php
 <?php
 
-namespace App\Http\Resources;
+namespace MultiTenantSaas\Modules\User\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;

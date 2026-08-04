@@ -1,6 +1,22 @@
 # 服务层 API
 
-**最后更新**: 2026-06-18
+**最后更新**: 2026-08-04
+
+---
+
+> **命名空间说明**：所有服务类位于 `MultiTenantSaas\Modules\{Module}\Services\` 命名空间下。以下代码示例为简洁使用短类名，实际使用时需完整命名空间或 `use` 导入。
+>
+> | 服务 | 命名空间 |
+> |------|----------|
+> | TenantService, TenantSettingService, TenantCreditService, TenantMemberService, TenantCloneService, TenantKeyService, WebhookService, IsolationService, DataResidencyService, CrossTenantService, ResourceService, IdGenerator | `MultiTenantSaas\Modules\Infrastructure\Services` |
+> | UserService | `MultiTenantSaas\Modules\User\Services` |
+> | SystemSettingService, FeatureFlagService | `MultiTenantSaas\Modules\Platform\Services` |
+> | CostService | `MultiTenantSaas\Modules\Billing\Services` |
+> | ReportService, ErrorTrackingService | `MultiTenantSaas\Modules\Infrastructure\Services` |
+> | BroadcastingService | `MultiTenantSaas\Modules\Event\Services` |
+> | InAppNotificationService | `MultiTenantSaas\Modules\Notification\Services` |
+> | SandboxService | `MultiTenantSaas\Modules\DeveloperPortal\Services` |
+> | MetricsService, SlaService | `MultiTenantSaas\Modules\Monitoring\Services` |
 
 ---
 
@@ -15,7 +31,7 @@
 获取租户列表（带分页和筛选）。
 
 ```php
-$tenantService = app(TenantService::class);
+$tenantService = app(\MultiTenantSaas\Modules\Infrastructure\Services\TenantService::class);
 
 $tenants = $tenantService->list([
     'search' => 'keyword',
@@ -125,7 +141,7 @@ const GROUP_REGISTRATION = 'registration';  // 开放注册配置
 获取企业信息配置。
 
 ```php
-$settingService = app(TenantSettingService::class);
+$settingService = app(\MultiTenantSaas\Modules\Infrastructure\Services\TenantSettingService::class);
 
 $info = $settingService->getTenantInfo(1234567890123456);
 // 返回: array
@@ -222,7 +238,7 @@ $settingService->updateRegistrationConfig(1234567890123456, [
 获取积分余额。
 
 ```php
-$creditService = app(TenantCreditService::class);
+$creditService = app(\MultiTenantSaas\Modules\Infrastructure\Services\TenantCreditService::class);
 
 $balance = $creditService->getBalance(1234567890123456);
 // 返回: int
@@ -275,7 +291,7 @@ $transactions = $creditService->getTransactions(1234567890123456);
 获取成员列表。
 
 ```php
-$memberService = app(TenantMemberService::class);
+$memberService = app(\MultiTenantSaas\Modules\Infrastructure\Services\TenantMemberService::class);
 
 $members = $memberService->list(1234567890123456, [
     'role' => 'tenant_admin',
@@ -395,7 +411,7 @@ $user = $oauthService->callback(1234567890123456, 'wechat', [
 查找用户。
 
 ```php
-$userService = app(UserService::class);
+$userService = app(\MultiTenantSaas\Modules\User\Services\UserService::class);
 
 $user = $userService->find(9876543210987654);
 // 返回: User
@@ -451,7 +467,7 @@ $result = $userService->delete(9876543210987654);
 获取系统配置。
 
 ```php
-$settingService = app(SystemSettingService::class);
+$settingService = app(\MultiTenantSaas\Modules\Platform\Services\SystemSettingService::class);
 
 $value = $settingService->get('app.name');
 // 返回: mixed
@@ -1034,4 +1050,4 @@ app(SlaService::class)->defineSla([
 ---
 
 **文档版本**: v1.1.0  
-**最后更新**: 2026-06-29
+**最后更新**: 2026-08-04

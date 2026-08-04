@@ -8,24 +8,26 @@
 
 | 优先级 | 模块 | 当前状态 | 需要补全 |
 |---|---|---|---|
-| P0 | **Billing** | 有 Controllers + Commands + Routes | Resources、Requests |
-| P0 | **User** | 有 Controllers + Resources + Routes | Requests |
-| P0 | **Auth** | 有 Controllers + Routes | Resources、Requests |
-| P1 | **Infrastructure** | 有 Controller + Routes | Resources |
-| P1 | **Logging** | 有 Controller + Routes | Resources |
-| P1 | **Platform** | 有 Controller + Routes | Resources |
-| P2 | **Domain** | 有 Controller + Routes | Resources、Commands |
-| P2 | **SSL** | 有 Controller + Routes | Resources |
-| P2 | **Payment** | 有 Controller + Routes | Resources、Commands |
-| P2 | **ApiToken** | 有 Controller + Routes | Resources |
-| P3 | **Notification** | 有 Controller + Routes | Resources |
-| P3 | **Storage** | 有 Controller + Routes | Resources |
-| P3 | **Event** | 只有 ServiceProvider | 全部 |
-| P3 | **Plugin** | 只有 ServiceProvider | 全部 |
-| P3 | **Monitoring** | 只有 ServiceProvider | 全部 |
-| P3 | **DeveloperPortal** | 只有 ServiceProvider | 全部 |
-| P3 | **Conversation** | 有 Resources | Controllers + Routes |
-| P3 | **Workflow** | 只有 ServiceProvider | 全部 |
+| P0 | **Billing** | ✅ Controllers + Commands + Routes + Resources | — |
+| P0 | **User** | ✅ Controllers + Resources + Routes | — |
+| P0 | **Auth** | ✅ Controllers + Routes + Resources + Requests | — |
+| P1 | **Infrastructure** | ✅ Controllers + Routes + Resources | — |
+| P1 | **Logging** | ✅ Controllers + Routes + Resources | — |
+| P1 | **Platform** | ✅ Controllers + Routes + Resources | — |
+| P2 | **Domain** | ✅ Controllers + Routes + Resources + Commands | — |
+| P2 | **SSL** | ✅ Controllers + Routes + Resources | — |
+| P2 | **Payment** | ✅ Controllers + Routes + Resources | — |
+| P2 | **ApiToken** | ✅ Controllers + Routes + Resources | — |
+| P3 | **Notification** | ✅ Controllers + Routes + Resources | — |
+| P3 | **Storage** | ✅ Controllers + Routes + Resources | — |
+| P3 | **Event** | 有 Routes + Services + Models | Controllers + Resources |
+| P3 | **Plugin** | 有 Routes + Services | Controllers + Resources |
+| P3 | **Monitoring** | 有 Routes + Services + Models | Controllers + Resources |
+| P3 | **DeveloperPortal** | 有 Routes + Services | Controllers + Resources |
+| P3 | **Conversation** | 有 Routes + Services + Models + Http | Controllers |
+| P3 | **Workflow** | 有 Routes + Services + Models | Controllers + Resources |
+
+> **注**：另有 6 个模块未在原计划中，已完整实现：**Ai**, **AiStreaming**, **Campaign**, **Commerce**, **Ibot**, **Knowledge**, **Lottery**, **Sms**, **Ticket**, **Voting**, **Operator**, **Coupon**, **Form**。
 
 ## 执行策略
 

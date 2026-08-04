@@ -1,6 +1,6 @@
 # 系统架构概览
 
-**最后更新**: 2026-08-01
+**最后更新**: 2026-08-04
 
 ---
 
@@ -10,7 +10,7 @@
 2. **四重访问架构**: admin/console/app/guest 四层访问控制
 3. **RBAC 细粒度权限**: 角色 + 权限节点，60+ 权限，中间件级路由保护
 4. **双账户体系**: Operator（运营者）+ User（终端用户）完全独立的身份系统
-5. **模块化设计**: 30 个可选模块 + 20 个接口，面向接口架构
+5. **模块化设计**: 32 个可选模块 + 20 个接口，面向接口架构
 6. **配置驱动**: 通过配置文件控制行为，无需修改代码
 7. **领域事件驱动**: 14 个领域事件 + 10 个事件监听注册，覆盖租户/Agent/Tool 生命周期
 8. **领域异常体系**: DomainException 基类 + 11 个具体异常，携带 HTTP 状态码（402/403/404/409/429/500/502/503）
@@ -65,6 +65,7 @@
 | `CheckRbacPermission` | `rbac.permission` | RBAC 细粒度权限控制（按路由配置） | 4 |
 | `EnsureTenantContext` | `tenant.ensure` | 确保租户上下文有效 | 5 |
 | `SetLocale` | `locale.set` | 自动设置请求语言 | 6 |
+| `RejectPlatformDomain` | — | 阻止平台域名访问 console 路由 | — |
 
 ### 2. 上下文管理
 
@@ -127,14 +128,16 @@
 
 ## 模块系统
 
-框架内置 30 个模块，每个模块是独立的 Composer 包，通过 `ModuleServiceProvider` 基类自动注册路由、迁移和配置。
+框架内置 32 个模块，每个模块是独立的 Composer 包，通过 `ModuleServiceProvider` 基类自动注册路由、迁移和配置。
 
 ```
 src/Modules/
 ├── Ai/              # AI 网关（多提供商、Agent 框架、记忆系统）
 ├── ApiToken/        # API Token 管理（用户级 Token + abilities）
 ├── Auth/            # 认证（登录/注册/MFA/SSO/密码管理）
+├── AiStreaming/     # AI 流式网关（Node SSE 引擎契约 API）
 ├── Billing/         # 订阅计费（计划/历史/升降级）
+├── Commerce/        # 商城模块（SKU/订单/履约/模块权益）
 ├── Conversation/    # 多渠道会话（消息路由/通道管理）
 ├── Coupon/          # 优惠券系统（批量发放/推荐分享）
 ├── Domain/          # 域名管理（自定义域名/ICP/Nginx）
@@ -294,7 +297,7 @@ multi-tenant-saas/
 │   ├── Mail/               # 邮件类
 │   ├── Middleware/         # 中间件
 │   ├── Models/             # 框架模型
-│   ├── Modules/            # 30 个模块（独立 Composer 包）
+│   ├── Modules/            # 32 个模块（独立 Composer 包）
 │   ├── Scopes/             # 全局作用域（TenantScope）
 │   ├── Services/           # 服务层
 │   └── TenancyServiceProvider.php
@@ -313,13 +316,14 @@ multi-tenant-saas/
 
 事件由 `LogEventListener` 自动监听并记录审计日志。通知类通过 Laravel Notification 系统异步发送。
 
-### 数据库表总览（37 张表）
+### 数据库表总览（42 张表）
 
 | 业务域 | 表名 |
 |--------|------|
 | 租户域 | tenants, tenant_users, tenant_settings |
 | 用户域 | users, password_reset_tokens, email_verification_tokens |
 | RBAC | permissions, roles, role_permissions |
+| 商城 | commerce_skus, commerce_orders, commerce_order_items, module_entitlements |
 | 积分财务 | credit_accounts, credit_transactions, financial_records |
 | 订阅 | subscription_plans, subscription_histories |
 | 支付 | payment_orders, user_payment_passwords, payment_logs |
@@ -332,6 +336,7 @@ multi-tenant-saas/
 | 审计 | audit_logs, structured_logs |
 | OAuth | oauth_accounts |
 | 系统 | system_settings, user_api_tokens, user_preferences, api_versions, plugins, plugin_dependencies, rate_limit_rules, export_tasks, alert_rules, alerts |
+| 渠道 | channels |
 | 框架基础 | cache, sessions, personal_access_tokens |
 
 ---

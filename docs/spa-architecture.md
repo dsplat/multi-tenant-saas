@@ -1,6 +1,6 @@
 # SPA 架构设计文档
 
-> 版本: v2.9.0 | 日期: 2026-08-01
+> 版本: v2.10.0 | 日期: 2026-08-04
 
 ## 0. 三种 SPA 模式总览
 
@@ -242,12 +242,13 @@ src/Modules/customer/resources/console/ui/
 | `vite.config.ts` | 项目 | ~100 | Vite 编译配置，路径 alias 解析 |
 | `main.ts` | 项目→框架 | 8 | 入口 wrapper |
 | `module-loader.ts` | 项目→框架 | 5 | re-export wrapper |
-| `main.ts` | 框架 | ~104 | Vue 初始化 + UI 框架注册 |
-| `router/index.ts` | 框架 | ~108 | 路由注册 + 自动发现 + 守卫 |
-| `module-loader.ts` | 框架 | ~380 | glob 扫描 + view() + 导航构建 |
-| `stores/user.ts` | 框架 | ~100 | 用户认证状态管理 |
-| `ConsoleLayout.vue` | 框架×2 | ~163 | Bootstrap 布局（自发现侧边栏） |
-| `ConsoleLayout.vue` | 框架×2 | ~140 | Element Plus 布局（自发现侧边栏） |
+| `main.ts` | 框架 | ~121 | Vue 初始化 + UI 框架注册 |
+| `router/index.ts` | 框架 | ~110 | 路由注册 + 自动发现 + 守卫 |
+| `module-loader.ts` | 框架 | ~487 | glob 扫描 + view() + 导航构建 |
+| `stores/user.ts` | 框架 | ~155 | 用户认证状态管理 |
+| `ConsoleLayout.vue` | 框架×2 | ~162 | Bootstrap 布局（自发现侧边栏） |
+| `ConsoleLayout.vue` | 框架×2 | ~164 | Element Plus 布局（自发现侧边栏） |
+| `SelectTenant.vue` | 框架 | ~279 | 卡片式租户选择页（Element Plus，多租户 Operator 登录后选择团队） |
 
 ---
 

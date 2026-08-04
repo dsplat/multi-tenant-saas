@@ -8,6 +8,10 @@
 
 租户上下文管理器，用于获取和设置当前请求的租户信息。
 
+```php
+use MultiTenantSaas\Context\TenantContext;
+```
+
 ### 方法
 
 #### getId()
@@ -100,7 +104,7 @@ TenantContext::clear();
 生成新的全局唯一 ID。
 
 ```php
-$idGenerator = app(IdGenerator::class);
+$idGenerator = app(\MultiTenantSaas\Modules\Infrastructure\Services\IdGenerator::class);
 $id = $idGenerator->generate();
 // 返回: int (如 1234567890123456)
 ```
@@ -145,7 +149,7 @@ $isSafe = $idGenerator->isJsSafe('1234567890123456');
 获取租户列表（带分页和筛选）。
 
 ```php
-$tenantService = app(TenantService::class);
+$tenantService = app(\MultiTenantSaas\Modules\Infrastructure\Services\TenantService::class);
 
 $tenants = $tenantService->list([
     'search' => 'keyword',
@@ -245,7 +249,7 @@ $financials = $tenantService->getFinancials(1234567890123456);
 获取企业信息配置。
 
 ```php
-$settingService = app(TenantSettingService::class);
+$settingService = app(\MultiTenantSaas\Modules\Infrastructure\Services\TenantSettingService::class);
 
 $info = $settingService->getTenantInfo(1234567890123456);
 // 返回: array
@@ -372,4 +376,4 @@ $id = generate_id();
 ---
 
 **文档版本**: v1.0.0  
-**最后更新**: 2026-06-18
+**最后更新**: 2026-08-04

@@ -1,7 +1,7 @@
 # 框架设计原则与常见陷阱
 
 > 从四轮代码审查和实际架构中提炼的设计约束、易犯错误、反模式。
-> **最后更新**: 2026-08-01
+> **最后更新**: 2026-08-04
 > **关联文档**: `docs/zh/architecture/framework-internals.md`、`docs/zh/development/coding-standards.md`
 
 ---

@@ -21,7 +21,7 @@
 ### Task 1: Create SchedulerService
 
 **Files:**
-- Create: `src/Services/SchedulerService.php`
+- Create: `src/Modules/Infrastructure/Services/SchedulerService.php`
 - Test: `tests/SchedulerServiceTest.php`
 
 **Interfaces:**
@@ -34,7 +34,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\SchedulerService;
+use MultiTenantSaas\Modules\Infrastructure\Services\SchedulerService;
 use Illuminate\Support\Facades\Schedule;
 
 class SchedulerServiceTest extends TestCase
@@ -445,8 +445,8 @@ namespace MultiTenantSaas\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use MultiTenantSaas\Models\CustomReport;
-use MultiTenantSaas\Services\ReportService;
+use MultiTenantSaas\Modules\Infrastructure\Models\CustomReport;
+use MultiTenantSaas\Modules\Infrastructure\Services\ReportService;
 
 class ProcessScheduledReports extends Command
 {
@@ -533,7 +533,7 @@ git commit -m "feat: add reports:send-scheduled command for scheduled reports"
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
-use MultiTenantSaas\Services\SchedulerService;
+use MultiTenantSaas\Modules\Infrastructure\Services\SchedulerService;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -606,7 +606,7 @@ Expected: FAIL
 namespace MultiTenantSaas\Console\Commands;
 
 use Illuminate\Console\Command;
-use MultiTenantSaas\Services\SchedulerService;
+use MultiTenantSaas\Modules\Infrastructure\Services\SchedulerService;
 
 class ScheduleListCommand extends Command
 {

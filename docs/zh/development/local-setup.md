@@ -6,7 +6,7 @@
 
 ## 环境要求
 
-- PHP 8.2+
+- PHP 8.3+
 - MySQL 8.0+
 - Redis 7.0+
 - Nginx
@@ -60,9 +60,9 @@ php artisan tinker
 ```
 
 ```php
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Models\TenantUser;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 
 // 创建系统管理员
 $admin = User::create([
@@ -193,7 +193,7 @@ brew services start php
 ### 配置 PHP-FPM
 
 ```ini
-; /opt/homebrew/etc/php/8.2/php-fpm.d/www.conf
+; /opt/homebrew/etc/php/8.3/php-fpm.d/www.conf
 [www]
 user = arthur
 group = staff
@@ -293,8 +293,8 @@ php artisan tinker
 ```
 
 ```php
-use MultiTenantSaas\Models\User;
-use MultiTenantSaas\Models\TenantUser;
+use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 
 $user = User::where('email', 'admin@example.com')->first();
 $user->role; // 应该是 'super_admin'

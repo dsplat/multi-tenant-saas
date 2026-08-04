@@ -1,8 +1,10 @@
 # 平台-租户商业体：统一 SKU 抽象分析
 
-> **文档性质**: 架构分析（实现方案前置分析，未进入开发）
+> **文档性质**: 架构分析（已完成实施，Phase 1/2/3 均已落地）
 > **创建日期**: 2026-08-03
-> **关联文档**: `docs/tenant-commerce-plan.md`（需求）、`docs/tenant.md`（租户体系）
+> **最后更新**: 2026-08-04
+> **关联文档**: `docs/tenant-commerce-plan.md`（需求）、`docs/tenant.md`（租户体系）、`docs/commerce-module-plan.md`（技术方案）
+> **实施状态**: ✅ 全部已实施（见 `src/Modules/Commerce/`）
 
 ---
 
@@ -116,9 +118,8 @@ supply_grants（供给授权，3/4 共用的履约产物中间层）
 
 ```php
 interface CommerceFulfillmentHandler {
-    public function fulfill(OrderItem $item): void;    // 正向履约
-    public function revoke(OrderItem $item): void;     // 退款/撤销回收
-    public function expire(GrantRecord $grant): void;  // 到期处理（订阅/授权类）
+    public function fulfill(CommerceOrderItem $item): void;    // 正向履约
+    public function revoke(CommerceOrderItem $item): void;     // 退款/撤销回收
 }
 ```
 

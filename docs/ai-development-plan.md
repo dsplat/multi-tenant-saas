@@ -14,7 +14,7 @@
 ## 关键约束
 
 - 落点均在 `src/Modules/Ai/`，与 AiTextService 同层，由 AiServiceProvider 注册。
-- 复用已有基建：AiConfigService（特性开关）、AiUsageService（配额/预算）、AgentMonitor（监控）、AgentRuntime（编排）+ AgentChatClient（推理）+ AgentToolExecutor（工具执行）。
+- 复用已有基建：AiConfigService（特性开关）、AiUsageService（配额/预算）、AgentMonitor（监控）、AgentRuntime（编排，已拆分为 AgentChatClient/AgentContextBuilder/AgentToolExecutor 三个协作者）。
 - 项目层禁止自建上述任何能力，必须复用本层。
 - 部署顺序：框架先于项目。
 
@@ -152,6 +152,7 @@ class IntentRouter
 
 - `POST ai/assistant`：接收 PageContext + user_intent → IntentRouter 路由 → AgentRuntime 编排 → AgentChatClient 推理 → AgentToolExecutor 执行，流式返回。
 - 写操作约束：写工具只产出草稿，落库由业务 Service + 人确认完成（路由器/工具层强制）。
+- **已实现**：AssistantController + IntentRouter + PageContext 已就位（`src/Modules/Ai/Http/Controllers/AssistantController.php`）。
 
 ### 路由注册
 
@@ -169,6 +170,15 @@ Route::post('ai/assistant', [AssistantController::class, 'handle'])
 - `composer dump-autoload`。
 - `php artisan test --filter AiOptionalTest` 全绿。
 - 确认 AiServiceProvider 注册后 `app(AiOptional::class)` 可解析。
+
+## 实施状态
+
+| 能力 | 文件 | 状态 |
+|------|------|------|
+| AiOptional 可选性包装器 | `src/Modules/Ai/Services/AiOptional.php` + `src/Modules/Ai/DTOs/AiResult.php` | ✅ 已实现 |
+| PageContext 上下文协议 | `src/Modules/Ai/DTOs/PageContext.php` | ✅ 已实现 |
+| IntentRouter 意图路由器 | `src/Modules/Ai/Services/IntentRouter.php` | ✅ 已实现 |
+| AssistantController | `src/Modules/Ai/Http/Controllers/AssistantController.php` | ✅ 已实现 |
 
 ## 部署
 

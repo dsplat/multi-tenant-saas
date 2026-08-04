@@ -1,6 +1,6 @@
 # AI 模块架构
 
-**最后更新**: 2026-08-01
+**最后更新**: 2026-08-04
 
 ---
 
@@ -178,6 +178,49 @@ AgentRuntime（编排器）
 | `video.*` | 视频默认 provider/model/resolution/duration/fps/轮询参数/回调事件 |
 | `tenant.*` | 租户默认能力开关、月度预算、超额策略 |
 | `quota.*` | 计费周期（monthly）、告警阈值（0.8） |
+
+---
+
+## AiStreaming 模块（Node SSE 流式网关）
+
+AiStreaming 模块为 Node SSE 引擎提供 PHP 侧契约 API，实现流式对话的鉴权、配置解析与工具执行。
+
+### 架构
+
+```
+Node SSE 引擎
+  ├─ POST /api/v1/ai-streaming/resolve     → ResolveController（鉴权 + 配额检查 + 返回 Agent 配置）
+  ├─ POST /api/v1/ai-streaming/tools/execute → ToolExecuteController（执行 tool_calls）
+  ├─ POST /api/v1/ai-streaming/messages/report → MessageReportController（回写消息记录）
+  └─ POST /api/v1/ai-streaming/usage/report   → UsageReportController（上报用量）
+```
+
+### 核心流程
+
+1. Node 引擎发起 `resolve` 请求，携带 `agent_id` + `conversation_id`
+2. `ResolveController` 完成鉴权、租户识别、配额/预算前置检查
+3. 返回 Agent 的模型端点、系统提示词、工具定义（含 `tool_card` 状态元数据）
+4. Node 引擎执行流式推理，tool_calls 通过 `tools/execute` 回调 PHP 侧执行
+5. 流式结束后通过 `messages/report` 回写消息，`usage/report` 上报用量
+
+### 工具卡片状态（Tool Card Status）
+
+流式场景下，tool_calls 携带 `tool_card` 状态元数据，前端可据此渲染工具执行进度：
+
+| 状态 | 说明 |
+|------|------|
+| `pending` | 工具调用已发起，等待执行 |
+| `running` | 工具正在执行 |
+| `completed` | 工具执行成功 |
+| `failed` | 工具执行失败 |
+| `awaiting_confirmation` | L2 工具等待用户确认 |
+
+### 与 AgentRuntime 的关系
+
+- **非流式路径**：`AgentRuntime::run()` 直接在 PHP 侧完成推理 + 工具执行循环
+- **流式路径**：`AiStreaming/ResolveController` 仅负责配置解析，推理由 Node SSE 引擎完成，工具执行通过 `ToolExecuteController` 回调
+
+两条路径共享 `Agent` 模型配置（`default_model`、`system_prompt`、`tools` JSON 列）和 `ToolRegistry`。
 
 ---
 

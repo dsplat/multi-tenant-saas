@@ -23,7 +23,7 @@
 ### Task 1: Create BackupService — Tenant Backup
 
 **Files:**
-- Create: `src/Services/BackupService.php`
+- Create: `src/Modules/Infrastructure/Services/BackupService.php`
 - Test: `tests/BackupServiceTest.php`
 
 **Interfaces:**
@@ -38,7 +38,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Services\BackupService;
+use MultiTenantSaas\Modules\Infrastructure\Services\BackupService;
 
 class BackupServiceTest extends TestCase
 {
@@ -348,7 +348,7 @@ git commit -m "feat: add BackupService with tenant backup/restore"
 namespace MultiTenantSaas\Console\Commands;
 
 use Illuminate\Console\Command;
-use MultiTenantSaas\Services\BackupService;
+use MultiTenantSaas\Modules\Infrastructure\Services\BackupService;
 
 class BackupRunCommand extends Command
 {
@@ -371,7 +371,7 @@ class BackupRunCommand extends Command
         }
 
         // 备份所有活跃租户
-        $tenants = \MultiTenantSaas\Models\Tenant::where('status', 'active')->pluck('tenant_id');
+        $tenants = \MultiTenantSaas\Modules\Infrastructure\Models\Tenant::where('status', 'active')->pluck('tenant_id');
         $this->info("开始备份 {$tenants->count()} 个活跃租户...");
 
         foreach ($tenants as $id) {
@@ -398,7 +398,7 @@ class BackupRunCommand extends Command
 namespace MultiTenantSaas\Console\Commands;
 
 use Illuminate\Console\Command;
-use MultiTenantSaas\Services\BackupService;
+use MultiTenantSaas\Modules\Infrastructure\Services\BackupService;
 
 class BackupListCommand extends Command
 {
@@ -456,7 +456,7 @@ class BackupListCommand extends Command
 namespace MultiTenantSaas\Console\Commands;
 
 use Illuminate\Console\Command;
-use MultiTenantSaas\Services\BackupService;
+use MultiTenantSaas\Modules\Infrastructure\Services\BackupService;
 
 class BackupRestoreCommand extends Command
 {

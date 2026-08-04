@@ -354,6 +354,76 @@ version:
 | created_at | timestamp | 是 | - |  |
 | updated_at | timestamp | 是 | - |  |
 
+## commerce_order_items
+
+| 字段 | 类型 | 可空 | 默认值 | 说明 |
+|---|---|---|---|---|
+| item_id | bigint unsigned | 否 | - | 订单项ID（全局ID） |
+| order_id | bigint unsigned | 否 | - | 所属订单 |
+| sku_id | bigint unsigned | 否 | - | SKU 引用 |
+| qty | int | 否 | 1 | 数量 |
+| unit_price | decimal(12,2) | 否 | 0 | 单价 |
+| fulfill_status | varchar(20) | 否 | pending | 履约状态: pending/fulfilled/failed/revoked |
+| fulfill_at | timestamp | 是 | - | 履约时间 |
+| retry_count | int | 否 | 0 | 重试次数 |
+| fail_reason | varchar(500) | 是 | - | 失败原因 |
+| payload_snapshot | json | 是 | - | 下单时 SKU payload 快照 |
+| created_at | timestamp | 是 | - |  |
+| updated_at | timestamp | 是 | - |  |
+
+## commerce_orders
+
+| 字段 | 类型 | 可空 | 默认值 | 说明 |
+|---|---|---|---|---|
+| order_id | bigint unsigned | 否 | - | 订单ID（全局ID） |
+| order_no | varchar(64) | 否 | - | 订单号 |
+| tenant_id | bigint unsigned | 否 | - | 租户ID |
+| amount | decimal(12,2) | 否 | 0 | 订单金额 |
+| status | varchar(20) | 否 | pending | 状态: pending/paid/fulfilled/partial_failed/cancelled/refunded |
+| payment_order_id | bigint unsigned | 是 | - | 关联支付单（PaymentOrder，1:1） |
+| paid_at | timestamp | 是 | - | 支付时间 |
+| operator_id | bigint unsigned | 是 | - | 下单 Operator |
+| created_at | timestamp | 是 | - |  |
+| updated_at | timestamp | 是 | - |  |
+
+## commerce_skus
+
+| 字段 | 类型 | 可空 | 默认值 | 说明 |
+|---|---|---|---|---|
+| sku_id | bigint unsigned | 否 | - | SKU ID（全局ID） |
+| name | varchar(120) | 否 | - | 商品名称 |
+| type | varchar(30) | 否 | - | 类型: plan/module/credit_pack/content_pack/mall_supply |
+| role | varchar(20) | 否 | consumer | 第一级分类: consumer/supply |
+| lifecycle | varchar(20) | 否 | one_time | 生命周期: subscription/one_time/consumable/grant |
+| fulfill_handler | varchar(60) | 否 | - | 履约 Handler 标识 |
+| price | decimal(12,2) | 否 | 0 | 售价 |
+| billing_cycle | varchar(20) | 是 | - | 计费周期: monthly/yearly（订阅类） |
+| payload | json | 是 | - | 差异化参数（模块名/积分面额/套餐ID等） |
+| refundable | tinyint(1) | 否 | 0 | 是否可退款（积分包恒 false） |
+| status | varchar(20) | 否 | draft | 状态: draft/active/retired |
+| sort_order | int | 否 | 0 | 排序 |
+| created_at | timestamp | 是 | - |  |
+| updated_at | timestamp | 是 | - |  |
+
+## channels
+
+| 字段 | 类型 | 可空 | 默认值 | 说明 |
+|---|---|---|---|---|
+| channel_id | bigint unsigned | 否 | - | 频道ID（全局ID） |
+| tenant_id | bigint unsigned | 否 | - | 租户ID |
+| type | varchar(50) | 否 | - | 频道类型: wechat_work, telegram, wechat_official, sms |
+| name | varchar(200) | 是 | - | 频道显示名称 |
+| app_id | varchar(200) | 是 | - | 应用ID / CorpID / Bot Username |
+| app_secret | text | 是 | - | 应用密钥（加密存储） |
+| agent_id | varchar(100) | 是 | - | 企微 AgentID 等 |
+| callback_token | varchar(200) | 是 | - | 回调验证 Token |
+| encoding_aes_key | varchar(200) | 是 | - | 消息加解密密钥 |
+| status | varchar(20) | 否 | active | 状态: active / inactive / error |
+| metadata | json | 是 | - | 扩展配置（webhook_url, proxy 等） |
+| last_connected_at | timestamp | 是 | - | 最后连接时间 |
+| created_at | timestamp | 是 | - |  |
+| updated_at | timestamp | 是 | - |  |
+
 ## conversation_sessions
 
 | 字段 | 类型 | 可空 | 默认值 | 说明 |
@@ -520,7 +590,9 @@ version:
 | tenant_id | bigint unsigned | 否 | - | 租户ID |
 | user_id | bigint unsigned | 是 | - | 用户ID（NULL表示租户级账户） |
 | account_type | enum('enterprise','personal') | 否 | personal | 账户类型 |
-| balance | bigint unsigned | 否 | 0 | 账户余额 |
+| balance | bigint unsigned | 否 | 0 | 账户余额（= gift_balance + recharge_balance） |
+| gift_balance | bigint unsigned | 否 | 0 | 赠送余额（优先扣减） |
+| recharge_balance | bigint unsigned | 否 | 0 | 充值余额 |
 | total_recharged | bigint unsigned | 否 | 0 | 累计充值 |
 | total_consumed | bigint unsigned | 否 | 0 | 累计消费 |
 | expires_at | timestamp | 是 | - | 账户积分过期时间 |
@@ -1057,6 +1129,21 @@ version:
 | used_at | timestamp | 是 | - |  |
 | created_at | timestamp | 是 | - |  |
 
+## module_entitlements
+
+| 字段 | 类型 | 可空 | 默认值 | 说明 |
+|---|---|---|---|---|
+| entitlement_id | bigint unsigned | 否 | - | 权益ID（全局ID） |
+| tenant_id | bigint unsigned | 否 | - | 租户ID |
+| module_name | varchar(60) | 否 | - | 模块标识 |
+| source | varchar(20) | 否 | purchase | 来源: plan/purchase/system |
+| source_order_id | bigint unsigned | 是 | - | 来源订单 |
+| valid_from | timestamp | 是 | - | 生效时间 |
+| valid_until | timestamp | 是 | - | 失效时间（NULL=永久买断） |
+| status | varchar(20) | 否 | active | 状态: active/expired/revoked |
+| created_at | timestamp | 是 | - |  |
+| updated_at | timestamp | 是 | - |  |
+
 ## modules
 
 | 字段 | 类型 | 可空 | 默认值 | 说明 |
@@ -1221,6 +1308,43 @@ version:
 | display_name | varchar(200) | 否 | - |  |
 | group | varchar(50) | 否 | general | 权限分组 |
 | description | text | 是 | - |  |
+| created_at | timestamp | 是 | - |  |
+| updated_at | timestamp | 是 | - |  |
+
+## platform_content_pack_items
+
+| 字段 | 类型 | 可空 | 默认值 | 说明 |
+|---|---|---|---|---|
+| pack_id | bigint unsigned | 否 | - | 内容包ID |
+| content_id | bigint unsigned | 否 | - | 内容ID |
+| sort_order | int | 否 | 0 | 排序 |
+
+## platform_content_packs
+
+| 字段 | 类型 | 可空 | 默认值 | 说明 |
+|---|---|---|---|---|
+| pack_id | bigint unsigned | 否 | - | 内容包ID（全局ID） |
+| name | varchar(200) | 否 | - | 包名 |
+| description | varchar(500) | 是 | - | 描述 |
+| cover_url | varchar(500) | 是 | - | 封面 |
+| status | varchar(20) | 否 | draft | 状态: draft/active/retired |
+| sort_order | int | 否 | 0 | 排序 |
+| created_at | timestamp | 是 | - |  |
+| updated_at | timestamp | 是 | - |  |
+
+## platform_contents
+
+| 字段 | 类型 | 可空 | 默认值 | 说明 |
+|---|---|---|---|---|
+| content_id | bigint unsigned | 否 | - | 内容ID（全局ID） |
+| title | varchar(200) | 否 | - | 标题 |
+| type | varchar(30) | 否 | article | 类型: article/video/audio/image/file |
+| body | text | 是 | - | 正文（富文本/纯文本） |
+| file_url | varchar(500) | 是 | - | 媒体文件地址 |
+| cover_url | varchar(500) | 是 | - | 封面 |
+| tags | json | 是 | - | 标签 |
+| status | varchar(20) | 否 | draft | 状态: draft/published/retired |
+| sort_order | int | 否 | 0 | 排序 |
 | created_at | timestamp | 是 | - |  |
 | updated_at | timestamp | 是 | - |  |
 
@@ -1480,6 +1604,22 @@ version:
 | limits | json | 是 | - | 资源限制: max_users/max_storage等 |
 | is_active | tinyint(1) | 否 | 1 |  |
 | sort_order | smallint unsigned | 否 | 0 |  |
+| created_at | timestamp | 是 | - |  |
+| updated_at | timestamp | 是 | - |  |
+
+## supply_grants
+
+| 字段 | 类型 | 可空 | 默认值 | 说明 |
+|---|---|---|---|---|
+| grant_id | bigint unsigned | 否 | - | 授权ID（全局ID） |
+| tenant_id | bigint unsigned | 否 | - | 获授权租户 |
+| sku_id | bigint unsigned | 否 | - | 供给 SKU 引用 |
+| source_order_id | bigint unsigned | 是 | - | 来源订单 |
+| status | varchar(20) | 否 | active | 状态: active/suspended/expired/revoked |
+| valid_from | timestamp | 是 | - | 生效时间 |
+| valid_until | timestamp | 是 | - | 失效时间（NULL=永久） |
+| settlement | json | 是 | - | 结算参数（供货价/分成比例/模式） |
+| instance_payload | json | 是 | - | 履约产物引用（content_id / points_product_id 等） |
 | created_at | timestamp | 是 | - |  |
 | updated_at | timestamp | 是 | - |  |
 

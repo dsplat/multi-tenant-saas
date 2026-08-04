@@ -123,7 +123,7 @@ LLM 本质是概率性的、不透明的。让它值得信赖的唯一办法，�
 | **配额 / 预算闸门** | `AiUsageService::checkQuota/checkBudget/checkOverage` + `record*Usage` | ✅ 已实现 |
 | **可观测** | `AgentMonitor`（logConversationTurn/logToolCall/getTokenUsage/getCostEstimate） | ✅ 已实现 |
 | MCP 能力外暴露 | `McpToolRegistry` / `McpSkillGenerator` | ✅ 已实现 |
-| **可选性降级包装器 `AiOptional`** | 统一 fail-open 入口（开关+配额+try/catch+超时+降级+自动监控） | ⬜ **待框架新增** |
+| **可选性降级包装器 `AiOptional`** | 统一 fail-open 入口（开关+配额+try/catch+超时+降级+自动监控） | ✅ **已实现** |
 
 ### 项目层（scrm-platform）——只做业务定制，一律复用框架
 
@@ -144,17 +144,17 @@ LLM 本质是概率性的、不透明的。让它值得信赖的唯一办法，�
 | 特性开关 | `AiConfigService::isCategoryEnabled` |
 | 配额 / 计费 | `AiUsageService` |
 | 调用监控 | `AgentMonitor` |
-| 降级包装 | `AiOptional`（框架待建，建成后项目统一复用） |
+| 降级包装 | `AiOptional`（框架已实现，项目统一复用） |
 
-### 框架层待建清单（汇总 · 按优先级）
+### 框架层基建清单（汇总 · 按优先级）
 
-> 以下三项是「框架层该实现」但当前缺失的能力，建成后由所有项目复用（详见第六、七部分）：
+> 以下三项是「框架层该实现」的能力，已全部建成并由项目复用（详见第六、七部分）：
 
-| 待建能力 | 落点 | 优先级 | 详见 |
-|---------|------|--------|------|
-| `AiOptional` 可选性降级包装器 | `MultiTenantSaas\Modules\Ai\Services` | P0 | 第六部分 |
-| PageContext 上下文协议 + SDK | 框架（前后端契约） | P1 | 第七部分 |
-| 意图识别 + 路由分发器 | 框架（可用「路由 agent」实现） | P1 | 第七部分 |
+| 基建能力 | 落点 | 优先级 | 状态 | 详见 |
+|---------|------|--------|------|------|
+| `AiOptional` 可选性降级包装器 | `MultiTenantSaas\Modules\Ai\Services\AiOptional.php` | P0 | ✅ 已实现 | 第六部分 |
+| PageContext 上下文协议 + SDK | `MultiTenantSaas\Modules\Ai\DTOs\PageContext.php` | P1 | ✅ 已实现 | 第七部分 |
+| 意图识别 + 路由分发器 | `MultiTenantSaas\Modules\Ai\Services\IntentRouter.php` | P1 | ✅ 已实现 | 第七部分 |
 
 ---
 
@@ -730,11 +730,11 @@ if ($result->degraded) { /* 可选：记录/提示「本次为规则结果」 */
 
 | 能力 | 层 | 状态 |
 |------|----|------|
-| PageContext 上下文协议（结构定义 + SDK） | 框架 | ⬜ 待建 |
-| 意图识别 + 路由分发器（route → agent） | 框架 | ⬜ 待建（可作为一个「路由 agent」用 `AgentRuntime` 编排实现） |
-| Agent 执行（ReAct + 流式 + 工具调用） | 框架 | ✅ `AgentRuntime`（编排）+ `AgentChatClient`（推理）+ `AgentToolExecutor`（执行） |
+| PageContext 上下文协议（结构定义 + SDK） | 框架 | ✅ `src/Modules/Ai/DTOs/PageContext.php` |
+| 意图识别 + 路由分发器（route → agent） | 框架 | ✅ `src/Modules/Ai/Services/IntentRouter.php`（关键词 + 模块映射 + 兜底） |
+| Agent 执行（ReAct + 流式 + 工具调用） | 框架 | ✅ `AgentRuntime`（编排）+ `AgentChatClient`（推理 + 降级）+ `AgentContextBuilder`（上下文）+ `AgentToolExecutor`（工具执行 + L2 确认） |
 | 工具注册与执行 | 框架 | ✅ `ToolRegistry` |
-| 可选性降级 | 框架 | ⬜ `AiOptional`（见第六部分） |
+| 可选性降级 | 框架 | ✅ `AiOptional`（见第六部分） |
 | 各模块 agent 定义 + 上下文提供器 + 动作执行器 | 项目 | ⬜ 项目实现（调既定 Service） |
 | 路由表注册（route 前缀 → agent） | 项目 | ⬜ 项目配置 |
 
@@ -781,8 +781,8 @@ graph TB
         FALLBACK[确定性兜底 规则/词库/人工]
     end
     subgraph FW[框架层 multi_tenant_saas · AI 基础设施]
-        AIOPT[AiOptional 可选性包装器 待建]
-        RT[AgentRuntime 编排 + AgentChatClient 推理 + AgentToolExecutor 执行]
+        AIOPT[AiOptional 可选性包装器 ✅]
+        RT[AgentRuntime 编排 + AgentChatClient 推理 + AgentContextBuilder 上下文 + AgentToolExecutor 执行]
         TXT[AiTextService / AiImageService / AiVideoService]
         REG[ToolRegistry / CapabilityRegistry]
         GOV[AiConfigService 开关 · AiUsageService 配额 · AgentMonitor 监控]

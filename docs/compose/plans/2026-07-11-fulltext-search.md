@@ -21,7 +21,7 @@
 ### Task 1: Create SearchService with LIKE Backend
 
 **Files:**
-- Create: `src/Services/SearchService.php`
+- Create: `src/Modules/Infrastructure/Services/SearchService.php`
 - Test: `tests/SearchServiceTest.php`
 
 **Interfaces:**
@@ -35,8 +35,8 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Models\Tenant;
-use MultiTenantSaas\Services\SearchService;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Services\SearchService;
 
 class SearchServiceTest extends TestCase
 {
@@ -315,7 +315,7 @@ Expected: FAIL
 namespace MultiTenantSaas\Concerns;
 
 use Illuminate\Database\Eloquent\Builder;
-use MultiTenantSaas\Services\SearchService;
+use MultiTenantSaas\Modules\Infrastructure\Services\SearchService;
 
 /**
  * 可搜索 Trait
@@ -390,7 +390,7 @@ git commit -m "feat: add Searchable trait with scopeSearch and configurable fiel
 Add to `register()`:
 
 ```php
-$this->app->singleton(\MultiTenantSaas\Services\SearchService::class);
+$this->app->singleton(\MultiTenantSaas\Modules\Infrastructure\Services\SearchService::class);
 ```
 
 - [ ] **Step 2: Add Searchable trait to Tenant model**
@@ -438,7 +438,7 @@ In `src/Services/UserService.php`, replace the LIKE block (around line 30-36) wi
 
 ```php
 if (! empty($filters['search'])) {
-    $query = app(\MultiTenantSaas\Services\SearchService::class)
+    $query = app(\MultiTenantSaas\Modules\Infrastructure\Services\SearchService::class)
         ->search($query, $filters['search'], ['name', 'email', 'phone']);
 }
 ```
@@ -560,7 +560,7 @@ Add to `docs/zh/user-manual.md` after the Mailer section:
 Centralized search via `SearchService`. Supports LIKE (default) and MySQL FULLTEXT backends.
 
 ```php
-use MultiTenantSaas\Services\SearchService;
+use MultiTenantSaas\Modules\Infrastructure\Services\SearchService;
 
 $search = app(SearchService::class);
 

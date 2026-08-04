@@ -2,7 +2,12 @@
 
 ## 概述
 
-框架提供 Admin 和 Console 两个 SPA 后台，支持 Element Plus 和 Bootstrap 5 两种 UI 风格。
+框架提供 Admin、Console 和 Public 三个 SPA：
+- **Admin** (`/admin/`) — 平台管理后台
+- **Console** (`/console/`) — 租户管理后台（含卡片式租户选择页）
+- **Public** (`/`) — 面向终端用户的公开页面（Scaffold 模式，项目完全自有）
+
+Admin 和 Console 支持 Element Plus 和 Bootstrap 5 两种 UI 风格，Public 为 Scaffold 模式（通过 `vendor:publish` 拉取源码）。
 
 ## 开发环境
 
@@ -110,7 +115,7 @@ return [
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `VITE_UI_FRAMEWORK` | 默认 UI 框架 | `element-plus` (admin) / `bootstrap` (console) |
+| `VITE_UI_FRAMEWORK` | 默认 UI 框架 | `element-plus`（admin 和 console 均默认） |
 
 ## 目录结构
 

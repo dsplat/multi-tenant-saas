@@ -2,13 +2,13 @@
 
 > TASK-001 新增模块文档  
 > 框架版本: v1.1.0  
-> 最后更新: 2026-06-27
+> 最后更新: 2026-08-04
 
 ---
 
 ## 概览
 
-TASK-001 在框架原有 21 个核心服务的基础上，新增 10 个 SaaS 核心模块，覆盖用户管理、租户管理、日志、缓存、队列、健康检查、监控告警、数据导出、API 网关与插件系统。
+TASK-001 在框架原有 21 个核心服务的基础上，新增 11 个 SaaS 核心模块，覆盖用户管理、租户管理、日志、缓存、队列、健康检查、监控告警、数据导出、API 网关、插件系统与 Commerce 商业化。
 
 所有新增服务均：
 - 以 `singleton` 注册在 `TenancyServiceProvider`，支持 DI 注入与派生项目替换
@@ -195,6 +195,34 @@ TASK-001 在框架原有 21 个核心服务的基础上，新增 10 个 SaaS 核
 
 插件目录约定：`plugins/{name}/manifest.json` + `Plugin\{Name}\PluginServiceProvider`
 
+### 2.11 Commerce 商业化模块 — `CommerceSkuService` + `CommerceOrderService` + `CommerceFulfillmentService`
+
+**CommerceSkuService（SKU 管理）：**
+| 方法 | 说明 |
+|------|------|
+| `createSku(array $data): CommerceSku` | 创建 SKU（商品规格、价格） |
+| `updateSku(int $id, array $data): CommerceSku` | 更新 SKU |
+| `listSkus(array $filters, int $perPage): Paginator` | 分页查询 SKU |
+| `getSku(int $id): CommerceSku` | 获取单个 SKU |
+
+**CommerceOrderService（订单管理）：**
+| 方法 | 说明 |
+|------|------|
+| `createOrder(int $tenantId, array $items): CommerceOrder` | 创建订单 |
+| `payOrder(int $orderId, string $driver): array` | 发起支付 |
+| `getOrder(int $orderId): CommerceOrder` | 获取订单详情 |
+| `listOrders(array $filters, int $perPage): Paginator` | 分页查询订单 |
+| `refundOrder(int $orderId, float $amount, string $reason): array` | 订单退款 |
+
+**CommerceFulfillmentService（履约管理）：**
+| 方法 | 说明 |
+|------|------|
+| `fulfill(int $orderId, array $shipping): CommerceFulfillment` | 发货 |
+| `confirmReceipt(int $orderId): CommerceFulfillment` | 确认收货 |
+| `getFulfillment(int $orderId): ?CommerceFulfillment` | 获取履约状态 |
+
+存储表：`commerce_skus`、`commerce_orders`、`commerce_order_items`、`commerce_fulfillments`
+
 ---
 
 ## 使用示例
@@ -265,6 +293,7 @@ $this->cacheService->warmup([
 | `000007_create_rate_limit_rules_table` | rate_limit_rules |
 | `000008_create_payment_security_tables` | user_payment_passwords, payment_logs |
 | `000009_create_oauth_accounts_table` | oauth_accounts（补全缺失迁移） |
+| `000010_create_commerce_tables` | commerce_skus, commerce_orders, commerce_order_items, commerce_fulfillments |
 
 运行迁移：
 ```bash

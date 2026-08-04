@@ -1,6 +1,6 @@
 # 计费配置指南
 
-**最后更新**: 2026-06-29
+**最后更新**: 2026-08-04
 
 ---
 
@@ -80,24 +80,31 @@ TRIAL_DAYS=14
 
 ## 3. 积分与配额
 
-### 3.1 租户积分账户
+### 3.1 租户积分账户（双余额）
+
+`CreditAccount` 采用双余额设计：`gift_balance`（赠送余额）+ `recharge_balance`（充值余额），扣减时优先消耗赠送余额。
 
 ```php
-use MultiTenantSaas\Services\TenantCreditService;
+use MultiTenantSaas\Modules\Infrastructure\Services\TenantCreditService;
 
 $credit = app(TenantCreditService::class);
 
-// 充值
+// 充值（增加 recharge_balance）
 $credit->recharge($tenantId, 1000.00, 'admin', '季度充值');
 
-// 消耗（自动扣减并记录）
+// 赠送（增加 gift_balance）
+$credit->grant($tenantId, 200.00, 'admin', '新用户礼包');
+
+// 消耗（gift-first：优先扣减 gift_balance，不足再扣 recharge_balance）
 $credit->consume($tenantId, 5.00, 'ai.text', ['model' => 'gpt-4o-mini']);
 
 // 余额
 $account = $credit->getAccount($tenantId);
-// $account->balance  $account->total_recharged  $account->total_consumed
+// $account->gift_balance      — 赠送余额
+// $account->recharge_balance   — 充值余额
+// $account->balance            — 总余额（gift + recharge）
 
-// 退款
+// 退款（退回 recharge_balance）
 $credit->refund($tenantId, 5.00, 'ai.text.refund', [...]);
 ```
 
@@ -115,12 +122,51 @@ check_quota('storage', 1024);    // 检查存储配额
 
 ---
 
+## 3A. 模块权益（ModuleEntitlement）
+
+`ModuleEntitlement` 控制租户可用的功能模块，与订阅计划联动：
+
+```php
+use MultiTenantSaas\Modules\Infrastructure\Services\ModuleEntitlementService;
+
+$entitlement = app(ModuleEntitlementService::class);
+
+// 检查租户是否拥有某模块权限
+$hasAi = $entitlement->hasModule($tenantId, 'ai');
+$hasCommerce = $entitlement->hasModule($tenantId, 'commerce');
+
+// 获取租户所有可用模块
+$modules = $entitlement->getModules($tenantId);
+
+// 设置模块权限（平台管理员操作）
+$entitlement->setModule($tenantId, 'commerce', true);
+$entitlement->setModule($tenantId, 'ai', false);
+```
+
+模块权限在 API 层由 `CheckModuleEntitlement` 中间件拦截，未授权模块返回 `403 Module Not Entitled`。
+
+---
+
+## 3B. 商业化模块（Commerce）
+
+平台租户可开通 Commerce 模块，管理全局商品与订单：
+
+| 组件 | 说明 |
+|------|------|
+| `CommerceSku` | 平台级 SKU 管理（商品、规格、价格） |
+| `CommerceOrder` | 平台级订单管理（下单、支付、退款） |
+| `CommerceFulfillment` | 履约管理（发货、收货、售后） |
+
+平台级 Commerce 配置由 `TenancyServiceProvider` 注册，租户级 Commerce 可通过插件扩展。
+
+---
+
 ## 4. AI 计费配置
 
 ### 4.1 租户级配置
 
 ```php
-use MultiTenantSaas\Services\AiConfigService;
+use MultiTenantSaas\Modules\Ai\Services\AiConfigService;
 
 $cfg = app(AiConfigService::class);
 
@@ -134,7 +180,7 @@ $cfg->setOverageAction('block');
 ### 4.2 用量记录与配额
 
 ```php
-use MultiTenantSaas\Services\AiUsageService;
+use MultiTenantSaas\Modules\Ai\Services\AiUsageService;
 
 $usage = app(AiUsageService::class);
 
@@ -236,7 +282,7 @@ app(CouponService::class);  // coupons / coupon_usages 表，优惠码核销
 `CostService` 用于平台运营方核算成本与损益，非租户计费：
 
 ```php
-use MultiTenantSaas\Services\CostService;
+use MultiTenantSaas\Modules\Billing\Services\CostService;
 
 $cost = app(CostService::class);
 

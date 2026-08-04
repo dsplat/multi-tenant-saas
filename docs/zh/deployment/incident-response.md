@@ -3,7 +3,7 @@
 **最后更新**: 2026-06-29
 **用途**: 定义常见生产故障的应急处理流程、灰度发布规范与回滚步骤，确保故障快速恢复。
 
-> 配套：[运维手册](运维手册.md) ｜ [发布检查清单](发布检查清单.md) ｜ [监控告警配置](监控告警配置.md)
+> 配套：[运维手册](operations-manual.md) ｜ [发布检查清单](release-checklist.md) ｜ [监控告警配置](monitoring-alerting.md)
 
 ---
 
@@ -350,7 +350,7 @@ php artisan migrate:rollback --step=1 --force
 php artisan migrate:rollback --step=3 --force
 
 # 3. 如需恢复数据（从备份）
-# 见 备份恢复流程.md 第 3 节
+# 见 backup-restore.md 第 3 节
 ```
 
 ### 6.4 重启服务

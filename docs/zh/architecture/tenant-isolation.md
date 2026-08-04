@@ -1,6 +1,6 @@
 # 租户隔离架构
 
-**最后更新**: 2026-06-18
+**最后更新**: 2026-08-04
 
 ---
 
@@ -20,16 +20,21 @@
 
 **职责**：按优先级从多个来源解析租户 ID，验证后注入请求属性和全局上下文。
 
-**识别优先级**：
+**识别优先级**（9 个来源）：
 
 | 优先级 | 来源 | 说明 |
 |--------|------|------|
-| 1（最高） | URL 参数 `?tenant_id=` / `?tid=` | API 调试、显式指定 |
-| 2 | Header `X-Tenant-ID` | 标准 API 调用 |
-| 3 | 自定义域名 DB 查询 | 企业域名自动识别 |
-| 4 | Cookie `tenant_id` | Web 会话 |
-| 5 | Session `tenant_id` | 登录后持久化 |
-| 6（兜底） | `config('tenancy.default_tenant_id')` | 公共平台默认租户 |
+| 1（最高） | URL 参数 `?tenant_id=` / `?tid=` | API 调试、显式指定（不可信，需校验归属） |
+| 2 | Header `X-Tenant-ID` | 标准 API 调用（不可信，需校验归属） |
+| 3 | 自定义域名 DB 查询 | 企业域名自动识别（可信，域名即归属证明） |
+| 4 | 共享域名路径前缀 | `app_domain/{slug}/` 或 `app_domain/{tenant_id}/`（可信） |
+| 5 | Cookie `tenant_id` | Web 会话（不可信，需校验归属） |
+| 6 | Session `tenant_id` | 登录后持久化 |
+| 7 | 认证用户 | Operator/User 的关联租户（多租户 Operator 通过 header 切换） |
+| 8 | 通配子域名 slug 解析 | `*.dsplat.com` 旧模式兼容（优先级降低） |
+| 9（兜底） | 未识别域名不兜底 | 由 `EnsureTenantContext` 返回 403 |
+
+**安全原则**：不可信来源（URL/Header/Cookie）解析的租户，必须校验已认证用户确实属于该租户（`tenant_users` 或 `operator_tenants` 表），防止越权。未认证请求不做归属校验（公开页面、OAuth 回调等）。
 
 **自定义域名识别**：
 
@@ -277,8 +282,9 @@ Laravel Middleware Stack
     │
     ├─ 2. IdentifyTenant
     │     IF admin → 跳过
-    │     ELSE 按优先级解析租户 ID：
-    │       URL param → Header → custom_domain DB → Cookie → Session → platform default
+    │     ELSE 按 9 级优先级解析租户 ID：
+    │       URL param → Header → custom_domain → path_prefix → Cookie
+    │       → Session → auth user → wildcard subdomain → (不兜底)
     │     → tenant_id, tenant 注入 TenantContext
     │
     ├─ 3. CheckPermission
@@ -356,5 +362,48 @@ class IdentifyDomainTest extends TestCase
 
 ---
 
-**文档版本**: v1.0.0  
-**最后更新**: 2026-06-18
+## RejectPlatformDomain 中间件
+
+**职责**：阻止从平台域名访问 console 路由，强制租户 Operator 通过租户绑定域名进入后台。
+
+**业务规则**：平台域名（`config('tenancy.platform_domains')`）承载管理后台（`/admin`）和平台首页，不提供 console 服务。租户 Operator 应通过租户绑定域名进入 console。
+
+**适用路由**：
+- `POST /api/v1/console/auth/login`（公开路由）
+- `GET /api/v1/console/auth/user`（认证路由）
+- `POST /api/v1/console/auth/logout`（认证路由）
+
+**实现逻辑**：
+
+```php
+class RejectPlatformDomain
+{
+    public function handle(Request $request, Closure $next): Response
+    {
+        // 测试环境不受此限制
+        if (app()->environment('testing')) {
+            return $next($request);
+        }
+
+        $host = $request->header('X-Original-Host') ?? $request->getHost();
+        $platformDomains = config('tenancy.platform_domains', []);
+
+        if (in_array($host, $platformDomains, true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Console 后台需通过租户域名访问，当前平台域名不提供此服务。',
+                'error' => 'PlatformDomainForbidden',
+            ], 403);
+        }
+
+        return $next($request);
+    }
+}
+```
+
+**安全意义**：防止平台域名被滥用为租户后台入口，确保租户数据只能通过租户绑定域名访问。
+
+---
+
+**文档版本**: v1.0.0
+**最后更新**: 2026-08-04

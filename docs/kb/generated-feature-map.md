@@ -140,6 +140,25 @@ locale: zh
 | GET | /api/v1/admin/payments/orders/{orderId} | - |
 | GET | /api/v1/admin/api-tokens | - |
 | DELETE | /api/v1/admin/api-tokens/{tenantId}/{tokenId} | - |
+| GET | /api/v1/admin/commerce/skus | - |
+| POST | /api/v1/admin/commerce/skus | - |
+| PUT | /api/v1/admin/commerce/skus/{skuId} | - |
+| DELETE | /api/v1/admin/commerce/skus/{skuId} | - |
+| GET | /api/v1/admin/commerce/orders | - |
+| POST | /api/v1/admin/commerce/retry | - |
+| GET | /api/v1/admin/commerce/supply-grants | - |
+| POST | /api/v1/admin/commerce/supply-grants/{grantId}/suspend | - |
+| POST | /api/v1/admin/commerce/supply-grants/{grantId}/resume | - |
+| GET | /api/v1/admin/commerce/content-library | - |
+| POST | /api/v1/admin/commerce/content-library | - |
+| PUT | /api/v1/admin/commerce/content-library/{contentId} | - |
+| POST | /api/v1/admin/commerce/content-library/{contentId}/publish | - |
+| DELETE | /api/v1/admin/commerce/content-library/{contentId} | - |
+| GET | /api/v1/admin/commerce/content-packs | - |
+| POST | /api/v1/admin/commerce/content-packs | - |
+| GET | /api/v1/admin/commerce/content-packs/{packId} | - |
+| PUT | /api/v1/admin/commerce/content-packs/{packId} | - |
+| DELETE | /api/v1/admin/commerce/content-packs/{packId} | - |
 
 ## agents
 
@@ -179,6 +198,7 @@ locale: zh
 | POST | /api/v1/ai-streaming/resolve | - |
 | POST | /api/v1/ai-streaming/tools/execute | - |
 | POST | /api/v1/ai-streaming/usage/report | - |
+| POST | /api/v1/ai-streaming/messages/report | - |
 
 ## api-tokens
 
@@ -237,6 +257,22 @@ locale: zh
 | GET | /api/v1/capabilities | - |
 | POST | /api/v1/capabilities/execute | - |
 | POST | /api/v1/capabilities/batch | - |
+
+## commerce
+
+| 方法 | 路径 | 路由名 |
+|---|---|---|
+| GET | /api/v1/commerce/skus | - |
+| GET | /api/v1/commerce/skus/{skuId} | - |
+| POST | /api/v1/commerce/orders | - |
+| GET | /api/v1/commerce/orders | - |
+| GET | /api/v1/commerce/orders/{orderId} | - |
+| POST | /api/v1/commerce/orders/{orderId}/pay | - |
+| POST | /api/v1/commerce/orders/{orderId}/cancel | - |
+| GET | /api/v1/commerce/supply-grants | - |
+| GET | /api/v1/commerce/supply-grants/{grantId} | - |
+| GET | /api/v1/commerce/content-packs | - |
+| GET | /api/v1/commerce/content-packs/{packId} | - |
 
 ## channels
 
@@ -488,6 +524,9 @@ locale: zh
 | GET | /api/v1/public/apply/{code} | - |
 | GET | /api/v1/public/apply-fields | - |
 | GET | /api/v1/public/site-config | - |
+| POST | /api/v1/commerce/pay/wechat/notify | - |
+| POST | /api/v1/commerce/pay/alipay/notify | - |
+| GET | /api/v1/commerce/pay/alipay/notify | - |
 
 ## reserved-domains
 

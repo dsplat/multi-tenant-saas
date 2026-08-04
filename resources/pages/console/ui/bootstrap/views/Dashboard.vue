@@ -65,8 +65,14 @@ const fetchDashboard = async () => {
 
   if (creditsRes.status === 'fulfilled') {
     const credits = creditsRes.value.data.data || {}
-    stats.value.availableCredits = credits.balance ?? credits.available ?? 0
-    stats.value.usedCredits = credits.used ?? credits.consumed ?? 0
+    // balance 为对象 {total, used, available}，兼容旧格式纯数值
+    const balance = credits.balance
+    stats.value.availableCredits = typeof balance === 'object' && balance !== null
+      ? balance.available ?? 0
+      : balance ?? credits.available ?? 0
+    stats.value.usedCredits = typeof balance === 'object' && balance !== null
+      ? balance.used ?? 0
+      : credits.used ?? credits.consumed ?? 0
   }
 
   if (settingsRes.status === 'fulfilled') {

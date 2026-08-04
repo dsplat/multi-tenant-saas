@@ -50,7 +50,7 @@ interface AuthContext {
   cookie?: string
   /** Cookie 会话模式必需：PHP 依 Origin/Referer 判定 stateful（命中 sanctum.stateful 才启动会话） */
   origin?: string
-  /** 从浏览器 Cookie 中提取的 XSRF-TOKEN（URL 编码原值），回调 PHP 时作 X-XSRF-TOKEN 头过 CSRF */
+  /** 从浏览器 Cookie 中提取的 XSRF-TOKEN（URL 编码原值），回调 PHP 时 URL 解码后作 X-XSRF-TOKEN 头过 CSRF */
   xsrfToken?: string
   tenantId?: string
 }
@@ -82,9 +82,14 @@ async function phpPost<T>(path: string, auth: AuthContext, body: unknown): Promi
   if (auth.origin) {
     headers['Origin'] = auth.origin
   }
-  // stateful 写请求需过 CSRF：浏览器 SPA 的 X-XSRF-TOKEN 即 Cookie 中的 XSRF-TOKEN 原值
+  // stateful 写请求需过 CSRF：X-XSRF-TOKEN 需 Cookie 中 XSRF-TOKEN 的 URL 解码值
+  // （浏览器 document.cookie 自动解码后回传；Cookie 请求头中仍是 URL 编码原值）
   if (auth.xsrfToken) {
-    headers['X-XSRF-TOKEN'] = auth.xsrfToken
+    try {
+      headers['X-XSRF-TOKEN'] = decodeURIComponent(auth.xsrfToken)
+    } catch {
+      headers['X-XSRF-TOKEN'] = auth.xsrfToken
+    }
   }
   // 透传浏览器的 X-Tenant-ID：多租户 Operator 切换团队后回调 PHP 才能命中正确租户
   if (auth.tenantId) {

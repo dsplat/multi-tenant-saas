@@ -16,8 +16,12 @@ use MultiTenantSaas\Scopes\TenantScope;
  */
 trait AuthorizesTenantAccess
 {
-    protected function ensureTenantAccess(Request $request, ?int $tenantId): void
+    protected function ensureTenantAccess(Request $request, int|string|null $tenantId): void
     {
+        // TenantContext::getId() 返回 string|null，这里统一归一为 int|null
+        // 以兼容路由参数（string）与直接传入 int 的调用点
+        $tenantId = $tenantId === null ? null : (int) $tenantId;
+
         if ($tenantId === null) {
             return;
         }

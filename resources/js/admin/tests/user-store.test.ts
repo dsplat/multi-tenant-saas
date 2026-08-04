@@ -14,7 +14,7 @@ vi.mock('axios', () => ({
 const mockedAxios = axios as unknown as {
   get: ReturnType<typeof vi.fn>
   post: ReturnType<typeof vi.fn>
-  defaults: { headers: { common: Record<string, string> } }
+  defaults: { headers: { common: Record<string, string> }; withCredentials?: boolean }
 }
 
 describe('admin user store', () => {
@@ -44,40 +44,48 @@ describe('admin user store', () => {
     })
   })
 
-  describe('token 管理', () => {
-    it('setToken 持久化到 localStorage 并设置 axios 头', () => {
+  describe('Cookie 会话模式', () => {
+    it('axios 启用凭证携带，且不管理 Authorization 头', () => {
+      useUserStore()
+      expect(mockedAxios.defaults.withCredentials).toBe(true)
+      expect(mockedAxios.defaults.headers.common['Authorization']).toBeUndefined()
+    })
+
+    it('isLoggedIn 以用户探测结果为准，不再依赖本地 token', () => {
       const store = useUserStore()
-      store.setToken('tok-123')
-      expect(store.token).toBe('tok-123')
-      expect(localStorage.getItem('admin_token')).toBe('tok-123')
-      expect(mockedAxios.defaults.headers.common['Authorization']).toBe('Bearer tok-123')
+      expect(store.isLoggedIn).toBe(false)
+      store.user = { user_id: '1', name: 'a', email: 'a@a.com', role: 'operator' }
       expect(store.isLoggedIn).toBe(true)
     })
 
-    it('初始 token 从 localStorage 读取', () => {
-      localStorage.setItem('admin_token', 'saved-tok')
+    it('不读写 admin_token localStorage', async () => {
+      mockedAxios.post.mockResolvedValue({
+        data: { data: { operator: { name: 'op', permissions: [] }, auth_token: 'tok-1' } },
+      })
       const store = useUserStore()
-      expect(store.token).toBe('saved-tok')
+      await store.login('a@a.com', 'pwd')
+      expect(localStorage.getItem('admin_token')).toBeNull()
     })
   })
 
   describe('login', () => {
-    it('登录成功写入 token、用户与权限', async () => {
+    it('登录成功写入用户与权限', async () => {
       mockedAxios.post.mockResolvedValue({
         data: { data: { operator: { name: 'op', permissions: ['a.b'] }, auth_token: 'tok-1' } },
       })
       const store = useUserStore()
       await store.login('a@a.com', 'pwd')
-      expect(store.token).toBe('tok-1')
       expect(store.user?.name).toBe('op')
       expect(store.permissions).toEqual(['a.b'])
+      expect(store.isLoggedIn).toBe(true)
     })
 
-    it('登录失败抛出异常且不写 token', async () => {
+    it('登录失败抛出异常且不写用户', async () => {
       mockedAxios.post.mockRejectedValue(new Error('401'))
       const store = useUserStore()
       await expect(store.login('a@a.com', 'bad')).rejects.toThrow()
-      expect(store.token).toBeNull()
+      expect(store.user).toBeNull()
+      expect(store.isLoggedIn).toBe(false)
     })
   })
 
@@ -85,35 +93,38 @@ describe('admin user store', () => {
     it('登出 API 失败也要清空本地会话', async () => {
       mockedAxios.post.mockRejectedValue(new Error('network'))
       const store = useUserStore()
-      store.setToken('tok-x')
       store.user = { user_id: '1', name: 'a', email: 'a@a.com', role: 'operator' }
       await store.logout()
-      expect(store.token).toBeNull()
       expect(store.user).toBeNull()
-      expect(localStorage.getItem('admin_token')).toBeNull()
-      expect(mockedAxios.defaults.headers.common['Authorization']).toBeUndefined()
+      expect(store.permissions).toEqual([])
+      expect(store.isLoggedIn).toBe(false)
     })
   })
 
   describe('init', () => {
-    it('token 有效时拉取用户信息', async () => {
-      localStorage.setItem('admin_token', 'tok-ok')
-      mockedAxios.get.mockResolvedValue({
-        data: { data: { user: { name: 'u1' }, permissions: ['p1'] } },
+    it('先请求 csrf-cookie 再探测会话', async () => {
+      mockedAxios.get.mockImplementation(async (url: string) => {
+        if (url.includes('csrf-cookie')) return { status: 204 }
+        return { data: { data: { user: { name: 'u1' }, permissions: ['p1'] } } }
       })
       const store = useUserStore()
       await store.init()
+      const calls = mockedAxios.get.mock.calls.map(c => c[0])
+      expect(calls[0]).toBe('/api/v1/admin/auth/csrf-cookie')
+      expect(calls[1]).toBe('/api/v1/admin/auth/user')
       expect(store.user?.name).toBe('u1')
       expect(store.permissions).toEqual(['p1'])
     })
 
-    it('token 失效时清空会话', async () => {
-      localStorage.setItem('admin_token', 'tok-bad')
-      mockedAxios.get.mockRejectedValue(new Error('401'))
+    it('会话探测失败时保持未登录且不抛出', async () => {
+      mockedAxios.get.mockImplementation(async (url: string) => {
+        if (url.includes('csrf-cookie')) return { status: 204 }
+        throw new Error('401')
+      })
       const store = useUserStore()
-      await store.init()
-      expect(store.token).toBeNull()
-      expect(localStorage.getItem('admin_token')).toBeNull()
+      await expect(store.init()).resolves.toBeUndefined()
+      expect(store.user).toBeNull()
+      expect(store.isLoggedIn).toBe(false)
     })
   })
 })

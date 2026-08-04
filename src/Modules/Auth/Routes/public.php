@@ -42,6 +42,10 @@ Route::prefix('auth')->group(function () {
 Route::post('/admin/auth/login', [AuthController::class, 'adminLogin'])
     ->middleware('throttle:20,1');
 
+// SPA CSRF Cookie 分发（Sanctum stateful 双模认证，公开）
+Route::get('/admin/auth/csrf-cookie', [AuthController::class, 'csrfCookie']);
+Route::get('/console/auth/csrf-cookie', [AuthController::class, 'csrfCookie']);
+
 // 租户管理员登录（公开，无需认证，禁止平台域名）
 Route::post('/console/auth/login', [AuthController::class, 'consoleLogin'])
     ->middleware(['throttle:20,1', RejectPlatformDomain::class]);

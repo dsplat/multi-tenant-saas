@@ -58,6 +58,7 @@ const knownPaths: Record<string, string> = {
   Branding: 'branding', SsoProviders: 'sso-providers', Credits: 'credits',
   SystemSettings: 'system-settings', TenantKeys: 'tenant-keys', RetentionPolicies: 'retention-policies',
   Consents: 'consents', Sandbox: 'sandbox', Settings: 'settings',
+  CommerceOrders: 'commerce-orders', ContentLibrary: 'content-library',
 }
 
 // Load custom routes from module routes.ts files

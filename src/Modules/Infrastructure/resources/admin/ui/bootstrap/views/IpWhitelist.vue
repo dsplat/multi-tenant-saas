@@ -3,7 +3,7 @@
     <div class="page-header"><h2>IP 白名单</h2><button class="primary-btn" @click="showAdd = true">+ 添加 IP</button></div>
     <div class="panel">
       <div class="filter-bar">
-        <select v-model="filterScope" @change="fetch"><option value="">全部范围</option><option value="all">全局</option><option value="api">API</option><option value="admin">管理后台</option></select>
+        <select v-model="filterScope" @change="loadData"><option value="">全部范围</option><option value="all">全局</option><option value="api">API</option><option value="admin">管理后台</option></select>
       </div>
       <table class="data-table">
         <thead><tr><th>IP</th><th>描述</th><th>范围</th><th>操作</th></tr></thead>
@@ -42,11 +42,11 @@ const filterScope = ref('')
 const showAdd = ref(false)
 const form = ref({ ip_address: '', description: '', scope: 'all' })
 
-const fetch = async () => { try { const r = await axios.get(API, { params: { scope: filterScope.value || undefined } }); items.value = r.data.data || [] } catch {} }
-const handleAdd = async () => { try { await axios.post(API, form.value); showAdd.value = false; form.value = { ip_address: '', description: '', scope: 'all' }; await fetch() } catch {} }
-const handleDelete = async (ip: any) => { if (!confirm(`确定删除 ${ip.ip_address}？`)) return; try { await axios.delete(`${API}/${ip.id}`); await fetch() } catch {} }
+const loadData = async () => { try { const r = await axios.get(API, { params: { scope: filterScope.value || undefined } }); items.value = r.data.data || [] } catch {} }
+const handleAdd = async () => { try { await axios.post(API, form.value); showAdd.value = false; form.value = { ip_address: '', description: '', scope: 'all' }; await loadData() } catch {} }
+const handleDelete = async (ip: any) => { if (!confirm(`确定删除 ${ip.ip_address}？`)) return; try { await axios.delete(`${API}/${ip.id}`); await loadData() } catch {} }
 
-onMounted(fetch)
+onMounted(loadData)
 </script>
 
 <style scoped>

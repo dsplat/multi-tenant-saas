@@ -96,7 +96,6 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { OfficeBuilding } from '@element-plus/icons-vue'
 import axios from 'axios'
-import { useUserStore } from '@stores/user'
 
 interface Application {
   application_id: number
@@ -109,8 +108,6 @@ interface Application {
   created_at?: string
   reviewed_at?: string
 }
-
-const userStore = useUserStore()
 
 const industries = ['电商零售', '教育培训', '餐饮连锁', '美妆个护', '母婴亲子', '医疗健康', '金融保险', '旅游酒店', '其他']
 const sizes = ['1-10 人', '11-50 人', '51-200 人', '200 人以上']
@@ -182,9 +179,7 @@ async function submit() {
 }
 
 onMounted(() => {
-  if (userStore.token) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${userStore.token}`
-  }
+  // 认证走 Cookie 会话（store 已启用 withCredentials），无需手拷 token
   loadApplications()
 })
 </script>

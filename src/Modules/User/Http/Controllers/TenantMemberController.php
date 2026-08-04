@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\User\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Laravel\Sanctum\PersonalAccessToken;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
@@ -86,8 +87,7 @@ class TenantMemberController extends Controller
         $member->delete();
 
         // 删除该用户在此租户上下文的 token
-        \DB::table('personal_access_tokens')
-            ->where('tokenable_id', $userId)
+        PersonalAccessToken::where('tokenable_id', $userId)
             ->where('tenant_id', $tenantId)
             ->delete();
 

@@ -4,8 +4,8 @@
 
     <el-card shadow="never">
       <div class="filter-bar">
-        <el-input v-model="filters.user_id" placeholder="用户ID" style="width: 200px" @keyup.enter="fetch" />
-        <el-select v-model="filters.type" placeholder="全部类型" clearable style="width: 160px" @change="fetch">
+        <el-input v-model="filters.user_id" placeholder="用户ID" style="width: 200px" @keyup.enter="loadData" />
+        <el-select v-model="filters.type" placeholder="全部类型" clearable style="width: 160px" @change="loadData">
           <el-option label="Cookie" value="cookie" />
           <el-option label="数据处理" value="data_processing" />
           <el-option label="营销" value="marketing" />
@@ -49,7 +49,7 @@ const API = '/api/v1/admin/consents'
 const consents = ref<any[]>([])
 const filters = ref({ user_id: '', type: '' })
 
-const fetch = async () => {
+const loadData = async () => {
   try { const r = await axios.get(API, { params: { user_id: filters.value.user_id || undefined, type: filters.value.type || undefined } }); consents.value = r.data.data || [] } catch {}
 }
 
@@ -57,14 +57,14 @@ const handleRevoke = async (c: any) => {
   try {
     await ElMessageBox.confirm('确定撤回此同意？', '警告', { type: 'warning' })
     await axios.post(`${API}/${c.id ?? c.consent_id}/revoke`)
-    await fetch()
+    await loadData()
     ElMessage.success('已撤回')
   } catch (e: any) {
     if (e !== 'cancel' && e?.response) ElMessage.error(e.response?.data?.message || '操作失败')
   }
 }
 
-onMounted(fetch)
+onMounted(loadData)
 </script>
 
 <style scoped>

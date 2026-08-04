@@ -54,10 +54,10 @@ const API = '/api/v1/admin/branding'
 const saving = ref(false)
 const form = ref({ logo_url: '', favicon_url: '', primary_color: '#1890ff', secondary_color: '#666666', login_page_style: 'default', email_template: 'default', custom_css: '', custom_domain_enabled: true })
 
-const fetch = async () => { try { const r = await axios.get(API); if (r.data.data) Object.assign(form.value, r.data.data) } catch {} }
+const loadData = async () => { try { const r = await axios.get(API); if (r.data.data) Object.assign(form.value, r.data.data) } catch {} }
 const handleSave = async () => { saving.value = true; try { await axios.put(API, form.value); ElMessage.success('保存成功') } catch (e: any) { ElMessage.error(e.response?.data?.message || '保存失败') } finally { saving.value = false } }
 
-onMounted(fetch)
+onMounted(loadData)
 </script>
 
 <style scoped>

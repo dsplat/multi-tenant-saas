@@ -26,11 +26,11 @@ import axios from 'axios'
 const API = '/v1/admin/admin/developer-portal/sandbox'
 const sandboxes = ref<any[]>([])
 
-const fetch = async () => { try { const r = await axios.get(API); sandboxes.value = r.data.data || [] } catch {} }
-const handleCreate = async () => { try { await axios.post(API); await fetch() } catch {} }
+const loadData = async () => { try { const r = await axios.get(API); sandboxes.value = r.data.data || [] } catch {} }
+const handleCreate = async () => { try { await axios.post(API); await loadData() } catch {} }
 const handleCleanup = async (s: any) => { if (!confirm('确定清理此沙箱？')) return; /* cleanup endpoint not exposed yet */ }
 
-onMounted(fetch)
+onMounted(loadData)
 </script>
 
 <style scoped>

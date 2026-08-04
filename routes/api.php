@@ -2,7 +2,12 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use MultiTenantSaas\Http\Controllers\AdminDashboardController;
+use MultiTenantSaas\Http\Controllers\AdminMenuController;
 use MultiTenantSaas\Http\Controllers\ChannelWebhookController;
+use MultiTenantSaas\Http\Controllers\ConsoleDashboardController;
+use MultiTenantSaas\Http\Controllers\ConsoleMenuController;
+use MultiTenantSaas\Http\Controllers\McpClientController;
 use MultiTenantSaas\Modules\Auth\Http\Controllers\TenantOAuthController;
 use MultiTenantSaas\Modules\Event\Services\BroadcastingService;
 use MultiTenantSaas\Modules\Notification\Http\Controllers\InAppNotificationController;
@@ -71,3 +76,24 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
 // {tenant_slug?}：可选租户标识（缺省回退 default_tenant_id）
 Route::match(['get', 'post'], '/v1/channels/{type}/webhook/{tenant_slug?}', ChannelWebhookController::class)
     ->where('tenant_slug', '[A-Za-z0-9_-]+');
+
+// ========== Admin 后台（菜单 + Dashboard） ==========
+Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1/admin')->group(function () {
+    Route::get('/menu', [AdminMenuController::class, 'index']);
+    Route::get('/dashboard', [AdminDashboardController::class, 'index']);
+});
+
+// ========== Console 后台（菜单 + Dashboard） ==========
+Route::middleware(['auth:sanctum', 'throttle:api', 'tenant.identify'])->prefix('v1/console')->group(function () {
+    Route::get('/menu', [ConsoleMenuController::class, 'index']);
+    Route::get('/dashboard', [ConsoleDashboardController::class, 'index']);
+});
+
+// ========== MCP 客户端管理 ==========
+Route::middleware(['auth:sanctum', 'throttle:api', 'tenant.identify'])->prefix('v1')->group(function () {
+    Route::get('/mcp-clients', [McpClientController::class, 'index']);
+    Route::get('/mcp-clients/{id}', [McpClientController::class, 'show']);
+    Route::post('/mcp-clients', [McpClientController::class, 'store']);
+    Route::put('/mcp-clients/{id}', [McpClientController::class, 'update']);
+    Route::delete('/mcp-clients/{id}', [McpClientController::class, 'destroy']);
+});

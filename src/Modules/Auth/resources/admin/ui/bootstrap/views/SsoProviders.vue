@@ -42,7 +42,7 @@ const dialog = ref(false)
 const form = ref({ name: '', type: 'oidc', client_id: '', client_secret: '', config: {} as any })
 const configInput = ref('{}')
 
-const fetch = async () => { try { const r = await axios.get(API); providers.value = r.data.data || [] } catch {} }
+const loadData = async () => { try { const r = await axios.get(API); providers.value = r.data.data || [] } catch {} }
 const openCreate = () => { form.value = { name: '', type: 'oidc', client_id: '', client_secret: '', config: {} }; configInput.value = '{}'; dialog.value = true }
 
 const handleSubmit = async () => {
@@ -50,13 +50,13 @@ const handleSubmit = async () => {
     let config: any = {}
     try { config = JSON.parse(configInput.value) } catch { alert('JSON 格式错误'); return }
     await axios.post(API, { ...form.value, config })
-    dialog.value = false; await fetch()
+    dialog.value = false; await loadData()
   } catch {}
 }
 
-const handleDelete = async (p: any) => { if (!confirm(`确定删除 ${p.name}？`)) return; try { await axios.delete(`${API}/${p.name}`); await fetch() } catch {} }
+const handleDelete = async (p: any) => { if (!confirm(`确定删除 ${p.name}？`)) return; try { await axios.delete(`${API}/${p.name}`); await loadData() } catch {} }
 
-onMounted(fetch)
+onMounted(loadData)
 </script>
 
 <style scoped>

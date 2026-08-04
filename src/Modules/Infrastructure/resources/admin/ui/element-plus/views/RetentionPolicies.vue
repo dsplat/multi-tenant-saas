@@ -61,7 +61,7 @@ const isEdit = ref(false)
 const editId = ref('')
 const form = ref({ data_type: '', retention_days: 365, cleanup_strategy: 'anonymize', auto_cleanup: true })
 
-const fetch = async () => { try { const r = await axios.get(API); policies.value = r.data.data || [] } catch {} }
+const loadData = async () => { try { const r = await axios.get(API); policies.value = r.data.data || [] } catch {} }
 const openCreate = () => { isEdit.value = false; form.value = { data_type: '', retention_days: 365, cleanup_strategy: 'anonymize', auto_cleanup: true }; dialog.value = true }
 const openEdit = (p: any) => { isEdit.value = true; editId.value = p.id ?? p.retention_policy_id; form.value = { data_type: p.data_type, retention_days: p.retention_days, cleanup_strategy: p.cleanup_strategy, auto_cleanup: p.auto_cleanup }; dialog.value = true }
 
@@ -69,7 +69,7 @@ const handleSubmit = async () => {
   try {
     if (isEdit.value) await axios.put(`${API}/${editId.value}`, form.value)
     else await axios.post(API, form.value)
-    dialog.value = false; await fetch()
+    dialog.value = false; await loadData()
     ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
   } catch {}
 }
@@ -78,14 +78,14 @@ const handleDelete = async (p: any) => {
   try {
     await ElMessageBox.confirm('确定删除？', '警告', { type: 'error' })
     await axios.delete(`${API}/${p.id ?? p.retention_policy_id}`)
-    await fetch()
+    await loadData()
     ElMessage.success('删除成功')
   } catch (e: any) {
     if (e !== 'cancel' && e?.response) ElMessage.error(e.response?.data?.message || '删除失败')
   }
 }
 
-onMounted(fetch)
+onMounted(loadData)
 </script>
 
 <style scoped>

@@ -3,8 +3,8 @@
     <div class="page-header"><h2>合规同意</h2></div>
     <div class="panel">
       <div class="filter-bar">
-        <input v-model="filters.user_id" placeholder="用户ID" @keyup.enter="fetch" />
-        <select v-model="filters.type" @change="fetch"><option value="">全部类型</option><option value="cookie">Cookie</option><option value="data_processing">数据处理</option><option value="marketing">营销</option><option value="terms">条款</option></select>
+        <input v-model="filters.user_id" placeholder="用户ID" @keyup.enter="loadData" />
+        <select v-model="filters.type" @change="loadData"><option value="">全部类型</option><option value="cookie">Cookie</option><option value="data_processing">数据处理</option><option value="marketing">营销</option><option value="terms">条款</option></select>
       </div>
       <table class="data-table">
         <thead><tr><th>ID</th><th>用户ID</th><th>类型</th><th>版本</th><th>状态</th><th>时间</th><th>操作</th></tr></thead>
@@ -31,10 +31,10 @@ const API = '/api/v1/admin/consents'
 const consents = ref<any[]>([])
 const filters = ref({ user_id: '', type: '' })
 
-const fetch = async () => { try { const r = await axios.get(API, { params: { user_id: filters.value.user_id || undefined, type: filters.value.type || undefined } }); consents.value = r.data.data || [] } catch {} }
-const handleRevoke = async (c: any) => { if (!confirm('确定撤回此同意？')) return; try { await axios.post(`${API}/${c.id ?? c.consent_id}/revoke`); await fetch() } catch {} }
+const loadData = async () => { try { const r = await axios.get(API, { params: { user_id: filters.value.user_id || undefined, type: filters.value.type || undefined } }); consents.value = r.data.data || [] } catch {} }
+const handleRevoke = async (c: any) => { if (!confirm('确定撤回此同意？')) return; try { await axios.post(`${API}/${c.id ?? c.consent_id}/revoke`); await loadData() } catch {} }
 
-onMounted(fetch)
+onMounted(loadData)
 </script>
 
 <style scoped>

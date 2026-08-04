@@ -62,7 +62,7 @@ const dialog = ref(false)
 const form = ref({ name: '', type: 'oidc', client_id: '', client_secret: '', config: {} as any })
 const configInput = ref('{}')
 
-const fetch = async () => { try { const r = await axios.get(API); providers.value = r.data.data || [] } catch {} }
+const loadData = async () => { try { const r = await axios.get(API); providers.value = r.data.data || [] } catch {} }
 const openCreate = () => { form.value = { name: '', type: 'oidc', client_id: '', client_secret: '', config: {} }; configInput.value = '{}'; dialog.value = true }
 
 const handleSubmit = async () => {
@@ -70,7 +70,7 @@ const handleSubmit = async () => {
     let config: any = {}
     try { config = JSON.parse(configInput.value) } catch { ElMessage.error('JSON 格式错误'); return }
     await axios.post(API, { ...form.value, config })
-    dialog.value = false; await fetch()
+    dialog.value = false; await loadData()
     ElMessage.success('添加成功')
   } catch {}
 }
@@ -79,14 +79,14 @@ const handleDelete = async (p: any) => {
   try {
     await ElMessageBox.confirm(`确定删除 ${p.name}？`, '警告', { type: 'error' })
     await axios.delete(`${API}/${p.name}`)
-    await fetch()
+    await loadData()
     ElMessage.success('删除成功')
   } catch (e: any) {
     if (e !== 'cancel' && e?.response) ElMessage.error(e.response?.data?.message || '删除失败')
   }
 }
 
-onMounted(fetch)
+onMounted(loadData)
 </script>
 
 <style scoped>

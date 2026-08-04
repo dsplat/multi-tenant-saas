@@ -2,10 +2,12 @@
 
 namespace MultiTenantSaas\Modules\Auth\Http\Controllers;
 
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -463,12 +465,50 @@ class AuthController extends Controller
 
     /**
      * 登出。
+     *
+     * 双模认证：同时销毁 Bearer token 与会话 Cookie（后者仅在 stateful 请求存在）。
      */
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $identity = $request->user();
+
+        // Cookie 会话认证的请求无 currentAccessToken，需 null-safe
+        $identity?->currentAccessToken()?->delete();
+
+        if ($request->hasSession()) {
+            Auth::guard($identity instanceof Operator ? 'operator-web' : 'web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return response()->json(['success' => true, 'message' => trans('auth.logged_out')]);
+    }
+
+    /**
+     * SPA CSRF Cookie 分发端点（Sanctum stateful 双模认证）。
+     *
+     * 前端 SPA 启动时先请求本端点获取 XSRF-TOKEN Cookie，
+     * 后续写请求携带 X-XSRF-TOKEN 头通过 CSRF 校验。
+     */
+    public function csrfCookie(): Response
+    {
+        return response()->noContent();
+    }
+
+    /**
+     * 双模认证：为 stateful 请求追加 httpOnly 会话 Cookie。
+     *
+     * 仅当请求经 EnsureFrontendRequestsAreStateful 启动了会话（Origin/Referer
+     * 命中 sanctum.stateful 域）时生效；纯 API 客户端无会话，Bearer 行为不变。
+     */
+    protected function establishSession(Request $request, Authenticatable $identity): void
+    {
+        if (! $request->hasSession()) {
+            return;
+        }
+
+        Auth::guard($identity instanceof Operator ? 'operator-web' : 'web')->login($identity);
+        $request->session()->regenerate();
     }
 
     /**
@@ -964,6 +1004,9 @@ class AuthController extends Controller
 
         event(new UserLoggedIn($user, $request->ip()));
 
+        // 双模认证：追加 httpOnly 会话 Cookie（Bearer token 响应保留不动）
+        $this->establishSession($request, $user);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -1015,6 +1058,9 @@ class AuthController extends Controller
                 'role' => $tenant->pivot->role,
             ])
             ->toArray();
+
+        // 双模认证：追加 httpOnly 会话 Cookie（Bearer token 响应保留不动）
+        $this->establishSession($request, $operator);
 
         return response()->json([
             'success' => true,

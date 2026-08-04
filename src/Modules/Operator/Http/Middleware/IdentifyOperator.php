@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Modules\Operator\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\PersonalAccessToken;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
@@ -28,7 +29,8 @@ class IdentifyOperator
             return $next($request);
         }
 
-        $operator = $this->resolveOperatorFromBearer($request);
+        $operator = $this->resolveOperatorFromBearer($request)
+            ?? $this->resolveOperatorFromSession($request);
         if (! $operator) {
             return $next($request);
         }
@@ -87,5 +89,19 @@ class IdentifyOperator
         $tokenable = $accessToken->tokenable;
 
         return $tokenable instanceof Operator ? $tokenable : null;
+    }
+
+    /**
+     * 双模认证回退：从 httpOnly 会话 Cookie 解析 Operator（stateful 域 SPA 请求）
+     */
+    protected function resolveOperatorFromSession(Request $request): ?Operator
+    {
+        if (! $request->hasSession()) {
+            return null;
+        }
+
+        $identity = Auth::guard('operator-web')->user();
+
+        return $identity instanceof Operator ? $identity : null;
     }
 }

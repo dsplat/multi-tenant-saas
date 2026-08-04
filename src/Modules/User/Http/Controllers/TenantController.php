@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\User\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
+use Laravel\Sanctum\PersonalAccessToken;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Events\TenantCreated;
 use MultiTenantSaas\Modules\Auth\Services\RbacService;
@@ -12,6 +13,7 @@ use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
 use MultiTenantSaas\Modules\Billing\Models\CreditTransaction;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 use MultiTenantSaas\Modules\Infrastructure\Services\IdGenerator;
 use MultiTenantSaas\Modules\Infrastructure\Services\ModuleManager;
 use MultiTenantSaas\Modules\Infrastructure\Services\TenantOnboardingService;
@@ -42,12 +44,11 @@ class TenantController extends Controller
             return;
         }
 
-        // Operator 直连路径：通过 operator_tenants 查团队角色
+        // Operator 直连路径：通过 operator_tenants 关联查团队角色
         if ($user instanceof Operator) {
-            $isMember = \DB::table('operator_tenants')
-                ->where('operator_id', $user->operator_id)
-                ->where('tenant_id', $tenantId)
-                ->where('is_active', true)
+            $isMember = $user->tenants()
+                ->where('tenants.tenant_id', $tenantId)
+                ->where('operator_tenants.is_active', true)
                 ->exists();
 
             if ($isMember) {
@@ -58,7 +59,7 @@ class TenantController extends Controller
         }
 
         // User 路径：通过 tenant_users 查关联
-        $isMember = \DB::table('tenant_users')
+        $isMember = TenantUser::query()
             ->where('tenant_id', $tenantId)
             ->where('user_id', $user->user_id)
             ->exists();
@@ -259,13 +260,11 @@ class TenantController extends Controller
         $tenant->save();
 
         // 禁用该租户所有成员的 token
-        \DB::table('personal_access_tokens')
-            ->whereIn('tokenable_id', function ($query) use ($tenantId) {
-                $query->select('user_id')
-                    ->from('tenant_users')
-                    ->where('tenant_id', $tenantId);
-            })
-            ->delete();
+        PersonalAccessToken::whereIn('tokenable_id', function ($query) use ($tenantId) {
+            $query->select('user_id')
+                ->from('tenant_users')
+                ->where('tenant_id', $tenantId);
+        })->delete();
 
         app(AuditService::class)->log('suspend', 'tenant', $tenantId, ['status' => $oldStatus], [
             'status' => 'suspended',

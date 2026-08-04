@@ -32,6 +32,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->api(prepend: [
+            // Sanctum 双模认证：仅对 stateful 域（admin/console SPA，按 Origin/Referer 判定）
+            // 启用会话中间件（Cookie 加密/会话启动/CSRF 校验）；第三方 API 客户端不受影响。
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\CastRouteParameters::class,
             \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant::class,
             \MultiTenantSaas\Modules\Operator\Http\Middleware\IdentifyOperator::class,

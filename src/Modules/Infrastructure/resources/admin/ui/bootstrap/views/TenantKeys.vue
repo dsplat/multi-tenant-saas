@@ -25,11 +25,11 @@ import axios from 'axios'
 const API = '/api/v1/admin/tenant-keys'
 const keys = ref<any[]>([])
 
-const fetch = async () => { try { const r = await axios.get(API); keys.value = r.data.data || [] } catch {} }
-const handleGenerate = async () => { try { await axios.post(API); await fetch() } catch {} }
-const handleRevoke = async (k: any) => { if (!confirm('确定吊销此密钥？')) return; try { await axios.delete(`${API}/${k.id ?? k.tenant_key_id}`); await fetch() } catch {} }
+const loadData = async () => { try { const r = await axios.get(API); keys.value = r.data.data || [] } catch {} }
+const handleGenerate = async () => { try { await axios.post(API); await loadData() } catch {} }
+const handleRevoke = async (k: any) => { if (!confirm('确定吊销此密钥？')) return; try { await axios.delete(`${API}/${k.id ?? k.tenant_key_id}`); await loadData() } catch {} }
 
-onMounted(fetch)
+onMounted(loadData)
 </script>
 
 <style scoped>

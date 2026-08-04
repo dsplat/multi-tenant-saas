@@ -2,6 +2,9 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
 
+// 双模认证：SPA 走 Cookie 会话（Sanctum stateful），不在前端存储/携带 Bearer token
+axios.defaults.withCredentials = true
+
 interface User {
   user_id?: string
   operator_id?: string
@@ -15,22 +18,16 @@ interface User {
 }
 
 export const useUserStore = defineStore('user', () => {
-  const token = ref<string | null>(localStorage.getItem('auth_token'))
   const user = ref<User | null>(null)
   const permissions = ref<string[]>([])
 
-  const isLoggedIn = computed(() => !!token.value)
+  // 登录态以 /auth/user 探测结果（会话）为准，不再依赖本地 token
+  const isLoggedIn = computed(() => !!user.value)
   const tenantId = computed(() => user.value?.tenant_id || localStorage.getItem('auth_tenant_id') || '')
 
   const hasPermission = (perm: string): boolean => {
     if (['super_admin', 'tenant_admin', 'platform_admin'].includes(user.value?.role || '')) return true
     return permissions.value.includes(perm)
-  }
-
-  const setToken = (newToken: string) => {
-    token.value = newToken
-    localStorage.setItem('auth_token', newToken)
-    axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
   }
 
   const fetchUser = async () => {
@@ -41,6 +38,8 @@ export const useUserStore = defineStore('user', () => {
       permissions.value = data.permissions || []
       if (data.tenant_id) localStorage.setItem('auth_tenant_id', String(data.tenant_id))
     } catch (error) {
+      user.value = null
+      permissions.value = []
       console.error('获取用户信息失败:', error)
       throw error
     }
@@ -54,7 +53,7 @@ export const useUserStore = defineStore('user', () => {
       const response = await axios.post('/api/v1/console/auth/login', { email, password }, { headers })
       const data = response.data.data
 
-      // MFA required — return early without setting token
+      // MFA required — return early（会话由 mfa-verify 完成验证后建立）
       if (data.mfa_required) {
         return response.data
       }
@@ -62,7 +61,6 @@ export const useUserStore = defineStore('user', () => {
       // Operator login (new flow)
       if (data.operator) {
         const { operator, tenants, no_tenant } = data
-        if (data.auth_token) setToken(data.auth_token)
         user.value = { ...operator, tenants }
         permissions.value = operator.permissions || []
         if (no_tenant || !tenants?.length) {
@@ -82,8 +80,7 @@ export const useUserStore = defineStore('user', () => {
       }
 
       // Legacy User login
-      const { user: userData, auth_token, tenant_id } = data
-      setToken(auth_token)
+      const { user: userData, tenant_id } = data
       userData.tenant_id = tenant_id != null ? String(tenant_id) : tenant_id
       user.value = userData
       permissions.value = userData.permissions || []
@@ -101,9 +98,8 @@ export const useUserStore = defineStore('user', () => {
   const logout = async () => {
     try { await axios.post('/api/v1/console/auth/logout') } catch {}
     finally {
-      token.value = null; user.value = null; permissions.value = []
-      localStorage.removeItem('auth_token'); localStorage.removeItem('auth_tenant_id')
-      delete axios.defaults.headers.common['Authorization']
+      user.value = null; permissions.value = []
+      localStorage.removeItem('auth_tenant_id')
       delete axios.defaults.headers.common['X-Tenant-ID']
     }
   }
@@ -126,30 +122,26 @@ export const useUserStore = defineStore('user', () => {
   }
 
   const init = async () => {
-    if (token.value) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
-      const storedTid = localStorage.getItem('auth_tenant_id')
-      if (storedTid) axios.defaults.headers.common['X-Tenant-ID'] = storedTid
-      try { await fetchUser() } catch (error: any) {
-        const status = error?.response?.status
-        if (status === 403) {
-          // 403 多为残留的过期 X-Tenant-ID 与当前域名租户冲突：清残留租户头重试，不清 token
-          localStorage.removeItem('auth_tenant_id')
-          delete axios.defaults.headers.common['X-Tenant-ID']
-          try { await fetchUser(); return } catch (retryError: any) {
-            if (retryError?.response?.status !== 401) return
-          }
-        } else if (status !== 401) {
-          // 瞬时 5xx/网络错误保留 token，避免误登出
-          return
-        }
-        // 仅认证失效（401）清除会话
-        token.value = null; user.value = null; permissions.value = []
-        localStorage.removeItem('auth_token')
-        delete axios.defaults.headers.common['Authorization']
+    // 先取 XSRF-TOKEN Cookie（Sanctum stateful 写请求需要）
+    try { await axios.get('/api/v1/console/auth/csrf-cookie') } catch { /* 忽略：端点不可达时降级为未登录 */ }
+
+    // 恢复租户上下文头（非凭证，仅路由租户用）
+    const storedTid = localStorage.getItem('auth_tenant_id')
+    if (storedTid) axios.defaults.headers.common['X-Tenant-ID'] = storedTid
+
+    try {
+      await fetchUser()
+    } catch (error: any) {
+      const status = error?.response?.status
+      if (status === 403) {
+        // 403 多为残留的过期 X-Tenant-ID 与当前域名租户冲突：清残留租户头重试
+        localStorage.removeItem('auth_tenant_id')
+        delete axios.defaults.headers.common['X-Tenant-ID']
+        try { await fetchUser(); return } catch { /* 仍失败则按未登录处理 */ }
       }
+      // 未登录/会话失效/瞬时错误：user 保持 null，由路由守卫兜底跳登录页
     }
   }
 
-  return { token, user, permissions, isLoggedIn, tenantId, hasPermission, setToken, fetchUser, login, logout, switchTenant, init }
+  return { user, permissions, isLoggedIn, tenantId, hasPermission, fetchUser, login, logout, switchTenant, init }
 })

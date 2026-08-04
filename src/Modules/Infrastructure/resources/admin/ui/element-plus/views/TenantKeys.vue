@@ -38,22 +38,22 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 const API = '/api/v1/admin/tenant-keys'
 const keys = ref<any[]>([])
 
-const fetch = async () => { try { const r = await axios.get(API); keys.value = r.data.data || [] } catch {} }
+const loadData = async () => { try { const r = await axios.get(API); keys.value = r.data.data || [] } catch {} }
 const handleGenerate = async () => {
-  try { await axios.post(API); await fetch(); ElMessage.success('密钥已生成') } catch {}
+  try { await axios.post(API); await loadData(); ElMessage.success('密钥已生成') } catch {}
 }
 const handleRevoke = async (k: any) => {
   try {
     await ElMessageBox.confirm('确定吊销此密钥？', '警告', { type: 'error' })
     await axios.delete(`${API}/${k.id ?? k.tenant_key_id}`)
-    await fetch()
+    await loadData()
     ElMessage.success('已吊销')
   } catch (e: any) {
     if (e !== 'cancel' && e?.response) ElMessage.error(e.response?.data?.message || '操作失败')
   }
 }
 
-onMounted(fetch)
+onMounted(loadData)
 </script>
 
 <style scoped>

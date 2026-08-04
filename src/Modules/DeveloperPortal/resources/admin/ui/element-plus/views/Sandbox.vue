@@ -37,8 +37,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 const API = '/v1/admin/admin/developer-portal/sandbox'
 const sandboxes = ref<any[]>([])
 
-const fetch = async () => { try { const r = await axios.get(API); sandboxes.value = r.data.data || [] } catch {} }
-const handleCreate = async () => { try { await axios.post(API); await fetch(); ElMessage.success('沙箱已创建') } catch {} }
+const loadData = async () => { try { const r = await axios.get(API); sandboxes.value = r.data.data || [] } catch {} }
+const handleCreate = async () => { try { await axios.post(API); await loadData(); ElMessage.success('沙箱已创建') } catch {} }
 const handleCleanup = async (s: any) => {
   try {
     await ElMessageBox.confirm('确定清理此沙箱？', '警告', { type: 'warning' })
@@ -49,7 +49,7 @@ const handleCleanup = async (s: any) => {
   }
 }
 
-onMounted(fetch)
+onMounted(loadData)
 </script>
 
 <style scoped>

@@ -7,11 +7,11 @@
 
     <el-card shadow="never">
       <div class="filter-bar">
-        <el-select v-model="filters.scope" placeholder="全部范围" clearable style="width: 140px" @change="fetch">
+        <el-select v-model="filters.scope" placeholder="全部范围" clearable style="width: 140px" @change="loadData">
           <el-option label="全局" value="global" />
           <el-option label="租户" value="tenant" />
         </el-select>
-        <el-select v-model="filters.status" placeholder="全部状态" clearable style="width: 140px" @change="fetch">
+        <el-select v-model="filters.status" placeholder="全部状态" clearable style="width: 140px" @change="loadData">
           <el-option label="启用" value="active" />
           <el-option label="停用" value="inactive" />
         </el-select>
@@ -87,7 +87,7 @@ const editId = ref('')
 const filters = ref({ scope: '', status: '' })
 const form = ref({ name: '', description: '', scope: 'global', status: 'active', rollout_percentage: 100 })
 
-const fetch = async () => { try { const r = await axios.get(API, { params: filters.value }); flags.value = r.data.data || [] } catch {} }
+const loadData = async () => { try { const r = await axios.get(API, { params: filters.value }); flags.value = r.data.data || [] } catch {} }
 const openCreate = () => { isEdit.value = false; form.value = { name: '', description: '', scope: 'global', status: 'active', rollout_percentage: 100 }; dialog.value = true }
 const openEdit = (f: any) => { isEdit.value = true; editId.value = f.id ?? f.feature_flag_id; form.value = { name: f.name, description: f.description || '', scope: f.scope, status: f.status, rollout_percentage: f.rollout_percentage ?? 100 }; dialog.value = true }
 
@@ -95,27 +95,27 @@ const handleSubmit = async () => {
   try {
     if (isEdit.value) await axios.put(`${API}/${editId.value}`, form.value)
     else await axios.post(API, form.value)
-    dialog.value = false; await fetch()
+    dialog.value = false; await loadData()
     ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
   } catch {}
 }
 
 const toggleFlag = async (f: any) => {
-  try { await axios.post(`${API}/${f.id ?? f.feature_flag_id}/toggle`); await fetch() } catch {}
+  try { await axios.post(`${API}/${f.id ?? f.feature_flag_id}/toggle`); await loadData() } catch {}
 }
 
 const handleDelete = async (f: any) => {
   try {
     await ElMessageBox.confirm(`确定删除功能开关 ${f.name}？`, '警告', { type: 'error' })
     await axios.delete(`${API}/${f.id ?? f.feature_flag_id}`)
-    await fetch()
+    await loadData()
     ElMessage.success('删除成功')
   } catch (e: any) {
     if (e !== 'cancel' && e?.response) ElMessage.error(e.response?.data?.message || '删除失败')
   }
 }
 
-onMounted(fetch)
+onMounted(loadData)
 </script>
 
 <style scoped>

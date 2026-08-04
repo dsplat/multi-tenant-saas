@@ -4,8 +4,8 @@ namespace MultiTenantSaas\Modules\User\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
 
 class UserSearchService
 {
@@ -85,11 +85,11 @@ class UserSearchService
      */
     public function getUserStats(int $tenantId): array
     {
-        $total = DB::table('tenant_users')
+        $total = TenantUser::query()
             ->where('tenant_id', $tenantId)
             ->count();
 
-        $active = DB::table('tenant_users')
+        $active = TenantUser::query()
             ->where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->count();
@@ -104,18 +104,13 @@ class UserSearchService
             ->whereNotNull('email_verified_at')
             ->count();
 
-        $newThisMonth = DB::table('tenant_users')
+        $newThisMonth = TenantUser::query()
             ->where('tenant_id', $tenantId)
             ->where('joined_at', '>=', now()->startOfMonth())
             ->count();
 
-        $byRole = DB::table('tenant_users')
-            ->where('tenant_id', $tenantId)
-            ->where('is_active', true)
-            ->select('role', DB::raw('count(*) as count'))
-            ->groupBy('role')
-            ->pluck('count', 'role')
-            ->toArray();
+        // 身份模型铁律：User 无角色概念（角色仅属 Operator），tenant_users 无 role 列，
+        // 历史遗留的 by_role 统计为死代码，已移除。
 
         return [
             'total' => $total,
@@ -123,7 +118,6 @@ class UserSearchService
             'inactive' => $inactive,
             'email_verified' => $verified,
             'new_this_month' => $newThisMonth,
-            'by_role' => $byRole,
         ];
     }
 }

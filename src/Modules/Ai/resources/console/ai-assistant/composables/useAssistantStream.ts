@@ -141,16 +141,16 @@ export function useAssistantStream() {
       const conversationId = Number(pageContext.conversation_id)
       if (Number.isFinite(conversationId) && conversationId > 0) body.conversation_id = conversationId
 
-      // 复用 axios 的认证头（Bearer + X-Tenant-ID）
+      // 认证走 Cookie 会话（Sanctum stateful 双模认证），无需手拷 Bearer token；
+      // X-Tenant-ID 是租户上下文头（非凭证），仍从 axios 默认头复用
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      const auth = axios.defaults.headers.common['Authorization']
-      if (auth) headers['Authorization'] = String(auth)
       const tenant = axios.defaults.headers.common['X-Tenant-ID']
       if (tenant) headers['X-Tenant-ID'] = String(tenant)
 
       const response = await fetch(STREAM_ENDPOINT, {
         method: 'POST',
         headers,
+        credentials: 'include',
         body: JSON.stringify(body),
         signal: abortController.signal,
       })

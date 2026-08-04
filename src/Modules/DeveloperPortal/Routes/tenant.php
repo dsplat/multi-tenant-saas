@@ -1,15 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use MultiTenantSaas\Modules\DeveloperPortal\Services\SandboxService;
+use MultiTenantSaas\Modules\DeveloperPortal\Http\Controllers\DeveloperPortalTenantController;
 
 Route::prefix('tenant/developer')->group(function () {
-    Route::get('/docs', function () {
-        return response()->json(['success' => true, 'data' => ['api_docs_url' => '/api/documentation']]);
-    });
-    Route::get('/sandbox', function () {
-        $service = app(SandboxService::class);
-
-        return response()->json(['success' => true, 'data' => $service->getTenantSandbox()]);
-    });
+    Route::get('/docs', [DeveloperPortalTenantController::class, 'docs']);
+    Route::get('/sandbox', [DeveloperPortalTenantController::class, 'sandbox']);
 });

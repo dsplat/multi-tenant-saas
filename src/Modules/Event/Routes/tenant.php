@@ -1,12 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use MultiTenantSaas\Modules\Infrastructure\Services\EventBusService;
+use MultiTenantSaas\Modules\Event\Http\Controllers\EventController;
 
 Route::prefix('tenant/events')->group(function () {
-    Route::get('/', function () {
-        $service = app(EventBusService::class);
-
-        return response()->json(['success' => true, 'data' => $service->getRecentEvents(100)]);
-    });
+    Route::get('/', [EventController::class, 'index']);
 });

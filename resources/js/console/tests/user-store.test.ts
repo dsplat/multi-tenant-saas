@@ -14,7 +14,7 @@ vi.mock('axios', () => ({
 const mockedAxios = axios as unknown as {
   get: ReturnType<typeof vi.fn>
   post: ReturnType<typeof vi.fn>
-  defaults: { headers: { common: Record<string, string> } }
+  defaults: { headers: { common: Record<string, string> }; withCredentials?: boolean }
 }
 
 const httpError = (status: number) => Object.assign(new Error(`http ${status}`), { response: { status } })
@@ -45,16 +45,31 @@ describe('console user store', () => {
     })
   })
 
+  describe('Cookie 会话模式', () => {
+    it('axios 启用凭证携带，且不管理 Authorization 头', () => {
+      useUserStore()
+      expect(mockedAxios.defaults.withCredentials).toBe(true)
+      expect(mockedAxios.defaults.headers.common['Authorization']).toBeUndefined()
+    })
+
+    it('isLoggedIn 以用户探测结果为准，不再依赖本地 token', () => {
+      const store = useUserStore()
+      expect(store.isLoggedIn).toBe(false)
+      store.user = { name: 'a', email: 'a@a.com' }
+      expect(store.isLoggedIn).toBe(true)
+    })
+  })
+
   describe('login', () => {
-    it('MFA 场景提前返回且不写 token', async () => {
+    it('MFA 场景提前返回且不写租户上下文', async () => {
       mockedAxios.post.mockResolvedValue({ data: { data: { mfa_required: true } } })
       const store = useUserStore()
       const res = await store.login('a@a.com', 'pwd')
       expect(res.data.mfa_required).toBe(true)
-      expect(store.token).toBeNull()
+      expect(store.user).toBeNull()
     })
 
-    it('Operator 登录选择第一个租户并写入 X-Tenant-ID', async () => {
+    it('Operator 登录选择第一个租户并写入 X-Tenant-ID（不存 token）', async () => {
       mockedAxios.post.mockResolvedValue({
         data: {
           data: {
@@ -69,10 +84,10 @@ describe('console user store', () => {
       })
       const store = useUserStore()
       await store.login('a@a.com', 'pwd')
-      expect(store.token).toBe('tok-op')
       expect(store.user?.tenant_id).toBe('11')
       expect(store.tenantId).toBe('11')
       expect(localStorage.getItem('auth_tenant_id')).toBe('11')
+      expect(localStorage.getItem('auth_token')).toBeNull()
       expect(mockedAxios.defaults.headers.common['X-Tenant-ID']).toBe('11')
       expect(store.permissions).toEqual(['p1'])
     })
@@ -96,7 +111,7 @@ describe('console user store', () => {
       expect(localStorage.getItem('auth_tenant_id')).toBeNull()
     })
 
-    it('Legacy User 登录写入 tenant_id', async () => {
+    it('Legacy User 登录写入 tenant_id（不存 token）', async () => {
       mockedAxios.post.mockResolvedValue({
         data: {
           data: {
@@ -108,58 +123,64 @@ describe('console user store', () => {
       })
       const store = useUserStore()
       await store.login('u@u.com', 'pwd')
-      expect(store.token).toBe('tok-legacy')
       expect(store.tenantId).toBe('33')
+      expect(localStorage.getItem('auth_token')).toBeNull()
       expect(mockedAxios.defaults.headers.common['X-Tenant-ID']).toBe('33')
     })
   })
 
   describe('logout', () => {
-    it('清空 token、租户上下文与请求头', async () => {
+    it('清空用户与租户上下文', async () => {
       mockedAxios.post.mockRejectedValue(new Error('network'))
       const store = useUserStore()
-      store.setToken('tok')
+      store.user = { name: 'a', email: 'a@a.com' }
       localStorage.setItem('auth_tenant_id', '11')
       mockedAxios.defaults.headers.common['X-Tenant-ID'] = '11'
       await store.logout()
-      expect(store.token).toBeNull()
-      expect(localStorage.getItem('auth_token')).toBeNull()
+      expect(store.user).toBeNull()
       expect(localStorage.getItem('auth_tenant_id')).toBeNull()
-      expect(mockedAxios.defaults.headers.common['Authorization']).toBeUndefined()
       expect(mockedAxios.defaults.headers.common['X-Tenant-ID']).toBeUndefined()
     })
   })
 
   describe('init 容错', () => {
-    it('403 时清残留租户头重试成功，不清 token', async () => {
-      localStorage.setItem('auth_token', 'tok')
+    it('403 时清残留租户头重试成功', async () => {
       localStorage.setItem('auth_tenant_id', '99')
       mockedAxios.get
+        .mockResolvedValueOnce({ status: 204 }) // csrf-cookie
         .mockRejectedValueOnce(httpError(403))
         .mockResolvedValueOnce({ data: { data: { user: { name: 'u' }, permissions: [] } } })
       const store = useUserStore()
       await store.init()
-      expect(store.token).toBe('tok')
       expect(store.user?.name).toBe('u')
       expect(localStorage.getItem('auth_tenant_id')).toBeNull()
     })
 
-    it('401 时清除会话', async () => {
-      localStorage.setItem('auth_token', 'tok')
+    it('401 时保持未登录', async () => {
+      mockedAxios.get
+        .mockResolvedValueOnce({ status: 204 }) // csrf-cookie
+        .mockRejectedValue(httpError(401))
+      const store = useUserStore()
+      await store.init()
+      expect(store.user).toBeNull()
+      expect(store.isLoggedIn).toBe(false)
+    })
+
+    it('5xx/网络错误不抛出，保持未登录由守卫兜底', async () => {
+      mockedAxios.get
+        .mockResolvedValueOnce({ status: 204 }) // csrf-cookie
+        .mockRejectedValue(httpError(500))
+      const store = useUserStore()
+      await expect(store.init()).resolves.toBeUndefined()
+      expect(store.user).toBeNull()
+    })
+
+    it('init 时恢复 localStorage 中的 X-Tenant-ID 头', async () => {
+      localStorage.setItem('auth_tenant_id', '77')
       mockedAxios.get.mockRejectedValue(httpError(401))
       const store = useUserStore()
       await store.init()
-      expect(store.token).toBeNull()
-      expect(localStorage.getItem('auth_token')).toBeNull()
-    })
-
-    it('5xx/网络错误保留 token 避免误登出', async () => {
-      localStorage.setItem('auth_token', 'tok')
-      mockedAxios.get.mockRejectedValue(httpError(500))
-      const store = useUserStore()
-      await store.init()
-      expect(store.token).toBe('tok')
-      expect(localStorage.getItem('auth_token')).toBe('tok')
+      expect(mockedAxios.defaults.headers.common['X-Tenant-ID']).toBe('77')
     })
   })
 })

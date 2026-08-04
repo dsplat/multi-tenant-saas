@@ -3,8 +3,8 @@
     <div class="page-header"><h2>功能开关</h2><button class="primary-btn" @click="openCreate">+ 创建开关</button></div>
     <div class="panel">
       <div class="filter-bar">
-        <select v-model="filters.scope" @change="fetch"><option value="">全部范围</option><option value="global">全局</option><option value="tenant">租户</option></select>
-        <select v-model="filters.status" @change="fetch"><option value="">全部状态</option><option value="active">启用</option><option value="inactive">停用</option></select>
+        <select v-model="filters.scope" @change="loadData"><option value="">全部范围</option><option value="global">全局</option><option value="tenant">租户</option></select>
+        <select v-model="filters.status" @change="loadData"><option value="">全部状态</option><option value="active">启用</option><option value="inactive">停用</option></select>
       </div>
       <table class="data-table">
         <thead><tr><th>名称</th><th>描述</th><th>范围</th><th>状态</th><th>灰度%</th><th>操作</th></tr></thead>
@@ -53,7 +53,7 @@ const editId = ref('')
 const filters = ref({ scope: '', status: '' })
 const form = ref({ name: '', description: '', scope: 'global', status: 'active', rollout_percentage: 100 })
 
-const fetch = async () => { try { const r = await axios.get(API, { params: filters.value }); flags.value = r.data.data || [] } catch {} }
+const loadData = async () => { try { const r = await axios.get(API, { params: filters.value }); flags.value = r.data.data || [] } catch {} }
 const openCreate = () => { isEdit.value = false; form.value = { name: '', description: '', scope: 'global', status: 'active', rollout_percentage: 100 }; dialog.value = true }
 const openEdit = (f: any) => { isEdit.value = true; editId.value = f.id ?? f.feature_flag_id; form.value = { name: f.name, description: f.description || '', scope: f.scope, status: f.status, rollout_percentage: f.rollout_percentage ?? 100 }; dialog.value = true }
 
@@ -61,20 +61,20 @@ const handleSubmit = async () => {
   try {
     if (isEdit.value) await axios.put(`${API}/${editId.value}`, form.value)
     else await axios.post(API, form.value)
-    dialog.value = false; await fetch()
+    dialog.value = false; await loadData()
   } catch {}
 }
 
 const toggleFlag = async (f: any) => {
-  try { await axios.post(`${API}/${f.id ?? f.feature_flag_id}/toggle`); await fetch() } catch {}
+  try { await axios.post(`${API}/${f.id ?? f.feature_flag_id}/toggle`); await loadData() } catch {}
 }
 
 const handleDelete = async (f: any) => {
   if (!confirm(`确定删除功能开关 ${f.name}？`)) return
-  try { await axios.delete(`${API}/${f.id ?? f.feature_flag_id}`); await fetch() } catch (e: any) { alert(e.response?.data?.message || '删除失败') }
+  try { await axios.delete(`${API}/${f.id ?? f.feature_flag_id}`); await loadData() } catch (e: any) { alert(e.response?.data?.message || '删除失败') }
 }
 
-onMounted(fetch)
+onMounted(loadData)
 </script>
 
 <style scoped>

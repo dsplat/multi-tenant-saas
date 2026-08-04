@@ -13,6 +13,7 @@ use MultiTenantSaas\Exceptions\StorageException;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Logging\Models\AuditLog;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
+use MultiTenantSaas\Modules\User\Models\UserPreference;
 
 /**
  * 用户画像服务
@@ -37,11 +38,6 @@ class UserProfileService
             'web' => true,
         ],
     ];
-
-    /**
-     * 偏好表名
-     */
-    protected const TABLE_PREFERENCES = 'user_preferences';
 
     /**
      * 获取用户基本信息
@@ -104,17 +100,9 @@ class UserProfileService
      */
     public function getPreferences(int $userId): array
     {
-        $row = DB::table(self::TABLE_PREFERENCES)
-            ->where('user_id', $userId)
-            ->first();
+        $row = UserPreference::where('user_id', $userId)->first();
 
-        $stored = $row && $row->preferences
-            ? json_decode($row->preferences, true)
-            : [];
-
-        if (! is_array($stored)) {
-            $stored = [];
-        }
+        $stored = is_array($row?->preferences) ? $row->preferences : [];
 
         return array_replace_recursive(self::DEFAULT_PREFERENCES, $stored);
     }
@@ -137,25 +125,10 @@ class UserProfileService
         try {
             $merged = array_replace_recursive($this->getPreferences($userId), $preferences);
 
-            $exists = DB::table(self::TABLE_PREFERENCES)
-                ->where('user_id', $userId)
-                ->exists();
-
-            if ($exists) {
-                DB::table(self::TABLE_PREFERENCES)
-                    ->where('user_id', $userId)
-                    ->update([
-                        'preferences' => json_encode($merged, JSON_UNESCAPED_UNICODE),
-                        'updated_at' => now(),
-                    ]);
-            } else {
-                DB::table(self::TABLE_PREFERENCES)->insert([
-                    'user_id' => $userId,
-                    'preferences' => json_encode($merged, JSON_UNESCAPED_UNICODE),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
+            UserPreference::updateOrCreate(
+                ['user_id' => $userId],
+                ['preferences' => $merged]
+            );
 
             app(AuditService::class)->log(
                 action: 'preferences_update',
@@ -186,9 +159,7 @@ class UserProfileService
     {
         DB::beginTransaction();
         try {
-            DB::table(self::TABLE_PREFERENCES)
-                ->where('user_id', $userId)
-                ->delete();
+            UserPreference::where('user_id', $userId)->delete();
 
             app(AuditService::class)->log(
                 action: 'preferences_reset',

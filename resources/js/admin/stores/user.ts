@@ -2,6 +2,9 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
 
+// 双模认证：SPA 走 Cookie 会话（Sanctum stateful），不在前端存储/携带 Bearer token
+axios.defaults.withCredentials = true
+
 interface User {
   user_id: string
   name: string
@@ -12,11 +15,11 @@ interface User {
 }
 
 export const useUserStore = defineStore('user', () => {
-  const token = ref<string | null>(localStorage.getItem('admin_token'))
   const user = ref<User | null>(null)
   const permissions = ref<string[]>([])
 
-  const isLoggedIn = computed(() => !!token.value)
+  // 登录态以 /auth/user 探测结果（会话）为准，不再依赖本地 token
+  const isLoggedIn = computed(() => !!user.value)
   const isSuperAdmin = computed(() => user.value?.role === 'super_admin')
 
   const hasPermission = (perm: string): boolean => {
@@ -29,12 +32,6 @@ export const useUserStore = defineStore('user', () => {
     return perms.some(p => permissions.value.includes(p))
   }
 
-  const setToken = (newToken: string) => {
-    token.value = newToken
-    localStorage.setItem('admin_token', newToken)
-    axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
-  }
-
   const fetchUser = async () => {
     try {
       const response = await axios.get('/api/v1/admin/auth/user')
@@ -42,6 +39,8 @@ export const useUserStore = defineStore('user', () => {
       user.value = data.user || data
       permissions.value = data.permissions || []
     } catch (error) {
+      user.value = null
+      permissions.value = []
       console.error('获取用户信息失败:', error)
       throw error
     }
@@ -50,8 +49,7 @@ export const useUserStore = defineStore('user', () => {
   const login = async (email: string, password: string) => {
     try {
       const response = await axios.post('/api/v1/admin/auth/login', { email, password })
-      const { operator, user: userData, auth_token } = response.data.data
-      setToken(auth_token)
+      const { operator, user: userData } = response.data.data
       const userInfo = operator || userData
       user.value = userInfo
       permissions.value = userInfo?.permissions || []
@@ -68,38 +66,28 @@ export const useUserStore = defineStore('user', () => {
     } catch (error) {
       console.error('登出失败:', error)
     } finally {
-      token.value = null
       user.value = null
       permissions.value = []
-      localStorage.removeItem('admin_token')
-      delete axios.defaults.headers.common['Authorization']
     }
   }
 
   const init = async () => {
-    if (token.value) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
-      try {
-        await fetchUser()
-      } catch (error) {
-        token.value = null
-        user.value = null
-        permissions.value = []
-        localStorage.removeItem('admin_token')
-        delete axios.defaults.headers.common['Authorization']
-      }
+    // 先取 XSRF-TOKEN Cookie（Sanctum stateful 写请求需要），再探测会话状态
+    try { await axios.get('/api/v1/admin/auth/csrf-cookie') } catch { /* 忽略：端点不可达时降级为未登录 */ }
+    try {
+      await fetchUser()
+    } catch {
+      // 未登录或瞬时错误：user 保持 null，由路由守卫兜底跳登录页
     }
   }
 
   return {
-    token,
     user,
     permissions,
     isLoggedIn,
     isSuperAdmin,
     hasPermission,
     hasAnyPermission,
-    setToken,
     fetchUser,
     login,
     logout,

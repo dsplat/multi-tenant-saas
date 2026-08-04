@@ -7,7 +7,7 @@
 
     <el-card shadow="never">
       <div class="filter-bar">
-        <el-select v-model="filterScope" placeholder="全部范围" clearable style="width: 160px" @change="fetch">
+        <el-select v-model="filterScope" placeholder="全部范围" clearable style="width: 160px" @change="loadData">
           <el-option label="全局" value="all" />
           <el-option label="API" value="api" />
           <el-option label="管理后台" value="admin" />
@@ -64,22 +64,22 @@ const filterScope = ref('')
 const showAdd = ref(false)
 const form = ref({ ip_address: '', description: '', scope: 'all' })
 
-const fetch = async () => { try { const r = await axios.get(API, { params: { scope: filterScope.value || undefined } }); items.value = r.data.data || [] } catch {} }
+const loadData = async () => { try { const r = await axios.get(API, { params: { scope: filterScope.value || undefined } }); items.value = r.data.data || [] } catch {} }
 const handleAdd = async () => {
-  try { await axios.post(API, form.value); showAdd.value = false; form.value = { ip_address: '', description: '', scope: 'all' }; await fetch(); ElMessage.success('添加成功') } catch {}
+  try { await axios.post(API, form.value); showAdd.value = false; form.value = { ip_address: '', description: '', scope: 'all' }; await loadData(); ElMessage.success('添加成功') } catch {}
 }
 const handleDelete = async (ip: any) => {
   try {
     await ElMessageBox.confirm(`确定删除 ${ip.ip_address}？`, '警告', { type: 'error' })
     await axios.delete(`${API}/${ip.id}`)
-    await fetch()
+    await loadData()
     ElMessage.success('删除成功')
   } catch (e: any) {
     if (e !== 'cancel' && e?.response) ElMessage.error(e.response?.data?.message || '删除失败')
   }
 }
 
-onMounted(fetch)
+onMounted(loadData)
 </script>
 
 <style scoped>

@@ -42,6 +42,26 @@
           <span v-if="route.meta.title" class="breadcrumb-current">{{ route.meta.title }}</span>
         </div>
         <div class="actions">
+          <div v-if="tenantList.length > 1" class="team-switcher" :class="{ open: switcherOpen }">
+            <button class="team-btn" @click.stop="switcherOpen = !switcherOpen" title="切换团队">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M3 4a1 1 0 011-1h5a1 1 0 011 1v14H3V4zm2 2v2h2V6H5zm0 4v2h2v-2H5zm6-2a1 1 0 011-1h3a1 1 0 011 1v10h-5V8zm2 2v2h1v-2h-1zm0 4v2h1v-2h-1z"/></svg>
+              <span class="team-name">{{ currentTenantName }}</span>
+              <svg class="chevron" viewBox="0 0 20 20" fill="currentColor" width="12" height="12"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            </button>
+            <div v-if="switcherOpen" class="team-menu" @click.stop>
+              <button
+                v-for="t in tenantList"
+                :key="t.tenant_id"
+                class="team-menu-item"
+                :class="{ active: String(t.tenant_id) === String(userStore.tenantId) }"
+                :disabled="String(t.tenant_id) === String(userStore.tenantId)"
+                @click="handleSwitchTenant(t.tenant_id)"
+              >
+                <span class="team-menu-name">{{ t.name }}</span>
+                <span v-if="String(t.tenant_id) === String(userStore.tenantId)" class="team-menu-tag">当前</span>
+              </button>
+            </div>
+          </div>
           <button class="icon-btn" @click="showFrameworkSelector = true" title="UI 框架切换">
             <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/></svg>
           </button>
@@ -68,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getConsoleNavSections, type NavSection } from '@/module-loader'
@@ -97,6 +117,25 @@ const handleLogout = async () => {
   await userStore.logout()
   router.push('/login')
 }
+
+// ===== 团队切换器（多租户 Operator） =====
+const switcherOpen = ref(false)
+const tenantList = computed(() => userStore.user?.tenants || [])
+const currentTenantName = computed(() => {
+  const current = tenantList.value.find(t => String(t.tenant_id) === String(userStore.tenantId))
+  return current?.name || '选择团队'
+})
+
+const handleSwitchTenant = async (tenantId: number) => {
+  switcherOpen.value = false
+  await userStore.switchTenant(tenantId)
+}
+
+const closeSwitcherOnClickOutside = (e: MouseEvent) => {
+  if (switcherOpen.value) switcherOpen.value = false
+}
+onMounted(() => document.addEventListener('click', closeSwitcherOnClickOutside))
+onBeforeUnmount(() => document.removeEventListener('click', closeSwitcherOnClickOutside))
 </script>
 
 <style>
@@ -154,6 +193,18 @@ html.dark { --sb: #1e293b; --sb-h: #334155; --sb-t: #94a3b8; --sb-ta: #f1f5f9; -
 
 .icon-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--tb-b); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--tx2); transition: all 0.15s; }
 .icon-btn:hover { background: rgba(var(--c-accent-rgb),0.1); border-color: var(--c-accent); color: var(--c-accent); }
+
+.team-switcher { position: relative; }
+.team-btn { display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--tb-b); background: transparent; cursor: pointer; font-size: 13px; color: var(--tx2); transition: all 0.15s; max-width: 220px; }
+.team-btn:hover, .team-switcher.open .team-btn { background: rgba(var(--c-accent-rgb),0.1); border-color: var(--c-accent); color: var(--c-accent); }
+.team-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.team-btn .chevron { flex-shrink: 0; opacity: 0.6; }
+.team-menu { position: absolute; top: calc(100% + 6px); right: 0; min-width: 200px; max-width: 280px; background: var(--tb); border: 1px solid var(--tb-b); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 6px; z-index: 100; }
+.team-menu-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 9px 12px; border: none; border-radius: 6px; background: transparent; cursor: pointer; font-size: 13px; color: var(--tx); text-align: left; transition: background 0.15s; }
+.team-menu-item:hover:not(:disabled) { background: var(--sb-h); }
+.team-menu-item.active { color: var(--c-accent); font-weight: 500; cursor: default; }
+.team-menu-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.team-menu-tag { flex-shrink: 0; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: rgba(var(--c-accent-rgb),0.12); color: var(--c-accent); }
 
 .logout-btn { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border: 1px solid var(--tb-b); border-radius: 8px; background: transparent; cursor: pointer; font-size: 13px; color: var(--tx2); transition: all 0.15s; }
 .logout-btn:hover { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }

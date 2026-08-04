@@ -472,8 +472,12 @@ class AuthController extends Controller
     {
         $identity = $request->user();
 
-        // Cookie 会话认证的请求无 currentAccessToken，需 null-safe
-        $identity?->currentAccessToken()?->delete();
+        // Cookie 会话认证的请求 currentAccessToken() 返回 TransientToken
+        // （非 null，且无 delete 方法），仅真实签发的 PersonalAccessToken 才删除
+        $accessToken = $identity?->currentAccessToken();
+        if ($accessToken instanceof \Laravel\Sanctum\PersonalAccessToken) {
+            $accessToken->delete();
+        }
 
         if ($request->hasSession()) {
             Auth::guard($identity instanceof Operator ? 'operator-web' : 'web')->logout();

@@ -13,7 +13,7 @@
  */
 import { ref } from 'vue'
 import axios from 'axios'
-import type { PageContext, ToolCall, FormFillSuggestion, WorkflowSuggestion, ConversationMeta, ActionConfirmData } from '../types'
+import type { PageContext, ToolCall, FormFillSuggestion, WorkflowSuggestion, ConversationMeta, ActionConfirmData, AttachmentDraft } from '../types'
 
 /** 流空闲超时（毫秒）：Node 链路无心跳帧，放宽到 120s 容忍长思考 */
 const STREAM_IDLE_TIMEOUT_MS = 120_000
@@ -33,6 +33,9 @@ const ASSISTANT_BASE = ASSISTANT_ENDPOINT.endsWith('/stream')
   ? ASSISTANT_ENDPOINT.slice(0, -'/stream'.length)
   : ASSISTANT_ENDPOINT
 export const CONFIRM_ACTION_ENDPOINT = `${ASSISTANT_BASE}/confirm-action`
+
+/** 附件内容提取端点（文件不落库，后端提取文本后返回） */
+export const EXTRACT_FILE_ENDPOINT = `${ASSISTANT_BASE}/extract-file`
 
 /** 上行历史消息（由面板从 store 提取，纯文本轮次） */
 export interface HistoryTurn {
@@ -57,8 +60,10 @@ export interface StreamCallbacks {
 /**
  * 复刻 PHP PageContext::toPromptContext + buildMessage 的消息包装格式，
  * 页面上下文注入由前端完成（引擎哑管道，不感知上下文语义）。
+ * 附件提取文本放在 [页面上下文] 与 [用户请求] 之间，
+ * 历史恢复正则 /\[用户请求\]\n(.*)$/su 会自动剥离该块，避免回显冗余。
  */
-function buildContextMessage(ctx: PageContext, userIntent: string): string {
+function buildContextMessage(ctx: PageContext, userIntent: string, attachments: AttachmentDraft[] = []): string {
   const parts = [
     `当前页面: ${ctx.route || ''}`,
     `模块: ${ctx.module || ''}`,
@@ -74,7 +79,15 @@ function buildContextMessage(ctx: PageContext, userIntent: string): string {
     parts.push(`表单状态: ${JSON.stringify(ctx.form_state)}`)
   }
 
-  return `[页面上下文]\n${parts.join('\n')}\n\n[用户请求]\n${userIntent}`
+  let message = `[页面上下文]\n${parts.join('\n')}`
+
+  const ready = attachments.filter(a => a.status === 'ready' && a.content)
+  if (ready.length > 0) {
+    const blocks = ready.map(a => `[附件: ${a.filename}]\n${a.content}`).join('\n\n')
+    message += `\n\n${blocks}`
+  }
+
+  return `${message}\n\n[用户请求]\n${userIntent}`
 }
 
 export function useAssistantStream() {
@@ -96,13 +109,16 @@ export function useAssistantStream() {
    *
    * @param pageContext 页面上下文（含转派 agent_id 时定向目标员工）
    * @param userIntent  用户本轮输入原话
+   * @param callbacks   流式回调
    * @param history     此前轮次的纯文本历史（引擎无状态，多轮记忆由前端携带）
+   * @param attachments 附件提取文本（注入到 [用户请求] 之前，随消息落库保存）
    */
   async function send(
     pageContext: PageContext & { agent_id?: number | string | null },
     userIntent: string,
     callbacks: StreamCallbacks,
     history: HistoryTurn[] = [],
+    attachments: AttachmentDraft[] = [],
   ): Promise<void> {
     if (streaming.value) return
 
@@ -114,7 +130,7 @@ export function useAssistantStream() {
       // 历史轮次为纯文本；仅当前轮包装页面上下文（与旧 PHP 链路行为一致）
       const messages: Array<{ role: string; content: string }> = [
         ...history.filter(h => h.content).map(h => ({ role: h.role, content: h.content })),
-        { role: 'user', content: buildContextMessage(pageContext, userIntent) },
+        { role: 'user', content: buildContextMessage(pageContext, userIntent, attachments) },
       ]
 
       const body: Record<string, any> = { messages }

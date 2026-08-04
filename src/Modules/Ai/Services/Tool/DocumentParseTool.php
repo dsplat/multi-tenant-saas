@@ -2,16 +2,10 @@
 
 namespace MultiTenantSaas\Modules\Ai\Services\Tool;
 
-use Illuminate\Support\Facades\Storage;
-use MultiTenantSaas\Exceptions\NotFoundException;
-use MultiTenantSaas\Exceptions\ServiceUnavailableException;
-use MultiTenantSaas\Exceptions\StorageException;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
+use MultiTenantSaas\Modules\Ai\Services\Assistant\DocumentTextExtractor;
 use MultiTenantSaas\Modules\Storage\Models\FileUpload;
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use Smalot\PdfParser\Parser;
 use Throwable;
-use ZipArchive;
 
 /**
  * document_parse — 解析已上传文档并抽取纯文本
@@ -34,6 +28,10 @@ class DocumentParseTool implements ToolHandlerContract
      */
     protected const MAX_CHARS = 12000;
 
+    public function __construct(
+        protected DocumentTextExtractor $extractor = new DocumentTextExtractor,
+    ) {}
+
     public function __invoke(array $arguments, int $tenantId): mixed
     {
         $fileId = trim((string) ($arguments['file_id'] ?? ''));
@@ -52,7 +50,11 @@ class DocumentParseTool implements ToolHandlerContract
         }
 
         try {
-            [$format, $text] = $this->extractText($file);
+            [$format, $text] = $this->extractor->withDiskPath(
+                $file->disk ?: 'local',
+                $file->path,
+                fn (string $path) => $this->extractor->extract($path, (string) $file->filename, $file->mime_type),
+            );
         } catch (Throwable $e) {
             return ['error' => true, 'message' => "文档解析失败：{$e->getMessage()}"];
         }
@@ -77,150 +79,5 @@ class DocumentParseTool implements ToolHandlerContract
             'truncated' => $truncated,
             'total_length' => $totalLength,
         ];
-    }
-
-    /**
-     * 按 mime / 扩展名分流抽取文本
-     *
-     * @return array{0: string, 1: string|null} [格式标识, 文本（null 表示不支持）]
-     */
-    protected function extractText(FileUpload $file): array
-    {
-        $mime = (string) $file->mime_type;
-        $extension = strtolower(pathinfo((string) $file->filename, PATHINFO_EXTENSION));
-
-        // 纯文本类直接读取
-        if (str_starts_with($mime, 'text/')
-            || in_array($mime, ['application/json', 'application/xml'], true)
-            || in_array($extension, ['txt', 'md', 'csv', 'json', 'xml', 'html', 'log'], true)) {
-            return ['text', $this->readRaw($file)];
-        }
-
-        // 表格类（phpoffice/phpspreadsheet）
-        if (in_array($extension, ['xlsx', 'xls', 'ods'], true)
-            || in_array($mime, [
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'application/vnd.ms-excel',
-            ], true)) {
-            return ['spreadsheet', $this->withLocalPath($file, fn (string $path) => $this->parseSpreadsheet($path))];
-        }
-
-        // Word docx（zip 容器，零额外依赖）
-        if ($extension === 'docx'
-            || $mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-            return ['docx', $this->withLocalPath($file, fn (string $path) => $this->parseDocx($path))];
-        }
-
-        // PDF（可选依赖 smalot/pdfparser）
-        if ($extension === 'pdf' || $mime === 'application/pdf') {
-            if (! class_exists(Parser::class)) {
-                throw new ServiceUnavailableException('PDF 解析组件未安装（smalot/pdfparser），请将文档转存为 docx 或 txt 后重新上传');
-            }
-
-            return ['pdf', $this->withLocalPath($file, fn (string $path) => $this->parsePdf($path))];
-        }
-
-        return ['unsupported', null];
-    }
-
-    /**
-     * 直接读取文件原始内容
-     */
-    protected function readRaw(FileUpload $file): string
-    {
-        return (string) Storage::disk($file->disk ?: 'local')->get($file->path);
-    }
-
-    /**
-     * 将文件解析为本地可读路径后执行回调（非 local 驱动落临时文件，用后清理）
-     */
-    protected function withLocalPath(FileUpload $file, callable $callback): string
-    {
-        $disk = $file->disk ?: 'local';
-        $tempPath = null;
-
-        try {
-            $path = Storage::disk($disk)->path($file->path);
-
-            if (! is_string($path) || ! is_file($path)) {
-                throw new StorageException('not a local file');
-            }
-        } catch (Throwable $e) {
-            $tempPath = (string) tempnam(sys_get_temp_dir(), 'doc_parse_');
-            file_put_contents($tempPath, (string) Storage::disk($disk)->get($file->path));
-            $path = $tempPath;
-        }
-
-        try {
-            return $callback($path);
-        } finally {
-            if ($tempPath !== null && is_file($tempPath)) {
-                @unlink($tempPath);
-            }
-        }
-    }
-
-    /**
-     * 解析表格：逐 sheet 逐行抽取，单元格以制表符分隔
-     */
-    protected function parseSpreadsheet(string $path): string
-    {
-        $spreadsheet = IOFactory::load($path);
-        $lines = [];
-
-        foreach ($spreadsheet->getAllSheets() as $sheet) {
-            $lines[] = "# Sheet: {$sheet->getTitle()}";
-
-            foreach ($sheet->toArray(null, true, true, false) as $row) {
-                $cells = array_map(fn ($v) => trim((string) $v), $row);
-
-                // 跳过整行为空的行
-                if (implode('', $cells) === '') {
-                    continue;
-                }
-
-                $lines[] = implode("\t", $cells);
-            }
-        }
-
-        return implode("\n", $lines);
-    }
-
-    /**
-     * 解析 docx：抽取 word/document.xml，段落转换行后剥离标签
-     */
-    protected function parseDocx(string $path): string
-    {
-        $zip = new ZipArchive;
-
-        if ($zip->open($path) !== true) {
-            throw new StorageException('docx 文件损坏或无法读取');
-        }
-
-        try {
-            $xml = $zip->getFromName('word/document.xml');
-        } finally {
-            $zip->close();
-        }
-
-        if ($xml === false) {
-            throw new NotFoundException('docx 内容缺失（word/document.xml 不存在）');
-        }
-
-        // 段落与换行符转为 \n，再剥离全部 XML 标签
-        $xml = str_replace(['</w:p>', '<w:br/>', '<w:br />'], "\n", $xml);
-        $text = strip_tags($xml);
-
-        return html_entity_decode($text, ENT_QUOTES | ENT_XML1, 'UTF-8');
-    }
-
-    /**
-     * 解析 PDF（smalot/pdfparser）
-     */
-    protected function parsePdf(string $path): string
-    {
-        $parser = new Parser;
-
-        return $parser->parseFile($path)->getText();
     }
 }

@@ -116,3 +116,5 @@ Route::get('/ai/assistant/suggestions', [AssistantController::class, 'suggestion
     ->middleware('tenant.ensure');
 Route::post('/ai/assistant/confirm-action', [AssistantController::class, 'confirmAction'])
     ->middleware('tenant.ensure');
+Route::post('/ai/assistant/extract-file', [AssistantController::class, 'extractFile'])
+    ->middleware('tenant.ensure');

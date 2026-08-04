@@ -155,6 +155,15 @@ return [
         'extra_setup_checkers' => [],
     ],
 
+    // 小助手附件能力配置
+    'assistant' => [
+        // 图片内容识别（视觉模型）：provider 置空则图片附件被拒绝并提示改传文档
+        'image_extract' => [
+            'provider' => env('AI_ASSISTANT_VISION_PROVIDER', 'bailian'),
+            'model' => env('AI_ASSISTANT_VISION_MODEL', 'qwen-vl-plus'),
+        ],
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | MCP 协议适配器（Bridge）配置

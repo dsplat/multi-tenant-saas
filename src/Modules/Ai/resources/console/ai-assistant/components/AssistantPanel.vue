@@ -7,11 +7,13 @@
  */
 import { ref, nextTick, watch, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 import { useAssistantStore } from '../../stores/assistant'
 import { usePageContext } from '../composables/usePageContext'
-import { useAssistantStream } from '../composables/useAssistantStream'
+import { useAssistantStream, EXTRACT_FILE_ENDPOINT } from '../composables/useAssistantStream'
 import { useAssistantHistory } from '../composables/useAssistantHistory'
 import { useSuggestions } from '../composables/useSuggestions'
+import type { AttachmentDraft } from '../types'
 import ChatMessage from './ChatMessage.vue'
 import HistoryList from './HistoryList.vue'
 
@@ -26,6 +28,79 @@ const input = ref('')
 const chatScroll = ref<HTMLElement | null>(null)
 /** 历史会话视图开关（面板内覆盖视图，避免抽屉套抽屉） */
 const showHistory = ref(false)
+
+/* ============ 附件上传（文件不落库，后端提取文本随消息发送） ============ */
+
+const attachments = ref<AttachmentDraft[]>([])
+const fileInput = ref<HTMLInputElement | null>(null)
+const textareaEl = ref<HTMLTextAreaElement | null>(null)
+/** 输入框高度：默认 1 行，动态扩到最多 5 行后滚动（行高 19.5px + 上下 padding 18px） */
+const INPUT_MIN_HEIGHT = 38
+const INPUT_MAX_HEIGHT = INPUT_MIN_HEIGHT * 5 + 18
+
+/** 接受的附件类型：md/文本、pdf、docx（旧版 doc 后端拒收并提示转存）、xlsx、图片 */
+const ACCEPT_TYPES = '.md,.markdown,.txt,.csv,.json,.pdf,.doc,.docx,.xls,.xlsx,.ods,image/*'
+
+function pickFiles() {
+  fileInput.value?.click()
+}
+
+function onFilePicked(e: Event) {
+  const el = e.target as HTMLInputElement
+  if (el.files) addFiles(Array.from(el.files))
+  el.value = ''
+}
+
+/** 粘贴上传：剪贴板带文件时拦截默认粘贴行为 */
+function onPaste(e: ClipboardEvent) {
+  const files = Array.from(e.clipboardData?.files ?? [])
+  if (files.length > 0) {
+    e.preventDefault()
+    addFiles(files)
+  }
+}
+
+/** 上传并提取文件内容（失败不阻断对话，chip 上标错可移除） */
+async function addFiles(files: File[]) {
+  for (const file of files) {
+    const draft: AttachmentDraft = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      filename: file.name,
+      status: 'uploading',
+    }
+    attachments.value.push(draft)
+
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      // 复用 axios 拦截器的认证头（Bearer + X-Tenant-ID）
+      const res = await axios.post(EXTRACT_FILE_ENDPOINT, form)
+      const data = res.data?.data ?? {}
+      draft.status = 'ready'
+      draft.content = data.content ?? ''
+      draft.format = data.format
+      draft.truncated = !!data.truncated
+    } catch (err: any) {
+      draft.status = 'error'
+      draft.error = err?.response?.data?.message || '文件内容提取失败'
+    }
+  }
+}
+
+function removeAttachment(id: string) {
+  attachments.value = attachments.value.filter(a => a.id !== id)
+}
+
+const hasUploading = computed(() => attachments.value.some(a => a.status === 'uploading'))
+
+/** 输入框自适应：先归零再按 scrollHeight 撑高，超过 5 行上限后由 CSS 出滚动条 */
+function adjustHeight() {
+  const el = textareaEl.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = `${Math.max(INPUT_MIN_HEIGHT, Math.min(el.scrollHeight, INPUT_MAX_HEIGHT))}px`
+}
+watch(input, () => nextTick(adjustHeight))
 
 /** 内置快捷指令（suggestions 接口不可用时的兜底；对话中快捷栏仍用） */
 const quickCommands = [
@@ -73,12 +148,22 @@ async function scrollToBottom() {
 watch(() => store.messages.length, scrollToBottom)
 watch(() => store.messages[store.messages.length - 1]?.content, scrollToBottom)
 
-/** 发送消息 */
+/** 发送消息（text 显式传入时为快捷指令/转派交接，不携带输入区附件） */
 async function handleSend(text?: string) {
   const intent = (text ?? input.value).trim()
-  if (!intent || streaming.value) return
+  const ready = text === undefined
+    ? attachments.value.filter(a => a.status === 'ready' && a.content)
+    : []
+  if ((!intent && ready.length === 0) || streaming.value || hasUploading.value) return
 
   input.value = ''
+  // 仅输入框自发发送时消费附件；快捷指令/转派保留待用附件
+  if (text === undefined) attachments.value = []
+
+  // 用户消息回显带上附件名（内容已注入上行 payload，不在列表重复展示）
+  const display = ready.length > 0
+    ? `${intent}${intent ? '\n' : ''}${ready.map(a => `📎 ${a.filename}`).join('  ')}`
+    : intent
 
   // 多轮记忆：Node 引擎无状态，取此前轮次纯文本历史随请求上行（截最近 20 条控 payload）
   const history = store.messages
@@ -86,7 +171,7 @@ async function handleSend(text?: string) {
     .slice(-20)
     .map(m => ({ role: m.role, content: m.content }))
 
-  store.pushUserMessage(intent)
+  store.pushUserMessage(display)
 
   const assistantMsg = store.startAssistantMessage()
   store.setStreaming(true)
@@ -117,7 +202,7 @@ async function handleSend(text?: string) {
       store.finishMessage(assistantMsg.id)
       store.pushError(msg, action)
     },
-  }, history)
+  }, history, ready)
 
   store.setStreaming(false)
   await scrollToBottom()
@@ -306,18 +391,54 @@ onMounted(() => {
       </button>
     </div>
 
+    <!-- 附件预览条（上传/提取中的状态反馈） -->
+    <div v-if="attachments.length > 0" class="attach-bar">
+      <span
+        v-for="a in attachments"
+        :key="a.id"
+        class="attach-chip"
+        :class="{ uploading: a.status === 'uploading', error: a.status === 'error' }"
+        :title="a.status === 'error' ? a.error : (a.truncated ? '内容过长已截断' : a.filename)"
+      >
+        <span class="attach-name">{{ a.status === 'uploading' ? '⏳' : (a.status === 'error' ? '⚠️' : '📎') }} {{ a.filename }}</span>
+        <button class="attach-remove" title="移除" @click="removeAttachment(a.id)">✕</button>
+      </span>
+    </div>
+
     <!-- 输入区 -->
     <div class="input-area">
+      <button
+        class="attach-btn"
+        title="上传附件（md/pdf/docx/xlsx/图片）"
+        :disabled="streaming"
+        @click="pickFiles"
+      >📎</button>
+      <input
+        ref="fileInput"
+        type="file"
+        multiple
+        class="file-input-hidden"
+        :accept="ACCEPT_TYPES"
+        @change="onFilePicked"
+      />
       <textarea
+        ref="textareaEl"
         v-model="input"
         class="chat-input"
         rows="1"
-        placeholder="输入你的需求，Enter 发送…"
+        placeholder="输入你的需求，Enter 发送…（可粘贴或上传文件）"
         :disabled="streaming"
         @keydown.enter.exact.prevent="handleSend()"
+        @paste="onPaste"
       />
       <button v-if="streaming" class="send-btn abort" title="中断输出" @click="handleAbort">■</button>
-      <button v-else class="send-btn" :disabled="!input.trim()" title="发送" @click="handleSend()">➤</button>
+      <button
+        v-else
+        class="send-btn"
+        :disabled="(!input.trim() && attachments.filter(a => a.status === 'ready').length === 0) || hasUploading"
+        :title="hasUploading ? '附件提取中…' : '发送'"
+        @click="handleSend()"
+      >➤</button>
     </div>
 
     <!-- 底部：AI 产出声明 -->
@@ -437,6 +558,34 @@ onMounted(() => {
 .quick-chip:hover:not(:disabled) { border-color: var(--ac, #10b981); color: var(--ac, #10b981); }
 .quick-chip:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* 附件预览条 */
+.attach-bar {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 8px 16px 0;
+  flex-shrink: 0;
+}
+.attach-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  max-width: 220px; padding: 4px 8px; border-radius: 8px;
+  font-size: 11px; border: 1px solid var(--border-color, #e2e8f0);
+  background: var(--fill-color, #f8fafc);
+  color: var(--text-color-primary, #0f172a);
+}
+.attach-chip.uploading { opacity: 0.7; }
+.attach-chip.error {
+  border-color: color-mix(in srgb, var(--badge-danger-fg, #f5222d) 50%, transparent);
+  color: var(--badge-danger-fg, #f5222d);
+}
+.attach-name {
+  min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.attach-remove {
+  border: none; background: transparent; cursor: pointer;
+  font-size: 10px; color: var(--text-color-secondary, #64748b);
+  padding: 0 2px; flex-shrink: 0;
+}
+.attach-remove:hover { color: var(--badge-danger-fg, #f5222d); }
+
 /* 输入区 */
 .input-area {
   display: flex; align-items: flex-end; gap: 8px;
@@ -444,13 +593,28 @@ onMounted(() => {
   border-top: 1px solid var(--border-color, #e2e8f0);
   flex-shrink: 0;
 }
+.attach-btn {
+  width: 36px; height: 36px; border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 10px; background: var(--fill-color, #f8fafc);
+  font-size: 14px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+.attach-btn:hover:not(:disabled) {
+  border-color: var(--ac, #10b981);
+  background: color-mix(in srgb, var(--ac, #10b981) 8%, transparent);
+}
+.attach-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.file-input-hidden { display: none; }
 .chat-input {
   flex: 1; resize: none; border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 10px; padding: 9px 12px; font-size: 13px;
   background: var(--fill-color, #f8fafc);
   color: var(--text-color-primary, #0f172a);
   outline: none; font-family: inherit; line-height: 1.5;
-  max-height: 100px;
+  min-height: 38px;
+  max-height: 208px; /* 5 行（行高 19.5px）+ 上下 padding，超出出滚动条 */
+  overflow-y: auto;
   transition: border-color 0.15s;
 }
 .chat-input:focus { border-color: var(--ac, #10b981); }

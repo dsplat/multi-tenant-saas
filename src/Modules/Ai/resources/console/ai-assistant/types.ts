@@ -170,6 +170,24 @@ export interface ChatMessage {
   timestamp: number
 }
 
+/** 附件草稿（输入区上传/粘贴后本地暂存；文件不落库，后端提取文本随消息发送） */
+export interface AttachmentDraft {
+  /** 本地唯一 id */
+  id: string
+  /** 原始文件名 */
+  filename: string
+  /** 提取状态 */
+  status: 'uploading' | 'ready' | 'error'
+  /** 提取出的文本内容（status=ready 时有值） */
+  content?: string
+  /** 后端返回的格式标识（text/document/spreadsheet/pdf/image） */
+  format?: string
+  /** 是否被截断 */
+  truncated?: boolean
+  /** 失败原因（status=error 时有值） */
+  error?: string
+}
+
 /** 助手可用性状态 */
 export interface AvailabilityState {
   /** 是否已加载 */

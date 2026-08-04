@@ -18,6 +18,7 @@ use MultiTenantSaas\Modules\Ai\Models\AgentConversationMessage;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolConversationContext;
 use MultiTenantSaas\Modules\Ai\Services\Ai\StreamChunk;
+use MultiTenantSaas\Modules\Ai\Services\Assistant\FileExtractService;
 use MultiTenantSaas\Modules\Ai\Services\Assistant\TenantSetupChecker;
 use MultiTenantSaas\Modules\Ai\Services\TaskChain\TaskChainRegistry;
 use MultiTenantSaas\Modules\Logging\Services\AuditService;
@@ -182,6 +183,35 @@ class AssistantController extends Controller
         }
 
         return $content;
+    }
+
+    /**
+     * 附件内容提取（不落库）。
+     *
+     * 小助手输入框上传的附件在此提取为纯文本后返回前端，
+     * 由前端注入对话上下文随消息发送（文本随消息落库，文件本身不落库）。
+     *
+     * POST /v1/ai/assistant/extract-file（multipart/form-data）
+     */
+    public function extractFile(Request $request, FileExtractService $fileExtract): JsonResponse
+    {
+        $request->validate([
+            'file' => 'required|file|max:10240',
+        ]);
+
+        try {
+            $result = $fileExtract->extract($request->file('file'));
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $result,
+        ]);
     }
 
     /**

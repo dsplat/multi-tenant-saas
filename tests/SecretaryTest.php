@@ -67,7 +67,7 @@ class SecretaryTest extends TestCase
 
         $this->assertEquals(
             [
-                'system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'suggest_kb_update', 'list_agents', 'delegate_to_agent', 'enable_agent',
+                'system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'suggest_kb_update', 'list_agents', 'delegate_to_agent', 'enable_agent', 'fetch_site_metadata',
                 'list_task_chains', 'start_task_chain', 'advance_task_chain',
                 'campaign_plan_draft', 'campaign_plan_commit', 'campaign_status',
                 'thread_review', 'thread_track', 'thread_untrack',

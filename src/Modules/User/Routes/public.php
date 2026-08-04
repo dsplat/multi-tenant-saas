@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use MultiTenantSaas\Modules\Infrastructure\Http\Controllers\SiteMetadataController;
 use MultiTenantSaas\Modules\User\Http\Controllers\TenantOnboardingController;
 
 /**
@@ -15,6 +16,11 @@ use MultiTenantSaas\Modules\User\Http\Controllers\TenantOnboardingController;
 
 // 注册启动（公开，无需认证）
 Route::post('/tenants/onboarding/start', [TenantOnboardingController::class, 'register']);
+
+// 站点品牌元数据提取（供 Onboarding 前端"从网站导入"按钮）
+Route::middleware('operator.auth')->group(function () {
+    Route::post('/site-metadata', SiteMetadataController::class);
+});
 
 // 后续步骤需要认证
 Route::middleware('operator.auth')->group(function () {

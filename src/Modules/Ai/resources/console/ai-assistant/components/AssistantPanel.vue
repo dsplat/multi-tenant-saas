@@ -111,6 +111,75 @@ const quickCommands = [
   { label: '创建', icon: '✨', intent: '帮我创建一个新内容（请告诉我具体需求）' },
 ]
 
+/**
+ * 斜杠命令注册表：输入框键入 "/" 唤起列表，继续输入可过滤，
+ * 上下键选择、Enter/Tab 确认。选中后回填 intent 模板供用户补齐参数再发送。
+ */
+const slashCommands = [
+  { command: '分析', icon: '📊', intent: '分析当前页面的数据，给出洞察和改进建议', hint: '分析页面数据给建议' },
+  { command: '填表', icon: '✍️', intent: '根据我的描述智能填写当前表单：', hint: '描述需求后智能填表' },
+  { command: '帮助', icon: '💡', intent: '告诉我当前页面可以做什么，给出操作指引', hint: '当前页面怎么用' },
+  { command: '创建', icon: '✨', intent: '帮我创建一个新内容：', hint: '创建新内容' },
+  { command: '初始化站点', icon: '🌐', intent: '帮我从网站初始化团队品牌信息（名称、Logo、Favicon、主题色），我的网站是：', hint: '从网站提取团队信息' },
+]
+
+/** "/" 之后的过滤关键词（输入不以 / 开头时为 null，菜单不展示） */
+const slashQuery = computed(() => {
+  if (!input.value.startsWith('/')) return null
+  return input.value.slice(1)
+})
+
+const filteredSlashCommands = computed(() => {
+  const q = slashQuery.value
+  if (q === null) return []
+  return slashCommands.filter(c => c.command.includes(q) || c.hint.includes(q))
+})
+
+const slashVisible = computed(() => slashQuery.value !== null && filteredSlashCommands.value.length > 0)
+const slashActiveIndex = ref(0)
+watch(slashQuery, () => { slashActiveIndex.value = 0 })
+
+/** 选中斜杠命令：回填 intent 模板（不直接发送，留用户补齐参数如网址） */
+function selectSlashCommand(cmd: typeof slashCommands[number]) {
+  input.value = cmd.intent
+  nextTick(() => {
+    textareaEl.value?.focus()
+    adjustHeight()
+    // 光标移到末尾便于续写参数
+    textareaEl.value?.setSelectionRange(cmd.intent.length, cmd.intent.length)
+  })
+}
+
+/** 输入框统一键处理：斜杠菜单打开时拦截导航/确认键，否则 Enter 发送（Shift+Enter 换行） */
+function onInputKeydown(e: KeyboardEvent) {
+  if (slashVisible.value) {
+    const list = filteredSlashCommands.value
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      slashActiveIndex.value = (slashActiveIndex.value + 1) % list.length
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      slashActiveIndex.value = (slashActiveIndex.value - 1 + list.length) % list.length
+      return
+    }
+    if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey)) {
+      e.preventDefault()
+      selectSlashCommand(list[slashActiveIndex.value])
+      return
+    }
+    if (e.key === 'Escape') {
+      input.value = ''
+      return
+    }
+  }
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    handleSend()
+  }
+}
+
 /** 空状态建议 chips：优先页面感知建议，接口未就绪时回退内置快捷指令 */
 const emptyHints = computed(() => {
   const pageSuggestions = suggestions.value?.page_suggestions ?? []
@@ -329,7 +398,7 @@ onMounted(() => {
         <div class="empty-title">你好，我是AI小助手</div>
         <div class="empty-desc">
           我可以帮你分析当前页面数据、辅助填写表单、解答操作疑问。<br />
-          所有 AI 建议仅供参考，关键操作需你确认后执行。
+          输入 <b>/</b> 可唤起快捷指令；所有 AI 建议仅供参考，关键操作需你确认后执行。
         </div>
         <div class="empty-hints">
           <button
@@ -406,8 +475,24 @@ onMounted(() => {
       </span>
     </div>
 
-    <!-- 输入区 -->
-    <div class="input-area">
+    <!-- 输入区（斜杠命令菜单悬浮在其上方） -->
+    <div class="input-wrap">
+      <!-- 斜杠命令菜单 -->
+      <div v-if="slashVisible" class="slash-menu">
+        <button
+          v-for="(cmd, i) in filteredSlashCommands"
+          :key="cmd.command"
+          class="slash-item"
+          :class="{ active: i === slashActiveIndex }"
+          @mouseenter="slashActiveIndex = i"
+          @click="selectSlashCommand(cmd)"
+        >
+          <span class="slash-cmd">{{ cmd.icon }} /{{ cmd.command }}</span>
+          <span class="slash-hint">{{ cmd.hint }}</span>
+        </button>
+      </div>
+
+      <div class="input-area">
       <button
         class="attach-btn"
         title="上传附件（md/pdf/docx/xlsx/图片）"
@@ -427,9 +512,9 @@ onMounted(() => {
         v-model="input"
         class="chat-input"
         rows="1"
-        placeholder="输入你的需求，Enter 发送…（可粘贴或上传文件）"
+        placeholder="输入你的需求，Enter 发送…（输 / 唤起快捷指令）"
         :disabled="streaming"
-        @keydown.enter.exact.prevent="handleSend()"
+        @keydown="onInputKeydown"
         @paste="onPaste"
       />
       <button v-if="streaming" class="send-btn abort" title="中断输出" @click="handleAbort">■</button>
@@ -440,6 +525,7 @@ onMounted(() => {
         :title="hasUploading ? '附件提取中…' : '发送'"
         @click="handleSend()"
       >➤</button>
+      </div>
     </div>
 
     <!-- 底部：AI 产出声明 -->
@@ -587,11 +673,49 @@ onMounted(() => {
 }
 .attach-remove:hover { color: var(--badge-danger-fg, #f5222d); }
 
-/* 输入区 */
+/* 输入区（含斜杠命令菜单） */
+.input-wrap {
+  position: relative;
+  border-top: 1px solid var(--border-color, #e2e8f0);
+  flex-shrink: 0;
+}
+
+/* 斜杠命令菜单 */
+.slash-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 16px; right: 16px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--bg-color, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  padding: 4px;
+  z-index: 10;
+}
+.slash-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; padding: 8px 10px;
+  border: none; border-radius: 8px; background: transparent;
+  font-size: 12px; cursor: pointer; text-align: left;
+  color: var(--text-color-primary, #0f172a);
+  transition: background 0.1s;
+}
+.slash-item.active,
+.slash-item:hover {
+  background: color-mix(in srgb, var(--ac, #10b981) 12%, transparent);
+}
+.slash-cmd { font-weight: 600; white-space: nowrap; }
+.slash-hint {
+  font-size: 11px;
+  color: var(--text-color-secondary, #64748b);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
 .input-area {
   display: flex; align-items: flex-end; gap: 8px;
   padding: 12px 16px;
-  border-top: 1px solid var(--border-color, #e2e8f0);
   flex-shrink: 0;
 }
 .attach-btn {

@@ -29,6 +29,17 @@
 
       <!-- 步骤 1: 团队基本信息 -->
       <div v-if="isLoggedIn && currentStep === 1" class="step-content">
+        <!-- 从网站导入 -->
+        <div class="import-section">
+          <div class="import-row">
+            <el-input v-model="importUrl" placeholder="输入网站地址，自动提取团队信息" clearable style="flex: 1">
+              <template #prepend><el-icon><i class="el-icon-link" /></el-icon></template>
+            </el-input>
+            <el-button :loading="importing" :disabled="!importUrl.trim()" @click="fetchSiteMetadata">提取</el-button>
+          </div>
+          <p v-if="importTip" class="import-tip">{{ importTip }}</p>
+        </div>
+
         <el-form :model="form" label-width="100px" @submit.prevent="startOnboarding">
           <el-form-item label="团队名称" required>
             <el-input v-model="form.name" placeholder="如：星河科技有限公司" />
@@ -133,6 +144,7 @@ const currentStep = ref(1)
 const loading = ref(false)
 const onboardingToken = ref<string | null>(null)
 const submittedTenant = ref<{ name: string; status: string } | null>(null)
+const brandingMeta = ref<Record<string, any> | null>(null)
 
 const form = ref({
   name: '',
@@ -140,6 +152,10 @@ const form = ref({
   size: 'small',
   contact_phone: '',
 })
+
+const importUrl = ref('')
+const importing = ref(false)
+const importTip = ref('')
 
 const orgForm = ref({
   domain_type: 'subdomain',
@@ -272,6 +288,44 @@ const goToConsole = () => {
 const goToDashboard = () => {
   window.location.href = '/'
 }
+
+const fetchSiteMetadata = async () => {
+  const url = importUrl.value.trim()
+  if (!url) return
+  importing.value = true
+  importTip.value = ''
+  try {
+    const res = await fetch('/api/v1/site-metadata', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('operator_token') || ''}`,
+      },
+      body: JSON.stringify({ url }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || data.success === false) {
+      throw new Error(data.message || '提取失败')
+    }
+    const meta = data.data
+    // 自动填充表单
+    if (meta.site_name || meta.title) {
+      form.value.name = meta.site_name || meta.title || ''
+    }
+    const tips: string[] = []
+    if (meta.logo_url) tips.push('✓ Logo')
+    if (meta.favicon_url) tips.push('✓ Favicon')
+    if (meta.primary_color) tips.push('✓ 主题色 ' + meta.primary_color)
+    if (meta.description) tips.push('✓ 站点描述')
+    importTip.value = tips.length ? '已提取：' + tips.join('  ') : '已获取站点信息'
+    // 暂存元数据，后续 complete 时一并写入 branding
+    brandingMeta.value = meta
+  } catch (err: any) {
+    ElMessage.error(err.message || '提取失败，请检查网址是否正确')
+  } finally {
+    importing.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -348,5 +402,25 @@ const goToDashboard = () => {
   color: #9ca3af;
   font-size: 12px;
   margin-top: 8px;
+}
+
+.import-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f0f5ff;
+  border-radius: 8px;
+  border: 1px dashed #91caff;
+}
+
+.import-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.import-tip {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #52c41a;
 }
 </style>

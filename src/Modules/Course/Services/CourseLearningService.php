@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Modules\Course\Services;
 
+use MultiTenantSaas\Modules\Course\Contracts\CourseCompletionRewardContract;
 use MultiTenantSaas\Modules\Course\Events\CourseCompleted;
 use MultiTenantSaas\Modules\Course\Models\Course;
 use MultiTenantSaas\Modules\Course\Models\CourseChapter;
 use MultiTenantSaas\Modules\Course\Models\CourseEntitlement;
 use MultiTenantSaas\Modules\Course\Models\LearningRecord;
-use MultiTenantSaas\Modules\Membership\Services\PointsRuleService;
 use MultiTenantSaas\Modules\Order\Models\Order;
 use MultiTenantSaas\Modules\Order\Services\OrderService;
 use MultiTenantSaas\Context\TenantContext;
@@ -19,13 +19,13 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  * 课程 C 端服务（User 认证分组）
  *
  * 已发布课程列表/详情；购买走统一订单（order_type=course）；
- * 学习进度上报；学完奖励积分（复用 earnPoints）。
+ * 学习进度上报；学完奖励通过 CourseCompletionRewardContract 钩子发放（默认不发放）。
  */
 class CourseLearningService
 {
     public function __construct(
         protected OrderService $orderService,
-        protected PointsRuleService $pointsService,
+        protected CourseCompletionRewardContract $completionReward,
     ) {}
 
     // ========== 浏览 ==========
@@ -212,17 +212,10 @@ class CourseLearningService
             'completed_at'       => $isComplete && ! $wasCompleted ? now() : $record->completed_at,
         ]);
 
-        // 学完奖励积分（仅首次完成发放）
+        // 学完奖励（仅首次完成发放，具体实现由项目层钩子提供）
         $rewardGranted = 0;
         if ($isComplete && ! $wasCompleted && (int) $course->completion_reward_points > 0) {
-            $this->pointsService->earnPoints(
-                $tenantId,
-                $userId,
-                (int) $course->completion_reward_points,
-                null,
-                "完成课程奖励: {$course->title}"
-            );
-            $rewardGranted = (int) $course->completion_reward_points;
+            $rewardGranted = $this->completionReward->reward($tenantId, $userId, $course);
         }
 
         // 首次完成 → 派发课程完成事件（行为埋点数据源）

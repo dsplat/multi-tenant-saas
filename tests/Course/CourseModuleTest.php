@@ -3,9 +3,11 @@
 namespace MultiTenantSaas\Tests\Course;
 
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Modules\Course\Contracts\CourseCompletionRewardContract;
 use MultiTenantSaas\Modules\Course\Models\Course;
 use MultiTenantSaas\Modules\Course\Models\CourseEntitlement;
 use MultiTenantSaas\Modules\Course\Services\CourseService;
+use MultiTenantSaas\Modules\Course\Services\CourseLearningService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Order\Models\Order;
 use MultiTenantSaas\Modules\Order\Services\OrderService;
@@ -129,6 +131,52 @@ class CourseModuleTest extends TestCase
         // 幂等：重复 confirmPayment 不重复授予
         $orderService->confirmPayment($order->order_no);
         $this->assertSame(1, CourseEntitlement::where('course_id', $course->course_id)->count());
+    }
+
+    public function test_learning_completion_invokes_reward_hook(): void
+    {
+        $course = $this->courseService->create(self::TENANT_ID, [
+            'title' => '奖励课程',
+            'completion_reward_points' => 50,
+        ]);
+        $this->courseService->publish(self::TENANT_ID, $course->course_id);
+
+        $chapter = $this->courseService->addChapter(self::TENANT_ID, $course->course_id, [
+            'title' => '唯一章节',
+            'sort' => 1,
+        ]);
+
+        $learning = $this->app->make(CourseLearningService::class);
+
+        // 默认实现：不发放奖励
+        $result = $learning->reportProgress(self::TENANT_ID, 7, (int) $course->course_id, (int) $chapter->chapter_id);
+        $this->assertTrue($result['completed_now']);
+        $this->assertSame(0, $result['reward_granted']);
+
+        // 项目层钩子覆盖绑定后发放奖励
+        $this->app->singleton(CourseCompletionRewardContract::class, CourseFakeReward::class);
+        $course2 = $this->courseService->create(self::TENANT_ID, [
+            'title' => '钩子课程',
+            'completion_reward_points' => 50,
+        ]);
+        $this->courseService->publish(self::TENANT_ID, $course2->course_id);
+        $chapter2 = $this->courseService->addChapter(self::TENANT_ID, $course2->course_id, [
+            'title' => '唯一章节',
+            'sort' => 1,
+        ]);
+
+        $result2 = $this->app->make(CourseLearningService::class)
+            ->reportProgress(self::TENANT_ID, 7, (int) $course2->course_id, (int) $chapter2->chapter_id);
+        $this->assertSame(50, $result2['reward_granted']);
+    }
+}
+
+/** 测试用奖励钩子 */
+class CourseFakeReward implements CourseCompletionRewardContract
+{
+    public function reward(int $tenantId, int $userId, Course $course): int
+    {
+        return (int) $course->completion_reward_points;
     }
 }
 

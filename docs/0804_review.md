@@ -30,7 +30,7 @@
 | Controllers | 31/31 (100%) | 全部就绪（共 79 个控制器） |
 | Models | 24/31 (77%) | 7 个模块无自有 Models（见下表） |
 | Migrations | 23/31 (74%) | 8 个模块无自有 Migrations（见下表） |
-| Vue 前端页面 | 21/31 (68%) | 10 个模块无 Vue 文件 |
+| Vue 前端页面 | 23/31 (74%) | 8 个模块无 Vue 文件 |
 | Config | 7/31 (23%) | 大多数模块不需要独立配置 |
 
 ### 逐模块详情
@@ -71,22 +71,22 @@
 
 ---
 
-## 三、无前端页面的模块（10 个）
+## 三、无前端页面的模块（8 个）
 
-以下模块有后端（Controller + Model + Route）但无 Vue 页面：
+以下模块有 Controller 和 Route 但 Vue 文件数为 0：
 
-| 模块 | Models | Controllers | 说明 |
-|------|--------|-------------|------|
-| Conversation | 11 | 1 | 多渠道会话系统，可能被其他模块内部消费 |
-| Coupon | 6 | 1 | 优惠券系统 |
-| Event | 2 | 1 | 事件总线，可能纯内部使用 |
-| Form | 3 | 1 | 表单构建器 |
-| Lottery | 8 | 1 | 抽奖系统 |
-| Monitoring | 4 | 2 | 监控告警 |
-| Voting | 3 | 1 | 投票系统 |
-| Campaign | 2 | 1 | 有 2 个 Vue 文件（非管理页面） |
-| Ai | 15 | 6 | 有 8 个 Vue 文件（console/kb，非管理页面） |
-| AiStreaming | 0 | 5 | Node.js 流式服务 |
+| 模块 | Controllers | Models | Routes | 说明 |
+|------|------------|--------|--------|------|
+| AiStreaming | 5 | 0 | 1 | Node.js SSE 流式服务，PHP 层只有契约 API |
+| Conversation | 1 | 11 | 1 | 多渠道会话，数据层最重，可能被 Ibot/Ai 内部消费 |
+| Coupon | 1 | 6 | 1 | 优惠券模板、分发、核销 |
+| Event | 1 | 2 | 1 | 事件总线，可能纯内部使用 |
+| Form | 1 | 3 | 1 | 表单构建器 |
+| Lottery | 1 | 8 | 1 | 抽奖系统，Models 最多 |
+| Monitoring | 2 | 4 | 2 | 监控告警、SLA、指标 |
+| Voting | 1 | 3 | 1 | 投票、排行榜 |
+
+> 注：Campaign（2 Vue）和 Ai（8 Vue）虽无管理页面，但有 console/kb 等前端资源，不在此列。
 
 ---
 
@@ -258,7 +258,7 @@
 
 ### 真实存在的差距
 
-1. **10 个模块无前端管理页面** — Conversation、Coupon、Event、Form、Lottery、Monitoring、Voting 等有后端无 Vue
+1. **8 个模块无前端管理页面** — Conversation、Coupon、Event、Form、Lottery、Monitoring、Voting、AiStreaming 有后端无 Vue
 2. **Campaign Phase 2/3** — 事件编排和运行循环未开始
 3. **Task Chain Phase 3** — 链目录扩展未开始
 4. **5 个低优先级 TODO** — 自动扣费、Token 用量、模型废弃追踪等

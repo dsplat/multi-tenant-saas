@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Modules\Course;
 
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
+use MultiTenantSaas\Modules\Course\Contracts\CourseCompletionRewardContract;
 use MultiTenantSaas\Modules\Course\Services\Fulfillment\CourseFulfillmentHandler;
+use MultiTenantSaas\Modules\Course\Services\NullCourseCompletionReward;
 
 /**
  * Course 模块（课程学习）
@@ -17,6 +19,12 @@ use MultiTenantSaas\Modules\Course\Services\Fulfillment\CourseFulfillmentHandler
 class CourseServiceProvider extends ModuleServiceProvider
 {
     protected string $moduleName = 'course';
+
+    protected function registerModuleBindings(): void
+    {
+        // 课程完成奖励默认不发放，项目层可重新绑定实现（如积分奖励）
+        $this->app->singleton(CourseCompletionRewardContract::class, NullCourseCompletionReward::class);
+    }
 
     protected function bootModule(): void
     {

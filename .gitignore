@@ -65,3 +65,4 @@ deploy/__pycache__/
 .qoder/
 .verify_lanyantu_login.png
 .verify_*.png
+.migrate-qoder.sh

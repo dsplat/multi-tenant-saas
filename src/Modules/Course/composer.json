@@ -1,0 +1,28 @@
+{
+  "name": "dsplat/multi-tenant-saas-module-course",
+  "version": "1.0.0",
+  "description": "课程学习模块 - courses/course_chapters/course_entitlements/learning_records，内置课程履约 Handler（订单支付后授予权益）",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\Course\\": ""
+    }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "course",
+      "priority": 8,
+      "dependencies": ["product", "order"],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\Course\\CourseServiceProvider",
+      "tenant_toggleable": true,
+      "default_enabled": true
+    }
+  }
+}

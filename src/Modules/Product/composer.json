@@ -1,0 +1,28 @@
+{
+  "name": "dsplat/multi-tenant-saas-module-product",
+  "version": "1.0.0",
+  "description": "统一商品目录 - products/product_skus/product_categories，一切皆商品（实物/虚拟/课程/活动/积分商品）与 SKU 规格层（自建+镜像）",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\Product\\": ""
+    }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "product",
+      "priority": 5,
+      "dependencies": [],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\Product\\ProductServiceProvider",
+      "tenant_toggleable": true,
+      "default_enabled": true
+    }
+  }
+}

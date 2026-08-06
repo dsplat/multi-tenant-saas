@@ -1,0 +1,28 @@
+{
+  "name": "dsplat/multi-tenant-saas-module-pay",
+  "version": "1.0.0",
+  "description": "统一支付编排 - 现金/虚拟/混合三路径 + 退款 + 销售折现配置（sales_configs）+ 虚拟支付渠道扩展点",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\Pay\\": ""
+    }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "pay",
+      "priority": 6,
+      "dependencies": ["billing"],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\Pay\\PayServiceProvider",
+      "tenant_toggleable": true,
+      "default_enabled": true
+    }
+  }
+}

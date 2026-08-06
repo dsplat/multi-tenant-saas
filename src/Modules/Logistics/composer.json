@@ -1,0 +1,28 @@
+{
+  "name": "dsplat/multi-tenant-saas-module-logistics",
+  "version": "1.0.0",
+  "description": "物流模块 - shipments 发货登记/跟踪（仅建模与端点，不对接第三方快递 API）",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\Logistics\\": ""
+    }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "logistics",
+      "priority": 9,
+      "dependencies": ["order"],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\Logistics\\LogisticsServiceProvider",
+      "tenant_toggleable": true,
+      "default_enabled": true
+    }
+  }
+}

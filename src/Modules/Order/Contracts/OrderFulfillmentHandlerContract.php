@@ -1,0 +1,25 @@
+<?php
+
+declare(strict_types=1);
+
+namespace MultiTenantSaas\Modules\Order\Contracts;
+
+use MultiTenantSaas\Modules\Order\Models\Order;
+
+/**
+ * 订单履约处理器契约
+ *
+ * 支付确认后（订单事务内）按订单行 item_type 分发履约：
+ * - Course 模块注册 'course' handler（授予课程权益）
+ * - 项目层可注册 'points_product' / 'ticket' 等 handler（积分兑换、活动票）
+ */
+interface OrderFulfillmentHandlerContract
+{
+    /** 处理的订单行类型（order_items.item_type） */
+    public function itemType(): string;
+
+    /**
+     * 履约单个订单行（处于订单支付事务内，异常将回滚支付）
+     */
+    public function fulfill(Order $order, mixed $item): void;
+}

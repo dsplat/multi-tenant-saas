@@ -35,6 +35,8 @@ jobs:
             repo: multi-tenant-saas-module-conversation
           - prefix: 'src/Modules/Coupon'
             repo: multi-tenant-saas-module-coupon
+          - prefix: 'src/Modules/Course'
+            repo: multi-tenant-saas-module-course
           - prefix: 'src/Modules/DeveloperPortal'
             repo: multi-tenant-saas-module-developer-portal
           - prefix: 'src/Modules/Domain'
@@ -51,6 +53,8 @@ jobs:
             repo: multi-tenant-saas-module-knowledge
           - prefix: 'src/Modules/Logging'
             repo: multi-tenant-saas-module-logging
+          - prefix: 'src/Modules/Logistics'
+            repo: multi-tenant-saas-module-logistics
           - prefix: 'src/Modules/Lottery'
             repo: multi-tenant-saas-module-lottery
           - prefix: 'src/Modules/Monitoring'
@@ -59,12 +63,18 @@ jobs:
             repo: multi-tenant-saas-module-notification
           - prefix: 'src/Modules/Operator'
             repo: multi-tenant-saas-module-operator
+          - prefix: 'src/Modules/Order'
+            repo: multi-tenant-saas-module-order
+          - prefix: 'src/Modules/Pay'
+            repo: multi-tenant-saas-module-pay
           - prefix: 'src/Modules/Payment'
             repo: multi-tenant-saas-module-payment
           - prefix: 'src/Modules/Platform'
             repo: multi-tenant-saas-module-platform
           - prefix: 'src/Modules/Plugin'
             repo: multi-tenant-saas-module-plugin
+          - prefix: 'src/Modules/Product'
+            repo: multi-tenant-saas-module-product
           - prefix: 'src/Modules/Sms'
             repo: multi-tenant-saas-module-sms
           - prefix: 'src/Modules/SSL'

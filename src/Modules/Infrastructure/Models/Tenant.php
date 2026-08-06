@@ -68,6 +68,8 @@ class Tenant extends Model
         'status',
         'ssl_uploaded_at',
         'ssl_cert_expires_at',
+        'onboarding_step',
+        'onboarding_completed',
         'onboarding_operator_id',
     ];
 
@@ -88,6 +90,7 @@ class Tenant extends Model
             'used_credits' => 'integer',
             'tenant_id' => 'integer',
             'is_platform_default' => 'boolean',
+            'onboarding_completed' => 'boolean',
             'auto_renew' => 'boolean',
         ];
     }

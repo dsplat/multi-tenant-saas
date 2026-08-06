@@ -80,17 +80,12 @@ class SuperAdminSeeder extends Seeder
             $this->command->info("User 已存在: {$email}");
         }
 
-        // 3. 关联 tenant_users（遗留兼容，确保 tenant_users 也有记录）
-        $superAdminRoleId = DB::table('roles')
-            ->where('name', 'super_admin')
-            ->whereNull('tenant_id')
-            ->value('role_id');
-
+        // 3. 关联 tenant_users（身份模型铁律：User 无角色概念，tenant_users 无 role_id 列；
+        //    角色仅属 Operator，经 operator_tenants.role_id 关联）
         DB::table('tenant_users')->updateOrInsert(
             ['tenant_id' => $platformTenantId, 'user_id' => $user->user_id],
             [
                 'tenant_user_id' => $idGenerator->generate(),
-                'role_id' => $superAdminRoleId,
                 'is_active' => true,
                 'joined_at' => $now,
                 'created_at' => $now,
@@ -98,8 +93,13 @@ class SuperAdminSeeder extends Seeder
             ]
         );
 
-        // 4. 创建 operator_tenants 映射（如果表存在）
+        // 4. 创建 operator_tenants 映射（如果表存在；角色仅属 Operator）
         if ($operatorId && Schema::hasTable('operator_tenants')) {
+            $superAdminRoleId = DB::table('roles')
+                ->where('name', 'super_admin')
+                ->whereNull('tenant_id')
+                ->value('role_id');
+
             DB::table('operator_tenants')->updateOrInsert(
                 ['operator_id' => $operatorId, 'tenant_id' => $platformTenantId],
                 [

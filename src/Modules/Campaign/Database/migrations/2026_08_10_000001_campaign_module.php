@@ -26,6 +26,7 @@ return new class extends Migration
                 $table->json('plan_doc')->comment('计划文档（campaign.plan/v1 schema）');
                 $table->string('status', 20)->default('planning')->comment('planning/scheduled/running/reviewing/closed/cancelled');
                 $table->string('playbook_key', 100)->nullable()->comment('关联 playbook 标识（可选）');
+                $table->json('metadata')->nullable()->comment('扩展元数据（tracked 跟踪标记 / health 巡检结果）');
                 $table->unsignedBigInteger('created_by')->comment('创建者 operator_id');
                 $table->timestamps();
 

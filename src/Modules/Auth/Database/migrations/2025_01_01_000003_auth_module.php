@@ -95,6 +95,10 @@ CREATE TABLE `oauth_accounts` (
   `user_id` bigint unsigned NOT NULL,
   `provider` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   `provider_id` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `unionid` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '微信 unionid（跨应用唯一标识）',
+  `openid` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '微信 openid（应用级唯一标识）',
+  `appid` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '应用 appid（区分同一 provider 下不同应用）',
+  `session_key` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '小程序 session_key',
   `provider_email` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `provider_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `provider_avatar` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -106,6 +110,7 @@ CREATE TABLE `oauth_accounts` (
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`oauth_account_id`),
   UNIQUE KEY `oauth_accounts_provider_provider_id_unique` (`provider`,`provider_id`),
+  KEY `oauth_accounts_unionid_index` (`unionid`),
   KEY `oauth_accounts_tenant_id_provider_index` (`tenant_id`,`provider`),
   KEY `oauth_accounts_user_id_provider_index` (`user_id`,`provider`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci

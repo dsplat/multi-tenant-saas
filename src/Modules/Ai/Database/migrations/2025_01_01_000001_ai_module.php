@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -9,24 +10,6 @@ return new class extends Migration
     public function up(): void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
-
-        // Table: agent_conversation_messages
-        DB::statement(<<<'SQL'
-CREATE TABLE `agent_conversation_messages` (
-  `message_id` bigint unsigned NOT NULL COMMENT '消息 ID（IdGenerator 全局ID）',
-  `conversation_id` bigint unsigned NOT NULL COMMENT '会话 ID',
-  `role` enum('user','assistant','tool','system') COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '消息角色',
-  `content` text COLLATE utf8mb4_unicode_ci COMMENT '消息内容',
-  `tool_calls` json DEFAULT NULL COMMENT '工具调用（OpenAI 结构）',
-  `tool_call_id` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '工具调用 ID（tool 角色消息）',
-  `metadata` json DEFAULT NULL COMMENT '元数据',
-  `created_at` timestamp NULL DEFAULT NULL COMMENT '创建时间',
-  PRIMARY KEY (`message_id`),
-  KEY `agent_conversation_messages_conversation_id_index` (`conversation_id`),
-  KEY `agent_conversation_messages_conversation_id_created_at_index` (`conversation_id`,`created_at`),
-  CONSTRAINT `agent_conversation_messages_conversation_id_foreign` FOREIGN KEY (`conversation_id`) REFERENCES `agent_conversations` (`conversation_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
 
         // Table: agent_conversations
         DB::statement(<<<'SQL'
@@ -54,64 +37,21 @@ CREATE TABLE `agent_conversations` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL);
 
-        // Table: agent_tool_logs
+        // Table: agent_conversation_messages
         DB::statement(<<<'SQL'
-CREATE TABLE `agent_tool_logs` (
-  `log_id` bigint unsigned NOT NULL COMMENT '日志 ID（IdGenerator 全局ID）',
+CREATE TABLE `agent_conversation_messages` (
+  `message_id` bigint unsigned NOT NULL COMMENT '消息 ID（IdGenerator 全局ID）',
   `conversation_id` bigint unsigned NOT NULL COMMENT '会话 ID',
-  `agent_id` bigint unsigned NOT NULL COMMENT 'Agent ID',
-  `tool_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '工具名称',
-  `input` json DEFAULT NULL COMMENT '工具输入参数',
-  `output` json DEFAULT NULL COMMENT '工具输出',
-  `duration_ms` int NOT NULL DEFAULT '0' COMMENT '执行耗时（毫秒）',
-  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'success' COMMENT '调用状态',
-  `error` text COLLATE utf8mb4_unicode_ci COMMENT '错误信息',
+  `role` enum('user','assistant','tool','system') COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '消息角色',
+  `content` text COLLATE utf8mb4_unicode_ci COMMENT '消息内容',
+  `tool_calls` json DEFAULT NULL COMMENT '工具调用（OpenAI 结构）',
+  `tool_call_id` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '工具调用 ID（tool 角色消息）',
+  `metadata` json DEFAULT NULL COMMENT '元数据',
   `created_at` timestamp NULL DEFAULT NULL COMMENT '创建时间',
-  PRIMARY KEY (`log_id`),
-  KEY `agent_tool_logs_conversation_id_index` (`conversation_id`),
-  KEY `agent_tool_logs_agent_id_index` (`agent_id`),
-  KEY `agent_tool_logs_tool_name_created_at_index` (`tool_name`,`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
-
-        // Table: agent_tools
-        DB::statement(<<<'SQL'
-CREATE TABLE `agent_tools` (
-  `tool_id` bigint unsigned NOT NULL COMMENT '工具 ID（IdGenerator 全局ID）',
-  `tenant_id` bigint unsigned NOT NULL DEFAULT '0' COMMENT '租户ID（0=全局工具）',
-  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '工具名称',
-  `slug` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '工具唯一标识',
-  `description` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '工具描述',
-  `category` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '工具分类',
-  `parameters_schema` json NOT NULL COMMENT '参数 JSON Schema',
-  `handler_class` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '处理类全限定名',
-  `enabled` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`tool_id`),
-  UNIQUE KEY `agent_tools_slug_unique` (`slug`),
-  KEY `agent_tools_tenant_id_index` (`tenant_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-SQL);
-
-        // Table: agent_workflows
-        DB::statement(<<<'SQL'
-CREATE TABLE `agent_workflows` (
-  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `tenant_id` bigint unsigned NOT NULL COMMENT '租户ID',
-  `agent_id` bigint unsigned NOT NULL COMMENT 'Agent ID',
-  `workflow_id` bigint unsigned NOT NULL COMMENT 'Workflow ID',
-  `is_primary` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否主工作流',
-  `sort_order` int NOT NULL DEFAULT '0' COMMENT '排序',
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `agent_workflows_agent_id_workflow_id_unique` (`agent_id`,`workflow_id`),
-  KEY `agent_workflows_tenant_id_agent_id_index` (`tenant_id`,`agent_id`),
-  KEY `agent_workflows_workflow_id_foreign` (`workflow_id`),
-  CONSTRAINT `agent_workflows_agent_id_foreign` FOREIGN KEY (`agent_id`) REFERENCES `agents` (`agent_id`) ON DELETE CASCADE,
-  CONSTRAINT `agent_workflows_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`tenant_id`) ON DELETE CASCADE,
-  CONSTRAINT `agent_workflows_workflow_id_foreign` FOREIGN KEY (`workflow_id`) REFERENCES `workflows` (`workflow_id`) ON DELETE CASCADE
+  PRIMARY KEY (`message_id`),
+  KEY `agent_conversation_messages_conversation_id_index` (`conversation_id`),
+  KEY `agent_conversation_messages_conversation_id_created_at_index` (`conversation_id`,`created_at`),
+  CONSTRAINT `agent_conversation_messages_conversation_id_foreign` FOREIGN KEY (`conversation_id`) REFERENCES `agent_conversations` (`conversation_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL);
 
@@ -142,6 +82,68 @@ CREATE TABLE `agents` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL);
 
+        // Table: agent_tools
+        DB::statement(<<<'SQL'
+CREATE TABLE `agent_tools` (
+  `tool_id` bigint unsigned NOT NULL COMMENT '工具 ID（IdGenerator 全局ID）',
+  `tenant_id` bigint unsigned NOT NULL DEFAULT '0' COMMENT '租户ID（0=全局工具）',
+  `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '工具名称',
+  `slug` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '工具唯一标识',
+  `description` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '工具描述',
+  `category` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '工具分类',
+  `parameters_schema` json NOT NULL COMMENT '参数 JSON Schema',
+  `handler_class` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '处理类全限定名',
+  `risk` varchar(10) NOT NULL DEFAULT 'L1' COMMENT '风险等级：L1=读直接执行，L2=写需确认',
+  `enabled` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`tool_id`),
+  UNIQUE KEY `agent_tools_slug_unique` (`slug`),
+  KEY `agent_tools_tenant_id_index` (`tenant_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+SQL);
+
+        // Table: agent_tool_logs
+        DB::statement(<<<'SQL'
+CREATE TABLE `agent_tool_logs` (
+  `log_id` bigint unsigned NOT NULL COMMENT '日志 ID（IdGenerator 全局ID）',
+  `conversation_id` bigint unsigned NOT NULL COMMENT '会话 ID',
+  `agent_id` bigint unsigned NOT NULL COMMENT 'Agent ID',
+  `tool_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '工具名称',
+  `input` json DEFAULT NULL COMMENT '工具输入参数',
+  `output` json DEFAULT NULL COMMENT '工具输出',
+  `duration_ms` int NOT NULL DEFAULT '0' COMMENT '执行耗时（毫秒）',
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'success' COMMENT '调用状态',
+  `error` text COLLATE utf8mb4_unicode_ci COMMENT '错误信息',
+  `created_at` timestamp NULL DEFAULT NULL COMMENT '创建时间',
+  PRIMARY KEY (`log_id`),
+  KEY `agent_tool_logs_conversation_id_index` (`conversation_id`),
+  KEY `agent_tool_logs_agent_id_index` (`agent_id`),
+  KEY `agent_tool_logs_tool_name_created_at_index` (`tool_name`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+SQL);
+
+        // Table: agent_workflows
+        DB::statement(<<<'SQL'
+CREATE TABLE `agent_workflows` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL COMMENT '租户ID',
+  `agent_id` bigint unsigned NOT NULL COMMENT 'Agent ID',
+  `workflow_id` bigint unsigned NOT NULL COMMENT 'Workflow ID',
+  `is_primary` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否主工作流',
+  `sort_order` int NOT NULL DEFAULT '0' COMMENT '排序',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `agent_workflows_agent_id_workflow_id_unique` (`agent_id`,`workflow_id`),
+  KEY `agent_workflows_tenant_id_agent_id_index` (`tenant_id`,`agent_id`),
+  KEY `agent_workflows_workflow_id_foreign` (`workflow_id`),
+  CONSTRAINT `agent_workflows_agent_id_foreign` FOREIGN KEY (`agent_id`) REFERENCES `agents` (`agent_id`) ON DELETE CASCADE,
+  CONSTRAINT `agent_workflows_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`tenant_id`) ON DELETE CASCADE,
+  CONSTRAINT `agent_workflows_workflow_id_foreign` FOREIGN KEY (`workflow_id`) REFERENCES `workflows` (`workflow_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+SQL);
+
         // Table: ai_model_aliases
         DB::statement(<<<'SQL'
 CREATE TABLE `ai_model_aliases` (
@@ -167,6 +169,8 @@ SQL);
 CREATE TABLE `ai_prompts` (
   `prompt_id` bigint unsigned NOT NULL COMMENT '提示词ID（全局ID，16位数字）',
   `tenant_id` bigint unsigned DEFAULT NULL COMMENT '租户ID，null 表示系统级模板',
+  `operator_id` bigint unsigned DEFAULT NULL COMMENT 'Operator ID，非 null 表示 operator 级定制',
+  `role` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '绑定的 Agent 角色键（system_secretary/customer_service 等），null 表示通用',
   `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '模板名称（同租户内唯一，租户可同名覆盖系统级）',
   `category` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'general' COMMENT '分类',
   `system_prompt` text COLLATE utf8mb4_unicode_ci COMMENT '系统提示词',
@@ -179,7 +183,9 @@ CREATE TABLE `ai_prompts` (
   PRIMARY KEY (`prompt_id`),
   KEY `idx_tenant_name` (`tenant_id`,`name`),
   KEY `idx_category` (`category`),
-  KEY `idx_ai_prompts_status` (`status`)
+  KEY `idx_ai_prompts_status` (`status`),
+  KEY `idx_operator_role_status` (`operator_id`,`role`,`status`),
+  KEY `idx_tenant_role_status` (`tenant_id`,`role`,`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL);
 
@@ -275,6 +281,31 @@ CREATE TABLE `ai_usage_quotas` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL);
 
+        // Table: ai_audit_logs
+        DB::statement(<<<'SQL'
+CREATE TABLE `ai_audit_logs` (
+  `audit_id` bigint unsigned NOT NULL COMMENT '审计 ID（全局 ID）',
+  `tenant_id` bigint unsigned NOT NULL COMMENT '租户 ID',
+  `operator_id` bigint unsigned DEFAULT NULL COMMENT '操作人（Operator ID）',
+  `agent_id` bigint unsigned DEFAULT NULL COMMENT '关联 Agent ID',
+  `conversation_id` bigint unsigned DEFAULT NULL COMMENT '关联会话 ID',
+  `action` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '事件类型（conversation.start/tool.execute/agent.delegate/agent.enable/agent.disable/prompt.update）',
+  `target_type` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '操作对象类型（agent/tool/prompt/conversation）',
+  `target_id` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '操作对象 ID',
+  `summary` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '事件摘要（人类可读）',
+  `detail` json DEFAULT NULL COMMENT '事件详情（结构化数据）',
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'success' COMMENT '结果：success/failed/denied',
+  `ip_address` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '来源 IP',
+  `created_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`audit_id`),
+  KEY `idx_audit_tenant_time` (`tenant_id`,`created_at`),
+  KEY `idx_audit_tenant_action` (`tenant_id`,`action`),
+  KEY `idx_audit_operator` (`operator_id`,`created_at`),
+  KEY `idx_audit_agent` (`agent_id`,`created_at`),
+  KEY `idx_audit_conversation` (`conversation_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+SQL);
+
         // Table: entity_memories
         DB::statement(<<<'SQL'
 CREATE TABLE `entity_memories` (
@@ -295,6 +326,26 @@ CREATE TABLE `entity_memories` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL);
 
+        // Table: kb_suggestions
+        DB::statement(<<<'SQL'
+CREATE TABLE `kb_suggestions` (
+  `suggestion_id` bigint unsigned NOT NULL COMMENT '提案ID',
+  `tenant_id` bigint unsigned NOT NULL COMMENT '租户ID',
+  `conversation_id` bigint unsigned DEFAULT NULL COMMENT '关联会话ID',
+  `target_module` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '目标模块（kebab-case，可空=全局）',
+  `target_doc` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '目标文档 identity（如 customer/usage.md，空=建议新文档）',
+  `trigger_query` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '触发提案的用户原始问题（知识缺口证据）',
+  `suggested_content` text COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '建议补充的知识内容（markdown）',
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending' COMMENT 'pending/adopted/rejected',
+  `resolved_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`suggestion_id`),
+  KEY `kb_suggestions_tenant_id_status_index` (`tenant_id`,`status`),
+  KEY `kb_suggestions_status_index` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+SQL);
+
         // Table: laravel_ai_conversations
         DB::statement(<<<'SQL'
 CREATE TABLE `laravel_ai_conversations` (
@@ -308,6 +359,24 @@ CREATE TABLE `laravel_ai_conversations` (
   PRIMARY KEY (`conversation_id`),
   KEY `laravel_ai_conversations_user_id_updated_at_index` (`user_id`,`updated_at`),
   KEY `laravel_ai_conversations_tenant_id_index` (`tenant_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+SQL);
+
+        // Table: task_chain_runs
+        DB::statement(<<<'SQL'
+CREATE TABLE `task_chain_runs` (
+  `run_id` bigint unsigned NOT NULL COMMENT '运行ID',
+  `tenant_id` bigint unsigned NOT NULL COMMENT '租户ID',
+  `conversation_id` bigint unsigned DEFAULT NULL COMMENT '归属会话（链在会话内推进；campaign 触发为 null）',
+  `chain_key` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '链定义 key',
+  `steps_state` json NOT NULL COMMENT '每步状态快照 + context KV 包',
+  `current_step` int unsigned NOT NULL DEFAULT '0' COMMENT '当前步下标（0 起）',
+  `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'running' COMMENT 'running/waiting_input/waiting_confirm/completed/failed/cancelled',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`run_id`),
+  KEY `task_chain_runs_tenant_id_conversation_id_index` (`tenant_id`,`conversation_id`),
+  KEY `task_chain_runs_tenant_id_status_index` (`tenant_id`,`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL);
 
@@ -337,8 +406,8 @@ SQL);
     {
         Schema::dropIfExists('agent_conversation_messages');
         Schema::dropIfExists('agent_conversations');
-        Schema::dropIfExists('agent_tool_logs');
         Schema::dropIfExists('agent_tools');
+        Schema::dropIfExists('agent_tool_logs');
         Schema::dropIfExists('agent_workflows');
         Schema::dropIfExists('agents');
         Schema::dropIfExists('ai_model_aliases');
@@ -347,8 +416,11 @@ SQL);
         Schema::dropIfExists('ai_requests');
         Schema::dropIfExists('ai_tenant_configs');
         Schema::dropIfExists('ai_usage_quotas');
+        Schema::dropIfExists('ai_audit_logs');
         Schema::dropIfExists('entity_memories');
+        Schema::dropIfExists('kb_suggestions');
         Schema::dropIfExists('laravel_ai_conversations');
+        Schema::dropIfExists('task_chain_runs');
         Schema::dropIfExists('tenant_memories');
     }
 };

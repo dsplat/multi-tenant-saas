@@ -83,10 +83,74 @@ return new class extends Migration
                 $table->index(['tenant_id', 'module_name', 'status'], 'idx_module_entitlements_lookup');
             });
         }
+
+        // supply_grants: 供给授权（内容分销/积分商城 SKU 共用）
+        if (! Schema::hasTable('supply_grants')) {
+            Schema::create('supply_grants', function (Blueprint $table) {
+                $table->unsignedBigInteger('grant_id')->primary()->comment('授权ID（全局ID）');
+                $table->unsignedBigInteger('tenant_id')->comment('获授权租户');
+                $table->unsignedBigInteger('sku_id')->comment('供给 SKU 引用');
+                $table->unsignedBigInteger('source_order_id')->nullable()->comment('来源订单');
+                $table->string('status', 20)->default('active')->comment('active|suspended|expired|revoked');
+                $table->timestamp('valid_from')->nullable();
+                $table->timestamp('valid_until')->nullable()->comment('NULL=永久');
+                $table->json('settlement')->nullable()->comment('结算参数（供货价/分成比例/模式）');
+                $table->json('instance_payload')->nullable()->comment('履约产物引用（content_id / points_product_id 等）');
+                $table->timestamps();
+                $table->index(['tenant_id', 'status'], 'idx_supply_grants_tenant_status');
+                $table->index(['sku_id', 'status'], 'idx_supply_grants_sku_status');
+            });
+        }
+
+        // platform_contents: 平台内容条目
+        if (! Schema::hasTable('platform_contents')) {
+            Schema::create('platform_contents', function (Blueprint $table) {
+                $table->unsignedBigInteger('content_id')->primary()->comment('内容ID（全局ID）');
+                $table->string('title', 200)->comment('标题');
+                $table->string('type', 30)->default('article')->comment('article|video|audio|image|file');
+                $table->text('body')->nullable()->comment('正文（富文本/纯文本）');
+                $table->string('file_url', 500)->nullable()->comment('媒体文件地址');
+                $table->string('cover_url', 500)->nullable()->comment('封面');
+                $table->json('tags')->nullable()->comment('标签');
+                $table->string('status', 20)->default('draft')->comment('draft|published|retired');
+                $table->integer('sort_order')->default(0);
+                $table->timestamps();
+                $table->index(['status', 'type']);
+            });
+        }
+
+        // platform_content_packs: 内容包
+        if (! Schema::hasTable('platform_content_packs')) {
+            Schema::create('platform_content_packs', function (Blueprint $table) {
+                $table->unsignedBigInteger('pack_id')->primary()->comment('内容包ID（全局ID）');
+                $table->string('name', 200)->comment('包名');
+                $table->string('description', 500)->nullable();
+                $table->string('cover_url', 500)->nullable();
+                $table->string('status', 20)->default('draft')->comment('draft|active|retired');
+                $table->integer('sort_order')->default(0);
+                $table->timestamps();
+                $table->index('status');
+            });
+        }
+
+        // platform_content_pack_items: 包-内容关联
+        if (! Schema::hasTable('platform_content_pack_items')) {
+            Schema::create('platform_content_pack_items', function (Blueprint $table) {
+                $table->unsignedBigInteger('pack_id');
+                $table->unsignedBigInteger('content_id');
+                $table->integer('sort_order')->default(0);
+                $table->primary(['pack_id', 'content_id']);
+                $table->index('content_id');
+            });
+        }
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('platform_content_pack_items');
+        Schema::dropIfExists('platform_content_packs');
+        Schema::dropIfExists('platform_contents');
+        Schema::dropIfExists('supply_grants');
         Schema::dropIfExists('module_entitlements');
         Schema::dropIfExists('commerce_order_items');
         Schema::dropIfExists('commerce_orders');

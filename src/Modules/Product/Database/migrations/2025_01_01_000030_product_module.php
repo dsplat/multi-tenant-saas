@@ -56,7 +56,30 @@ return new class extends Migration
 
     public function down(): void
     {
+        Schema::dropIfExists('product_skus');
         Schema::dropIfExists('product_categories');
         Schema::dropIfExists('products');
     }
 };
+
+        // product_skus: SKU 规格层
+        if (! Schema::hasTable('product_skus')) {
+            Schema::create('product_skus', function (Blueprint $table) {
+                $table->bigInteger('sku_id')->unsigned()->primary();
+                $table->bigInteger('tenant_id')->unsigned();
+                $table->bigInteger('product_id')->unsigned()->nullable();
+                $table->string('ref_type', 30)->nullable()->comment('镜像来源：event_ticket|points_product|course');
+                $table->bigInteger('ref_id')->unsigned()->nullable();
+                $table->string('name', 255);
+                $table->json('spec_attrs')->nullable()->comment('规格属性快照');
+                $table->decimal('price', 12, 2)->default(0)->comment('现金价（元）');
+                $table->integer('points_price')->default(0)->comment('积分价（纯积分支付）');
+                $table->integer('stock')->default(0)->comment('库存；镜像 SKU 以源表为准，0 表示不限');
+                $table->integer('sold_count')->default(0);
+                $table->string('status', 20)->default('active');
+                $table->timestamps();
+                $table->softDeletes();
+                $table->index(['tenant_id', 'product_id']);
+                $table->index(['tenant_id', 'ref_type', 'ref_id'], 'product_skus_tenant_ref_index');
+            });
+        }

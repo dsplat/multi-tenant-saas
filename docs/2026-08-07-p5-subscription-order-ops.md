@@ -50,7 +50,8 @@
 
 1. **Payment 模块 default_enabled=false**：`src/Modules/Payment` 在 composer.json extra 声明默认禁用，其 `Routes/admin.php` 从不加载 → 现有 PaymentOrders 页的 `/api/v1/admin/payments/orders` 在生产实际 404（页面长期空列表）。修复：订单 admin 路由全部迁至 Billing 模块（PaymentOrder 模型本就在 Billing），URL 路径不变。
 2. **TenantScope 拦截 admin 查询**：`PaymentOrder`/`SubscriptionHistory` 带 `BelongsToTenant`，admin 上下文无 TenantContext 时 fail-closed（WHERE 1=0）→ 全部 `withoutGlobalScope(TenantScope::class)` 直查（沿用 P4 模式）。
-3. **admin/console 域名隔离缺口（生产 nginx）**：四域名共用一个 server 块，`admin.neihang.com/console/`、`/app/` 静态 SPA 可访问（API 层已有 `RejectPlatformDomain` 403 防线，登录不通，但入口暴露）。修复：`/etc/nginx/conf.d/neihang.conf` 加两个域名条件 location——平台域名（admin/www）禁 `/console`、`/app`（403），租户域名（console/app）禁 `/admin`（403），原配置备份于服务器 `/root/neihang.conf.bak.*`。验证矩阵：admin×{console,app}=403、console×admin=403、各自本域 SPA=200。
+3. **admin/console 域名隔离缺口（生产 nginx）**：四域名共用一个 server 块，平台域名可访问租户 SPA（`/console`、`/app`），反之亦然。API 层已有 `RejectPlatformDomain` 403 防线（登录不通），但静态入口暴露。修复：`/etc/nginx/conf.d/neihang.conf` 加两个域名条件 location——**平台域名（admin/www）禁 `/console`、`/app`（403），租户域名（console/app）禁 `/admin`（403）**，域名各司其职禁止互串；原配置备份于服务器 `/root/neihang.conf.bak.*`。验证矩阵：admin×{console,app}=403、www×{console,app}=403、console×admin=403、各自本域 SPA=200。
+   **遗留影响**：平台首页 SPA 的开户 Onboarding（`/onboarding`，完成后 `window.location.href='/console/'`）跨域跳转被隔断，开户入口应迁至 console 域名（见第六节遗留）。
 
 ## 三、前端
 
@@ -77,12 +78,23 @@
 
 ## 五、部署记录
 
-- 框架 commit：`3294d32`（主体）
-- 部署与验证结果：待补
+- 框架 commit：`3294d32`（主体）→ `30089af`（文档）→ `3bdf55b`（NULL 到期修复）→ `8e944e4`（Tickets 图标黑屏修复）→ `49e2ecd`（订单列表 500 修复）
+- 部署链路：split ✓ → scrm-platform composer lock 同步（`ba75838`、`40e2313`）→ deploy.py incremental ✓ → rsync `public/admin/` ✓
+- 过程中修复的三个线上缺陷：
+  1. **AdminLayout 黑屏**：订阅总览菜单图标 `Tickets` 未导入 → `ReferenceError` 炸掉整个布局，所有已认证页面黑屏。补导入修复（`8e944e4`）。
+  2. **订单列表 500**：`PaymentOrder::withoutGlobalScope(...)->query()` 在 Builder 上重复调 `query()` → `BadMethodCallException`（测试未覆盖 index 端点导致漏网，已补 `test_orders_index_lists_cross_tenant_orders` 用例，11 用例全绿）。改为 `PaymentOrder::query()->withoutGlobalScope(...)`（`49e2ecd`）。
+  3. **NULL 到期误判**：生产超级租户 `subscription_expires_at=NULL`（永久）被派生为 expired；修复为 NULL=永久 active，前端到期列显示「永久」标签（`3bdf55b`）。
+- 超管端到端验证（Browser 子代理，临时密码验证后已还原）：
+  - 订阅总览：四汇总卡（1/1/0/0）✓、enterprise 租户「订阅中」+「永久」标签 ✓、取消/恢复续费 ✓（永久租户取消后状态保持「订阅中」、仅续费开关列变化，属合理语义）、历史抽屉 ✓
+  - 支付订单：列表 ✓、补单（transaction_id/extra.manual_paid 落库）✓、关单 ✓、详情弹窗 ✓
+- 生产数据清理：2 张 P5E2E 测试订单已删除、验证 token 已清理、超管密码已还原
+- nginx 域名隔离：见 2.3 第 3 条
 
 ## 六、遗留（Phase 5.5+）
 
 - C1-C3 AI credit 消耗透视（Phase 5.5）
 - B3 退款操作面 / B4 营收报表 / B5 催收处置（Phase 6）
 - 补单履约联动：项目层按 extra 业务引用接线
+- **开户 Onboarding 迁入 console 域名**：现状是平台首页 SPA（www）的 `/onboarding` 向导 + 完成后跳 `/console/`；域名隔离后该跨域跳转被 403 阻断。目标形态：开户直接在 console.neihang.com 完成（Onboarding 路由挂 console SPA，www 首页仅提供指向 console 域名的入口链接），符合「www=平台首页、console=租户后台（含开户）、app=租户前台、各司其职禁止互串」的域名分工
+- PaymentOrders 页接口失败静默吞错（空态代替报错提示），建议后续补错误提示
 - 分销监管与提现审批：按用户指示暂停

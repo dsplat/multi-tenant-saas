@@ -45,19 +45,18 @@ class SubscriptionAdminController extends Controller
             $query->where('subscription_plan', $request->input('plan'));
         }
 
-        // 派生状态过滤（试用/有效/到期未续/已过期）
+        // 派生状态过滤（试用/有效/到期未续/已过期；NULL 到期视为永久有效）
         $status = $request->input('status');
         if ($status === 'trial') {
             $query->whereNotNull('trial_ends_at')->where('trial_ends_at', '>', $now);
         } elseif ($status === 'active') {
-            $query->where('subscription_expires_at', '>', $now)
+            $query->where(fn ($q) => $q->where('subscription_expires_at', '>', $now)->orWhereNull('subscription_expires_at'))
                 ->where(fn ($q) => $q->whereNull('trial_ends_at')->orWhere('trial_ends_at', '<=', $now));
         } elseif ($status === 'pending_cancel') {
-            $query->where('subscription_expires_at', '>', $now)->where('auto_renew', false);
+            $query->whereNotNull('subscription_expires_at')
+                ->where('subscription_expires_at', '>', $now)->where('auto_renew', false);
         } elseif ($status === 'expired') {
-            $query->where(fn ($q) => $q
-                ->where('subscription_expires_at', '<=', $now)
-                ->orWhere(fn ($q2) => $q2->whereNull('subscription_expires_at')->where('subscription_plan', '!=', 'free')));
+            $query->whereNotNull('subscription_expires_at')->where('subscription_expires_at', '<=', $now);
         }
 
         $paginator = $query->orderBy('created_at', 'desc')->paginate($perPage);
@@ -78,15 +77,17 @@ class SubscriptionAdminController extends Controller
             ];
         });
 
-        // 汇总（不受分页与过滤影响，口径：订阅中 = 未过期且付费档）
-        $subscribed = Tenant::where('subscription_expires_at', '>', $now)
+        // 汇总（不受分页与过滤影响；NULL 到期视为永久订阅）
+        $subscribed = Tenant::where(fn ($q) => $q->where('subscription_expires_at', '>', $now)->orWhereNull('subscription_expires_at'))
             ->where('subscription_plan', '!=', 'free')
             ->count();
-        $expiringSoon = Tenant::where('subscription_expires_at', '>', $now)
+        $expiringSoon = Tenant::whereNotNull('subscription_expires_at')
+            ->where('subscription_expires_at', '>', $now)
             ->where('subscription_expires_at', '<=', $now->copy()->addDays(30))
             ->where('subscription_plan', '!=', 'free')
             ->count();
-        $pendingCancel = Tenant::where('subscription_expires_at', '>', $now)
+        $pendingCancel = Tenant::whereNotNull('subscription_expires_at')
+            ->where('subscription_expires_at', '>', $now)
             ->where('subscription_plan', '!=', 'free')
             ->where('auto_renew', false)
             ->count();
@@ -214,6 +215,7 @@ class SubscriptionAdminController extends Controller
 
     /**
      * 派生订阅状态：trial / active / pending_cancel / expired / free
+     * NULL 到期时间视为永久有效（如平台超级租户）
      */
     private function deriveSubStatus(Tenant $tenant, $now): string
     {
@@ -221,14 +223,18 @@ class SubscriptionAdminController extends Controller
             return 'trial';
         }
 
-        $expiresAt = $tenant->subscription_expires_at;
-
-        if (! $expiresAt || $expiresAt <= $now) {
-            return 'expired';
-        }
-
         if (($tenant->subscription_plan ?: 'free') === 'free') {
             return 'free';
+        }
+
+        $expiresAt = $tenant->subscription_expires_at;
+
+        if ($expiresAt === null) {
+            return 'active';
+        }
+
+        if ($expiresAt <= $now) {
+            return 'expired';
         }
 
         return $tenant->auto_renew ? 'active' : 'pending_cancel';

@@ -103,6 +103,16 @@ class AdminSubscriptionPaymentTest extends TestCase
             'trial_ends_at' => now()->addDays(7),
             'auto_renew' => false,
         ]);
+        // 永久租户（NULL 到期，如平台超级租户）
+        Tenant::create([
+            'tenant_id' => 7004,
+            'name' => '永久租户',
+            'slug' => 'permanent-tenant',
+            'status' => 'active',
+            'subscription_plan' => 'enterprise',
+            'subscription_expires_at' => null,
+            'auto_renew' => false,
+        ]);
 
         $resp = $this->auth()->getJson('/api/v1/admin/billing/subscriptions?per_page=50');
 
@@ -112,11 +122,13 @@ class AdminSubscriptionPaymentTest extends TestCase
         $this->assertSame('active', $data->firstWhere('tenant_id', $this->tenantId)['sub_status']);
         $this->assertSame('expired', $data->firstWhere('tenant_id', 7002)['sub_status']);
         $this->assertSame('trial', $data->firstWhere('tenant_id', 7003)['sub_status']);
+        $this->assertSame('active', $data->firstWhere('tenant_id', 7004)['sub_status']); // NULL 到期 = 永久有效
 
         $summary = $resp->json('summary');
-        $this->assertSame(3, $summary['total_tenants']);
-        $this->assertSame(2, $summary['subscribed']);       // 7001 + 7003 未过期付费档
-        $this->assertSame(2, $summary['expiring_soon']);    // 均在 30 天内到期
+        $this->assertSame(4, $summary['total_tenants']);
+        $this->assertSame(3, $summary['subscribed']);       // 7001 + 7003 + 7004（永久）
+        $this->assertSame(2, $summary['expiring_soon']);    // 7001/7003 在 30 天内到期，永久租户不计
+        $this->assertSame(1, $summary['pending_cancel']);   // 仅 7003，永久租户不计
     }
 
     public function test_subscriptions_index_keyword_filter(): void

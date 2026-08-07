@@ -40,7 +40,11 @@
           </template>
         </el-table-column>
         <el-table-column label="到期时间" width="160">
-          <template #default="{ row }">{{ formatDate(row.subscription_expires_at) }}</template>
+          <template #default="{ row }">
+            <template v-if="row.subscription_expires_at">{{ formatDate(row.subscription_expires_at) }}</template>
+            <el-tag v-else-if="row.plan && row.plan !== 'free'" type="success" size="small">永久</el-tag>
+            <span v-else>-</span>
+          </template>
         </el-table-column>
         <el-table-column label="试用截止" width="160">
           <template #default="{ row }">{{ formatDate(row.trial_ends_at) }}</template>

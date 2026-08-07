@@ -18,6 +18,9 @@
       <CrudTable ref="tableRef" fetch-api="/api/v1/admin/commerce/prepay-accounts"
         :columns="columns" :search-fields="searchFields" :extra-params="{ per_page: 100 }"
         :actions-width="180" @loaded="loadSummary">
+        <template #toolbar>
+          <el-button type="primary" @click="openRecharge(null)">新租户充值</el-button>
+        </template>
         <template #col-tenant="{ row }">{{ row.tenant?.name || row.tenant_id }}</template>
         <template #col-balance="{ row }">
           <el-tag v-if="row.balance <= 10000" type="danger" size="small" effect="plain">¥{{ fen(row.balance) }}</el-tag>
@@ -35,8 +38,10 @@
     <!-- 充值弹窗 -->
     <el-dialog v-model="rechargeVisible" title="预存货款充值" width="440px">
       <el-form label-width="90px">
-        <el-form-item label="租户">
-          <el-input :model-value="rechargeForm.tenantName" disabled />
+        <el-form-item label="租户ID">
+          <el-input-number v-if="!rechargeForm.lockTenant" v-model="rechargeForm.tenantId" :min="1"
+            :controls="false" style="width: 100%" placeholder="首次充值自动开户" />
+          <el-input v-else :model-value="rechargeForm.tenantName" disabled />
         </el-form-item>
         <el-form-item label="金额（元）">
           <el-input-number v-model="rechargeForm.amountYuan" :min="0.01" :precision="2" :step="100" style="width: 100%" />
@@ -118,17 +123,22 @@ const loadSummary = async () => {
 // ===== 充值 =====
 const rechargeVisible = ref(false)
 const submitting = ref(false)
-const rechargeForm = reactive({ tenantId: 0, tenantName: '', amountYuan: 100, note: '' })
+const rechargeForm = reactive({ tenantId: 0, tenantName: '', amountYuan: 100, note: '', lockTenant: false })
 
 const openRecharge = (row: any) => {
-  rechargeForm.tenantId = row.tenant_id
-  rechargeForm.tenantName = `${row.tenant?.name || ''}（${row.tenant_id}）`
+  rechargeForm.lockTenant = !!row
+  rechargeForm.tenantId = row?.tenant_id || 0
+  rechargeForm.tenantName = row ? `${row.tenant?.name || ''}（${row.tenant_id}）` : ''
   rechargeForm.amountYuan = 100
   rechargeForm.note = ''
   rechargeVisible.value = true
 }
 
 const doRecharge = async () => {
+  if (!rechargeForm.tenantId) {
+    ElMessage.warning('请输入租户ID')
+    return
+  }
   submitting.value = true
   try {
     await axios.post('/api/v1/admin/commerce/prepay/recharge', {

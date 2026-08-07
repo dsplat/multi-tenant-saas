@@ -9,6 +9,7 @@ use MultiTenantSaas\Modules\Platform\Http\Controllers\ApplyFieldConfigController
 Route::prefix('settings')->group(function () {
     Route::get('/', [AdminSettingsController::class, 'index'])->middleware('rbac.permission:setting.view');
     Route::put('/{group}', [AdminSettingsController::class, 'update'])->middleware('rbac.permission:setting.update');
+    Route::post('/mail/test', [AdminSettingsController::class, 'sendTestMail'])->middleware('rbac.permission:setting.update');
 });
 
 // 管理员后台 - 租户申请审批

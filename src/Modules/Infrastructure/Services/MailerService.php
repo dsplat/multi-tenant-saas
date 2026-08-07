@@ -6,13 +6,17 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailer;
+use Illuminate\Mail\Transport\LogTransport;
+use Illuminate\Log\LogManager;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Mail\TenantMail;
+use MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Notification\Services\MailTemplateService;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
+use Symfony\Component\Mailer\Transport\TransportInterface;
 
 /**
  * 邮件发送服务
@@ -20,11 +24,18 @@ use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
  * 统一所有邮件发送入口，通过 TenantMail 实现模板渲染 + 品牌注入。
  * 支持模板驱动（sendTemplate）和直接发送（sendRaw）。
  *
- * 租户级 SMTP：若租户在 tenant_settings(group='mail') 中配置了 smtp_host，
- * 则使用租户自己的 SMTP 发送；否则使用全局 SMTP。不做失败回退。
+ * 发送通道三级链（不做失败回退）：
+ * 1. 租户级 SMTP：租户在 tenant_settings(group='mail') 配置了 smtp_host；
+ * 2. 平台级 SMTP：admin 后台在 system_settings(group='mail') 配置了 host；
+ * 3. 全局 SMTP：env MAIL_* 配置（Laravel 默认 mailer）。
  */
 class MailerService
 {
+    /** 平台级 Mailer 请求内缓存（避免每封邮件重建） */
+    protected ?Mailer $platformMailer = null;
+
+    protected bool $platformMailerResolved = false;
+
     public function __construct(
         protected MailTemplateService $templateService,
     ) {}
@@ -113,15 +124,14 @@ class MailerService
     }
 
     /**
-     * 统一发送入口：根据租户 SMTP 配置选择发送通道
+     * 统一发送入口：根据配置选择发送通道
      *
-     * 租户配置了 smtp_host → 使用租户 SMTP（失败即失败，不回退）
-     * 租户未配置 → 使用全局 SMTP
+     * 租户 SMTP → 平台 SMTP（system_settings）→ 全局 SMTP（env），失败即失败，不回退
      */
     protected function send(string $to, Mailable $mailable, ?int $tenantId): bool
     {
         try {
-            $mailer = $this->resolveTenantMailer($tenantId);
+            $mailer = $this->resolveTenantMailer($tenantId) ?? $this->resolvePlatformMailer();
 
             if ($mailer) {
                 $mailer->to($to)->send($mailable);
@@ -173,6 +183,74 @@ class MailerService
 
         if ($fromAddress) {
             $mailer->alwaysFrom($fromAddress, $fromName);
+        }
+
+        return $mailer;
+    }
+
+    /**
+     * 解析平台级 Mailer
+     *
+     * admin 后台在 system_settings(group='mail') 配置了 host（或 driver=log）
+     * 则构建独立 Mailer；未配置返回 null（回退 env MAIL_* 全局配置）。
+     */
+    protected function resolvePlatformMailer(): ?Mailer
+    {
+        if ($this->platformMailerResolved) {
+            return $this->platformMailer;
+        }
+        $this->platformMailerResolved = true;
+
+        try {
+            $config = SystemSetting::getGroup('mail');
+        } catch (\Throwable $e) {
+            // 表不存在等异常（安装初期）→ 静默回退 env
+            Log::warning('[MailerService] Failed to load platform mail settings', ['error' => $e->getMessage()]);
+
+            return $this->platformMailer = null;
+        }
+
+        $driver = (string) ($config['driver'] ?? 'smtp');
+        $host = (string) ($config['host'] ?? '');
+
+        if ($driver === 'log') {
+            $logger = app(LogManager::class)->channel(config('mail.log_channel'));
+
+            return $this->platformMailer = $this->buildPlatformMailer(new LogTransport($logger), $config);
+        }
+
+        if ($host === '') {
+            return $this->platformMailer = null;
+        }
+
+        $port = (int) ($config['port'] ?? 465);
+        $encryption = (string) ($config['encryption'] ?? 'ssl');
+
+        $transport = new EsmtpTransport($host, $port, $encryption === 'ssl');
+        $transport->setUsername((string) ($config['username'] ?? ''));
+        $transport->setPassword((string) ($config['password'] ?? ''));
+
+        return $this->platformMailer = $this->buildPlatformMailer($transport, $config);
+    }
+
+    /**
+     * 构建平台级 Mailer 并注入发件人
+     */
+    protected function buildPlatformMailer(TransportInterface $transport, array $config): Mailer
+    {
+        $mailer = new Mailer('platform', app('view'), $transport, app('events'));
+
+        // 发件人：DB 配置 → 全局 mail.from 回退（邮件必须有 From 头）
+        $fromAddress = (string) ($config['from_address'] ?? '');
+        $fromName = (string) ($config['from_name'] ?? '');
+
+        if (! $fromAddress) {
+            $fromAddress = (string) (config('mail.from.address') ?? '');
+            $fromName = $fromName ?: (string) (config('mail.from.name') ?? '');
+        }
+
+        if ($fromAddress) {
+            $mailer->alwaysFrom($fromAddress, $fromName ?: config('app.name', 'Platform'));
         }
 
         return $mailer;

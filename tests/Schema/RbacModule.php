@@ -136,6 +136,9 @@ class RbacModule implements SchemaModuleInterface
             ['permission_id' => 48, 'name' => 'user.view', 'display_name' => '查看用户', 'group' => 'user'],
             ['permission_id' => 49, 'name' => 'user.update', 'display_name' => '更新用户', 'group' => 'user'],
             ['permission_id' => 50, 'name' => 'user.delete', 'display_name' => '删除用户', 'group' => 'user'],
+            // 合规模块（retention-policies / consents 路由使用）
+            ['permission_id' => 51, 'name' => 'compliance.view', 'display_name' => '查看合规配置', 'group' => 'compliance'],
+            ['permission_id' => 52, 'name' => 'compliance.update', 'display_name' => '更新合规配置', 'group' => 'compliance'],
         ];
 
         foreach ($permissions as $perm) {

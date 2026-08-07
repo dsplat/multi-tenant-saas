@@ -22,7 +22,8 @@ class BailianImageProvider
      */
     public function textToImage(string $model, string $prompt, array $options = []): array
     {
-        $config = (array) config('ai.providers.bailian', []);
+        // DB 覆盖层（admin 后台补录）优先，env/config 兜底
+        $config = \MultiTenantSaas\Modules\Ai\Services\AiPlatformConfigService::resolveProviderConfig('bailian');
         $baseUrl = rtrim((string) ($config['base_url'] ?? $config['url'] ?? ''), '/');
         $apiKey = (string) ($config['api_key'] ?? $config['key'] ?? '');
 

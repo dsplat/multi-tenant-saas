@@ -418,7 +418,7 @@ class AiTextService
      */
     protected function defaultChatModel(): string
     {
-        return (string) config('ai.text.default_chat_model', 'gpt-4o-mini');
+        return AiPlatformConfigService::resolveTextDefault('chat', 'ai.text.default_chat_model', 'gpt-4o-mini');
     }
 
     /**
@@ -426,7 +426,7 @@ class AiTextService
      */
     protected function defaultCompletionModel(): string
     {
-        return (string) config('ai.text.default_completion_model', 'gpt-4o-mini');
+        return AiPlatformConfigService::resolveTextDefault('completion', 'ai.text.default_completion_model', 'gpt-4o-mini');
     }
 
     /**
@@ -434,7 +434,7 @@ class AiTextService
      */
     protected function defaultEmbeddingModel(): string
     {
-        return (string) config('ai.text.default_embedding_model', 'text-embedding-3-small');
+        return AiPlatformConfigService::resolveTextDefault('embedding', 'ai.text.default_embedding_model', 'text-embedding-3-small');
     }
 
     /**

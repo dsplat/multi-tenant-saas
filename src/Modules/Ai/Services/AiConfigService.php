@@ -230,6 +230,11 @@ class AiConfigService
 
         $systemKey = config("ai.providers.{$provider}.api_key");
 
+        // DB 覆盖层（admin 后台补录的 api_key）优先
+        if (! is_string($systemKey) || $systemKey === '') {
+            $systemKey = AiPlatformConfigService::resolveProviderConfig($provider)['api_key'] ?? null;
+        }
+
         return is_string($systemKey) && $systemKey !== '' ? $systemKey : null;
     }
 

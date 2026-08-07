@@ -146,6 +146,23 @@ class SystemSetting extends Model
             ->toArray();
     }
 
+    /**
+     * 读取分组配置（加密键以掩码返回，用于 API 响应/审计日志）
+     */
+    public static function getGroupMasked(string $group): array
+    {
+        return static::where('group', $group)
+            ->get()
+            ->mapWithKeys(function (self $setting) {
+                $value = $setting->is_encrypted
+                    ? ($setting->getRawOriginal('value') ? '********' : '')
+                    : $setting->value;
+
+                return [$setting->key => $value];
+            })
+            ->toArray();
+    }
+
     public static function setGroup(string $group, array $settings): void
     {
         foreach ($settings as $key => $config) {

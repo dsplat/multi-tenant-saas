@@ -47,6 +47,18 @@ class AiModelCatalogService
     }
 
     /**
+     * 仅读缓存清单（不触发实时拉取，供 admin 后台展示）
+     *
+     * @return list<string>|null 无缓存时返回 null
+     */
+    public function cachedModels(string $provider): ?array
+    {
+        $cached = Cache::get(self::CACHE_PREFIX . $provider);
+
+        return is_array($cached) && $cached !== [] ? $cached : null;
+    }
+
+    /**
      * 从 provider 的 /models 端点拉取清单并写入缓存
      *
      * 拉取成功返回模型 ID 列表并缓存；失败（网络异常、配置缺失、
@@ -56,7 +68,8 @@ class AiModelCatalogService
      */
     public function sync(string $provider): array
     {
-        $config = (array) config("ai.providers.{$provider}", []);
+        // DB 覆盖层（admin 后台补录的 url/key）优先，env/config 兜底
+        $config = AiPlatformConfigService::resolveProviderConfig($provider);
 
         $baseUrl = rtrim((string) ($config['url'] ?? $config['base_url'] ?? ''), '/');
         $apiKey = (string) ($config['key'] ?? $config['api_key'] ?? '');

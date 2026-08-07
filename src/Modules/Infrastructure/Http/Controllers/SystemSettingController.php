@@ -21,7 +21,18 @@ class SystemSettingController extends Controller
             $query->where('group', $request->query('group'));
         }
 
-        $settings = $query->orderBy('group')->orderBy('key')->get();
+        // 加密项脱敏后返回（避免明文密钥泄漏到前端）
+        $settings = $query->orderBy('group')->orderBy('key')->get()
+            ->map(function (SystemSetting $setting) {
+                if ($setting->is_encrypted) {
+                    $setting->setRawAttributes(array_merge($setting->getAttributes(), [
+                        'value' => $setting->getRawOriginal('value') ? '********' : '',
+                        'is_encrypted' => false,
+                    ]));
+                }
+
+                return $setting;
+            });
 
         return $this->successResponse($settings);
     }
@@ -36,13 +47,33 @@ class SystemSettingController extends Controller
             'settings.*.description' => 'nullable|string|max:500',
         ]);
 
-        $oldSettings = SystemSetting::getGroup($group);
+        // 加密键传掩码/空串时保留原值（避免前端回显的掩码覆盖真实密钥）
+        foreach ($validated['settings'] as $key => $config) {
+            if (is_array($config)
+                && ($config['is_encrypted'] ?? false)
+                && in_array($config['value'] ?? '', ['', '********'], true)) {
+                unset($validated['settings'][$key]);
+            }
+        }
+
+        if (empty($validated['settings'])) {
+            return $this->successResponse(SystemSetting::getGroupMasked($group), 'Nothing to update');
+        }
+
+        // 审计与响应均用掩码版本，密文永不出现在日志/输出中
+        $oldSettings = SystemSetting::getGroupMasked($group);
 
         SystemSetting::setGroup($group, $validated['settings']);
 
-        app(AuditService::class)->log('update', 'system_setting', null, ['group' => $group, 'old' => $oldSettings], ['group' => $group, 'new' => $validated['settings']]);
+        $maskedNew = collect($validated['settings'])
+            ->map(fn ($config) => is_array($config) && ($config['is_encrypted'] ?? false)
+                ? array_merge($config, ['value' => '********'])
+                : $config)
+            ->toArray();
 
-        $updated = SystemSetting::getGroup($group);
+        app(AuditService::class)->log('update', 'system_setting', null, ['group' => $group, 'old' => $oldSettings], ['group' => $group, 'new' => $maskedNew]);
+
+        $updated = SystemSetting::getGroupMasked($group);
 
         return $this->successResponse($updated, 'Settings updated');
     }

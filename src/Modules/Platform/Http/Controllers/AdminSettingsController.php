@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Modules\Auth\Services\RbacService;
 use MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting;
+use MultiTenantSaas\Modules\Infrastructure\Services\MailerService;
 
 class AdminSettingsController extends Controller
 {
     /** 各分组需加密存储的敏感键 */
     private const ENCRYPTED_KEYS = [
+        'mail' => ['password'],
         'storage' => ['access_key_secret'],
         'external_kb' => ['api_key'],
     ];
@@ -73,5 +75,26 @@ class AdminSettingsController extends Controller
         }
 
         return response()->json(['success' => true, 'message' => trans('common.updated')]);
+    }
+
+    /**
+     * 发送平台级测试邮件（验证 system_settings mail 组配置）
+     *
+     * POST /api/v1/admin/settings/mail/test
+     */
+    public function sendTestMail(Request $request)
+    {
+        if (! app(RbacService::class)->check('system.settings')) {
+            return response()->json(['success' => false, 'message' => trans('common.forbidden')], 403);
+        }
+
+        $request->validate(['email' => 'required|email']);
+
+        // tenantId 为 null → 走平台 SMTP（system_settings）或 env 全局通道
+        $ok = app(MailerService::class)->sendTest($request->input('email'));
+
+        return $ok
+            ? response()->json(['success' => true, 'message' => trans('common.test_email_sent')])
+            : response()->json(['success' => false, 'message' => trans('common.email_send_failed')], 500);
     }
 }

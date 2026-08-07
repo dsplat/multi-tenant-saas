@@ -62,7 +62,14 @@
                 <el-form-item label="发件人名称"><el-input v-model="mail.from_name" /></el-form-item>
               </el-col>
             </el-row>
-            <el-form-item><el-button type="primary" :loading="saving" @click="handleSave('mail')">保存</el-button></el-form-item>
+            <el-form-item>
+              <el-button type="primary" :loading="saving" @click="handleSave('mail')">保存</el-button>
+            </el-form-item>
+            <el-form-item label="测试邮件">
+              <el-input v-model="testEmail" placeholder="收件人邮箱" style="width: 240px; margin-right: 8px" />
+              <el-button :loading="testingMail" :disabled="!testEmail" @click="handleTestMail">发送测试邮件</el-button>
+              <div class="form-hint">使用上方已保存的配置发送；未配置时回退 .env MAIL_*</div>
+            </el-form-item>
           </el-form>
         </el-tab-pane>
 
@@ -164,6 +171,8 @@ import { ElMessage } from 'element-plus'
 
 const activeTab = ref('system')
 const saving = ref(false)
+const testEmail = ref('')
+const testingMail = ref(false)
 
 const system = reactive({
   app_name: '',
@@ -266,6 +275,18 @@ const handleSave = async (group: string) => {
     ElMessage.error(e.response?.data?.message || '保存失败')
   } finally {
     saving.value = false
+  }
+}
+
+const handleTestMail = async () => {
+  testingMail.value = true
+  try {
+    const res = await axios.post('/api/v1/admin/settings/mail/test', { email: testEmail.value })
+    ElMessage.success(res.data?.message || '测试邮件已发送')
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || '发送失败')
+  } finally {
+    testingMail.value = false
   }
 }
 

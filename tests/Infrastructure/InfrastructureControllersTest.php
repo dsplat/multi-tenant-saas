@@ -24,7 +24,17 @@ class InfrastructureControllersTest extends TestCase
 
     private User $admin;
 
+    private Operator $operator;
+
     private Tenant $tenant;
+
+    protected function defineEnvironment($app): void
+    {
+        parent::defineEnvironment($app);
+
+        // 与生产一致：sanctum guard 不绑定 provider，Operator/User token 均可认证
+        $app['config']->set('auth.guards.sanctum.provider', null);
+    }
 
     protected function setUp(): void
     {
@@ -49,8 +59,8 @@ class InfrastructureControllersTest extends TestCase
             'email_verified_at' => now(),
         ]);
 
-        // 创建 operator
-        $operator = Operator::create([
+        // 创建 operator（rbac.permission 中间件仅 Operator 有权，User 永远无 RBAC 权限）
+        $this->operator = Operator::create([
             'email' => 'admin@test.com',
             'name' => 'Admin',
             'scope' => 'tenant',
@@ -63,7 +73,7 @@ class InfrastructureControllersTest extends TestCase
             ->value('role_id');
 
         OperatorTenant::create([
-            'operator_id' => $operator->operator_id,
+            'operator_id' => $this->operator->operator_id,
             'tenant_id' => $this->tenantId,
             'user_id' => $this->admin->user_id,
             'role' => 'tenant_admin',
@@ -76,7 +86,6 @@ class InfrastructureControllersTest extends TestCase
         DB::table('tenant_users')->insert([
             'tenant_id' => $this->tenantId,
             'user_id' => $this->admin->user_id,
-            'role' => 'tenant_admin',
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
@@ -89,7 +98,7 @@ class InfrastructureControllersTest extends TestCase
 
     public function test_webhook_index_returns_empty_list(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -103,7 +112,7 @@ class InfrastructureControllersTest extends TestCase
     {
         $this->markTestSkipped('TenantContext issue in test environment - needs investigation');
 
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -120,7 +129,7 @@ class InfrastructureControllersTest extends TestCase
 
     public function test_ip_whitelist_index_returns_empty_list(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -132,7 +141,7 @@ class InfrastructureControllersTest extends TestCase
 
     public function test_ip_whitelist_store_adds_ip(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -149,7 +158,7 @@ class InfrastructureControllersTest extends TestCase
 
     public function test_feature_flag_index_returns_list(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->getJson('/api/v1/feature-flags');
@@ -162,7 +171,7 @@ class InfrastructureControllersTest extends TestCase
 
     public function test_branding_config_index_returns_config(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -176,7 +185,7 @@ class InfrastructureControllersTest extends TestCase
 
     public function test_system_setting_index_returns_settings(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->getJson('/api/v1/admin/system-settings');
@@ -189,7 +198,7 @@ class InfrastructureControllersTest extends TestCase
 
     public function test_tenant_key_index_returns_empty_list(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -203,9 +212,10 @@ class InfrastructureControllersTest extends TestCase
 
     public function test_data_retention_policy_index_returns_list(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->withHeader('X-Tenant-ID', $this->tenantId)
             ->getJson('/api/v1/admin/retention-policies');
 
         $response->assertSuccessful()
@@ -216,9 +226,10 @@ class InfrastructureControllersTest extends TestCase
 
     public function test_consent_index_returns_list(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->withHeader('X-Tenant-ID', $this->tenantId)
             ->getJson('/api/v1/admin/consents');
 
         $response->assertSuccessful()

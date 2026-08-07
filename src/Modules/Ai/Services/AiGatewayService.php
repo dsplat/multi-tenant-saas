@@ -371,7 +371,7 @@ class AiGatewayService
                 return $this->providerCache[$providerCode] = app($class);
             }
 
-            $config = config("ai.providers.{$providerCode}", []);
+            $config = AiPlatformConfigService::resolveProviderConfig($providerCode);
             // 尊重 config 中的 driver（如 bailian 配 'openai'），缺省才按 provider code 兜底
             $config['driver'] ??= $providerCode;
 
@@ -647,7 +647,7 @@ class AiGatewayService
      */
     protected function defaultProvider(): string
     {
-        return (string) config('ai.default_provider', 'openai');
+        return AiPlatformConfigService::resolveDefaultProvider();
     }
 
     /**

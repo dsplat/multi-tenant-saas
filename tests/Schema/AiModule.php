@@ -109,23 +109,26 @@ class AiModule implements SchemaModuleInterface
             $table->index('subscription_plan_id');
         });
 
-        Schema::create('branding_configs', function (Blueprint $table) {
-            $table->unsignedBigInteger('branding_config_id')->primary();
-            $table->unsignedBigInteger('tenant_id');
-            $table->string('logo_url', 500)->nullable();
-            $table->string('favicon_url', 500)->nullable();
-            $table->string('primary_color', 20)->nullable();
-            $table->string('secondary_color', 20)->nullable();
-            $table->text('custom_css')->nullable();
-            $table->string('custom_domain', 200)->nullable();
-            $table->string('login_page_style', 20)->default('default');
-            $table->string('email_template', 50)->default('default');
-            $table->timestamps();
-            $table->softDeletes();
+        // InfrastructureModule 也可能先建 branding_configs，与其组合使用时跳过
+        if (! Schema::hasTable('branding_configs')) {
+            Schema::create('branding_configs', function (Blueprint $table) {
+                $table->unsignedBigInteger('branding_config_id')->primary();
+                $table->unsignedBigInteger('tenant_id');
+                $table->string('logo_url', 500)->nullable();
+                $table->string('favicon_url', 500)->nullable();
+                $table->string('primary_color', 20)->nullable();
+                $table->string('secondary_color', 20)->nullable();
+                $table->text('custom_css')->nullable();
+                $table->string('custom_domain', 200)->nullable();
+                $table->string('login_page_style', 20)->default('default');
+                $table->string('email_template', 50)->default('default');
+                $table->timestamps();
+                $table->softDeletes();
 
-            $table->unique('tenant_id', 'bc_tenant_unique');
-            $table->unique('custom_domain', 'bc_domain_unique');
-        });
+                $table->unique('tenant_id', 'bc_tenant_unique');
+                $table->unique('custom_domain', 'bc_domain_unique');
+            });
+        }
 
         Schema::create('ai_audit_logs', function (Blueprint $table) {
             $table->unsignedBigInteger('audit_id')->primary();

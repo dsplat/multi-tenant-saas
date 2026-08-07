@@ -262,7 +262,7 @@ class LaravelAiProviderAdapter implements AiProviderContract
      * 直接调用 OpenAI 兼容端点，返回标准格式（含 tool_calls），
      * 由 AgentRuntime ReAct 循环执行工具。
      */
-    private function rawChatCompletion(string $model, array $messages, array $options, int $timeout): array
+    protected function rawChatCompletion(string $model, array $messages, array $options, int $timeout): array
     {
         $body = $this->buildRawRequestBody($model, $messages, $options, false);
 
@@ -303,7 +303,7 @@ class LaravelAiProviderAdapter implements AiProviderContract
      * 逐行解析 SSE（data: {...}\n\n），yield 标准 chunk 格式。
      * tool_calls 通过 delta 增量拼接，在 finish_reason 非 null 时一次性输出。
      */
-    private function rawStreamChatCompletion(string $model, array $messages, array $options, int $timeout): Generator
+    protected function rawStreamChatCompletion(string $model, array $messages, array $options, int $timeout): Generator
     {
         $body = $this->buildRawRequestBody($model, $messages, $options, true);
 
@@ -421,7 +421,7 @@ class LaravelAiProviderAdapter implements AiProviderContract
     }
 
     /** 构建 OpenAI 兼容请求体 */
-    private function buildRawRequestBody(string $model, array $messages, array $options, bool $stream): array
+    protected function buildRawRequestBody(string $model, array $messages, array $options, bool $stream): array
     {
         $body = [
             'model' => $model,
@@ -444,7 +444,7 @@ class LaravelAiProviderAdapter implements AiProviderContract
     }
 
     /** 将累积的 tool_calls delta 转为最终数组 */
-    private function finalizeToolCalls(array $accum): array
+    protected function finalizeToolCalls(array $accum): array
     {
         ksort($accum);
 

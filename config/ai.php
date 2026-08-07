@@ -34,6 +34,16 @@ return [
     // 默认模型（driver 未显式指定时使用）
     'default_model' => env('AI_MODEL', 'gpt-4o-mini'),
 
+    /*
+    | AiTextService 默认模型（chatDefault/completeDefault/embedDefault）
+    | 缺省回退 AI_MODEL，避免新环境硬编码 gpt-4o-mini 导致 Unsupported model。
+    */
+    'text' => [
+        'default_chat_model' => env('AI_TEXT_CHAT_MODEL', env('AI_MODEL', 'gpt-4o-mini')),
+        'default_completion_model' => env('AI_TEXT_COMPLETION_MODEL', env('AI_MODEL', 'gpt-4o-mini')),
+        'default_embedding_model' => env('AI_TEXT_EMBEDDING_MODEL', 'text-embedding-3-small'),
+    ],
+
     // 默认请求超时（秒）
     'timeout' => (int) env('AI_TIMEOUT', 60),
 

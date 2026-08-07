@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Modules\Ai\Services\Ai\Providers;
 
+use Generator;
 use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\Exceptions\DomainException;
 use Throwable;
@@ -11,16 +12,30 @@ use Throwable;
 /**
  * 阿里云百炼网关 Provider（OpenAI 兼容）
  *
- * 继承 LaravelAiProviderAdapter 复用 chat/流式链路（原生 OpenAI 兼容
- * HTTP 调用，读取 config('ai.providers.bailian') 的 base_url/api_key，
- * 生产指向专属 MaaS 工作空间端点或 Token Plan 包量套餐端点）。
- *
- * 覆写 embeddings：laravel/ai SDK 的 Embeddings 仅按 provider 名读取
- * openai 段配置，无法触达 bailian 自定义端点，故直接调用
- * OpenAI 兼容 /embeddings 端点（如 qwen3.7-text-embedding，1024 维）。
+ * 继承 LaravelAiProviderAdapter，但全部能力强制走原生 OpenAI 兼容
+ * HTTP 链路（读取 config('ai.providers.bailian') 的 base_url/api_key，
+ * 生产指向专属 MaaS 工作空间端点或 Token Plan 包量套餐端点），
+ * 不经过 laravel/ai SDK——SDK 仅按 provider 名读取 openai 段配置，
+ * 无法触达 bailian 自定义端点。
  */
 class BailianProvider extends LaravelAiProviderAdapter
 {
+    /** chat 全量走原生 OpenAI 兼容端点（含工具调用路径） */
+    public function chatCompletion(string $model, array $messages, array $options = []): array
+    {
+        $timeout = $options['timeout'] ?? config('ai.timeout', 60);
+
+        return $this->rawChatCompletion($model, $messages, $options, $timeout);
+    }
+
+    /** 流式 chat 全量走原生 OpenAI 兼容 SSE 端点 */
+    public function streamChatCompletion(string $model, array $messages, array $options = []): Generator
+    {
+        $timeout = $options['timeout'] ?? config('ai.timeout', 60);
+
+        yield from $this->rawStreamChatCompletion($model, $messages, $options, $timeout);
+    }
+
     public function embeddings(string $model, string|array $input, array $options = []): array
     {
         // 注意：config 中 'key' 键恒存在（env 缺省为空串），会遮蔽 api_key，故用 ?: 兼判空

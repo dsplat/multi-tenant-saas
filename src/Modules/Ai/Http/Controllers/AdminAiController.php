@@ -5,7 +5,6 @@ namespace MultiTenantSaas\Modules\Ai\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\Modules\Ai\Models\AiModelAlias;
 use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
@@ -113,12 +112,16 @@ class AdminAiController extends Controller
             return response()->json(['success' => false, 'message' => trans('common.invalid_request')], 422);
         }
 
-        $exitCode = Artisan::call('ai:models:sync', $provider !== '' ? ['--provider' => $provider] : []);
+        // 直接调 service（ai:models:sync 命令仅 console 上下文注册，HTTP 内不可用）
+        $catalog = app(AiModelCatalogService::class);
+        $targets = $provider !== '' ? [$provider] : $catalog->syncableProviders();
 
-        return response()->json([
-            'success' => $exitCode === 0,
-            'data' => ['output' => trim(Artisan::output())],
-        ]);
+        $result = [];
+        foreach ($targets as $code) {
+            $result[$code] = count($catalog->sync($code));
+        }
+
+        return response()->json(['success' => true, 'data' => ['synced' => $result]]);
     }
 
     // ==================================================================

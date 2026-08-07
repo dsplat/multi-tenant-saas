@@ -3,14 +3,9 @@
     <div class="page-header"><h2>API Token 管理</h2></div>
 
     <el-card shadow="never">
-      <div class="tenant-select">
-        <span style="font-size: 14px; color: #666">选择租户：</span>
-        <el-select v-model="selectedTenantId" placeholder="请选择" style="width: 220px" @change="loadTokens">
-          <el-option v-for="t in tenants" :key="t.tenant_id" :label="t.name" :value="t.tenant_id" />
-        </el-select>
-      </div>
+      <el-empty v-if="!tenantStore.hasTenant" description="请先在页面右上角选择团队" />
 
-      <template v-if="selectedTenantId">
+      <template v-else>
         <div style="margin-bottom: 16px">
           <el-button type="primary" @click="showCreate = true">创建 Token</el-button>
         </div>
@@ -59,29 +54,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
+// 租户上下文统一走头部团队选择器（tenantStore），页面内不再自建选择器
+import { useTenantStore } from '@/admin/stores/tenant'
 
-const tenants = ref<any[]>([])
-const selectedTenantId = ref('')
+const tenantStore = useTenantStore()
 const tokens = ref<any[]>([])
 const showCreate = ref(false)
 const showTokenResult = ref(false)
 const createdToken = ref('')
 const createForm = reactive({ name: '' })
 
-const fetchTenants = async () => {
-  try {
-    const res = await axios.get('/api/v1/tenants')
-    tenants.value = res.data.data || []
-  } catch {}
-}
-
 const loadTokens = async () => {
-  if (!selectedTenantId.value) return
+  if (!tenantStore.hasTenant) return
   try {
-    const res = await axios.get(`/api/v1/tenants/${selectedTenantId.value}/api-tokens`)
+    const res = await axios.get(`/api/v1/tenants/${tenantStore.tenantId}/api-tokens`)
     tokens.value = res.data.data || []
   } catch {
     tokens.value = []
@@ -90,7 +79,7 @@ const loadTokens = async () => {
 
 const handleCreate = async () => {
   try {
-    const res = await axios.post(`/api/v1/tenants/${selectedTenantId.value}/api-tokens`, createForm)
+    const res = await axios.post(`/api/v1/tenants/${tenantStore.tenantId}/api-tokens`, createForm)
     showCreate.value = false
     createdToken.value = res.data.data?.token || ''
     showTokenResult.value = true
@@ -104,7 +93,7 @@ const handleCreate = async () => {
 const handleDelete = async (token: any) => {
   try {
     await ElMessageBox.confirm(`确定删除 Token「${token.name}」？`, '警告', { type: 'warning' })
-    await axios.delete(`/api/v1/tenants/${selectedTenantId.value}/api-tokens/${token.id}`)
+    await axios.delete(`/api/v1/tenants/${tenantStore.tenantId}/api-tokens/${token.id}`)
     loadTokens()
     ElMessage.success('删除成功')
   } catch (e: any) {
@@ -117,10 +106,10 @@ const handleCopy = () => {
   ElMessage.success('已复制到剪贴板')
 }
 
-onMounted(fetchTenants)
+onMounted(() => { if (tenantStore.hasTenant) loadTokens() })
+watch(() => tenantStore.tenantId, () => { if (tenantStore.hasTenant) loadTokens(); else tokens.value = [] })
 </script>
 
 <style scoped>
 .page-header { margin-bottom: 20px; }
-.tenant-select { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
 </style>

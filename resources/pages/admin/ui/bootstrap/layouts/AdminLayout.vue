@@ -18,7 +18,7 @@
             <router-link v-if="!item.perm || userStore.hasPermission(item.perm)"
                :to="`/${item.path}`"
                :class="['a-nav-item', { active: isActive(`/${item.path}`), disabled: section.needsTenant && !tenantStore.hasTenant }]">
-              <svg class="a-nav-icon" viewBox="0 0 20 20" fill="currentColor"><path :d="item.icon"/></svg>
+              <svg class="a-nav-icon" viewBox="0 0 20 20" fill="currentColor"><path :d="resolveIcon(item.icon)"/></svg>
               <span>{{ item.label }}</span>
             </router-link>
           </template>
@@ -78,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/admin/stores/user'
 import { useTenantStore } from '@/admin/stores/tenant'
@@ -129,16 +129,42 @@ const I = {
   cart: 'M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z',
 }
 
+// 模块菜单声明的 icon 为 element-plus 图标名字符串，此处映射到本布局 SVG 路径；
+// 未命中回退默认图标（杜绝缺图标报错）
+const ICON_ALIASES: Record<string, string> = {
+  HomeFilled: I.dashboard, OfficeBuilding: I.tenants, UserFilled: I.operators,
+  Lock: I.lock, Calendar: I.calendar, Tickets: I.calendar, CreditCard: I.card,
+  Coin: I.coin, Grid: I.grid, Connection: I.plug, Flag: I.flag, Brush: I.palette,
+  Key: I.key, Setting: I.gear, Timer: I.calendar, Monitor: I.grid, Tools: I.sliders,
+  MagicStick: I.spark, User: I.users, Link: I.domain, Document: I.doc,
+  ChatDotRound: I.sms, Ticket: I.key, DataAnalysis: I.chart, Promotion: I.webhook,
+  Goods: I.cart, Unlock: I.key, ShoppingCart: I.cart, Wallet: I.card, Money: I.coin,
+  Collection: I.docs, FolderOpened: I.doc, EditPen: I.doc, Menu: I.module,
+}
+
+// icon 值兼容两种形态：SVG 路径（静态项）/ 图标名（模块声明项）
+const resolveIcon = (icon?: string) =>
+  icon && icon.startsWith('M') ? icon : (ICON_ALIASES[icon || ''] || I.module)
+
+// 分组语义：总览（全局）/ 平台运营（跨租户）/ 平台配置（全局）/
+// 租户运维（needsTenant：依赖头部团队选择器的租户内嵌能力）
 const navSections = [
   {
-    label: '系统管理',
+    label: '总览',
     items: [
       { path: 'dashboard', label: '仪表盘', icon: I.dashboard },
+    ],
+  },
+  {
+    label: '平台运营',
+    items: [
       { path: 'tenants', label: '团队管理', icon: I.tenants, perm: 'tenant.view' },
       { path: 'operators', label: '运营人员', icon: I.operators, perm: 'member.view' },
       { path: 'roles', label: '角色权限', icon: I.shield, perm: 'rbac.manage' },
       { path: 'plans', label: '订阅计划', icon: I.calendar, perm: 'subscription.manage' },
       { path: 'subscriptions', label: '订阅总览', icon: I.calendar, perm: 'subscription.manage' },
+      { path: 'payments', label: '支付订单', icon: I.card, perm: 'payment.view' },
+      { path: 'credits', label: '积分总览', icon: I.coin, perm: 'credit.view' },
     ],
   },
   {
@@ -148,7 +174,7 @@ const navSections = [
       { path: 'plugins', label: '插件管理', icon: I.plug, perm: 'setting.view' },
       { path: 'feature-flags', label: '功能开关', icon: I.flag, perm: 'setting.view' },
       { path: 'branding', label: '品牌配置', icon: I.palette, perm: 'branding.view' },
-      { path: 'sso-providers', label: 'SSO 提供商', icon: I.grid, perm: 'setting.update' },
+      { path: 'sso-providers', label: 'SSO 提供商', icon: I.key, perm: 'setting.update' },
       { path: 'system-settings', label: '系统设置', icon: I.gear, perm: 'setting.view' },
       { path: 'retention-policies', label: '数据保留', icon: I.calendar, perm: 'compliance.view' },
       { path: 'sandbox', label: '沙箱环境', icon: I.code },
@@ -157,7 +183,7 @@ const navSections = [
     ],
   },
   {
-    label: '团队管理',
+    label: '租户运维',
     needsTenant: true,
     items: [
       { path: 'users', label: '用户管理', icon: I.users, perm: 'user.view' },
@@ -165,10 +191,8 @@ const navSections = [
       { path: 'oauth', label: '第三方登录', icon: I.lock, perm: 'setting.view' },
       { path: 'audit-logs', label: '审计日志', icon: I.doc, perm: 'tenant.view' },
       { path: 'sms', label: '短信配置', icon: I.sms, perm: 'setting.view' },
-      { path: 'payments', label: '支付订单', icon: I.card, perm: 'payment.view' },
       { path: 'api-tokens', label: 'API Token', icon: I.key, perm: 'setting.view' },
       { path: 'quotas', label: '配额管理', icon: I.chart, perm: 'setting.view' },
-      { path: 'credits', label: '积分总览', icon: I.coin, perm: 'credit.view' },
       { path: 'ssl', label: 'SSL 证书', icon: I.shield2, perm: 'ssl.manage' },
       { path: 'webhooks', label: 'Webhooks', icon: I.webhook, perm: 'webhook.view' },
       { path: 'ip-whitelist', label: 'IP 白名单', icon: I.lock, perm: 'security.view' },
@@ -178,11 +202,10 @@ const navSections = [
   },
 ]
 
-// 模块动态菜单：模块在 routes.ts 的 meta.menu 声明，此处按 section 聚合渲染
-const moduleSections = ref<Array<{ label: string; icon: string; items: Array<{ path: string; label: string; perm?: string }> }>>([])
+// 模块动态菜单：模块在 routes.ts 的 meta.menu 声明，此处按 section 聚合渲染；
+// 与静态分组同名的 section 并入该分组（避免重名分组并列），新 section 追加在后
+const allSections = ref<any[]>(navSections)
 const SECTION_ICONS: Record<string, string> = { '商业运营': I.cart }
-
-const allSections = computed(() => [...navSections, ...moduleSections.value])
 
 const onTenantChange = () => {
   const tenant = tenantStore.tenants.find(t => t.tenant_id === selectedTenantId.value)
@@ -195,11 +218,13 @@ onMounted(async () => {
   selectedTenantId.value = tenantStore.tenantId
 
   const bySection = await collectMenuItemsBySection()
-  moduleSections.value = Object.entries(bySection).map(([label, items]) => ({
-    label,
-    icon: SECTION_ICONS[label] || I.module,
-    items,
-  }))
+  const merged = navSections.map(s => ({ ...s, items: [...s.items] }))
+  for (const [label, items] of Object.entries(bySection)) {
+    const target = merged.find(s => s.label === label)
+    if (target) target.items.push(...items)
+    else merged.push({ label, icon: SECTION_ICONS[label] || I.module, items })
+  }
+  allSections.value = merged
 })
 
 watch(() => tenantStore.tenantId, (id) => { selectedTenantId.value = id })

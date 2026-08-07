@@ -10,13 +10,16 @@ export interface ModuleRoute {
 }
 
 // 菜单声明：模块在 routes.ts 的 meta.menu 或 knownPageMenus 中声明，
-// AdminLayout 动态聚合渲染（根治菜单硬编码漏配）
+// AdminLayout 动态聚合渲染（根治菜单硬编码漏配）。
+// icon 为图标名字符串（element-plus 版映射 @element-plus/icons-vue，
+// bootstrap 版映射 bootstrap-icons），未命中时布局层回退默认图标
 export interface ModuleMenuItem {
   section: string
   label: string
   path: string
   perm?: string
   module?: string
+  icon?: string
 }
 
 // 绝对路径 glob — 从项目根开始
@@ -213,6 +216,7 @@ export async function collectMenuItemsBySection(): Promise<Record<string, Module
       path: (menu.path as string) || r.path,
       perm: menu.perm as string | undefined,
       module: r.meta?.module as string | undefined,
+      icon: menu.icon as string | undefined,
     })
   }
   return sections

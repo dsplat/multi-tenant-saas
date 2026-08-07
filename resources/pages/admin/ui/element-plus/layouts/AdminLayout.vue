@@ -3,7 +3,7 @@
     <el-aside width="260px" class="sidebar">
       <div class="logo">
         <div class="logo-icon">
-          <el-icon :size="20"><Grid /></el-icon>
+          <el-icon :size="20"><component :is="EpIcons.Grid" /></el-icon>
         </div>
         <div class="logo-text">
           <span class="logo-title">SaaS Admin</span>
@@ -23,7 +23,7 @@
             <el-menu-item v-if="!item.perm || userStore.hasPermission(item.perm)"
               :index="`/${item.path}`"
               :disabled="section.needsTenant && !tenantStore.hasTenant">
-              <el-icon><component :is="item.icon" /></el-icon>
+              <el-icon><component :is="resolveIcon(item.icon)" /></el-icon>
               <span>{{ item.label }}</span>
             </el-menu-item>
           </template>
@@ -53,11 +53,11 @@
             size="default" style="width: 160px">
             <el-option v-for="t in tenantStore.tenants" :key="t.tenant_id" :label="t.name" :value="t.tenant_id" />
           </el-select>
-          <el-button :icon="Monitor" circle @click="showFrameworkSelector = true" title="UI 框架切换" />
+          <el-button :icon="EpIcons.Monitor" circle @click="showFrameworkSelector = true" title="UI 框架切换" />
           <ThemeSwitcher />
           <ColorPicker />
-          <el-button :icon="Setting" circle @click="showThemeSettings = true" title="主题设置" />
-          <el-button type="danger" :icon="SwitchButton" @click="handleLogout">退出</el-button>
+          <el-button :icon="EpIcons.Setting" circle @click="showThemeSettings = true" title="主题设置" />
+          <el-button type="danger" :icon="EpIcons.SwitchButton" @click="handleLogout">退出</el-button>
         </div>
       </el-header>
 
@@ -74,12 +74,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  Grid, HomeFilled, OfficeBuilding, User, UserFilled, Lock, Calendar,
-  Connection, Flag, Brush, Share, Setting, Timer, Monitor, Tools,
-  Link, Key, Document, ChatDotRound, CreditCard, DataAnalysis, Coin,
-  SwitchButton, MagicStick, Goods, List, Tickets,
-} from '@element-plus/icons-vue'
+// 全量导入图标库：菜单 icon 一律走字符串名 → 注册表解析，
+// 未命中回退默认图标，杜绝漏导入标识符致整站黑屏（历史缺陷）
+import * as EpIcons from '@element-plus/icons-vue'
 import { useUserStore } from '@/admin/stores/user'
 import { useTenantStore } from '@/admin/stores/tenant'
 import { collectMenuItemsBySection } from '@/admin/module-loader'
@@ -98,60 +95,69 @@ const selectedTenantId = ref('')
 
 const activePath = computed(() => route.path)
 
+const resolveIcon = (name?: string) =>
+  ((EpIcons as Record<string, any>)[name || ''] as any) || EpIcons.Menu
+
+// 分组语义：总览（全局）/ 平台运营（跨租户）/ 平台配置（全局）/
+// 租户运维（needsTenant：依赖头部团队选择器的租户内嵌能力）
 const navSections = [
   {
-    label: '系统管理',
+    label: '总览',
     items: [
-      { path: 'dashboard', label: '仪表盘', icon: HomeFilled },
-      { path: 'tenants', label: '团队管理', icon: OfficeBuilding, perm: 'tenant.view' },
-      { path: 'operators', label: '运营人员', icon: UserFilled, perm: 'member.view' },
-      { path: 'roles', label: '角色权限', icon: Lock, perm: 'rbac.manage' },
-      { path: 'plans', label: '订阅计划', icon: Calendar, perm: 'subscription.manage' },
-      { path: 'subscriptions', label: '订阅总览', icon: Tickets, perm: 'subscription.manage' },
+      { path: 'dashboard', label: '仪表盘', icon: 'HomeFilled' },
+    ],
+  },
+  {
+    label: '平台运营',
+    items: [
+      { path: 'tenants', label: '团队管理', icon: 'OfficeBuilding', perm: 'tenant.view' },
+      { path: 'operators', label: '运营人员', icon: 'UserFilled', perm: 'member.view' },
+      { path: 'roles', label: '角色权限', icon: 'Lock', perm: 'rbac.manage' },
+      { path: 'plans', label: '订阅计划', icon: 'Calendar', perm: 'subscription.manage' },
+      { path: 'subscriptions', label: '订阅总览', icon: 'Tickets', perm: 'subscription.manage' },
+      { path: 'payments', label: '支付订单', icon: 'CreditCard', perm: 'payment.view' },
+      { path: 'credits', label: '积分总览', icon: 'Coin', perm: 'credit.view' },
     ],
   },
   {
     label: '平台配置',
     items: [
-      { path: 'modules', label: '模块管理', icon: Grid, perm: 'setting.view' },
-      { path: 'plugins', label: '插件管理', icon: Connection, perm: 'setting.view' },
-      { path: 'feature-flags', label: '功能开关', icon: Flag, perm: 'setting.view' },
-      { path: 'branding', label: '品牌配置', icon: Brush, perm: 'branding.view' },
-      { path: 'sso-providers', label: 'SSO 提供商', icon: Share, perm: 'setting.update' },
-      { path: 'system-settings', label: '系统设置', icon: Setting, perm: 'setting.view' },
-      { path: 'retention-policies', label: '数据保留', icon: Timer, perm: 'compliance.view' },
-      { path: 'sandbox', label: '沙箱环境', icon: Monitor },
-      { path: 'settings', label: '配置中心', icon: Tools, perm: 'setting.view' },
-      { path: 'ai-settings', label: 'AI 配置', icon: MagicStick, perm: 'setting.view' },
+      { path: 'modules', label: '模块管理', icon: 'Grid', perm: 'setting.view' },
+      { path: 'plugins', label: '插件管理', icon: 'Connection', perm: 'setting.view' },
+      { path: 'feature-flags', label: '功能开关', icon: 'Flag', perm: 'setting.view' },
+      { path: 'branding', label: '品牌配置', icon: 'Brush', perm: 'branding.view' },
+      { path: 'sso-providers', label: 'SSO 提供商', icon: 'Key', perm: 'setting.update' },
+      { path: 'system-settings', label: '系统设置', icon: 'Setting', perm: 'setting.view' },
+      { path: 'retention-policies', label: '数据保留', icon: 'Timer', perm: 'compliance.view' },
+      { path: 'sandbox', label: '沙箱环境', icon: 'Monitor' },
+      { path: 'settings', label: '配置中心', icon: 'Tools', perm: 'setting.view' },
+      { path: 'ai-settings', label: 'AI 配置', icon: 'MagicStick', perm: 'setting.view' },
     ],
   },
   {
-    label: '团队管理',
+    label: '租户运维',
     needsTenant: true,
     items: [
-      { path: 'users', label: '用户管理', icon: User, perm: 'user.view' },
-      { path: 'domains', label: '域名管理', icon: Link, perm: 'tenant.view' },
-      { path: 'oauth', label: '第三方登录', icon: Key, perm: 'setting.view' },
-      { path: 'audit-logs', label: '审计日志', icon: Document, perm: 'tenant.view' },
-      { path: 'sms', label: '短信配置', icon: ChatDotRound, perm: 'setting.view' },
-      { path: 'payments', label: '支付订单', icon: CreditCard, perm: 'payment.view' },
-      { path: 'api-tokens', label: 'API Token', icon: Key, perm: 'setting.view' },
-      { path: 'quotas', label: '配额管理', icon: DataAnalysis, perm: 'setting.view' },
-      { path: 'credits', label: '积分总览', icon: Coin, perm: 'credit.view' },
-      { path: 'ssl', label: 'SSL 证书', icon: Lock, perm: 'ssl.manage' },
-      { path: 'webhooks', label: 'Webhooks', icon: Link, perm: 'webhook.view' },
-      { path: 'ip-whitelist', label: 'IP 白名单', icon: Lock, perm: 'security.view' },
-      { path: 'tenant-keys', label: '团队密钥', icon: Key, perm: 'security.view' },
-      { path: 'consents', label: '合规同意', icon: Document, perm: 'compliance.view' },
+      { path: 'users', label: '用户管理', icon: 'User', perm: 'user.view' },
+      { path: 'domains', label: '域名管理', icon: 'Link', perm: 'tenant.view' },
+      { path: 'oauth', label: '第三方登录', icon: 'Key', perm: 'setting.view' },
+      { path: 'audit-logs', label: '审计日志', icon: 'Document', perm: 'tenant.view' },
+      { path: 'sms', label: '短信配置', icon: 'ChatDotRound', perm: 'setting.view' },
+      { path: 'api-tokens', label: 'API Token', icon: 'Ticket', perm: 'setting.view' },
+      { path: 'quotas', label: '配额管理', icon: 'DataAnalysis', perm: 'setting.view' },
+      { path: 'ssl', label: 'SSL 证书', icon: 'Lock', perm: 'ssl.manage' },
+      { path: 'webhooks', label: 'Webhooks', icon: 'Promotion', perm: 'webhook.view' },
+      { path: 'ip-whitelist', label: 'IP 白名单', icon: 'Lock', perm: 'security.view' },
+      { path: 'tenant-keys', label: '团队密钥', icon: 'Key', perm: 'security.view' },
+      { path: 'consents', label: '合规同意', icon: 'Document', perm: 'compliance.view' },
     ],
   },
 ]
 
-// 模块动态菜单：模块在 routes.ts 的 meta.menu 声明，此处按 section 聚合渲染
-const moduleSections = ref<Array<{ label: string; icon: any; items: Array<{ path: string; label: string; perm?: string }> }>>([])
-const SECTION_ICONS: Record<string, any> = { '商业运营': Goods }
-
-const allSections = computed(() => [...navSections, ...moduleSections.value])
+// 模块动态菜单：模块在 routes.ts 的 meta.menu 声明，此处按 section 聚合渲染；
+// 与静态分组同名的 section 并入该分组（避免重名分组并列），新 section 追加在后
+const allSections = ref<any[]>(navSections)
+const SECTION_ICONS: Record<string, string> = { '商业运营': 'Goods' }
 
 const onTenantChange = () => {
   const tenant = tenantStore.tenants.find(t => t.tenant_id === selectedTenantId.value)
@@ -164,11 +170,13 @@ onMounted(async () => {
   selectedTenantId.value = tenantStore.tenantId
 
   const bySection = await collectMenuItemsBySection()
-  moduleSections.value = Object.entries(bySection).map(([label, items]) => ({
-    label,
-    icon: SECTION_ICONS[label] || List,
-    items,
-  }))
+  const merged = navSections.map(s => ({ ...s, items: [...s.items] }))
+  for (const [label, items] of Object.entries(bySection)) {
+    const target = merged.find(s => s.label === label)
+    if (target) target.items.push(...items)
+    else merged.push({ label, icon: SECTION_ICONS[label] || 'Menu', items })
+  }
+  allSections.value = merged
 })
 
 watch(() => tenantStore.tenantId, (id) => { selectedTenantId.value = id })

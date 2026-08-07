@@ -3,14 +3,9 @@
     <div class="page-header"><h2>配额管理</h2></div>
 
     <el-card shadow="never">
-      <div class="tenant-select">
-        <span>选择租户：</span>
-        <el-select v-model="selectedTenantId" placeholder="请选择" style="width: 240px" @change="loadQuotas">
-          <el-option v-for="t in tenants" :key="t.tenant_id" :label="t.name" :value="t.tenant_id" />
-        </el-select>
-      </div>
+      <el-empty v-if="!tenantStore.hasTenant" description="请先在页面右上角选择团队" />
 
-      <el-table v-if="selectedTenantId" :data="quotas" stripe style="width: 100%" empty-text="暂无配额数据">
+      <el-table v-else :data="quotas" stripe style="width: 100%" empty-text="暂无配额数据">
         <el-table-column prop="resource_type" label="资源类型" />
         <el-table-column label="限制" width="100">
           <template #default="{ row }">{{ row.limit === -1 ? '无限制' : row.limit }}</template>
@@ -31,11 +26,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
+// 租户上下文统一走头部团队选择器（tenantStore），页面内不再自建选择器
+import { useTenantStore } from '@/admin/stores/tenant'
 
-const tenants = ref<any[]>([])
-const selectedTenantId = ref('')
+const tenantStore = useTenantStore()
 const quotas = ref<any[]>([])
 
 const progressPercent = (q: any) => {
@@ -50,18 +46,16 @@ const progressStatus = (q: any) => {
   return 'success'
 }
 
-const fetchTenants = async () => { try { const res = await axios.get('/api/v1/tenants'); tenants.value = res.data.data || [] } catch {} }
-
 const loadQuotas = async () => {
-  if (!selectedTenantId.value) return
-  try { const res = await axios.get(`/api/v1/tenants/${selectedTenantId.value}/quotas`); quotas.value = res.data.data || [] }
+  if (!tenantStore.hasTenant) return
+  try { const res = await axios.get(`/api/v1/tenants/${tenantStore.tenantId}/quotas`); quotas.value = res.data.data || [] }
   catch { quotas.value = [] }
 }
 
-onMounted(fetchTenants)
+onMounted(() => { if (tenantStore.hasTenant) loadQuotas() })
+watch(() => tenantStore.tenantId, () => { if (tenantStore.hasTenant) loadQuotas(); else quotas.value = [] })
 </script>
 
 <style scoped>
 .page-header { margin-bottom: 20px; }
-.tenant-select { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
 </style>

@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend([
             \App\Http\Middleware\AddSecurityHeaders::class,
             \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyDomain::class,
+            \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\EnforceDomainSegregation::class,
             \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\BindSessionDomain::class,
         ]);
 

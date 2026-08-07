@@ -2,12 +2,12 @@
   <div class="page">
     <div class="page-header"><h2>SSL 证书管理</h2></div>
     <div class="panel">
-      <div class="filter-bar">
-        <label>租户 ID：</label>
-        <input v-model="tenantId" placeholder="输入租户ID" @keyup.enter="fetchCert" />
-        <button @click="fetchCert">查询</button>
+      <div v-if="!tenantStore.hasTenant" class="empty-state">
+        <h3>请先选择团队</h3>
+        <p>在顶部导航栏选择一个团队后，即可管理该团队的 SSL 证书。</p>
       </div>
 
+      <template v-else>
       <div v-if="certInfo" class="cert-info">
         <div class="info-row"><span class="label">证书状态：</span><span :class="['badge', certInfo.has_certificate ? (certInfo.is_expired ? 'badge-danger' : 'badge-success') : 'badge-info']">{{ certInfo.has_certificate ? (certInfo.is_expired ? '已过期' : '有效') : '未上传' }}</span></div>
         <div class="info-row"><span class="label">上传时间：</span>{{ certInfo.uploaded_at || '-' }}</div>
@@ -15,10 +15,11 @@
         <div v-if="certInfo.expires_soon" class="info-row warning">⚠ 证书即将过期（30天内）</div>
       </div>
 
-      <div v-if="tenantId" class="actions-bar">
+      <div class="actions-bar">
         <button class="primary-btn" @click="showUpload = true">上传证书</button>
         <button v-if="certInfo?.has_certificate" class="danger-btn" @click="handleDelete">删除证书</button>
       </div>
+      </template>
     </div>
 
     <div class="modal-backdrop" v-if="showUpload" @click="showUpload = false">
@@ -35,41 +36,45 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
+// 租户上下文统一走头部团队选择器（tenantStore），页面内不再手输租户 ID
+import { useTenantStore } from '@stores/tenant'
 
 const API = '/api/v1/admin/ssl'
-const tenantId = ref('')
+const tenantStore = useTenantStore()
 const certInfo = ref<any>(null)
 const showUpload = ref(false)
 const uploadForm = ref({ certificate: '', private_key: '' })
 
 const fetchCert = async () => {
-  if (!tenantId.value) return
-  try { const r = await axios.get(API, { params: { tenant_id: tenantId.value } }); certInfo.value = r.data.data || r.data } catch { certInfo.value = null }
+  if (!tenantStore.hasTenant) return
+  try { const r = await axios.get(API, { params: { tenant_id: tenantStore.tenantId } }); certInfo.value = r.data.data || r.data } catch { certInfo.value = null }
 }
 
 const handleUpload = async () => {
   try {
-    await axios.post(`${API}/${tenantId.value}`, uploadForm.value)
+    await axios.post(`${API}/${tenantStore.tenantId}`, uploadForm.value)
     showUpload.value = false; uploadForm.value = { certificate: '', private_key: '' }; await fetchCert()
   } catch {}
 }
 
 const handleDelete = async () => {
-  if (!confirm('确定删除该租户的 SSL 证书？')) return
-  try { await axios.delete(`${API}/${tenantId.value}`); await fetchCert() } catch {}
+  if (!confirm('确定删除该团队的 SSL 证书？')) return
+  try { await axios.delete(`${API}/${tenantStore.tenantId}`); await fetchCert() } catch {}
 }
+
+onMounted(() => { if (tenantStore.hasTenant) fetchCert() })
+watch(() => tenantStore.tenantId, () => { if (tenantStore.hasTenant) fetchCert(); else certInfo.value = null })
 </script>
 
 <style scoped>
 .page-header { margin-bottom: 20px; }
 .page-header h2 { margin: 0; }
 .panel { background: var(--bg-color, #fff); border-radius: 8px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-.filter-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
-.filter-bar label { font-size: 14px; color: var(--text-color-secondary, #666); }
-.filter-bar input { padding: 8px 12px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; min-width: 200px; }
-.filter-bar button { padding: 8px 16px; background: var(--primary-color, #409eff); color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+.empty-state { text-align: center; padding: 48px 24px; color: var(--text-color-secondary, #666); }
+.empty-state h3 { margin: 0 0 8px; color: var(--text-color-primary, #333); }
+.empty-state p { margin: 0; font-size: 13px; }
 .cert-info { margin-bottom: 20px; }
 .info-row { padding: 8px 0; font-size: 14px; border-bottom: 1px solid var(--border-color, #eee); }
 .info-row .label { color: var(--text-color-secondary, #666); margin-right: 8px; }

@@ -3,14 +3,9 @@
     <div class="page-header"><h2>短信配置</h2></div>
 
     <el-card shadow="never">
-      <div class="tenant-select">
-        <span style="font-size: 14px; color: #666">选择租户：</span>
-        <el-select v-model="selectedTenantId" placeholder="请选择" style="width: 220px" @change="loadConfig">
-          <el-option v-for="t in tenants" :key="t.tenant_id" :label="t.name" :value="t.tenant_id" />
-        </el-select>
-      </div>
+      <el-empty v-if="!tenantStore.hasTenant" description="请先在页面右上角选择团队" />
 
-      <template v-if="selectedTenantId">
+      <template v-else>
         <el-card shadow="never" style="margin-bottom: 16px">
           <template #header><span style="font-size: 14px; font-weight: 500">短信驱动</span></template>
           <el-form :model="config" label-width="120px">
@@ -64,12 +59,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+// 租户上下文统一走头部团队选择器（tenantStore），页面内不再自建选择器
+import { useTenantStore } from '@/admin/stores/tenant'
 
-const tenants = ref<any[]>([])
-const selectedTenantId = ref('')
+const tenantStore = useTenantStore()
 const testPhone = ref('')
 const testResult = ref<{ ok: boolean; msg: string } | null>(null)
 
@@ -78,18 +74,11 @@ const config = reactive({
   sms: { api_url: '', access_key: '', secret_key: '', sign_name: '' },
 })
 
-const fetchTenants = async () => {
-  try {
-    const res = await axios.get('/api/v1/tenants')
-    tenants.value = res.data.data || []
-  } catch {}
-}
-
 const loadConfig = async () => {
-  if (!selectedTenantId.value) return
+  if (!tenantStore.hasTenant) return
   testResult.value = null
   try {
-    const res = await axios.get(`/api/v1/tenants/${selectedTenantId.value}/settings/sms`)
+    const res = await axios.get(`/api/v1/tenants/${tenantStore.tenantId}/settings/sms`)
     const data = res.data.data || {}
     if (data.driver) config.driver = data.driver
     if (data.sms) Object.assign(config.sms, data.sms)
@@ -98,7 +87,7 @@ const loadConfig = async () => {
 
 const handleSave = async () => {
   try {
-    await axios.put(`/api/v1/tenants/${selectedTenantId.value}/settings/sms`, config)
+    await axios.put(`/api/v1/tenants/${tenantStore.tenantId}/settings/sms`, config)
     ElMessage.success('保存成功')
   } catch {
     ElMessage.error('保存失败')
@@ -108,17 +97,17 @@ const handleSave = async () => {
 const handleTest = async () => {
   testResult.value = null
   try {
-    const res = await axios.post(`/api/v1/tenants/${selectedTenantId.value}/settings/sms/test`, { phone: testPhone.value })
+    const res = await axios.post(`/api/v1/tenants/${tenantStore.tenantId}/settings/sms/test`, { phone: testPhone.value })
     testResult.value = { ok: true, msg: res.data.message || '发送成功' }
   } catch (e: any) {
     testResult.value = { ok: false, msg: e.response?.data?.message || '发送失败' }
   }
 }
 
-onMounted(fetchTenants)
+onMounted(() => { if (tenantStore.hasTenant) loadConfig() })
+watch(() => tenantStore.tenantId, () => { if (tenantStore.hasTenant) loadConfig() })
 </script>
 
 <style scoped>
 .page-header { margin-bottom: 20px; }
-.tenant-select { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
 </style>

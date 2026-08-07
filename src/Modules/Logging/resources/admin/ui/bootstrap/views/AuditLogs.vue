@@ -3,15 +3,12 @@
     <div class="page-header"><h2>审计日志</h2></div>
 
     <div class="panel">
-      <div class="tenant-select">
-        <label>选择租户：</label>
-        <select v-model="selectedTenantId" @change="loadLogs">
-          <option value="">请选择</option>
-          <option v-for="t in tenants" :key="t.tenant_id" :value="t.tenant_id">{{ t.name }}</option>
-        </select>
+      <div v-if="!tenantStore.hasTenant" class="empty-state">
+        <h3>请先选择团队</h3>
+        <p>在顶部导航栏选择一个团队后，即可查看该团队的审计日志。</p>
       </div>
 
-      <div v-if="selectedTenantId">
+      <div v-else>
         <div class="filters">
           <div class="filter-group">
             <label>操作类型</label>
@@ -58,11 +55,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import axios from 'axios'
+// 租户上下文统一走头部团队选择器（tenantStore），页面内不再自建选择器
+import { useTenantStore } from '@stores/tenant'
 
-const tenants = ref<any[]>([])
-const selectedTenantId = ref('')
+const tenantStore = useTenantStore()
 const logs = ref<any[]>([])
 const currentPage = ref(1)
 const totalPages = ref(1)
@@ -72,18 +70,11 @@ const actionOptions = ref<string[]>([])
 const resourceTypeOptions = ref<string[]>([])
 const filters = reactive({ action: '', resource_type: '' })
 
-const fetchTenants = async () => {
-  try {
-    const res = await axios.get('/api/v1/tenants')
-    tenants.value = res.data.data || []
-  } catch {}
-}
-
 const loadLogs = async () => {
-  if (!selectedTenantId.value) return
+  if (!tenantStore.hasTenant) return
   currentPage.value = 1
   try {
-    const res = await axios.get(`/api/v1/tenants/${selectedTenantId.value}/audit-logs`, {
+    const res = await axios.get(`/api/v1/tenants/${tenantStore.tenantId}/audit-logs`, {
       params: { page: 1, per_page: perPage, action: filters.action || undefined, resource_type: filters.resource_type || undefined },
     })
     logs.value = res.data.data || []
@@ -96,9 +87,9 @@ const loadLogs = async () => {
 }
 
 const goPage = async (page: number) => {
-  if (!selectedTenantId.value) return
+  if (!tenantStore.hasTenant) return
   try {
-    const res = await axios.get(`/api/v1/tenants/${selectedTenantId.value}/audit-logs`, {
+    const res = await axios.get(`/api/v1/tenants/${tenantStore.tenantId}/audit-logs`, {
       params: { page, per_page: perPage, action: filters.action || undefined, resource_type: filters.resource_type || undefined },
     })
     logs.value = res.data.data || []
@@ -107,16 +98,17 @@ const goPage = async (page: number) => {
   } catch {}
 }
 
-onMounted(fetchTenants)
+onMounted(() => { if (tenantStore.hasTenant) loadLogs() })
+watch(() => tenantStore.tenantId, () => { if (tenantStore.hasTenant) loadLogs(); else logs.value = [] })
 </script>
 
 <style scoped>
 .page-header { margin-bottom: 20px; }
 .page-header h2 { margin: 0; }
 .panel { background: var(--bg-color, #fff); border-radius: 8px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-.tenant-select { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-.tenant-select label { font-size: 14px; color: var(--text-color-secondary, #666); }
-.tenant-select select { padding: 8px 12px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; min-width: 200px; }
+.empty-state { text-align: center; padding: 48px 24px; color: var(--text-color-secondary, #666); }
+.empty-state h3 { margin: 0 0 8px; color: var(--text-color-primary, #333); }
+.empty-state p { margin: 0; font-size: 13px; }
 .filters { display: flex; gap: 16px; margin-bottom: 16px; }
 .filter-group { display: flex; align-items: center; gap: 8px; }
 .filter-group label { font-size: 13px; color: var(--text-color-secondary, #666); }

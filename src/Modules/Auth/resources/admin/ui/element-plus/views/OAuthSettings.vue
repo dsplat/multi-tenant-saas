@@ -3,14 +3,9 @@
     <div class="page-header"><h2>第三方登录配置</h2></div>
 
     <el-card shadow="never">
-      <div class="tenant-select">
-        <span>选择租户：</span>
-        <el-select v-model="selectedTenantId" placeholder="请选择" style="width: 240px" @change="loadConfig">
-          <el-option v-for="t in tenants" :key="t.tenant_id" :label="t.name" :value="t.tenant_id" />
-        </el-select>
-      </div>
+      <el-empty v-if="!tenantStore.hasTenant" description="请先在页面右上角选择团队" />
 
-      <div v-if="selectedTenantId" class="config-section">
+      <div v-else class="config-section">
         <el-card v-for="item in configItems" :key="item.key" shadow="hover" class="config-card">
           <template #header>
             <div class="config-header">
@@ -32,12 +27,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { reactive, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+// 租户上下文统一走头部团队选择器（tenantStore），页面内不再自建选择器
+import { useTenantStore } from '@/admin/stores/tenant'
 
-const tenants = ref<any[]>([])
-const selectedTenantId = ref('')
+const tenantStore = useTenantStore()
 const config = reactive({
   wechat: { enabled: false, corp_id: '', agent_id: '', secret: '' },
   dingtalk: { enabled: false, app_key: '', app_secret: '' },
@@ -60,12 +56,10 @@ const configItems = [
   ]},
 ]
 
-const fetchTenants = async () => { try { const res = await axios.get('/api/v1/tenants'); tenants.value = res.data.data || [] } catch {} }
-
 const loadConfig = async () => {
-  if (!selectedTenantId.value) return
+  if (!tenantStore.hasTenant) return
   try {
-    const res = await axios.get(`/api/v1/tenants/${selectedTenantId.value}/settings/oauth`)
+    const res = await axios.get(`/api/v1/tenants/${tenantStore.tenantId}/settings/oauth`)
     const data = res.data.data || {}
     if (data.wechat) Object.assign(config.wechat, data.wechat)
     if (data.dingtalk) Object.assign(config.dingtalk, data.dingtalk)
@@ -74,16 +68,16 @@ const loadConfig = async () => {
 }
 
 const handleSave = async () => {
-  try { await axios.put(`/api/v1/tenants/${selectedTenantId.value}/settings/oauth`, config); ElMessage.success('保存成功') }
+  try { await axios.put(`/api/v1/tenants/${tenantStore.tenantId}/settings/oauth`, config); ElMessage.success('保存成功') }
   catch { ElMessage.error('保存失败') }
 }
 
-onMounted(fetchTenants)
+onMounted(() => { if (tenantStore.hasTenant) loadConfig() })
+watch(() => tenantStore.tenantId, () => { if (tenantStore.hasTenant) loadConfig() })
 </script>
 
 <style scoped>
 .page-header { margin-bottom: 20px; }
-.tenant-select { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
 .config-section { display: flex; flex-direction: column; gap: 16px; }
 .config-header { display: flex; justify-content: space-between; align-items: center; }
 </style>

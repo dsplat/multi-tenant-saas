@@ -3,12 +3,9 @@
     <div class="page-header"><h2>SSL 证书管理</h2></div>
 
     <el-card shadow="never">
-      <div class="filter-bar">
-        <span style="font-size: 14px; color: #666">租户 ID：</span>
-        <el-input v-model="tenantId" placeholder="输入租户ID" style="width: 220px" @keyup.enter="fetchCert" />
-        <el-button type="primary" @click="fetchCert">查询</el-button>
-      </div>
+      <el-empty v-if="!tenantStore.hasTenant" description="请先在页面右上角选择团队" />
 
+      <template v-else>
       <el-descriptions v-if="certInfo" :column="1" border style="margin-bottom: 20px">
         <el-descriptions-item label="证书状态">
           <el-tag v-if="!certInfo.has_certificate" type="info" size="small">未上传</el-tag>
@@ -22,10 +19,11 @@
         </el-descriptions-item>
       </el-descriptions>
 
-      <div v-if="tenantId" class="actions-bar">
+      <div class="actions-bar">
         <el-button type="primary" @click="showUpload = true">上传证书</el-button>
         <el-button v-if="certInfo?.has_certificate" type="danger" @click="handleDelete">删除证书</el-button>
       </div>
+      </template>
     </el-card>
 
     <el-dialog v-model="showUpload" title="上传 SSL 证书" width="560px">
@@ -46,20 +44,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
+// 租户上下文统一走头部团队选择器（tenantStore），页面内不再手输租户 ID
+import { useTenantStore } from '@/admin/stores/tenant'
 
 const API = '/api/v1/admin/ssl'
-const tenantId = ref('')
+const tenantStore = useTenantStore()
 const certInfo = ref<any>(null)
 const showUpload = ref(false)
 const uploadForm = ref({ certificate: '', private_key: '' })
 
 const fetchCert = async () => {
-  if (!tenantId.value) return
+  if (!tenantStore.hasTenant) return
   try {
-    const r = await axios.get(API, { params: { tenant_id: tenantId.value } })
+    const r = await axios.get(API, { params: { tenant_id: tenantStore.tenantId } })
     certInfo.value = r.data.data || r.data
   } catch {
     certInfo.value = null
@@ -68,7 +68,7 @@ const fetchCert = async () => {
 
 const handleUpload = async () => {
   try {
-    await axios.post(`${API}/${tenantId.value}`, uploadForm.value)
+    await axios.post(`${API}/${tenantStore.tenantId}`, uploadForm.value)
     showUpload.value = false
     uploadForm.value = { certificate: '', private_key: '' }
     await fetchCert()
@@ -80,18 +80,20 @@ const handleUpload = async () => {
 
 const handleDelete = async () => {
   try {
-    await ElMessageBox.confirm('确定删除该租户的 SSL 证书？', '警告', { type: 'warning' })
-    await axios.delete(`${API}/${tenantId.value}`)
+    await ElMessageBox.confirm('确定删除该团队的 SSL 证书？', '警告', { type: 'warning' })
+    await axios.delete(`${API}/${tenantStore.tenantId}`)
     await fetchCert()
     ElMessage.success('已删除')
   } catch (e: any) {
     if (e !== 'cancel' && e?.response) ElMessage.error(e.response?.data?.message || '删除失败')
   }
 }
+
+onMounted(() => { if (tenantStore.hasTenant) fetchCert() })
+watch(() => tenantStore.tenantId, () => { if (tenantStore.hasTenant) fetchCert(); else certInfo.value = null })
 </script>
 
 <style scoped>
 .page-header { margin-bottom: 20px; }
-.filter-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
 .actions-bar { display: flex; gap: 8px; }
 </style>

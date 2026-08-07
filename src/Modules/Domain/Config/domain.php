@@ -7,9 +7,13 @@ return [
     |--------------------------------------------------------------------------
     */
     'platform_domains' => [
+        // 平台首页域名（www）
+        'main' => env('PLATFORM_MAIN_DOMAIN'),
         'admin' => env('PLATFORM_ADMIN_DOMAIN', 'admin.example.com'),
         'app' => env('PLATFORM_APP_DOMAIN', 'app.example.com'),
         'console' => env('PLATFORM_CONSOLE_DOMAIN', 'console.example.com'),
+        // 独立 API 域名（可选；未配置时 API 随各 SPA 域名提供）
+        'api' => env('PLATFORM_API_DOMAIN'),
     ],
 
     /*

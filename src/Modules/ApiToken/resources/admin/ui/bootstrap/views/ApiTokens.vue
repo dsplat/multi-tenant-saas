@@ -3,15 +3,12 @@
     <div class="page-header"><h2>API Token 管理</h2></div>
 
     <div class="panel">
-      <div class="tenant-select">
-        <label>选择租户：</label>
-        <select v-model="selectedTenantId" @change="loadTokens">
-          <option value="">请选择</option>
-          <option v-for="t in tenants" :key="t.tenant_id" :value="t.tenant_id">{{ t.name }}</option>
-        </select>
+      <div v-if="!tenantStore.hasTenant" class="empty-state">
+        <h3>请先选择团队</h3>
+        <p>在顶部导航栏选择一个团队后，即可管理该团队的 API Token。</p>
       </div>
 
-      <div v-if="selectedTenantId">
+      <div v-else>
         <div class="toolbar">
           <button class="primary-btn" @click="showCreate = true">创建 Token</button>
         </div>
@@ -73,28 +70,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import axios from 'axios'
+// 租户上下文统一走头部团队选择器（tenantStore），页面内不再自建选择器
+import { useTenantStore } from '@stores/tenant'
 
-const tenants = ref<any[]>([])
-const selectedTenantId = ref('')
+const tenantStore = useTenantStore()
 const tokens = ref<any[]>([])
 const showCreate = ref(false)
 const showTokenResult = ref(false)
 const createdToken = ref('')
 const createForm = reactive({ name: '' })
 
-const fetchTenants = async () => {
-  try {
-    const res = await axios.get('/api/v1/tenants')
-    tenants.value = res.data.data || []
-  } catch {}
-}
-
 const loadTokens = async () => {
-  if (!selectedTenantId.value) return
+  if (!tenantStore.hasTenant) return
   try {
-    const res = await axios.get(`/api/v1/tenants/${selectedTenantId.value}/api-tokens`)
+    const res = await axios.get(`/api/v1/tenants/${tenantStore.tenantId}/api-tokens`)
     tokens.value = res.data.data || []
   } catch {
     tokens.value = []
@@ -103,7 +94,7 @@ const loadTokens = async () => {
 
 const handleCreate = async () => {
   try {
-    const res = await axios.post(`/api/v1/tenants/${selectedTenantId.value}/api-tokens`, createForm)
+    const res = await axios.post(`/api/v1/tenants/${tenantStore.tenantId}/api-tokens`, createForm)
     showCreate.value = false
     createdToken.value = res.data.data?.token || ''
     showTokenResult.value = true
@@ -117,7 +108,7 @@ const handleCreate = async () => {
 const handleDelete = async (token: any) => {
   if (!confirm(`确定删除 Token「${token.name}」？`)) return
   try {
-    await axios.delete(`/api/v1/tenants/${selectedTenantId.value}/api-tokens/${token.id}`)
+    await axios.delete(`/api/v1/tenants/${tenantStore.tenantId}/api-tokens/${token.id}`)
     loadTokens()
   } catch (e: any) {
     alert(e.response?.data?.message || '删除失败')
@@ -129,16 +120,17 @@ const handleCopy = () => {
   alert('已复制到剪贴板')
 }
 
-onMounted(fetchTenants)
+onMounted(() => { if (tenantStore.hasTenant) loadTokens() })
+watch(() => tenantStore.tenantId, () => { if (tenantStore.hasTenant) loadTokens(); else tokens.value = [] })
 </script>
 
 <style scoped>
 .page-header { margin-bottom: 20px; }
 .page-header h2 { margin: 0; }
 .panel { background: var(--bg-color, #fff); border-radius: 8px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-.tenant-select { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-.tenant-select label { font-size: 14px; color: var(--text-color-secondary, #666); }
-.tenant-select select { padding: 8px 12px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; min-width: 200px; }
+.empty-state { text-align: center; padding: 48px 24px; color: var(--text-color-secondary, #666); }
+.empty-state h3 { margin: 0 0 8px; color: var(--text-color-primary, #333); }
+.empty-state p { margin: 0; font-size: 13px; }
 .toolbar { margin-bottom: 16px; }
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th, .data-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border-color, #eee); font-size: 13px; }

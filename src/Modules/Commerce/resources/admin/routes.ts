@@ -9,7 +9,7 @@ const routes = [
     component: () => import('./ui/element-plus/views/SkuPool.vue'),
     meta: {
       title: 'SKU 商品池', requiresAuth: true, module: 'commerce',
-      menu: { section: MENU_SECTION, label: 'SKU 商品池', perm: 'setting.view' },
+      menu: { section: MENU_SECTION, label: 'SKU 商品池', icon: 'Goods', perm: 'setting.view' },
     },
   },
   {
@@ -18,7 +18,7 @@ const routes = [
     component: () => import('./ui/element-plus/views/SupplyGrants.vue'),
     meta: {
       title: '供给授权', requiresAuth: true, module: 'commerce',
-      menu: { section: MENU_SECTION, label: '供给授权', perm: 'setting.view' },
+      menu: { section: MENU_SECTION, label: '供给授权', icon: 'Unlock', perm: 'setting.view' },
     },
   },
   {
@@ -27,7 +27,7 @@ const routes = [
     component: () => import('./ui/element-plus/views/CommerceOrders.vue'),
     meta: {
       title: '商业体订单', requiresAuth: true, module: 'commerce',
-      menu: { section: MENU_SECTION, label: '商业订单', perm: 'setting.view' },
+      menu: { section: MENU_SECTION, label: '商业订单', icon: 'ShoppingCart', perm: 'setting.view' },
     },
   },
   {
@@ -36,7 +36,7 @@ const routes = [
     component: () => import('./ui/element-plus/views/PrepayAccounts.vue'),
     meta: {
       title: '预存货款', requiresAuth: true, module: 'commerce',
-      menu: { section: MENU_SECTION, label: '预存货款', perm: 'setting.view' },
+      menu: { section: MENU_SECTION, label: '预存货款', icon: 'Wallet', perm: 'setting.view' },
     },
   },
   {
@@ -45,7 +45,7 @@ const routes = [
     component: () => import('./ui/element-plus/views/Deposits.vue'),
     meta: {
       title: '域名保证金', requiresAuth: true, module: 'commerce',
-      menu: { section: MENU_SECTION, label: '域名保证金', perm: 'setting.view' },
+      menu: { section: MENU_SECTION, label: '域名保证金', icon: 'Money', perm: 'setting.view' },
     },
   },
   {
@@ -54,7 +54,7 @@ const routes = [
     component: () => import('./ui/element-plus/views/ContentLibrary.vue'),
     meta: {
       title: '平台内容库', requiresAuth: true, module: 'commerce',
-      menu: { section: MENU_SECTION, label: '内容库', perm: 'setting.view' },
+      menu: { section: MENU_SECTION, label: '内容库', icon: 'Collection', perm: 'setting.view' },
     },
   },
 ]

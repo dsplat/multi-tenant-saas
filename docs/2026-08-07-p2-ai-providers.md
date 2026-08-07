@@ -106,6 +106,32 @@ ai_providers 表（系统级 tenant_id=null 且 active）
 
 ---
 
+## 超管浏览器端到端测试 ✅
+
+临时账号（无角色绑定）缺菜单入口 → 改用超级管理员（`admin@scrm.local`，
+`operator_tenants` 绑定系统级 `super_admin` 角色，97 权限）测试：
+备份原密码 hash → 临时密码 → 测后还原。
+
+- 提供商 tab CRUD + 掩码安全全部通过（新增/编辑/删除，API Key 全程 `********`）
+- 连接测试 bailian 成功（236 models）
+- 发现并修复两个独立缺陷（提交 701cda6）：
+
+### 缺陷 1：「系统设置」「配置中心」白屏
+
+**根因**：`module-loader.ts` 规则——有自定义 `routes.ts` 的模块跳过视图自动发现（`makeRoute` 返回 null）。
+Platform 模块的自定义 routes.ts 只声明了 3 个页面，漏了 `Settings.vue` / `SystemSettings.vue` → 路由不存在，白屏。
+**修复**：`Platform/resources/admin/routes.ts` 显式补齐两条路由。
+
+### 缺陷 2：菜单缺「AI 配置」入口
+
+**根因**：`AdminLayout.vue` 菜单硬编码（非路由自动生成），P2 新增的 AiSettings 页未加菜单项。
+**修复**：两版布局「平台配置」分组新增 `ai-settings` 菜单项（perm: setting.view）。
+
+修复后回归验证三项全过（菜单入口 / AI 配置页 / 系统设置 + 配置中心渲染），
+54 个请求全 200/204，控制台无错误。截图见 `docs/screenshots/fix-*.png`。
+
+---
+
 ## 遗留 / 后续
 
 - **租户级 provider 覆盖**（tenant_id 非 null）：表结构就绪，解析链未接入

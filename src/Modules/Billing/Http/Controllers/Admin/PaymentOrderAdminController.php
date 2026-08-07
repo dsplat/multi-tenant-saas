@@ -29,7 +29,7 @@ class PaymentOrderAdminController extends Controller
 
         $perPage = min((int) $request->input('per_page', 15), 100);
         // admin 上下文无 TenantContext，绕过租户作用域直查
-        $query = PaymentOrder::withoutGlobalScope(TenantScope::class)->query();
+        $query = PaymentOrder::query()->withoutGlobalScope(TenantScope::class);
 
         if ($request->filled('tenant_id')) {
             $query->where('tenant_id', $request->tenant_id);

@@ -224,6 +224,23 @@ class AdminSubscriptionPaymentTest extends TestCase
         ]);
     }
 
+    public function test_orders_index_lists_cross_tenant_orders(): void
+    {
+        $order = $this->createOrder();
+
+        $resp = $this->auth()->getJson('/api/v1/admin/payments/orders');
+
+        $resp->assertOk()
+            ->assertJsonPath('success', true);
+        $ids = collect($resp->json('data'))->pluck('id');
+        $this->assertTrue($ids->contains($order->id));
+
+        // 详情端点
+        $this->auth()->getJson("/api/v1/admin/payments/orders/{$order->id}")
+            ->assertOk()
+            ->assertJsonPath('data.order_no', $order->order_no);
+    }
+
     public function test_mark_paid_pending_order(): void
     {
         $order = $this->createOrder();

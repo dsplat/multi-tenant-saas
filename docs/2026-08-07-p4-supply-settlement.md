@@ -2,7 +2,7 @@
 
 **会话时间**: 2026-08-07（P3 后续会话）  
 **范围**: 框架 multi_tenant_saas → neihang.com 生产部署（admin.neihang.com）  
-**状态**: 代码完成、测试通过、部署验证中  
+**状态**: ✅ 已完成并验证  
 **前置**: [P3 商业后台建设](./2026-08-07-p3-commerce-admin.md)、[admin 功能缺口 Review](./2026-08-07-admin-gap-review.md)
 
 ---
@@ -100,11 +100,25 @@ Schema/、CapabilityBilling/TenantCredit（30）全绿。
 
 ## 部署记录
 
-- 框架 commit `c43f22c` → split.yml ✓（42s）
-- scrm-platform composer.lock `7417f7d`
-- deploy.py incremental：（执行中/待 VPN 恢复 —— 内网 192.168.100.11 需 VPN 路由）
-- 迁移注意：生产首次执行 Billing 迁移会 ALTER credit_accounts/credit_transactions enum，
-  并对 supply_grants 加 3 个库存列
+- 框架 commit：`c43f22c`（主体）→ `9a655b5`（文档）→ `f7e06a6`（预存页新建户入口）→ `235622c`（关联 FQCN 热修复），split 全部 ✓
+- scrm-platform composer.lock 两次同步（`7417f7d` 主体 / `619ce61` 热修复），deploy.py incremental 均成功
+- 迁移：deploy.py 未检测框架包内迁移，**服务器手动 `php artisan migrate --force`** 执行两条新迁移（均 <60ms）
+- SPA：本地 build:element-plus 后 rsync public/admin/ 到生产
+- 验证中发现并修复：`CreditAccount::tenant()/user()` 与 `CreditTransaction` 同方法引用未导入的 Tenant/User 类
+  （PHP 解析到当前命名空间，`with('tenant')` 首次触发即 500；历史潜伏 bug，此前无记录未引爆）。
+  热修复期间 `optimize:clear` 后必须重建 config/route/view 缓存，否则报 Class "view" not found
+
+## 生产验证（超管浏览器端到端，全部 PASS，验证后数据已清理、密码已还原）
+
+| 步骤 | 结果 |
+|---|---|
+| 商业运营菜单含预存货款/域名保证金 | ✅ |
+| SKU 商品池创建 supply SKU（mall_supply/grant） | ✅ |
+| 新租户充值 ¥50 → 列表余额/汇总卡/流水抽屉 | ✅ |
+| 行内追加充值 ¥30 → 余额 ¥80 | ✅ |
+| 发起划拨（数量 10 / 供货价 ¥5）→ 余量/划拨 10/10 | ✅ |
+| 调额 +5 → 15/15 | ✅ |
+| 保证金锁定 ¥10 → 退还（二次确认）→ ¥0 | ✅ |
 
 ## 遗留（Phase 5+）
 

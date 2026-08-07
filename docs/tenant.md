@@ -298,6 +298,9 @@ null → active → rejected → (重新设置) → active
 | `slug_pattern` | — | Slug 合法字符正则 |
 | `icp_check_enabled` | `DOMAIN_ICP_CHECK_ENABLED` | 备案检查开关 |
 | `nginx_map_file` | `DOMAIN_NGINX_MAP_FILE` | 域名白名单文件路径 |
+| `nginx_deploy_path` | `NGINX_DEPLOY_PATH` | nginx 产物发布目录（默认 base_path/deploy/nginx） |
+| `nginx_listen_mode` | `NGINX_LISTEN_MODE` | 基桩监听形态：`https`（443 直连，默认）/ `http`（80 层，SLB 卸载） |
+| `nginx_fastcgi_pass` | `NGINX_FASTCGI_PASS` | 基桩 fastcgi 上游（如 `unix:/run/php-fpm.sock`）；缺省用 `nginx_fastcgi_port` 拼 TCP |
 | `ssl_certs_path` | `DOMAIN_SSL_CERTS_PATH` | SSL 证书目录 |
 | `auto_slug_length` | `AUTO_SLUG_LENGTH` | 自动子域名随机码长度（默认 6） |
 | `auto_slug_alphabet` | `AUTO_SLUG_ALPHABET` | 自动码字符集（默认排除 0/1/i/o/l） |

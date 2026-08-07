@@ -510,7 +510,11 @@ class NginxConfigService
     }
 
     /**
-     * 渲染基桩 server 块（443 default_server）。
+     * 渲染基桩 server 块（default_server）。
+     *
+     * 监听形态由 domain.nginx_listen_mode 决定：
+     *   https（默认）— 443 直连，启用 ssl.map/SNI 动态证书
+     *   http         — 80 层（SLB 已卸载 SSL），无证书指令
      */
     public function renderTenantServerStub(): string
     {
@@ -519,10 +523,35 @@ class NginxConfigService
 
         $template = File::get($stubFile);
         $root = rtrim(config('domain.nginx_public_path') ?? public_path(), '/');
+        $mode = strtolower((string) config('domain.nginx_listen_mode', 'https'));
+
+        if ($mode === 'http') {
+            $listen = 'listen 80 default_server;';
+            $sslBlock = '# SSL 已由 SLB 层卸载，本层无证书指令';
+            $httpsParam = '';
+        } else {
+            $listen = 'listen 443 ssl http2 default_server;';
+            $sslBlock = implode("\n", [
+                '# SNI 动态证书',
+                'ssl_certificate     $ssl_cert_file;',
+                'ssl_certificate_key $ssl_key_file;',
+                'ssl_protocols TLSv1.2 TLSv1.3;',
+                'ssl_prefer_server_ciphers on;',
+                'ssl_ciphers "TLS13-AES-256-GCM-SHA384:TLS13-CHACHA20-POLY1305-SHA256:TLS13-AES-128-GCM-SHA256:EECDH+CHACHA20:EECDH+AES128:RSA+AES128:EECDH+AES256:RSA+AES256:!MD5";',
+                'ssl_session_cache shared:SSL:10m;',
+                'ssl_session_timeout 5m;',
+            ]);
+            // 443 直连时告知 PHP 处于 HTTPS（SLB 卸载时由 SLB/回源头负责）
+            $httpsParam = "fastcgi_param HTTPS on;\n        ";
+        }
 
         return strtr($template, [
+            '{{LISTEN}}' => $listen,
+            '{{SSL_BLOCK}}' => $sslBlock,
+            '{{FASTCGI_HTTPS_PARAM}}' => $httpsParam,
             '{{ROOT}}' => $root,
-            '{{FPM_PORT}}' => (string) config('domain.nginx_fastcgi_port', 9001),
+            '{{FASTCGI_PASS}}' => config('domain.nginx_fastcgi_pass')
+                ?? '127.0.0.1:' . config('domain.nginx_fastcgi_port', 9001),
             '{{AI_STREAMING_INCLUDE}}' => 'include snippets/ai-streaming.conf;',
             '{{LOG_DIR}}' => config('domain.nginx_log_dir', '/home/wwwlogs'),
         ]);

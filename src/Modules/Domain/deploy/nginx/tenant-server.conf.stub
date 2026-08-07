@@ -1,30 +1,22 @@
 # ============================================================
 # 租户域名基桩（自动生成 — 勿手改，由 domains:generate-nginx 渲染）
 #
-# 作为 443 端口的 default_server，捕获所有「无显式 vhost」的域名：
+# 作为 default_server，捕获所有「无显式 vhost」的域名：
 #   - 租户自定义域名（tenants.domain）
-#   - 租户二级域名（{slug}.<wildcard_base>）
+#   - 租户二级域名（{slug}.<wildcard_base>、{tenant_id}.<wildcard_base>）
 #   - 恶意/未配置域名 → $domain_allowed=0 → return 444（nginx 层拦截，不进 PHP）
 #
-# 证书按 SNI 动态选择（maps/ssl.map 提供 $ssl_cert_file / $ssl_key_file）。
+# 监听形态由 domain.nginx_listen_mode 决定：
+#   https — 443 直连，证书按 SNI 动态选择（maps/ssl.map）
+#   http  — 80 层（SLB 已卸载 SSL），无证书指令
 # 域名白名单由 maps/tenant-auth.map 提供 $domain_allowed。
-#
-# 说明：HTTP(80)→HTTPS 重定向由系统 nginx.conf 的 80 端口 default_server 统一处理，
-#       本基桩仅负责 443，避免重复声明 default_server。
 # ============================================================
 
 server {
-    listen 443 ssl http2 default_server;
+    {{LISTEN}}
     server_name _;
 
-    # SNI 动态证书
-    ssl_certificate     $ssl_cert_file;
-    ssl_certificate_key $ssl_key_file;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_prefer_server_ciphers on;
-    ssl_ciphers "TLS13-AES-256-GCM-SHA384:TLS13-CHACHA20-POLY1305-SHA256:TLS13-AES-128-GCM-SHA256:EECDH+CHACHA20:EECDH+AES128:RSA+AES128:EECDH+AES256:RSA+AES256:!MD5";
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 5m;
+    {{SSL_BLOCK}}
 
     # ★ nginx 层域名合法性拦截：未在白名单的域名直接断连（零带宽、零信息泄露）
     if ($domain_allowed = 0) {
@@ -67,11 +59,10 @@ server {
 
     location ~ [^/]\.php(/|$) {
         try_files $uri =404;
-        fastcgi_pass 127.0.0.1:{{FPM_PORT}};
+        fastcgi_pass {{FASTCGI_PASS}};
         fastcgi_index index.php;
         include fastcgi.conf;
-        fastcgi_param HTTPS on;
-        fastcgi_buffering off;
+        {{FASTCGI_HTTPS_PARAM}}fastcgi_buffering off;
         fastcgi_read_timeout 300s;
     }
 

@@ -74,6 +74,12 @@ return [
     */
     'nginx_deploy_path' => env('NGINX_DEPLOY_PATH'),
 
+    // 基桩监听形态：https = 443 直连（启用 ssl.map/SNI）；http = 80 层（SLB 已卸载 SSL）
+    'nginx_listen_mode' => env('NGINX_LISTEN_MODE', 'https'),
+
+    // 基桩 server 的 fastcgi 上游（如 unix:/run/php-fpm.sock）；未配置时用 nginx_fastcgi_port 拼 TCP 地址
+    'nginx_fastcgi_pass' => env('NGINX_FASTCGI_PASS'),
+
     // 基桩 server 直连的 php-fpm 端口（废除 9100 nginx 代理层）
     'nginx_fastcgi_port' => (int) env('NGINX_FASTCGI_PORT', 9001),
 

@@ -119,10 +119,10 @@ include {nginx_deploy_path}/stubs/tenant-server.conf;
 
 ## 五、基桩（stubs/tenant-server.conf）
 
-基桩有两种监听形态，行为（白名单/SEO/GEO/AI 爬虫）完全一致，差别仅在 SSL 归属：
+基桩有两种监听形态，行为（白名单/SEO/GEO/AI 爬虫）完全一致，差别仅在 SSL 归属，由配置驱动（重生成自动保持）：
 
-- **443 直连形态**（无 SLB 或 SLB 直透）：基桩自持证书，启用 ssl.map/SNI；
-- **80 层形态**（SLB 卸载，当前生产架构）：基桩 `listen 80 default_server`，删除 `ssl_certificate*` 两行，其余不变。
+- **443 直连形态**（无 SLB 或 SLB 直透）：`nginx_listen_mode=https`（默认），基桩自持证书，启用 ssl.map/SNI；
+- **80 层形态**（SLB 卸载，当前生产架构）：`nginx_listen_mode=http`，基桩自动渲染为 `listen 80 default_server` 且无证书指令；fastcgi 上游可用 `nginx_fastcgi_pass` 指定 unix sock。
 
 443 直连形态示例：
 

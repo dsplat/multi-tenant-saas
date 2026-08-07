@@ -96,6 +96,30 @@ class NginxConfigServiceTest extends TestCase
         $this->removeDir($base);
     }
 
+    public function test_stub_http_listen_mode_for_slb_offload(): void
+    {
+        $this->platformConfig();
+        config(['domain.nginx_listen_mode' => 'http']);
+        config(['domain.nginx_fastcgi_pass' => 'unix:/var/run/php/php8.4-fpm.sock']);
+
+        $service = new NginxConfigService;
+        $stub = $service->renderTenantServerStub();
+
+        // 80 层形态：无 SSL 指令，fastcgi 用配置的 unix sock
+        $this->assertStringContainsString('listen 80 default_server;', $stub);
+        $this->assertStringContainsString('fastcgi_pass unix:/var/run/php/php8.4-fpm.sock;', $stub);
+        $this->assertStringNotContainsString('ssl_certificate', $stub);
+        $this->assertStringNotContainsString('fastcgi_param HTTPS', $stub);
+
+        // https 直连形态（默认）：443 + SNI 证书 + HTTPS 参数
+        config(['domain.nginx_listen_mode' => 'https']);
+        config(['domain.nginx_fastcgi_pass' => null]);
+        $stub = $service->renderTenantServerStub();
+        $this->assertStringContainsString('listen 443 ssl http2 default_server;', $stub);
+        $this->assertStringContainsString('ssl_certificate     $ssl_cert_file', $stub);
+        $this->assertStringContainsString('fastcgi_param HTTPS on;', $stub);
+    }
+
     public function test_whitelist_uses_default_deny_and_explicit_slugs(): void
     {
         $this->platformConfig();

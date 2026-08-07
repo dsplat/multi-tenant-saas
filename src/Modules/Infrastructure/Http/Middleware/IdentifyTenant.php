@@ -297,26 +297,43 @@ class IdentifyTenant
     }
 
     /**
-     * 从通配子域名提取 slug 并解析租户
+     * 从通配子域名提取标识并解析租户
      *
-     * 例：lanyantu.dsplat.com → 提取 "lanyantu" → 查 tenants.slug
+     * 两种同质形态（子域名前缀即租户标识）：
+     *   {tenant_id}.{wildcard_base}（16 位雪花 ID 直查，如 9007199254740992.dsplat.com）
+     *   {slug}.{wildcard_base}（含自动码 t-xxxxxx，如 lanyantu.dsplat.com）
      * 带缓存，避免每次请求查库。
      */
     protected function resolveFromSubdomain(string $host): ?string
     {
         $wildcardBase = config('domain.wildcard_base');
-        $slug = substr($host, 0, -(strlen($wildcardBase) + 1)); // 去掉 ".dsplat.com"
+        $label = substr($host, 0, -(strlen($wildcardBase) + 1)); // 去掉 ".dsplat.com"
 
-        if (empty($slug) || str_contains($slug, '.')) {
+        if (empty($label) || str_contains($label, '.')) {
             return null; // 多级子域名（如 a.b.dsplat.com）不支持
         }
 
-        $cacheKey = config('tenancy.cache.prefix', 'tenant:') . 'slug:' . $slug;
+        // 纯数字且符合雪花 ID 长度（16 位）→ 按 tenant_id 直查
+        if (ctype_digit($label) && strlen($label) === 16) {
+            $cacheKey = config('tenancy.cache.prefix', 'tenant:') . 'subdomain-id:' . $label;
+
+            $tenantId = cache()->remember(
+                $cacheKey,
+                config('tenancy.cache.ttl', 3600),
+                fn () => Tenant::where('tenant_id', $label)
+                    ->where('status', 'active')
+                    ->value('tenant_id')
+            );
+
+            return $tenantId ? (string) $tenantId : null;
+        }
+
+        $cacheKey = config('tenancy.cache.prefix', 'tenant:') . 'slug:' . $label;
 
         $tenantId = cache()->remember(
             $cacheKey,
             config('tenancy.cache.ttl', 3600),
-            fn () => Tenant::where('slug', $slug)
+            fn () => Tenant::where('slug', $label)
                 ->where('status', 'active')
                 ->value('tenant_id')
         );

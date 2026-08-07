@@ -96,8 +96,24 @@ canonical(tenant) =
   app.dsplat.com/scrm/h5/         → 200
 
 租户 D：无 slug（slug_status=rejected）
-  app.dsplat.com/{tenant_id}/h5/  → 200（兆底即规范）
+  app.dsplat.com/{tenant_id}/h5/  → 200（兑底即规范）
 ```
+
+### 2.0.1 部署拓扑：SLB 层架构（锁定）
+
+```
+用户 → SLB 层（如 mt_aiserv：443 终结 / 证书落盘 / 请求分发） → 80 → 应用服务器 nginx → php-fpm
+```
+
+这是**架构事实，不是可选项**：
+
+| 要点 | 说明 |
+|---|---|
+| SSL 终结位置 | 永远在 SLB 层。所有域名证书（通配证书 + 自定义域名证书）落盘在 SLB 侧 |
+| 应用服务器监听 | 仅 80（回源层），不引入 443 执念 |
+| 单机也保留分层 | 即使 SLB 与应用同设备部署，也保持两层——性能几乎无损，换来拓扑灵活性（随时拆机/扩容/换设备） |
+| Host 透传 | SLB 必须透传真实 Host；应用侧 `IdentifyDomain` 优先读 `X-Original-Host`，回源层需覆盖防伪 |
+| map 同步 | 租户白名单/证书等变更需同步到 SLB 层（或 SLB 对 SSL 直透不卸载），见 2.8 |
 
 ### 2.1 三层阶梯总览
 
@@ -148,9 +164,9 @@ canonical(tenant) =
 
 ```
 DNS: *.{wildcard_base} → A 记录指向平台服务器
-SSL: 通配证书 *.{wildcard_base}
-Nginx: server_name *.{wildcard_base}
-IdentifyTenant: 提取子域名前缀 → 查 tenants.slug
+SSL: 通配证书 *.{wildcard_base}（落盘 SLB 层）
+Nginx: 统一基桩 + tenant-auth.map 白名单
+IdentifyTenant: 提取子域名前缀 → 16 位纯数字按 tenant_id 直查，否则查 tenants.slug
 ```
 
 - 租户 URL：`{slug}.{wildcard_base}`
@@ -188,7 +204,7 @@ pending → rejected（管理员拒绝，附原因）
 5. Cookie tenant_id（不可信，需归属校验）
 6. Session tenant_id
 7. 认证用户关联（Operator → operator_tenants / User → current_tenant_id）
-8. 通配子域名 slug 解析（兼容，优先级降低）
+8. 通配子域名解析（tenant_id 直查 / slug 查询，兼容兑底）
 9. 默认租户（兜底）
 ```
 
@@ -255,14 +271,19 @@ null → active → rejected → (重新设置) → active
 | `active` | `/{slug}/` + 二级域名（如已开通） |
 | `rejected` | 仅 `/{tenant_id}/`，二级域名同步停用 |
 
-#### 自动子域名（t-xxxxxx 免费兜底）
+#### 自动子域名（免费兜底，两种同质形态）
 
-租户创建即自动获得保留前缀子域名 `{t-xxxxxx}.{wildcard_base}` 作为免费访问兜底，无需租户操作：
+租户创建即自动获得子域名兜底访问，与付费二级域名共用同一识别链路与白名单，无需租户操作：
+
+| 形态 | 示例 | 来源 |
+|---|---|---|
+| `{tenant_id}.{wildcard_base}` | `9007199254740992.dsplat.com` | 16 位雪花 ID 直查，天然存在 |
+| `t-xxxxxx.{wildcard_base}` | `t-a3k9z2.dsplat.com` | 系统自动生成 slug（保留前缀） |
 
 - 前缀 `t-` 为系统保留（`SlugService::isReservedAutoPrefix`），租户不可手动设置该前缀的 slug。
-- 码长由 `auto_slug_length`（默认 6）控制，字符集 `auto_slug_alphabet` 排除易混字符（0/1/i/o/l）。
-- 租户设置付费 slug 或绑定自定义域名生效后，自动码退役（`slug_status=rejected`，slug 字段保留）。
-- 自动子域名经统一基桩承接，但 SEO/GEO 禁止收录（见 2.8 / 第八节）。
+- 码长由 `auto_slug_length`（默认 6）控制，字符集 `auto_slug_alphabet` 排除易混淆字符（0/1/i/o/l）。
+- 租户设置付费 slug 或绑定自定义域名生效后，自动码退役（`slug_status=rejected`，slug 字段保留）；tenant_id 形态始终存在。
+- 两种自动子域名经统一基桩承接，但 SEO/GEO 禁止收录（见 2.8 / 第八节）。
 
 ### 2.7 配置项（config/domain.php）
 
@@ -562,7 +583,7 @@ Model::query() → WHERE tenant_id = {current_tenant_id}
 
 | 层级 | 形态 | seo_allowed | SEO/GEO | AI 爬虫 |
 |---|---|---|---|---|
-| 免费兜底（自动）| `t-xxxxxx.{wildcard_base}` | 0 | 禁止（noindex + Disallow robots）| 403 |
+| 免费兑底（自动）| `{tenant_id}.{wildcard_base}` / `t-xxxxxx.{wildcard_base}` | 0 | 禁止（noindex + Disallow robots）| 403 |
 | 付费二级域名 | `{slug}.{wildcard_base}` | 0 | 禁止 | 403 |
 | 自定义域名 | `{tenant_domain}` | 1 | 开放 | 放行 |
 | 平台域名 | admin/app/console | 1 | 开放 | 放行 |

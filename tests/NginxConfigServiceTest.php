@@ -153,12 +153,12 @@ class NginxConfigServiceTest extends TestCase
     public function test_authorized_domains_merges_custom_and_subdomain(): void
     {
         $this->platformConfig();
-        $this->createTenant(['slug' => 'acme', 'slug_status' => 'active', 'domain' => 'crm.acme.com']);
-        $this->createTenant(['slug' => 'beta', 'slug_status' => 'active', 'domain' => null]);
-        // 被打回的 slug 不计入
-        $this->createTenant(['slug' => 'bad', 'slug_status' => 'rejected', 'domain' => null]);
-        // 非活跃租户不计入
-        $this->createTenant(['slug' => 'gone', 'slug_status' => 'active', 'status' => 'suspended', 'domain' => null]);
+        $t1 = $this->createTenant(['slug' => 'acme', 'slug_status' => 'active', 'domain' => 'crm.acme.com']);
+        $t2 = $this->createTenant(['slug' => 'beta', 'slug_status' => 'active', 'domain' => null]);
+        // 被打回的 slug 不计入 slug 形态，但 tenant_id 兜底形态仍放行（租户 active）
+        $t3 = $this->createTenant(['slug' => 'bad', 'slug_status' => 'rejected', 'domain' => null]);
+        // 非活跃租户两种形态均不计入
+        $t4 = $this->createTenant(['slug' => 'gone', 'slug_status' => 'active', 'status' => 'suspended', 'domain' => null]);
 
         $service = new NginxConfigService;
         $domains = $service->authorizedDomains();
@@ -168,12 +168,18 @@ class NginxConfigServiceTest extends TestCase
         $this->assertContains('beta.dsplat.com', $domains);
         $this->assertNotContains('bad.dsplat.com', $domains);
         $this->assertNotContains('gone.dsplat.com', $domains);
+
+        // tenant_id 子域名：全体 active 租户的兜底形态（与 t-xxxxxx 同质）
+        $this->assertContains("{$t1->tenant_id}.dsplat.com", $domains);
+        $this->assertContains("{$t2->tenant_id}.dsplat.com", $domains);
+        $this->assertContains("{$t3->tenant_id}.dsplat.com", $domains);
+        $this->assertNotContains("{$t4->tenant_id}.dsplat.com", $domains);
     }
 
     public function test_symlinks_are_idempotent(): void
     {
         $this->platformConfig();
-        $this->createTenant(['slug' => 'acme', 'slug_status' => 'active', 'domain' => null]);
+        $tenant = $this->createTenant(['slug' => 'acme', 'slug_status' => 'active', 'domain' => null]);
 
         $base = sys_get_temp_dir() . '/nginx-symlink-' . uniqid();
         $service = new NginxConfigService;
@@ -183,8 +189,10 @@ class NginxConfigServiceTest extends TestCase
         // 第二次生成（应清理旧链接，不报错、不重复）
         $result = $service->generateDeployBundle($base);
 
-        $this->assertCount(1, $result['domains']);
+        // slug 二级域名 + tenant_id 兜底子域名（两种同质形态）
+        $this->assertCount(2, $result['domains']);
         $this->assertTrue(is_link("{$base}/tenants-enabled/acme.dsplat.com"));
+        $this->assertTrue(is_link("{$base}/tenants-enabled/{$tenant->tenant_id}.dsplat.com"));
 
         $this->removeDir($base);
     }

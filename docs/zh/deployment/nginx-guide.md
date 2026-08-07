@@ -1,14 +1,42 @@
 # Nginx 配置指南
 
-**最后更新**: 2026-08-02
+**最后更新**: 2026-08-08
 
 本指南描述租户域名接入层的 nginx 产物与部署方式。所有产物由框架 `NginxConfigService` 自动生成，**无需手写租户域名配置**。模块设计详见 `docs/tenant.md` 第二节与第八节。
 
 ---
 
+## 〇、部署拓扑：SLB 层架构（锁定）
+
+```
+用户 → SLB 层（如 mt_aiserv） → 80 → 应用服务器 nginx → php-fpm
+      ├ 443 终结 / SSL 卸载
+      ├ 证书落盘（通配证书 + 自定义域名证书）
+      └ 请求分发（透传真实 Host）
+```
+
+这是架构事实：即使 SLB 与应用部署在同一台设备上，也保留这一层（性能几乎无损，换来拓扑灵活性）。由此推出两条工程约束：
+
+1. **应用服务器仅监听 80**：不在回源侧引入 443/证书逻辑；基桩的 443 形态（ssl.map/SNI）在 SLB 卸载模式下不启用，证书与 ssl.map 同步到 SLB 侧维护（或对 SSL 直透不卸载）。
+2. **Host 防伪**：应用侧 `IdentifyDomain` 优先读 `X-Original-Host`。该头必须由 SLB 注入，回源层 nginx 需先无条件覆盖再赋值，防止客户端伪造：
+
+```nginx
+server {
+    listen 80;
+    # 先覆盖客户端传入的伪造头，再以真实 Host 赋值
+    set $real_host $host;
+    proxy_set_header X-Original-Host $host;   # 若经 SLB 转发，则用 $http_x_original_host 的受信值
+    ...
+}
+```
+
+> 当 SLB 与应用同机时，80 层基桩直接承接 SLB 回源；分离部署时，回源链路需额外 `set_real_ip_from` 信任 SLB 网段。
+
+---
+
 ## 一、架构总览：统一基桩模型
 
-所有租户域名——**自定义域名**（如 `scrm.lanyantu.com`）与**二级域名**（如 `lanyantu.dsplat.com`、自动码 `t-xxxxxx.dsplat.com`）——共用**同一个 443 `default_server` 基桩**承接，不为每个域名手写 vhost。
+所有租户域名——**自定义域名**（如 `scrm.lanyantu.com`）与**二级域名**（如 `lanyantu.dsplat.com`、自动码 `t-xxxxxx.dsplat.com`、同质的 `{tenant_id}.dsplat.com`）——共用**同一个 default_server 基桩**承接，不为每个域名手写 vhost。
 
 - 系统 nginx 仅在 `http{}` 层 include 一次顶层文件 `dsplat-tenants.conf`。
 - 基桩行为全部由 `map` 变量驱动（白名单 / SNI 证书 / SEO/GEO / AI 爬虫）。
@@ -26,7 +54,7 @@
 │   ├── seo.map                      # map $host $seo_allowed + map $seo_allowed $x_robots_tag
 │   └── bot.map                      # map $http_user_agent $is_ai_bot + map "$is_ai_bot:$seo_allowed" $block_ai_bot
 ├── stubs/
-│   └── tenant-server.conf           # 基桩：唯一 443 default_server，catch-all 所有租户域名
+│   └── tenant-server.conf           # 基桩：唯一 default_server，catch-all 所有租户域名（443 直连形态；SLB 卸载时为 80 层形态）
 ├── certs/                           # 受管证书目录（domain.ssl_certs_path）
 │   ├── default.crt / default.key    # 通配证书（*. wildcard_base）
 │   └── {domain}.crt / {domain}.key  # 自定义域名证书（可为软链接）
@@ -66,7 +94,7 @@ include {nginx_deploy_path}/maps/*.map;        # 所有 map 必须在 http 层�
 include {nginx_deploy_path}/stubs/tenant-server.conf;
 ```
 
-> HTTP(80)→HTTPS 重定向由系统 nginx.conf 的 80 端口 default_server 统一处理，基桩仅负责 443。
+> 443 直连形态下，HTTP(80)→HTTPS 重定向由系统 nginx.conf 的 80 端口 default_server 统一处理；SLB 卸载形态下应用服务器无 443，重定向与证书均由 SLB 层负责（见第〇节）。
 
 ---
 
@@ -77,7 +105,7 @@ include {nginx_deploy_path}/stubs/tenant-server.conf;
 | 变量 | 定义文件 | 键源 | 作用 |
 |---|---|---|---|
 | `$domain_allowed` | tenant-auth.map | `$host` | 域名白名单，`default 0`。`0` → 基桩 `return 444` 断连（恶意/未配置域名，零带宽零泄露）|
-| `$seo_allowed` | seo.map | `$host` | 平台域名 + 自定义域名 = `1`（可收录）；二级域名（含 t-xxxxxx）走 default `0`（禁收录）|
+| `$seo_allowed` | seo.map | `$host` | 平台域名 + 自定义域名 = `1`（可收录）；二级域名（含 t-xxxxxx 与 `{tenant_id}` 兜底形态）走 default `0`（禁收录）|
 | `$x_robots_tag` | seo.map | `$seo_allowed` | `0` → `noindex, nofollow`；`1` → 空（nginx 空值不下发该头）|
 | `$is_ai_bot` | bot.map | `$http_user_agent` | 识别 22 种主流 AI 爬虫（GPTBot/ClaudeBot/Bytespider/CCBot/PerplexityBot/Google-Extended 等，`~*` 不区分大小写）|
 | `$block_ai_bot` | bot.map | `"$is_ai_bot:$seo_allowed"` | `"1:0"` → `1`：仅「是 AI 爬虫 且 非收录域名」拦截；自定义域名（seo_allowed=1）放行（GEO 开放）|
@@ -85,11 +113,18 @@ include {nginx_deploy_path}/stubs/tenant-server.conf;
 
 ### 白名单精确性
 
-二级域名**精确放行**已配置且 `slug_status=active` 的 `{slug}.{wildcard_base}`，**不做通配**——恶意子域名（如 `evil-random.dsplat.com`）不在列表 → `default 0` → `return 444`。
+二级域名**精确放行**，不做通配：全体 active 租户的 `{tenant_id}.{wildcard_base}`（兜底形态）+ `slug_status=active` 的 `{slug}.{wildcard_base}`。恶意子域名（如 `evil-random.dsplat.com`）不在列表 → `default 0` → `return 444`。
 
 ---
 
 ## 五、基桩（stubs/tenant-server.conf）
+
+基桩有两种监听形态，行为（白名单/SEO/GEO/AI 爬虫）完全一致，差别仅在 SSL 归属：
+
+- **443 直连形态**（无 SLB 或 SLB 直透）：基桩自持证书，启用 ssl.map/SNI；
+- **80 层形态**（SLB 卸载，当前生产架构）：基桩 `listen 80 default_server`，删除 `ssl_certificate*` 两行，其余不变。
+
+443 直连形态示例：
 
 ```nginx
 server {

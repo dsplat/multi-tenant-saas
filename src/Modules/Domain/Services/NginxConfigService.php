@@ -79,7 +79,7 @@ class NginxConfigService
 
         // 已放行域名集合（平台 + 二级域名）：自定义域名需排除，避免 map 键冲突
         $emitted = array_flip($platformDomains);
-        foreach ($this->subdomainDomains() as $subdomain) {
+        foreach (array_keys($this->subdomainDomains()) as $subdomain) {
             $emitted[$subdomain] = true;
         }
 
@@ -367,10 +367,13 @@ class NginxConfigService
     }
 
     /**
-     * 生成租户二级域名白名单条目（精确放行已配置 slug）。
+     * 生成租户二级域名白名单条目（精确放行，不做通配）。
      *
-     * 例: lanyantu.dsplat.com  1;
-     * 不做通配放行——恶意子域名（如 evilrandom.dsplat.com）不在列表 → default 0 → 拒绝。
+     * 两种同质形态：
+     *   {tenant_id}.{base}（全体 active 租户的兜底形态）
+     *   {slug}.{base}（仅 slug_status=active，含自动码 t-xxxxxx）
+     *
+     * 恶意子域名（如 evilrandom.dsplat.com）不在列表 → default 0 → 拒绝。
      */
     protected function subdomainEntries(): string
     {
@@ -385,15 +388,20 @@ class NginxConfigService
         }
 
         return implode("\n", array_map(
-            fn ($d) => sprintf('    %-30s 1;  # slug: %s', $d, explode('.', $d)[0]),
-            $domains
+            fn (string $label, string $d) => sprintf('    %-30s 1;  # %s', $d, $label),
+            array_values($domains),
+            array_keys($domains)
         ));
     }
 
     /**
-     * 已启用租户的二级域名列表（{slug}.<wildcard_base>）。
+     * 已启用租户的二级域名映射：domain => 注释标签。
      *
-     * @return string[]
+     * 含两种同质形态：
+     *   {tenant_id}.{base} —— 全体 active 租户（与自动码 t-xxxxxx 同质的兜底访问）
+     *   {slug}.{base}      —— 仅 slug_status=active（含自动码 t-xxxxxx 与付费 slug）
+     *
+     * @return array<string, string>
      */
     protected function subdomainDomains(): array
     {
@@ -403,16 +411,30 @@ class NginxConfigService
             return [];
         }
 
-        return Tenant::query()
+        $domains = [];
+
+        Tenant::query()
+            ->where('status', 'active')
+            ->orderBy('tenant_id')
+            ->pluck('tenant_id')
+            ->each(function ($tenantId) use (&$domains, $wildcardBase) {
+                $domains["{$tenantId}.{$wildcardBase}"] = "tenant_id: {$tenantId}";
+            });
+
+        Tenant::query()
             ->where('status', 'active')
             ->where('slug_status', 'active')
             ->whereNotNull('slug')
             ->where('slug', '!=', '')
             ->orderBy('slug')
             ->pluck('slug')
-            ->map(fn ($slug) => "{$slug}.{$wildcardBase}")
-            ->values()
-            ->all();
+            ->each(function ($slug) use (&$domains, $wildcardBase) {
+                $domains["{$slug}.{$wildcardBase}"] = "slug: {$slug}";
+            });
+
+        ksort($domains);
+
+        return $domains;
     }
 
     /**
@@ -433,6 +455,14 @@ class NginxConfigService
             });
 
         if ($wildcardBase) {
+            // tenant_id 子域名：全体 active 租户的兜底形态
+            Tenant::where('status', 'active')
+                ->pluck('tenant_id')
+                ->each(function ($tenantId) use (&$domains, $wildcardBase) {
+                    $domains["{$tenantId}.{$wildcardBase}"] = true;
+                });
+
+            // slug 二级域名（含自动码 t-xxxxxx）：仅 slug_status=active
             Tenant::where('status', 'active')
                 ->where('slug_status', 'active')
                 ->whereNotNull('slug')

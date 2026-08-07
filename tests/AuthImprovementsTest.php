@@ -189,6 +189,67 @@ class AuthImprovementsTest extends TestCase
         });
     }
 
+    public function test_identify_tenant_wildcard_subdomain_resolves_by_tenant_id(): void
+    {
+        config(['tenancy.default_tenant_id' => 9999]);
+        config(['domain.wildcard_base' => 'dsplat.com']);
+
+        // 16 位雪花 ID 租户（与自动码 t-xxxxxx 同质的兜底访问形态）
+        Tenant::create([
+            'tenant_id' => 9007199254740993,
+            'name' => 'IdSubdomain',
+            'slug' => 't-abc123',
+            'status' => 'active',
+        ]);
+        Tenant::create([
+            'tenant_id' => 9999,
+            'name' => 'Default',
+            'slug' => 'default',
+            'status' => 'active',
+        ]);
+
+        $middleware = new IdentifyTenant;
+        $request = Request::create('https://9007199254740993.dsplat.com/h5/');
+        $request->headers->set('X-Original-Host', '9007199254740993.dsplat.com');
+
+        $middleware->handle($request, function () {
+            // 纯数字 16 位子域名按 tenant_id 直查，而非默认租户
+            $this->assertEquals('9007199254740993', TenantContext::getId());
+
+            return new Response;
+        });
+    }
+
+    public function test_identify_tenant_wildcard_subdomain_short_numeric_not_treated_as_id(): void
+    {
+        config(['tenancy.default_tenant_id' => 9999]);
+        config(['domain.wildcard_base' => 'dsplat.com']);
+
+        // 短数字不符合雪花 ID 长度，走 slug 查询（无命中）→ 兜底默认租户
+        Tenant::create([
+            'tenant_id' => 2001,
+            'name' => 'LanYanTu',
+            'slug' => 'lanyantu',
+            'status' => 'active',
+        ]);
+        Tenant::create([
+            'tenant_id' => 9999,
+            'name' => 'Default',
+            'slug' => 'default',
+            'status' => 'active',
+        ]);
+
+        $middleware = new IdentifyTenant;
+        $request = Request::create('https://2001.dsplat.com/h5/');
+        $request->headers->set('X-Original-Host', '2001.dsplat.com');
+
+        $middleware->handle($request, function () {
+            $this->assertEquals('9999', TenantContext::getId());
+
+            return new Response;
+        });
+    }
+
     public function test_identify_tenant_wildcard_subdomain_unknown_slug_falls_back_default(): void
     {
         config(['tenancy.default_tenant_id' => 9999]);

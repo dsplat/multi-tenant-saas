@@ -78,7 +78,7 @@ import {
   Grid, HomeFilled, OfficeBuilding, User, UserFilled, Lock, Calendar,
   Connection, Flag, Brush, Share, Setting, Timer, Monitor, Tools,
   Link, Key, Document, ChatDotRound, CreditCard, DataAnalysis, Coin,
-  SwitchButton, MagicStick, Goods, List,
+  SwitchButton, MagicStick, Goods, List, Tickets,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/admin/stores/user'
 import { useTenantStore } from '@/admin/stores/tenant'

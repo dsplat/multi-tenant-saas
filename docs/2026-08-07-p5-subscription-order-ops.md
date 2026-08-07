@@ -50,6 +50,7 @@
 
 1. **Payment 模块 default_enabled=false**：`src/Modules/Payment` 在 composer.json extra 声明默认禁用，其 `Routes/admin.php` 从不加载 → 现有 PaymentOrders 页的 `/api/v1/admin/payments/orders` 在生产实际 404（页面长期空列表）。修复：订单 admin 路由全部迁至 Billing 模块（PaymentOrder 模型本就在 Billing），URL 路径不变。
 2. **TenantScope 拦截 admin 查询**：`PaymentOrder`/`SubscriptionHistory` 带 `BelongsToTenant`，admin 上下文无 TenantContext 时 fail-closed（WHERE 1=0）→ 全部 `withoutGlobalScope(TenantScope::class)` 直查（沿用 P4 模式）。
+3. **admin/console 域名隔离缺口（生产 nginx）**：四域名共用一个 server 块，`admin.neihang.com/console/`、`/app/` 静态 SPA 可访问（API 层已有 `RejectPlatformDomain` 403 防线，登录不通，但入口暴露）。修复：`/etc/nginx/conf.d/neihang.conf` 加两个域名条件 location——平台域名（admin/www）禁 `/console`、`/app`（403），租户域名（console/app）禁 `/admin`（403），原配置备份于服务器 `/root/neihang.conf.bak.*`。验证矩阵：admin×{console,app}=403、console×admin=403、各自本域 SPA=200。
 
 ## 三、前端
 

@@ -1,8 +1,8 @@
 # P2: ai_providers 多源管理表接线
 
 **会话时间**: 2026-08-07（P1 后续会话）  
-**范围**: 框架 multi_tenant_saas  
-**状态**: ✅ 代码完成，本地测试通过；部署待执行  
+**范围**: 框架 multi_tenant_saas → neihang.com 生产部署  
+**状态**: ✅ 已完成并验证  
 **前置**: [P1 配置后台化](./2026-08-07-p1-config-admin-console.md)（遗留项「ai_providers 多源管理表未接线」）
 
 ---
@@ -90,21 +90,32 @@ ai_providers 表（系统级 tenant_id=null 且 active）
 
 ---
 
+## 部署验证 ✅ (neihang.com, 192.168.100.11)
+
+- 框架 push → split（38 包：1 根包 + 37 模块，44s）→ scrm-platform `composer update`（36 个 dsplat 包）→ `deploy.py incremental`
+- admin SPA 重建（element-plus）→ `rsync public/admin/`
+- 全链路验证通过（platform Operator token，验证后已吊销）：
+  - `GET /admin/ai/providers` — 空列表正常；创建后 api_key 掩码 `********`
+  - `POST /admin/ai/providers` — 系统级落库（tenant_id=null），api_key Crypt 加密
+  - `PUT`（掩码回存）— 落库解密仍为原密钥，改名生效
+  - 连接测试三级链实证（bailian）：
+    - 无 DB 记录 → `source=env`，236 models
+    - 创建覆盖记录（假 key）→ 即时 `source=db`，base_url 切换，401（缓存失效即时生效）
+    - 删除覆盖记录 → 即时回退 `source=env`，236 models
+  - `DELETE` 清理 + P1 回归 `GET /defaults` 正常（qwen3.7-plus / bailian）
+
+---
+
 ## 遗留 / 后续
 
 - **租户级 provider 覆盖**（tenant_id 非 null）：表结构就绪，解析链未接入
 - **AiGatewayService 故障转移**：按 priority/status 做多源 failover
-- **生产部署待执行**（按 deploy.md 流程）：
-  1. `git push origin main` → split 工作流（33 包）
-  2. scrm-platform `composer update dsplat/*` + commit composer.lock
-  3. `python3 deploy/deploy.py incremental --yes`
-  4. admin SPA 重建（element-plus）+ `rsync public/admin/`
-  5. 验证：`GET/POST /admin/ai/providers` CRUD + 连接测试 `source=db`
 
 ---
 
-## 涉及文件清单（框架，未提交）
+## 涉及文件清单
 
+### 框架 (multi_tenant_saas) — 已提交 (0c7e83e)
 ```
 M  src/Modules/Ai/Models/AiProvider.php
 M  src/Modules/Ai/Services/AiPlatformConfigService.php
@@ -115,4 +126,9 @@ M  src/Modules/Ai/resources/admin/ui/bootstrap/views/AiSettings.vue
 M  tests/Schema/AiModule.php
 M  tests/AiPlatformConfigServiceTest.php
 M  tests/AdminAiControllerTest.php
+```
+
+### 下游 (scrm-platform) — 已提交 (2c0a926)
+```
+M  composer.lock（36 个 dsplat 包）
 ```

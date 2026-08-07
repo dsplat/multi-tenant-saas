@@ -38,9 +38,11 @@
         <el-table-column label="创建时间" width="160">
           <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="80">
+        <el-table-column label="操作" width="190">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="viewDetail(row)">详情</el-button>
+            <el-button v-if="row.status === 'pending'" link type="success" size="small" @click="openMarkPaid(row)">补单</el-button>
+            <el-button v-if="row.status === 'pending'" link type="danger" size="small" @click="closeOrder(row)">关单</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -68,17 +70,43 @@
         <el-descriptions-item label="描述">{{ detailOrder.description || '-' }}</el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ detailOrder.created_at }}</el-descriptions-item>
         <el-descriptions-item label="支付时间">{{ detailOrder.paid_at || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="交易号">{{ detailOrder.transaction_id || '-' }}</el-descriptions-item>
+        <el-descriptions-item v-if="detailOrder.extra" label="扩展信息">
+          <pre style="margin: 0; font-size: 12px">{{ JSON.stringify(detailOrder.extra, null, 2) }}</pre>
+        </el-descriptions-item>
       </el-descriptions>
       <template #footer>
         <el-button @click="showDetail = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 手动补单弹窗 -->
+    <el-dialog v-model="showMarkPaid" title="手动补单（标记为已支付）" width="460px">
+      <el-alert type="warning" :closable="false" style="margin-bottom: 16px"
+        title="用于线下收款/回调丢失场景，确认后订单立即标记为已支付" />
+      <el-form label-width="90px">
+        <el-form-item label="订单">
+          <span style="font-family: monospace">{{ markPaidTarget?.order_no }}（¥{{ markPaidTarget?.amount }}）</span>
+        </el-form-item>
+        <el-form-item label="交易号">
+          <el-input v-model="markPaidForm.transaction_id" placeholder="留空则自动生成 MANUAL- 前缀" />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="markPaidForm.note" type="textarea" :rows="2" placeholder="补单原因（如：线下转账已到账）" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showMarkPaid = false">取消</el-button>
+        <el-button type="primary" :loading="operating" @click="submitMarkPaid">确认补单</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const ADMIN_API = '/api/v1/admin/payments/orders'
 const tenants = ref<any[]>([])
@@ -90,6 +118,10 @@ const totalPages = ref(1)
 const perPage = 20
 const detailOrder = ref<any>(null)
 const showDetail = ref(false)
+const showMarkPaid = ref(false)
+const markPaidTarget = ref<any>(null)
+const markPaidForm = reactive({ transaction_id: '', note: '' })
+const operating = ref(false)
 
 const statusType = (s: string) => ({ paid: 'success', pending: 'warning', failed: 'danger', cancelled: 'info', refunded: 'warning' }[s] || 'info')
 const statusLabel = (s: string) => ({ paid: '已支付', pending: '待支付', failed: '失败', cancelled: '已取消', refunded: '已退款' }[s] || s)
@@ -120,12 +152,51 @@ const goPage = (p: number) => fetchOrders(p)
 
 const viewDetail = async (o: any) => {
   try {
-    const r = await axios.get(`${ADMIN_API}/${o.order_no ?? o.id}`)
+    const r = await axios.get(`${ADMIN_API}/${o.id}`)
     detailOrder.value = r.data.data || o
   } catch {
     detailOrder.value = o
   }
   showDetail.value = true
+}
+
+const openMarkPaid = (o: any) => {
+  markPaidTarget.value = o
+  markPaidForm.transaction_id = ''
+  markPaidForm.note = ''
+  showMarkPaid.value = true
+}
+
+const submitMarkPaid = async () => {
+  operating.value = true
+  try {
+    const r = await axios.post(`${ADMIN_API}/${markPaidTarget.value.id}/mark-paid`, markPaidForm)
+    ElMessage.success(r.data.message || '补单成功')
+    showMarkPaid.value = false
+    fetchOrders(currentPage.value)
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || '补单失败')
+  } finally {
+    operating.value = false
+  }
+}
+
+const closeOrder = async (o: any) => {
+  try {
+    const { value } = await ElMessageBox.prompt(`确认关闭订单 ${o.order_no}？关闭后不可恢复。`, '关单', {
+      confirmButtonText: '确认关单',
+      cancelButtonText: '取消',
+      type: 'warning',
+      inputPlaceholder: '关单原因（可选）',
+      inputValidator: () => true,
+    })
+    await axios.post(`${ADMIN_API}/${o.id}/close`, { note: value || '' })
+    ElMessage.success('订单已关闭')
+    fetchOrders(currentPage.value)
+  } catch (e: any) {
+    if (e === 'cancel' || e?.message === 'cancel') return
+    ElMessage.error(e.response?.data?.message || '关单失败')
+  }
 }
 
 onMounted(() => {

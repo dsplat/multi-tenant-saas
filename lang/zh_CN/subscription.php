@@ -4,6 +4,7 @@ return [
     'subscribe_success' => '订阅成功',
     'cancel_success' => '已取消自动续费，到期后将降级为免费版',
     'change_success' => '计划已变更',
+    'resume_success' => '已恢复自动续费',
     'plan_not_deletable' => '免费计划不可删除',
     'plan_not_available' => '该订阅计划不可用',
     'trial_started' => '试用已开始',

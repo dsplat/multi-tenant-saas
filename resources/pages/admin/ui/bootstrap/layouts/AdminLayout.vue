@@ -138,6 +138,7 @@ const navSections = [
       { path: 'operators', label: '运营人员', icon: I.operators, perm: 'member.view' },
       { path: 'roles', label: '角色权限', icon: I.shield, perm: 'rbac.manage' },
       { path: 'plans', label: '订阅计划', icon: I.calendar, perm: 'subscription.manage' },
+      { path: 'subscriptions', label: '订阅总览', icon: I.calendar, perm: 'subscription.manage' },
     ],
   },
   {

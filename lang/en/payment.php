@@ -52,4 +52,9 @@ return [
     'invoice_already_void' => 'Invoice is already voided',
     'invoice_cannot_void' => 'Invoice cannot be voided in current status',
     'invoice_cannot_void_paid' => 'Paid invoice cannot be voided directly, please process refund first',
+
+    // Platform order operations
+    'order_status_invalid' => 'Operation not allowed for current order status',
+    'mark_paid_success' => 'Order marked as paid',
+    'close_success' => 'Order closed',
 ];

@@ -52,4 +52,9 @@ return [
     'invoice_already_void' => '发票已作废',
     'invoice_cannot_void' => '当前状态发票不可作废',
     'invoice_cannot_void_paid' => '已付款发票不可直接作废，请先处理退款',
+
+    // 平台订单运营
+    'order_status_invalid' => '当前订单状态不允许该操作',
+    'mark_paid_success' => '补单成功，订单已标记为已支付',
+    'close_success' => '订单已关闭',
 ];

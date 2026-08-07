@@ -69,6 +69,7 @@ const knownPaths: Record<string, string> = {
   SystemSettings: 'system-settings', TenantKeys: 'tenant-keys', RetentionPolicies: 'retention-policies',
   Consents: 'consents', Sandbox: 'sandbox', Settings: 'settings',
   CommerceOrders: 'commerce-orders', ContentLibrary: 'content-library',
+  Subscriptions: 'subscriptions',
 }
 
 // 自动发现页（无自定义 routes.ts 的模块）的菜单登记表；

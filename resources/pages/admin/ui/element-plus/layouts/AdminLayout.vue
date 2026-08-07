@@ -78,7 +78,7 @@ import {
   Grid, HomeFilled, OfficeBuilding, User, UserFilled, Lock, Calendar,
   Connection, Flag, Brush, Share, Setting, Timer, Monitor, Tools,
   Link, Key, Document, ChatDotRound, CreditCard, DataAnalysis, Coin,
-  SwitchButton,
+  SwitchButton, MagicStick,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/admin/stores/user'
 import { useTenantStore } from '@/admin/stores/tenant'
@@ -120,6 +120,7 @@ const navSections = [
       { path: 'retention-policies', label: '数据保留', icon: Timer, perm: 'compliance.view' },
       { path: 'sandbox', label: '沙箱环境', icon: Monitor },
       { path: 'settings', label: '配置中心', icon: Tools, perm: 'setting.view' },
+      { path: 'ai-settings', label: 'AI 配置', icon: MagicStick, perm: 'setting.view' },
     ],
   },
   {

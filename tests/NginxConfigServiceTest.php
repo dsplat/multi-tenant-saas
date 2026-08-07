@@ -110,6 +110,8 @@ class NginxConfigServiceTest extends TestCase
         $this->assertStringContainsString('fastcgi_pass unix:/var/run/php/php8.4-fpm.sock;', $stub);
         $this->assertStringNotContainsString('ssl_certificate', $stub);
         $this->assertStringNotContainsString('fastcgi_param HTTPS', $stub);
+        // 防伪：两种形态均须覆盖客户端传入的 X-Original-Host
+        $this->assertStringContainsString('fastcgi_param HTTP_X_ORIGINAL_HOST $host;', $stub);
 
         // https 直连形态（默认）：443 + SNI 证书 + HTTPS 参数
         config(['domain.nginx_listen_mode' => 'https']);

@@ -35,7 +35,7 @@ class LaravelAiProviderAdapter implements AiProviderContract
      * @param  array{driver: string, key?: string, url?: string, base_url?: string, api_key?: string}  $config
      */
     public function __construct(
-        private readonly array $config,
+        protected readonly array $config,
     ) {
         $this->labProvider = $this->resolveLabProvider($config['driver'] ?? 'openai');
     }
@@ -52,18 +52,18 @@ class LaravelAiProviderAdapter implements AiProviderContract
         };
     }
 
-    /** 解析 API base URL（兼容多种配置字段） */
-    private function resolveBaseUrl(): string
+    /** 解析 API base URL（兼容多种配置字段；?: 兼判空串，避免空 url 遮蔽 base_url） */
+    protected function resolveBaseUrl(): string
     {
-        $url = $this->config['url']
-            ?? $this->config['base_url']
-            ?? 'https://api.openai.com/v1';
+        $url = ($this->config['url'] ?? '')
+            ?: ($this->config['base_url'] ?? '')
+            ?: 'https://api.openai.com/v1';
 
         return rtrim($url, '/');
     }
 
     /** 解析 API Key */
-    private function resolveApiKey(): string
+    protected function resolveApiKey(): string
     {
         return $this->config['key']
             ?? $this->config['api_key']
@@ -505,7 +505,7 @@ class LaravelAiProviderAdapter implements AiProviderContract
 
     public function isAvailable(): bool
     {
-        $key = $this->config['key'] ?? $this->config['api_key'] ?? '';
+        $key = ($this->config['key'] ?? '') ?: ($this->config['api_key'] ?? '');
 
         return ! empty($key);
     }

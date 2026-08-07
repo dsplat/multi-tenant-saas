@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
+use Illuminate\Support\Facades\Http;
 use Mockery;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Ai\Models\AiModelAlias;
@@ -525,6 +526,82 @@ class AiGatewayServiceTest extends TestCase
 
         $log = AiRequest::first();
         $this->assertStringContainsString('first text', $log->prompt_summary);
+    }
+
+    // ======================================================================
+    // embed() — bailian provider（OpenAI 兼容端点直连）
+    // ======================================================================
+
+    public function test_embed_via_bailian_provider_calls_compatible_endpoint(): void
+    {
+        config([
+            'ai.default_provider' => 'bailian',
+            'ai.providers.bailian.url' => 'https://bailian.test/compatible-mode/v1',
+            'ai.providers.bailian.base_url' => 'https://bailian.test/compatible-mode/v1',
+            'ai.providers.bailian.key' => 'sk-bailian-test',
+            'ai.providers.bailian.api_key' => 'sk-bailian-test',
+        ]);
+
+        Http::fake([
+            'bailian.test/*' => Http::response([
+                'model' => 'qwen3.7-text-embedding',
+                'object' => 'list',
+                'data' => [['index' => 0, 'embedding' => [0.1, 0.2], 'object' => 'embedding']],
+                'usage' => ['total_tokens' => 3],
+            ], 200),
+        ]);
+
+        $service = app(AiGatewayService::class);
+        $result = $service->embed('qwen3.7-text-embedding', '你好世界');
+
+        $this->assertCount(1, $result['data']);
+        $this->assertSame([0.1, 0.2], $result['data'][0]['embedding']);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://bailian.test/compatible-mode/v1/embeddings'
+                && $request['model'] === 'qwen3.7-text-embedding'
+                && $request->hasHeader('Authorization', 'Bearer sk-bailian-test');
+        });
+    }
+
+    public function test_embed_resolves_alias_to_bailian_embedding_model(): void
+    {
+        AiModelAlias::create([
+            'alias' => 'text-embedding-3-small',
+            'actual_model' => 'qwen3.7-text-embedding',
+            'provider' => 'bailian',
+            'type' => 'text',
+            'is_active' => true,
+            'is_deprecated' => false,
+        ]);
+
+        config([
+            'ai.providers.bailian.url' => 'https://bailian.test/compatible-mode/v1',
+            'ai.providers.bailian.base_url' => 'https://bailian.test/compatible-mode/v1',
+            'ai.providers.bailian.key' => 'sk-bailian-test',
+            'ai.providers.bailian.api_key' => 'sk-bailian-test',
+        ]);
+
+        Http::fake([
+            'bailian.test/*' => Http::response([
+                'model' => 'qwen3.7-text-embedding',
+                'object' => 'list',
+                'data' => [['index' => 0, 'embedding' => [0.5], 'object' => 'embedding']],
+                'usage' => ['total_tokens' => 2],
+            ], 200),
+        ]);
+
+        $service = app(AiGatewayService::class);
+        $result = $service->embed('text-embedding-3-small', 'hello');
+
+        $this->assertCount(1, $result['data']);
+
+        // 别名被解析为实际模型并路由到 bailian 端点
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'bailian.test')
+            && $request['model'] === 'qwen3.7-text-embedding');
+
+        $log = AiRequest::first();
+        $this->assertEquals('qwen3.7-text-embedding', $log->model);
     }
 
     // ======================================================================

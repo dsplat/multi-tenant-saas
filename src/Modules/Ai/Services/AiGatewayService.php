@@ -14,6 +14,7 @@ use MultiTenantSaas\Exceptions\QuotaExceededException;
 use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Ai\Models\AiModelAlias;
 use MultiTenantSaas\Modules\Ai\Models\AiRequest;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Providers\BailianProvider;
 use MultiTenantSaas\Modules\Ai\Services\Ai\Providers\LaravelAiProviderAdapter;
 use MultiTenantSaas\Modules\Ai\Services\Ai\ZhipuProvider;
 use Throwable;
@@ -50,6 +51,9 @@ class AiGatewayService
         'groq' => LaravelAiProviderAdapter::class,
         // OpenAI 兼容模式 provider（智谱等自定义 base_url）
         'zhipu' => ZhipuProvider::class,
+        // 阿里云百炼（OpenAI 兼容端点，embeddings 直连，不走 laravel/ai SDK）
+        'bailian' => BailianProvider::class,
+        'bailian_metered' => BailianProvider::class,
     ];
 
     /**
@@ -360,15 +364,16 @@ class AiGatewayService
             throw new ServiceUnavailableException(trans('ai.provider_not_implemented', ['provider' => $providerCode]));
         }
 
-        // laravel/ai 适配器需要传入 provider 配置
-        if ($class === LaravelAiProviderAdapter::class) {
+        // laravel/ai 适配器（含子类，如 BailianProvider）需要传入 provider 配置
+        if ($class === LaravelAiProviderAdapter::class || is_subclass_of($class, LaravelAiProviderAdapter::class)) {
             // 检查容器是否已绑定（测试注入 mock）
             if (app()->bound($class)) {
                 return $this->providerCache[$providerCode] = app($class);
             }
 
             $config = config("ai.providers.{$providerCode}", []);
-            $config['driver'] = $providerCode;
+            // 尊重 config 中的 driver（如 bailian 配 'openai'），缺省才按 provider code 兜底
+            $config['driver'] ??= $providerCode;
 
             return $this->providerCache[$providerCode] = new $class($config);
         }

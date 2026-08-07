@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Commerce\Http\Controllers\Admin\CommerceAdminController;
 use MultiTenantSaas\Modules\Commerce\Http\Controllers\Admin\CommerceContentAdminController;
+use MultiTenantSaas\Modules\Commerce\Http\Controllers\Admin\CommerceSupplyAdminController;
 
 // 平台管理端 - 商业体（SKU 管理 + 订单总览 + 履约补偿）
 Route::prefix('commerce')->group(function () {
@@ -18,6 +19,15 @@ Route::prefix('commerce')->group(function () {
     Route::get('/supply-grants', [CommerceAdminController::class, 'grantIndex']);
     Route::post('/supply-grants/{grantId}/suspend', [CommerceAdminController::class, 'grantSuspend']);
     Route::post('/supply-grants/{grantId}/resume', [CommerceAdminController::class, 'grantResume']);
+
+    // 供货结算（P4）：划拨建授/调额 + 预存货款 + 域名保证金
+    Route::post('/supply-grants', [CommerceSupplyAdminController::class, 'grantStore']);
+    Route::post('/supply-grants/{grantId}/adjust-qty', [CommerceSupplyAdminController::class, 'grantAdjustQty']);
+    Route::get('/prepay-accounts', [CommerceSupplyAdminController::class, 'prepayIndex']);
+    Route::post('/prepay/recharge', [CommerceSupplyAdminController::class, 'prepayRecharge']);
+    Route::get('/prepay/transactions', [CommerceSupplyAdminController::class, 'prepayTransactions']);
+    Route::get('/deposits', [CommerceSupplyAdminController::class, 'depositIndex']);
+    Route::post('/deposits/{action}', [CommerceSupplyAdminController::class, 'depositOperate']);
 
     // 平台内容库（内容条目 + 内容包）
     Route::get('/content-library', [CommerceContentAdminController::class, 'contentIndex']);

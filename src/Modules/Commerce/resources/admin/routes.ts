@@ -31,6 +31,24 @@ const routes = [
     },
   },
   {
+    path: 'prepay-accounts',
+    name: 'commerce-admin-prepay-accounts',
+    component: () => import('./ui/element-plus/views/PrepayAccounts.vue'),
+    meta: {
+      title: '预存货款', requiresAuth: true, module: 'commerce',
+      menu: { section: MENU_SECTION, label: '预存货款', perm: 'setting.view' },
+    },
+  },
+  {
+    path: 'deposits',
+    name: 'commerce-admin-deposits',
+    component: () => import('./ui/element-plus/views/Deposits.vue'),
+    meta: {
+      title: '域名保证金', requiresAuth: true, module: 'commerce',
+      menu: { section: MENU_SECTION, label: '域名保证金', perm: 'setting.view' },
+    },
+  },
+  {
     path: 'content-library',
     name: 'commerce-admin-content-library',
     component: () => import('./ui/element-plus/views/ContentLibrary.vue'),

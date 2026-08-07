@@ -40,6 +40,9 @@ class SupplyGrant extends Model
         'valid_until',
         'settlement',
         'instance_payload',
+        'allocated_qty',
+        'remaining_qty',
+        'locked_qty',
     ];
 
     protected function casts(): array
@@ -52,6 +55,9 @@ class SupplyGrant extends Model
             'valid_until' => 'datetime',
             'settlement' => 'array',
             'instance_payload' => 'array',
+            'allocated_qty' => 'integer',
+            'remaining_qty' => 'integer',
+            'locked_qty' => 'integer',
         ];
     }
 
@@ -69,5 +75,21 @@ class SupplyGrant extends Model
     {
         return $this->status === self::STATUS_ACTIVE
             && ($this->valid_until === null || $this->valid_until->isFuture());
+    }
+
+    /**
+     * 库存型授权（划拨了数量，走锁库存→扣预存→下发链路）
+     */
+    public function isStockManaged(): bool
+    {
+        return $this->allocated_qty > 0;
+    }
+
+    /**
+     * 供货价（分）：settlement.supply_price 以元存储（历史口径），结算时换算
+     */
+    public function supplyPriceFen(): int
+    {
+        return (int) round(((float) ($this->settlement['supply_price'] ?? 0)) * 100);
     }
 }

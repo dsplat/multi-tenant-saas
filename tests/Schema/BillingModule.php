@@ -19,7 +19,7 @@ class BillingModule implements SchemaModuleInterface
             $table->unsignedBigInteger('credit_account_id')->primary();
             $table->unsignedBigInteger('tenant_id');
             $table->unsignedBigInteger('user_id')->nullable();
-            $table->enum('account_type', ['enterprise', 'personal'])->default('personal');
+            $table->enum('account_type', ['enterprise', 'personal', 'supply_prepay', 'domain_deposit'])->default('personal');
             $table->unsignedBigInteger('balance')->default(0);
             $table->unsignedBigInteger('gift_balance')->default(0);
             $table->unsignedBigInteger('recharge_balance')->default(0);
@@ -42,7 +42,7 @@ class BillingModule implements SchemaModuleInterface
             $table->unsignedBigInteger('account_id');
             $table->unsignedBigInteger('tenant_id');
             $table->unsignedBigInteger('user_id')->nullable();
-            $table->enum('type', ['recharge', 'consume', 'refund', 'transfer', 'gift', 'expire']);
+            $table->enum('type', ['recharge', 'consume', 'refund', 'transfer', 'gift', 'expire', 'release']);
             $table->bigInteger('amount');
             $table->unsignedBigInteger('balance_after')->default(0);
             $table->string('related_type', 100)->nullable();

@@ -82,6 +82,9 @@ class CommerceModule implements SchemaModuleInterface
             $table->timestamp('valid_from')->nullable();
             $table->timestamp('valid_until')->nullable();
             $table->json('settlement')->nullable();
+            $table->unsignedInteger('allocated_qty')->default(0);
+            $table->unsignedInteger('remaining_qty')->default(0);
+            $table->unsignedInteger('locked_qty')->default(0);
             $table->json('instance_payload')->nullable();
             $table->timestamps();
             $table->index(['tenant_id', 'status']);

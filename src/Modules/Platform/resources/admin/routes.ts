@@ -3,7 +3,10 @@ const routes = [
     path: 'tenant-applications',
     name: 'platform-tenant-applications',
     component: () => import('./ui/element-plus/views/TenantApplications.vue'),
-    meta: { title: 'Tenant Applications', requiresAuth: true, module: 'platform' },
+    meta: {
+      title: 'Tenant Applications', requiresAuth: true, module: 'platform',
+      menu: { section: '团队管理', label: '租户应用', perm: 'tenant.view' },
+    },
   },
   {
     path: 'tenant-applications/:id',
@@ -15,7 +18,10 @@ const routes = [
     path: 'apply-field-config',
     name: 'platform-apply-field-config',
     component: () => import('./ui/element-plus/views/ApplyFieldConfig.vue'),
-    meta: { title: 'Apply Field Config', requiresAuth: true, module: 'platform' },
+    meta: {
+      title: 'Apply Field Config', requiresAuth: true, module: 'platform',
+      menu: { section: '平台配置', label: '申请字段配置', perm: 'setting.view' },
+    },
   },
   // 有自定义 routes.ts 的模块不再走视图自动发现，需在此显式声明全部页面
   {

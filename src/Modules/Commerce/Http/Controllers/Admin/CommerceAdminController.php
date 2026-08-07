@@ -30,6 +30,10 @@ class CommerceAdminController extends Controller
 
         $query = CommerceSku::query();
 
+        if ($request->filled('type')) {
+            $query->where('type', $request->input('type'));
+        }
+
         if ($request->filled('role')) {
             $query->where('role', $request->input('role'));
         }

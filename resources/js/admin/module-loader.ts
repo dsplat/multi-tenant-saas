@@ -9,6 +9,16 @@ export interface ModuleRoute {
   meta?: Record<string, any>
 }
 
+// 菜单声明：模块在 routes.ts 的 meta.menu 或 knownPageMenus 中声明，
+// AdminLayout 动态聚合渲染（根治菜单硬编码漏配）
+export interface ModuleMenuItem {
+  section: string
+  label: string
+  path: string
+  perm?: string
+  module?: string
+}
+
 // 绝对路径 glob — 从项目根开始
 const frameworkModuleViews = import.meta.glob(
   '/vendor/dsplat/module-*/resources/admin/ui/*/views/*.vue',
@@ -60,6 +70,10 @@ const knownPaths: Record<string, string> = {
   Consents: 'consents', Sandbox: 'sandbox', Settings: 'settings',
   CommerceOrders: 'commerce-orders', ContentLibrary: 'content-library',
 }
+
+// 自动发现页（无自定义 routes.ts 的模块）的菜单登记表；
+// 有自定义 routes.ts 的模块请在其 meta.menu 中直接声明
+const knownPageMenus: Record<string, { section: string; label: string; perm?: string }> = {}
 
 // Load custom routes from module routes.ts files
 export async function loadModuleRoutes(): Promise<ModuleRoute[]> {
@@ -119,11 +133,17 @@ export async function loadModuleViews(): Promise<ModuleRoute[]> {
     const routePath = knownPaths[pageName]
       || pageName.replace(/([a-z])([A-Z])/g, '$1-$2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2').toLowerCase()
     const loader = isVendor ? frameworkModuleViews[path] : localModuleViews[path]
+    const menu = knownPageMenus[pageName]
     return {
       path: routePath,
       name: `${moduleName}${pageName}`,
       component: () => (loader as () => Promise<any>)(),
-      meta: { title: pageName, requiresAuth: true, module: moduleName },
+      meta: {
+        title: pageName,
+        requiresAuth: true,
+        module: moduleName,
+        ...(menu ? { menu: { ...menu, path: routePath } } : {}),
+      },
     }
   }
 
@@ -165,14 +185,36 @@ export async function loadModuleViews(): Promise<ModuleRoute[]> {
   return routes
 }
 
-// Get all module routes (custom + auto-generated)
-export async function getAllModuleRoutes(): Promise<ModuleRoute[]> {
-  const [customRoutes, autoRoutes] = await Promise.all([
-    loadModuleRoutes(),
-    loadModuleViews(),
-  ])
+// Get all module routes (custom + auto-generated)；带缓存，router 与菜单聚合共用不重复加载
+let cachedRoutesPromise: Promise<ModuleRoute[]> | null = null
 
-  return [...customRoutes, ...autoRoutes]
+export function getAllModuleRoutes(): Promise<ModuleRoute[]> {
+  if (!cachedRoutesPromise) {
+    cachedRoutesPromise = Promise.all([
+      loadModuleRoutes(),
+      loadModuleViews(),
+    ]).then(([customRoutes, autoRoutes]) => [...customRoutes, ...autoRoutes])
+  }
+  return cachedRoutesPromise
+}
+
+// 收集全部模块菜单项，按 section 分组（AdminLayout 动态渲染用）
+export async function collectMenuItemsBySection(): Promise<Record<string, ModuleMenuItem[]>> {
+  const routes = await getAllModuleRoutes()
+  const sections: Record<string, ModuleMenuItem[]> = {}
+  for (const r of routes) {
+    const menu = r.meta?.menu
+    if (!menu || !menu.section || !menu.label) continue
+    const section = menu.section as string
+    ;(sections[section] ||= []).push({
+      section,
+      label: menu.label as string,
+      path: (menu.path as string) || r.path,
+      perm: menu.perm as string | undefined,
+      module: r.meta?.module as string | undefined,
+    })
+  }
+  return sections
 }
 
 // Module pages discovered at build time — available for sidebar rendering

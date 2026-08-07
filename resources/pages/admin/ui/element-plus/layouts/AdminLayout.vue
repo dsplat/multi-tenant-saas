@@ -14,7 +14,7 @@
       <div class="sidebar-nav">
         <el-menu :default-active="activePath" :router="true" class="sidebar-menu"
           :class="{ 'disabled-section': section.needsTenant && !tenantStore.hasTenant }"
-          v-for="section in navSections" :key="section.label">
+          v-for="section in allSections" :key="section.label">
           <div class="nav-section-label">
             {{ section.label }}
             <span v-if="section.needsTenant && !tenantStore.hasTenant" class="section-hint">请先选择团队</span>
@@ -78,10 +78,11 @@ import {
   Grid, HomeFilled, OfficeBuilding, User, UserFilled, Lock, Calendar,
   Connection, Flag, Brush, Share, Setting, Timer, Monitor, Tools,
   Link, Key, Document, ChatDotRound, CreditCard, DataAnalysis, Coin,
-  SwitchButton, MagicStick,
+  SwitchButton, MagicStick, Goods, List,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/admin/stores/user'
 import { useTenantStore } from '@/admin/stores/tenant'
+import { collectMenuItemsBySection } from '@/admin/module-loader'
 import ThemeSwitcher from '@multi-tenant-saas/ui-core/components/ThemeSwitcher.vue'
 import ColorPicker from '@multi-tenant-saas/ui-core/components/ColorPicker.vue'
 import ThemeSettings from '@multi-tenant-saas/ui-core/components/ThemeSettings.vue'
@@ -145,6 +146,12 @@ const navSections = [
   },
 ]
 
+// 模块动态菜单：模块在 routes.ts 的 meta.menu 声明，此处按 section 聚合渲染
+const moduleSections = ref<Array<{ label: string; icon: any; items: Array<{ path: string; label: string; perm?: string }> }>>([])
+const SECTION_ICONS: Record<string, any> = { '商业运营': Goods }
+
+const allSections = computed(() => [...navSections, ...moduleSections.value])
+
 const onTenantChange = () => {
   const tenant = tenantStore.tenants.find(t => t.tenant_id === selectedTenantId.value)
   tenantStore.selectTenant(tenant || null)
@@ -154,6 +161,13 @@ onMounted(async () => {
   await tenantStore.fetchTenants()
   await tenantStore.restoreSelection()
   selectedTenantId.value = tenantStore.tenantId
+
+  const bySection = await collectMenuItemsBySection()
+  moduleSections.value = Object.entries(bySection).map(([label, items]) => ({
+    label,
+    icon: SECTION_ICONS[label] || List,
+    items,
+  }))
 })
 
 watch(() => tenantStore.tenantId, (id) => { selectedTenantId.value = id })

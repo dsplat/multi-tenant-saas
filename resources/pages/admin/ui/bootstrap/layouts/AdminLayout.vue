@@ -9,7 +9,7 @@
       </div>
 
       <nav class="a-nav">
-        <div v-for="section in navSections" :key="section.label" class="a-nav-section" :class="{ disabled: section.needsTenant && !tenantStore.hasTenant }">
+        <div v-for="section in allSections" :key="section.label" class="a-nav-section" :class="{ disabled: section.needsTenant && !tenantStore.hasTenant }">
           <div class="a-nav-label">
             {{ section.label }}
             <span v-if="section.needsTenant && !tenantStore.hasTenant" class="a-section-hint">请先选择团队</span>
@@ -78,10 +78,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/admin/stores/user'
 import { useTenantStore } from '@/admin/stores/tenant'
+import { collectMenuItemsBySection } from '@/admin/module-loader'
 import ThemeSwitcher from '@multi-tenant-saas/ui-core/components/ThemeSwitcher.vue'
 import ColorPicker from '@multi-tenant-saas/ui-core/components/ColorPicker.vue'
 import ThemeSettings from '@multi-tenant-saas/ui-core/components/ThemeSettings.vue'
@@ -125,6 +126,7 @@ const I = {
   shield2: 'M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z',
   table: 'M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z',
   docs: 'M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z',
+  cart: 'M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z',
 }
 
 const navSections = [
@@ -175,6 +177,12 @@ const navSections = [
   },
 ]
 
+// 模块动态菜单：模块在 routes.ts 的 meta.menu 声明，此处按 section 聚合渲染
+const moduleSections = ref<Array<{ label: string; icon: string; items: Array<{ path: string; label: string; perm?: string }> }>>([])
+const SECTION_ICONS: Record<string, string> = { '商业运营': I.cart }
+
+const allSections = computed(() => [...navSections, ...moduleSections.value])
+
 const onTenantChange = () => {
   const tenant = tenantStore.tenants.find(t => t.tenant_id === selectedTenantId.value)
   tenantStore.selectTenant(tenant || null)
@@ -184,6 +192,13 @@ onMounted(async () => {
   await tenantStore.fetchTenants()
   await tenantStore.restoreSelection()
   selectedTenantId.value = tenantStore.tenantId
+
+  const bySection = await collectMenuItemsBySection()
+  moduleSections.value = Object.entries(bySection).map(([label, items]) => ({
+    label,
+    icon: SECTION_ICONS[label] || I.module,
+    items,
+  }))
 })
 
 watch(() => tenantStore.tenantId, (id) => { selectedTenantId.value = id })

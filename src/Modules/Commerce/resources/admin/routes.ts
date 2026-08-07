@@ -1,15 +1,43 @@
+// 有自定义 routes.ts 的模块不再走视图自动发现，需在此显式声明全部页面；
+// meta.menu 声明侧边菜单（AdminLayout 动态聚合，无需改布局硬编码）
+const MENU_SECTION = '商业运营'
+
 const routes = [
+  {
+    path: 'sku-pool',
+    name: 'commerce-admin-sku-pool',
+    component: () => import('./ui/element-plus/views/SkuPool.vue'),
+    meta: {
+      title: 'SKU 商品池', requiresAuth: true, module: 'commerce',
+      menu: { section: MENU_SECTION, label: 'SKU 商品池', perm: 'setting.view' },
+    },
+  },
+  {
+    path: 'supply-grants',
+    name: 'commerce-admin-supply-grants',
+    component: () => import('./ui/element-plus/views/SupplyGrants.vue'),
+    meta: {
+      title: '供给授权', requiresAuth: true, module: 'commerce',
+      menu: { section: MENU_SECTION, label: '供给授权', perm: 'setting.view' },
+    },
+  },
   {
     path: 'commerce-orders',
     name: 'commerce-admin-orders',
     component: () => import('./ui/element-plus/views/CommerceOrders.vue'),
-    meta: { title: '商业体订单', requiresAuth: true, module: 'commerce' },
+    meta: {
+      title: '商业体订单', requiresAuth: true, module: 'commerce',
+      menu: { section: MENU_SECTION, label: '商业订单', perm: 'setting.view' },
+    },
   },
   {
     path: 'content-library',
     name: 'commerce-admin-content-library',
     component: () => import('./ui/element-plus/views/ContentLibrary.vue'),
-    meta: { title: '平台内容库', requiresAuth: true, module: 'commerce' },
+    meta: {
+      title: '平台内容库', requiresAuth: true, module: 'commerce',
+      menu: { section: MENU_SECTION, label: '内容库', perm: 'setting.view' },
+    },
   },
 ]
 

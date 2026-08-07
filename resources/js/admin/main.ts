@@ -5,6 +5,9 @@ import { createBootstrapAdapter } from '@multi-tenant-saas/ui-core/adapters/inde
 import { useUserStore } from './stores/user'
 import App from '../../pages/admin/App.vue'
 import router from './router'
+// 全量样式：页面手工 import { ElMessage, ElMessageBox } 会绕过 AutoImport 的样式注入，
+// 导致弹窗/提示缺 overlay 样式（左上角、无遮罩）；基础样式须先于暗色变量加载
+import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 
 const fw = localStorage.getItem('multi-tenant-saas-ui-framework')

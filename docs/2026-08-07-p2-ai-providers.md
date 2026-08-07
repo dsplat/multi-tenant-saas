@@ -130,6 +130,24 @@ Platform 模块的自定义 routes.ts 只声明了 3 个页面，漏了 `Setting
 修复后回归验证三项全过（菜单入口 / AI 配置页 / 系统设置 + 配置中心渲染），
 54 个请求全 200/204，控制台无错误。截图见 `docs/screenshots/fix-*.png`。
 
+### 缺陷 3：删除确认弹窗左上角 + 无遮罩（提交 f364325）
+
+**根因**：页面手工 `import { ElMessage, ElMessageBox } from 'element-plus'`（全库 28 处）
+绕过 unplugin AutoImport 的样式注入 → overlay/message-box CSS 缺失时，
+弹窗无居中 flex 布局（落到左上角）且无遮罩层；先开过 el-dialog 的会话因
+overlay CSS 被带进而表现正常，导致测试截图未复现。
+**修复**：`main.ts` 全量引入 `element-plus/dist/index.css`（+48KB gzip，先于暗色变量），根治全部 API 式组件。
+
+### 缺陷 4：用户浏览器旧 index.html 缓存看不到新菜单
+
+**根因**：nginx 对 index.html 仅发 `Last-Modified/ETag`，浏览器启发式缓存旧入口 →
+旧 index.html 引用已被 `rsync --delete` 移除的 hash chunk。
+**修复**：生产 `neihang.conf` 新增 `location ~ ^/(admin|console|app)/index.html$` 发
+`Cache-Control: no-cache`（备份 `/root/neihang.conf.bak.*`），已 reload 验证。
+
+两缺陷修复后经浏览器实测：弹窗精确居中（中心点与视口重合）+ `rgba(0,0,0,0.5)` 全屏遮罩，
+截图见 `docs/screenshots/dlg-*.png`。
+
 ---
 
 ## 遗留 / 后续

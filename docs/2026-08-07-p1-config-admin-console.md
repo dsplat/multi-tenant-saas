@@ -100,7 +100,7 @@
 
 ## 遗留 / P2 前置
 
-- **`ai_providers` 多源管理表**：框架已有 `AiProvider` 模型（`ai_providers` 表，Crypt 加密 api_key，tenant_id 可空），本次未接线，留给 P2
+- **`ai_providers` 多源管理表**：✅ 已在 P2 接线，见 [2026-08-07-p2-ai-providers.md](./2026-08-07-p2-ai-providers.md)
 - **生产 `mail` 组为空**：平台 SMTP 未配置，可通过 `POST /admin/system-settings` 随时补录
 - **admin SPA 路由**：`AiSettings.vue` 通过 `import.meta.glob` 自动发现，路由 `ai-settings`，无手动注册
 

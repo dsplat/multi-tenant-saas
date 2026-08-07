@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Crypt;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Context\TenantContext;
 
 /**
  * AI 提供商模型
@@ -15,13 +16,35 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  * 存储 AI 提供商配置（名称、API 基地址、默认 API Key、状态、优先级），
  * 供 AiGatewayService 做提供商注册与故障转移参考。
  *
- * 说明：本模型启用 BelongsToTenant 全局作用域实现租户隔离；
- * tenant_id 为 null 的记录为系统级配置（在 admin 域名下创建/查询），
- * 非 null 记录为租户级覆盖配置。api_key 始终加密存储，永不以明文持久化。
+ * 说明：覆写 BelongsToTenant 默认 boot（同 MailTemplate 先例）：
+ * tenant_id 为 null 的记录为系统级配置，由 admin 后台管理，创建时不自动
+ * 填充当前租户；租户上下文查询时返回当前租户覆盖 + 系统级配置。
+ * api_key 始终加密存储，永不以明文持久化。
  */
 class AiProvider extends Model
 {
     use BelongsToTenant, HasFactory, HasGlobalId;
+
+    /**
+     * 覆写 BelongsToTenant 的 boot：
+     * - 查询：租户上下文下可见当前租户覆盖 + 系统级（tenant_id=null）配置
+     * - 创建：不自动填充 tenant_id——显式 null 即系统级记录，
+     *   租户级覆盖须显式传 tenant_id
+     */
+    protected static function bootBelongsToTenant(): void
+    {
+        static::addGlobalScope('aiProviderTenant', function (Builder $builder) {
+            $tenantId = TenantContext::getId();
+
+            if ($tenantId) {
+                $table = $builder->getModel()->getTable();
+                $builder->where(function ($q) use ($table, $tenantId) {
+                    $q->where("{$table}.tenant_id", $tenantId)
+                        ->orWhereNull("{$table}.tenant_id");
+                });
+            }
+        });
+    }
 
     protected $primaryKey = 'provider_id';
 

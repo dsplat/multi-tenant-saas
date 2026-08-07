@@ -17,6 +17,49 @@
         <button type="submit" class="primary-btn" :disabled="saving">保存</button>
       </form>
 
+      <!-- 提供商多源管理 -->
+      <div v-if="activeTab === 'providers'">
+        <p class="hint">系统级连接配置，优先级：ai_providers 表 &gt; system_settings 覆盖 &gt; .env，保存后 60 秒内生效</p>
+        <table class="data-table">
+          <thead><tr><th>优先级</th><th>标识</th><th>名称</th><th>Base URL</th><th>API Key</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr v-for="p in providers" :key="p.provider_id">
+              <td>{{ p.priority }}</td>
+              <td><strong>{{ p.code }}</strong></td>
+              <td>{{ p.name }}</td>
+              <td>{{ p.base_url || '—' }}</td>
+              <td>{{ p.api_key || '—' }}</td>
+              <td><span :class="['badge', p.status === 'active' ? 'badge-success' : 'badge-danger']">{{ p.status === 'active' ? '启用' : '停用' }}</span></td>
+              <td>
+                <button class="link-btn" @click="editProvider(p)">编辑</button>
+                <button class="link-btn" @click="removeProvider(p)">删除</button>
+              </td>
+            </tr>
+            <tr v-if="providers.length === 0"><td colspan="7" class="empty-row">暂无提供商配置（回退 .env 引导层）</td></tr>
+          </tbody>
+        </table>
+        <form style="margin-top: 16px; border-top: 1px solid #eee; padding-top: 12px" @submit.prevent="saveProvider">
+          <h4>{{ providerForm.provider_id ? '编辑提供商' : '新增/覆盖提供商' }}</h4>
+          <div class="form-row">
+            <div class="form-group"><label>标识（小写字母/数字/下划线）</label><input v-model="providerForm.code" placeholder="如 bailian" /></div>
+            <div class="form-group"><label>名称</label><input v-model="providerForm.name" placeholder="如 百炼" /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Base URL</label><input v-model="providerForm.base_url" placeholder="如 https://dashscope.aliyuncs.com/compatible-mode/v1" /></div>
+            <div class="form-group"><label>API Key（掩码表示未修改）</label><input v-model="providerForm.api_key" type="password" /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>状态</label>
+              <select v-model="providerForm.status"><option value="active">启用 (active)</option><option value="inactive">停用 (inactive)</option></select>
+            </div>
+            <div class="form-group"><label>优先级（越小越优先）</label><input v-model.number="providerForm.priority" type="number" min="0" /></div>
+          </div>
+          <button type="submit" class="primary-btn" :disabled="saving">保存</button>
+          <button v-if="providerForm.provider_id" type="button" class="link-btn" style="margin-left: 8px" @click="resetProviderForm">取消编辑</button>
+        </form>
+      </div>
+
       <!-- 模型别名 -->
       <div v-if="activeTab === 'aliases'">
         <div class="form-row" style="margin-bottom: 12px">
@@ -98,7 +141,7 @@
         <div class="form-group"><label>Provider 标识</label><input v-model="testProvider" placeholder="如 bailian" style="width: 220px" /></div>
         <button type="submit" class="primary-btn" :disabled="testing || !testProvider">{{ testing ? '测试中...' : '测试连接' }}</button>
         <p v-if="testResult" :style="{ color: testResult.ok ? '#2e7d32' : '#c62828' }">{{ testResult.msg }}</p>
-        <p class="hint">读取 DB 覆盖层（system_settings）+ .env 引导配置，实时请求 /models 端点，不落库。</p>
+        <p class="hint">读取 ai_providers 表 + DB 覆盖层（system_settings）+ .env 引导配置，实时请求 /models 端点，不落库。</p>
       </form>
     </div>
   </div>
@@ -111,6 +154,7 @@ import axios from 'axios'
 const API = '/api/v1/admin/ai'
 const tabs = [
   { key: 'defaults', label: '默认模型' },
+  { key: 'providers', label: '提供商' },
   { key: 'aliases', label: '模型别名' },
   { key: 'catalog', label: '模型目录' },
   { key: 'tenant', label: '租户配置' },
@@ -124,6 +168,30 @@ const fetchDefaults = async () => { try { const r = await axios.get(`${API}/defa
 const saveDefaults = async () => {
   saving.value = true
   try { await axios.put(`${API}/defaults`, defaults); alert('保存成功') } catch { alert('保存失败') } finally { saving.value = false }
+}
+
+const providers = ref<any[]>([])
+const providerForm = reactive<any>({ provider_id: null, code: '', name: '', base_url: '', api_key: '', status: 'active', priority: 0 })
+const fetchProviders = async () => { try { const r = await axios.get(`${API}/providers`); providers.value = r.data.data || [] } catch {} }
+const resetProviderForm = () => Object.assign(providerForm, { provider_id: null, code: '', name: '', base_url: '', api_key: '', status: 'active', priority: 0 })
+const editProvider = (row: any) => Object.assign(providerForm, row)
+const saveProvider = async () => {
+  saving.value = true
+  try {
+    const payload = { code: providerForm.code, name: providerForm.name, base_url: providerForm.base_url || null, api_key: providerForm.api_key || null, status: providerForm.status, priority: Number(providerForm.priority || 0) }
+    if (providerForm.provider_id) {
+      await axios.put(`${API}/providers/${providerForm.provider_id}`, payload)
+    } else {
+      await axios.post(`${API}/providers`, payload)
+    }
+    alert('保存成功，稍后生效')
+    resetProviderForm()
+    await fetchProviders()
+  } catch (e: any) { alert(e.response?.data?.message || '保存失败') } finally { saving.value = false }
+}
+const removeProvider = async (row: any) => {
+  if (!confirm(`确认删除提供商「${row.code}」？删除后回退 system_settings / .env 配置。`)) return
+  try { await axios.delete(`${API}/providers/${row.provider_id}`); await fetchProviders() } catch {}
 }
 
 const aliases = ref<any[]>([])
@@ -185,5 +253,5 @@ const runTest = async () => {
   }
 }
 
-onMounted(() => { fetchDefaults(); fetchAliases(); fetchCatalog(); fetchTenants() })
+onMounted(() => { fetchDefaults(); fetchProviders(); fetchAliases(); fetchCatalog(); fetchTenants() })
 </script>

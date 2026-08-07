@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Ai\Models\AiModelAlias;
+use MultiTenantSaas\Modules\Ai\Models\AiProvider;
 use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
 use MultiTenantSaas\Modules\Ai\Services\AiPlatformConfigService;
 use MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting;
@@ -23,7 +24,7 @@ use MultiTenantSaas\Tests\Schema\RbacModule;
  * Admin AI 配置后台接口测试
  *
  * 覆盖：模型别名 CRUD、平台默认模型组（DB 覆盖层）、租户 AI 配置 upsert、
- * 模型目录同步（Http::fake）、provider 连接测试。
+ * 模型目录同步（Http::fake）、提供商多源管理 CRUD（api_key 掩码安全）、provider 连接测试。
  */
 class AdminAiControllerTest extends TestCase
 {
@@ -288,5 +289,100 @@ class AdminAiControllerTest extends TestCase
     {
         $this->auth()->postJson('/api/v1/admin/ai/providers/ghostprov/test')
             ->assertStatus(422);
+    }
+
+    // ==================================================================
+    // 提供商多源管理（ai_providers）
+    // ==================================================================
+
+    public function test_provider_crud_with_api_key_masking(): void
+    {
+        // 创建（系统级：即使测试上下文带租户，tenant_id 也应为 null）
+        $create = $this->auth()->postJson('/api/v1/admin/ai/providers', [
+            'code' => 'newprov',
+            'name' => 'New Provider',
+            'base_url' => 'https://new.test.local/v1',
+            'api_key' => 'sk-secret',
+            'priority' => 1,
+        ]);
+        $create->assertCreated()
+            ->assertJsonPath('data.code', 'newprov')
+            ->assertJsonPath('data.api_key', '********');
+        $providerId = $create->json('data.provider_id');
+
+        // 系统级落库：tenant_id 为 null，api_key 加密存储
+        $row = DB::table('ai_providers')->where('provider_id', $providerId)->first();
+        $this->assertNull($row->tenant_id);
+        $this->assertNotSame('sk-secret', $row->api_key);
+
+        // 列表同样掩码
+        $this->auth()->getJson('/api/v1/admin/ai/providers')
+            ->assertSuccessful()
+            ->assertJsonPath('data.0.code', 'newprov')
+            ->assertJsonPath('data.0.api_key', '********');
+
+        // 重复 code 拒绝（系统级唯一）
+        $this->auth()->postJson('/api/v1/admin/ai/providers', [
+            'code' => 'newprov',
+            'name' => 'Dup Provider',
+        ])->assertStatus(422);
+
+        // 非法 code 拒绝
+        $this->auth()->postJson('/api/v1/admin/ai/providers', [
+            'code' => 'Bad-Code!',
+            'name' => 'Invalid',
+        ])->assertStatus(422);
+
+        // 掩码回存不覆盖真实密钥
+        $this->auth()->putJson("/api/v1/admin/ai/providers/{$providerId}", [
+            'code' => 'newprov',
+            'name' => 'Renamed Provider',
+            'api_key' => '********',
+        ])->assertSuccessful()->assertJsonPath('data.name', 'Renamed Provider');
+
+        AiPlatformConfigService::forgetCached('newprov');
+        $config = AiPlatformConfigService::resolveProviderConfig('newprov');
+        $this->assertSame('sk-secret', $config['api_key'], '掩码回存不得覆盖真实密钥');
+
+        // 删除
+        $this->auth()->deleteJson("/api/v1/admin/ai/providers/{$providerId}")->assertSuccessful();
+        $this->assertDatabaseMissing('ai_providers', ['provider_id' => $providerId]);
+    }
+
+    public function test_provider_update_returns_404_for_unknown_provider(): void
+    {
+        $this->auth()->putJson('/api/v1/admin/ai/providers/999999', [
+            'code' => 'ghost',
+            'name' => 'Ghost',
+        ])->assertNotFound();
+
+        $this->auth()->deleteJson('/api/v1/admin/ai/providers/999999')->assertNotFound();
+    }
+
+    public function test_provider_record_wins_in_connection_test_source(): void
+    {
+        // env/config 未配置，仅 ai_providers 记录 → 连接测试应读取它并报 source=db
+        AiProvider::create([
+            'tenant_id' => null,
+            'code' => 'ctprov',
+            'name' => 'CT Provider',
+            'base_url' => 'https://ct.test.local/v1',
+            'api_key' => 'sk-ct-key',
+        ]);
+        AiPlatformConfigService::forgetCached('ctprov');
+
+        Http::fake([
+            'ct.test.local/*' => Http::response(['data' => [
+                ['id' => 'm1'], ['id' => 'm2'], ['id' => 'm3'],
+            ]]),
+        ]);
+
+        $this->auth()->postJson('/api/v1/admin/ai/providers/ctprov/test')
+            ->assertSuccessful()
+            ->assertJsonPath('data.source', 'db')
+            ->assertJsonPath('data.model_count', 3);
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'ct.test.local/v1/models')
+            && $request->hasHeader('Authorization', 'Bearer sk-ct-key'));
     }
 }

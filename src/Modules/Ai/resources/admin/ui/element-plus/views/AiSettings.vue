@@ -18,6 +18,34 @@
           </el-form>
         </el-tab-pane>
 
+        <!-- 提供商多源管理 -->
+        <el-tab-pane label="提供商" name="providers">
+          <div style="margin: 12px 0">
+            <el-button type="primary" @click="openProviderDialog()">新增提供商</el-button>
+            <span class="form-hint">系统级连接配置，优先级：ai_providers 表 &gt; system_settings 覆盖 &gt; .env，保存后 60 秒内生效</span>
+          </div>
+          <el-table :data="providers" stripe empty-text="暂无提供商配置（回退 .env 引导层）">
+            <el-table-column prop="priority" label="优先级" width="80" />
+            <el-table-column prop="code" label="标识" width="130" />
+            <el-table-column prop="name" label="名称" min-width="130" />
+            <el-table-column prop="base_url" label="Base URL" min-width="220" show-overflow-tooltip />
+            <el-table-column label="API Key" width="100">
+              <template #default="{ row }">{{ row.api_key || '—' }}</template>
+            </el-table-column>
+            <el-table-column label="状态" width="80">
+              <template #default="{ row }">
+                <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">{{ row.status === 'active' ? '启用' : '停用' }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="130">
+              <template #default="{ row }">
+                <el-button link type="primary" size="small" @click="openProviderDialog(row)">编辑</el-button>
+                <el-button link type="danger" size="small" @click="removeProvider(row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
         <!-- 模型别名 -->
         <el-tab-pane label="模型别名" name="aliases">
           <div style="display: flex; gap: 8px; margin: 12px 0">
@@ -116,7 +144,7 @@
               show-icon
             />
           </el-form>
-          <p class="form-hint">读取 DB 覆盖层（system_settings）+ .env 引导配置，实时请求 /models 端点，不落库。</p>
+          <p class="form-hint">读取 ai_providers 表 + DB 覆盖层（system_settings）+ .env 引导配置，实时请求 /models 端点，不落库。</p>
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -140,6 +168,26 @@
       <template #footer>
         <el-button @click="aliasDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="saveAlias">保存</el-button>
+      </template>
+    </el-dialog>
+    <!-- 提供商编辑弹窗 -->
+    <el-dialog v-model="providerDialogVisible" :title="providerForm.provider_id ? '编辑提供商' : '新增提供商'" width="520px">
+      <el-form label-width="100px">
+        <el-form-item label="标识"><el-input v-model="providerForm.code" placeholder="如 bailian（小写字母/数字/下划线）" /></el-form-item>
+        <el-form-item label="名称"><el-input v-model="providerForm.name" placeholder="如 百炼" /></el-form-item>
+        <el-form-item label="Base URL"><el-input v-model="providerForm.base_url" placeholder="如 https://dashscope.aliyuncs.com/compatible-mode/v1" /></el-form-item>
+        <el-form-item label="API Key"><el-input v-model="providerForm.api_key" type="password" show-password placeholder="掩码表示未修改" /></el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="providerForm.status" style="width: 100%">
+            <el-option label="启用 (active)" value="active" />
+            <el-option label="停用 (inactive)" value="inactive" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="优先级"><el-input-number v-model="providerForm.priority" :min="0" :max="32767" /><span class="form-hint" style="margin-left: 8px">数字越小越优先</span></el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="providerDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="saveProvider">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -180,6 +228,59 @@ const saveDefaults = async () => {
   } finally {
     saving.value = false
   }
+}
+
+// ---- 提供商多源管理 ----
+const providers = ref<any[]>([])
+const providerDialogVisible = ref(false)
+const providerForm = reactive<any>({ provider_id: null, code: '', name: '', base_url: '', api_key: '', status: 'active', priority: 0 })
+
+const fetchProviders = async () => {
+  try {
+    const res = await axios.get(`${API}/providers`)
+    providers.value = res.data.data || []
+  } catch {}
+}
+
+const openProviderDialog = (row?: any) => {
+  Object.assign(providerForm, { provider_id: null, code: '', name: '', base_url: '', api_key: '', status: 'active', priority: 0 })
+  if (row) Object.assign(providerForm, row)
+  providerDialogVisible.value = true
+}
+
+const saveProvider = async () => {
+  saving.value = true
+  try {
+    const payload = {
+      code: providerForm.code,
+      name: providerForm.name,
+      base_url: providerForm.base_url || null,
+      api_key: providerForm.api_key || null,
+      status: providerForm.status,
+      priority: Number(providerForm.priority || 0),
+    }
+    if (providerForm.provider_id) {
+      await axios.put(`${API}/providers/${providerForm.provider_id}`, payload)
+    } else {
+      await axios.post(`${API}/providers`, payload)
+    }
+    ElMessage.success('保存成功，稍后生效')
+    providerDialogVisible.value = false
+    await fetchProviders()
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || '保存失败')
+  } finally {
+    saving.value = false
+  }
+}
+
+const removeProvider = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(`确认删除提供商「${row.code}」？删除后回退 system_settings / .env 配置。`, '提示', { type: 'warning' })
+    await axios.delete(`${API}/providers/${row.provider_id}`)
+    ElMessage.success('已删除')
+    await fetchProviders()
+  } catch {}
 }
 
 // ---- 模型别名 ----
@@ -314,6 +415,7 @@ const runTest = async () => {
 
 onMounted(() => {
   fetchDefaults()
+  fetchProviders()
   fetchAliases()
   fetchCatalog()
   fetchTenants()

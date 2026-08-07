@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Validation\Rule;
 use MultiTenantSaas\Modules\Ai\Models\AiModelAlias;
+use MultiTenantSaas\Modules\Ai\Models\AiProvider;
 use MultiTenantSaas\Modules\Ai\Models\AiTenantConfig;
 use MultiTenantSaas\Modules\Ai\Services\AiModelCatalogService;
 use MultiTenantSaas\Modules\Ai\Services\AiPlatformConfigService;
@@ -17,13 +19,17 @@ use MultiTenantSaas\Scopes\TenantScope;
 /**
  * 平台管理后台 - AI 配置控制器
  *
- * 管理模型别名映射、模型目录缓存同步、平台默认模型组、租户 AI 配置，
+ * 管理模型别名映射、模型目录缓存同步、平台默认模型组、租户 AI 配置、
+ * 提供商多源管理（ai_providers 系统级记录），
  * 以及 provider 连接测试（读取 DB 覆盖层，不落库）。
  *
  * 权限：沿用 setting.view / setting.update（与系统设置一致）。
  */
 class AdminAiController extends Controller
 {
+    /** api_key 掩码（列表返回/回存跳过，同 SystemSetting 安全模式） */
+    private const API_KEY_MASK = '********';
+
     /** 默认模型组允许写入的键（system_settings group='ai'） */
     private const DEFAULT_KEYS = [
         'default_chat_model',
@@ -227,6 +233,78 @@ class AdminAiController extends Controller
     }
 
     // ==================================================================
+    // 提供商多源管理（ai_providers，系统级记录 tenant_id=null）
+    // ==================================================================
+
+    public function providerIndex(): JsonResponse
+    {
+        $providers = AiProvider::query()
+            ->whereNull('tenant_id')
+            ->orderBy('priority')
+            ->orderBy('code')
+            ->get()
+            ->map(fn (AiProvider $p) => $this->presentProvider($p))
+            ->values();
+
+        return response()->json(['success' => true, 'data' => $providers]);
+    }
+
+    public function providerStore(Request $request): JsonResponse
+    {
+        $validated = $this->validateProvider($request);
+
+        $provider = new AiProvider($validated);
+        $provider->tenant_id = null; // 系统级配置
+        $provider->save();
+
+        AiPlatformConfigService::forgetCached($provider->code);
+
+        return response()->json(['success' => true, 'data' => $this->presentProvider($provider)], 201);
+    }
+
+    public function providerUpdate(Request $request, int $providerId): JsonResponse
+    {
+        $provider = AiProvider::query()->whereNull('tenant_id')->find($providerId);
+
+        if ($provider === null) {
+            return response()->json(['success' => false, 'message' => trans('common.not_found')], 404);
+        }
+
+        $validated = $this->validateProvider($request, $providerId);
+
+        // 掩码/空值 = 未修改，跳过回存避免覆盖真实密钥
+        $apiKey = $validated['api_key'] ?? null;
+        if (! is_string($apiKey) || $apiKey === '' || $apiKey === self::API_KEY_MASK) {
+            unset($validated['api_key']);
+        }
+
+        $oldCode = $provider->code;
+        $provider->fill($validated);
+        $provider->save();
+
+        AiPlatformConfigService::forgetCached($oldCode);
+        if ($provider->code !== $oldCode) {
+            AiPlatformConfigService::forgetCached($provider->code);
+        }
+
+        return response()->json(['success' => true, 'data' => $this->presentProvider($provider)]);
+    }
+
+    public function providerDestroy(int $providerId): JsonResponse
+    {
+        $provider = AiProvider::query()->whereNull('tenant_id')->find($providerId);
+
+        if ($provider === null) {
+            return response()->json(['success' => false, 'message' => trans('common.not_found')], 404);
+        }
+
+        $provider->delete();
+        AiPlatformConfigService::forgetCached($provider->code);
+
+        return response()->json(['success' => true, 'message' => trans('common.deleted')]);
+    }
+
+    // ==================================================================
     // Provider 连接测试（读 DB 覆盖层，不落库）
     // ==================================================================
 
@@ -247,14 +325,15 @@ class AdminAiController extends Controller
             ], 422);
         }
 
-        // 配置来源：DB 覆盖 or env/config 引导层
+        // 配置来源：ai_providers 表 / system_settings 覆盖 or env/config 引导层
         $source = 'env';
         try {
-            if (SystemSetting::getGroup('ai_provider_' . $code) !== []) {
+            if (AiPlatformConfigService::providerRecord($code) !== null
+                || SystemSetting::getGroup('ai_provider_' . $code) !== []) {
                 $source = 'db';
             }
         } catch (\Throwable $e) {
-            // system_settings 表不可用 → 视为 env
+            // 表不可用 → 视为 env
         }
 
         $start = microtime(true);
@@ -313,5 +392,44 @@ class AdminAiController extends Controller
             'is_deprecated' => 'sometimes|boolean',
             'description' => 'nullable|string|max:500',
         ]);
+    }
+
+    private function validateProvider(Request $request, ?int $ignoreId = null): array
+    {
+        // 系统级（tenant_id=null）内 code 唯一
+        $unique = Rule::unique('ai_providers', 'code')
+            ->where(fn ($q) => $q->whereNull('tenant_id'));
+        if ($ignoreId !== null) {
+            $unique->ignore($ignoreId, 'provider_id');
+        }
+
+        return $request->validate([
+            'code' => ['required', 'string', 'max:50', 'regex:/^[a-z0-9_]+$/', $unique],
+            'name' => 'required|string|max:100',
+            'base_url' => 'nullable|string|max:255',
+            'api_key' => 'nullable|string|max:5000',
+            'status' => 'sometimes|in:' . implode(',', AiProvider::STATUSES),
+            'priority' => 'sometimes|integer|min:0|max:32767',
+            'metadata' => 'sometimes|nullable|array',
+        ]);
+    }
+
+    /**
+     * 序列化提供商记录（api_key 永不出库：有值返回掩码，无值返回空串）
+     */
+    private function presentProvider(AiProvider $provider): array
+    {
+        return [
+            'provider_id' => $provider->provider_id,
+            'code' => $provider->code,
+            'name' => $provider->name,
+            'base_url' => $provider->base_url,
+            'api_key' => $provider->getRawOriginal('api_key') ? self::API_KEY_MASK : '',
+            'status' => $provider->status,
+            'priority' => $provider->priority,
+            'metadata' => $provider->metadata,
+            'created_at' => $provider->created_at,
+            'updated_at' => $provider->updated_at,
+        ];
     }
 }

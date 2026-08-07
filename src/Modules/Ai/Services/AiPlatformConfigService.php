@@ -3,12 +3,14 @@
 namespace MultiTenantSaas\Modules\Ai\Services;
 
 use Illuminate\Support\Facades\Cache;
+use MultiTenantSaas\Modules\Ai\Models\AiProvider;
 use MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting;
 
 /**
  * AI 平台级配置覆盖层（静态，无租户上下文依赖）
  *
- * 解析优先级：DB（system_settings）→ config（env 引导层）→ 硬编码兜底。
+ * 提供商连接解析优先级：
+ *   ai_providers 多源管理表（系统级且启用）→ system_settings 覆盖组 → config（env 引导层）。
  * admin 后台修改后立即（缓存 TTL 内）生效，无需改 .env / config:cache；
  * env 未配置 url/key 时也可后续在后台补录。
  *
@@ -16,6 +18,7 @@ use MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting;
  *  - group='ai'                    默认模型组（default_chat_model / default_completion_model /
  *                                  default_embedding_model / default_provider）
  *  - group='ai_provider_{code}'    提供商连接覆盖（base_url / api_key，api_key 加密存储）
+ *  - ai_providers 表（tenant_id=null）  提供商多源管理（优先级高于 system_settings）
  *
  * 注意：本项目跑在 Octane 上，进程内静态缓存会跨请求残留，故一律用 Cache 短 TTL。
  */
@@ -50,7 +53,7 @@ class AiPlatformConfigService
     }
 
     /**
-     * 解析提供商连接配置（DB 覆盖 env/config）
+     * 解析提供商连接配置（ai_providers 表 → system_settings → env/config）
      *
      * DB 中 base_url/api_key 非空时同时写入 url/base_url、key/api_key 双字段，
      * 兼容各 Provider 的不同读取习惯。
@@ -59,6 +62,25 @@ class AiPlatformConfigService
     {
         $config = (array) config("ai.providers.{$code}", []);
 
+        // 1) ai_providers 多源管理表（系统级且启用）优先
+        $provider = static::providerRecord($code);
+        if ($provider !== null) {
+            $baseUrl = (string) ($provider->base_url ?? '');
+            if ($baseUrl !== '') {
+                $config['base_url'] = $baseUrl;
+                $config['url'] = $baseUrl;
+            }
+
+            $apiKey = (string) ($provider->api_key ?? '');
+            if ($apiKey !== '') {
+                $config['api_key'] = $apiKey;
+                $config['key'] = $apiKey;
+            }
+
+            return $config;
+        }
+
+        // 2) system_settings 覆盖组（P1 兼容层）
         $overrides = Cache::remember(
             self::CACHE_PREFIX . 'provider:' . $code,
             self::CACHE_TTL,
@@ -88,6 +110,29 @@ class AiPlatformConfigService
     }
 
     /**
+     * 读取系统级（tenant_id=null）且启用的提供商记录（带缓存）
+     */
+    public static function providerRecord(string $code): ?AiProvider
+    {
+        return Cache::remember(
+            self::CACHE_PREFIX . 'provider_record:' . $code,
+            self::CACHE_TTL,
+            function () use ($code) {
+                try {
+                    return AiProvider::query()
+                        ->whereNull('tenant_id')
+                        ->byCode($code)
+                        ->active()
+                        ->first();
+                } catch (\Throwable $e) {
+                    // 表不存在等安装初期异常 → 视为无记录
+                    return null;
+                }
+            }
+        );
+    }
+
+    /**
      * 失效指定提供商（或默认组）的覆盖缓存（后台保存后调用）
      */
     public static function forgetCached(?string $providerCode = null): void
@@ -96,6 +141,7 @@ class AiPlatformConfigService
 
         if ($providerCode !== null) {
             Cache::forget(self::CACHE_PREFIX . 'provider:' . $providerCode);
+            Cache::forget(self::CACHE_PREFIX . 'provider_record:' . $providerCode);
         }
     }
 

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * AI 模块
- * 表: ai_tenant_configs, ai_model_aliases, ai_requests, ai_prompts, ai_usage_quotas, branding_configs
+ * 表: ai_tenant_configs, ai_model_aliases, ai_providers, ai_requests, ai_prompts, ai_usage_quotas, branding_configs
  */
 class AiModule implements SchemaModuleInterface
 {
@@ -45,6 +45,23 @@ class AiModule implements SchemaModuleInterface
             $table->unique('alias', 'uk_alias');
             $table->index(['provider', 'type'], 'idx_provider_type');
             $table->index('is_active', 'idx_is_active');
+        });
+
+        Schema::create('ai_providers', function (Blueprint $table) {
+            $table->unsignedBigInteger('provider_id')->primary();
+            $table->bigInteger('tenant_id')->unsigned()->nullable();
+            $table->string('code', 50);
+            $table->string('name', 100);
+            $table->string('base_url', 255)->nullable();
+            $table->text('api_key')->nullable();
+            $table->string('status', 20)->default('active');
+            $table->smallInteger('priority')->default(0);
+            $table->json('metadata')->nullable();
+            $table->timestamps();
+
+            $table->unique(['tenant_id', 'code'], 'uk_tenant_code');
+            $table->index('status', 'idx_ai_providers_status');
+            $table->index('priority', 'idx_ai_providers_priority');
         });
 
         Schema::create('ai_requests', function (Blueprint $table) {
@@ -153,7 +170,7 @@ class AiModule implements SchemaModuleInterface
     public function getTableNames(): array
     {
         return [
-            'ai_tenant_configs', 'ai_model_aliases', 'ai_requests',
+            'ai_tenant_configs', 'ai_model_aliases', 'ai_providers', 'ai_requests',
             'ai_prompts', 'ai_usage_quotas', 'branding_configs', 'ai_audit_logs',
         ];
     }

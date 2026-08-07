@@ -510,7 +510,9 @@ class ModuleManager
             // 决定该模块对新租户的默认状态
             $defaultStatus = $this->resolveTenantDefault($name, $meta, $subscriptionPlan);
 
-            DB::table('tenant_modules')->insert([
+            // 幂等开通：已存在的 (tenant_id, module_name) 记录保持不变（不覆盖租户已做的开关调整），
+            // 仅补齐缺失的模块，避免重跑初始化/重试开通时触发唯一键冲突。
+            $inserted = DB::table('tenant_modules')->insertOrIgnore([
                 'tenant_id' => $tenantId,
                 'module_name' => $name,
                 'status' => $defaultStatus,
@@ -519,7 +521,9 @@ class ModuleManager
                 'updated_at' => now(),
             ]);
 
-            $provisioned[] = $name;
+            if ($inserted > 0) {
+                $provisioned[] = $name;
+            }
         }
 
         if (! empty($provisioned)) {

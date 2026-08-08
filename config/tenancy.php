@@ -21,6 +21,7 @@ return [
         env('ADMIN_DOMAIN', 'admin.example.com'),
         env('PLATFORM_ADMIN_DOMAIN'),
         env('PLATFORM_CONSOLE_DOMAIN'),
+        env('PLATFORM_API_DOMAIN'),
     ]),
 
     'cache' => [

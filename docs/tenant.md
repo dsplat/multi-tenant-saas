@@ -217,6 +217,42 @@ pending → rejected（管理员拒绝，附原因）
 > 已废除：共享域名路径前缀（app_domain/{slug}/、/{tenant_id}/）。平台域名不再包含 app 域，
 > 租户共享入口唯一形态为子域名，与 nginx 基桩白名单同构。
 
+### 2.5.1 域名类型分类模型（IdentifyDomain）
+
+守护面判定的唯一依据是「域名类型」，不看路径前缀。五种类型：
+
+| 类型 | 含义 | 判定 |
+|---|---|---|
+| `admin` | 平台后台面 | host 匹配 `PLATFORM_ADMIN_DOMAIN` |
+| `console` | 租户管理后台面 | host 匹配 `PLATFORM_CONSOLE_DOMAIN` |
+| `api` | API 面 | host 匹配 `PLATFORM_API_DOMAIN`（可选）或路径声明 `/api` |
+| `default` | 平台主域/未归类 | host 匹配 `PLATFORM_MAIN_DOMAIN`；测试环境 localhost |
+| `app` | 租户入口面（兜底） | 自定义域名 / {slug}.{base} / {tenant_id}.{base} |
+
+判定序：**host 精确匹配（platform_domains，env 注入）> 单域名部署的路径声明
+（/admin、/console、/api，兼容无独立子域名的部署形态）> 兜底 app**。
+注意：路径声明是「路由面归类」，不是守护逻辑；真正的请求面隔离由路由入口文件
+天然完成（routes/web.php → web 组，routes/api.php + 模块 api/v1 → api 组）。
+
+**中间件链（执行序）**：
+
+```
+IdentifyDomain（全局 prepend） → 域类型写入 TenantContext
+  ↓
+EnforceDomainSegregation（全局） → admin 面与租户面互串拦截
+  ↓
+IdentifyTenant（web/api 组） → 八级识别链（§2.5）
+  ↓
+EnforceCanonicalEntry（仅 web 组） → 只守护 app 面，301 收敛到规范入口（§2.0）
+```
+
+分层守护职责：
+- **PHP 层只守护到达 PHP 的请求**（主要是 web 组页面路由；API 走 api 组结构性隔离）
+- **host 级网关守护在 nginx map 层**（白名单/seo.map，与基桩同构）；静态直出的 SPA 壳
+  不进 PHP，不在 PHP 层守护范围内
+- 框架不硬编码 SPA 挂载路径（/h5、/console 等命名是项目落地层决策，可改名）；
+  重定向不改写路径，落地页跳转由项目入口层处理（如 nginx `location = /` → 302 /h5/）
+
 ### 2.6 Slug 治理（三层防护）
 
 #### 层级一：黑名单硬拒

@@ -10,8 +10,10 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * 域名识别中间件
  *
- * 识别当前请求的域名类型：admin/console/api/app
- * 其中 app 为兜底类型（租户接入域名：自定义域名 / {slug}.{base} / {tenant_id}.{base}）
+ * 识别当前请求的域名类型：admin/console/api/app/default
+ * - 平台域按 host 精确匹配（platform_domains：main/admin/console/api，env 注入）
+ * - 单域名部署兼容：平台面路径声明（/admin、/console、/api）归对应类型
+ * - app 为兜底类型（租户接入域名：自定义域名 / {slug}.{base} / {tenant_id}.{base}）
  */
 class IdentifyDomain
 {
@@ -65,6 +67,18 @@ class IdentifyDomain
         $consoleDomain = config('domain.platform_domains.console');
         if ($consoleDomain && $host === $consoleDomain) {
             return self::DOMAIN_CONSOLE;
+        }
+
+        // 平台主域（官网/首页，如 www.example.com）——非租户入口，不参与租户收敛
+        $mainDomain = config('domain.platform_domains.main');
+        if ($mainDomain && $host === $mainDomain) {
+            return self::DOMAIN_DEFAULT;
+        }
+
+        // 独立 API 域（可选；未配置时 API 随各 SPA 域名提供）
+        $apiDomain = config('domain.platform_domains.api');
+        if ($apiDomain && $host === $apiDomain) {
+            return self::DOMAIN_API;
         }
 
         // 路径区分

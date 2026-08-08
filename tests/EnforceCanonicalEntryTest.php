@@ -227,6 +227,21 @@ class EnforceCanonicalEntryTest extends TestCase
         $this->assertSame(200, $response->getStatusCode());
     }
 
+    public function test_platform_main_domain_is_not_redirected(): void
+    {
+        // 平台主域（www）归类为 default 面，即便 host 符合通配 base 子域名形态也不收敛
+        config(['domain.platform_domains.main' => 'www.' . self::BASE]);
+        $tenant = $this->createTenant(['slug' => 'beta', 'slug_status' => 'active']);
+
+        $identify = new \MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyDomain;
+        $identify->handle(Request::create('http://www.' . self::BASE . '/page'), fn () => new Response('OK'));
+        $this->assertSame('default', TenantContext::getDomainType());
+
+        $response = $this->invokeMiddleware('http://www.' . self::BASE . '/page', $tenant);
+
+        $this->assertSame(200, $response->getStatusCode());
+    }
+
     public function test_no_tenant_context_passes_through(): void
     {
         TenantContext::setTenant(null);

@@ -33,8 +33,9 @@
 │         ▼             ▼             ▼             ▼          │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │              Laravel 中间件层                         │    │
-│  │  IdentifyDomain → IdentifyTenant → CheckPermission   │
-│  │  → CheckRbacPermission → SetLocale                    │    │
+│  │  IdentifyDomain → EnforceDomainSegregation →         │    │
+│  │  IdentifyTenant → EnforceCanonicalEntry(web 组) →    │    │
+│  │  CheckPermission → CheckRbacPermission → SetLocale   │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                          │                                  │
 │                          ▼                                  │
@@ -59,12 +60,14 @@
 
 | 中间件 | 别名 | 职责 | 执行顺序 |
 |--------|------|------|----------|
-| `IdentifyDomain` | `domain.identify` | 识别域名类型 (admin/console/api/app) | 1 |
-| `IdentifyTenant` | `tenant.identify` | 识别当前租户 | 2 |
-| `CheckPermission` | `tenant.permission` | 角色级权限控制 | 3 |
-| `CheckRbacPermission` | `rbac.permission` | RBAC 细粒度权限控制（按路由配置） | 4 |
-| `EnsureTenantContext` | `tenant.ensure` | 确保租户上下文有效 | 5 |
-| `SetLocale` | `locale.set` | 自动设置请求语言 | 6 |
+| `IdentifyDomain` | `domain.identify` | 识别域名类型 (admin/console/api/app/default)，host 匹配优先 | 1 |
+| `EnforceDomainSegregation` | — | admin 面与租户面互串拦截（全局门） | 2 |
+| `IdentifyTenant` | `tenant.identify` | 识别当前租户（八级识别链，见 tenant.md §2.5） | 3 |
+| `EnforceCanonicalEntry` | — | 仅 web 组；只守护租户入口面，301 收敛到规范入口 | 4 |
+| `CheckPermission` | `tenant.permission` | 角色级权限控制 | 5 |
+| `CheckRbacPermission` | `rbac.permission` | RBAC 细粒度权限控制（按路由配置） | 6 |
+| `EnsureTenantContext` | `tenant.ensure` | 确保租户上下文有效 | 7 |
+| `SetLocale` | `locale.set` | 自动设置请求语言 | 8 |
 | `RejectPlatformDomain` | — | 阻止平台域名访问 console 路由 | — |
 
 ### 2. 上下文管理
@@ -198,13 +201,14 @@ Nginx
 Laravel Middleware Stack
     │
     ├─ 1. IdentifyDomain
-    │     读取 X-Original-Host + path
-    │     → domain_type: admin | console | api | app
+    │     读取 X-Original-Host（host 匹配 platform_domains 优先，单域名部署路径声明兼容）
+    │     → domain_type: admin | console | api | default | app（兜底=租户入口）
     │
     ├─ 2. IdentifyTenant
     │     IF admin → 跳过
-    │     ELSE 按优先级解析租户 ID：
-    │       URL参数 → Header → 自定义域名 → Cookie → Session → 默认租户
+    │     ELSE 按优先级解析租户 ID（八级识别链）：
+    │       URL参数 → Header → 自定义域名 → Cookie → Session → 认证用户
+    │       → 通配子域名（{tenant_id}/{slug}.{base}）→ 未识别不兜底（403）
     │     → tenant_id, tenant 注入 TenantContext
     │
     ├─ 3. CheckPermission

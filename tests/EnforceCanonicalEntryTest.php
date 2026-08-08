@@ -19,7 +19,8 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
  * 规则（docs/tenant.md §2.0）：三种入口均可解析，规范入口唯一：
  *   自定义域名(approved) > {slug}.{base} > {tenant_id}.{base}
  * 不支持 app 域路径前缀形态。非规范入口 301 收敛；
- * API/POST/平台面不重定向；已是规范入口直接放行。
+ * POST/XHR/平台面（域类型判定）不重定向；已是规范入口直接放行。
+ * API 请求由路由入口文件（api 组）天然隔离，不属本中间件守护面。
  */
 class EnforceCanonicalEntryTest extends TestCase
 {
@@ -176,14 +177,28 @@ class EnforceCanonicalEntryTest extends TestCase
     }
 
     // ==================================================================
-    // 跳过场景：API / POST / 平台面 / 无租户上下文 / 无通配 base
+    // 跳过场景：POST / XHR / 平台面（域类型） / 无租户上下文 / 无通配 base
     // ==================================================================
 
-    public function test_api_requests_are_not_redirected(): void
+    public function test_path_prefix_is_not_used_for_guard_decision(): void
     {
+        // 守护面判定不看路径前缀：路径含 /api/ 但域类型为租户入口时依旧收敛
+        //（真实 API 请求由 api 组路由入口隔离，不会到达本中间件）
         $tenant = $this->createTenant(['slug' => 'beta', 'slug_status' => 'active']);
 
         $response = $this->invokeMiddleware('http://' . $tenant->tenant_id . '.' . self::BASE . '/api/v1/h5/config', $tenant);
+
+        $this->assertInstanceOf(RedirectResponse::class, $response);
+        $this->assertSame('http://beta.' . self::BASE . '/api/v1/h5/config', $response->getTargetUrl());
+    }
+
+    public function test_api_domain_type_is_not_redirected(): void
+    {
+        // API 面按域类型跳过（与路由入口隔离互为纵深）
+        $tenant = $this->createTenant(['slug' => 'beta', 'slug_status' => 'active']);
+        TenantContext::setDomainType('api');
+
+        $response = $this->invokeMiddleware('http://' . $tenant->tenant_id . '.' . self::BASE . '/anything', $tenant);
 
         $this->assertSame(200, $response->getStatusCode());
     }
@@ -235,17 +250,18 @@ class EnforceCanonicalEntryTest extends TestCase
     }
 
     // ==================================================================
-    // 边界：空路径收敛到 /h5/；X-Forwarded-Proto 决定目标 scheme
+    // 边界：路径原样保留（含根路径）；X-Forwarded-Proto 决定目标 scheme
     // ==================================================================
 
-    public function test_empty_path_converges_to_h5_home(): void
+    public function test_root_path_is_preserved_without_rewrite(): void
     {
+        // 框架不改写落地路径；根路径重定向后仍为 /，落地跳转由项目入口层处理
         $tenant = $this->createTenant(['slug' => 'beta', 'slug_status' => 'active']);
 
         $response = $this->invokeMiddleware('http://' . $tenant->tenant_id . '.' . self::BASE . '/', $tenant);
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
-        $this->assertSame('http://beta.' . self::BASE . '/h5/', $response->getTargetUrl());
+        $this->assertSame('http://beta.' . self::BASE . '/', $response->getTargetUrl());
     }
 
     public function test_https_forwarded_proto_is_respected(): void

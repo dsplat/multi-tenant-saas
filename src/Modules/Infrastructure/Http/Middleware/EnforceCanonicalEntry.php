@@ -25,10 +25,13 @@ use Symfony\Component\HttpFoundation\Response;
  * 架构约束：不支持 app 域路径前缀（/{slug}/、/{tenant_id}/）形态，
  * 租户共享入口一律为子域名，与 nginx 统一基桩白名单同构。
  *
- * 安全与体验约束：
+ * 守护面判定（不依赖路径前缀，路由入口文件天然隔离）：
+ * - 本中间件仅注册于 web 组；API 路由走 api 组（routes/api.php + 模块 api/v1），
+ *   结构性不会到达本中间件，无需路径判断
  * - 仅 GET/HEAD；POST 等写操作不重定向
- * - API（/api/ 前缀）、XHR、接受 JSON 的请求不重定向（客户端不跟随 301 语义）
- * - 平台域名（admin/console）不参与收敛
+ * - XHR、接受 JSON 的请求不重定向（客户端不跟随 301 语义）
+ * - 只守护租户入口面（域类型 app）；平台面/API 面由 IdentifyDomain 域类型排除，不看路径
+ * - 路径原样保留不改写；落地页跳转是项目入口层的事（如 nginx location = / 302）
  * - 当前入口即规范入口时直接放行（防循环）
  * - 未配置 wildcard_base 且无 approved 自定义域名时无规范入口，直接放行
  */
@@ -75,7 +78,7 @@ class EnforceCanonicalEntry
             return $next($request);
         }
 
-        $target = $this->scheme($request) . '://' . $targetHost . $this->normalizeRest($request->getPathInfo());
+        $target = $this->scheme($request) . '://' . $targetHost . $request->getPathInfo();
         $query = $request->getQueryString();
         if ($query) {
             $target .= '?' . $query;
@@ -86,6 +89,9 @@ class EnforceCanonicalEntry
 
     /**
      * 是否需要处理（跳过非页面请求与平台面）
+     *
+     * 注意：API 请求天然不会到达本中间件（api 组与 web 组路由入口隔离），
+     * 此处不做任何路径前缀判断；平台面按 IdentifyDomain 给出的域类型识别。
      */
     protected function shouldProcess(Request $request): bool
     {
@@ -93,13 +99,12 @@ class EnforceCanonicalEntry
             return false;
         }
 
-        if ($request->ajax() || $request->expectsJson() || str_starts_with($request->getPathInfo(), '/api/')) {
+        if ($request->ajax() || $request->expectsJson()) {
             return false;
         }
 
-        // 平台域名不参与收敛（admin/console/default）
-        $domainType = TenantContext::getDomainType();
-        if (in_array($domainType, ['admin', 'console', 'default'], true)) {
+        // 只守护租户入口面（域类型判定，非路径判定；平台面/API 面均排除）
+        if (TenantContext::getDomainType() !== IdentifyDomain::DOMAIN_APP) {
             return false;
         }
 
@@ -123,16 +128,6 @@ class EnforceCanonicalEntry
         );
 
         return $status === DomainService::STATUS_APPROVED ? $tenant->domain : null;
-    }
-
-    /**
-     * 剩余路径规范化：保证以 / 开头；空路径收敛到 /h5/（租户前台首页）
-     */
-    protected function normalizeRest(string $rest): string
-    {
-        $rest = '/' . ltrim($rest, '/');
-
-        return $rest === '/' ? '/h5/' : $rest;
     }
 
     /**

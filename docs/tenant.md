@@ -96,9 +96,13 @@ canonical(tenant) =
 ```
 
 **实现**：由 `EnforceCanonicalEntry` 中间件落地（web 组，紧跟 `IdentifyTenant` 之后）。
-约束：仅 GET/HEAD；API（`/api/` 前缀）、XHR、JSON 请求、平台面（admin/console/default）不重定向；
+约束：仅 GET/HEAD；XHR、JSON 请求不重定向；
+守护面判定不依赖路径前缀——路由入口文件天然隔离（API 走 api 组，结构性不到达本中间件），
+平台面/API 面由 `IdentifyDomain` 域类型排除，仅守护租户入口面（域类型 app）；
+重定向路径原样保留不改写（落地页跳转由项目入口层处理）；
 自定义域名仅当 `domain_status=approved` 才作为规范入口；目标 scheme 信任 `X-Forwarded-Proto`；
 当前入口即规范入口时直接放行（防循环）。
+注：静态直出的 SPA 壳（nginx alias）不进 PHP，host 级网关守护在 nginx map 层落地，两层各司其职。
 
 ### 2.0.1 部署拓扑：SLB 层架构（锁定）
 

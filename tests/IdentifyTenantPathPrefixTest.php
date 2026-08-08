@@ -2,20 +2,28 @@
 
 namespace MultiTenantSaas\Tests;
 
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 
+/**
+ * 路径前缀形态否定测试
+ *
+ * 架构约束（docs/tenant.md §2.0）：不支持 app 域路径前缀（/{slug}/、/{tenant_id}/），
+ * 租户共享入口一律为子域名（{slug}.{base} / {tenant_id}.{base}）。
+ * 本文件验证：路径前缀不再识别租户，子域名形态正常识别。
+ */
 class IdentifyTenantPathPrefixTest extends TestCase
 {
     protected function setUp(): void
     {
         parent::setUp();
 
-        // 设置 app 域名
-        config(['domain.platform_domains.app' => 'app.example.com']);
-        config(['domain.platform_domains.console' => 'console.example.com']);
-        config(['tenancy.platform_domains' => ['localhost', '127.0.0.1', 'app.example.com', 'console.example.com']]);
+        config(['domain.wildcard_base' => 'example.com']);
+        TenantContext::clear();
 
-        // 创建测试租户
         Tenant::create([
             'tenant_id' => 2001,
             'name' => 'Slug Tenant',
@@ -33,73 +41,52 @@ class IdentifyTenantPathPrefixTest extends TestCase
         ]);
 
         Tenant::create([
-            'tenant_id' => 2003,
-            'name' => 'No Slug Tenant',
+            'tenant_id' => 9007199254740123,
+            'name' => 'Snowflake Id Tenant',
             'slug' => null,
             'slug_status' => null,
             'status' => 'active',
         ]);
     }
 
-    public function test_resolves_tenant_by_slug_path_prefix(): void
+    /**
+     * 走一遍 IdentifyTenant，返回识别后的租户 ID
+     */
+    private function identify(string $url): ?string
     {
-        $response = $this->withHeaders([
-            'Host' => 'app.example.com',
-        ])->get('/acme/h5/home');
+        TenantContext::clear();
+        $request = Request::create($url);
+        (new IdentifyTenant)->handle($request, fn () => new Response('OK'));
 
-        // 中间件应解析到 tenant_id=2001
-        $this->assertNotEquals(403, $response->getStatusCode());
+        return TenantContext::getId();
     }
 
-    public function test_resolves_tenant_by_tenant_id_path_prefix(): void
+    public function test_slug_path_prefix_does_not_resolve_tenant(): void
     {
-        $response = $this->withHeaders([
-            'Host' => 'app.example.com',
-        ])->get('/2003/h5/home');
-
-        $this->assertNotEquals(403, $response->getStatusCode());
+        // 路径第一段不再作为租户标识（base 域自身不是租户入口）
+        $this->assertNull($this->identify('http://example.com/acme/h5/home'));
     }
 
-    public function test_rejected_slug_not_resolved(): void
+    public function test_tenant_id_path_prefix_does_not_resolve_tenant(): void
     {
-        // slug_status=rejected 的 slug 不应被路径解析命中
-        $response = $this->withHeaders([
-            'Host' => 'app.example.com',
-        ])->get('/badslug/h5/home');
-
-        // 应该无法解析到租户（403 或 404）
-        $this->assertTrue(in_array($response->getStatusCode(), [403, 404]));
+        $this->assertNull($this->identify('http://example.com/2002/h5/home'));
     }
 
-    public function test_rejected_slug_accessible_by_tenant_id(): void
+    public function test_slug_subdomain_still_resolves_tenant(): void
     {
-        // 被打回的租户仍可通过 tenant_id 访问
-        $response = $this->withHeaders([
-            'Host' => 'app.example.com',
-        ])->get('/2002/h5/home');
-
-        $this->assertNotEquals(403, $response->getStatusCode());
+        // 对照：子域名形态是唯一共享入口
+        $this->assertSame('2001', $this->identify('http://acme.example.com/h5/home'));
     }
 
-    public function test_path_prefix_not_triggered_on_non_app_domain(): void
+    public function test_tenant_id_subdomain_still_resolves_tenant(): void
     {
-        // 非 app 域名不触发路径前缀解析
-        $response = $this->withHeaders([
-            'Host' => 'other.example.com',
-        ])->get('/acme/h5/home');
-
-        // 应该走其他解析逻辑（域名匹配等），不会命中路径前缀
-        $this->assertTrue(in_array($response->getStatusCode(), [403, 404]));
+        // 16 位雪花 ID 直查
+        $this->assertSame('9007199254740123', $this->identify('http://9007199254740123.example.com/h5/home'));
     }
 
-    public function test_empty_path_on_app_domain_returns_no_tenant(): void
+    public function test_rejected_slug_subdomain_not_resolved(): void
     {
-        // app 域名根路径无租户标识
-        $response = $this->withHeaders([
-            'Host' => 'app.example.com',
-        ])->get('/');
-
-        // 无路径前缀 → 无租户（403 或平台首页）
-        $this->assertTrue(in_array($response->getStatusCode(), [200, 403, 404]));
+        // slug 打回后其子域名不命中（nginx 白名单外 444，应用层纵深同样拒绝）
+        $this->assertNull($this->identify('http://badslug.example.com/h5/home'));
     }
 }

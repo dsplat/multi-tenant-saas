@@ -18,12 +18,15 @@ use Symfony\Component\HttpFoundation\Response;
  * 1. URL参数 ?tenant_id=xxx（需校验用户归属）
  * 2. Header X-Tenant-ID（需校验用户归属）
  * 3. 自定义域名（可信：域名本身即归属证明）
- * 4. 共享域名路径前缀（app_domain 时，从 URL 第一段提取 slug 或 tenant_id）
- * 5. Cookie（需校验用户归属）
- * 6. Session
- * 7. 认证用户
- * 8. 通配子域名 slug 解析（兼容，优先级降低）
- * 9. 默认租户（兜底）
+ * 4. Cookie（需校验用户归属）
+ * 5. Session
+ * 6. 认证用户
+ * 7. 通配子域名解析（{tenant_id}.{base} 直查 / {slug}.{base}，租户共享入口唯一形态）
+ * 8. 未识别不兜底（EnsureTenantContext 返 403）
+ *
+ * 架构约束：不支持 app 域路径前缀（/{slug}/、/{tenant_id}/）形态——
+ * 租户共享入口一律为子域名（{slug}.{base} / {tenant_id}.{base}），
+ * 与 nginx 统一基桩白名单同构，避免共享域 cookie 串扰与 SEO 污染。
  *
  * 安全原则：不可信来源（URL/Header/Cookie）解析的租户，
  * 必须校验已认证用户确实属于该租户，防止越权。
@@ -101,24 +104,19 @@ class IdentifyTenant
             return (string) $tenantId;
         }
 
-        // 4. 共享域名路径前缀（可信：app_domain/{slug}/ 或 app_domain/{tenant_id}/）
-        if ($tenantId = $this->resolveFromPathPrefix($request)) {
-            return $tenantId;
-        }
-
-        // 5. Cookie（不可信，需校验归属；校验不通过则忽略该来源，继续后续解析）
+        // 4. Cookie（不可信，需校验归属；校验不通过则忽略该来源，继续后续解析）
         if ($tenantId = $request->cookie('tenant_id')) {
             if ($resolved = $this->resolveWithOwnershipCheck((string) $tenantId, $request)) {
                 return $resolved;
             }
         }
 
-        // 6. Session
+        // 5. Session
         if ($request->hasSession() && $tenantId = $request->session()->get('tenant_id')) {
             return (string) $tenantId;
         }
 
-        // 7. 认证用户 — 支持 User 和 Operator 两种 tokenable 类型
+        // 6. 认证用户 — 支持 User 和 Operator 两种 tokenable 类型
         $tokenable = $request->user();
         if ($tokenable instanceof Operator) {
             return $this->resolveTenantFromOperator($tokenable, $request);
@@ -127,7 +125,7 @@ class IdentifyTenant
             return (string) $tokenable->current_tenant_id;
         }
 
-        // 8. 通配子域名解析（兼容旧模式，优先级降低）
+        // 7. 通配子域名解析（租户共享入口唯一形态：{tenant_id}.{base} / {slug}.{base}）
         $host = $request->header('X-Original-Host') ?? $request->getHost();
         if ($this->isWildcardSubdomain($host)) {
             if ($tenantId = $this->resolveFromSubdomain($host)) {
@@ -138,7 +136,7 @@ class IdentifyTenant
             return config('tenancy.default_tenant_id') ? (string) config('tenancy.default_tenant_id') : null;
         }
 
-        // 9. 未识别域名不兜底，由 EnsureTenantContext 返回 403
+        // 8. 未识别域名不兜底，由 EnsureTenantContext 返回 403
         return null;
     }
 
@@ -179,57 +177,6 @@ class IdentifyTenant
             ->exists();
 
         return $belongsToTenant ? $tenantId : null;
-    }
-
-    /**
-     * 从共享域名路径前缀解析租户
-     *
-     * 仅当请求 host 为 platform_domains.app 时触发。
-     * URL 第一段为 slug 或 tenant_id：
-     *   app.example.com/acme/h5/...           → slug=acme
-     *   app.example.com/9007199254740992/h5/... → tenant_id
-     */
-    protected function resolveFromPathPrefix(Request $request): ?string
-    {
-        $appDomain = config('domain.platform_domains.app');
-        $host = $request->header('X-Original-Host') ?? $request->getHost();
-
-        if (! $appDomain || $host !== $appDomain) {
-            return null;
-        }
-
-        $path = trim($request->getPathInfo(), '/');
-        if ($path === '') {
-            return null;
-        }
-
-        $firstSegment = explode('/', $path)[0];
-        if ($firstSegment === '') {
-            return null;
-        }
-
-        // 纯数字 → 按 tenant_id 查找
-        if (ctype_digit($firstSegment)) {
-            $tenantId = Tenant::where('tenant_id', $firstSegment)
-                ->where('status', 'active')
-                ->value('tenant_id');
-
-            return $tenantId ? (string) $tenantId : null;
-        }
-
-        // 否则按 slug 查找（仅 slug_status=active）
-        $cacheKey = config('tenancy.cache.prefix', 'tenant:') . 'slug:' . $firstSegment;
-
-        $tenantId = cache()->remember(
-            $cacheKey,
-            config('tenancy.cache.ttl', 3600),
-            fn () => Tenant::where('slug', $firstSegment)
-                ->where('slug_status', 'active')
-                ->where('status', 'active')
-                ->value('tenant_id')
-        );
-
-        return $tenantId ? (string) $tenantId : null;
     }
 
     /**
@@ -334,6 +281,7 @@ class IdentifyTenant
             $cacheKey,
             config('tenancy.cache.ttl', 3600),
             fn () => Tenant::where('slug', $label)
+                ->where('slug_status', 'active')
                 ->where('status', 'active')
                 ->value('tenant_id')
         );

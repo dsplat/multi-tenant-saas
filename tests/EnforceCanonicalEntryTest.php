@@ -16,15 +16,14 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 /**
  * canonical 入口收敛测试（EnforceCanonicalEntry）
  *
- * 规则（docs/tenant.md §2.0）：四种入口均可解析，规范入口唯一：
- *   自定义域名(approved) > {slug}.{base} > app域/{slug}/ > app域/{tenant_id}/
- * 非规范入口 301 收敛；API/POST/平台面不重定向；已是规范入口直接放行。
+ * 规则（docs/tenant.md §2.0）：三种入口均可解析，规范入口唯一：
+ *   自定义域名(approved) > {slug}.{base} > {tenant_id}.{base}
+ * 不支持 app 域路径前缀形态。非规范入口 301 收敛；
+ * API/POST/平台面不重定向；已是规范入口直接放行。
  */
 class EnforceCanonicalEntryTest extends TestCase
 {
     protected array $uses = [CoreModule::class];
-
-    private const APP_DOMAIN = 'app.neihang.com';
 
     private const BASE = 'neihang.com';
 
@@ -32,7 +31,6 @@ class EnforceCanonicalEntryTest extends TestCase
     {
         parent::defineEnvironment($app);
 
-        $app['config']->set('domain.platform_domains.app', self::APP_DOMAIN);
         $app['config']->set('domain.wildcard_base', self::BASE);
     }
 
@@ -85,7 +83,7 @@ class EnforceCanonicalEntryTest extends TestCase
     // 自定义域名（approved）收敛一切
     // ==================================================================
 
-    public function test_custom_domain_converges_subdomain_entry(): void
+    public function test_custom_domain_converges_slug_subdomain_entry(): void
     {
         $tenant = $this->createTenant(['slug' => 'acme', 'slug_status' => 'active', 'domain' => 'crm.acme.com']);
         $this->approveDomain($tenant);
@@ -97,12 +95,12 @@ class EnforceCanonicalEntryTest extends TestCase
         $this->assertSame('http://crm.acme.com/h5/promo?a=1', $response->getTargetUrl());
     }
 
-    public function test_custom_domain_converges_app_path_entry(): void
+    public function test_custom_domain_converges_tenant_id_subdomain_entry(): void
     {
         $tenant = $this->createTenant(['slug' => 'acme', 'slug_status' => 'active', 'domain' => 'crm.acme.com']);
         $this->approveDomain($tenant);
 
-        $response = $this->invokeMiddleware('http://' . self::APP_DOMAIN . '/acme/h5/', $tenant);
+        $response = $this->invokeMiddleware('http://' . $tenant->tenant_id . '.' . self::BASE . '/h5/', $tenant);
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertSame('http://crm.acme.com/h5/', $response->getTargetUrl());
@@ -119,36 +117,26 @@ class EnforceCanonicalEntryTest extends TestCase
         $this->assertSame('OK', $response->getContent());
     }
 
-    public function test_pending_domain_falls_back_to_subdomain(): void
+    public function test_pending_domain_falls_back_to_slug_subdomain(): void
     {
         // domain 已提交但未审核 → 不作为规范入口，收敛到二级域名
         $tenant = $this->createTenant(['slug' => 'acme', 'slug_status' => 'active', 'domain' => 'crm.acme.com']);
 
-        $response = $this->invokeMiddleware('http://' . self::APP_DOMAIN . '/acme/h5/', $tenant);
+        $response = $this->invokeMiddleware('http://' . $tenant->tenant_id . '.' . self::BASE . '/h5/', $tenant);
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertSame('http://acme.' . self::BASE . '/h5/', $response->getTargetUrl());
     }
 
     // ==================================================================
-    // 仅 slug：二级域名为规范，tenant_id 形态收敛
+    // 仅 slug：二级域名为规范，tenant_id 子域名收敛
     // ==================================================================
 
-    public function test_slug_only_tenant_id_subdomain_converges_to_slug_subdomain(): void
+    public function test_tenant_id_subdomain_converges_to_slug_subdomain(): void
     {
         $tenant = $this->createTenant(['slug' => 'beta', 'slug_status' => 'active']);
 
         $response = $this->invokeMiddleware('http://' . $tenant->tenant_id . '.' . self::BASE . '/h5/', $tenant);
-
-        $this->assertInstanceOf(RedirectResponse::class, $response);
-        $this->assertSame('http://beta.' . self::BASE . '/h5/', $response->getTargetUrl());
-    }
-
-    public function test_slug_only_tenant_id_path_converges_to_slug_subdomain(): void
-    {
-        $tenant = $this->createTenant(['slug' => 'beta', 'slug_status' => 'active']);
-
-        $response = $this->invokeMiddleware('http://' . self::APP_DOMAIN . '/' . $tenant->tenant_id . '/h5/', $tenant);
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertSame('http://beta.' . self::BASE . '/h5/', $response->getTargetUrl());
@@ -164,31 +152,31 @@ class EnforceCanonicalEntryTest extends TestCase
     }
 
     // ==================================================================
-    // 无可用 slug：tenant_id 路径即规范（兜底）
+    // 无可用 slug：tenant_id 子域名即规范（兜底）
     // ==================================================================
 
-    public function test_rejected_slug_tenant_id_path_passes_through(): void
-    {
-        $tenant = $this->createTenant(['slug' => 'bad', 'slug_status' => 'rejected']);
-
-        // wildcard_base 存在但 slug 无效 → 规范为 app域/{tenant_id}/
-        $response = $this->invokeMiddleware('http://' . self::APP_DOMAIN . '/' . $tenant->tenant_id . '/h5/', $tenant);
-
-        $this->assertSame(200, $response->getStatusCode());
-    }
-
-    public function test_rejected_slug_subdomain_converges_to_tenant_id_path(): void
+    public function test_rejected_slug_tenant_id_subdomain_passes_through(): void
     {
         $tenant = $this->createTenant(['slug' => 'bad', 'slug_status' => 'rejected']);
 
         $response = $this->invokeMiddleware('http://' . $tenant->tenant_id . '.' . self::BASE . '/h5/', $tenant);
 
+        $this->assertSame(200, $response->getStatusCode());
+    }
+
+    public function test_rejected_slug_subdomain_converges_to_tenant_id_subdomain(): void
+    {
+        // slug 打回后其子域名已在 nginx 白名单外（444）；应用层纵深仍收敛到规范入口
+        $tenant = $this->createTenant(['slug' => 'bad', 'slug_status' => 'rejected']);
+
+        $response = $this->invokeMiddleware('http://bad.' . self::BASE . '/h5/', $tenant);
+
         $this->assertInstanceOf(RedirectResponse::class, $response);
-        $this->assertSame('http://' . self::APP_DOMAIN . '/' . $tenant->tenant_id . '/h5/', $response->getTargetUrl());
+        $this->assertSame('http://' . $tenant->tenant_id . '.' . self::BASE . '/h5/', $response->getTargetUrl());
     }
 
     // ==================================================================
-    // 跳过场景：API / POST / 平台面 / 无租户上下文
+    // 跳过场景：API / POST / 平台面 / 无租户上下文 / 无通配 base
     // ==================================================================
 
     public function test_api_requests_are_not_redirected(): void
@@ -228,9 +216,20 @@ class EnforceCanonicalEntryTest extends TestCase
     {
         TenantContext::setTenant(null);
 
-        $request = Request::create('http://' . self::APP_DOMAIN . '/anything/');
+        $request = Request::create('http://whatever.' . self::BASE . '/h5/');
         $middleware = new EnforceCanonicalEntry;
         $response = $middleware->handle($request, fn () => new Response('OK'));
+
+        $this->assertSame(200, $response->getStatusCode());
+    }
+
+    public function test_without_wildcard_base_and_custom_domain_passes_through(): void
+    {
+        // 未配通配 base 且无自定义域名 → 无规范入口，不收敛
+        config(['domain.wildcard_base' => null]);
+        $tenant = $this->createTenant(['slug' => 'beta', 'slug_status' => 'active']);
+
+        $response = $this->invokeMiddleware('http://beta.example.com/h5/', $tenant);
 
         $this->assertSame(200, $response->getStatusCode());
     }

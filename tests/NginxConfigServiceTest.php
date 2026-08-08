@@ -38,7 +38,6 @@ class NginxConfigServiceTest extends TestCase
     {
         config(['domain.wildcard_base' => 'dsplat.com']);
         config(['domain.platform_domains.admin' => 'admin.dsplat.com']);
-        config(['domain.platform_domains.app' => 'app.dsplat.com']);
         config(['domain.platform_domains.console' => 'console.dsplat.com']);
     }
 
@@ -145,12 +144,11 @@ class NginxConfigServiceTest extends TestCase
     public function test_whitelist_dedupes_overlapping_domains_to_avoid_nginx_map_conflict(): void
     {
         // 防御性：nginx map 键重复会触发 [emerg] conflicting parameter 致全站 reload 失败。
-        // 即使配置出现重叠（如 admin/app 误指同域名、自定义域名撞上二级域名），
+        // 即使配置出现重叠（如 admin/console 误指同域名、自定义域名撞上二级域名），
         // 生成的 map 也必须保证每个域名键唯一。
         config(['domain.wildcard_base' => 'dsplat.com']);
         config(['domain.platform_domains.admin' => 'social.dsplat.com']);
-        config(['domain.platform_domains.app' => 'social.dsplat.com']); // 与 admin 重叠
-        config(['domain.platform_domains.console' => 'console.dsplat.com']);
+        config(['domain.platform_domains.console' => 'social.dsplat.com']); // 与 admin 重叠
 
         // 某租户自定义域名撞上已放行的二级域名
         $this->createTenant(['slug' => 'acme', 'slug_status' => 'active', 'domain' => 'acme.dsplat.com']);
@@ -173,7 +171,6 @@ class NginxConfigServiceTest extends TestCase
             preg_match_all('/^\s*acme\.dsplat\.com\s+1;/m', $content),
             '自定义域名与二级域名重叠未去重'
         );
-        $this->assertStringContainsString('console.dsplat.com', $content);
     }
 
     public function test_authorized_domains_merges_custom_and_subdomain(): void
@@ -244,7 +241,7 @@ class NginxConfigServiceTest extends TestCase
         $this->assertStringContainsString('map $host $seo_allowed {', $content);
         $this->assertStringContainsString('default 0;', $content);
         // 平台域名 = 1
-        $this->assertMatchesRegularExpression('/app\.dsplat\.com\s+1;/', $content);
+        $this->assertMatchesRegularExpression('/admin\.dsplat\.com\s+1;/', $content);
         // 自定义域名 = 1
         $this->assertMatchesRegularExpression('/scrm\.lanyantu\.com\s+1;/', $content);
         // 二级域名（含 t-）不列出（走 default 0）

@@ -14,20 +14,23 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * canonical 入口收敛中间件
  *
- * 一个租户存在最多四种入口（自定义域名 / 二级域名 / slug 路径 / tenant_id 路径），
+ * 一个租户存在最多三种入口（自定义域名 / slug 二级域名 / tenant_id 二级域名），
  * 全部可解析，但规范入口唯一，其余 301 收敛（docs/tenant.md §2.0）：
  *
  *   canonical(tenant) =
  *       自定义域名（domain 非空 且 domain_status=approved）
  *       > {slug}.{wildcard_base}（slug_status=active，含自动码 t-xxxxxx）
- *       > {app_domain}/{slug}/
- *       > {app_domain}/{tenant_id}/（兜底）
+ *       > {tenant_id}.{wildcard_base}（兜底）
+ *
+ * 架构约束：不支持 app 域路径前缀（/{slug}/、/{tenant_id}/）形态，
+ * 租户共享入口一律为子域名，与 nginx 统一基桩白名单同构。
  *
  * 安全与体验约束：
  * - 仅 GET/HEAD；POST 等写操作不重定向
  * - API（/api/ 前缀）、XHR、接受 JSON 的请求不重定向（客户端不跟随 301 语义）
- * - 平台域名（admin/console/main）不参与收敛
+ * - 平台域名（admin/console）不参与收敛
  * - 当前入口即规范入口时直接放行（防循环）
+ * - 未配置 wildcard_base 且无 approved 自定义域名时无规范入口，直接放行
  */
 class EnforceCanonicalEntry
 {
@@ -43,47 +46,36 @@ class EnforceCanonicalEntry
         }
 
         $host = $request->header('X-Original-Host') ?? $request->getHost();
-        $appDomain = config('domain.platform_domains.app');
         $wildcardBase = config('domain.wildcard_base');
 
         $slugActive = $tenant->slug && $tenant->slug_status === 'active';
         $customDomain = $this->approvedCustomDomain($tenant);
 
-        // 解析当前入口形态，得到去掉租户前缀的剩余路径
-        // 注意：app 域本身是 {base} 的子域名（如 app.neihang.com），必须先判 app 域再判通配
-        $rest = null;
-        if ($customDomain && $host === $customDomain) {
-            $rest = $request->getPathInfo(); // 自定义域名：无前缀
-        } elseif ($appDomain && $host === $appDomain) {
-            $rest = $this->stripTenantPrefix($request, $tenant); // app 域路径前缀
-        } elseif ($wildcardBase && $host !== $wildcardBase && str_ends_with($host, ".{$wildcardBase}")) {
-            $rest = $request->getPathInfo(); // 二级域名（slug 或 tenant_id 形态）：无前缀
-        }
+        // 解析当前入口形态：仅自定义域名与 {base} 子域名两种租户入口
+        $isTenantEntry = ($customDomain && $host === $customDomain)
+            || ($wildcardBase && $host !== $wildcardBase && str_ends_with($host, ".{$wildcardBase}"));
 
-        if ($rest === null) {
+        if (! $isTenantEntry) {
             return $next($request); // 非租户入口形态（平台域名等），不收敛
         }
 
         // 计算规范入口
         if ($customDomain) {
             $targetHost = $customDomain;
-            $targetPrefix = '';
         } elseif ($slugActive && $wildcardBase) {
             $targetHost = "{$tenant->slug}.{$wildcardBase}";
-            $targetPrefix = '';
-        } elseif ($appDomain) {
-            $targetHost = $appDomain;
-            $targetPrefix = $slugActive ? "/{$tenant->slug}" : "/{$tenant->tenant_id}";
+        } elseif ($wildcardBase) {
+            $targetHost = "{$tenant->tenant_id}.{$wildcardBase}";
         } else {
-            return $next($request);
+            return $next($request); // 无规范入口（未配通配 base 且无自定义域名）
         }
 
         // 已是规范入口 → 放行（防循环）
-        if ($host === $targetHost && $this->currentPrefix($request, $host, $appDomain) === $targetPrefix) {
+        if ($host === $targetHost) {
             return $next($request);
         }
 
-        $target = $this->scheme($request) . '://' . $targetHost . $targetPrefix . $this->normalizeRest($rest);
+        $target = $this->scheme($request) . '://' . $targetHost . $this->normalizeRest($request->getPathInfo());
         $query = $request->getQueryString();
         if ($query) {
             $target .= '?' . $query;
@@ -105,7 +97,7 @@ class EnforceCanonicalEntry
             return false;
         }
 
-        // 平台域名不参与收敛（admin/console/main；app 域是路径前缀载体，需要处理）
+        // 平台域名不参与收敛（admin/console/default）
         $domainType = TenantContext::getDomainType();
         if (in_array($domainType, ['admin', 'console', 'default'], true)) {
             return false;
@@ -131,43 +123,6 @@ class EnforceCanonicalEntry
         );
 
         return $status === DomainService::STATUS_APPROVED ? $tenant->domain : null;
-    }
-
-    /**
-     * app 域：剥离第一段租户前缀；第一段不属于该租户时返回 null（不收敛，交由后续路由）
-     */
-    protected function stripTenantPrefix(Request $request, Tenant $tenant): ?string
-    {
-        $path = $request->getPathInfo();
-        $trimmed = trim($path, '/');
-        if ($trimmed === '') {
-            return null;
-        }
-
-        $first = explode('/', $trimmed)[0];
-
-        if ($first !== (string) $tenant->tenant_id && $first !== $tenant->slug) {
-            return null;
-        }
-
-        // 从原始路径剥掉首段，保留其余部分（含尾斜杠）
-        $rest = substr($path, strlen('/' . $first));
-
-        return $rest === '' ? '/' : $rest;
-    }
-
-    /**
-     * 当前入口在 app 域上的前缀（/{slug} 或 /{tenant_id}）；域名形态无前缀
-     */
-    protected function currentPrefix(Request $request, string $host, ?string $appDomain): string
-    {
-        if (! $appDomain || $host !== $appDomain) {
-            return '';
-        }
-
-        $first = explode('/', trim($request->getPathInfo(), '/'))[0] ?? '';
-
-        return $first === '' ? '' : "/{$first}";
     }
 
     /**

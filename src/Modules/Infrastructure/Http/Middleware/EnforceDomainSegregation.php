@@ -12,13 +12,13 @@ use Symfony\Component\HttpFoundation\Response;
  * 域名分工隔离中间件（全局「门」）
  *
  * 域名配置全部来自 .env（PLATFORM_MAIN_DOMAIN / ADMIN_DOMAIN / PLATFORM_CONSOLE_DOMAIN
- * / PLATFORM_APP_DOMAIN / PLATFORM_API_DOMAIN），本中间件只负责按域名排除互串：
+ * / PLATFORM_API_DOMAIN），本中间件只负责按域名排除互串：
  *
- *  - admin 域名：平台后台专用，不提供租户服务（/console、/app、console API）
+ *  - admin 域名：平台后台专用，不提供租户服务（/console、console API）
  *  - 非 admin 域名：不提供平台后台（/admin、admin API）
  *
  * 租户自定义域名 / t-xxxxxx 通配子域名 / {tenant_id}.{domain} 等租户接入域名
- * 访问 /console、/app 属正常链路，一律放行。
+ * 访问 /console 属正常链路，一律放行。
  *
  * 本地开发（localhost/127.0.0.1）不受限；测试可用 X-Original-Host 注入模拟域名。
  */

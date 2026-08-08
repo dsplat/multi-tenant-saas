@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
  * 域名识别中间件
  *
  * 识别当前请求的域名类型：admin/console/api/app
+ * 其中 app 为兜底类型（租户接入域名：自定义域名 / {slug}.{base} / {tenant_id}.{base}）
  */
 class IdentifyDomain
 {
@@ -66,12 +67,6 @@ class IdentifyDomain
             return self::DOMAIN_CONSOLE;
         }
 
-        // App域名（共享前端，如 app.example.com）
-        $appDomain = config('domain.platform_domains.app');
-        if ($appDomain && $host === $appDomain) {
-            return self::DOMAIN_APP;
-        }
-
         // 路径区分
         if (str_starts_with($path, '/admin')) {
             return self::DOMAIN_ADMIN;
@@ -85,6 +80,7 @@ class IdentifyDomain
             return self::DOMAIN_API;
         }
 
+        // 其余（含全部租户接入域名）归为 app 类型
         return self::DOMAIN_APP;
     }
 

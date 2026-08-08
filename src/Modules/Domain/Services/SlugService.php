@@ -139,9 +139,8 @@ class SlugService
      *
      * 打回后：
      * - slug_status = rejected
-     * - 路径 /{slug}/ 失效
      * - 二级域名从白名单移除（由 NginxConfigService 重新生成时自动处理）
-     * - 租户降级为 /{tenant_id}/ 访问
+     * - 租户降级为 {tenant_id}.{wildcard_base} 访问
      */
     public function rejectSlug(int $tenantId, ?string $reason = null): void
     {

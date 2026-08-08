@@ -107,9 +107,9 @@ generated_by: secretary:kb:build
 ### 平台域名配置
 
 - `platform_domains.admin`：平台管理后台域名，默认为 `admin.example.com`；
-- `platform_domains.app`：平台主应用域名，默认为 `app.example.com`；
+- `platform_domains.console`：租户共享后台域名（`PLATFORM_CONSOLE_DOMAIN`）。
 
-> 注：实际值由环境变量 `PLATFORM_ADMIN_DOMAIN` 和 `PLATFORM_APP_DOMAIN` 控制。
+> 注：租户前台不设共享 app 域；租户入口一律为子域名（{slug}.{wildcard_base} / {tenant_id}.{wildcard_base}）或自定义域名。
 
 ### 子域名基础域名
 

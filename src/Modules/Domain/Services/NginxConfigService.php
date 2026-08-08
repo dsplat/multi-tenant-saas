@@ -146,7 +146,7 @@ class NginxConfigService
     }
 
     /**
-     * 平台域名（去重）。admin/app 可能指向同一域名。
+     * 平台域名（去重）。
      *
      * @return string[]
      */
@@ -154,7 +154,6 @@ class NginxConfigService
     {
         return array_values(array_unique(array_filter([
             config('domain.platform_domains.admin'),
-            config('domain.platform_domains.app'),
             config('domain.platform_domains.console'),
         ])));
     }

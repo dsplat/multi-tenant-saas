@@ -15,7 +15,7 @@
 |---|---|---|
 | `tenant_id` | bigint PK | 全局唯一 ID（IdGenerator 生成） |
 | `name` | string | 租户名称 |
-| `slug` | string unique | URL 标识（如 `acme`），用于路径前缀和二级域名 |
+| `slug` | string unique | URL 标识（如 `acme`），用于二级域名（{slug}.{wildcard_base}） |
 | `slug_status` | enum nullable | active / rejected（null=未设置） |
 | `domain` | string nullable unique | 租户绑定域名（二级域名或自定义域名，统一字段） |
 | `logo` | string nullable | Logo URL |
@@ -60,43 +60,39 @@ Tenant
 |---|---|
 | **域名 >> slug** | 有域名走域名，没域名走 slug。`tenants.domain` 是租户入口的唯一判定字段 |
 | 品牌域与服务域分离 | 平台品牌域（官网/后台）不与租户服务域混用 |
-| 共享域名为默认 | 新租户零配置即可访问，无需 DNS/SSL |
-| 独立域名是特权 | 二级域名需保证金，自定义域名需审核 |
+| **子域名为唯一共享入口** | 不支持路径前缀（`/{slug}/`、`/{tenant_id}/`）；共享入口一律为 `{slug}.{base}` / `{tenant_id}.{base}`，与 nginx 基桩白名单同构，避免共享域 cookie 串扰与 SEO 污染 |
+| 共享域名为默认 | 新租户零配置即可访问（`{tenant_id}.{base}` 兜底，无需单独 DNS/SSL 配置） |
+| 独立域名是特权 | 自定义 slug 二级域名需保证金，自定义域名需审核 |
 | 框架不硬编码域名 | 一切通过 `config/domain.php` + `.env` 注入 |
 
 **规范 URL 规则**：
 
-优先级：`自定义域名 > 分配的二级域名 > slug 路径 > tenant_id 路径`
+优先级：`自定义域名(approved) > {slug}.{base} > {tenant_id}.{base}`
 
-- **解析**：四种方式均可定位到租户（用户手动输入任何一种都能访问）
+- **解析**：三种方式均可定位到租户（用户手动输入任何一种都能访问）
 - **规范**：解析成功后，301 重定向到当前最优可用入口（逐级 fallback）
 
 ```
 canonical(tenant) =
-    tenant.custom_domain      // 有自定义域名 → 用它
-    ?? tenant.subdomain       // 有分配的二级域名 → 用它
-    ?? app_domain/{slug}/     // 有 active slug → 用它
-    ?? app_domain/{tenant_id}/  // 兆底
+    tenant.custom_domain          // domain_status=approved → 用它
+    ?? {slug}.{wildcard_base}     // slug_status=active → 用它
+    ?? {tenant_id}.{wildcard_base}  // 兜底
 ```
 
 示例：
 
 ```
-租户 A：有自定义域名 crm.client.com + 二级域名 scrm.dsplat.com + slug=scrm
-  app.dsplat.com/scrm/h5/         → 301 → crm.client.com/h5/（最优是自定义域名）
-  scrm.dsplat.com/h5/             → 301 → crm.client.com/h5/
+租户 A：有自定义域名 crm.client.com + slug=scrm
+  scrm.dsplat.com/h5/             → 301 → crm.client.com/h5/（最优是自定义域名）
+  {tenant_id}.dsplat.com/h5/      → 301 → crm.client.com/h5/
   crm.client.com/h5/              → 200
 
-租户 B：仅有二级域名 scrm.dsplat.com + slug=scrm
-  app.dsplat.com/scrm/h5/         → 301 → scrm.dsplat.com/h5/（最优是二级域名）
+租户 B：仅有 slug=scrm
+  {tenant_id}.dsplat.com/h5/      → 301 → scrm.dsplat.com/h5/（最优是 slug 二级域名）
   scrm.dsplat.com/h5/             → 200
 
-租户 C：仅有 slug=scrm
-  app.dsplat.com/{tenant_id}/h5/  → 301 → app.dsplat.com/scrm/h5/（最优是 slug）
-  app.dsplat.com/scrm/h5/         → 200
-
-租户 D：无 slug（slug_status=rejected）
-  app.dsplat.com/{tenant_id}/h5/  → 200（兑底即规范）
+租户 C：无可用 slug（slug_status=rejected）
+  {tenant_id}.dsplat.com/h5/      → 200（兜底即规范）
 ```
 
 **实现**：由 `EnforceCanonicalEntry` 中间件落地（web 组，紧跟 `IdentifyTenant` 之后）。
@@ -124,27 +120,29 @@ canonical(tenant) =
 
 | 层级 | 前端（H5）访问 | 管理后台访问 | 准入条件 |
 |---|---|---|---|
-| **免费层** | `{app_domain}/{slug}/...` | `{console_domain}`（登录后识别） | 注册即得 |
-| **二级域名层** | `{slug}.{wildcard_base}/...` | 同域 `/console/` 路径 | 保证金 |
+| **免费层** | `{t-自动码}.{wildcard_base}/...`（自动 slug） | `{console_domain}`（登录后识别） | 注册即得 |
+| **二级域名层** | `{slug}.{wildcard_base}/...`（自选 slug） | 同域 `/console/` 路径 | 保证金 |
 | **自定义域名层** | `{tenant_domain}/...` | 同域 `/console/` 路径 | 审核 + ICP + SSL |
 
 其中：
-- `{app_domain}` = `config('domain.platform_domains.app')`（如 `app.example.com`）
 - `{console_domain}` = `config('domain.platform_domains.console')`（如 `console.example.com`）
 - `{wildcard_base}` = `config('domain.wildcard_base')`（如 `example.com`）
 - `{tenant_domain}` = `tenants.domain` 字段
 
-### 2.2 免费层：共享域名 + 路径隔离
+> 平台域名不含 app 域：租户前台不设共享路径前缀载体，一律走子域名/自定义域名。
+> `{tenant_id}.{wildcard_base}` 与 `{slug}.{wildcard_base}` 同质，为白名单精确放行的零配置兜底。
+
+### 2.2 免费层：通配子域名
 
 **前端（H5）**：
 
 ```
-{app_domain}/{slug}/h5/...        → 按 slug 定位租户
-{app_domain}/{tenant_id}/h5/...   → 按 tenant_id 定位（slug 未设置或被打回时的降级路径）
+{t-自动码}.{wildcard_base}/h5/...   → 创建租户时自动生成 slug（t-xxxxxx）即得
+{tenant_id}.{wildcard_base}/h5/...  → 16 位雪花 ID 直查（slug 被打回时的降级入口）
 ```
 
-- 终端用户无需登录即可访问，租户标识**必须**出现在 URL 路径第一段
-- 无路径前缀 → 返回平台首页或 404
+- 终端用户无需登录即可访问；租户标识在**子域名**而非 URL 路径
+- 恶意/未白名单子域名由 nginx 基桩 `return 444` 零带宽断连，不进 PHP
 
 **管理后台（Console）——双入口**：
 
@@ -204,14 +202,16 @@ pending → rejected（管理员拒绝，附原因）
 ```
 1. ?tenant_id= / ?tid=（URL 参数，不可信，需归属校验）
 2. X-Tenant-ID Header（不可信，需归属校验）
-3. tenants.domain 精确匹配（自定义域名/二级域名，可信）
-4. 共享域名路径前缀（app_domain 时，从 URL 第一段提取 slug 或 tenant_id）  ← 新增
-5. Cookie tenant_id（不可信，需归属校验）
-6. Session tenant_id
-7. 认证用户关联（Operator → operator_tenants / User → current_tenant_id）
-8. 通配子域名解析（tenant_id 直查 / slug 查询，兼容兑底）
-9. 默认租户（兜底）
+3. tenants.domain 精确匹配（自定义域名，可信）
+4. Cookie tenant_id（不可信，需归属校验）
+5. Session tenant_id
+6. 认证用户关联（Operator → operator_tenants / User → current_tenant_id）
+7. 通配子域名解析（16 位纯数字按 tenant_id 直查 / 否则按 slug 查，带缓存）
+8. 未识别不兜底（EnsureTenantContext 返 403）
 ```
+
+> 已废除：共享域名路径前缀（app_domain/{slug}/、/{tenant_id}/）。平台域名不再包含 app 域，
+> 租户共享入口唯一形态为子域名，与 nginx 基桩白名单同构。
 
 ### 2.6 Slug 治理（三层防护）
 
@@ -295,7 +295,6 @@ null → active → rejected → (重新设置) → active
 | 配置 | 环境变量 | 说明 |
 |---|---|---|
 | `platform_domains.admin` | `PLATFORM_ADMIN_DOMAIN` | 平台管理后台域名 |
-| `platform_domains.app` | `PLATFORM_APP_DOMAIN` | 共享前端域名 |
 | `platform_domains.console` | `PLATFORM_CONSOLE_DOMAIN` | 共享管理后台域名 |
 | `wildcard_base` | `PLATFORM_WILDCARD_BASE` | 二级域名通配基础（null 禁用） |
 | `reserved_slugs` | — | Slug 黑名单数组 |
@@ -591,7 +590,7 @@ Model::query() → WHERE tenant_id = {current_tenant_id}
 
 | 层级 | 形态 | seo_allowed | SEO/GEO | AI 爬虫 |
 |---|---|---|---|---|
-| 免费兑底（自动）| `{tenant_id}.{wildcard_base}` / `t-xxxxxx.{wildcard_base}` | 0 | 禁止（noindex + Disallow robots）| 403 |
+| 免费兜底（自动）| `{tenant_id}.{wildcard_base}` / `t-xxxxxx.{wildcard_base}` | 0 | 禁止（noindex + Disallow robots）| 403 |
 | 付费二级域名 | `{slug}.{wildcard_base}` | 0 | 禁止 | 403 |
 | 自定义域名 | `{tenant_domain}` | 1 | 开放 | 放行 |
 | 平台域名 | admin/app/console | 1 | 开放 | 放行 |
@@ -663,13 +662,16 @@ policy 由单一 `$seo_allowed` 变量驱动：基桩同一条 `if ($block_ai_bo
 
 ## 十一、域名体系重构——代码修改范围
 
-> 本节记录从旧模型（通配子域名为主）迁移到新模型（共享域名 + 路径前缀为主）的代码变更清单。
+> 本节记录从旧模型（通配子域名为主）迁移到共享域名 + 路径前缀模型的历史变更清单。
+> **⚠️ 2026-08 更正：路径前缀模型已整体废除**（共享域 cookie 串扰风险、SEO 污染、
+> 与 nginx 基桩白名单架构分裂）。`resolveFromPathPrefix()` 已删除，`platform_domains.app`
+> 已除名，租户共享入口唯一形态为子域名（{slug}.{base} / {tenant_id}.{base}），见 §2.0。
 
 ### 11.1 修改文件
 
 | 文件 | 变更类型 | 说明 |
 |---|---|---|
-| `src/Modules/Infrastructure/Http/Middleware/IdentifyTenant.php` | 修改 | 新增 `resolveFromPathPrefix()` 方法；调整优先级顺序 |
+| `src/Modules/Infrastructure/Http/Middleware/IdentifyTenant.php` | 修改 | 曾新增 `resolveFromPathPrefix()`（已于 2026-08 废除删除） |
 | `src/Modules/Infrastructure/Http/Middleware/IdentifyDomain.php` | 修改 | 新增 `console` 域名精确匹配（`PLATFORM_CONSOLE_DOMAIN`） |
 | `src/Modules/Domain/Config/domain.php` | 修改 | 新增 `platform_domains.console`、`reserved_slugs`、`slug_min_length`、`slug_pattern` |
 | `src/Modules/Domain/Services/DomainService.php` | 修改 | 打回时同步清理 slug 状态 |
@@ -694,8 +696,8 @@ policy 由单一 `$seo_allowed` 变量驱动：基桩同一条 `if ($block_ai_bo
 |---|---|
 | `slug_status` 加在 tenants 表而非 tenant_settings | 高频读取（每次请求），避免 settings 表查询开销 |
 | AI 评估为同步调用（非队列） | slug 设置是低频操作，同步体验更好 |
-| 路径解析仅在 `app_domain` 触发 | 避免对自定义域名/二级域名的请求误触发路径解析 |
-| 通配子域名解析保留但优先级降低 | 向后兼容已有租户，新租户默认走共享域名 |
+| ~~路径解析仅在 `app_domain` 触发~~ | 已随路径前缀模型废除（2026-08） |
+| 通配子域名解析为共享入口唯一形态 | 与 nginx 基桩白名单同构；子域名 host 级隔离 cookie/session |
 | 框架不硬编码任何具体域名 | 所有域名通过 env 注入，避免泄露部署信息 |
 
 ### 11.4 废弃文档

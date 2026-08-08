@@ -560,7 +560,6 @@ class AuthImprovementsTest extends TestCase
     {
         config(['domain.wildcard_base' => 'scrm.com']);
         config(['domain.platform_domains.admin' => 'admin.scrm.com']);
-        config(['domain.platform_domains.app' => 'app.scrm.com']);
         config(['domain.platform_domains.console' => 'console.scrm.com']);
 
         // 已配置 slug 的活跃租户 → 精确放行
@@ -591,7 +590,6 @@ class AuthImprovementsTest extends TestCase
     {
         config(['domain.wildcard_base' => null]);
         config(['domain.platform_domains.admin' => 'admin.example.com']);
-        config(['domain.platform_domains.app' => 'app.example.com']);
 
         $service = new NginxConfigService;
         $outputPath = sys_get_temp_dir() . '/test-domains-' . uniqid() . '.map';

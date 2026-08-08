@@ -10,7 +10,6 @@ return [
         // 平台首页域名（www）
         'main' => env('PLATFORM_MAIN_DOMAIN'),
         'admin' => env('PLATFORM_ADMIN_DOMAIN', 'admin.example.com'),
-        'app' => env('PLATFORM_APP_DOMAIN', 'app.example.com'),
         'console' => env('PLATFORM_CONSOLE_DOMAIN', 'console.example.com'),
         // 独立 API 域名（可选；未配置时 API 随各 SPA 域名提供）
         'api' => env('PLATFORM_API_DOMAIN'),
@@ -105,7 +104,6 @@ return [
     'reserved_domains' => array_filter([
         env('PLATFORM_MAIN_DOMAIN'),
         env('PLATFORM_ADMIN_DOMAIN'),
-        env('PLATFORM_APP_DOMAIN'),
         env('PLATFORM_CONSOLE_DOMAIN'),
         env('PLATFORM_API_DOMAIN'),
     ]),
@@ -115,7 +113,7 @@ return [
     | Slug 治理配置
     |--------------------------------------------------------------------------
     |
-    | 租户 slug 用于共享域名路径前缀（app_domain/{slug}/）和二级域名。
+    | 租户 slug 用于二级域名（{slug}.<wildcard_base>）。
     | 三层防护：黑名单硬拒 → AI 风险评估 → 后台打回。
     |
     */

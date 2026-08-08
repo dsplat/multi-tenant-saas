@@ -20,7 +20,6 @@ return [
         env('PLATFORM_MAIN_DOMAIN'),
         env('ADMIN_DOMAIN', 'admin.example.com'),
         env('PLATFORM_ADMIN_DOMAIN'),
-        env('PLATFORM_APP_DOMAIN'),
         env('PLATFORM_CONSOLE_DOMAIN'),
     ]),
 

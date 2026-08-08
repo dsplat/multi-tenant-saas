@@ -99,6 +99,11 @@ canonical(tenant) =
   app.dsplat.com/{tenant_id}/h5/  → 200（兑底即规范）
 ```
 
+**实现**：由 `EnforceCanonicalEntry` 中间件落地（web 组，紧跟 `IdentifyTenant` 之后）。
+约束：仅 GET/HEAD；API（`/api/` 前缀）、XHR、JSON 请求、平台面（admin/console/default）不重定向；
+自定义域名仅当 `domain_status=approved` 才作为规范入口；目标 scheme 信任 `X-Forwarded-Proto`；
+当前入口即规范入口时直接放行（防循环）。
+
 ### 2.0.1 部署拓扑：SLB 层架构（锁定）
 
 ```

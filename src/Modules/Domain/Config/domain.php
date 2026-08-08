@@ -122,6 +122,8 @@ return [
         'api', 'admin', 'console', 'app', 'login', 'register', 'auth',
         'assets', 'static', 'public', 'cdn', 'mail', 'www', 'webmail',
         'localhost', 'test', 'demo', 'staging', 'dev',
+        // 平台概念词（防租户子域名与平台域/域类型混淆，如 platform.{base} 被误认为平台域）
+        'platform', 'main', 'default', 'tenant', 'tenants',
         // 通用高风险
         'official', 'support', 'help', 'service', 'system', 'root',
         'administrator', 'webmaster', 'postmaster', 'abuse', 'security',

@@ -56,16 +56,34 @@ class SlugServiceTest extends TestCase
 
     public function test_system_reserved_slugs_rejected(): void
     {
-        $reserved = ['api', 'console', 'app', 'login', 'www', 'localhost'];
+        // 含平台概念词（防租户子域名与平台域/域类型混淆）
+        $reserved = ['api', 'console', 'app', 'login', 'www', 'localhost', 'platform', 'main', 'default', 'tenant', 'tenants'];
 
         foreach ($reserved as $slug) {
             try {
                 $this->service->setSlug(3002, $slug);
                 $this->fail("Expected ValidationException for slug: {$slug}");
             } catch (ValidationException) {
-                // expected
+                $this->addToAssertionCount(1);
             }
         }
+    }
+
+    public function test_assert_not_reserved_gate_rejects_platform_concept_words(): void
+    {
+        // 入口闸：创建/更新/注册等指定 slug 入口共用的保留词硬拒
+        foreach (['platform', 'main', 'default', 'tenant', 'tenants'] as $slug) {
+            try {
+                $this->service->assertNotReserved($slug);
+                $this->fail("Expected ValidationException for slug: {$slug}");
+            } catch (ValidationException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+
+        // 普通 slug 放行
+        $this->service->assertNotReserved('acme-store');
+        $this->assertTrue(true);
     }
 
     public function test_duplicate_slug_rejected(): void

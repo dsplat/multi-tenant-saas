@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Laravel\Sanctum\PersonalAccessToken;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Modules\Domain\Services\SlugService;
 use MultiTenantSaas\Events\TenantCreated;
 use MultiTenantSaas\Modules\Auth\Services\RbacService;
 use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
@@ -153,6 +154,11 @@ class TenantController extends Controller
     {
         if (! app(RbacService::class)->check('tenant.create')) {
             return response()->json(['success' => false, 'message' => trans('common.no_permission')], 403);
+        }
+
+        // 指定 slug 时先过保留词闸（初始化即屏蔽）
+        if ($request->filled('slug')) {
+            (new SlugService)->assertNotReserved((string) $request->slug);
         }
 
         $tenant = Tenant::create([

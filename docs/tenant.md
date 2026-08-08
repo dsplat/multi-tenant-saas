@@ -268,12 +268,22 @@ EnforceCanonicalEntry（仅 web 组） → 只守护 app 面，301 收敛到规�
     'api', 'admin', 'console', 'app', 'login', 'register', 'auth',
     'assets', 'static', 'public', 'cdn', 'mail', 'www', 'webmail',
     'localhost', 'test', 'demo', 'staging', 'dev',
+    // 平台概念词（防租户子域名与平台域/域类型混淆，如 platform.{base} 被误认为平台域）
+    'platform', 'main', 'default', 'tenant', 'tenants',
+    // 通用高风险
+    'official', 'support', 'help', 'service', 'system', 'root', ...,
     // 品牌保护（从 .env 注入，框架不硬编码）
     ...array_filter([
         env('PLATFORM_BRAND_SLUG'),
     ]),
 ],
 ```
+
+**入口闸（初始化即屏蔽）**：所有「用户指定 slug」入口——创建租户（`TenantService::create`/
+`TenantController::store`）、更新租户、注册开通（`TenantOnboardingService`）、slug 设置
+（`SlugService::setSlug`）——必须先过 `SlugService::assertNotReserved()`（保留词 + `t-`
+自动码前缀硬拒），禁止绕过闸直接写库。平台超级租户 Seeder 不再硬编码 slug，
+初始化用 t-xxxxxx 自动码；重跑 seed 不触碰存量 slug。
 
 #### 层级二：AI 风险评估（软警示）
 

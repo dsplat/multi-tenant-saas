@@ -70,6 +70,31 @@ class SlugService
     }
 
     /**
+     * 入口闸：保留词/自动码前缀硬拒（供所有指定 slug 的入口共用）
+     *
+     * 创建租户、更新租户、注册开通等「用户指定 slug」入口必须先过本闸，
+     * 防止保留词绕过 setSlug 直接写库（初始化即屏蔽）。
+     *
+     * @throws ValidationException
+     */
+    public function assertNotReserved(string $slug): void
+    {
+        $slug = mb_strtolower(trim($slug));
+
+        if ($this->isReservedAutoPrefix($slug)) {
+            throw ValidationException::withMessages([
+                'slug' => [trans('tenant.slug.reserved_prefix', ['prefix' => self::AUTO_PREFIX])],
+            ]);
+        }
+
+        if ($this->isBlacklisted($slug)) {
+            throw ValidationException::withMessages([
+                'slug' => [trans('tenant.slug.blacklisted', ['slug' => $slug])],
+            ]);
+        }
+    }
+
+    /**
      * 设置/变更租户 slug
      *
      * @return array{slug: string, status: string, risk_level: string, risk_reason: ?string}

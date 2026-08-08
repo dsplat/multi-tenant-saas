@@ -60,11 +60,18 @@ class TenantService
     {
         DB::beginTransaction();
         try {
+            $slugService = new SlugService;
+
+            // 用户指定 slug 时先过保留词闸（初始化即屏蔽）
+            if (! empty($data['slug'])) {
+                $slugService->assertNotReserved($data['slug']);
+            }
+
             // 基础字段 + 允许透传 fillable 字段
             $baseFields = [
                 'name' => $data['name'],
                 // 未提供 slug 时自动生成 t-xxxxxx 免费兜底子域名（创建即存在）
-                'slug' => $data['slug'] ?? (new SlugService)->generateUniqueAutoSlug(),
+                'slug' => $data['slug'] ?? $slugService->generateUniqueAutoSlug(),
                 'slug_status' => 'active',
                 'status' => $data['status'] ?? 'active',
                 'subscription_plan' => $data['plan'] ?? 'free',
@@ -110,6 +117,11 @@ class TenantService
         DB::beginTransaction();
         try {
             $tenant = Tenant::findOrFail($tenantId);
+
+            // 变更 slug 时先过保留词闸（存量 slug 未变更则不校验，避免历史数据自伤）
+            if (! empty($data['slug']) && $data['slug'] !== $tenant->slug) {
+                (new SlugService)->assertNotReserved($data['slug']);
+            }
 
             $tenant->update([
                 'name' => $data['name'] ?? $tenant->name,

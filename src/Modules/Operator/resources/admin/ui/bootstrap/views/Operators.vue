@@ -57,6 +57,13 @@
               <option value="tenant">租户级</option>
             </select>
           </div>
+          <div class="form-group">
+            <label>角色</label>
+            <select v-model="inviteForm.role">
+              <option value="tenant_admin">管理员</option>
+              <option value="member">成员</option>
+            </select>
+          </div>
           <div class="form-actions">
             <button type="button" @click="showInvite = false">取消</button>
             <button type="submit" class="primary-btn">邀请</button>
@@ -74,7 +81,7 @@ import axios from 'axios'
 const operators = ref<any[]>([])
 const filterScope = ref('')
 const showInvite = ref(false)
-const inviteForm = ref({ email: '', name: '', scope: 'platform' })
+const inviteForm = ref({ email: '', name: '', scope: 'platform', role: 'member' })
 
 const fetchOperators = async () => {
   try {
@@ -89,7 +96,7 @@ const handleInvite = async () => {
   try {
     await axios.post('/api/v1/admin/operators/invite', inviteForm.value)
     showInvite.value = false
-    inviteForm.value = { email: '', name: '', scope: 'platform' }
+    inviteForm.value = { email: '', name: '', scope: 'platform', role: 'member' }
     await fetchOperators()
     alert('邀请已发送')
   } catch (e: any) {

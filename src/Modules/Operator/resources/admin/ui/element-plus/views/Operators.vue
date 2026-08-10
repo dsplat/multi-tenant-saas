@@ -52,6 +52,12 @@
             <el-option label="租户级" value="tenant" />
           </el-select>
         </el-form-item>
+        <el-form-item label="角色">
+          <el-select v-model="inviteForm.role" style="width: 100%">
+            <el-option label="管理员" value="tenant_admin" />
+            <el-option label="成员" value="member" />
+          </el-select>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="showInvite = false">取消</el-button>
@@ -70,7 +76,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 const operators = ref<any[]>([])
 const filterScope = ref('')
 const showInvite = ref(false)
-const inviteForm = ref({ email: '', name: '', scope: 'platform' })
+const inviteForm = ref({ email: '', name: '', scope: 'platform', role: 'member' })
 
 const fetchOperators = async () => {
   try {
@@ -85,7 +91,7 @@ const handleInvite = async () => {
   try {
     await axios.post('/api/v1/admin/operators/invite', inviteForm.value)
     showInvite.value = false
-    inviteForm.value = { email: '', name: '', scope: 'platform' }
+    inviteForm.value = { email: '', name: '', scope: 'platform', role: 'member' }
     await fetchOperators()
     ElMessage.success('邀请已发送')
   } catch (e: any) {

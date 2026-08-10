@@ -74,9 +74,11 @@ const inviteForm = ref({ email: '', name: '', scope: 'platform' })
 
 const fetchOperators = async () => {
   try {
-    const res = await axios.get('/api/v1/operators', { params: { scope: filterScope.value || undefined } })
+    const res = await axios.get('/api/v1/admin/operators', { params: { scope: filterScope.value || undefined } })
     operators.value = res.data.data || []
-  } catch {}
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || '加载运营人员列表失败')
+  }
 }
 
 const handleInvite = async () => {

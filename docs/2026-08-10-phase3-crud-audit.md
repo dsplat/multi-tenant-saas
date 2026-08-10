@@ -298,3 +298,36 @@ DELETE FROM feature_flags WHERE name = 'audit-test-flag';
 2. ~~BUG-03（列表渲染）~~ ✅ 已修复（添加错误处理）
 3. ~~BUG-04（交互歧义）~~ ✅ 已修复（筛选区 label 去重）
 4. ~~BUG-05（404 处理）~~ ✅ 已修复（添加 404 页面和 fallback 路由）
+
+---
+
+## 最终验证结果（2026-08-11）
+
+### 浏览器端到端验证
+
+| 模块 | 测试操作 | 结果 | API 路径验证 |
+|---|---|---|---|
+| **运营人员** | 列表加载 | ✅ 成功 | `GET /api/v1/admin/operators` 200 |
+| **运营人员** | 邀请（含 role 字段） | ✅ 成功 | `POST /api/v1/admin/operators/invite` 201 |
+| **运营人员** | 列表刷新 | ✅ 成功 | `GET /api/v1/admin/operators` 200 |
+| **404 页面** | 访问不存在路径 | ✅ 正常显示 | 路由 fallback 生效 |
+
+### 额外发现并修复的问题
+
+| 问题 | 修复内容 |
+|---|---|
+| 列表 API 遗漏 | `/api/v1/operators` → `/api/v1/admin/operators` |
+| 邀请表单缺字段 | 添加 `role` 字段（tenant_admin/member） |
+| nginx 目录不一致 | 创建 symlink `/var/www/html/scrm-platform/public` → `/data/app/neihang.com/public` |
+
+### 部署链路
+
+```
+框架 df2da41 → split 触发 → scrm-platform composer update → deploy.py incremental
+前端构建 → rsync 到生产服务器
+nginx symlink 创建 → nginx reload
+```
+
+### 验证状态
+
+**所有 5 个原始 BUG + 3 个额外发现的问题均已修复并验证通过。**

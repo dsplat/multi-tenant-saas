@@ -75,18 +75,13 @@ const router = createRouter({
           component: resolveView('QueueFailed'),
           meta: { title: '失败队列', requiresAuth: true, permission: 'setting.view' },
         },
-        {
-          path: ':pathMatch(.*)*',
-          name: 'NotFound',
-          component: resolveView('NotFound'),
-          meta: { title: '页面不存在', requiresAuth: true },
-        },
+        // catch-all 路由延迟到模块路由加载完成后添加
       ],
     },
   ],
 })
 
-// 动态加载模块路由
+// 动态加载模块路由，加载完成后添加 catch-all 路由
 getAllModuleRoutes().then(moduleRoutes => {
   if (moduleRoutes.length > 0) {
     const mainRoute = router.getRoutes().find(r => r.name === 'AdminRoot')
@@ -101,6 +96,14 @@ getAllModuleRoutes().then(moduleRoutes => {
       }
     }
   }
+  
+  // 在模块路由添加完成后，再添加 catch-all 路由
+  router.addRoute('AdminRoot', {
+    path: ':pathMatch(.*)*',
+    name: 'NotFound',
+    component: resolveView('NotFound'),
+    meta: { title: '页面不存在', requiresAuth: true },
+  })
 })
 
 router.beforeEach(createAuthGuard(() => useUserStore()))

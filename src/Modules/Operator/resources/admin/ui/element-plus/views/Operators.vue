@@ -81,26 +81,30 @@ const fetchOperators = async () => {
 
 const handleInvite = async () => {
   try {
-    await axios.post('/api/v1/operators/invite', inviteForm.value)
+    await axios.post('/api/v1/admin/operators/invite', inviteForm.value)
     showInvite.value = false
     inviteForm.value = { email: '', name: '', scope: 'platform' }
     await fetchOperators()
     ElMessage.success('邀请已发送')
-  } catch {}
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || '邀请失败')
+  }
 }
 
 const toggleStatus = async (op: any) => {
   try {
-    await axios.put(`/v1/admin/operators/${op.operator_id}`, { is_active: !op.is_active })
+    await axios.post(`/api/v1/admin/operators/${op.operator_id}/toggle-status`)
     await fetchOperators()
     ElMessage.success(op.is_active ? '已禁用' : '已启用')
-  } catch {}
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || '操作失败')
+  }
 }
 
 const handleDelete = async (op: any) => {
   try {
     await ElMessageBox.confirm(`确定删除运营人员 ${op.name}？`, '警告', { type: 'error' })
-    await axios.delete(`/v1/admin/operators/${op.operator_id}`)
+    await axios.delete(`/api/v1/admin/operators/${op.operator_id}`)
     await fetchOperators()
     ElMessage.success('删除成功')
   } catch (e: any) {

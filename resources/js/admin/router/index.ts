@@ -75,6 +75,12 @@ const router = createRouter({
           component: resolveView('QueueFailed'),
           meta: { title: '失败队列', requiresAuth: true, permission: 'setting.view' },
         },
+        {
+          path: ':pathMatch(.*)*',
+          name: 'NotFound',
+          component: resolveView('NotFound'),
+          meta: { title: '页面不存在', requiresAuth: true },
+        },
       ],
     },
   ],

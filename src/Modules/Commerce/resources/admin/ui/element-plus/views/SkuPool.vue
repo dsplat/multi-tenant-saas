@@ -69,7 +69,7 @@ const columns = [
 
 const searchFields = [
   {
-    prop: 'type', label: '类型', type: 'select' as const, options: [
+    prop: 'type', label: '筛选类型', type: 'select' as const, options: [
       { label: '套餐', value: 'plan' },
       { label: '模块开通', value: 'module' },
       { label: '积分包', value: 'credit_pack' },
@@ -78,13 +78,13 @@ const searchFields = [
     ],
   },
   {
-    prop: 'role', label: '角色', type: 'select' as const, options: [
+    prop: 'role', label: '筛选角色', type: 'select' as const, options: [
       { label: '消费型', value: 'consumer' },
       { label: '供给型', value: 'supply' },
     ],
   },
   {
-    prop: 'status', label: '状态', type: 'select' as const, options: [
+    prop: 'status', label: '筛选状态', type: 'select' as const, options: [
       { label: '草稿', value: 'draft' },
       { label: '生效', value: 'active' },
       { label: '已下架', value: 'retired' },

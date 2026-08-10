@@ -87,7 +87,14 @@ const editId = ref('')
 const filters = ref({ scope: '', status: '' })
 const form = ref({ name: '', description: '', scope: 'global', status: 'active', rollout_percentage: 100 })
 
-const loadData = async () => { try { const r = await axios.get(API, { params: filters.value }); flags.value = r.data.data || [] } catch {} }
+const loadData = async () => {
+  try {
+    const r = await axios.get(API, { params: filters.value })
+    flags.value = r.data.data || []
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || '加载失败')
+  }
+}
 const openCreate = () => { isEdit.value = false; form.value = { name: '', description: '', scope: 'global', status: 'active', rollout_percentage: 100 }; dialog.value = true }
 const openEdit = (f: any) => { isEdit.value = true; editId.value = f.id ?? f.feature_flag_id; form.value = { name: f.name, description: f.description || '', scope: f.scope, status: f.status, rollout_percentage: f.rollout_percentage ?? 100 }; dialog.value = true }
 
@@ -95,9 +102,12 @@ const handleSubmit = async () => {
   try {
     if (isEdit.value) await axios.put(`${API}/${editId.value}`, form.value)
     else await axios.post(API, form.value)
-    dialog.value = false; await loadData()
+    dialog.value = false
+    await loadData()
     ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
-  } catch {}
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || '操作失败')
+  }
 }
 
 const toggleFlag = async (f: any) => {

@@ -68,7 +68,7 @@ import axios from 'axios'
 import { Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-const API = '/v1/admin/admin/billing/plans'
+const API = '/api/v1/admin/billing/plans'
 const plans = ref<any[]>([])
 const dialogVisible = ref(false)
 const isEdit = ref(false)
@@ -77,7 +77,12 @@ const form = ref({ name: '', slug: '', price: 0, billing_cycle: 'monthly', featu
 const featuresInput = ref('')
 
 const fetchPlans = async () => {
-  try { const r = await axios.get(API); plans.value = r.data.data || [] } catch {}
+  try {
+    const r = await axios.get(API)
+    plans.value = r.data.data || []
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || '加载失败')
+  }
 }
 
 const openCreate = () => {
@@ -103,7 +108,9 @@ const handleSubmit = async () => {
     dialogVisible.value = false
     await fetchPlans()
     ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
-  } catch {}
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || '操作失败')
+  }
 }
 
 const handleDelete = async (p: any) => {

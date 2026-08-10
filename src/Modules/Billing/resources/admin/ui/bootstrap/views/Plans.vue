@@ -40,7 +40,7 @@
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 
-const API = '/v1/admin/admin/billing/plans'
+const API = '/api/v1/admin/billing/plans'
 const plans = ref<any[]>([])
 const dialogVisible = ref(false)
 const isEdit = ref(false)
@@ -48,7 +48,14 @@ const editId = ref<string|number>('')
 const form = ref({ name: '', slug: '', price: 0, billing_cycle: 'monthly', features: [] as string[], is_active: true })
 const featuresInput = ref('')
 
-const fetchPlans = async () => { try { const r = await axios.get(API); plans.value = r.data.data || [] } catch {} }
+const fetchPlans = async () => {
+  try {
+    const r = await axios.get(API)
+    plans.value = r.data.data || []
+  } catch (e: any) {
+    alert(e.response?.data?.message || '加载失败')
+  }
+}
 
 const openCreate = () => { isEdit.value = false; form.value = { name: '', slug: '', price: 0, billing_cycle: 'monthly', features: [], is_active: true }; featuresInput.value = ''; dialogVisible.value = true }
 
@@ -63,13 +70,23 @@ const handleSubmit = async () => {
   try {
     if (isEdit.value) await axios.put(`${API}/${editId.value}`, payload)
     else await axios.post(API, payload)
-    dialogVisible.value = false; await fetchPlans()
-  } catch {}
+    dialogVisible.value = false
+    await fetchPlans()
+    alert(isEdit.value ? '更新成功' : '创建成功')
+  } catch (e: any) {
+    alert(e.response?.data?.message || '操作失败')
+  }
 }
 
 const handleDelete = async (p: any) => {
   if (!confirm(`确定删除计划 ${p.name}？`)) return
-  try { await axios.delete(`${API}/${p.id ?? p.plan_id}`); await fetchPlans() } catch {}
+  try {
+    await axios.delete(`${API}/${p.id ?? p.plan_id}`)
+    await fetchPlans()
+    alert('删除成功')
+  } catch (e: any) {
+    alert(e.response?.data?.message || '删除失败')
+  }
 }
 
 onMounted(fetchPlans)

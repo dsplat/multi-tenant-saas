@@ -78,30 +78,44 @@ const inviteForm = ref({ email: '', name: '', scope: 'platform' })
 
 const fetchOperators = async () => {
   try {
-    const res = await axios.get('/api/v1/operators', { params: { scope: filterScope.value || undefined } })
+    const res = await axios.get('/api/v1/admin/operators', { params: { scope: filterScope.value || undefined } })
     operators.value = res.data.data || []
-  } catch {}
+  } catch (e: any) {
+    alert(e.response?.data?.message || '加载失败')
+  }
 }
 
 const handleInvite = async () => {
   try {
-    await axios.post('/api/v1/operators/invite', inviteForm.value)
+    await axios.post('/api/v1/admin/operators/invite', inviteForm.value)
     showInvite.value = false
     inviteForm.value = { email: '', name: '', scope: 'platform' }
     await fetchOperators()
-  } catch {}
+    alert('邀请已发送')
+  } catch (e: any) {
+    alert(e.response?.data?.message || '邀请失败')
+  }
 }
 
 const toggleStatus = async (op: any) => {
   try {
-    await axios.put(`/v1/admin/operators/${op.operator_id}`, { is_active: !op.is_active })
+    await axios.post(`/api/v1/admin/operators/${op.operator_id}/toggle-status`)
     await fetchOperators()
-  } catch {}
+    alert(op.is_active ? '已禁用' : '已启用')
+  } catch (e: any) {
+    alert(e.response?.data?.message || '操作失败')
+  }
 }
 
 const handleDelete = async (op: any) => {
   if (!confirm(`确定删除运营人员 ${op.name}？`)) return
-  try { await axios.delete(`/v1/admin/operators/${op.operator_id}`); await fetchOperators() } catch (e: any) { alert(e.response?.data?.message || '删除失败') }
+  try {
+    await axios.delete(`/api/v1/admin/operators/${op.operator_id}`)
+    await fetchOperators()
+    alert('删除成功')
+  } catch (e: any) {
+    alert(e.response?.data?.message || '删除失败')
+  }
 }
 
 onMounted(fetchOperators)

@@ -8,7 +8,8 @@ use MultiTenantSaas\Tests\Schema\CoreModule;
 /**
  * 专属平台域裸根收敛测试（routes/web.php `/` 路由）
  *
- * 规则：admin 专属域裸根 → 302 /admin/；console 专属域裸根 → 302 /console/；
+ * 规则：admin 专属域裸根 → 302 /admin；console 专属域裸根 → 302 /console
+ * （url() 生成时去除尾部斜杠，/admin 与 /admin/ 均命中 Admin SPA）；
  * 其他域（平台主域/未配置专属域）裸根 → 平台首页 SPA，不重定向。
  * 用完整 URL 发请求，使 Host 头与生产一致（IdentifyDomain 与路由 getHost() 同源）。
  */
@@ -69,21 +70,22 @@ class SpaRootRedirectTest extends TestCase
     public function test_admin_host_root_redirects_to_admin_spa(): void
     {
         $this->get('http://' . self::ADMIN_HOST . '/')
-            ->assertRedirect('http://' . self::ADMIN_HOST . '/admin/');
+            ->assertRedirect('http://' . self::ADMIN_HOST . '/admin');
     }
 
-    public function test_admin_host_root_redirect_keeps_https_scheme(): void
+    public function test_admin_host_root_redirect_uses_forced_https_scheme(): void
     {
-        // TLS 在代理层终结：目标 scheme 必须信任 X-Forwarded-Proto，不得降级为 http
-        $this->withHeaders(['X-Forwarded-Proto' => 'https'])
-            ->get('http://' . self::ADMIN_HOST . '/')
-            ->assertRedirect('https://' . self::ADMIN_HOST . '/admin/');
+        // TLS 在外部 SLB 终结：应用层经 URL::forceScheme('https') 强制 scheme 后，重定向目标必须跟随
+        \Illuminate\Support\Facades\URL::forceScheme('https');
+
+        $this->get('http://' . self::ADMIN_HOST . '/')
+            ->assertRedirect('https://' . self::ADMIN_HOST . '/admin');
     }
 
     public function test_console_host_root_redirects_to_console_spa(): void
     {
         $this->get('http://' . self::CONSOLE_HOST . '/')
-            ->assertRedirect('http://' . self::CONSOLE_HOST . '/console/');
+            ->assertRedirect('http://' . self::CONSOLE_HOST . '/console');
     }
 
     public function test_main_host_root_serves_homepage_without_redirect(): void

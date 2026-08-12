@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\SpaController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyDomain;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,7 +21,19 @@ use Illuminate\Support\Facades\Route;
 */
 
 // 平台首页 + 兜底（前端路由如 /login、/register 由 Vue Router 接管）
-Route::get('/', [SpaController::class, 'index']);
+// 专属平台域裸根收敛到各自 SPA：域类型由 IdentifyDomain 中间件正向判定，
+// 单域名部署（未配置 admin/console 专属域）不受影响
+Route::get('/', function (Request $request) {
+    $domainType = TenantContext::getDomainType();
+    if ($domainType === IdentifyDomain::DOMAIN_ADMIN) {
+        return redirect('/admin/');
+    }
+    if ($domainType === IdentifyDomain::DOMAIN_CONSOLE) {
+        return redirect('/console/');
+    }
+
+    return app(SpaController::class)->index($request);
+});
 Route::fallback([SpaController::class, 'index']);
 
 // 系统后台 SPA（admin 域名专用）

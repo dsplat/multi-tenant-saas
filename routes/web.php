@@ -25,14 +25,16 @@ use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyDomain;
 // 单域名部署（未配置 admin/console 专属域）不受影响
 Route::get('/', function (Request $request) {
     $domainType = TenantContext::getDomainType();
-    if ($domainType === IdentifyDomain::DOMAIN_ADMIN) {
-        return redirect('/admin/');
-    }
-    if ($domainType === IdentifyDomain::DOMAIN_CONSOLE) {
-        return redirect('/console/');
+    if ($domainType !== IdentifyDomain::DOMAIN_ADMIN && $domainType !== IdentifyDomain::DOMAIN_CONSOLE) {
+        return app(SpaController::class)->index($request);
     }
 
-    return app(SpaController::class)->index($request);
+    // TLS 在代理层终结，redirect() 默认取内部 scheme；
+    // 按 EnforceCanonicalEntry 同模式信任 X-Forwarded-Proto 拼接目标，避免 https → http 降级跳转
+    $scheme = $request->header('X-Forwarded-Proto', $request->getScheme());
+    $target = $domainType === IdentifyDomain::DOMAIN_ADMIN ? '/admin/' : '/console/';
+
+    return redirect($scheme . '://' . $request->getHost() . $target);
 });
 Route::fallback([SpaController::class, 'index']);
 

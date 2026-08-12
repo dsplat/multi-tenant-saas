@@ -10,7 +10,7 @@ use MultiTenantSaas\Tests\Schema\CoreModule;
  *
  * 规则：admin 专属域裸根 → 302 /admin/；console 专属域裸根 → 302 /console/；
  * 其他域（平台主域/未配置专属域）裸根 → 平台首页 SPA，不重定向。
- * 通过 X-Original-Host 注入模拟域名（IdentifyDomain 优先读该头）。
+ * 用完整 URL 发请求，使 Host 头与生产一致（IdentifyDomain 与路由 getHost() 同源）。
  */
 class SpaRootRedirectTest extends TestCase
 {
@@ -66,28 +66,33 @@ class SpaRootRedirectTest extends TestCase
         parent::tearDown();
     }
 
-    private function asHost(string $host)
-    {
-        return $this->withHeaders(['X-Original-Host' => $host]);
-    }
-
     public function test_admin_host_root_redirects_to_admin_spa(): void
     {
-        $this->asHost(self::ADMIN_HOST)->get('/')->assertRedirect('/admin/');
+        $this->get('http://' . self::ADMIN_HOST . '/')
+            ->assertRedirect('http://' . self::ADMIN_HOST . '/admin/');
+    }
+
+    public function test_admin_host_root_redirect_keeps_https_scheme(): void
+    {
+        // TLS 在代理层终结：目标 scheme 必须信任 X-Forwarded-Proto，不得降级为 http
+        $this->withHeaders(['X-Forwarded-Proto' => 'https'])
+            ->get('http://' . self::ADMIN_HOST . '/')
+            ->assertRedirect('https://' . self::ADMIN_HOST . '/admin/');
     }
 
     public function test_console_host_root_redirects_to_console_spa(): void
     {
-        $this->asHost(self::CONSOLE_HOST)->get('/')->assertRedirect('/console/');
+        $this->get('http://' . self::CONSOLE_HOST . '/')
+            ->assertRedirect('http://' . self::CONSOLE_HOST . '/console/');
     }
 
     public function test_main_host_root_serves_homepage_without_redirect(): void
     {
-        $this->asHost(self::MAIN_HOST)->get('/')->assertOk()->assertHeaderMissing('Location');
+        $this->get('http://' . self::MAIN_HOST . '/')->assertOk()->assertHeaderMissing('Location');
     }
 
     public function test_unknown_host_root_serves_homepage_without_redirect(): void
     {
-        $this->asHost('tenant-app.example.com')->get('/')->assertOk()->assertHeaderMissing('Location');
+        $this->get('http://tenant-app.example.com/')->assertOk()->assertHeaderMissing('Location');
     }
 }

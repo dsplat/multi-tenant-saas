@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Modules\Infrastructure\Http\Middleware;
 
 use Closure;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use MultiTenantSaas\Context\TenantContext;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -16,9 +18,12 @@ use Symfony\Component\HttpFoundation\Response;
  *
  *  - admin 域名：平台后台专用，不提供租户服务（/console、console API）
  *  - 非 admin 域名：不提供平台后台（/admin、admin API）
+ *  - 平台主域（DOMAIN_DEFAULT）：不提供租户面（/console、/app）；
+ *    页面请求 301 收敛到 console 专属域，API 请求 403；
+ *    未配置 console 专属域（单域名部署）时不拦截
  *
  * 租户自定义域名 / t-xxxxxx 通配子域名 / {tenant_id}.{domain} 等租户接入域名
- * 访问 /console 属正常链路，一律放行。
+ * （域类型 app）访问 /console 属正常链路，一律放行。
  *
  * 本地开发（localhost/127.0.0.1）不受限；测试可用 X-Original-Host 注入模拟域名。
  */
@@ -46,6 +51,17 @@ class EnforceDomainSegregation
         // admin 域名不提供租户服务（console 后台 / app 前台 / console API）
         if ($isAdminHost && $this->isTenantSurface($path)) {
             return $this->forbidden($request, '平台管理域名不提供租户服务，请通过租户域名访问。');
+        }
+
+        // 平台主域不提供租户面：页面 301 收敛到 console 专属域，API 拒绝；
+        // 域类型由 IdentifyDomain 正向判定（租户接入域为 app，不受影响）；
+        // 未配置 console 专属域（单域名部署）时不拦截
+        if (
+            config('domain.platform_domains.console')
+            && TenantContext::getDomainType() === IdentifyDomain::DOMAIN_DEFAULT
+            && $this->isTenantSurface($path)
+        ) {
+            return $this->tenantSurfaceAway($request);
         }
 
         // 非 admin 域名不提供平台后台（admin SPA / admin API）
@@ -86,5 +102,22 @@ class EnforceDomainSegregation
         }
 
         return response($message, 403)->header('Content-Type', 'text/plain; charset=utf-8');
+    }
+
+    /**
+     * 平台主域上的租户面请求：页面 301 到 console 专属域（保留路径与 query），API 与非 GET 拒绝
+     */
+    protected function tenantSurfaceAway(Request $request): Response
+    {
+        if ($request->expectsJson() || str_starts_with($request->getPathInfo(), '/api/') || ! $request->isMethod('GET')) {
+            return $this->forbidden($request, '平台主域不提供租户服务，请通过租户后台域名访问。');
+        }
+
+        $target = 'https://' . config('domain.platform_domains.console') . $request->getPathInfo();
+        if ($query = $request->getQueryString()) {
+            $target .= '?' . $query;
+        }
+
+        return new RedirectResponse($target, 301);
     }
 }

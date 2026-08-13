@@ -5,7 +5,9 @@ namespace MultiTenantSaas\Modules\Platform\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
@@ -175,7 +177,17 @@ class AdminApplicationController extends Controller
             ], 500);
         }
 
-        // 4. 发送审批通过邮件（事务外执行，避免邮件失败回滚数据）
+        // 4. 为新租户安装系统小秘书（事务外 + 幂等；失败不阻断审批，事后 secretary:install 可补装）
+        try {
+            Artisan::call('secretary:install', ['--tenant' => (string) $tenant->tenant_id, '--silent' => true]);
+        } catch (\Throwable $e) {
+            Log::error('审批通过后自动安装系统小秘书失败', [
+                'tenant_id' => $tenant->tenant_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // 5. 发送审批通过邮件（事务外执行，避免邮件失败回滚数据）
         $operator = $application->operator;
         if ($operator) {
             $this->mailer->sendTemplate($operator->email, 'application_approved', [

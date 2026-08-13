@@ -72,7 +72,8 @@ const fetchTemplates = async () => {
   } catch { templates.value = [] }
 }
 
-const editTemplate = (row: any) => router.push(`/admin/mail-templates/${row.mail_template_id}`)
+// router base 已是 /admin/，push 不得再带 /admin 前缀
+const editTemplate = (row: any) => router.push(`/mail-templates/${row.mail_template_id}`)
 
 onMounted(fetchTemplates)
 </script>

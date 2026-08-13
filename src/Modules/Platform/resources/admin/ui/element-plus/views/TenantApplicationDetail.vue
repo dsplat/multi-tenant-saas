@@ -67,7 +67,8 @@ const handleApprove = async () => {
   try {
     await axios.post(`/api/v1/admin/applications/${route.params.id}/approve`, { review_notes: reviewNotes.value })
     ElMessage.success('审批通过')
-    router.push('/admin/tenant-applications')
+    // router base 已是 /admin/，push 不得再带 /admin 前缀
+    router.push('/tenant-applications')
   } catch (e: any) {
     ElMessage.error(e.response?.data?.message || '操作失败')
   } finally { loading.value = false }
@@ -79,7 +80,8 @@ const handleReject = async () => {
   try {
     await axios.post(`/api/v1/admin/applications/${route.params.id}/reject`, { review_notes: reviewNotes.value })
     ElMessage.success('已拒绝')
-    router.push('/admin/tenant-applications')
+    // router base 已是 /admin/，push 不得再带 /admin 前缀
+    router.push('/tenant-applications')
   } catch (e: any) {
     ElMessage.error(e.response?.data?.message || '操作失败')
   } finally { loading.value = false }

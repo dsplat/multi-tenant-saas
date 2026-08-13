@@ -76,7 +76,8 @@ const fetchApplications = async (page = 1) => {
   } catch { applications.value = [] }
 }
 
-const goDetail = (row: any) => router.push(`/admin/tenant-applications/${row.application_id}`)
+// router base 已是 /admin/，push 路径不得再带 /admin 前缀（否则 URL 双拼 404）
+const goDetail = (row: any) => router.push(`/tenant-applications/${row.application_id}`)
 
 onMounted(() => fetchApplications())
 </script>

@@ -70,16 +70,16 @@ const permVisible = computed({
 })
 
 const fetchRoles = async () => {
-  try { const r = await axios.get('/v1/admin/auth/roles'); roles.value = r.data.data || [] } catch {}
+  try { const r = await axios.get('/api/v1/admin/auth/roles'); roles.value = r.data.data || [] } catch {}
 }
 
 const fetchPerms = async () => {
-  try { const r = await axios.get('/v1/admin/auth/permissions'); allPermissions.value = r.data.data?.flat?.() || r.data.data || [] } catch {}
+  try { const r = await axios.get('/api/v1/admin/auth/permissions'); allPermissions.value = r.data.data?.flat?.() || r.data.data || [] } catch {}
 }
 
 const handleCreate = async () => {
   try {
-    await axios.post('/v1/admin/auth/roles', form.value)
+    await axios.post('/api/v1/admin/auth/roles', form.value)
     showCreate.value = false
     form.value = { name: '', display_name: '', description: '' }
     await fetchRoles()
@@ -90,7 +90,7 @@ const handleCreate = async () => {
 const deleteRole = async (r: any) => {
   try {
     await ElMessageBox.confirm(`确定删除角色 ${r.display_name}？`, '警告', { type: 'error' })
-    await axios.delete(`/v1/admin/auth/roles/${r.role_id}`)
+    await axios.delete(`/api/v1/admin/auth/roles/${r.role_id}`)
     await fetchRoles()
     ElMessage.success('删除成功')
   } catch (e: any) {
@@ -106,7 +106,7 @@ const editPerms = (r: any) => {
 
 const savePerms = async () => {
   try {
-    await axios.put(`/v1/admin/auth/roles/${permRole.value.role_id}/permissions`, { permissions: selectedPerms.value })
+    await axios.put(`/api/v1/admin/auth/roles/${permRole.value.role_id}/permissions`, { permissions: selectedPerms.value })
     permRole.value = null
     await fetchRoles()
     ElMessage.success('权限已更新')

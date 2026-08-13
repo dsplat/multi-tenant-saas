@@ -68,7 +68,7 @@ const canReview = (row: any) => ['submitted', 'under_review'].includes(row.statu
 
 const fetchApplications = async (page = 1) => {
   try {
-    const res = await axios.get('/v1/admin/applications', { params: { ...filters, page, per_page: perPage } })
+    const res = await axios.get('/api/v1/admin/applications', { params: { ...filters, page, per_page: perPage } })
     applications.value = res.data.data?.items || []
     total.value = res.data.data?.total || 0
     totalPages.value = res.data.data?.last_page || 1

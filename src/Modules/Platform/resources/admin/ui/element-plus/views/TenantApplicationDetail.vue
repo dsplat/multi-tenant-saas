@@ -57,7 +57,7 @@ const canReview = computed(() => app.value && ['submitted', 'under_review'].incl
 
 const fetchDetail = async () => {
   try {
-    const res = await axios.get(`/v1/admin/applications/${route.params.id}`)
+    const res = await axios.get(`/api/v1/admin/applications/${route.params.id}`)
     app.value = res.data.data
   } catch {}
 }
@@ -65,7 +65,7 @@ const fetchDetail = async () => {
 const handleApprove = async () => {
   loading.value = true
   try {
-    await axios.post(`/v1/admin/applications/${route.params.id}/approve`, { review_notes: reviewNotes.value })
+    await axios.post(`/api/v1/admin/applications/${route.params.id}/approve`, { review_notes: reviewNotes.value })
     ElMessage.success('审批通过')
     router.push('/admin/tenant-applications')
   } catch (e: any) {
@@ -77,7 +77,7 @@ const handleReject = async () => {
   if (!reviewNotes.value.trim()) { ElMessage.warning('拒绝时请填写审批备注'); return }
   loading.value = true
   try {
-    await axios.post(`/v1/admin/applications/${route.params.id}/reject`, { review_notes: reviewNotes.value })
+    await axios.post(`/api/v1/admin/applications/${route.params.id}/reject`, { review_notes: reviewNotes.value })
     ElMessage.success('已拒绝')
     router.push('/admin/tenant-applications')
   } catch (e: any) {

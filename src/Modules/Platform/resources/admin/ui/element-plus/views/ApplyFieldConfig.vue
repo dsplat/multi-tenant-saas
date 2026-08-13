@@ -50,7 +50,7 @@ const types = ['text', 'textarea', 'select', 'tel', 'email', 'number']
 
 onMounted(async () => {
   try {
-    const res = await axios.get('/v1/admin/apply-fields')
+    const res = await axios.get('/api/v1/admin/apply-fields')
     fields.value = res.data.data?.fields || []
   } catch {}
 })
@@ -58,7 +58,7 @@ onMounted(async () => {
 const handleSave = async () => {
   saving.value = true
   try {
-    await axios.put('/v1/admin/apply-fields', { fields: fields.value })
+    await axios.put('/api/v1/admin/apply-fields', { fields: fields.value })
     ElMessage.success('保存成功')
   } catch {
     ElMessage.error('保存失败')

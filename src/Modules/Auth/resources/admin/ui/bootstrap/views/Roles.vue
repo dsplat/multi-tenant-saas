@@ -53,22 +53,22 @@ const form = ref({ name: '', display_name: '', description: '' })
 const permRole = ref<any>(null)
 const selectedPerms = ref<number[]>([])
 
-const fetchRoles = async () => { try { const r = await axios.get('/v1/admin/auth/roles'); roles.value = r.data.data || [] } catch {} }
-const fetchPerms = async () => { try { const r = await axios.get('/v1/admin/auth/permissions'); allPermissions.value = r.data.data?.flat?.() || r.data.data || [] } catch {} }
+const fetchRoles = async () => { try { const r = await axios.get('/api/v1/admin/auth/roles'); roles.value = r.data.data || [] } catch {} }
+const fetchPerms = async () => { try { const r = await axios.get('/api/v1/admin/auth/permissions'); allPermissions.value = r.data.data?.flat?.() || r.data.data || [] } catch {} }
 
 const handleCreate = async () => {
-  try { await axios.post('/v1/admin/auth/roles', form.value); showCreate.value = false; form.value = { name: '', display_name: '', description: '' }; await fetchRoles() } catch {}
+  try { await axios.post('/api/v1/admin/auth/roles', form.value); showCreate.value = false; form.value = { name: '', display_name: '', description: '' }; await fetchRoles() } catch {}
 }
 
 const deleteRole = async (r: any) => {
   if (!confirm(`确定删除角色 ${r.display_name}？`)) return
-  try { await axios.delete(`/v1/admin/auth/roles/${r.role_id}`); await fetchRoles() } catch {}
+  try { await axios.delete(`/api/v1/admin/auth/roles/${r.role_id}`); await fetchRoles() } catch {}
 }
 
 const editPerms = (r: any) => { permRole.value = r; selectedPerms.value = (r.permissions || []).map((p: any) => p.permission_id ?? p); permRole.value && fetchPerms() }
 
 const savePerms = async () => {
-  try { await axios.put(`/v1/admin/auth/roles/${permRole.value.role_id}/permissions`, { permissions: selectedPerms.value }); permRole.value = null; await fetchRoles() } catch {}
+  try { await axios.put(`/api/v1/admin/auth/roles/${permRole.value.role_id}/permissions`, { permissions: selectedPerms.value }); permRole.value = null; await fetchRoles() } catch {}
 }
 
 onMounted(() => { fetchRoles(); fetchPerms() })

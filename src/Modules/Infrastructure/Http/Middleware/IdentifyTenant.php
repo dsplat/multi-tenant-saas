@@ -126,8 +126,11 @@ class IdentifyTenant
         }
 
         // 7. 通配子域名解析（租户共享入口唯一形态：{tenant_id}.{base} / {slug}.{base}）
+        //    平台自有域名（www/admin/console/api）可能与通配 base 后缀重合
+        //    （如 console.neihang.com 与 base=neihang.com），不是租户接入域，
+        //    禁止进入通配解析/默认租户兜底，否则无租户 Operator 会被误绑默认租户
         $host = $request->header('X-Original-Host') ?? $request->getHost();
-        if ($this->isWildcardSubdomain($host)) {
+        if ($this->isWildcardSubdomain($host) && ! $this->isPlatformDomain($host)) {
             if ($tenantId = $this->resolveFromSubdomain($host)) {
                 return $tenantId;
             }
@@ -227,6 +230,19 @@ class IdentifyTenant
             ->value('tenant_id');
 
         return $tenantId ? (string) $tenantId : null;
+    }
+
+    /**
+     * 判断是否为平台自有域名（main/admin/console/api 等）
+     */
+    protected function isPlatformDomain(string $host): bool
+    {
+        $platformDomains = array_filter(array_merge(
+            (array) config('tenancy.platform_domains', []),
+            array_values((array) config('domain.platform_domains', []))
+        ));
+
+        return in_array($host, $platformDomains, true);
     }
 
     /**

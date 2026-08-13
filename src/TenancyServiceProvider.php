@@ -158,6 +158,12 @@ class TenancyServiceProvider extends ServiceProvider
 
         app(HealthService::class)->registerChecks();
 
+        // 审批通过流程（HTTP 上下文）会经 Artisan::call 调用 secretary:install，
+        // 不能放进 runningInConsole 守卫，否则 Web 请求中命令未注册报 "does not exist"
+        $this->commands([
+            SecretaryInstallCommand::class,
+        ]);
+
         // Artisan 命令
         if ($this->app->runningInConsole()) {
             $this->commands([
@@ -180,7 +186,6 @@ class TenancyServiceProvider extends ServiceProvider
                 BackupRestoreCommand::class,
                 AiModelsSyncCommand::class,
                 AgentsEnableCommand::class,
-                SecretaryInstallCommand::class,
                 SecretaryKbBuildCommand::class,
                 SecretaryKbGenerateCommand::class,
                 SecretaryKbHarvestCommand::class,

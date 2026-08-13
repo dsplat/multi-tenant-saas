@@ -179,7 +179,7 @@ class AdminApplicationController extends Controller
 
         // 4. 为新租户安装系统小秘书（事务外 + 幂等；失败不阻断审批，事后 secretary:install 可补装）
         try {
-            Artisan::call('secretary:install', ['--tenant' => (string) $tenant->tenant_id, '--silent' => true]);
+            Artisan::call('secretary:install', ['--tenant' => (string) $tenant->tenant_id]);
         } catch (\Throwable $e) {
             Log::error('审批通过后自动安装系统小秘书失败', [
                 'tenant_id' => $tenant->tenant_id,

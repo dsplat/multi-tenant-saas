@@ -28,10 +28,16 @@ class EnsureTenantContext
             return $next($request);
         }
 
-        $tenantId = TenantContext::getId();
+        // 租户必须路由只认"显式识别"的租户：getId() 带 default_tenant_id 兜底，
+        // 若按它判空，平台专属域上无租户的请求会静默以默认租户身份通过
+        // （租户可选路由如申请创建租户不挂本中间件，不受影响）
+        if (! TenantContext::hasExplicitTenant()) {
+            return $this->missingTenantResponse($request);
+        }
+
         $tenant = TenantContext::getTenant();
 
-        if (! $tenantId || ! $tenant) {
+        if (! $tenant) {
             return $this->missingTenantResponse($request);
         }
 

@@ -179,10 +179,28 @@ class CoreModule implements SchemaModuleInterface
             $table->unique(['operator_id', 'tenant_id']);
             $table->index('tenant_id');
         });
+
+        Schema::create('tenant_applications', function (Blueprint $table) {
+            $table->unsignedBigInteger('application_id')->primary();
+            $table->unsignedBigInteger('operator_id');
+            $table->string('code', 50)->unique();
+            $table->string('org_name', 255);
+            $table->string('org_industry', 100)->nullable();
+            $table->string('org_size', 50)->nullable();
+            $table->json('contact_info')->nullable();
+            $table->string('status', 20)->default('submitted');
+            $table->text('review_notes')->nullable();
+            $table->unsignedBigInteger('reviewed_by')->nullable();
+            $table->timestamp('reviewed_at')->nullable();
+            $table->timestamps();
+
+            $table->index('operator_id');
+            $table->index('status');
+        });
     }
 
     public function getTableNames(): array
     {
-        return ['tenants', 'users', 'tenant_users', 'personal_access_tokens', 'customers', 'tenant_settings', 'modules', 'tenant_modules', 'operators', 'operator_tenants'];
+        return ['tenants', 'users', 'tenant_users', 'personal_access_tokens', 'customers', 'tenant_settings', 'modules', 'tenant_modules', 'operators', 'operator_tenants', 'tenant_applications'];
     }
 }

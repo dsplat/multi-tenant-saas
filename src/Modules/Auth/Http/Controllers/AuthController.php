@@ -650,6 +650,10 @@ class AuthController extends Controller
                 'last_login_at' => now(),
             ]);
 
+            // 双模认证：追加 httpOnly 会话 Cookie（console SPA 为 Cookie 会话模式，
+            // 缺失会导致 /auth/user 探测 401 → 无限登录循环）
+            $this->establishSession($request, $operator);
+
             $token = $operator->createToken('operator_no_tenant')->plainTextToken;
 
             return response()->json([

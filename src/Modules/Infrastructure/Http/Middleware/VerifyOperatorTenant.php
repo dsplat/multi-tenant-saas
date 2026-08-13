@@ -36,11 +36,15 @@ class VerifyOperatorTenant
             return $next($request);
         }
 
-        $tenantId = TenantContext::getId();
-        if (! $tenantId) {
+        // 必须用 hasExplicitTenant()：getId() 带 default_tenant_id 兜底恒非 null，
+        // 平台专属域（console 等）上未显式识别租户的无租户 Operator
+        // 若按兜底默认租户校验归属会被误拒（无限登录循环回归点）
+        if (! TenantContext::hasExplicitTenant()) {
             // 无租户上下文（公开路由或域名未识别），交由后续中间件处理
             return $next($request);
         }
+
+        $tenantId = TenantContext::getId();
 
         $belongsToTenant = OperatorTenant::where('operator_id', $user->operator_id)
             ->where('tenant_id', (int) $tenantId)

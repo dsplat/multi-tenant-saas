@@ -6,7 +6,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant;
+use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\VerifyOperatorTenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
 
 /**
  * 平台域名通配解析排除测试
@@ -93,5 +95,56 @@ class IdentifyTenantPlatformDomainTest extends TestCase
     public function test_unknown_subdomain_still_falls_back_to_default_tenant(): void
     {
         $this->assertSame((string) self::DEFAULT_TENANT_ID, $this->identify('random.neihang.com'));
+    }
+
+    /**
+     * 无租户 Operator 在 console 专属域上（未显式识别租户）不得被误拒
+     *
+     * 回归背景：TenantContext::getId() 带 default_tenant_id 兜底恒非 null，
+     * VerifyOperatorTenant 若按 getId() 判空会把无租户 Operator 当作
+     * 默认租户成员校验归属 → 403 TenantAccessDenied → SPA 无限登录循环。
+     */
+    public function test_verify_operator_tenant_passes_without_explicit_tenant(): void
+    {
+        $operator = Operator::create([
+            'email' => 'no-tenant@example.com',
+            'name' => 'NoTenant',
+            'password' => bcrypt('secret'),
+            'scope' => 'tenant',
+            'is_active' => true,
+        ]);
+
+        $request = Request::create('http://console.neihang.com/api/v1/console/auth/user');
+        // 必须先绑定再设 resolver：auth 服务对 request 有 rebinding 钩子，
+        // 绑定实例时会覆写 userResolver
+        $this->app->instance('request', $request);
+        $request->setUserResolver(fn () => $operator);
+        TenantContext::clear(); // 模拟 IdentifyTenant 对平台域未写入租户
+
+        $response = (new VerifyOperatorTenant)->handle($request, fn () => new Response('OK'));
+
+        $this->assertSame(200, $response->getStatusCode());
+    }
+
+    public function test_verify_operator_tenant_still_rejects_on_explicit_tenant(): void
+    {
+        $operator = Operator::create([
+            'email' => 'no-tenant2@example.com',
+            'name' => 'NoTenant2',
+            'password' => bcrypt('secret'),
+            'scope' => 'tenant',
+            'is_active' => true,
+        ]);
+
+        $request = Request::create('http://random.neihang.com/api/v1/x');
+        $this->app->instance('request', $request);
+        $request->setUserResolver(fn () => $operator);
+        TenantContext::clear();
+        // 未知子域显式兜底到默认租户，但 Operator 无归属 → 仍须 403
+        TenantContext::setTenantId((string) self::DEFAULT_TENANT_ID);
+
+        $response = (new VerifyOperatorTenant)->handle($request, fn () => new Response('OK'));
+
+        $this->assertSame(403, $response->getStatusCode());
     }
 }

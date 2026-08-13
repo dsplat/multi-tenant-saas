@@ -30,6 +30,22 @@ class TenantContext implements TenantContextContract
     }
 
     /**
+     * 是否显式识别到了租户
+     *
+     * getId() 带 `?? default_tenant_id` 兜底恒非 null，
+     * 归属校验类逻辑必须用本方法区分"显式识别"与"兜底默认"：
+     * 平台专属域（console 等）上无租户的 Operator 请求不应被当作默认租户成员拒绝。
+     */
+    public static function hasExplicitTenant(): bool
+    {
+        $request = static::getRequest();
+
+        return $request
+            && $request->attributes->has('tenant_id')
+            && $request->attributes->get('tenant_id') !== null;
+    }
+
+    /**
      * 获取当前租户ID
      */
     public static function getId(): ?string

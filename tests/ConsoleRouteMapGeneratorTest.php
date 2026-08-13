@@ -95,4 +95,47 @@ TS);
             rmdir($emptyDir);
         }
     }
+
+    /**
+     * 回归点：knownPaths 地图必须与前端 module-loader 自动发现规则对齐
+     *
+     * 拥有自定义 routes.ts 的模块会跳过视图自动发现，其 knownPaths
+     * 页面实际无路由可达；写入地图会误导 AI 带路（生产曾因此报
+     * 「页面路径似乎已变更」）。无自定义路由的模块页面则照常收录。
+     */
+    public function test_known_paths_excludes_pages_of_modules_with_custom_routes(): void
+    {
+        $dir = sys_get_temp_dir().'/kb-index-knownpaths-'.uniqid();
+        mkdir($dir.'/resources/js/console', 0755, true);
+        mkdir($dir.'/app/Modules/Demo/resources/console/ui/element-plus/views', 0755, true);
+        mkdir($dir.'/app/Modules/Open/resources/console/ui/element-plus/views', 0755, true);
+
+        // Demo 有自定义 routes.ts → 自动发现关闭；Open 没有 → 自动发现生效
+        file_put_contents($dir.'/app/Modules/Demo/resources/console/routes.ts', 'export default []');
+        file_put_contents($dir.'/app/Modules/Demo/resources/console/ui/element-plus/views/DemoSettings.vue', '<template><div/></template>');
+        file_put_contents($dir.'/app/Modules/Open/resources/console/ui/element-plus/views/OpenSettings.vue', '<template><div/></template>');
+
+        file_put_contents($dir.'/resources/js/console/module-loader.ts', <<<'TS'
+const knownPaths: Record<string, string> = {
+  DemoSettings: 'demo-settings',
+  OpenSettings: 'open-settings',
+  GhostPage: 'ghost-path',
+}
+const pageTitleMap: Record<string, string> = {
+  DemoSettings: '演示设置',
+  OpenSettings: '开放设置',
+}
+TS);
+
+        try {
+            $output = (new ConsoleRouteMapGenerator($dir))->generate();
+
+            $this->assertStringContainsString('| 开放设置 | /open-settings |', $output);
+            $this->assertStringNotContainsString('/demo-settings', $output);
+            // 无对应视图的幽灵条目不得入图
+            $this->assertStringNotContainsString('/ghost-path', $output);
+        } finally {
+            exec('rm -rf '.escapeshellarg($dir));
+        }
+    }
 }

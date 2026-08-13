@@ -228,9 +228,22 @@ class ConsoleRouteMapGenerator
                 }
             }
 
+            // 与前端 module-loader 对齐：拥有自定义 routes.ts 的模块会跳过视图
+            // 自动发现，其 knownPaths 页面实际无路由可达，写入地图会误导
+            // AI 带路（navigate 后前端 safePush 拒绝跳转）
+            $customModules = $this->customRouteModules();
+
             foreach ($pairs as $pair) {
                 $pageName = $pair[1];
                 $path = $pair[2];
+
+                $ownerModule = $this->resolvePageModule($pageName);
+                // 找不到视图的幽灵条目（如页面已删/仅存于 admin 面）同样丢弃，
+                // 避免向 AI 输出不可达路径
+                if ($ownerModule === null || isset($customModules[$ownerModule])) {
+                    continue;
+                }
+
                 $title = $titleMap[$pageName] ?? $this->pageNameToLabel($pageName);
 
                 $pages[] = [
@@ -242,6 +255,63 @@ class ConsoleRouteMapGenerator
         }
 
         return $pages;
+    }
+
+    /**
+     * 收集拥有自定义 routes.ts 的模块集合
+     *
+     * 镜像前端 module-loader 的 hasCustomRoutes 逻辑；模块键与
+     * resolvePageModule() 保持一致（app/src 取 PascalCase 目录名，
+     * split 包取包目录名）。
+     *
+     * @return array<string, true>
+     */
+    private function customRouteModules(): array
+    {
+        $modules = [];
+
+        $patterns = [
+            [$this->basePath.'/app/Modules/*/resources/console/routes.ts', '#app/Modules/([^/]+)/resources/console/routes\.ts$#'],
+            [$this->basePath.'/src/Modules/*/resources/console/routes.ts', '#src/Modules/([^/]+)/resources/console/routes\.ts$#'],
+            [$this->basePath.'/vendor/dsplat/*/resources/console/routes.ts', '#vendor/dsplat/([^/]+)/resources/console/routes\.ts$#'],
+            [$this->basePath.'/vendor/dsplat/multi-tenant-saas/src/Modules/*/resources/console/routes.ts', '#src/Modules/([^/]+)/resources/console/routes\.ts$#'],
+        ];
+
+        foreach ($patterns as [$glob, $regex]) {
+            foreach (glob($glob) ?: [] as $file) {
+                if (preg_match($regex, $file, $m)) {
+                    $modules[$m[1]] = true;
+                }
+            }
+        }
+
+        return $modules;
+    }
+
+    /**
+     * 定位 knownPaths 页面对应视图文件所属模块
+     *
+     * 查找优先级与前端 module-loader 一致：src/Modules → app/Modules →
+     * vendor split 包 → vendor 核心包。找不到视图时返回 null（该条目
+     * 属幽灵路径，不得写入地图）。
+     */
+    private function resolvePageModule(string $pageName): ?string
+    {
+        $patterns = [
+            [$this->basePath.'/src/Modules/*/resources/console/ui/*/views/'.$pageName.'.vue', '#src/Modules/([^/]+)/resources/console/ui#'],
+            [$this->basePath.'/app/Modules/*/resources/console/ui/*/views/'.$pageName.'.vue', '#app/Modules/([^/]+)/resources/console/ui#'],
+            [$this->basePath.'/vendor/dsplat/*/resources/console/ui/*/views/'.$pageName.'.vue', '#vendor/dsplat/([^/]+)/resources/console/ui#'],
+            [$this->basePath.'/vendor/dsplat/multi-tenant-saas/src/Modules/*/resources/console/ui/*/views/'.$pageName.'.vue', '#src/Modules/([^/]+)/resources/console/ui#'],
+        ];
+
+        foreach ($patterns as [$glob, $regex]) {
+            $files = glob($glob);
+            if ($files !== [] && $files !== false && preg_match($regex, $files[0], $m)) {
+                return $m[1];
+            }
+        }
+
+        return null;
     }
 
     /**

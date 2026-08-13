@@ -43,7 +43,10 @@ Route::prefix('admin')->group(function () {
 });
 
 // 租户后台 SPA
-Route::middleware(['tenant.ensure'])->prefix('console')->group(function () {
+// 注意：SPA 文档路由不得挂 tenant.ensure——浏览器导航无法携带 X-Tenant-ID，
+// 且 web 组中 IdentifyTenant 先于 StartSession/认证执行，会话与登录态都无法参与识别，
+// 导致干净环境/硬刷新恒 403。租户保护由 API 层 tenant.ensure + 前端守卫负责。
+Route::prefix('console')->group(function () {
     Route::get('/', [SpaController::class, 'console']);
     Route::get('/{any}', [SpaController::class, 'console'])->where('any', '.*');
 });

@@ -15,6 +15,7 @@ return [
     'already_exists' => '资源已存在',
     'limit_exceeded' => '已达上限',
     'missing_tenant' => '缺少团队信息',
+    'domain_not_recognized' => '未识别到团队域名，请确认访问地址或先选择团队',
     'super_admin_only' => '仅超级管理员可以访问',
     'admin_no_tenant_console' => '系统管理员不能访问团队后台',
     'admin_no_tenant_data' => '系统管理员不能访问团队数据',

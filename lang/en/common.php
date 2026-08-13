@@ -15,6 +15,7 @@ return [
     'already_exists' => 'Resource already exists',
     'limit_exceeded' => 'Limit exceeded',
     'missing_tenant' => 'Missing tenant information',
+    'domain_not_recognized' => 'Tenant domain not recognized. Please check the URL or select a tenant first',
     'super_admin_only' => 'Only super administrators can access',
     'admin_no_tenant_console' => 'System administrators cannot access tenant console',
     'admin_no_tenant_data' => 'System administrators cannot access tenant data',

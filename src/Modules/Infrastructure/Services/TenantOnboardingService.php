@@ -357,8 +357,9 @@ class TenantOnboardingService
         // t-xxxxxx 与用户 slug 共用 slug 字段、走一致的二级域名链路；用户后续自行设置 slug 后即覆盖失效。
         $slugService = new SlugService;
         if ($domain['subdomain']) {
-            $slugService->assertNotReserved($domain['subdomain']);
-            $slug = $domain['subdomain'];
+            // slug 规范仅小写字母/数字/短横线，入库前先归一化（避免 ai-BYPC 类存量脏数据）
+            $slug = mb_strtolower(trim($domain['subdomain']));
+            $slugService->assertNotReserved($slug);
         } else {
             $slug = $slugService->generateUniqueAutoSlug();
         }

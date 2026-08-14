@@ -62,8 +62,9 @@ class TenantService
         try {
             $slugService = new SlugService;
 
-            // 用户指定 slug 时先过保留词闸（初始化即屏蔽）
+            // 用户指定 slug 时先归一化小写再过保留词闸（初始化即屏蔽）
             if (! empty($data['slug'])) {
+                $data['slug'] = mb_strtolower(trim((string) $data['slug']));
                 $slugService->assertNotReserved($data['slug']);
             }
 
@@ -118,8 +119,9 @@ class TenantService
         try {
             $tenant = Tenant::findOrFail($tenantId);
 
-            // 变更 slug 时先过保留词闸（存量 slug 未变更则不校验，避免历史数据自伤）
+            // 变更 slug 时先归一化小写再过保留词闸（存量 slug 未变更则不校验，避免历史数据自伤 ）
             if (! empty($data['slug']) && $data['slug'] !== $tenant->slug) {
+                $data['slug'] = mb_strtolower(trim((string) $data['slug']));
                 (new SlugService)->assertNotReserved($data['slug']);
             }
 

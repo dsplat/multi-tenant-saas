@@ -123,7 +123,10 @@
             <div v-if="slugCheckMsg" :style="{ color: slugAvailable ? '#52c41a' : '#f5222d', fontSize: '12px', marginTop: '6px' }">{{ slugCheckMsg }}</div>
             <div style="font-size: 12px; color: #999; margin-top: 6px">
               保存后前台访问地址为
-              <a v-if="slug && domainInfo.wildcard_base" :href="`https://${slug}.${domainInfo.wildcard_base}`" target="_blank" rel="noopener">https://{{ slug }}.{{ domainInfo.wildcard_base }}</a>
+              <template v-if="domainInfo.wildcard_base">
+                <a v-if="slug" :href="`https://${slug}.${domainInfo.wildcard_base}`" target="_blank" rel="noopener">https://{{ slug }}.{{ domainInfo.wildcard_base }}</a>
+                <span v-else>https://&lt;二级域名&gt;.{{ domainInfo.wildcard_base }}</span>
+              </template>
               <span v-else>https://&lt;二级域名&gt;.平台域名</span>
             </div>
             <div v-if="isDefaultSlug" style="font-size: 12px; color: #e6a23c; margin-top: 4px">当前为系统自动分配的二级域名（t- 前缀为系统保留），可随时自定义替换</div>

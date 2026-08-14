@@ -175,7 +175,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 
 const activeTab = ref('mail')
@@ -221,7 +221,7 @@ const fetchProfile = async () => {
     profile.primary_color = branding.primary_color || ''
     profile.secondary_color = branding.secondary_color || ''
     profile.login_page_message = branding.login_page_message || ''
-    if (!slug.value) slug.value = data.slug || ''
+    if (!slug.value) slug.value = (data.slug || '').toLowerCase()
   } catch {}
 }
 
@@ -248,6 +248,11 @@ const handleSaveProfile = async () => {
 
 // ─── 域名设置（slug + 自定义域名） ────────────────────────
 const slug = ref('')
+// slug 只允许小写字母/数字/短横线，输入时实时归一化（兼容存量大小写混合 slug）
+watch(slug, (v) => {
+  const lower = v.toLowerCase()
+  if (lower !== v) slug.value = lower
+})
 const slugChecking = ref(false)
 const slugSaving = ref(false)
 const slugAvailable = ref(false)

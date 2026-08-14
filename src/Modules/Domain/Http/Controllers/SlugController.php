@@ -37,16 +37,17 @@ class SlugController extends Controller
     }
 
     /**
-     * 检查 slug 可用性（公开，供前端实时校验）
+     * 检查 slug 可用性（Console 端实时校验）
      *
      * GET /api/v1/tenant/slug/check?slug=xxx
+     * 排除当前租户自身，租户检查自己的当前 slug 时不会被误判「已占用」。
      */
     public function check(Request $request)
     {
         $request->validate(['slug' => 'required|string|max:63']);
 
         $service = new SlugService;
-        $result = $service->checkAvailability($request->input('slug'));
+        $result = $service->checkAvailability($request->input('slug'), (int) TenantContext::getId());
 
         return response()->json(['success' => true, 'data' => $result]);
     }

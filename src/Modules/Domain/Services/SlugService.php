@@ -214,9 +214,10 @@ class SlugService
     /**
      * 检查 slug 是否可用（供前端实时校验）
      *
+     * @param  int|null  $excludeTenantId  排除指定租户（租户检查自己的当前 slug 时不应报「已占用」）
      * @return array{available: bool, reason: ?string, risk_level: ?string}
      */
-    public function checkAvailability(string $slug): array
+    public function checkAvailability(string $slug, ?int $excludeTenantId = null): array
     {
         $slug = mb_strtolower(trim($slug));
 
@@ -241,13 +242,20 @@ class SlugService
             return ['available' => false, 'reason' => 'blacklisted', 'risk_level' => null];
         }
 
-        // 唯一性
-        if (Tenant::where('slug', $slug)->exists()) {
+        // 唯一性（排除自身，与 setSlug 一致）
+        $query = Tenant::where('slug', $slug);
+        if ($excludeTenantId !== null) {
+            $query->where('tenant_id', '!=', $excludeTenantId);
+        }
+        if ($query->exists()) {
             return ['available' => false, 'reason' => 'taken', 'risk_level' => null];
         }
 
-        // AI 风险
-        $risk = $this->assessRisk($slug);
+        // AI 风险（跳过自身 slug，避免「与自己过于相似」误报）
+        $ownSlug = $excludeTenantId !== null
+            ? Tenant::where('tenant_id', $excludeTenantId)->value('slug')
+            : null;
+        $risk = $this->assessRisk($slug, $ownSlug);
 
         return [
             'available' => true,
@@ -292,7 +300,7 @@ class SlugService
      *
      * @return array{level: string, reason: ?string}
      */
-    protected function assessRisk(string $slug): array
+    protected function assessRisk(string $slug, ?string $skipSlug = null): array
     {
         // 与已有高流量租户 slug 编辑距离 ≤ 1 → typosquatting 风险
         $existingSlugs = Tenant::whereNotNull('slug')
@@ -301,7 +309,7 @@ class SlugService
             ->toArray();
 
         foreach ($existingSlugs as $existing) {
-            if ($existing === $slug) {
+            if ($existing === $slug || ($skipSlug !== null && mb_strtolower($existing) === $skipSlug)) {
                 continue;
             }
             $distance = levenshtein($slug, $existing);

@@ -168,6 +168,21 @@ class SlugServiceTest extends TestCase
         $this->assertEquals('taken', $result['reason']);
     }
 
+    public function test_check_availability_excludes_own_tenant(): void
+    {
+        // 租户检查自己的当前 slug 不应报「已占用」（含大小写归一化后命中自身的情况）
+        $result = $this->service->checkAvailability('EXISTING', 3001);
+
+        $this->assertTrue($result['available']);
+        $this->assertNull($result['reason']);
+
+        // 其他租户检查同一 slug 仍应报占用
+        $result = $this->service->checkAvailability('existing', 3002);
+
+        $this->assertFalse($result['available']);
+        $this->assertEquals('taken', $result['reason']);
+    }
+
     public function test_check_availability_invalid_format(): void
     {
         $result = $this->service->checkAvailability('-invalid');

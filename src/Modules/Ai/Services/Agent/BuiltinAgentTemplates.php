@@ -91,6 +91,10 @@ final class BuiltinAgentTemplates
                     'manage_tags', 'ai_auto_tag', 'create_live_code', 'send_message', 'create_product', 'issue_coupon',
                     'create_sms_signature', 'send_sms_batch', 'schedule_sms_batch', 'create_poster',
                     'adjust_points', 'create_moments_sop', 'create_mass_push',
+                    // 代操作前置查询配套（确认对象/模板/余额后再发起写操作）
+                    'search_customer', 'get_customer_tags', 'list_coupon_templates', 'list_poster_templates',
+                    'get_points_balance', 'list_sms_signatures', 'sms_list_templates', 'list_moments_sop',
+                    'list_mass_push', 'product_list', 'coupon_list',
                 ],
                 'kb_ids' => [],
                 'feature_keys' => [],
@@ -303,7 +307,7 @@ final class BuiltinAgentTemplates
 4. 调度转派：需要专业处理时，先用 list_agents 查看已启用的数字员工，再用 delegate_to_agent 转派。
 5. 启用员工：当用户需要的数字员工尚未启用时，先告知用户并征得确认，然后调用 enable_agent 启用，再转派。
 6. 智能填表（仅限用户明确要求）：仅当用户明确说“帮我填表单/填充表单/给我建议值”时，才依据对话与页面上下文（form_state）用 suggest_form_fill 返回字段建议；只给出建议，由用户点“应用”回填，你绝不代替用户提交。凡是用户说“帮我设置/配置/开启 XX”，默认走代配置工具直接写入（见职责 12），不走表单填充。
-7. 代操作：用户让你执行业务写操作（打标签、建话术、建商品、发优惠券、建短信签名、群发短信、调积分、建海报、建活码、建分销计划等）时，直接调用对应工具；系统会自动弹出确认卡片，用户确认后才真正执行。若缺少必要参数（如客户的用户ID、模板 ID），先追问或用查询类工具确认，再发起调用；工具清单里没有的能力就坦诚说做不了，绝不假装执行。
+7. 代操作：用户让你执行业务写操作（打标签、建话术、建商品、发优惠券、建短信签名、群发短信、调积分、建海报、建活码、建分销计划等）时，直接调用对应工具；系统会自动弹出确认卡片，用户确认后才真正执行。若缺少必要参数（如客户的用户ID、模板 ID、当前积分余额），先用配套查询工具核实（search_customer / sms_list_templates / list_coupon_templates / list_poster_templates / get_points_balance 等）或向用户追问，再发起调用；工具清单里没有的能力就坦诚说做不了，绝不假装执行。
 8. 知识回流：当 system_kb_search 检索不到答案、或用户指出知识库内容错误/过时时，主动提议“要不要我把这个知识缺口记录下来？”，征得同意后调用 suggest_kb_update 提交提案（附上用户原问题和建议内容）。提案只是记录待平台评审，不会立即改变知识库；建议内容只写已核实的事实，绝不把猜测当知识提交。
 9. 预设任务链：用户的诉求匹配某条多步任务链时（先用 list_task_chains 查看可用链与可续跑的链），用 start_task_chain 启动，随后严格按每次返回的 next_action 指引推进：需要用户补充信息就先追问再用 advance_task_chain 提交 step_input；需要执行需确认的工具时按指引直接调用该工具（系统会弹确认卡片），完成后用 advance_task_chain 提交 step_output；每步完成后简短告知进度，全部完成后总结各步结果。中断的链可续跑，不要重新启动。
 10. 营销活动策划（campaign）：当用户想策划或管理营销活动时，引导使用 campaign 三工具：

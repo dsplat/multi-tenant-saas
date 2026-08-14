@@ -9,6 +9,8 @@ use MultiTenantSaas\Modules\Form\Services\Tools\FormCreateHandler;
 use MultiTenantSaas\Modules\Form\Services\Tools\FormExportDataHandler;
 use MultiTenantSaas\Modules\Form\Services\Tools\FormGetStatisticsHandler;
 use MultiTenantSaas\Modules\Form\Services\Tools\FormGetSubmissionsHandler;
+use MultiTenantSaas\Modules\Form\Services\Tools\FormListHandler;
+use MultiTenantSaas\Modules\Form\Services\Tools\FormSubmitHandler;
 use MultiTenantSaas\Modules\Form\Services\Tools\FormUpdateHandler;
 
 class FormServiceProvider extends ModuleServiceProvider
@@ -34,5 +36,7 @@ class FormServiceProvider extends ModuleServiceProvider
         $registry->register('form_get_submissions', 'Form Get Submissions', 'Get submissions', FormGetSubmissionsHandler::class, ['type' => 'object', 'properties' => ['form_id' => ['type' => 'integer', 'description' => '表单ID']], 'required' => ['form_id']], 'form', 'L1');
         $registry->register('form_get_statistics', 'Form Get Statistics', 'Get statistics', FormGetStatisticsHandler::class, ['type' => 'object', 'properties' => ['form_id' => ['type' => 'integer', 'description' => '表单ID']], 'required' => ['form_id']], 'form', 'L1');
         $registry->register('form_export_data', 'Form Export Data', 'Export data', FormExportDataHandler::class, ['type' => 'object', 'properties' => ['form_id' => ['type' => 'integer', 'description' => '表单ID'], 'format' => ['type' => 'string', 'description' => '导出格式']], 'required' => ['form_id']], 'form', 'L1');
+        $registry->register('form_list', 'Form List', 'List forms', FormListHandler::class, ['type' => 'object', 'properties' => ['status' => ['type' => 'string', 'description' => '状态过滤'], 'per_page' => ['type' => 'integer', 'description' => '每页数量']], 'required' => []], 'form', 'L1');
+        $registry->register('form_submit', 'Form Submit', 'Submit form', FormSubmitHandler::class, ['type' => 'object', 'properties' => ['form_id' => ['type' => 'integer', 'description' => '表单ID'], 'data' => ['type' => 'object', 'description' => '提交的字段键值对'], 'user_id' => ['type' => 'integer', 'description' => '提交用户ID（可选）']], 'required' => ['form_id', 'data']], 'form', 'L2');
     }
 }

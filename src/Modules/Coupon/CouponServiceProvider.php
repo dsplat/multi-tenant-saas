@@ -15,8 +15,10 @@ use MultiTenantSaas\Modules\Coupon\Services\Tools\CouponDeactivateHandler;
 use MultiTenantSaas\Modules\Coupon\Services\Tools\CouponGenerateCodesHandler;
 use MultiTenantSaas\Modules\Coupon\Services\Tools\CouponGetStatisticsHandler;
 use MultiTenantSaas\Modules\Coupon\Services\Tools\CouponGetUsagesHandler;
+use MultiTenantSaas\Modules\Coupon\Services\Tools\CouponListHandler;
 use MultiTenantSaas\Modules\Coupon\Services\Tools\CouponRedeemHandler;
 use MultiTenantSaas\Modules\Coupon\Services\Tools\CouponUpdateTemplateHandler;
+use MultiTenantSaas\Modules\Coupon\Services\Tools\CouponValidateHandler;
 
 class CouponServiceProvider extends ModuleServiceProvider
 {
@@ -47,5 +49,7 @@ class CouponServiceProvider extends ModuleServiceProvider
         $registry->register('coupon_get_usages', 'Coupon Get Usages', 'Get usages', CouponGetUsagesHandler::class, ['type' => 'object', 'properties' => ['coupon_id' => ['type' => 'integer', 'description' => '优惠券ID']], 'required' => ['coupon_id']], 'coupon', 'L1');
         $registry->register('coupon_calculate_discount', 'Coupon Calculate Discount', 'Calculate discount', CouponCalculateDiscountHandler::class, ['type' => 'object', 'properties' => ['code' => ['type' => 'string', 'description' => '优惠券码'], 'amount' => ['type' => 'number', 'description' => '订单金额']], 'required' => ['code', 'amount']], 'coupon', 'L1');
         $registry->register('coupon_bulk_distribute', 'Coupon Bulk Distribute', 'Bulk distribute', CouponBulkDistributeHandler::class, ['type' => 'object', 'properties' => ['coupon_id' => ['type' => 'integer', 'description' => '优惠券ID'], 'user_ids' => ['type' => 'array', 'description' => '用户ID列表']], 'required' => ['coupon_id', 'user_ids']], 'coupon', 'L2');
+        $registry->register('coupon_list', 'Coupon List', 'List coupons', CouponListHandler::class, ['type' => 'object', 'properties' => ['status' => ['type' => 'string', 'description' => '状态过滤'], 'type' => ['type' => 'string', 'description' => '类型过滤']], 'required' => []], 'coupon', 'L1');
+        $registry->register('coupon_validate', 'Coupon Validate', 'Validate coupon', CouponValidateHandler::class, ['type' => 'object', 'properties' => ['code' => ['type' => 'string', 'description' => '优惠券码'], 'amount' => ['type' => 'number', 'description' => '订单金额（可选）']], 'required' => ['code']], 'coupon', 'L1');
     }
 }

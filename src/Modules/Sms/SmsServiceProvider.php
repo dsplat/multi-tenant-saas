@@ -15,6 +15,9 @@ use MultiTenantSaas\Modules\Sms\Services\Tools\SmsScheduledSendHandler;
 use MultiTenantSaas\Modules\Sms\Services\Tools\SmsSubmitForApprovalHandler;
 use MultiTenantSaas\Modules\Sms\Services\Tools\SmsUnsubscribeHandler;
 use MultiTenantSaas\Modules\Sms\Services\Tools\SmsUpdateTemplateHandler;
+use MultiTenantSaas\Modules\Sms\Services\Tools\SmsBatchSendHandler;
+use MultiTenantSaas\Modules\Sms\Services\Tools\SmsGetStatsHandler;
+use MultiTenantSaas\Modules\Sms\Services\Tools\SmsListTemplatesHandler;
 
 class SmsServiceProvider extends ModuleServiceProvider
 {
@@ -44,5 +47,8 @@ class SmsServiceProvider extends ModuleServiceProvider
         $registry->register('sms_get_delivery_stats', 'Sms Get Delivery Stats', 'Get delivery stats', SmsGetDeliveryStatsHandler::class, ['type' => 'object', 'properties' => ['batch_task_id' => ['type' => 'integer', 'description' => '批次任务ID']], 'required' => ['batch_task_id']], 'sms', 'L1');
         $registry->register('sms_unsubscribe', 'Sms Unsubscribe', 'Unsubscribe', SmsUnsubscribeHandler::class, ['type' => 'object', 'properties' => ['phone' => ['type' => 'string', 'description' => '手机号'], 'reason' => ['type' => 'string', 'description' => '退订原因']], 'required' => ['phone']], 'sms', 'L2');
         $registry->register('sms_get_unsubscribes', 'Sms Get Unsubscribes', 'Get unsubscribes', SmsGetUnsubscribesHandler::class, ['type' => 'object', 'properties' => []], 'sms', 'L1');
+        $registry->register('sms_list_templates', 'Sms List Templates', 'List sms templates', SmsListTemplatesHandler::class, ['type' => 'object', 'properties' => ['status' => ['type' => 'string', 'description' => '状态过滤'], 'type' => ['type' => 'string', 'description' => '类型过滤']], 'required' => []], 'sms', 'L1');
+        $registry->register('sms_get_stats', 'Sms Get Stats', 'Get overall sms stats', SmsGetStatsHandler::class, ['type' => 'object', 'properties' => ['start_date' => ['type' => 'string', 'description' => '开始日期 YYYY-MM-DD'], 'end_date' => ['type' => 'string', 'description' => '结束日期 YYYY-MM-DD']], 'required' => []], 'sms', 'L1');
+        $registry->register('sms_batch_send', 'Sms Batch Send', 'Batch send sms by phone list', SmsBatchSendHandler::class, ['type' => 'object', 'properties' => ['template_id' => ['type' => 'integer', 'description' => '模板ID'], 'phones' => ['type' => 'array', 'description' => '手机号列表'], 'variables' => ['type' => 'object', 'description' => '模板变量']], 'required' => ['template_id', 'phones']], 'sms', 'L2');
     }
 }

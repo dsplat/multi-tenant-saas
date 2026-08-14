@@ -45,6 +45,9 @@ const fieldEntries = computed(() =>
 
 const isPending = computed(() => status.value === 'pending' && remaining.value > 0)
 
+/** 等待执行中（已点确认/取消，请求未回）：展示加载动画，防止操作员以为没反应而二次点击 */
+const isConfirming = computed(() => status.value === 'confirming')
+
 const statusLabel = computed(() => {
   switch (status.value) {
     case 'confirming': return '执行中…'
@@ -114,7 +117,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="action-confirm-card" :class="{ resolved: status !== 'pending', danger: status === 'error' }">
+  <div class="action-confirm-card" :class="{ resolved: status !== 'pending' && status !== 'confirming', danger: status === 'error' }">
     <div class="card-badge">🤖 AI 代操作 · 需你确认</div>
 
     <div class="card-title">即将执行：<b>{{ data.tool_name }}</b></div>
@@ -127,9 +130,12 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- 操作按钮 / 结果态 -->
+    <!-- 操作按钮 / 等待态 / 结果态 -->
     <div class="card-actions">
-      <template v-if="isPending">
+      <template v-if="isConfirming">
+        <button class="btn-confirm loading" disabled><span class="spinner"></span>执行中，请稍候…</button>
+      </template>
+      <template v-else-if="isPending">
         <button class="btn-confirm" @click="submit(true)">✓ 确认执行</button>
         <button class="btn-cancel" @click="submit(false)">取消</button>
         <span class="countdown">{{ statusLabel }}</span>
@@ -196,6 +202,18 @@ onUnmounted(() => {
   transition: opacity 0.15s;
 }
 .btn-confirm:hover { opacity: 0.85; }
+.btn-confirm.loading {
+  display: inline-flex; align-items: center; gap: 6px;
+  opacity: 0.8; cursor: wait;
+}
+.spinner {
+  width: 12px; height: 12px; flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: card-spin 0.7s linear infinite;
+}
+@keyframes card-spin { to { transform: rotate(360deg); } }
 .btn-cancel {
   padding: 6px 12px; border-radius: 6px; font-size: 12px;
   border: 1px solid var(--border-color, #e2e8f0); cursor: pointer;

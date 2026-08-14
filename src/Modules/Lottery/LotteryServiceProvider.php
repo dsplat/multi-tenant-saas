@@ -20,6 +20,8 @@ use MultiTenantSaas\Modules\Lottery\Services\Tools\LotteryRemoveBlacklistHandler
 use MultiTenantSaas\Modules\Lottery\Services\Tools\LotteryUpdateActivityHandler;
 use MultiTenantSaas\Modules\Lottery\Services\Tools\LotteryUpdatePrizeHandler;
 use MultiTenantSaas\Modules\Lottery\Services\Tools\LotteryUpdateStatusHandler;
+use MultiTenantSaas\Modules\Lottery\Services\Tools\LotteryDrawHandler;
+use MultiTenantSaas\Modules\Lottery\Services\Tools\LotteryListHandler;
 
 class LotteryServiceProvider extends ModuleServiceProvider
 {
@@ -53,5 +55,7 @@ class LotteryServiceProvider extends ModuleServiceProvider
         $registry->register('lottery_get_blacklist', 'Lottery Get Blacklist', 'Get blacklist', LotteryGetBlacklistHandler::class, ['type' => 'object', 'properties' => ['activity_id' => ['type' => 'integer', 'description' => '活动ID']], 'required' => ['activity_id']], 'lottery', 'L1');
         $registry->register('lottery_add_blacklist', 'Lottery Add Blacklist', 'Add blacklist', LotteryAddBlacklistHandler::class, ['type' => 'object', 'properties' => ['tenant_id' => ['type' => 'integer', 'description' => '租户ID'], 'activity_id' => ['type' => 'integer', 'description' => '活动ID'], 'identifier_type' => ['type' => 'string', 'description' => '标识类型'], 'identifier' => ['type' => 'string', 'description' => '标识值'], 'reason' => ['type' => 'string', 'description' => '原因']], 'required' => ['activity_id', 'identifier_type', 'identifier']], 'lottery', 'L2');
         $registry->register('lottery_remove_blacklist', 'Lottery Remove Blacklist', 'Remove blacklist', LotteryRemoveBlacklistHandler::class, ['type' => 'object', 'properties' => ['activity_id' => ['type' => 'integer', 'description' => '活动ID'], 'identifier_type' => ['type' => 'string', 'description' => '标识类型'], 'identifier' => ['type' => 'string', 'description' => '标识值']], 'required' => ['activity_id', 'identifier_type', 'identifier']], 'lottery', 'L2');
+        $registry->register('lottery_list', 'Lottery List', 'List activities', LotteryListHandler::class, ['type' => 'object', 'properties' => ['status' => ['type' => 'string', 'description' => '状态过滤']], 'required' => []], 'lottery', 'L1');
+        $registry->register('lottery_draw', 'Lottery Draw', 'Draw for user', LotteryDrawHandler::class, ['type' => 'object', 'properties' => ['activity_id' => ['type' => 'integer', 'description' => '活动ID'], 'user_id' => ['type' => 'integer', 'description' => '用户ID（可选）']], 'required' => ['activity_id']], 'lottery', 'L2');
     }
 }

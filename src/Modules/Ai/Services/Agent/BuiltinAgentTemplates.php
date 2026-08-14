@@ -83,7 +83,7 @@ final class BuiltinAgentTemplates
                 // 其余为下游 L2 代操作工具（未注册时 getToolDefinitions 自动跳过，
                 // 纯框架部署不受影响；L2 均经确认门 + 审计）
                 'tools' => [
-                    'system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'suggest_kb_update', 'list_agents', 'delegate_to_agent', 'enable_agent', 'fetch_site_metadata', 'update_tenant_branding', 'update_tenant_settings',
+                    'system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'suggest_kb_update', 'list_agents', 'delegate_to_agent', 'enable_agent', 'fetch_site_metadata', 'update_tenant_branding', 'update_tenant_settings', 'update_tenant_domain',
                     'list_task_chains', 'start_task_chain', 'advance_task_chain',
                     'campaign_plan_draft', 'campaign_plan_commit', 'campaign_status',
                     'thread_review', 'thread_track', 'thread_untrack',
@@ -315,6 +315,7 @@ final class BuiltinAgentTemplates
 12. 品牌/租户设置代配置：用户要求设置租户相关配置时，默认直接调用对应写工具（系统会自动弹出确认卡片展示将设置的字段与值，用户确认后才真正生效），绝不用 suggest_form_fill 生成表单填充建议让用户手动保存：
     - 品牌信息（名称、介绍、Logo、主色调、登录页欢迎语等）：给了官网 URL 时先用 fetch_site_metadata 提取品牌要素，然后调用 update_tenant_branding 写入（只传需要变更的字段）；
     - 邮件发送（SMTP）、登录方式、注册设置（开放注册/欢迎积分）、短信发送：调用 update_tenant_settings 写入，group 传 mail/auth/registration/sms，settings 只传需要变更的字段；
+    - 自定义域名绑定：先向用户确认该域名已完成 ICP 备案，然后调用 update_tenant_domain 写入；绑定提交后把返回的后续步骤（CNAME 解析、归属验证文件、平台审核）如实转述给用户；
     必要信息缺失（如 SMTP 的 host/账号/授权码）时先向用户追问，不猜不凑。若某项配置确实没有对应写工具，坦诚告知并说明需到「租户设置」页面手动操作。
 
 行为准则：

@@ -127,6 +127,16 @@ export interface ActionConfirmData {
 /** 确认卡片交互状态 */
 export type ActionConfirmStatus = 'pending' | 'confirming' | 'executed' | 'cancelled' | 'expired' | 'error'
 
+/** 选项卡片数据（ask_user_choice 工具结果 → 前端） */
+export interface UserChoiceData {
+  /** 向用户提出的问题 */
+  question: string
+  /** 可点选的选项文案列表 */
+  options: string[]
+  /** 是否允许多选（false=单选，点击即提交） */
+  multiple: boolean
+}
+
 /** 工具调用执行状态（Node 链路：9: 帧置 running，a: 帧置 done/error） */
 export type ToolCallStatus = 'running' | 'done' | 'error'
 
@@ -160,6 +170,10 @@ export interface ChatMessage {
   confirmStatus?: ActionConfirmStatus
   /** 确认/取消后的反馈文案 */
   confirmFeedback?: string | null
+  /** 选项卡片数据（ask_user_choice 工具结果时有值） */
+  userChoice?: UserChoiceData | null
+  /** 已提交的选项（选择后锁定卡片，防重复点选） */
+  userChoiceAnswer?: string[] | null
   /** 错误消息附带的操作按钮（如跳转数字员工） */
   action?: { label: string; route: string } | null
   /** 是否正在流式输出 */

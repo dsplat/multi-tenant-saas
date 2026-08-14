@@ -13,11 +13,14 @@ import type { ChatMessage } from '../types'
 import { renderMarkdown } from '../utils/renderMarkdown'
 import FormFillCard from './FormFillCard.vue'
 import ActionConfirmCard from './ActionConfirmCard.vue'
+import ChoiceCard from './ChoiceCard.vue'
 import WorkflowProgress from './WorkflowProgress.vue'
 
 const props = defineProps<{ message: ChatMessage }>()
 const emit = defineEmits<{
   (e: 'delegate', payload: { agentId: string; agentName: string; handoffMessage: string }): void
+  /** 选项卡片点选结果：作为用户消息回传对话 */
+  (e: 'choice', text: string): void
 }>()
 const router = useRouter()
 const store = useAssistantStore()
@@ -82,6 +85,8 @@ function toolDisplay(call: any): { icon: string; text: string } {
       return { icon: '⇄', text: args.agent_name ? `转接给「${args.agent_name}」` : '转接专业员工' }
     case 'enable_agent':
       return { icon: '🔓', text: args.agent_name ? `启用「${args.agent_name}」` : '启用数字员工' }
+    case 'ask_user_choice':
+      return { icon: '🗳️', text: '给出选项供你选择' }
     default:
       // 未登记词条的业务工具（如下游 create_event 等）：通用文案 + 状态后缀区分进度
       return { icon: '⚙️', text: '执行操作' }
@@ -190,6 +195,12 @@ function handleConfirmResolved(payload: { status: any; feedback: string | null; 
     store.pushAssistantMessage(payload.assistantMessage)
   }
 }
+
+/** 选项卡片点选：锁定卡片（防重复点选）后，选择结果作为用户消息发送 */
+function handleChoice(answers: string[]) {
+  store.setUserChoiceAnswered(props.message.id, answers)
+  emit('choice', answers.join('、'))
+}
 </script>
 
 <template>
@@ -271,6 +282,14 @@ function handleConfirmResolved(payload: { status: any; feedback: string | null; 
         :status="message.confirmStatus"
         :feedback="message.confirmFeedback"
         @resolved="handleConfirmResolved"
+      />
+
+      <!-- 选项卡片（ask_user_choice：是/否、单选/多选可点选按钮） -->
+      <ChoiceCard
+        v-if="message.userChoice"
+        :data="message.userChoice"
+        :answered="message.userChoiceAnswer"
+        @choice="handleChoice"
       />
 
       <!-- 工作流编排进度 -->

@@ -267,6 +267,7 @@ async function handleSend(text?: string) {
     onFormFill: (suggestion) => store.setFormFill(assistantMsg.id, suggestion),
     onWorkflow: (wf) => store.setWorkflow(assistantMsg.id, wf),
     onPendingConfirmation: (confirm) => store.setActionConfirm(assistantMsg.id, confirm),
+    onUserChoice: (choice) => store.setUserChoice(assistantMsg.id, choice),
     onDone: () => store.finishMessage(assistantMsg.id),
     onError: (msg, action) => {
       store.finishMessage(assistantMsg.id)
@@ -293,6 +294,11 @@ function handleDelegate(payload: { agentId: string; agentName: string; handoffMe
   store.setTargetAgent(payload.agentId, payload.agentName || null)
   const opening = payload.handoffMessage || '你好，请接手处理。'
   handleSend(opening)
+}
+
+/** 选项卡片点选：选择结果作为用户消息发送，驱动 AI 续答 */
+function handleChoice(text: string) {
+  handleSend(text)
 }
 
 /** 清空对话 */
@@ -445,7 +451,7 @@ onMounted(() => {
       </div>
 
       <!-- 消息列表 -->
-      <ChatMessage v-for="msg in store.messages" :key="msg.id" :message="msg" @delegate="handleDelegate" />
+      <ChatMessage v-for="msg in store.messages" :key="msg.id" :message="msg" @delegate="handleDelegate" @choice="handleChoice" />
     </div>
 
     <!-- 快捷指令栏 -->

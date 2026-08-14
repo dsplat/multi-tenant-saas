@@ -13,7 +13,7 @@
  */
 import { ref } from 'vue'
 import axios from 'axios'
-import type { PageContext, ToolCall, FormFillSuggestion, WorkflowSuggestion, ConversationMeta, ActionConfirmData, AttachmentDraft } from '../types'
+import type { PageContext, ToolCall, FormFillSuggestion, WorkflowSuggestion, ConversationMeta, ActionConfirmData, UserChoiceData, AttachmentDraft } from '../types'
 
 /** 流空闲超时（毫秒）：Node 链路无心跳帧，放宽到 120s 容忍长思考 */
 const STREAM_IDLE_TIMEOUT_MS = 120_000
@@ -53,6 +53,8 @@ export interface StreamCallbacks {
   onFormFill: (suggestion: FormFillSuggestion) => void
   onWorkflow: (workflow: WorkflowSuggestion) => void
   onPendingConfirmation?: (data: ActionConfirmData) => void
+  /** 选项卡片（ask_user_choice 工具结果）：需用户点选时下发 */
+  onUserChoice?: (data: UserChoiceData) => void
   onDone: (metadata?: Record<string, any> | null) => void
   onError: (message: string, action?: { label: string; route: string } | null) => void
 }
@@ -284,6 +286,13 @@ export function useAssistantStream() {
               arguments: result.arguments ?? {},
               conversation_id: result.conversation_id,
             } as ActionConfirmData)
+          } else if (result?.action === 'user_choice' && Array.isArray(result.options)) {
+            // 选项卡片：需用户确认/选择时，工具结果透传结构化选项，前端渲染可点选按钮
+            callbacks.onUserChoice?.({
+              question: String(result.question ?? ''),
+              options: result.options.map((o: any) => String(o)),
+              multiple: !!result.multiple,
+            } as UserChoiceData)
           }
           break
         }

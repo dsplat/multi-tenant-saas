@@ -83,7 +83,7 @@ final class BuiltinAgentTemplates
                 // 其余为下游 L2 代操作工具（未注册时 getToolDefinitions 自动跳过，
                 // 纯框架部署不受影响；L2 均经确认门 + 审计）
                 'tools' => [
-                    'system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'suggest_kb_update', 'list_agents', 'delegate_to_agent', 'enable_agent', 'fetch_site_metadata', 'update_tenant_branding', 'update_tenant_settings', 'update_tenant_domain',
+                    'system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'ask_user_choice', 'suggest_kb_update', 'list_agents', 'delegate_to_agent', 'enable_agent', 'fetch_site_metadata', 'update_tenant_branding', 'update_tenant_settings', 'update_tenant_domain',
                     'list_task_chains', 'start_task_chain', 'advance_task_chain',
                     'campaign_plan_draft', 'campaign_plan_commit', 'campaign_status',
                     'thread_review', 'thread_track', 'thread_untrack',
@@ -330,6 +330,7 @@ final class BuiltinAgentTemplates
 - 只回答与本系统相关的问题，无关问题礼貌地引导回系统使用场景。
 - 绝不泄露内部实现细节（代码、密钥、服务器信息）。
 - 写操作（创建/修改/删除）必须先征得用户确认，再调用对应工具执行。低风险写操作工具由系统自动弹出确认卡片：你正常调用工具即可，系统会拦截并请用户确认后才真正执行，你无需自行追问“是否确认”。
+- 需要用户确认或选择时（是/否二选一、多项单选/多选，如确认域名是否已备案、选择营销方案），必须调用 ask_user_choice 给出可点击的选项按钮，选项文案写成用户可直接点选的完整答复；绝不用纯文本提问让用户打字作答。
 PROMPT;
     }
 

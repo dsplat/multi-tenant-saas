@@ -6,7 +6,7 @@
  */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { ChatMessage, PanelMode, ToolCall, FormFillSuggestion, WorkflowSuggestion, HistoryMessage, ActionConfirmData, ActionConfirmStatus } from '../ai-assistant/types'
+import type { ChatMessage, PanelMode, ToolCall, FormFillSuggestion, WorkflowSuggestion, HistoryMessage, ActionConfirmData, ActionConfirmStatus, UserChoiceData } from '../ai-assistant/types'
 
 let msgSeq = 0
 function nextId(): string {
@@ -211,6 +211,18 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     }
   }
 
+  /** 向指定 assistant 消息设置选项卡片（ask_user_choice） */
+  function setUserChoice(msgId: string, data: UserChoiceData) {
+    const msg = messages.value.find(m => m.id === msgId)
+    if (msg) msg.userChoice = data
+  }
+
+  /** 记录选项卡片已提交的选项（锁定卡片，防重复点选） */
+  function setUserChoiceAnswered(msgId: string, answers: string[]) {
+    const msg = messages.value.find(m => m.id === msgId)
+    if (msg) msg.userChoiceAnswer = answers
+  }
+
   /** 直接追加一条完整的 assistant 消息（确认/取消后 LLM 续答用） */
   function pushAssistantMessage(content: string): ChatMessage {
     const msg: ChatMessage = {
@@ -336,7 +348,7 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     setAvailability, setUserEnabled, setModule,
     openPanel, closePanel, togglePin,
     pushUserMessage, startAssistantMessage, appendText, appendToolCalls, completeToolCall, setFormFill, setWorkflow,
-    setActionConfirm, updateActionConfirmStatus, pushAssistantMessage,
+    setActionConfirm, updateActionConfirmStatus, setUserChoice, setUserChoiceAnswered, pushAssistantMessage,
     finishMessage, pushError, setStreaming, setConversationId, setTargetAgent, clearMessages,
     switchConversation, startNewConversation,
     hydrateMessages, markHydrated,

@@ -13,7 +13,7 @@
  *  - AI 产出必标注：明确标记「AI 代操作 · 需你确认」
  *  - 令牌过期（expires_in）后卡片自动失效
  */
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import type { ActionConfirmData, ActionConfirmStatus } from '../types'
 import { CONFIRM_ACTION_ENDPOINT } from '../composables/useAssistantStream'
@@ -28,9 +28,17 @@ const emit = defineEmits<{
   (e: 'resolved', payload: { status: ActionConfirmStatus; feedback: string | null; assistantMessage: string }): void
 }>()
 
-/** 本地交互态（优先取父级传入状态，父级驱动最终态） */
+/**
+ * 交互态以本地 localStatus 为准：点击后立即置 confirming 展示等待动画。
+ * 不能用 props.status || localStatus：父级 store 下发的 confirmStatus 恒为
+ * 非空（如 'pending'），会永久覆盖本地态，导致等待动画永不出现。
+ * 父级终态（执行后 store 更新）经 watch 同步回本地，历史恢复/外部更新不受影响。
+ */
 const localStatus = ref<ActionConfirmStatus>(props.status || 'pending')
-const status = computed<ActionConfirmStatus>(() => props.status || localStatus.value)
+const status = computed<ActionConfirmStatus>(() => localStatus.value)
+watch(() => props.status, (v) => {
+  if (v && v !== localStatus.value) localStatus.value = v
+})
 
 /** 剩余有效秒数倒计时 */
 const remaining = ref<number>(props.data.expires_in ?? 300)

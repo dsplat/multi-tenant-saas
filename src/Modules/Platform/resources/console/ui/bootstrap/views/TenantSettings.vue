@@ -121,9 +121,24 @@
               <button class="primary-btn" :disabled="slugSaving" @click="handleSaveSlug">{{ slugSaving ? '保存中...' : '保存' }}</button>
             </div>
             <div v-if="slugCheckMsg" :style="{ color: slugAvailable ? '#52c41a' : '#f5222d', fontSize: '12px', marginTop: '6px' }">{{ slugCheckMsg }}</div>
+            <div style="font-size: 12px; color: #999; margin-top: 6px">
+              保存后前台访问地址为
+              <a v-if="slug && domainInfo.wildcard_base" :href="`https://${slug}.${domainInfo.wildcard_base}`" target="_blank" rel="noopener">https://{{ slug }}.{{ domainInfo.wildcard_base }}</a>
+              <span v-else>https://&lt;二级域名&gt;.平台域名</span>
+            </div>
+            <div v-if="isDefaultSlug" style="font-size: 12px; color: #e6a23c; margin-top: 4px">当前为系统自动分配的二级域名（t- 前缀为系统保留），可随时自定义替换</div>
           </div>
 
           <hr />
+
+          <div style="background: #f0f7ff; border: 1px solid #d6e4ff; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px">
+            <b>绑定前请确认：</b>
+            <ol style="margin: 4px 0 0; padding-left: 18px; line-height: 1.9">
+              <li>域名必须已完成 <b>ICP 备案</b>，未备案域名无法绑定</li>
+              <li>在域名服务商处将域名通过 <b>CNAME</b> 解析指向 <code>{{ domainInfo.cname_target || 'app.平台域名' }}</code></li>
+              <li>提交绑定并完成归属验证后，由平台审核生效</li>
+            </ol>
+          </div>
 
           <div class="form-group">
             <label>自定义域名 — 当前状态</label>
@@ -289,6 +304,9 @@ const domainStatusLabel = computed(() => ({
 
 const verifyAttemptsLeft = computed(() =>
   Math.max(0, (verifyInfo.max_attempts ?? 5) - (verifyInfo.attempts ?? 0)))
+
+// t- 前缀为 SlugService 自动分配的系统默认二级域名（AUTO_PREFIX）
+const isDefaultSlug = computed(() => /^t-[a-z0-9]+$/.test(slug.value))
 
 const fetchDomainInfo = async () => {
   try {

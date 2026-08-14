@@ -26,12 +26,17 @@ class DomainService
     {
         $tenant = Tenant::findOrFail($tenantId);
 
+        $wildcardBase = config('domain.wildcard_base');
+
         return [
             'domain' => $tenant->domain,
             'domain_status' => TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'domain_status', self::STATUS_PENDING),
             'icp_verified' => (bool) TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'icp_verified', false),
             'icp_verified_at' => TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'icp_verified_at', null),
             'domain_verified_at' => TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'domain_verified_at', null),
+            // 前端域名设置页展示用：免费二级域名基底（{slug}.wildcard_base）+ 自定义域名 CNAME 目标
+            'wildcard_base' => $wildcardBase,
+            'cname_target' => $wildcardBase ? 'app.' . $wildcardBase : null,
         ];
     }
 

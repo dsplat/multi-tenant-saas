@@ -82,7 +82,7 @@ const router = createRouter({
 })
 
 // 动态加载模块路由，加载完成后添加 catch-all 路由
-getAllModuleRoutes().then(moduleRoutes => {
+const moduleRoutesReady = getAllModuleRoutes().then(moduleRoutes => {
   if (moduleRoutes.length > 0) {
     const mainRoute = router.getRoutes().find(r => r.name === 'AdminRoot')
     if (mainRoute) {
@@ -96,7 +96,7 @@ getAllModuleRoutes().then(moduleRoutes => {
       }
     }
   }
-  
+
   // 在模块路由添加完成后，再添加 catch-all 路由
   router.addRoute('AdminRoot', {
     path: ':pathMatch(.*)*',
@@ -104,6 +104,16 @@ getAllModuleRoutes().then(moduleRoutes => {
     component: resolveView('NotFound'),
     meta: { title: '页面不存在', requiresAuth: true },
   })
+})
+
+// 首屏直连竞态守卫：等待动态模块路由注册完成；
+// 若初始导航在注册前解析导致未匹配，注册完成后重新解析一次当前路径。
+// 必须置于 auth 守卫之前，确保任何导航放行前路由表已就绪。
+router.beforeEach(async to => {
+  await moduleRoutesReady
+  if (to.matched.length === 0) {
+    return { path: to.path, query: to.query, hash: to.hash, replace: true }
+  }
 })
 
 router.beforeEach(createAuthGuard(() => useUserStore()))

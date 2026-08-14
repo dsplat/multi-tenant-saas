@@ -197,6 +197,35 @@ class TenantControllerTest extends TestCase
             ->assertJsonPath('data.name', 'Updated Name');
     }
 
+    public function test_update_tenant_branding(): void
+    {
+        $tenant = Tenant::create([
+            'name' => 'Brand Tenant',
+            'slug' => 'brand-tenant',
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($this->operator, 'sanctum')
+            ->putJson("/api/v1/tenants/{$tenant->tenant_id}", [
+                'logo' => 'https://example.com/logo.png',
+                'description' => '团队介绍',
+                'branding' => [
+                    'primary_color' => '#1890ff',
+                    'secondary_color' => '#666666',
+                    'login_page_message' => '欢迎使用',
+                ],
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJson(['success' => true])
+            ->assertJsonPath('data.logo', 'https://example.com/logo.png')
+            ->assertJsonPath('data.branding.primary_color', '#1890ff')
+            ->assertJsonPath('data.branding.login_page_message', '欢迎使用');
+
+        $tenant->refresh();
+        $this->assertSame('#1890ff', $tenant->branding['primary_color']);
+    }
+
     // ========== 删除租户 ==========
 
     public function test_destroy_tenant(): void

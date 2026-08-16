@@ -16,12 +16,11 @@ use MultiTenantSaas\Tests\Schema\RbacModule;
 /**
  * 租户申请审批测试
  *
- * 回归点：审批通过创建租户后必须自动安装系统小秘书
- * （否则新租户 console 小助手报「AI 小助手尚未初始化」404）。
- *
- * 注意：审批流程在 HTTP 上下文中经 Artisan::call 调 secretary:install，
- * 命令注册不得被 runningInConsole 守卫包住（PHPUnit 本身是 CLI，
- * 无法暴露该回归；生产曾因此报 "The command secretary:install does not exist"）。
+ * 开通节奏（懒开通策略）：审批通过只建租户与管理员绑定，
+ * 不预装小助手/数字员工；秘书在用户首次打开小助手对话时由
+ * AgentProvisioningService::ensureSecretary 自动开通（见 AiStreamingControllerTest），
+ * 其余数字员工由秘书按需征得确认后 enable_agent 启用。
+ * secretary:install / agents:enable 保留作运维补装工具（幂等回归见下）。
  */
 class TenantApplicationApproveTest extends TestCase
 {
@@ -75,7 +74,7 @@ class TenantApplicationApproveTest extends TestCase
         ]);
     }
 
-    public function test_approve_creates_tenant_and_installs_system_secretary(): void
+    public function test_approve_creates_tenant_without_preinstalling_agents(): void
     {
         $response = $this->withHeader('Authorization', "Bearer {$this->token}")
             ->postJson("/api/v1/admin/applications/{$this->application->application_id}/approve", [
@@ -96,16 +95,14 @@ class TenantApplicationApproveTest extends TestCase
             'role' => 'tenant_admin',
         ]);
 
-        // 关键断言：新租户自动安装了系统小秘书（role=system_secretary）
-        $secretary = Agent::withoutGlobalScopes()
+        // 懒开通策略：审批时不预装任何数字员工（秘书首次对话时自动开通）
+        $count = Agent::withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
-            ->where('role', 'system_secretary')
-            ->first();
-        $this->assertNotNull($secretary, '审批通过后应自动为新租户安装系统小秘书');
-        $this->assertTrue((bool) $secretary->enabled);
+            ->count();
+        $this->assertSame(0, $count, '审批通过不应预装数字员工');
     }
 
-    public function test_approve_is_idempotent_for_secretary_install(): void
+    public function test_secretary_install_command_remains_idempotent_backfill(): void
     {
         $this->withHeader('Authorization', "Bearer {$this->token}")
             ->postJson("/api/v1/admin/applications/{$this->application->application_id}/approve")
@@ -113,8 +110,9 @@ class TenantApplicationApproveTest extends TestCase
 
         $tenantId = Tenant::where('name', '测试组织')->value('tenant_id');
 
-        // 重复执行 secretary:install 不应产生第二条记录（幂等）
+        // 运维补装命令保持幂等：重复执行不产生第二条记录
         // 注意：不得传 --silent（命令 signature 无此选项，传了即抛异常）
+        \Artisan::call('secretary:install', ['--tenant' => (string) $tenantId]);
         \Artisan::call('secretary:install', ['--tenant' => (string) $tenantId]);
 
         $count = DB::table('agents')

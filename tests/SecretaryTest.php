@@ -9,7 +9,7 @@ use MultiTenantSaas\Contracts\AiTextServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
-use MultiTenantSaas\Modules\Ai\Services\Agent\AgentRuntime;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentChatClient;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\BuiltinAgentTemplates;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
@@ -67,7 +67,7 @@ class SecretaryTest extends TestCase
 
         $this->assertEquals(
             [
-                'system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'suggest_kb_update', 'list_agents', 'delegate_to_agent', 'enable_agent', 'fetch_site_metadata',
+                'system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'ask_user_choice', 'suggest_kb_update', 'list_agents', 'delegate_to_agent', 'enable_agent', 'fetch_site_metadata', 'update_tenant_branding', 'update_tenant_settings', 'update_tenant_domain',
                 'list_task_chains', 'start_task_chain', 'advance_task_chain',
                 'campaign_plan_draft', 'campaign_plan_commit', 'campaign_status',
                 'thread_review', 'thread_track', 'thread_untrack',
@@ -75,6 +75,10 @@ class SecretaryTest extends TestCase
                 'manage_tags', 'ai_auto_tag', 'create_live_code', 'send_message', 'create_product', 'issue_coupon',
                 'create_sms_signature', 'send_sms_batch', 'schedule_sms_batch', 'create_poster',
                 'adjust_points', 'create_moments_sop', 'create_mass_push',
+                // 代操作前置查询配套（确认对象/模板/余额后再发起写操作）
+                'search_customer', 'get_customer_tags', 'list_coupon_templates', 'list_poster_templates',
+                'get_points_balance', 'list_sms_signatures', 'sms_list_templates', 'list_moments_sop',
+                'list_mass_push', 'product_list', 'coupon_list',
             ],
             $template['tools']
         );
@@ -110,16 +114,13 @@ class SecretaryTest extends TestCase
 
     private function resolveModelConfig(Agent $agent): array
     {
-        $runtime = new AgentRuntime(
+        // resolveModelConfig 已迁至 AgentChatClient（与 AgentRuntime 非流式链路共用口径）
+        $client = new AgentChatClient(
             Mockery::mock(AiTextServiceContract::class),
             Mockery::mock(ToolRegistryContract::class),
-            Mockery::mock(AgentMonitorContract::class),
-            $this->app->make(TenantContextContract::class),
         );
 
-        $method = new \ReflectionMethod($runtime, 'resolveModelConfig');
-
-        return $method->invoke($runtime, $agent);
+        return $client->resolveModelConfig($agent);
     }
 
     public function test_secretary_agent_forces_platform_model_config(): void

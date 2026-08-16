@@ -93,13 +93,30 @@ class Agent extends Model
 
         $metadata = (array) ($this->metadata ?? []);
         if (! empty($metadata['prompt_customized'])) {
-            return $dbPrompt;
+            return $this->withRuntimeContext($dbPrompt);
         }
 
         $template = AgentTemplateRegistry::findByKey($this->role ?? '');
         $templatePrompt = (string) ($template['system_prompt'] ?? '');
 
-        return $templatePrompt !== '' ? $templatePrompt : $dbPrompt;
+        return $this->withRuntimeContext($templatePrompt !== '' ? $templatePrompt : $dbPrompt);
+    }
+
+    /**
+     * 运行时上下文附录：注入当前日期时间
+     *
+     * LLM 无法自行感知当前时间，不注入时提议的活动日期会幻觉出
+     * 过期年份（生产已出现 2024 年方案）。每次 resolve/运行实时拼接。
+     */
+    private function withRuntimeContext(string $prompt): string
+    {
+        if ($prompt === '') {
+            return $prompt;
+        }
+
+        $now = now()->tz('Asia/Shanghai');
+
+        return $prompt . "\n\n[运行时信息] 当前日期：{$now->format('Y-m-d')}（{$now->translatedFormat('l')}），当前时间：{$now->format('H:i')}（北京时间）。涉及活动、排期、截止时间等内容时，必须以当前日期为基准，禁止使用已过去的日期。";
     }
 
     /**

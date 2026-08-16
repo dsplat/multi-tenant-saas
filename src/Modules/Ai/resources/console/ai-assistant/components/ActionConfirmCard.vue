@@ -17,6 +17,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import type { ActionConfirmData, ActionConfirmStatus } from '../types'
 import { CONFIRM_ACTION_ENDPOINT } from '../composables/useAssistantStream'
+import { toolLabel } from '../utils/toolLabels'
 
 const props = defineProps<{
   data: ActionConfirmData
@@ -128,7 +129,7 @@ onUnmounted(() => {
   <div class="action-confirm-card" :class="{ resolved: status !== 'pending' && status !== 'confirming', danger: status === 'error' }">
     <div class="card-badge">🤖 AI 代操作 · 需你确认</div>
 
-    <div class="card-title">即将执行：<b>{{ data.tool_name }}</b></div>
+    <div class="card-title">即将执行：<b>{{ toolLabel(data.tool_slug, data.tool_name) }}</b></div>
 
     <!-- 参数摘要 -->
     <div v-if="fieldEntries.length" class="card-fields">

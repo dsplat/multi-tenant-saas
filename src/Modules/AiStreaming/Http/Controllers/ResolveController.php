@@ -11,6 +11,7 @@ use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Events\ConversationStarted;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentProvisioningService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
 use MultiTenantSaas\Modules\Ai\Services\AiUsageService;
 use MultiTenantSaas\Modules\Campaign\Services\ThreadDigestService;
@@ -71,10 +72,16 @@ class ResolveController extends AiStreamingController
                 ->where('enabled', true)
                 ->first();
 
+            // 懒开通：首次打开小助手对话时自动克隆秘书（无需用户确认，
+            // 系统最基本能力；审批时不再预装）
+            if ($secretary === null) {
+                $secretary = app(AgentProvisioningService::class)->ensureSecretary((int) $tenantId);
+            }
+
             if ($secretary === null) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'AI 小助手尚未初始化，请联系平台管理员执行 secretary:install。',
+                    'message' => 'AI 小助手初始化失败，请联系平台管理员执行 secretary:install。',
                 ], 404);
             }
 

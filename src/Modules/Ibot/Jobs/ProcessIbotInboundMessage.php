@@ -13,6 +13,7 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentProvisioningService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentRuntime;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolConversationContext;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
@@ -73,7 +74,7 @@ class ProcessIbotInboundMessage implements ShouldQueue
 
         if (! $agent) {
             $channel->sendMessage($ibot, $binding->external_id, __(
-                'AI 小助手尚未初始化，请联系平台管理员执行 secretary:install。'
+                'AI 小助手初始化失败，请联系平台管理员执行 secretary:install。'
             ));
 
             return;
@@ -364,10 +365,17 @@ class ProcessIbotInboundMessage implements ShouldQueue
             }
         }
 
-        return Agent::where('tenant_id', $this->tenantId)
+        $secretary = Agent::where('tenant_id', $this->tenantId)
             ->where('role', 'system_secretary')
             ->where('enabled', true)
             ->first();
+
+        // 懒开通：ibot 未绑定专属员工且秘书缺席时自动开通（与 console 首次打开同策略）
+        if ($secretary === null && ! $ibot->agent_id) {
+            $secretary = app(AgentProvisioningService::class)->ensureSecretary((int) $this->tenantId);
+        }
+
+        return $secretary;
     }
 
     /**

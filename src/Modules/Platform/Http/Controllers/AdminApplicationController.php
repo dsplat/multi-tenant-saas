@@ -5,9 +5,7 @@ namespace MultiTenantSaas\Modules\Platform\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
@@ -177,15 +175,10 @@ class AdminApplicationController extends Controller
             ], 500);
         }
 
-        // 4. 为新租户安装系统小秘书（事务外 + 幂等；失败不阻断审批，事后 secretary:install 可补装）
-        try {
-            Artisan::call('secretary:install', ['--tenant' => (string) $tenant->tenant_id]);
-        } catch (\Throwable $e) {
-            Log::error('审批通过后自动安装系统小秘书失败', [
-                'tenant_id' => $tenant->tenant_id,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        // 4. 小助手与数字员工不再在审批时预装（懒开通策略）：
+        // 秘书在用户首次打开小助手对话时由 AgentProvisioningService::ensureSecretary
+        // 自动开通；其余数字员工由秘书按需征得用户确认后 enable_agent 启用。
+        // secretary:install / agents:enable 命令保留作运维补装工具。
 
         // 5. 发送审批通过邮件（事务外执行，避免邮件失败回滚数据）
         $operator = $application->operator;

@@ -166,13 +166,19 @@ class AiStreamingControllerTest extends TestCase
                     'model' => 'qwen-plus',
                     'base_url' => 'https://dashscope.aliyuncs.com/compatible-mode/v1',
                     'api_key' => 'sk-test-key',
-                    'system_prompt' => 'You are helpful.',
                     'temperature' => 0.5,
                     'max_tokens' => 2048,
                     'max_tool_calls' => 3,
                     'tools' => [$toolDefinition],
                 ],
             ]);
+
+        // system_prompt 会追加运行时日期信息，只断言前缀
+        $prompt = $this->withHeaders($this->authHeaders())
+            ->postJson('/api/v1/ai-streaming/resolve', ['agent_id' => 1001])
+            ->json('data.system_prompt');
+        $this->assertStringStartsWith('You are helpful.', (string) $prompt);
+        $this->assertStringContainsString('[运行时信息]', (string) $prompt);
     }
 
     public function test_resolve_requires_authentication(): void
@@ -252,15 +258,43 @@ class AiStreamingControllerTest extends TestCase
             ->postJson('/api/v1/ai-streaming/resolve', [])
             ->assertStatus(200)
             ->assertJsonPath('data.agent_id', 1003)
-            ->assertJsonPath('data.system_prompt', 'You are the secretary.');
+            // system_prompt 会追加运行时日期信息，只断言前缀
+            ->assertJsonPath('data.system_prompt', fn ($value) => str_starts_with((string) $value, 'You are the secretary.'));
     }
 
-    public function test_resolve_returns_404_without_agent_id_when_no_secretary(): void
+    public function test_resolve_lazy_provisions_secretary_when_missing(): void
     {
+        // 懒开通回归：秘书缺席时 resolve 自动克隆（首次打开小助手对话即开通，
+        // 审批时不再预装），而非返回 404 要求管理员手动 secretary:install
+        $this->mockUsageServiceOk();
+
+        $registryMock = Mockery::mock(ToolRegistry::class);
+        $registryMock->shouldReceive('getToolDefinitions')->andReturn([]);
+        $this->app->instance(ToolRegistry::class, $registryMock);
+
         $this->withHeaders($this->authHeaders())
             ->postJson('/api/v1/ai-streaming/resolve', [])
-            ->assertStatus(404)
-            ->assertJson(['success' => false]);
+            ->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        // 秘书已从模板克隆并启用
+        $secretary = Agent::withoutGlobalScopes()
+            ->where('tenant_id', 1001)
+            ->where('role', 'system_secretary')
+            ->first();
+        $this->assertNotNull($secretary, '首次 resolve 应自动开通系统小助手');
+        $this->assertTrue((bool) $secretary->enabled);
+
+        // 幂等：再次 resolve 不产生第二条记录
+        $this->withHeaders($this->authHeaders())
+            ->postJson('/api/v1/ai-streaming/resolve', [])
+            ->assertStatus(200);
+
+        $count = Agent::withoutGlobalScopes()
+            ->where('tenant_id', 1001)
+            ->where('role', 'system_secretary')
+            ->count();
+        $this->assertSame(1, $count);
     }
 
     public function test_resolve_delivers_confirmable_l2_tools(): void
@@ -394,7 +428,9 @@ class AiStreamingControllerTest extends TestCase
         $this->withHeaders($this->authHeaders())
             ->postJson('/api/v1/ai-streaming/resolve', [])
             ->assertStatus(200)
-            ->assertJsonPath('data.system_prompt', 'You are the secretary.');
+            // brain 关闭不注入脉络摘要（仅剩模板 prompt + 运行时日期附录）
+            ->assertJsonPath('data.system_prompt', fn ($value) => str_starts_with((string) $value, 'You are the secretary.')
+                && ! str_contains((string) $value, '进行中的工作脉络'));
     }
 
     // ========== tools/execute ==========

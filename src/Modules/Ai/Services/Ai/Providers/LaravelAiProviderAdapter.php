@@ -6,14 +6,8 @@ namespace MultiTenantSaas\Modules\Ai\Services\Ai\Providers;
 
 use Generator;
 use Illuminate\Support\Facades\Http;
-use Laravel\Ai\AnonymousAgent;
 use Laravel\Ai\Embeddings;
 use Laravel\Ai\Enums\Lab;
-use Laravel\Ai\Messages\Message;
-use Laravel\Ai\Responses\StreamableAgentResponse;
-use Laravel\Ai\Streaming\Events\StreamEnd;
-use Laravel\Ai\Streaming\Events\TextDelta;
-use Laravel\Ai\Streaming\Events\ToolCall as ToolCallEvent;
 use MultiTenantSaas\Contracts\AiProviderContract;
 use MultiTenantSaas\Exceptions\DomainException;
 use Throwable;
@@ -23,9 +17,10 @@ use Throwable;
  *
  * 实现 AiProviderContract 接口。
  *
- * 工具调用路径：当 options 含 tools 时，绕过 laravel/ai SDK 直接调用
- * OpenAI 兼容 /chat/completions API（SDK 会自动执行工具，与 AgentRuntime
- * 的 ReAct 循环冲突）。无工具时仍走 SDK 的 AnonymousAgent。
+ * 端点铁律：chat/流式生成一律直连 OpenAI 兼容 /chat/completions 端点，
+ * 不走 laravel/ai SDK 的 Agent 路径（其对 OpenAI 驱动默认打 /responses，
+ * 国内兼容网关如百炼不支持会挂到超时，生产已踩坑）。
+ * embeddings 仍用 SDK（/embeddings 端点各网关均兼容）。
  */
 class LaravelAiProviderAdapter implements AiProviderContract
 {
@@ -74,59 +69,8 @@ class LaravelAiProviderAdapter implements AiProviderContract
     {
         $timeout = $options['timeout'] ?? config('ai.timeout', 60);
 
-        // 有工具定义 → 走原生 OpenAI 兼容 API（SDK 会自动执行工具，与 ReAct 循环冲突）
-        if (! empty($options['tools'])) {
-            return $this->rawChatCompletion($model, $messages, $options, $timeout);
-        }
-
-        // openai 驱动的兼容网关（百炼等）统一走 /chat/completions：
-        // SDK Agent 路径对 OpenAI 驱动默认打 /responses 端点，
-        // 兼容网关不支持会挂到超时，生产已踩坑（campaign_plan_draft 60s 超时）
-        if (($this->config['driver'] ?? '') === 'openai') {
-            return $this->rawChatCompletion($model, $messages, $options, $timeout);
-        }
-
-        [$instructions, $history] = $this->parseMessages($messages);
-
-        try {
-            $agent = $this->buildAgent($history, $instructions);
-
-            $response = $agent->prompt(
-                prompt: '',
-                provider: $this->labProvider,
-                model: $model,
-                timeout: $timeout,
-            );
-
-            $content = (string) $response;
-            $usageData = $response->usage;
-
-            $usage = [
-                'prompt_tokens' => $usageData->promptTokens ?? 0,
-                'completion_tokens' => $usageData->completionTokens ?? 0,
-                'total_tokens' => ($usageData->promptTokens ?? 0) + ($usageData->completionTokens ?? 0),
-                'cache_read_input_tokens' => $usageData->cacheReadInputTokens ?? 0,
-                'cache_creation_input_tokens' => $usageData->cacheWriteInputTokens ?? 0,
-            ];
-
-            return [
-                'id' => $response->invocationId ?? null,
-                'object' => 'chat.completion',
-                'model' => $model,
-                'role' => 'assistant',
-                'content' => $content,
-                'tool_calls' => null,
-                'finish_reason' => 'stop',
-                'usage' => $usage,
-                'raw' => ['response' => $response],
-            ];
-        } catch (Throwable $e) {
-            throw new DomainException(
-                "Laravel AI SDK [{$this->labProvider}] 请求失败: {$e->getMessage()}",
-                (int) $e->getCode(),
-                $e
-            );
-        }
+        // 端点铁律：所有 chat 请求统一走 /chat/completions 兼容接口
+        return $this->rawChatCompletion($model, $messages, $options, $timeout);
     }
 
     public function textCompletion(string $model, string $prompt, array $options = []): array
@@ -188,88 +132,11 @@ class LaravelAiProviderAdapter implements AiProviderContract
     {
         $timeout = $options['timeout'] ?? config('ai.timeout', 60);
 
-        // 有工具定义 → 走原生 OpenAI 兼容 SSE API
-        if (! empty($options['tools'])) {
-            yield from $this->rawStreamChatCompletion($model, $messages, $options, $timeout);
-
-            return;
-        }
-
-        // openai 驱动的兼容网关（百炼等）统一走 /chat/completions SSE：
-        // SDK Agent 流式对 OpenAI 驱动同样默认打 /responses 端点（见 chatCompletion 同因修复）
-        if (($this->config['driver'] ?? '') === 'openai') {
-            yield from $this->rawStreamChatCompletion($model, $messages, $options, $timeout);
-
-            return;
-        }
-
-        [$instructions, $history] = $this->parseMessages($messages);
-
-        try {
-            $agent = $this->buildAgent($history, $instructions);
-
-            /** @var StreamableAgentResponse $stream */
-            $stream = $agent->stream(
-                prompt: '',
-                provider: $this->labProvider,
-                model: $model,
-                timeout: $timeout,
-            );
-
-            $toolCalls = [];
-
-            foreach ($stream as $event) {
-                if ($event instanceof TextDelta) {
-                    yield [
-                        'id' => $event->id,
-                        'object' => 'chat.completion.chunk',
-                        'model' => $model,
-                        'content' => $event->delta,
-                        'role' => 'assistant',
-                        'tool_calls' => null,
-                        'finish_reason' => null,
-                        'raw' => $event->toArray(),
-                    ];
-                } elseif ($event instanceof ToolCallEvent) {
-                    $toolCalls[] = [
-                        'id' => $event->toolCall->id,
-                        'type' => 'function',
-                        'function' => [
-                            'name' => $event->toolCall->name,
-                            'arguments' => $event->toolCall->arguments,
-                        ],
-                    ];
-                } elseif ($event instanceof StreamEnd) {
-                    // Yield final chunk with finish_reason and any accumulated tool calls
-                    $usage = [
-                        'prompt_tokens' => $event->usage->promptTokens ?? 0,
-                        'completion_tokens' => $event->usage->completionTokens ?? 0,
-                        'total_tokens' => ($event->usage->promptTokens ?? 0) + ($event->usage->completionTokens ?? 0),
-                    ];
-
-                    yield [
-                        'id' => $event->id,
-                        'object' => 'chat.completion.chunk',
-                        'model' => $model,
-                        'content' => '',
-                        'role' => 'assistant',
-                        'tool_calls' => $toolCalls ?: null,
-                        'finish_reason' => $event->reason,
-                        'usage' => $usage,
-                        'raw' => $event->toArray(),
-                    ];
-                }
-            }
-        } catch (Throwable $e) {
-            throw new DomainException(
-                "Laravel AI SDK [{$this->labProvider}] 流式请求失败: {$e->getMessage()}",
-                (int) $e->getCode(),
-                $e
-            );
-        }
+        // 端点铁律：所有流式请求统一走 /chat/completions SSE 兼容接口
+        yield from $this->rawStreamChatCompletion($model, $messages, $options, $timeout);
     }
 
-    // ─── 原生 OpenAI 兼容 API（工具调用路径）───────────────────────────
+    // ─── 原生 OpenAI 兼容 API（唯一 chat 路径）───────────────────────────
 
     /**
      * 非流式 chat/completions（含 tools）。
@@ -464,53 +331,6 @@ class LaravelAiProviderAdapter implements AiProviderContract
         ksort($accum);
 
         return array_values($accum);
-    }
-
-    /**
-     * 解析消息数组：分离 system 角色为 instructions，其余转为 Message 对象。
-     *
-     * laravel/ai MessageRole 枚举仅支持 assistant/user/tool_result，
-     * system 角色必须作为 AnonymousAgent 的 instructions 参数传入。
-     *
-     * @return array{0: string, 1: Message[]}
-     */
-    protected function parseMessages(array $messages): array
-    {
-        $instructions = '';
-        $history = [];
-
-        foreach ($messages as $msg) {
-            $role = $msg['role'] ?? 'user';
-            $content = $msg['content'] ?? '';
-
-            if ($role === 'system') {
-                // system 消息拼接为 instructions
-                $instructions .= ($instructions !== '' ? "\n\n" : '') . $content;
-
-                continue;
-            }
-
-            // tool 角色映射为 SDK 支持的 tool_result
-            if ($role === 'tool') {
-                $role = 'tool_result';
-            }
-
-            $history[] = new Message($role, $content);
-        }
-
-        return [$instructions, $history];
-    }
-
-    /**
-     * Build an anonymous Agent with the given message history.
-     *
-     * laravel/ai ^0.8 使用 AnonymousAgent(instructions, messages, tools)。
-     *
-     * @param  Message[]  $history
-     */
-    protected function buildAgent(array $history, string $instructions = ''): AnonymousAgent
-    {
-        return new AnonymousAgent($instructions, $history, []);
     }
 
     public function getConfig(): array

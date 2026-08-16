@@ -11,6 +11,7 @@ import { useRouter } from 'vue-router'
 import { useAssistantStore } from '../../stores/assistant'
 import type { ChatMessage } from '../types'
 import { renderMarkdown } from '../utils/renderMarkdown'
+import { toolLabel } from '../utils/toolLabels'
 import FormFillCard from './FormFillCard.vue'
 import ActionConfirmCard from './ActionConfirmCard.vue'
 import ChoiceCard from './ChoiceCard.vue'
@@ -88,8 +89,8 @@ function toolDisplay(call: any): { icon: string; text: string } {
     case 'ask_user_choice':
       return { icon: '🗳️', text: '给出选项供你选择' }
     default:
-      // 未登记词条的业务工具（如下游 create_event 等）：通用文案 + 状态后缀区分进度
-      return { icon: '⚙️', text: '执行操作' }
+      // 其余工具走统一词条表（utils/toolLabels），未登记时兜底「执行操作」
+      return { icon: '⚙️', text: toolLabel(toolName(call)) }
   }
 }
 

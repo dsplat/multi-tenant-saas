@@ -79,6 +79,13 @@ class LaravelAiProviderAdapter implements AiProviderContract
             return $this->rawChatCompletion($model, $messages, $options, $timeout);
         }
 
+        // openai 驱动的兼容网关（百炼等）统一走 /chat/completions：
+        // SDK Agent 路径对 OpenAI 驱动默认打 /responses 端点，
+        // 兼容网关不支持会挂到超时，生产已踩坑（campaign_plan_draft 60s 超时）
+        if (($this->config['driver'] ?? '') === 'openai') {
+            return $this->rawChatCompletion($model, $messages, $options, $timeout);
+        }
+
         [$instructions, $history] = $this->parseMessages($messages);
 
         try {
@@ -183,6 +190,14 @@ class LaravelAiProviderAdapter implements AiProviderContract
 
         // 有工具定义 → 走原生 OpenAI 兼容 SSE API
         if (! empty($options['tools'])) {
+            yield from $this->rawStreamChatCompletion($model, $messages, $options, $timeout);
+
+            return;
+        }
+
+        // openai 驱动的兼容网关（百炼等）统一走 /chat/completions SSE：
+        // SDK Agent 流式对 OpenAI 驱动同样默认打 /responses 端点（见 chatCompletion 同因修复）
+        if (($this->config['driver'] ?? '') === 'openai') {
             yield from $this->rawStreamChatCompletion($model, $messages, $options, $timeout);
 
             return;

@@ -344,7 +344,7 @@ PROMPT;
     {
         return [
             'preferred_provider' => (string) config('ai.secretary.provider', 'bailian'),
-            'preferred_model' => (string) config('ai.secretary.model', 'qwen3.6-flash'),
+            'preferred_model' => (string) config('ai.secretary.model', 'qwen3.7-flash'),
             'fallback_provider' => (string) config('ai.secretary.fallback_provider', 'bailian'),
             'fallback_model' => (string) config('ai.secretary.fallback_model', 'deepseek-v3'),
             'temperature' => (float) config('ai.secretary.temperature', 0.3),

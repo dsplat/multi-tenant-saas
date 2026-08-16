@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
  * 系统知识库文档起草器（LLM 客户端）
  *
  * 直接调用 OpenAI 兼容 /chat/completions 端点（provider/model 取自
- * config('ai.secretary')，默认百炼 qwen3.6-flash），构建期开发工具，
+ * config('ai.secretary')， 默认百炼 qwen3.7-flash），构建期开发工具，
  * 平台级旁路——不走租户计费网关、不产生租户配额消耗。
  *
  * 失败返回 null，由调用方（kb:build 命令）决定跳过或报错。

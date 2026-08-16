@@ -94,8 +94,20 @@ class ResolveController extends AiStreamingController
             ], 402);
         }
 
-        $modelConfig = (array) ($agent->model_config ?? []);
-        $providerName = $modelConfig['provider'] ?? config('ai.default_provider', 'openai');
+        // 秘书强制走平台级配置（平台买单，不读租户维护的 model_config），
+        // 其余 Agent 用租户 model_config（DB 存 preferred_* 键），与 AgentChatClient::resolveModelConfig 口径一致
+        if ($agent->role === 'system_secretary' && config('ai.secretary.enabled', true)) {
+            $providerName = (string) config('ai.secretary.provider', 'bailian');
+            $modelName = (string) config('ai.secretary.model', 'qwen3.7-flash');
+            $temperature = (float) config('ai.secretary.temperature', 0.3);
+            $maxTokens = (int) config('ai.secretary.max_tokens', 2000);
+        } else {
+            $modelConfig = (array) ($agent->model_config ?? []);
+            $providerName = (string) ($modelConfig['preferred_provider'] ?? config('ai.default_provider', 'openai'));
+            $modelName = (string) ($modelConfig['preferred_model'] ?? config('ai.default_model'));
+            $temperature = (float) ($modelConfig['temperature'] ?? 0.7);
+            $maxTokens = (int) ($modelConfig['max_tokens'] ?? 4096);
+        }
         $providerConfig = (array) config("ai.providers.{$providerName}", []);
 
         $baseUrl = $providerConfig['base_url'] ?? $providerConfig['url'] ?? null;
@@ -112,14 +124,14 @@ class ResolveController extends AiStreamingController
             // 会话续接/创建：消息落库归属（Node 经 2: data 帧下发给前端持久化）
             'conversation_id' => $this->resolveConversationId($tenantId, (int) $agent->agent_id, $data['conversation_id'] ?? null),
             'provider' => $providerName,
-            'model' => $modelConfig['model'] ?? config('ai.default_model'),
+            'model' => $modelName,
             'base_url' => rtrim((string) $baseUrl, '/'),
             // 模板优先的有效 prompt（用户自定义过才用 DB 快照），与 AgentRuntime 兜底口径一致；
             // 系统小助手附加活跃脉络摘要（项目大脑 Phase 1b，ai.brain.enabled 默认关闭）
             'system_prompt' => $this->composeSystemPrompt($agent, $tenantId),
-            'temperature' => (float) ($modelConfig['temperature'] ?? 0.7),
-            'max_tokens' => (int) ($modelConfig['max_tokens'] ?? 4096),
-            // 秘书强制走平台级配置，其余 Agent 用租户 model_config（与 AgentRuntime 口径一致）
+            'temperature' => $temperature,
+            'max_tokens' => $maxTokens,
+            // max_tool_calls 秘书取平台级配置，其余 Agent 用租户配置（与 AgentRuntime 口径一致）
             'max_tool_calls' => $agent->effectiveMaxToolCalls((int) config('ai-streaming.max_tool_calls', 5)),
             // OpenAI Function Calling 格式工具定义（执行仍回调 PHP）。
             // effectiveTools = DB 快照 ∪ 模板最新工具，与 AgentRuntime 非流式链路一致。

@@ -93,7 +93,7 @@ return [
             'base_url' => env('AI_BAILIAN_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1'),
             'api_key' => env('AI_BAILIAN_API_KEY', ''),
             'models' => [
-                'qwen3.8-max-preview', 'qwen3.7-max', 'qwen3.7-plus', 'qwen3.6-plus', 'qwen3.6-flash',
+                'qwen3.8-max-preview', 'qwen3.7-max', 'qwen3.7-plus', 'qwen3.7-flash', 'qwen3.6-plus', 'qwen3.6-flash',
                 'deepseek-v4-pro', 'deepseek-v4-flash', 'deepseek-v3.2',
                 'glm-5', 'glm-5.1', 'glm-5.2',
                 'kimi-k2.5', 'kimi-k2.6', 'kimi-k2.7-code', 'MiniMax-M2.5',
@@ -108,7 +108,7 @@ return [
             // SaaS 网关层兼容字段
             'base_url' => env('AI_BAILIAN_METERED_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1'),
             'api_key' => env('AI_BAILIAN_METERED_API_KEY', ''),
-            'models' => ['qwen3.7-plus', 'qwen3.6-flash', 'qwen-plus', 'qwen-turbo', 'deepseek-v3.2'],
+            'models' => ['qwen3.7-plus', 'qwen3.7-flash', 'qwen3.6-flash', 'qwen-plus', 'qwen-turbo', 'deepseek-v3.2'],
         ],
     ],
 
@@ -148,7 +148,7 @@ return [
     'secretary' => [
         'enabled' => (bool) env('SECRETARY_ENABLED', true),
         'provider' => env('SECRETARY_AI_PROVIDER', 'bailian'),
-        'model' => env('SECRETARY_AI_MODEL', 'qwen3.6-flash'),
+        'model' => env('SECRETARY_AI_MODEL', 'qwen3.7-flash'),
         'fallback_provider' => env('SECRETARY_AI_FALLBACK_PROVIDER', 'bailian'),
         'fallback_model' => env('SECRETARY_AI_FALLBACK_MODEL', 'deepseek-v4-flash'),
         'temperature' => (float) env('SECRETARY_AI_TEMPERATURE', 0.3),

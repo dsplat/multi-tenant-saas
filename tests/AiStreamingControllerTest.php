@@ -101,8 +101,8 @@ class AiStreamingControllerTest extends TestCase
             'system_prompt' => 'You are helpful.',
             'tools' => ['demo_tool'],
             'model_config' => [
-                'provider' => 'bailian',
-                'model' => 'qwen-plus',
+                'preferred_provider' => 'bailian',
+                'preferred_model' => 'qwen-plus',
                 'temperature' => 0.5,
                 'max_tokens' => 2048,
                 'max_tool_calls' => 3,
@@ -189,7 +189,7 @@ class AiStreamingControllerTest extends TestCase
             'name' => 'Other Agent',
             'role' => 'assistant',
             'system_prompt' => 'prompt',
-            'model_config' => ['provider' => 'bailian', 'model' => 'qwen-plus'],
+            'model_config' => ['preferred_provider' => 'bailian', 'preferred_model' => 'qwen-plus'],
             'enabled' => true,
         ]);
 
@@ -239,7 +239,7 @@ class AiStreamingControllerTest extends TestCase
             // 标记为已自定义：effectiveSystemPrompt 尊重 DB 快照而非模板最新 prompt
             'metadata' => ['prompt_customized' => true],
             'tools' => [],
-            'model_config' => ['provider' => 'bailian', 'model' => 'qwen-plus'],
+            'model_config' => ['preferred_provider' => 'bailian', 'preferred_model' => 'qwen-plus'],
             'enabled' => true,
         ]);
 
@@ -300,7 +300,7 @@ class AiStreamingControllerTest extends TestCase
             'system_prompt' => 'You are the secretary.',
             'metadata' => ['prompt_customized' => true],
             'tools' => [],
-            'model_config' => ['provider' => 'bailian', 'model' => 'qwen-plus'],
+            'model_config' => ['preferred_provider' => 'bailian', 'preferred_model' => 'qwen-plus'],
             'enabled' => true,
         ]);
 
@@ -374,7 +374,7 @@ class AiStreamingControllerTest extends TestCase
             'system_prompt' => 'You are the secretary.',
             'metadata' => ['prompt_customized' => true],
             'tools' => [],
-            'model_config' => ['provider' => 'bailian', 'model' => 'qwen-plus'],
+            'model_config' => ['preferred_provider' => 'bailian', 'preferred_model' => 'qwen-plus'],
             'enabled' => true,
         ]);
 

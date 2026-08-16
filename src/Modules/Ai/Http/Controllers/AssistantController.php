@@ -17,7 +17,9 @@ use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversationMessage;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentProvisioningService;
+use MultiTenantSaas\Modules\Ai\Services\Ai\ContentGuardService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolConversationContext;
+use MultiTenantSaas\Modules\Ai\Services\Agent\ToolSummaryLabels;
 use MultiTenantSaas\Modules\Ai\Services\Ai\StreamChunk;
 use MultiTenantSaas\Modules\Ai\Services\Assistant\FileExtractService;
 use MultiTenantSaas\Modules\Ai\Services\Assistant\TenantSetupChecker;
@@ -94,6 +96,16 @@ class AssistantController extends Controller
         ]);
 
         $tenantId = (int) $this->tenantContext->resolveId();
+
+        // 内容安全守护（第一道闸，先于配额/能力匹配/业务执行）：
+        // 命中破坏性指令/代码执行诱导等直接礼貌拒绝，不进 LLM
+        $guard = app(ContentGuardService::class)->check((string) $validated['user_intent']);
+        if (! $guard['allowed']) {
+            return response()->json([
+                'success' => false,
+                'message' => $guard['message'],
+            ], 422);
+        }
 
         // 构建页面上下文
         $pageContext = PageContext::fromArray($validated);
@@ -294,24 +306,38 @@ class AssistantController extends Controller
 
         $limit = (int) ($validated['limit'] ?? 50);
 
-        // 只取用户可见轮次（过滤 tool 结果与空的工具调用轮次），倒序取最近 N 条后正序返回
+        // 只取用户可见轮次（过滤 tool 结果轮），倒序取最近 N 条后正序返回。
+        // assistant 轮 content 为空但 tool_calls 非空（纯工具调用轮：选项卡/确认卡/起草）
+        // 也保留，合成可读摘要，避免刷新后该轮消失。
         // 注：message_id 为全局 ID（非单调递增），排序以 created_at 为准
         $messages = AgentConversationMessage::where('conversation_id', $conversation->conversation_id)
             ->whereIn('role', ['user', 'assistant'])
-            ->where('content', '!=', '')
+            ->where(fn ($q) => $q->where('content', '!=', '')->orWhereNotNull('tool_calls'))
             ->orderByDesc('created_at')
             ->orderByDesc('message_id')
             ->limit($limit)
             ->get()
             ->reverse()
             ->values()
-            ->map(fn ($m) => [
-                'message_id' => $m->message_id,
-                'role' => $m->role,
+            ->map(function ($m) {
+                $content = (string) $m->content;
                 // user 轮次落库为完整 prompt（含页面上下文包装），恢复时只回显用户原话
-                'content' => $m->role === 'user' ? $this->extractUserIntent((string) $m->content) : (string) $m->content,
-                'created_at' => $m->created_at?->toISOString(),
-            ]);
+                if ($m->role === 'user') {
+                    $content = $this->extractUserIntent($content);
+                } elseif ($content === '') {
+                    // 纯工具调用轮：由 tool_calls 合成可读摘要（如「已为你执行：起草活动方案」）
+                    $content = ToolSummaryLabels::summarizeToolCalls($m->tool_calls ?? []);
+                }
+
+                return [
+                    'message_id' => $m->message_id,
+                    'role' => $m->role,
+                    'content' => $content,
+                    'created_at' => $m->created_at?->toISOString(),
+                ];
+            })
+            ->filter(fn ($m) => $m['content'] !== '')
+            ->values();
 
         return response()->json([
             'success' => true,

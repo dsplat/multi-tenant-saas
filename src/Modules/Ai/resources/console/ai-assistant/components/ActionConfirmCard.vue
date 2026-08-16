@@ -17,7 +17,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import type { ActionConfirmData, ActionConfirmStatus } from '../types'
 import { CONFIRM_ACTION_ENDPOINT } from '../composables/useAssistantStream'
-import { toolLabel } from '../utils/toolLabels'
+import { toolLabel, friendlyFieldEntries } from '../utils/toolLabels'
 
 const props = defineProps<{
   data: ActionConfirmData
@@ -45,12 +45,8 @@ watch(() => props.status, (v) => {
 const remaining = ref<number>(props.data.expires_in ?? 300)
 let timer: ReturnType<typeof setInterval> | null = null
 
-const fieldEntries = computed(() =>
-  Object.entries(props.data.arguments || {}).map(([key, value]) => ({
-    key,
-    value: typeof value === 'object' ? JSON.stringify(value) : String(value ?? ''),
-  })),
-)
+// 参数去技术化：隐藏内部键（chain_key 等）、键名中文化、值超长截断
+const fieldEntries = computed(() => friendlyFieldEntries(props.data.arguments))
 
 const isPending = computed(() => status.value === 'pending' && remaining.value > 0)
 

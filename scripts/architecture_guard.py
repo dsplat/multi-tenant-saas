@@ -10,6 +10,8 @@ multi_tenant_saas 框架架构守卫（pre-commit 钩子核心逻辑）
      （MultiTenantSaas\ → src/，App\ → app/，Database\Factories\ → database/factories/，
        Database\Seeders\ → database/seeders/）
   4. RuntimeException 禁用：src/ 下新增行不得 throw new RuntimeException
+  5. 能力归零铁律：AI 工具层禁止出现系统命令执行能力（shell_exec/exec/Process 等），
+     且不得引用 AuditService::query（审计旁路防御）
 
 警告式检查（不阻断，仅提醒）：
   5. AI KB 索引新鲜度：路由/工具变更时提醒重新生成
@@ -166,7 +168,58 @@ def check_no_runtime_exception():
 
 
 # ---------------------------------------------------------------------------
-# 检查 5：AI KB 索引新鲜度（警告，不阻断）
+# 检查 5：能力归零铁律（AI 工具层禁止系统命令执行能力 / 审计旁路）
+# ---------------------------------------------------------------------------
+# AI 工具层路径特征：模块 Services/Tool 目录下的文件（含下游拆分包同构路径）
+_TOOL_LAYER_MARKERS = ("Services/Tool/",)
+
+# 系统命令/shell 执行能力（即使只读命令如 ls 也不允许，安全靠「能力不存在」保证）
+re_shell_exec = re.compile(
+    r'\b(shell_exec|passthru|popen|proc_open|pcntl_exec)\s*\('
+    r'|\b(exec|system)\s*\(\s*[\'"]'
+    r'|->exec\s*\('
+    r'|Symfony\\Component\\Process'
+    r'|new\s+Process\s*\('
+)
+# 审计旁路：工具层不得读审计（审计查询仅限平台后台），写入仅限服务端框架路径
+re_audit_bypass = re.compile(r'AuditService::query|auditService\s*->\s*query')
+
+
+def check_tool_layer_capability_zero():
+    """能力归零铁律：AI 工具层新增/修改行不得引入系统命令执行或审计旁路。
+
+    小助手能力边界 = 注册工具白名单 ∩ 业务域；系统操作能力必须为 0（即使 ls）。
+    """
+    out = subprocess.run(
+        ["git", "diff", "--cached", "-U0", "--diff-filter=ACMR", "--", "src/"],
+        capture_output=True, text=True, cwd=ROOT,
+    )
+    current_file = ""
+    for line in out.stdout.splitlines():
+        if line.startswith("+++ b/"):
+            current_file = line[6:]
+        elif line.startswith("+") and not line.startswith("+++"):
+            if not (current_file.endswith(".php") and any(m in current_file for m in _TOOL_LAYER_MARKERS)):
+                continue
+            if "Test" in current_file:
+                continue
+            if re_shell_exec.search(line):
+                errors.append(
+                    f"能力归零铁律：{current_file} 中新增了系统命令执行能力\n"
+                    f"          → AI 工具层禁止任何 shell/进程执行（shell_exec/exec/popen/Process 等），\n"
+                    f"            小助手不得拥有任何系统操作能力，即使只读命令也不行"
+                )
+                break
+            if re_audit_bypass.search(line):
+                errors.append(
+                    f"审计不可碰铁律：{current_file} 中引用了 AuditService::query\n"
+                    f"          → AI 工具层不得读写审计；审计查询仅限平台后台，写入仅限服务端框架路径"
+                )
+                break
+
+
+# ---------------------------------------------------------------------------
+# 检查 6：AI KB 索引新鲜度（警告，不阻断）
 # ---------------------------------------------------------------------------
 def check_kb_index_freshness():
     """routes.ts / 工具注册 / module-loader 变更时，提醒重新生成 AI KB 索引。"""
@@ -232,6 +285,7 @@ def main():
     check_module_pascalcase()
     check_psr4()
     check_no_runtime_exception()
+    check_tool_layer_capability_zero()
     check_kb_index_freshness()
     check_docs_freshness()
 

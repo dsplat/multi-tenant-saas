@@ -22,7 +22,7 @@ use MultiTenantSaas\Tests\Schema\RbacModule;
  *
  * 覆盖：
  *  - GET /api/v1/ai/assistant/history 返回正序历史消息
- *  - 过滤 tool 轮次与空内容的工具调用轮次
+ *  - 过滤 tool 轮次；纯工具调用轮（空 content + tool_calls）合成可读摘要保留
  *  - limit 截断（取最近 N 条）
  *  - 租户隔离（他租户会话 404）
  *  - SSE 首帧 meta 事件（conversation_id 下发，前端持久化续接）
@@ -155,7 +155,7 @@ class AssistantHistoryTest extends TestCase
             ->assertJsonPath('data.messages.1.content', '你好，我是小秘书。');
     }
 
-    public function test_history_filters_tool_rounds_and_empty_content(): void
+    public function test_history_filters_tool_rounds_and_summarizes_tool_call_rounds(): void
     {
         $conversation = $this->createConversation();
 
@@ -165,15 +165,16 @@ class AssistantHistoryTest extends TestCase
             'content' => '优惠券怎么用？',
             'created_at' => now()->subMinutes(3),
         ]);
-        // 工具调用轮次（content 为空）→ 应被过滤
+        // 纯工具调用轮（content 为空但 tool_calls 非空）→ 合成可读摘要保留，
+        // 避免刷新后该轮消失（刷新丢秘书输出修复）
         AgentConversationMessage::forceCreate([
             'conversation_id' => $conversation->conversation_id,
             'role' => 'assistant',
             'content' => '',
-            'tool_calls' => [['slug' => 'system_kb_search']],
+            'tool_calls' => [['name' => 'system_kb_search']],
             'created_at' => now()->subMinutes(2),
         ]);
-        // tool 结果轮次 → 应被过滤
+        // tool 结果轮次 → 仍应被过滤
         AgentConversationMessage::forceCreate([
             'conversation_id' => $conversation->conversation_id,
             'role' => 'tool',
@@ -191,9 +192,38 @@ class AssistantHistoryTest extends TestCase
             ->getJson("/api/v1/ai/assistant/history?conversation_id={$conversation->conversation_id}");
 
         $response->assertOk()
-            ->assertJsonCount(2, 'data.messages')
+            ->assertJsonCount(3, 'data.messages')
             ->assertJsonPath('data.messages.0.role', 'user')
-            ->assertJsonPath('data.messages.1.content', '优惠券的使用方式如下…');
+            // 纯工具调用轮合成可读摘要（词条表与前端 toolLabels 同口径）
+            ->assertJsonPath('data.messages.1.content', '已为你执行：检索系统知识库')
+            ->assertJsonPath('data.messages.2.content', '优惠券的使用方式如下…');
+    }
+
+    public function test_history_drops_tool_call_rounds_without_any_tool(): void
+    {
+        $conversation = $this->createConversation();
+
+        // content 为空且 tool_calls 为空数组 → 无摘要可合成，仍过滤
+        AgentConversationMessage::forceCreate([
+            'conversation_id' => $conversation->conversation_id,
+            'role' => 'assistant',
+            'content' => '',
+            'tool_calls' => [],
+            'created_at' => now()->subMinutes(2),
+        ]);
+        AgentConversationMessage::forceCreate([
+            'conversation_id' => $conversation->conversation_id,
+            'role' => 'assistant',
+            'content' => '正文',
+            'created_at' => now()->subMinute(),
+        ]);
+
+        $response = $this->withHeaders($this->authHeaders())
+            ->getJson("/api/v1/ai/assistant/history?conversation_id={$conversation->conversation_id}");
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data.messages')
+            ->assertJsonPath('data.messages.0.content', '正文');
     }
 
     public function test_history_respects_limit_keeping_latest(): void

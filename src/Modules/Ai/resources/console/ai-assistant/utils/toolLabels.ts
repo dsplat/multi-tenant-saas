@@ -80,3 +80,108 @@ const TOOL_LABELS: Record<string, string> = {
 export function toolLabel(slug: string, fallback?: string): string {
   return TOOL_LABELS[slug] || fallback || '执行操作'
 }
+
+// ─────────────────────── 确认卡片参数去技术化 ───────────────────────
+
+/** 参数键 → 中文词条（确认卡片上用户看得懂的字段名） */
+const FIELD_LABELS: Record<string, string> = {
+  title: '标题',
+  name: '名称',
+  subject: '主题',
+  summary: '摘要',
+  description: '描述',
+  content: '内容',
+  message: '消息内容',
+  goal: '活动目标',
+  objective: '活动目标',
+  budget: '预算',
+  amount: '金额',
+  points: '积分',
+  price: '价格',
+  quantity: '数量',
+  count: '数量',
+  total: '总额',
+  start_date: '开始日期',
+  end_date: '结束日期',
+  start_time: '开始时间',
+  end_time: '结束时间',
+  date: '日期',
+  time: '时间',
+  deadline: '截止时间',
+  scheduled_at: '计划时间',
+  send_at: '发送时间',
+  duration: '时长',
+  target_audience: '目标人群',
+  audience: '目标人群',
+  customer_name: '客户姓名',
+  phone: '手机号',
+  remark: '备注',
+  reason: '原因',
+  channel: '渠道',
+  template: '模板',
+  template_id: '短信模板',
+  signature: '短信签名',
+  tags: '标签',
+  tag_names: '标签',
+  domain: '域名',
+  url: '链接',
+  image_url: '图片链接',
+  options: '选项',
+  choices: '选项',
+  handoff_message: '转派说明',
+  agent_role: '员工角色',
+  module: '模块',
+  page: '页面',
+  plan: '方案内容',
+  plan_doc: '方案内容',
+}
+
+/** 纯内部键：对用户无意义，确认卡片上一律隐藏 */
+const HIDDEN_FIELDS = new Set<string>([
+  // 内部标识/关联键（chain_key 单独处理：命中链名映射时展示可读链名，否则隐藏）
+  'task_chain_id', 'run_id', 'step_key', 'plan_id',
+  'conversation_id', 'agent_id', 'tenant_id', 'message_id',
+  'user_id', 'operator_id', 'created_by', 'updated_by',
+  // 安全/协议键
+  'token', 'confirm_token', 'args_hash', 'nonce',
+  // 其他技术键
+  'metadata', 'schema', 'version', 'trace_id', 'idempotency_key',
+])
+
+/** 任务链 key → 可读链名（未收录的 chain_key 整行隐藏） */
+const CHAIN_LABELS: Record<string, string> = {
+  launch_marketing_campaign: '营销活动上线',
+  demo_poster_flow: '海报生成流程',
+}
+
+/** 单行超长截断阈值（确认卡片只看要点） */
+const MAX_FIELD_VALUE_LENGTH = 120
+
+/**
+ * 将工具原始参数转为确认卡片友好的展示行
+ *
+ * 规则：隐藏纯内部键；参数键翻译为中文；chain_key 命中映射表时
+ * 以「任务链：可读链名」展示，未命中则隐藏。
+ */
+export function friendlyFieldEntries(
+  args: Record<string, unknown> | null | undefined,
+): Array<{ key: string; value: string }> {
+  const entries: Array<{ key: string; value: string }> = []
+
+  for (const [key, value] of Object.entries(args || {})) {
+    if (HIDDEN_FIELDS.has(key)) continue
+
+    if (key === 'chain_key') {
+      const label = CHAIN_LABELS[String(value)]
+      if (label) entries.push({ key: '任务链', value: label })
+      continue
+    }
+
+    let text = typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value ?? '')
+    if (text.length > MAX_FIELD_VALUE_LENGTH) text = text.slice(0, MAX_FIELD_VALUE_LENGTH) + '…'
+
+    entries.push({ key: FIELD_LABELS[key] || key, value: text })
+  }
+
+  return entries
+}

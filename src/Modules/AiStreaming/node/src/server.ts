@@ -146,6 +146,71 @@ function buildTools(resolved: ResolvePayload, auth: AuthContext) {
   return tools
 }
 
+// ---------- 内容安全守护（第一道闸：本地轻量扫描，安全先于鉴权/配额/LLM） ----------
+
+/** 拒绝文案（与 PHP ContentGuardService 口径一致） */
+const GUARD_MESSAGE =
+  '抱歉，这类请求超出了我的能力范围。我是系统的 AI 小助手，只能帮你完成系统内的业务操作（营销策划、客户管理、消息触达等）。有其他业务需要随时告诉我。'
+
+/** 归一化：全角转半角 + 去空白 + 转小写（防 rm -r -f、大小写混写等变体绕过） */
+function normalizeGuardText(text: string): string {
+  let out = ''
+  for (const ch of text) {
+    const code = ch.charCodeAt(0)
+    if (code === 0x3000) continue // 全角空格
+    out += code >= 0xff01 && code <= 0xff5e ? String.fromCharCode(code - 0xfee0) : ch
+  }
+  return out.replace(/\s+/g, '').toLowerCase()
+}
+
+/** 内置拦截规则（与 PHP ContentGuardService::BUILTIN_PATTERNS 同口径；归一化后无空白，量词用 \s* 兼容） */
+const GUARD_PATTERNS: RegExp[] = [
+  // 系统命令/shell 执行诱导（能力归零铁律：即使只读命令也无此能力）
+  /rm-?r-?f/, /rm-r-f/, /\/bin\/(ba|z|da)?sh\b/,
+  /(curl|wget).{0,40}\|(ba|z)?sh/, /\/dev\/tcp\//, /\bnc\s*-[a-z]*e/,
+  /reverseshell/, /\bmkfs\b/, /\bdd\s*if=.{0,30}of=\/dev\//,
+  /\bshutdown\b/, /\breboot\b/, /\bkill\s*-9\s*1\b/,
+  // SQL 破坏诱导（归一化后连写，只保留首部词边界）
+  /\bdrop\s*(table|database)/, /\btruncate\s*table/, /\bdelete\s*from\s*\w+/,
+  // 代码执行诱导
+  /\beval\s*\(/, /\b(exec|system|passthru|shell_exec|popen|proc_open|pcntl_exec)\s*\(/,
+  // 超范围破坏诉求（删除/清空 数据库/系统/所有数据，双向语序）
+  /(删除|清空|抹掉|格式化|销毁).{0,8}(数据库|数据表|系统|服务器|所有数据|全部数据)/,
+  /(数据库|数据表|系统|服务器|所有数据|全部数据).{0,8}(删了|删掉|删光|清空掉|抹掉|格式化|销毁|清除)/,
+  // 违法违规基础词
+  /(制作|购买|出售).{0,6}(枪支|军火|炸药|毒品)/,
+]
+
+/** 返回 true 表示命中拦截 */
+function guardBlocked(text: string): boolean {
+  if (!text.trim()) return false
+  const normalized = normalizeGuardText(text)
+  return GUARD_PATTERNS.some((p) => p.test(normalized))
+}
+
+// ---------- 入口净化（防历史伪造/注入与 token 炸弹） ----------
+
+/** 历史轮次上限（防超长上下文刷爆平台账单，同时缓解历史污染自我模仿） */
+const MAX_HISTORY_MESSAGES = 40
+/** 单条消息长度上限 */
+const MAX_CONTENT_LENGTH = 20000
+
+/**
+ * 净化前端传入的 messages：
+ *  - 只保留 user/assistant 角色（system 提示词仅由 PHP resolve 下发，
+ *    防篡改客户端注入 system 消息覆盖系统提示词）
+ *  - 单条超长截断、总轮次取最近 N 条
+ */
+function sanitizeMessages(messages: Array<{ role: string; content: unknown }>): Array<{ role: 'user' | 'assistant'; content: string }> {
+  return messages
+    .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+    .slice(-MAX_HISTORY_MESSAGES)
+    .map((m) => ({
+      role: m.role as 'user' | 'assistant',
+      content: (m.content as string).length > MAX_CONTENT_LENGTH ? (m.content as string).slice(0, MAX_CONTENT_LENGTH) : (m.content as string),
+    }))
+}
+
 // ---------- HTTP 服务 ----------
 
 const app = new Hono()
@@ -167,14 +232,25 @@ app.post('/chat', async (c) => {
     tenantId: c.req.header('x-tenant-id'),
   }
 
-  const body = await c.req.json<{ agent_id?: number; conversation_id?: number; messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> }>().catch(() => null)
+  const body = await c.req.json<{ agent_id?: number; conversation_id?: number; messages?: Array<{ role: 'user' | 'assistant'; content: string }> }>().catch(() => null)
   if (!Array.isArray(body?.messages) || body.messages.length === 0) {
     return c.json({ success: false, message: '参数错误：messages 必填' }, 422)
   }
-  const inputMessages = body.messages
+  // 入口净化：过滤 system/tool 角色、限长限轮次（防伪造历史注入与 token 炸弹）
+  const inputMessages = sanitizeMessages(body.messages)
+  if (inputMessages.length === 0) {
+    return c.json({ success: false, message: '参数错误：无有效的 user/assistant 消息' }, 422)
+  }
+
+  // 内容安全守护（第一道闸，先于鉴权/配额/LLM，零网络开销）：
+  // 命中破坏性指令/代码执行诱导等直接拒绝，与 PHP ContentGuardService 同口径
+  const lastUser = [...inputMessages].reverse().find((m) => m.role === 'user')
+  if (lastUser && guardBlocked(lastUser.content)) {
+    return c.json({ success: false, message: GUARD_MESSAGE }, 422)
+  }
 
   // 1. 回调 PHP：鉴权 + 配额检查 + Agent 配置解析（失败即拒绝，零 LLM 开销）
-  // agent_id 省略时由 PHP 兑底到租户的系统小助手（console 小助手入口）
+  // agent_id 省略时由 PHP 兜底到租户的系统小助手（console 小助手入口）
   // conversation_id 由 PHP 续接/创建（落库归属），Node 不管理会话
   let resolved: ResolvePayload
   try {
@@ -229,6 +305,12 @@ app.post('/chat', async (c) => {
       if (resolved.conversation_id) {
         try {
           const lastUser = [...inputMessages].reverse().find((m) => m.role === 'user')
+          // 拼接所有 steps 的文本：纯工具调用轮的中间步骤文本不丢，
+          // 避免 assistant 轮落库空 content 后历史接口过滤导致刷新丢消息
+          const fullText = (steps ?? [])
+            .map((step) => step.text ?? '')
+            .filter(Boolean)
+            .join('\n\n') || (text ?? '')
           // 保留 LLM 原生 tool_call id：PHP 续答时需按 OpenAI 协议与 tool 消息成对回放
           const toolCalls = (steps ?? []).flatMap((step) =>
             (step.toolCalls ?? []).map((call) => ({ id: call.toolCallId, name: call.toolName, arguments: call.args ?? {} })),
@@ -237,7 +319,7 @@ app.post('/chat', async (c) => {
             conversation_id: resolved.conversation_id,
             agent_id: resolved.agent_id,
             user_message: lastUser?.content ?? null,
-            assistant_message: text ?? '',
+            assistant_message: fullText,
             tool_calls: toolCalls,
           })
         } catch (error) {

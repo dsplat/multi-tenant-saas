@@ -85,7 +85,7 @@ class Agent extends Model
      * navigate 指令）不会自动同步。此方法运行时优先取模板最新 prompt；
      * 仅当用户显式改过 prompt（metadata.prompt_customized）时尊重 DB 快照。
      *
-     * AgentRuntime（非流式兑底）与 AiStreaming Resolve（Node 流式链路）共用。
+     * AgentRuntime（非流式兜底）与 AiStreaming Resolve（Node 流式链路）共用。
      */
     public function effectiveSystemPrompt(): string
     {

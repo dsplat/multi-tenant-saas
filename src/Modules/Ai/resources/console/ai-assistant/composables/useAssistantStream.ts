@@ -158,7 +158,13 @@ export function useAssistantStream() {
       })
 
       if (!response.ok) {
+        // 网关/上游超时等非 JSON 错误体：按状态码给出可读提示（兜底文案不变）
         let msg = 'AI 助手暂时不可用，请使用页面原有功能操作。'
+        if (response.status === 504 || response.status === 502) {
+          msg = 'AI 服务响应超时，请稍后重试。'
+        } else if (response.status === 429) {
+          msg = '请求过于频繁，请稍后重试。'
+        }
         try {
           const err = await response.json()
           if (err?.message) msg = err.message

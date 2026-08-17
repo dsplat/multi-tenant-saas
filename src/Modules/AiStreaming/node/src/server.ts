@@ -27,6 +27,55 @@ const PORT = Number(process.env.AI_STREAMING_NODE_PORT ?? 9200)
 const PHP_API_BASE = (process.env.AI_STREAMING_PHP_API_BASE ?? 'http://127.0.0.1/api/v1').replace(/\/+$/, '')
 const FALLBACK_API_KEY = process.env.AI_STREAMING_API_KEY ?? ''
 
+/**
+ * LLM 首字节超时（毫秒）：兼容网关偶发挂起（连接建立但 0 字节返回），
+ * Node fetch 无默认超时会一直等到 nginx 504。首字节到达后解除超时，
+ * 流式传输期间由 nginx proxy_read_timeout 与前端空闲超时兜底。
+ */
+const LLM_FIRST_BYTE_TIMEOUT_MS = Number(process.env.AI_STREAMING_LLM_TIMEOUT_MS ?? 90_000)
+
+/** 用户可见的礼貌错误（经 AI SDK 错误帧 3: 透传到前端） */
+const LLM_TIMEOUT_MESSAGE = 'AI 服务响应超时，请稍后重试。'
+const LLM_GENERIC_ERROR_MESSAGE = 'AI 助手遇到错误，请稍后重试。'
+
+/** 已知可展示的错误文案白名单；其余错误一律屏蔽内部细节，统一降级提示 */
+const FRIENDLY_ERROR_MESSAGES = new Set([LLM_TIMEOUT_MESSAGE])
+
+/** AI SDK 默认 getErrorMessage 返回固定的 "An error occurred."，据此映射为用户可读文案 */
+function toFriendlyErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error)
+  return FRIENDLY_ERROR_MESSAGES.has(message) ? message : LLM_GENERIC_ERROR_MESSAGE
+}
+
+/**
+ * 带首字节超时的 fetch：仅约束「响应头到达前」的等待时长，
+ * 响应头到达后立即解除定时器，不误杀正常但较长的流式回复。
+ * 与 AI SDK 自身的 abort signal 合并（外部中断优先透传）。
+ */
+function createFirstByteTimeoutFetch(): typeof fetch {
+  return async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), LLM_FIRST_BYTE_TIMEOUT_MS)
+    const external = init?.signal
+    if (external) {
+      if (external.aborted) controller.abort()
+      else external.addEventListener('abort', () => controller.abort(), { once: true })
+    }
+    try {
+      const response = await fetch(input, { ...init, signal: controller.signal })
+      clearTimeout(timer)
+      return response
+    } catch (error) {
+      clearTimeout(timer)
+      // 外部主动中断（用户取消）原样抛出；超时则转为用户可读错误
+      if (!external?.aborted && controller.signal.aborted) {
+        throw new Error(LLM_TIMEOUT_MESSAGE)
+      }
+      throw error
+    }
+  }
+}
+
 // ---------- PHP 契约 API 客户端（透传浏览器鉴权：Bearer 或 Cookie 会话） ----------
 
 interface ResolvePayload {
@@ -269,7 +318,14 @@ app.post('/chat', async (c) => {
   }
 
   // 2. 直连 LLM（OpenAI 兼容端点），SSE 流式转发
-  const provider = createOpenAI({ baseURL: resolved.base_url, apiKey, compatibility: 'compatible' })
+  //    自定义 fetch 注入首字节超时：网关挂起时快速失败并经错误帧礼貌提示，
+  //    避免 Node 无限等待导致 nginx 504（前端只能显示兜底错误）
+  const provider = createOpenAI({
+    baseURL: resolved.base_url,
+    apiKey,
+    compatibility: 'compatible',
+    fetch: createFirstByteTimeoutFetch(),
+  })
 
   // 会话元信息经 2: data 帧下发前端（前端持久化 conversation_id 用于续接/历史恢复）
   const streamData = new StreamData()
@@ -285,6 +341,11 @@ app.post('/chat', async (c) => {
     maxTokens: resolved.max_tokens,
     tools: buildTools(resolved, auth),
     maxSteps: Math.max(1, resolved.max_tool_calls) + 1,
+    onError: ({ error }) => {
+      // 错误路径也要关闭 streamData，否则 2: 数据帧挂着导致前端流不收尾
+      streamData.close().catch(() => {})
+      console.error('[ai-streaming] stream error:', error instanceof Error ? error.message : String(error))
+    },
     onFinish: async ({ text, usage, finishReason, steps }) => {
       streamData.close().catch(() => {})
 
@@ -329,7 +390,7 @@ app.post('/chat', async (c) => {
     },
   })
 
-  return result.toDataStreamResponse({ data: streamData })
+  return result.toDataStreamResponse({ data: streamData, getErrorMessage: toFriendlyErrorMessage })
 })
 
 serve({ fetch: app.fetch, hostname: HOST, port: PORT }, (info) => {

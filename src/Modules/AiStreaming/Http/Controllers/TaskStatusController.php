@@ -58,6 +58,10 @@ class TaskStatusController extends AiStreamingController
             $task->update(['metadata' => array_merge((array) $task->metadata, ['abandoned' => true])]);
         }
 
+        // 孤儿任务防御：worker 被 SIGKILL（如 queue timeout）时任务永卡非终态，
+        // 无人推进；滞留超阈值的 pending/processing 落 failed 让轮询拿到终态
+        $task->failIfOrphaned();
+
         return response()->json([
             'success' => true,
             'data' => array_filter([

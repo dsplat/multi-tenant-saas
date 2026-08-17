@@ -21,12 +21,16 @@ use MultiTenantSaas\Modules\Ai\Services\AiTask\AiTaskHandlerRegistry;
  * 客户端断连（Node 上报 abandoned）不杀任务，完成时结果兜底落库原会话。
  *
  * tries=1：LLM 类任务重试即重复烧 token，失败直接落 failed 交由上层决策。
+ * timeout=600：worker CLI 未配 --timeout 时 Laravel 默认 60s 会 SIGKILL 长任务，
+ * 致任务永卡 processing；job 属性覆盖 CLI 默认，与 Node 轮询上限（10min）对齐。
  */
 class ExecuteAiTaskJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 1;
+
+    public int $timeout = 600;
 
     public function __construct(
         public int $taskId,
@@ -69,6 +73,35 @@ class ExecuteAiTaskJob implements ShouldQueue
                 'completed_at' => now(),
             ]);
         }
+
+        $this->persistFallbackMessage($task->refresh());
+    }
+
+    /**
+     * 队列层失败（timeout 超限/worker 异常）：TimeoutExceededException 不经
+     * handle 的 catch，任务会永卡 processing——在此落 failed 并触发断连兜底。
+     */
+    public function failed(\Throwable $e): void
+    {
+        TenantContext::setTenantId((string) $this->tenantId);
+
+        $task = AiTask::find($this->taskId);
+
+        if ($task === null || $task->isTerminal()) {
+            return;
+        }
+
+        Log::error('[AiTask] 队列层执行失败', [
+            'task_id' => $task->task_id,
+            'type' => $task->type,
+            'error' => $e->getMessage(),
+        ]);
+
+        $task->update([
+            'status' => AiTask::STATUS_FAILED,
+            'error' => mb_substr('后台任务执行超时，请重新发起（' . $e->getMessage() . '）', 0, 2000),
+            'completed_at' => now(),
+        ]);
 
         $this->persistFallbackMessage($task->refresh());
     }

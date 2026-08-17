@@ -60,4 +60,26 @@ class AiTask extends Model
     {
         return in_array($this->status, [self::STATUS_COMPLETED, self::STATUS_FAILED], true);
     }
+
+    /**
+     * 孤儿任务防御：worker 被 SIGKILL（如 queue timeout）或 job 丢失时，
+     * 任务永卡非终态无人推进。ExecuteAiTaskJob timeout=600s，故滞留超
+     * 660s 的 pending/processing 必已孤儿——落 failed 让轮询拿到终态。
+     *
+     * @return bool 是否被判定为孤儿并已落 failed
+     */
+    public function failIfOrphaned(): bool
+    {
+        if ($this->isTerminal() || $this->updated_at->gte(now()->subSeconds(660))) {
+            return false;
+        }
+
+        $this->update([
+            'status' => self::STATUS_FAILED,
+            'error' => '后台任务执行超时（工作进程被中断），请重新发起',
+            'completed_at' => now(),
+        ]);
+
+        return true;
+    }
 }

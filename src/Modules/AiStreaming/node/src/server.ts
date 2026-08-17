@@ -51,6 +51,8 @@ const KEEPALIVE_INTERVAL_MS = Number(process.env.AI_STREAMING_KEEPALIVE_MS ?? 5_
  */
 const TASK_POLL_INTERVAL_MS = Number(process.env.AI_TASK_POLL_MS ?? 3_000)
 const TASK_MAX_WAIT_MS = Number(process.env.AI_TASK_MAX_WAIT_MS ?? 600_000)
+/** PHP 契约 API 单次调用上限：fetch 无默认超时，挂死会阻塞轮询 deadline 判定 */
+const PHP_POST_TIMEOUT_MS = Number(process.env.AI_STREAMING_PHP_TIMEOUT_MS ?? 120_000)
 
 /** 用户可见的礼貌错误（经 AI SDK 错误帧 3: 透传到前端） */
 const LLM_TIMEOUT_MESSAGE = 'AI 服务响应超时，请稍后重试。'
@@ -167,6 +169,7 @@ async function phpPost<T>(path: string, auth: AuthContext, body: unknown): Promi
     method: 'POST',
     headers,
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(PHP_POST_TIMEOUT_MS),
   })
 
   const json = (await response.json().catch(() => ({}))) as { success?: boolean; message?: string; data?: T }

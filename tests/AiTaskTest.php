@@ -136,6 +136,40 @@ class AiTaskTest extends TestCase
         $this->assertSame(0, AiTaskStubHandler::$invocations);
     }
 
+    public function test_orphaned_task_fails_after_stale_threshold(): void
+    {
+        // worker 被 SIGKILL 后任务永卡 processing，failIfOrphaned 按滞留时长落终态
+        $stuck = $this->createTask(['status' => AiTask::STATUS_PROCESSING]);
+        $stuck->updated_at = now()->subSeconds(700);
+
+        $this->assertTrue($stuck->failIfOrphaned());
+        $this->assertSame(AiTask::STATUS_FAILED, $stuck->refresh()->status);
+
+        // 新鲜任务与终态任务不受影响
+        $fresh = $this->createTask(['status' => AiTask::STATUS_PROCESSING]);
+        $this->assertFalse($fresh->failIfOrphaned());
+
+        $done = $this->createTask(['status' => AiTask::STATUS_COMPLETED, 'result' => ['ok' => true]]);
+        $done->updated_at = now()->subSeconds(700);
+        $this->assertFalse($done->failIfOrphaned());
+        $this->assertSame(AiTask::STATUS_COMPLETED, $done->refresh()->status);
+    }
+
+    public function test_job_failed_callback_marks_stuck_processing_task_failed(): void
+    {
+        // 队列层超时（TimeoutExceededException）不经 handle 的 catch，
+        // 由 failed() 回调落终态，避免任务永卡 processing
+        $task = $this->createTask(['status' => AiTask::STATUS_PROCESSING, 'attempts' => 1]);
+
+        $job = new ExecuteAiTaskJob((int) $task->task_id, self::TENANT);
+        $job->failed(new \RuntimeException('ExecuteAiTaskJob has timed out'));
+
+        $task->refresh();
+        $this->assertSame(AiTask::STATUS_FAILED, $task->status);
+        $this->assertStringContainsString('超时', (string) $task->error);
+        $this->assertNotNull($task->completed_at);
+    }
+
     // ---------- 断连兜底 ----------
 
     public function test_abandoned_task_persists_fallback_assistant_message(): void

@@ -22,12 +22,12 @@
 
     <el-card shadow="never" v-loading="loading">
       <el-calendar v-model="current" @change="onMonthChange">
-        <template #date-cell="{ date }">
-          <div class="cell" @click="openCreate(date)">
-            <span class="day-num">{{ date.getDate() }}</span>
+        <template #date-cell="{ data }">
+          <div class="cell" @click="openCreate(data.date)">
+            <span class="day-num">{{ data.date.getDate() }}</span>
             <div class="chips">
               <el-popover
-                v-for="t in tasksByDate[fmtDay(date)] || []"
+                v-for="t in tasksByDate[fmtDay(data.date)] || []"
                 :key="t.task_id"
                 trigger="click"
                 :width="240"

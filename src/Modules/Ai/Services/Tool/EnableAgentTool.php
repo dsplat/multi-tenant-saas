@@ -9,8 +9,9 @@ use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
 /**
  * enable_agent — 在对话中为租户启用数字员工
  *
- * 小助手发现用户需要某个尚未启用的数字员工时，
- * 先征得用户确认，再调用本工具完成启用。
+ * 小助手发现用户需要某个尚未启用的数字员工时调用本工具完成启用。
+ * 本工具注册为 L2：系统自动弹确认卡片，用户确认后才真正执行，
+ * 无需（也禁止）再叠加 ask_user_choice 征询。
  *
  * 逻辑：
  * 1. 按 role 查找租户已有 agent → 已启用则直接返回

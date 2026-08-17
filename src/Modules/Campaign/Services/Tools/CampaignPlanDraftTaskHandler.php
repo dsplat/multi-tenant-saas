@@ -24,6 +24,13 @@ use MultiTenantSaas\Modules\Campaign\Services\PlaybookRegistry;
  */
 class CampaignPlanDraftTaskHandler implements AiTaskHandlerContract
 {
+    /**
+     * 单次方案生成 HTTP 超时（秒）：后台任务不受连接约束，显式放宽。
+     * 平台默认 AI_TIMEOUT（生产 30s）对重模型全量生成不够，超时致任务
+     * failed，前端表现为「先失败一次再重试成功」。
+     */
+    private const LLM_TIMEOUT_SECONDS = 180;
+
     public function __construct(
         private readonly AiTextServiceContract $aiTextService,
         private readonly PlaybookRegistry $playbookRegistry,
@@ -205,43 +212,53 @@ class CampaignPlanDraftTaskHandler implements AiTaskHandlerContract
     }
 
     /**
-     * 独立 LLM 单次调用（JSON mode）；失败返回 null 由上层抛异常
+     * 独立 LLM 单次调用（JSON mode）；失败返回 null 由上层抛异常。
+     * 瞬时失败（超时/网络/5xx）自动重试一次：ExecuteAiTaskJob tries=1
+     * 不在队列层重试，瞬时抖动不应直接暴露成用户可见的任务失败。
      */
     private function callLlm(string $prompt): ?array
     {
-        try {
-            $response = $this->aiTextService->chat([
-                ['role' => 'system', 'content' => 'You are a campaign planning assistant. Always output valid JSON only.'],
-                ['role' => 'user', 'content' => $prompt],
-            ], [
-                'temperature' => 0.4,
-                'max_tokens' => 4000,
-            ]);
+        for ($attempt = 1; $attempt <= 2; $attempt++) {
+            try {
+                $response = $this->aiTextService->chat([
+                    ['role' => 'system', 'content' => 'You are a campaign planning assistant. Always output valid JSON only.'],
+                    ['role' => 'user', 'content' => $prompt],
+                ], [
+                    'temperature' => 0.4,
+                    'max_tokens' => 4000,
+                    'timeout' => self::LLM_TIMEOUT_SECONDS,
+                ]);
 
-            $content = trim($response->content);
+                $content = trim($response->content);
 
-            // 清理可能的 markdown 代码块包裹
-            if (str_starts_with($content, '```')) {
-                $content = preg_replace('/^```(?:json)?\s*/', '', $content);
-                $content = preg_replace('/\s*```$/', '', $content);
+                // 清理可能的 markdown 代码块包裹
+                if (str_starts_with($content, '```')) {
+                    $content = preg_replace('/^```(?:json)?\s*/', '', $content);
+                    $content = preg_replace('/\s*```$/', '', $content);
+                }
+
+                $decoded = json_decode($content, true);
+
+                if (! is_array($decoded) || ! isset($decoded['phases'])) {
+                    Log::warning('[CampaignPlanDraft] LLM 输出非法 JSON', ['content' => mb_substr($content, 0, 500)]);
+
+                    return null;
+                }
+
+                // 确保 schema 版本
+                $decoded['schema'] = 'campaign.plan/v1';
+
+                return $decoded;
+            } catch (\Throwable $e) {
+                Log::warning('[CampaignPlanDraft] LLM 调用失败', ['error' => $e->getMessage(), 'attempt' => $attempt]);
+
+                if ($attempt >= 2) {
+                    return null;
+                }
+                sleep(2);
             }
-
-            $decoded = json_decode($content, true);
-
-            if (! is_array($decoded) || ! isset($decoded['phases'])) {
-                Log::warning('[CampaignPlanDraft] LLM 输出非法 JSON', ['content' => mb_substr($content, 0, 500)]);
-
-                return null;
-            }
-
-            // 确保 schema 版本
-            $decoded['schema'] = 'campaign.plan/v1';
-
-            return $decoded;
-        } catch (\Throwable $e) {
-            Log::warning('[CampaignPlanDraft] LLM 调用失败', ['error' => $e->getMessage()]);
-
-            return null;
         }
+
+        return null;
     }
 }

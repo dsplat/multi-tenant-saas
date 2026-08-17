@@ -379,6 +379,55 @@ class CampaignPlanToolTest extends TestCase
         return $mock;
     }
 
+    /**
+     * 瞬时失败（超时/网络/5xx）自动重试一次：任务终态应为 completed，
+     * 而不是把第一次失败暴露给用户（前端「先失败后成功」现象的回归防线）
+     */
+    public function test_draft_retries_on_transient_llm_failure(): void
+    {
+        $mock = $this->createMock(AiTextServiceContract::class);
+        $calls = 0;
+        $mock->method('chat')->willReturnCallback(function () use (&$calls) {
+            $calls++;
+            if ($calls === 1) {
+                throw new \RuntimeException('Connection timed out');
+            }
+
+            return new AiResponse(content: json_encode($this->validPlanDoc(), JSON_UNESCAPED_UNICODE), finishReason: 'stop');
+        });
+
+        $this->setUpDraftTask($mock);
+        $tool = $this->app->make(CampaignPlanDraftTool::class);
+
+        $submit = $tool(['user_input' => '做一个七夕会员活动'], self::TENANT);
+
+        $task = AiTask::find((int) $submit['task_id']);
+        $this->assertSame(AiTask::STATUS_COMPLETED, $task->status);
+        $this->assertSame(2, $calls);
+    }
+
+    /**
+     * 内部生成调用必须显式放宽超时（平台默认 AI_TIMEOUT 生产 30s 不够），
+     * 否则重模型生成超时致任务 failed
+     */
+    public function test_draft_llm_call_uses_extended_timeout(): void
+    {
+        $captured = null;
+        $mock = $this->createMock(AiTextServiceContract::class);
+        $mock->method('chat')->willReturnCallback(function (array $messages, array $options) use (&$captured) {
+            $captured = $options;
+
+            return new AiResponse(content: json_encode($this->validPlanDoc(), JSON_UNESCAPED_UNICODE), finishReason: 'stop');
+        });
+
+        $this->setUpDraftTask($mock);
+        $tool = $this->app->make(CampaignPlanDraftTool::class);
+        $tool(['user_input' => '做一个七夕会员活动'], self::TENANT);
+
+        $this->assertNotNull($captured);
+        $this->assertGreaterThanOrEqual(120, $captured['timeout'] ?? 0);
+    }
+
     private function registerStubTool(string $slug): void
     {
         $this->app->make(ToolRegistryContract::class)->register(

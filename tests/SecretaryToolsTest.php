@@ -163,6 +163,44 @@ class SecretaryToolsTest extends TestCase
         $this->assertTrue($result['error']);
     }
 
+    /**
+     * agent_id 容错兜底：跨轮纯文本历史丢失 list_agents 结果的长数字，
+     * 模型传 role 时也应命中目标员工（防「目标员工不存在」死循环）
+     */
+    public function test_delegate_falls_back_to_role_match(): void
+    {
+        $agent = $this->createAgent(['name' => '营销专员', 'role' => 'marketing']);
+
+        $result = (new DelegateToAgentTool)(['agent_id' => 'marketing'], 1001);
+
+        $this->assertEquals('delegate', $result['action']);
+        $this->assertEquals((string) $agent->agent_id, $result['agent_id']);
+    }
+
+    public function test_delegate_falls_back_to_name_match(): void
+    {
+        $agent = $this->createAgent(['name' => '营销专员', 'role' => 'marketing']);
+
+        $result = (new DelegateToAgentTool)(['agent_id' => '营销专员'], 1001);
+
+        $this->assertEquals('delegate', $result['action']);
+        $this->assertEquals((string) $agent->agent_id, $result['agent_id']);
+    }
+
+    /**
+     * 仍未命中时返回已启用员工清单（含真实 agent_id），引导模型自愈重试
+     */
+    public function test_delegate_not_found_returns_enabled_agents_list(): void
+    {
+        $agent = $this->createAgent(['name' => '营销专员', 'role' => 'marketing']);
+
+        $result = (new DelegateToAgentTool)(['agent_id' => '1'], 1001);
+
+        $this->assertTrue($result['error']);
+        $this->assertCount(1, $result['enabled_agents']);
+        $this->assertEquals((string) $agent->agent_id, $result['enabled_agents'][0]['agent_id']);
+    }
+
     public function test_delegate_rejects_disabled_agent(): void
     {
         $agent = $this->createAgent(['enabled' => false]);

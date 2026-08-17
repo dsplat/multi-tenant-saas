@@ -42,7 +42,7 @@ class IdentifyTenantPathPrefixTest extends TestCase
 
         Tenant::create([
             'tenant_id' => 9007199254740123,
-            'name' => 'Snowflake Id Tenant',
+            'name' => 'Global Id Tenant',
             'slug' => null,
             'slug_status' => null,
             'status' => 'active',

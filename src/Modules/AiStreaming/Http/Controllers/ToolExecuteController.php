@@ -10,6 +10,7 @@ use MultiTenantSaas\Contracts\AgentServiceContract;
 use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService;
+use MultiTenantSaas\Modules\Ai\Services\Agent\ToolConversationContext;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
 
 class ToolExecuteController extends AiStreamingController
@@ -19,6 +20,7 @@ class ToolExecuteController extends AiStreamingController
         AgentServiceContract $agentService,
         private ToolRegistry $toolRegistry,
         private ActionConfirmService $actionConfirm,
+        private ToolConversationContext $conversationContext,
     ) {
         parent::__construct($tenantContext, $agentService);
     }
@@ -107,6 +109,13 @@ class ToolExecuteController extends AiStreamingController
                     'conversation_id' => $conversationId,
                 ]],
             ]);
+        }
+
+        // 会话上下文注入：会话感知类工具（如任务化长工具需绑定会话做断连兜底）
+        // 依赖 ToolConversationContext；scoped 绑定保证每请求隔离
+        $this->conversationContext->clear();
+        if (isset($data['conversation_id'])) {
+            $this->conversationContext->set((int) $data['conversation_id']);
         }
 
         // ToolRegistry::execute 内部已将处理器异常封装为 ['error'=>true, ...]，

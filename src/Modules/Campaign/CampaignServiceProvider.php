@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Modules\Campaign;
 
 use Illuminate\Contracts\Events\Dispatcher;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
+use MultiTenantSaas\Modules\Ai\Services\AiTask\AiTaskHandlerRegistry;
 use MultiTenantSaas\Modules\Campaign\Console\CampaignProcessDueCommand;
 use MultiTenantSaas\Modules\Campaign\Console\ThreadHealthCheckCommand;
 use MultiTenantSaas\Modules\Campaign\Listeners\CampaignEventSubscriber;
@@ -11,6 +12,7 @@ use MultiTenantSaas\Modules\Campaign\Services\CampaignTaskExecutor;
 use MultiTenantSaas\Modules\Campaign\Services\PlanCompiler;
 use MultiTenantSaas\Modules\Campaign\Services\PlaybookRegistry;
 use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignPlanCommitTool;
+use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignPlanDraftTaskHandler;
 use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignPlanDraftTool;
 use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignStatusTool;
 use MultiTenantSaas\Modules\Campaign\Services\Tools\ThreadReviewTool;
@@ -62,6 +64,13 @@ class CampaignServiceProvider extends ModuleServiceProvider
         }
 
         $registry = $this->app->make(ToolRegistryContract::class);
+
+        // 任务化长工具：重模型生成迁入 queue worker 后台执行
+        // （CampaignPlanDraftTaskHandler），工具本体只做毫秒级提交
+        $this->app->make(AiTaskHandlerRegistry::class)->register(
+            'campaign_plan_draft',
+            CampaignPlanDraftTaskHandler::class
+        );
 
         $registry->register(
             'campaign_plan_draft',

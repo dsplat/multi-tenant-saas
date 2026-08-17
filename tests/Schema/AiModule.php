@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * AI 模块
- * 表: ai_tenant_configs, ai_model_aliases, ai_providers, ai_requests, ai_prompts, ai_usage_quotas, branding_configs
+ * 表: ai_tenant_configs, ai_model_aliases, ai_providers, ai_requests, ai_prompts, ai_usage_quotas, branding_configs, ai_tasks
  */
 class AiModule implements SchemaModuleInterface
 {
@@ -165,6 +165,24 @@ class AiModule implements SchemaModuleInterface
             $table->index(['tenant_id', 'created_at'], 'idx_audit_tenant_time');
             $table->index(['tenant_id', 'action'], 'idx_audit_tenant_action');
         });
+        Schema::create('ai_tasks', function (Blueprint $table) {
+            $table->unsignedBigInteger('task_id')->primary();
+            $table->unsignedBigInteger('tenant_id');
+            $table->unsignedBigInteger('conversation_id')->nullable();
+            $table->unsignedBigInteger('agent_id')->nullable();
+            $table->string('type', 50);
+            $table->string('status', 20)->default('pending');
+            $table->json('payload')->nullable();
+            $table->json('result')->nullable();
+            $table->text('error')->nullable();
+            $table->json('metadata')->nullable();
+            $table->unsignedTinyInteger('attempts')->default(0);
+            $table->timestamps();
+            $table->timestamp('completed_at')->nullable();
+
+            $table->index(['tenant_id', 'status'], 'idx_ai_tasks_tenant_status');
+            $table->index('conversation_id', 'idx_ai_tasks_conversation');
+        });
     }
 
     public function getTableNames(): array
@@ -172,6 +190,7 @@ class AiModule implements SchemaModuleInterface
         return [
             'ai_tenant_configs', 'ai_model_aliases', 'ai_providers', 'ai_requests',
             'ai_prompts', 'ai_usage_quotas', 'branding_configs', 'ai_audit_logs',
+            'ai_tasks',
         ];
     }
 }

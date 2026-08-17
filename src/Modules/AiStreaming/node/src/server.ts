@@ -15,7 +15,9 @@
  *   AI_STREAMING_API_KEY        key_delivery=none 时的本地兜底 key（可选）
  */
 
-import { serve } from '@hono/node-server'
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
+import { AsyncLocalStorage } from 'node:async_hooks'
+import { getRequestListener } from '@hono/node-server'
 import { createOpenAI } from '@ai-sdk/openai'
 import { jsonSchema, streamText, tool, StreamData, type Tool } from 'ai'
 import { Hono } from 'hono'
@@ -33,6 +35,22 @@ const FALLBACK_API_KEY = process.env.AI_STREAMING_API_KEY ?? ''
  * 流式传输期间由 nginx proxy_read_timeout 与前端空闲超时兜底。
  */
 const LLM_FIRST_BYTE_TIMEOUT_MS = Number(process.env.AI_STREAMING_LLM_TIMEOUT_MS ?? 90_000)
+
+/**
+ * 心跳帧间隔（毫秒）：LLM 长思考/工具执行间隙流上无任何字节，
+ * 前置代理层（SLB/WAF/CDN）的空闲超时会掐断长静默连接，用户侧表现为
+ * 504/「响应超时」。周期性下发 2: ping 数据帧保活（前端解析器对非 meta
+ * 类型静默忽略，ping 字节到达同时重置前端空闲计时器）。
+ * 默认 5s：相对实测前置代理空闲超时 ~60s 留 12 倍余量，单帧十几字节开销可忽略。
+ */
+const KEEPALIVE_INTERVAL_MS = Number(process.env.AI_STREAMING_KEEPALIVE_MS ?? 5_000)
+
+/**
+ * AI 长任务流内轮询：工具快速提交任务（await_task）后按此间隔短连接
+ * 轮询 tasks/status 直至终态；总等待上限防任务失控挂死工具循环。
+ */
+const TASK_POLL_INTERVAL_MS = Number(process.env.AI_TASK_POLL_MS ?? 3_000)
+const TASK_MAX_WAIT_MS = Number(process.env.AI_TASK_MAX_WAIT_MS ?? 600_000)
 
 /** 用户可见的礼貌错误（经 AI SDK 错误帧 3: 透传到前端） */
 const LLM_TIMEOUT_MESSAGE = 'AI 服务响应超时，请稍后重试。'
@@ -162,7 +180,46 @@ async function phpPost<T>(path: string, auth: AuthContext, body: unknown): Promi
 
 // ---------- 工具桥接：LLM tool_call → PHP tools/execute ----------
 
-function buildTools(resolved: ResolvePayload, auth: AuthContext) {
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * await_task 流内轮询：工具提交长任务（重模型生成，如活动策划）后，
+ * 在工具 execute 内部按间隔短连接轮询 tasks/status 直至终态——
+ * 对 LLM 与前端完全无感（流级心跳保活期间持续生效）。
+ * 客户端断连时上报 abandoned（任务不杀，完成后 PHP 兜底落库会话）并短路返回。
+ */
+async function awaitTaskResult(taskId: number, auth: AuthContext, abortSignal?: AbortSignal): Promise<unknown> {
+  const deadline = Date.now() + TASK_MAX_WAIT_MS
+  for (;;) {
+    if (abortSignal?.aborted) {
+      // 任务生命周期独立于连接：通知 PHP 标记放弃，完成后结果落库原会话
+      phpPost('/ai-streaming/tasks/status', auth, { task_id: taskId, abandoned: true }).catch(() => {})
+      return { error: true, message: 'client disconnected' }
+    }
+    try {
+      const data = await phpPost<{ status: string; result?: unknown; error?: string }>('/ai-streaming/tasks/status', auth, { task_id: taskId })
+      if (data.status === 'completed') return data.result ?? { status: 'completed' }
+      if (data.status === 'failed') return { error: true, message: data.error ?? '后台任务执行失败' }
+    } catch (error) {
+      // 404（任务不存在/跨租户）快速失败；其余瞬时错误不断轮询
+      if (error instanceof PhpApiError && error.status === 404) {
+        return { error: true, message: error.message }
+      }
+      console.warn('[ai-streaming] task status poll failed:', error instanceof Error ? error.message : String(error))
+    }
+    if (Date.now() > deadline) {
+      return {
+        error: true,
+        message: `后台任务等待超时（超过 ${Math.round(TASK_MAX_WAIT_MS / 60_000)} 分钟），任务可能仍在后台完成，请告知用户稍后重新询问查看结果`,
+      }
+    }
+    await sleep(TASK_POLL_INTERVAL_MS)
+  }
+}
+
+function buildTools(resolved: ResolvePayload, auth: AuthContext, abortSignal?: AbortSignal) {
   const tools: Record<string, Tool> = {}
 
   for (const def of resolved.tools ?? []) {
@@ -173,6 +230,11 @@ function buildTools(resolved: ResolvePayload, auth: AuthContext) {
       description: fn.description ?? '',
       parameters: jsonSchema(fn.parameters ?? { type: 'object', properties: {} }),
       execute: async (args: unknown, options?: { toolCallId?: string }) => {
+        // 客户端已断连：短路拒绝，不再回调 PHP 触发工具副作用
+        // （ai@4.3 的 abortSignal 不中断多步工具循环，必须在执行层自行拦截）
+        if (abortSignal?.aborted) {
+          return { error: true, message: 'client disconnected' }
+        }
         try {
           const data = await phpPost<{ result: unknown }>('/ai-streaming/tools/execute', auth, {
             agent_id: resolved.agent_id,
@@ -183,6 +245,12 @@ function buildTools(resolved: ResolvePayload, auth: AuthContext) {
             // LLM 原生 tool_call id：随令牌存储，确认后续答时与落库的 assistant.tool_calls 配对
             tool_call_id: options?.toolCallId ?? null,
           })
+          // 任务化长工具：PHP 毫秒级提交后返回 await_task，
+          // 此处转入流内轮询直至终态（LLM/前端无感，心跳保活不断连）
+          const execResult = data.result as { action?: string; task_id?: number } | null
+          if (execResult && execResult.action === 'await_task' && execResult.task_id) {
+            return await awaitTaskResult(execResult.task_id, auth, abortSignal)
+          }
           return data.result
         } catch (error) {
           // 工具失败不打断流：把错误作为观察结果交还给 LLM
@@ -264,6 +332,16 @@ function sanitizeMessages(messages: Array<{ role: string; content: unknown }>): 
 
 const app = new Hono()
 
+/**
+ * 断连中止器经 AsyncLocalStorage 传入 hono handler（@hono/node-server 不在
+ * 断连时 abort req.raw.signal，也不暴露 incoming，需自建 request 监听器接管）。
+ */
+const abortStore = new AsyncLocalStorage<AbortController>()
+let httpServer: ReturnType<typeof createServer> | null = null
+function requestAbortSignal(): AbortSignal | undefined {
+  return abortStore.getStore()?.signal
+}
+
 app.get('/health', (c) => c.json({ ok: true, version: VERSION }))
 
 app.post('/chat', async (c) => {
@@ -333,20 +411,48 @@ app.post('/chat', async (c) => {
     streamData.append({ type: 'meta', conversation_id: resolved.conversation_id, agent_id: resolved.agent_id })
   }
 
+  // 心跳保活：模型思考间隙周期性下发 ping 帧，防前置代理空闲超时掐断长连接
+  const heartbeat = setInterval(() => {
+    try {
+      streamData.append({ type: 'ping', at: Date.now() })
+    } catch {
+      /* 流已关闭时的竞态，忽略 */
+    }
+  }, KEEPALIVE_INTERVAL_MS)
+
+  // 客户端断连感知：连接关闭时中止 LLM 循环——否则用户/代理断开后引擎
+  // 继续跑完整工具链（孤儿执行），白白消耗 LLM token 并触发 PHP 工具副作用
+  const streamAbort = new AbortController()
+  const abortSignal = requestAbortSignal()
+  const onUpstreamAbort = () => streamAbort.abort()
+  abortSignal?.addEventListener('abort', onUpstreamAbort, { once: true })
+  const cleanupStream = () => {
+    clearInterval(heartbeat)
+    abortSignal?.removeEventListener('abort', onUpstreamAbort)
+  }
+
   const result = streamText({
     model: provider.chat(resolved.model),
     system: resolved.system_prompt || undefined,
     messages: inputMessages,
     temperature: resolved.temperature,
     maxTokens: resolved.max_tokens,
-    tools: buildTools(resolved, auth),
+    tools: buildTools(resolved, auth, streamAbort.signal),
     maxSteps: Math.max(1, resolved.max_tool_calls) + 1,
+    abortSignal: streamAbort.signal,
     onError: ({ error }) => {
+      cleanupStream()
+      // 客户端断连导致的中止属预期路径：不写错误帧（连接已关）、不按异常告警
+      if (streamAbort.signal.aborted) {
+        console.warn('[ai-streaming] client disconnected, stream aborted')
+        return
+      }
       // 错误路径也要关闭 streamData，否则 2: 数据帧挂着导致前端流不收尾
       streamData.close().catch(() => {})
       console.error('[ai-streaming] stream error:', error instanceof Error ? error.message : String(error))
     },
     onFinish: async ({ text, usage, finishReason, steps }) => {
+      cleanupStream()
       streamData.close().catch(() => {})
 
       // 3. 流结束后回调 PHP 结算 token（失败仅告警，不影响已完成的响应）
@@ -393,6 +499,22 @@ app.post('/chat', async (c) => {
   return result.toDataStreamResponse({ data: streamData, getErrorMessage: toFriendlyErrorMessage })
 })
 
-serve({ fetch: app.fetch, hostname: HOST, port: PORT }, (info) => {
-  console.log(`[ai-streaming] engine v${VERSION} listening on http://${info.address}:${info.port} → PHP ${PHP_API_BASE}`)
+// 自建 HTTP 服务（代替 serve()）：@hono/node-server 不在客户端断连时 abort
+// req.raw.signal，需在 hono 处理前为每个请求挂 AbortController。
+// 注意：incoming（请求流）的 close 在 body 读尽时即触发（Node 18+），
+// 早于流式响应开始，不可用；必须以 outgoing（响应端）close 为准——
+// 响应未正常写完（writableFinished=false）即连接关闭 = 客户端/代理断连；
+// 响应正常结束时 writableFinished=true，close 不产生误 abort。
+httpServer = createServer((incoming: IncomingMessage, outgoing: ServerResponse) => {
+  const controller = new AbortController()
+  outgoing.on('close', () => {
+    if (!outgoing.writableFinished) controller.abort()
+  })
+  abortStore.run(controller, () => {
+    getRequestListener(app.fetch, { hostname: HOST })(incoming, outgoing)
+  })
+})
+
+httpServer.listen(PORT, HOST, () => {
+  console.log(`[ai-streaming] engine v${VERSION} listening on http://${HOST}:${PORT} → PHP ${PHP_API_BASE}`)
 })

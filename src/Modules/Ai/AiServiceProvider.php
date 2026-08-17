@@ -36,6 +36,7 @@ use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
 use MultiTenantSaas\Modules\Ai\Services\Ai\AiGatewayService;
 use MultiTenantSaas\Modules\Ai\Services\Ai\AiTextService;
 use MultiTenantSaas\Modules\Ai\Services\Ai\AiVideoService;
+use MultiTenantSaas\Modules\Ai\Services\AiTask\AiTaskHandlerRegistry;
 use MultiTenantSaas\Modules\Ai\Services\Ai\Storage\TenantConversationStore;
 use MultiTenantSaas\Modules\Ai\Services\AiConfigService;
 use MultiTenantSaas\Modules\Ai\Services\AiOptional;
@@ -156,6 +157,9 @@ class AiServiceProvider extends ModuleServiceProvider
         $this->app->singleton(MemoryPipeline::class, fn ($app) => new MemoryPipeline($app->make(EntityMemoryService::class), $app->make(TenantContextContract::class)));
         $this->app->singleton(AiGatewayService::class);
         $this->app->singleton(AiVideoService::class);
+
+        // AI 长任务处理器注册表（task/queue 跟踪机制，各模块 boot 时注册 handler）
+        $this->app->singleton(AiTaskHandlerRegistry::class, fn () => new AiTaskHandlerRegistry);
 
         // F1: AiOptional 可选性包装器
         $this->app->singleton(AiOptional::class, fn ($app) => new AiOptional(

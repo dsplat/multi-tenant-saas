@@ -13,12 +13,14 @@
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\AiStreaming\Http\Controllers\MessageReportController;
 use MultiTenantSaas\Modules\AiStreaming\Http\Controllers\ResolveController;
+use MultiTenantSaas\Modules\AiStreaming\Http\Controllers\TaskStatusController;
 use MultiTenantSaas\Modules\AiStreaming\Http\Controllers\ToolExecuteController;
 use MultiTenantSaas\Modules\AiStreaming\Http\Controllers\UsageReportController;
 
 Route::prefix('ai-streaming')->group(function () {
     Route::post('/resolve', ResolveController::class);
     Route::post('/tools/execute', ToolExecuteController::class);
+    Route::post('/tasks/status', TaskStatusController::class);
     Route::post('/usage/report', UsageReportController::class);
     Route::post('/messages/report', MessageReportController::class);
 });

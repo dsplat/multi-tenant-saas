@@ -5,28 +5,32 @@ namespace MultiTenantSaas\Tests;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\AiTextServiceContract;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
+use MultiTenantSaas\Modules\Ai\Models\AiTask;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
 use MultiTenantSaas\Modules\Ai\Services\Ai\AiResponse;
+use MultiTenantSaas\Modules\Ai\Services\AiTask\AiTaskHandlerRegistry;
 use MultiTenantSaas\Modules\Campaign\Models\CampaignPlan;
 use MultiTenantSaas\Modules\Campaign\Models\CampaignTask;
 use MultiTenantSaas\Modules\Campaign\Services\PlanCompiler;
-use MultiTenantSaas\Modules\Campaign\Services\PlaybookRegistry;
 use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignPlanCommitTool;
+use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignPlanDraftTaskHandler;
 use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignPlanDraftTool;
 use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignStatusTool;
 use MultiTenantSaas\Tests\Schema\AgentModule;
+use MultiTenantSaas\Tests\Schema\AiModule;
 use MultiTenantSaas\Tests\Schema\CampaignModule;
 
 /**
  * Campaign 三工具单测（docs/event-plan.md Phase 1：B3 + B4 + B5）
  *
- * - draft：LLM 桩化验证存 DB + 修订
+ * - draft：任务化长工具——工具毫秒级提交 AiTask 返回 await_task，
+ *   重模型生成在 CampaignPlanDraftTaskHandler（queue sync 下同步执行）
  * - commit：编译验证 + 状态流转
  * - status：查询返回结构
  */
 class CampaignPlanToolTest extends TestCase
 {
-    protected array $uses = [CampaignModule::class, AgentModule::class];
+    protected array $uses = [CampaignModule::class, AgentModule::class, AiModule::class];
 
     private const TENANT = 2001;
 
@@ -36,20 +40,23 @@ class CampaignPlanToolTest extends TestCase
         TenantContext::setTenantId((string) self::TENANT);
     }
 
-    // ── Draft 工具 ──
+    // ── Draft 工具（任务化：提交 AiTask → handler 后台执行）──
 
     public function test_draft_creates_plan_from_playbook(): void
     {
-        $planDoc = $this->validPlanDoc();
-        $aiService = $this->mockAiForDraft($planDoc);
-        $tool = $this->makeDraftTool($aiService);
+        $this->setUpDraftTask($this->mockAiForDraft($this->validPlanDoc()));
+        $tool = $this->app->make(CampaignPlanDraftTool::class);
 
-        $result = $tool([
+        $submit = $tool([
             'playbook_key' => 'demo_sms_sequence',
             'user_input' => '做一个三天短信序列活动',
         ], self::TENANT);
 
-        $this->assertFalse($result['error'] ?? false);
+        $this->assertSame('await_task', $submit['action']);
+
+        $task = AiTask::find((int) $submit['task_id']);
+        $this->assertSame(AiTask::STATUS_COMPLETED, $task->status);
+        $result = $task->result;
         $this->assertGreaterThan(0, $result['plan_id']);
         $this->assertSame(1, $result['plan_doc_preview']['phases_count']);
 
@@ -71,17 +78,17 @@ class CampaignPlanToolTest extends TestCase
             'created_by' => 0,
         ]);
 
-        $revisedDoc = $this->validPlanDoc('修订版活动');
-        $aiService = $this->mockAiForDraft($revisedDoc);
-        $tool = $this->makeDraftTool($aiService);
+        $this->setUpDraftTask($this->mockAiForDraft($this->validPlanDoc('修订版活动')));
+        $tool = $this->app->make(CampaignPlanDraftTool::class);
 
-        $result = $tool([
+        $submit = $tool([
             'plan_id' => $plan->plan_id,
             'user_input' => '把短信改为推送',
         ], self::TENANT);
 
-        $this->assertFalse($result['error'] ?? false);
-        $this->assertSame($plan->plan_id, $result['plan_id']);
+        $task = AiTask::find((int) $submit['task_id']);
+        $this->assertSame(AiTask::STATUS_COMPLETED, $task->status);
+        $this->assertSame($plan->plan_id, $task->result['plan_id']);
 
         // 验证 DB 已更新
         $plan->refresh();
@@ -90,26 +97,31 @@ class CampaignPlanToolTest extends TestCase
 
     public function test_draft_fails_without_user_input(): void
     {
-        $aiService = $this->createMock(AiTextServiceContract::class);
-        $tool = $this->makeDraftTool($aiService);
+        $tool = $this->app->make(CampaignPlanDraftTool::class);
 
         $result = $tool([], self::TENANT);
 
         $this->assertTrue($result['error']);
         $this->assertStringContainsString('user_input', $result['message']);
+        $this->assertSame(0, AiTask::count(), '快速失败不得创建任务');
     }
 
-    public function test_draft_llm_failure_returns_error_not_exception(): void
+    public function test_draft_llm_failure_marks_task_failed(): void
     {
+        // fail-open 语义迁入任务层：LLM 失败 → 任务 failed + error，
+        // Node 轮询后作为工具错误交还 LLM（不打断流）
         $aiService = $this->createMock(AiTextServiceContract::class);
         $aiService->method('chat')->willThrowException(new \RuntimeException('API down'));
 
-        $tool = $this->makeDraftTool($aiService);
+        $this->setUpDraftTask($aiService);
+        $tool = $this->app->make(CampaignPlanDraftTool::class);
 
-        $result = $tool(['user_input' => '测试'], self::TENANT);
+        $submit = $tool(['user_input' => '测试'], self::TENANT);
+        $this->assertSame('await_task', $submit['action']);
 
-        $this->assertTrue($result['error']);
-        $this->assertStringContainsString('失败', $result['message']);
+        $task = AiTask::find((int) $submit['task_id']);
+        $this->assertSame(AiTask::STATUS_FAILED, $task->status);
+        $this->assertStringContainsString('失败', (string) $task->error);
     }
 
     public function test_draft_surfaces_validation_errors_for_self_healing(): void
@@ -117,12 +129,14 @@ class CampaignPlanToolTest extends TestCase
         // LLM 生成 action.type=tool 但缺 tool slug → draft 阶段即时暴露校验问题供 LLM 修订
         $badDoc = $this->validPlanDoc();
         $badDoc['phases'][0]['tasks'][0]['action'] = ['type' => 'tool'];
-        $aiService = $this->mockAiForDraft($badDoc);
-        $tool = $this->makeDraftTool($aiService);
+        $this->setUpDraftTask($this->mockAiForDraft($badDoc));
+        $tool = $this->app->make(CampaignPlanDraftTool::class);
 
-        $result = $tool(['user_input' => '做一个活动'], self::TENANT);
+        $submit = $tool(['user_input' => '做一个活动'], self::TENANT);
 
-        $this->assertFalse($result['error'] ?? false);
+        $task = AiTask::find((int) $submit['task_id']);
+        $this->assertSame(AiTask::STATUS_COMPLETED, $task->status);
+        $result = $task->result;
         $this->assertNotEmpty($result['validation_errors']);
         $this->assertStringContainsString('缺少 tool slug', implode('；', $result['validation_errors']));
         $this->assertArrayHasKey('hint', $result);
@@ -131,12 +145,13 @@ class CampaignPlanToolTest extends TestCase
     public function test_draft_reports_required_anchors(): void
     {
         // draft 即告知 commit 时需提供的全部锚点
-        $aiService = $this->mockAiForDraft($this->validPlanDoc());
-        $tool = $this->makeDraftTool($aiService);
+        $this->setUpDraftTask($this->mockAiForDraft($this->validPlanDoc()));
+        $tool = $this->app->make(CampaignPlanDraftTool::class);
 
-        $result = $tool(['user_input' => '做一个活动'], self::TENANT);
+        $submit = $tool(['user_input' => '做一个活动'], self::TENANT);
 
-        $this->assertSame(['event.starts_at'], $result['required_anchors']);
+        $task = AiTask::find((int) $submit['task_id']);
+        $this->assertSame(['event.starts_at'], $task->result['required_anchors']);
     }
 
     // ── Commit 工具 ──
@@ -318,9 +333,17 @@ class CampaignPlanToolTest extends TestCase
 
     // ── Helpers ──
 
-    private function makeDraftTool(AiTextServiceContract $aiService): CampaignPlanDraftTool
+    /**
+     * 任务化接线：注册 campaign_plan_draft 任务 handler + 绑定 LLM 桩
+     * （queue sync 下 dispatch 同步执行，断言直接读 AiTask 终态）
+     */
+    private function setUpDraftTask(AiTextServiceContract $aiService): void
     {
-        return new CampaignPlanDraftTool($aiService, new PlaybookRegistry, $this->app->make(PlanCompiler::class));
+        $this->app->instance(AiTextServiceContract::class, $aiService);
+        $this->app->make(AiTaskHandlerRegistry::class)->register(
+            'campaign_plan_draft',
+            CampaignPlanDraftTaskHandler::class
+        );
     }
 
     private function validPlanDoc(string $title = '测试活动'): array

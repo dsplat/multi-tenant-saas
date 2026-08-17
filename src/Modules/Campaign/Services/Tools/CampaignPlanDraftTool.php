@@ -2,32 +2,33 @@
 
 namespace MultiTenantSaas\Modules\Campaign\Services\Tools;
 
-use Illuminate\Support\Facades\Log;
-use MultiTenantSaas\Contracts\AiTextServiceContract;
+use MultiTenantSaas\Modules\Ai\Jobs\ExecuteAiTaskJob;
+use MultiTenantSaas\Modules\Ai\Models\AiTask;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
+use MultiTenantSaas\Modules\Ai\Services\Agent\ToolConversationContext;
 use MultiTenantSaas\Modules\Campaign\Models\CampaignPlan;
-use MultiTenantSaas\Modules\Campaign\Services\PlanCompiler;
-use MultiTenantSaas\Modules\Campaign\Services\PlaybookRegistry;
 
 /**
- * campaign_plan_draft — AI 共创计划方案（L1）
+ * campaign_plan_draft — AI 共创计划方案（L1，任务化长工具）
  *
- * 有 plan_id：取现有 CampaignPlan (status=planning) 的 plan_doc 作为修订基础
+ * 任务化架构（task/queue 跟踪机制）：
+ * - 本工具只做毫秒级提交：校验入参 → 创建 AiTask(pending) → dispatch
+ *   ExecuteAiTaskJob → 立即返回 {action:'await_task', task_id}
+ * - Node 引擎识别 await_task 后在流内短连接轮询 tasks/status，
+ *   LLM 与前端无感（轮询期间心跳帧保活）
+ * - 重模型生成（plan_doc JSON）在 queue worker 内由
+ *   CampaignPlanDraftTaskHandler 执行，不受连接超时约束
+ *
+ * 有 plan_id：修订现有 CampaignPlan (status=planning)
  * 无 plan_id + 有 playbook_key：取 playbook skeleton 作为初始骨架
- * 构建 prompt（methodology + user_input + 当前骨架）→ 独立 LLM 单次调用（JSON mode）
- * → 生成 plan_doc JSON → 存 DB
  *
  * 设计理由：存 DB 避免 commit 工具需要 LLM 传入巨量 JSON（贵且易错），
  * 多次 draft 修订自然版本化。
- *
- * fail-open：LLM 调用失败时返回错误提示但不抛异常。
  */
 class CampaignPlanDraftTool implements ToolHandlerContract
 {
     public function __construct(
-        private readonly AiTextServiceContract $aiTextService,
-        private readonly PlaybookRegistry $playbookRegistry,
-        private readonly PlanCompiler $planCompiler,
+        private readonly ToolConversationContext $conversationContext,
     ) {}
 
     public function __invoke(array $arguments, int $tenantId): mixed
@@ -42,200 +43,41 @@ class CampaignPlanDraftTool implements ToolHandlerContract
             return ['error' => true, 'message' => '请提供 user_input 描述活动需求'];
         }
 
-        // 1. 确定基础骨架
-        $existingPlan = null;
-        $currentDoc = null;
-        $methodology = '';
-
+        // 快速失败校验留在同步路径（毫秒级 DB 查询），避免无效任务入队
         if ($planId > 0) {
-            $existingPlan = CampaignPlan::where('plan_id', $planId)
+            $exists = CampaignPlan::where('plan_id', $planId)
                 ->where('tenant_id', $tenantId)
                 ->where('status', CampaignPlan::STATUS_PLANNING)
-                ->first();
+                ->exists();
 
-            if ($existingPlan === null) {
+            if (! $exists) {
                 return ['error' => true, 'message' => "计划 [{$planId}] 不存在或不在 planning 状态"];
             }
-
-            $currentDoc = $existingPlan->plan_doc;
-            $playbookKey = $existingPlan->playbook_key ?? $playbookKey;
         }
 
-        if ($playbookKey !== '') {
-            $playbook = $this->playbookRegistry->find($playbookKey);
-            if ($playbook !== null) {
-                $methodology = (string) ($playbook['methodology'] ?? '');
-                if ($currentDoc === null) {
-                    $currentDoc = $playbook['skeleton'] ?? null;
-                }
-            }
-        }
-
-        // 2. 构建 LLM prompt
-        $prompt = $this->buildPrompt($userInput, $currentDoc, $methodology);
-
-        // 3. 调用 LLM 生成 plan_doc（fail-open）
-        $planDoc = $this->callLlm($prompt);
-
-        if ($planDoc === null) {
-            return [
-                'error' => true,
-                'message' => 'AI 生成计划方案失败，请重试或手动编写 plan_doc',
-            ];
-        }
-
-        // 4. 存 DB
-        if ($existingPlan !== null) {
-            $existingPlan->update(['plan_doc' => $planDoc]);
-            $savedPlanId = $existingPlan->plan_id;
-        } else {
-            $plan = CampaignPlan::create([
-                'tenant_id' => $tenantId,
-                'plan_doc' => $planDoc,
-                'status' => CampaignPlan::STATUS_PLANNING,
-                'playbook_key' => $playbookKey ?: null,
+        // 提交任务：AiTask 主键由 IdGenerator 生成（HasGlobalId），
+        // tenant_id 由 BelongsToTenant 从租户上下文自动填充
+        $task = AiTask::create([
+            'tenant_id' => $tenantId,
+            'conversation_id' => $this->conversationContext->get(),
+            'type' => 'campaign_plan_draft',
+            'status' => AiTask::STATUS_PENDING,
+            'payload' => [
+                'plan_id' => $planId,
+                'playbook_key' => $playbookKey,
+                'user_input' => $userInput,
                 'anchor_type' => $anchorType,
-                'anchor_id' => $anchorId ? (int) $anchorId : null,
-                'created_by' => 0, // 由 AI 创建
-            ]);
-            $savedPlanId = $plan->plan_id;
-        }
-
-        // 5. 即时校验：把问题暴露在 draft 阶段让 LLM 自愈修订，而非留到 commit 才拦截
-        $validationErrors = $this->planCompiler->validate($planDoc);
-
-        // 6. 返回预览
-        $phases = $planDoc['phases'] ?? [];
-        $taskCount = 0;
-        foreach ($phases as $phase) {
-            $taskCount += count($phase['tasks'] ?? []);
-        }
-
-        $result = [
-            'plan_id' => $savedPlanId,
-            'plan_doc_preview' => [
-                'title' => $planDoc['title'] ?? '（未命名）',
-                'phases_count' => count($phases),
-                'tasks_count' => $taskCount,
-                'phases' => array_map(fn ($p) => [
-                    'key' => $p['key'] ?? '',
-                    'title' => $p['title'] ?? '',
-                    'tasks_count' => count($p['tasks'] ?? []),
-                ], $phases),
+                'anchor_id' => $anchorId,
             ],
-            'validation_errors' => $validationErrors,
-            // commit 时 anchor_times 需覆盖的全部锚点（提前告知，避免定稿时才发现缺失）
-            'required_anchors' => $this->planCompiler->collectRequiredAnchors($planDoc),
+        ]);
+
+        ExecuteAiTaskJob::dispatch((int) $task->task_id, $tenantId);
+
+        // await_task 协议：Node 引擎识别后进入流内短连接轮询（LLM/前端无感）
+        return [
+            'action' => 'await_task',
+            'task_id' => (int) $task->task_id,
+            'message' => '活动策划方案正在后台生成中（通常需要数十秒），请稍候',
         ];
-
-        if ($validationErrors !== []) {
-            $result['hint'] = '计划存在校验问题，直接 commit 会失败。请再次调用 campaign_plan_draft'
-                . '（带 plan_id 与针对上述问题的修订说明 user_input）修复后再定稿';
-        }
-
-        return $result;
-    }
-
-    private function buildPrompt(string $userInput, ?array $currentDoc, string $methodology): string
-    {
-        $parts = [];
-
-        $parts[] = '你是一位活动策划专家。请根据用户需求生成或修订一份活动执行计划（JSON 格式，符合 campaign.plan/v1 schema）。';
-        $parts[] = '';
-        $parts[] = '## 输出格式要求';
-        $parts[] = '严格输出 JSON 对象，schema 如下：';
-        $parts[] = '```json';
-        $parts[] = '{';
-        $parts[] = '  "schema": "campaign.plan/v1",';
-        $parts[] = '  "title": "计划标题",';
-        $parts[] = '  "phases": [';
-        $parts[] = '    {';
-        $parts[] = '      "key": "phase_key",';
-        $parts[] = '      "title": "阶段标题",';
-        $parts[] = '      "tasks": [';
-        $parts[] = '        {';
-        $parts[] = '          "key": "task_key",';
-        $parts[] = '          "title": "任务标题",';
-        $parts[] = '          "trigger": {"type": "relative|at_time|on_event|recurring", ...},';
-        $parts[] = '          "action": {"type": "tool|task_chain|agent_react|human", ...},';
-        $parts[] = '          "execution_mode": "auto|require_confirm",';
-        $parts[] = '          "depends_on": []';
-        $parts[] = '        }';
-        $parts[] = '      ]';
-        $parts[] = '    }';
-        $parts[] = '  ]';
-        $parts[] = '}';
-        $parts[] = '```';
-        $parts[] = '';
-        $parts[] = '## action.type 硬性规则';
-        $parts[] = '- "tool"：必须同时提供 "tool" 字段且值为系统已注册的工具 slug；不确定有哪些工具时禁用此类型';
-        $parts[] = '- "human"：人工待办（到点通知操作人执行），没有合适工具的任务一律用 human，这是默认选择';
-        $parts[] = '- trigger.type=relative 必须带 anchor 与 offset；recurring 必须带 from/until/interval';
-        $parts[] = '- 锚点纪律：全计划统一只用一个锚点名 "event.starts_at"（活动开始时间），'
-            . '其他时点用 offset 相对表达（如开营前3天 = anchor "event.starts_at" + offset "-3d"）；'
-            . '禁止自造多个锚点名，除非用户明确提供了多个独立日期';
-
-        if ($methodology !== '') {
-            $parts[] = '';
-            $parts[] = '## 方法论参考';
-            $parts[] = $methodology;
-        }
-
-        if ($currentDoc !== null) {
-            $parts[] = '';
-            $parts[] = '## 当前计划骨架（请在此基础上修改或扩展）';
-            $parts[] = '```json';
-            $parts[] = json_encode($currentDoc, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-            $parts[] = '```';
-        }
-
-        $parts[] = '';
-        $parts[] = '## 用户需求';
-        $parts[] = $userInput;
-        $parts[] = '';
-        $parts[] = '请直接输出 JSON，不要包含 markdown 代码块标记或其他解释文字。';
-
-        return implode("\n", $parts);
-    }
-
-    /**
-     * 独立 LLM 单次调用（JSON mode，fail-open）
-     */
-    private function callLlm(string $prompt): ?array
-    {
-        try {
-            $response = $this->aiTextService->chat([
-                ['role' => 'system', 'content' => 'You are a campaign planning assistant. Always output valid JSON only.'],
-                ['role' => 'user', 'content' => $prompt],
-            ], [
-                'temperature' => 0.4,
-                'max_tokens' => 4000,
-            ]);
-
-            $content = trim($response->content);
-
-            // 清理可能的 markdown 代码块包裹
-            if (str_starts_with($content, '```')) {
-                $content = preg_replace('/^```(?:json)?\s*/', '', $content);
-                $content = preg_replace('/\s*```$/', '', $content);
-            }
-
-            $decoded = json_decode($content, true);
-
-            if (! is_array($decoded) || ! isset($decoded['phases'])) {
-                Log::warning('[CampaignPlanDraft] LLM 输出非法 JSON', ['content' => mb_substr($content, 0, 500)]);
-
-                return null;
-            }
-
-            // 确保 schema 版本
-            $decoded['schema'] = 'campaign.plan/v1';
-
-            return $decoded;
-        } catch (\Throwable $e) {
-            Log::warning('[CampaignPlanDraft] LLM 调用失败（fail-open）', ['error' => $e->getMessage()]);
-
-            return null;
-        }
     }
 }

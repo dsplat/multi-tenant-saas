@@ -359,6 +359,78 @@ function sanitizeMessages(messages: Array<{ role: string; content: unknown }>): 
     }))
 }
 
+/**
+ * 服务端历史（OpenAI wire 格式，PHP StreamHistoryBuilder 产物）转 Vercel AI SDK
+ * CoreMessage 格式：assistant.content 为 parts 数组（text/tool-call），tool 消息为
+ * tool-result parts——wire 格式直接传 streamText 会触发 AI_InvalidPromptError。
+ *
+ * toolName 从前序 assistant.tool_calls 的 id→name 映射派生（PHP 侧
+ * reconcileToolCallPairs 已保证 tool 消息与 tool_calls 严格配对）；
+ * 映射不到的 tool 消息属协议异常，降级为 user 观察文本保留信息。
+ */
+function serverHistoryToCoreMessages(history: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
+  const core: Array<Record<string, unknown>> = []
+  const callNames = new Map<string, string>()
+
+  for (const msg of history) {
+    const role = msg.role as string
+    const content = typeof msg.content === 'string' ? msg.content : ''
+
+    if (role === 'user') {
+      core.push({ role: 'user', content })
+      continue
+    }
+
+    if (role === 'assistant') {
+      const rawCalls = Array.isArray(msg.tool_calls) ? (msg.tool_calls as Array<Record<string, unknown>>) : []
+      const parts: Array<Record<string, unknown>> = []
+      if (content !== '') {
+        parts.push({ type: 'text', text: content })
+      }
+      for (const call of rawCalls) {
+        const fn = (call?.function ?? {}) as Record<string, unknown>
+        const id = String(call?.id ?? '')
+        const name = String(fn.name ?? '')
+        let args: unknown = {}
+        try {
+          args = typeof fn.arguments === 'string' && fn.arguments !== '' ? JSON.parse(fn.arguments) : {}
+        } catch {
+          args = {} // 非法 JSON 参数不给模型回放，工具执行记录在库中可查
+        }
+        if (id !== '' && name !== '') {
+          callNames.set(id, name)
+        }
+        parts.push({ type: 'tool-call', toolCallId: id, toolName: name, args })
+      }
+      core.push({ role: 'assistant', content: parts })
+      continue
+    }
+
+    if (role === 'tool') {
+      const callId = String(msg.tool_call_id ?? '')
+      const toolName = callNames.get(callId)
+      if (callId === '' || toolName === undefined) {
+        // 配对异常（理论上不会发生，reconcile 已保证）：降级保留信息
+        core.push({ role: 'user', content: `[工具执行结果] ${content}` })
+        continue
+      }
+      let result: unknown = content
+      try {
+        result = content !== '' ? JSON.parse(content) : ''
+      } catch {
+        /* 非 JSON 结果保持原文本 */
+      }
+      core.push({
+        role: 'tool',
+        content: [{ type: 'tool-result', toolCallId: callId, toolName, result }],
+      })
+    }
+    // system 及其他角色忽略（system_prompt 经 resolve 单独下发）
+  }
+
+  return core
+}
+
 // ---------- HTTP 服务 ----------
 
 const app = new Hono()
@@ -470,7 +542,7 @@ app.post('/chat', async (c) => {
   // 未下发（开关关闭/旧 PHP）时保持旧行为透传前端历史（向后兼容）
   const lastUserInput = [...inputMessages].reverse().find((m) => m.role === 'user')
   const streamMessages: Array<Record<string, unknown>> = resolved.history
-    ? [...resolved.history, ...(lastUserInput ? [{ role: 'user', content: lastUserInput.content }] : [])]
+    ? [...serverHistoryToCoreMessages(resolved.history), ...(lastUserInput ? [{ role: 'user', content: lastUserInput.content }] : [])]
     : inputMessages
 
   const result = streamText({

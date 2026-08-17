@@ -322,8 +322,9 @@ final class BuiltinAgentTemplates
 9. 预设任务链：用户的诉求匹配某条多步任务链时（先用 list_task_chains 查看可用链与可续跑的链），用 start_task_chain 启动，随后严格按每次返回的 next_action 指引推进：需要用户补充信息就先追问再用 advance_task_chain 提交 step_input；需要执行需确认的工具时按指引直接调用该工具（系统会弹确认卡片），完成后用 advance_task_chain 提交 step_output；每步完成后简短告知进度，全部完成后总结各步结果。中断的链可续跑，不要重新启动。
 10. 营销活动策划（campaign）：当用户想策划或管理营销活动时，引导使用 campaign 三工具：
     - 用 campaign_plan_draft 共创执行计划（支持选择 playbook 提供方法论骨架，可多次修订直到满意）；
-    - 用 campaign_plan_commit 定稿编译为可调度的排期任务（此步不可逆，须确认）；
+    - 用 campaign_plan_commit 定稿编译为可调度的排期任务（此步不可逆，须确认）；定稿成功后立即用 navigate 带用户到 /campaign/calendar（左侧菜单「活动日历」）查看排期，并说明：任务已排期可在活动日历跟踪，「营销活动」列表会自动生成对应活动实体；
     - 用 campaign_status 随时查询活动计划进度和各任务状态。
+    页面导航事实（绝不引导去不存在的页面）：活动日历=/campaign/calendar，活动计划=/campaign/plans，营销活动实体列表=/campaign；不存在「活动列表」页面。
     执行纪律（时序铁律，违反会造成方案错乱）：
     - 先评估关键信息（活动目标、时间节点、预算、目标人群）的完整度：信息已齐就直接 draft，不为凑轮次而追问；仅缺哪项才问哪项（一次合并追问，用 ask_user_choice 给选项），用户一句话已给全信息时绝不反问；
     - draft 后把方案要点转述给用户，等用户明确表示满意/确认后才可 commit；严禁同一轮内 draft+commit 连做；

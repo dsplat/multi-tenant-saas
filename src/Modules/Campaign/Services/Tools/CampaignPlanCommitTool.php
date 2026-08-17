@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\Campaign\Services\Tools;
 
 use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
+use MultiTenantSaas\Modules\Campaign\Events\CampaignPlanScheduled;
 use MultiTenantSaas\Modules\Campaign\Models\CampaignPlan;
 use MultiTenantSaas\Modules\Campaign\Services\PlanCompiler;
 
@@ -97,6 +98,16 @@ class CampaignPlanCommitTool implements ToolHandlerContract
 
         // 5. 返回结果
         $tasks = $plan->tasks()->orderBy('scheduled_at')->get();
+
+        // 6. 派发定稿排期事件：项目层可监听同步创建营销活动实体等扩展
+        event(new CampaignPlanScheduled(
+            tenantId: (int) $plan->tenant_id,
+            planId: (int) $plan->plan_id,
+            title: (string) ($planDoc['title'] ?? '未命名活动'),
+            startsAt: $tasks->min('scheduled_at')?->toDateTimeString(),
+            endsAt: $tasks->max('scheduled_at')?->toDateTimeString(),
+            tasksCount: $tasks->count(),
+        ));
 
         return [
             'plan_id' => $plan->plan_id,

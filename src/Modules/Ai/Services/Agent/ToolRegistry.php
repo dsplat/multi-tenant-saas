@@ -5,6 +5,8 @@ namespace MultiTenantSaas\Modules\Ai\Services\Agent;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Exceptions\DomainException;
@@ -105,7 +107,9 @@ class ToolRegistry implements ToolRegistryContract
     /**
      * 获取 Function Calling 格式的工具定义
      *
-     * 跳过不存在的 slug，仅返回已注册工具的定义。
+     * 跳过不存在的 slug，仅返回已注册工具的定义（运行时保持 fail-open，
+     * optional_tools 在纯框架部署未注册时静默跳过属设计意图）；
+     * 非生产环境对缺失 slug 记 Log::warning，便于暴露模板与注册漂移。
      *
      * @param  array  $slugs  工具标识列表
      * @return array Function Calling 格式的工具定义数组
@@ -113,13 +117,22 @@ class ToolRegistry implements ToolRegistryContract
     public function getToolDefinitions(array $slugs): array
     {
         $definitions = [];
+        $missing = [];
 
         foreach ($slugs as $slug) {
             $tool = $this->get($slug);
 
             if ($tool !== null) {
                 $definitions[] = $tool->toFunctionCalling();
+            } else {
+                $missing[] = $slug;
             }
+        }
+
+        if ($missing !== [] && ! App::environment('production')) {
+            Log::warning('[ToolRegistry] 模板引用的工具 slug 未注册（已 fail-open 跳过）', [
+                'missing_slugs' => $missing,
+            ]);
         }
 
         return $definitions;

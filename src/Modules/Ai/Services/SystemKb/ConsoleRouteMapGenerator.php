@@ -68,6 +68,28 @@ class ConsoleRouteMapGenerator
     }
 
     /**
+     * 全部可达路由路径（routes.ts + knownPaths 自动发现，去重）
+     *
+     * 契约测试（AgentPromptContractTest）的事实源：prompt 中引用的
+     * 路由路径必须存在于本清单，与 generate() 共用同一解析链路，
+     * 杜绝两套口径。
+     *
+     * @return list<string>
+     */
+    public function routePaths(): array
+    {
+        $paths = [];
+
+        foreach ($this->collectRoutes() as $routes) {
+            foreach ($routes as $route) {
+                $paths[$route['path']] = true;
+            }
+        }
+
+        return array_keys($paths);
+    }
+
+    /**
      * 收集所有路由，按模块分组
      *
      * @return array<string, list<array{path: string, title: string, desc: string}>>

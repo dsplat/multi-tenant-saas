@@ -12,6 +12,7 @@ use MultiTenantSaas\Events\ConversationStarted;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentProvisioningService;
+use MultiTenantSaas\Modules\Ai\Services\Agent\StreamHistoryBuilder;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
 use MultiTenantSaas\Modules\Ai\Services\AiUsageService;
 use MultiTenantSaas\Modules\Campaign\Services\ThreadDigestService;
@@ -29,6 +30,7 @@ class ResolveController extends AiStreamingController
         AgentServiceContract $agentService,
         private AiUsageService $usageService,
         private ToolRegistry $toolRegistry,
+        private StreamHistoryBuilder $historyBuilder,
     ) {
         parent::__construct($tenantContext, $agentService);
     }
@@ -146,6 +148,12 @@ class ResolveController extends AiStreamingController
             // 经前端确认卡片由用户确认后才真正执行（不降级风险语义）
             'tools' => $this->toolRegistry->getToolDefinitions($agent->effectiveTools()),
         ];
+
+        // 服务端历史下发（事实源 = DB）：工具结果（plan_id/agent_id 所在）随结构化
+        // 历史传递，Node 以此为唯一上下文；关闭开关即回滚到前端纯文本历史旧行为
+        if ((bool) config('ai-streaming.server_history', true)) {
+            $payload['history'] = $this->historyBuilder->build((int) $payload['conversation_id'], $tenantId);
+        }
 
         // direct 模式：下发 api_key（仅限 Node 与 PHP 同机/内网回环链路）
         if (config('ai-streaming.key_delivery', 'direct') === 'direct') {

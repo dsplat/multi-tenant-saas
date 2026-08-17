@@ -68,7 +68,8 @@ class AgentContextBuilder
             ];
 
             if ($msg->role === 'assistant' && $msg->tool_calls !== null) {
-                $contextMsg['tool_calls'] = $this->toolExecutor->normalizeToolCalls((array) $msg->tool_calls, (int) $msg->id);
+                // message_id 是合成确定性 tool_call id 的事实源（表无 id 列）
+                $contextMsg['tool_calls'] = $this->toolExecutor->normalizeToolCalls((array) $msg->tool_calls, (int) $msg->message_id);
             }
 
             if ($msg->role === 'tool') {

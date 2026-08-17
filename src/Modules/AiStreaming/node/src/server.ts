@@ -111,6 +111,15 @@ interface ResolvePayload {
   max_tokens: number
   max_tool_calls: number
   tools: Array<{ type: 'function'; function: { name: string; description?: string; parameters?: Record<string, unknown> } }>
+  /** 服务端历史（事实源 = DB，PHP StreamHistoryBuilder 产物）：存在时作唯一上下文，前端上行历史忽略 */
+  history?: Array<Record<string, unknown>>
+}
+
+/** 流内工具执行结果上报项（onFinish 随 messages/report 落库 role=tool） */
+interface ToolResultReport {
+  tool_call_id: string
+  tool_name: string
+  content: string
 }
 
 interface AuthContext {
@@ -222,7 +231,7 @@ async function awaitTaskResult(taskId: number, auth: AuthContext, abortSignal?: 
   }
 }
 
-function buildTools(resolved: ResolvePayload, auth: AuthContext, abortSignal?: AbortSignal) {
+function buildTools(resolved: ResolvePayload, auth: AuthContext, toolResults: ToolResultReport[], abortSignal?: AbortSignal) {
   const tools: Record<string, Tool> = {}
 
   for (const def of resolved.tools ?? []) {
@@ -251,19 +260,38 @@ function buildTools(resolved: ResolvePayload, auth: AuthContext, abortSignal?: A
           // 任务化长工具：PHP 毫秒级提交后返回 await_task，
           // 此处转入流内轮询直至终态（LLM/前端无感，心跳保活不断连）
           const execResult = data.result as { action?: string; task_id?: number } | null
-          if (execResult && execResult.action === 'await_task' && execResult.task_id) {
-            return await awaitTaskResult(execResult.task_id, auth, abortSignal)
-          }
-          return data.result
+          const toolResult =
+            execResult && execResult.action === 'await_task' && execResult.task_id
+              ? await awaitTaskResult(execResult.task_id, auth, abortSignal)
+              : data.result
+          collectToolResult(toolResults, options?.toolCallId, fn.name, toolResult)
+          return toolResult
         } catch (error) {
           // 工具失败不打断流：把错误作为观察结果交还给 LLM
-          return { error: true, message: error instanceof Error ? error.message : String(error) }
+          const errorResult = { error: true, message: error instanceof Error ? error.message : String(error) }
+          collectToolResult(toolResults, options?.toolCallId, fn.name, errorResult)
+          return errorResult
         }
       },
     })
   }
 
   return tools
+}
+
+/**
+ * 收集流内工具执行结果（与 LLM 实际看到的值同构）：
+ * onFinish 随 messages/report 上报 PHP 落库 role=tool，下一轮经服务端历史
+ * 重建回到模型上下文——plan_id/agent_id 等关键数值跨轮传递不靠猜。
+ * 缺 tool_call_id 的不收集（PHP 侧无法与 tool_calls 配对，落库即拒收）。
+ */
+function collectToolResult(collector: ToolResultReport[], toolCallId: string | undefined, toolName: string, result: unknown): void {
+  if (!toolCallId) return
+  collector.push({
+    tool_call_id: toolCallId,
+    tool_name: toolName,
+    content: typeof result === 'string' ? result : JSON.stringify(result) ?? '',
+  })
 }
 
 // ---------- 内容安全守护（第一道闸：本地轻量扫描，安全先于鉴权/配额/LLM） ----------
@@ -434,13 +462,24 @@ app.post('/chat', async (c) => {
     abortSignal?.removeEventListener('abort', onUpstreamAbort)
   }
 
+  // 流内工具结果收集器：onFinish 随 messages/report 上报落库（跨轮数值不靠猜）
+  const toolResults: ToolResultReport[] = []
+
+  // 上下文事实源切换：resolve 下发服务端历史（DB 重建，含工具结果）时以其为
+  // 唯一上下文，前端 messages 仅取当前用户输入（已经 sanitizeMessages + ContentGuard）；
+  // 未下发（开关关闭/旧 PHP）时保持旧行为透传前端历史（向后兼容）
+  const lastUserInput = [...inputMessages].reverse().find((m) => m.role === 'user')
+  const streamMessages: Array<Record<string, unknown>> = resolved.history
+    ? [...resolved.history, ...(lastUserInput ? [{ role: 'user', content: lastUserInput.content }] : [])]
+    : inputMessages
+
   const result = streamText({
     model: provider.chat(resolved.model),
     system: resolved.system_prompt || undefined,
-    messages: inputMessages,
+    messages: streamMessages as never,
     temperature: resolved.temperature,
     maxTokens: resolved.max_tokens,
-    tools: buildTools(resolved, auth, streamAbort.signal),
+    tools: buildTools(resolved, auth, toolResults, streamAbort.signal),
     maxSteps: Math.max(1, resolved.max_tool_calls) + 1,
     abortSignal: streamAbort.signal,
     onError: ({ error }) => {
@@ -474,7 +513,6 @@ app.post('/chat', async (c) => {
       // 4. 本轮消息落库（落库语义归 PHP，Node 仅搬运；失败仅告警）
       if (resolved.conversation_id) {
         try {
-          const lastUser = [...inputMessages].reverse().find((m) => m.role === 'user')
           // 拼接所有 steps 的文本：纯工具调用轮的中间步骤文本不丢，
           // 避免 assistant 轮落库空 content 后历史接口过滤导致刷新丢消息
           const fullText = (steps ?? [])
@@ -488,9 +526,12 @@ app.post('/chat', async (c) => {
           await phpPost('/ai-streaming/messages/report', auth, {
             conversation_id: resolved.conversation_id,
             agent_id: resolved.agent_id,
-            user_message: lastUser?.content ?? null,
+            user_message: lastUserInput?.content ?? null,
             assistant_message: fullText,
             tool_calls: toolCalls,
+            // 流内工具结果：PHP 在 assistant 消息之后逐条落 role=tool，
+            // 下一轮经服务端历史重建回到模型上下文（老 PHP 不识别该字段时忽略，向后兼容）
+            tool_results: toolResults,
           })
         } catch (error) {
           console.error('[ai-streaming] message report failed:', error)

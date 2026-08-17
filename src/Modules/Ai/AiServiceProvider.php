@@ -31,6 +31,7 @@ use MultiTenantSaas\Modules\Ai\Services\Agent\HeadlessAgentService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\MemoryCompressor;
 use MultiTenantSaas\Modules\Ai\Services\Agent\MemoryPipeline;
 use MultiTenantSaas\Modules\Ai\Services\Agent\PromptService;
+use MultiTenantSaas\Modules\Ai\Services\Agent\StreamHistoryBuilder;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolConversationContext;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
 use MultiTenantSaas\Modules\Ai\Services\Ai\AiGatewayService;
@@ -123,6 +124,7 @@ class AiServiceProvider extends ModuleServiceProvider
         $this->app->singleton(AuditLogService::class, fn ($app) => new AuditLogService($app->make(TenantContextContract::class)));
         $this->app->singleton(AgentToolExecutor::class, fn ($app) => new AgentToolExecutor($app->make(ToolRegistryContract::class), $app->make(AgentMonitorContract::class), $app->make(ActionConfirmService::class)));
         $this->app->singleton(AgentContextBuilder::class, fn ($app) => new AgentContextBuilder($app->make(AgentToolExecutor::class), $app->make(TenantContextContract::class), $app->bound(PromptService::class) ? $app->make(PromptService::class) : null, $app->bound(MemoryPipeline::class) ? $app->make(MemoryPipeline::class) : null, $app->bound(MemoryCompressor::class) ? $app->make(MemoryCompressor::class) : null));
+        $this->app->singleton(StreamHistoryBuilder::class, fn ($app) => new StreamHistoryBuilder($app->make(AgentToolExecutor::class)));
         $this->app->singleton(AgentChatClient::class, fn ($app) => new AgentChatClient($app->make(AiTextServiceContract::class), $app->make(ToolRegistryContract::class)));
         $this->app->singleton(AgentRuntimeContract::class, fn ($app) => new AgentRuntime($app->make(AgentToolExecutor::class), $app->make(AgentContextBuilder::class), $app->make(AgentChatClient::class), $app->make(ToolRegistryContract::class), $app->make(AgentMonitorContract::class), $app->make(TenantContextContract::class), $app->bound(WorkflowEngineContract::class) ? $app->make(WorkflowEngineContract::class) : null, $app->bound(MemoryCompressor::class) ? $app->make(MemoryCompressor::class) : null));
         $this->app->alias(AgentRuntimeContract::class, AgentRuntime::class);

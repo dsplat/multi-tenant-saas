@@ -7,12 +7,13 @@ use Illuminate\Support\Collection;
 /**
  * 预置 Agent 模板定义数据
  *
- * 框架层提供系统小秘书（展示序号 seq=0，即“第 0 号数字员工”）+ 8 个角色骨架空模板
+ * 框架层提供系统小秘书（定义首位，展示序号 seq=0 由 AgentTemplateRegistry
+ * 按定义顺序派生，即“第 0 号数字员工”）+ 8 个角色骨架空模板
  * （客服/销售/营销/数据分析等），feature_keys 留空由业务层填充。
  * 本类为纯数据类，不含任何业务逻辑。
  *
  * 注意：template_id 是标识符，一律从 1 起编（0 为 falsy 值，禁用作 ID）；
- * “第 0 号”是 seq 展示序号，与 ID 无关。
+ * “第 0 号”是 seq 展示序号，与 ID 无关，seq 不在此手写（Registry 派生）。
  *
  * @see AgentService::getBuiltinTemplates()
  * @see AgentService::cloneFromTemplate()
@@ -47,7 +48,6 @@ final class BuiltinAgentTemplates
      *
      * @return list<array{
      *     template_id: int,
-     *     seq: int,
      *     template_key: string,
      *     role: string,
      *     name: string,
@@ -55,6 +55,7 @@ final class BuiltinAgentTemplates
      *     description: string,
      *     system_prompt: string,
      *     tools: list<string>,
+     *     optional_tools?: list<string>,
      *     kb_ids: list<int>,
      *     feature_keys: list<string>,
      *     model_config: array<string, mixed>,
@@ -71,30 +72,31 @@ final class BuiltinAgentTemplates
         self::$cache = [
             [
                 'template_id' => 9,
-                'seq' => 0,
                 'template_key' => 'system_secretary',
                 'role' => 'system_secretary',
                 'name' => '系统小秘书',
                 'avatar' => '',
                 'description' => '系统总入口与总调度：回答系统怎么用、功能在哪里，带你跳转页面，并把专业事务转派给合适的数字员工。',
                 'system_prompt' => self::secretarySystemPrompt(),
-                // 前 17 个为框架秘书专属工具（含任务链三工具 + campaign 三工具 +
-                // 工作脉络三工具，引擎关闭时未注册自动跳过）；
-                // 其余为下游 L2 代操作工具（未注册时 getToolDefinitions 自动跳过，
-                // 纯框架部署不受影响；L2 均经确认门 + 审计）
+                // 框架注册工具（含任务链三工具 + campaign 三工具 + 工作脉络三工具，
+                // 对应引擎开关关闭时未注册，由契约测试在开关全开下校验注册完整性）
                 'tools' => [
                     'system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'ask_user_choice', 'suggest_kb_update', 'list_agents', 'delegate_to_agent', 'enable_agent', 'fetch_site_metadata', 'update_tenant_branding', 'update_tenant_settings', 'update_tenant_domain',
                     'list_task_chains', 'start_task_chain', 'advance_task_chain',
                     'campaign_plan_draft', 'campaign_plan_commit', 'campaign_status',
                     'thread_review', 'thread_track', 'thread_untrack',
+                    'create_product', 'product_list', 'coupon_list', 'sms_list_templates',
+                ],
+                // 下游 L2 代操作工具 + 前置查询配套（下游扩展，纯框架部署未注册时
+                // 静默跳过属设计意图；L2 均经确认门 + 审计）
+                'optional_tools' => [
                     'tag_customer', 'create_script_draft', 'save_oauth_config', 'create_distribution_plan',
-                    'manage_tags', 'ai_auto_tag', 'create_live_code', 'send_message', 'create_product', 'issue_coupon',
+                    'manage_tags', 'ai_auto_tag', 'create_live_code', 'send_message', 'issue_coupon',
                     'create_sms_signature', 'send_sms_batch', 'schedule_sms_batch', 'create_poster',
                     'adjust_points', 'create_moments_sop', 'create_mass_push',
                     // 代操作前置查询配套（确认对象/模板/余额后再发起写操作）
                     'search_customer', 'get_customer_tags', 'list_coupon_templates', 'list_poster_templates',
-                    'get_points_balance', 'list_sms_signatures', 'sms_list_templates', 'list_moments_sop',
-                    'list_mass_push', 'product_list', 'coupon_list',
+                    'get_points_balance', 'list_sms_signatures', 'list_moments_sop', 'list_mass_push',
                 ],
                 'kb_ids' => [],
                 'feature_keys' => [],
@@ -102,7 +104,6 @@ final class BuiltinAgentTemplates
             ],
             [
                 'template_id' => 1,
-                'seq' => 1,
                 'template_key' => 'customer_service',
                 'role' => 'customer_service',
                 'name' => '客服专员',
@@ -116,7 +117,6 @@ final class BuiltinAgentTemplates
             ],
             [
                 'template_id' => 2,
-                'seq' => 2,
                 'template_key' => 'sales',
                 'role' => 'sales',
                 'name' => '销售顾问',
@@ -130,7 +130,6 @@ final class BuiltinAgentTemplates
             ],
             [
                 'template_id' => 3,
-                'seq' => 3,
                 'template_key' => 'marketing',
                 'role' => 'marketing',
                 'name' => '营销专员',
@@ -147,7 +146,6 @@ final class BuiltinAgentTemplates
             ],
             [
                 'template_id' => 4,
-                'seq' => 4,
                 'template_key' => 'data_analyst',
                 'role' => 'data_analyst',
                 'name' => '数据分析师',
@@ -161,7 +159,6 @@ final class BuiltinAgentTemplates
             ],
             [
                 'template_id' => 5,
-                'seq' => 5,
                 'template_key' => 'operations',
                 'role' => 'operations',
                 'name' => '运营专员',
@@ -175,7 +172,6 @@ final class BuiltinAgentTemplates
             ],
             [
                 'template_id' => 6,
-                'seq' => 6,
                 'template_key' => 'hr',
                 'role' => 'hr',
                 'name' => '人力资源',
@@ -189,7 +185,6 @@ final class BuiltinAgentTemplates
             ],
             [
                 'template_id' => 7,
-                'seq' => 7,
                 'template_key' => 'finance',
                 'role' => 'finance',
                 'name' => '财务助手',
@@ -203,7 +198,6 @@ final class BuiltinAgentTemplates
             ],
             [
                 'template_id' => 8,
-                'seq' => 8,
                 'template_key' => 'tech_support',
                 'role' => 'tech_support',
                 'name' => '技术支持',
@@ -267,7 +261,7 @@ final class BuiltinAgentTemplates
     }
 
     /**
-     * 默认 model_config（合并 config/ai.php 默认值的骨架）
+     * 默认 model_config（单一事实源：全量读 config/ai.php 的 agents.defaults 段）
      *
      * @return array{
      *     preferred_provider: string,
@@ -287,9 +281,9 @@ final class BuiltinAgentTemplates
             'preferred_model' => (string) config('ai.default_model', 'gpt-4o-mini'),
             'fallback_provider' => '',
             'fallback_model' => '',
-            'temperature' => 0.7,
-            'max_tokens' => 2000,
-            'max_tool_calls' => 5,
+            'temperature' => (float) config('ai.agents.defaults.temperature', 0.7),
+            'max_tokens' => (int) config('ai.agents.defaults.max_tokens', 2000),
+            'max_tool_calls' => (int) config('ai.agents.defaults.max_tool_calls', 5),
             'stream' => true,
         ];
     }

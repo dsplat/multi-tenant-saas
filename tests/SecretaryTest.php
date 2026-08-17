@@ -11,6 +11,7 @@ use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentChatClient;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentService;
+use MultiTenantSaas\Modules\Ai\Services\Agent\AgentTemplateRegistry;
 use MultiTenantSaas\Modules\Ai\Services\Agent\BuiltinAgentTemplates;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Tests\Schema\AgentModule;
@@ -30,6 +31,7 @@ class SecretaryTest extends TestCase
         parent::setUp();
 
         BuiltinAgentTemplates::clearCache();
+        AgentTemplateRegistry::flush();
         TenantContext::setTenantId('1001');
     }
 
@@ -37,14 +39,16 @@ class SecretaryTest extends TestCase
     {
         Mockery::close();
         BuiltinAgentTemplates::clearCache();
+        AgentTemplateRegistry::flush();
         parent::tearDown();
     }
 
-    // ---------- 小秘书模板（seq=0，template_id 不硬编码） ----------
+    // ---------- 小秘书模板（seq=0 由 Registry 派生，template_id 不硬编码） ----------
 
     public function test_secretary_template_exists_with_seq_zero(): void
     {
-        $template = BuiltinAgentTemplates::findByKey('system_secretary');
+        // seq 由 AgentTemplateRegistry 按定义顺序派生（唯一事实源）
+        $template = AgentTemplateRegistry::findByKey('system_secretary');
 
         $this->assertNotNull($template);
         $this->assertEquals(0, $template['seq']);
@@ -55,7 +59,7 @@ class SecretaryTest extends TestCase
 
     public function test_secretary_template_is_first_in_definitions(): void
     {
-        $definitions = BuiltinAgentTemplates::definitions();
+        $definitions = AgentTemplateRegistry::definitions();
 
         $this->assertEquals(0, $definitions[0]['seq']);
         $this->assertEquals('system_secretary', $definitions[0]['template_key']);
@@ -65,22 +69,29 @@ class SecretaryTest extends TestCase
     {
         $template = BuiltinAgentTemplates::findByKey('system_secretary');
 
+        // tools：框架注册工具（必须已注册，缺失即失败，由 AgentTemplateToolsConsistencyTest 守门）
         $this->assertEquals(
             [
                 'system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'ask_user_choice', 'suggest_kb_update', 'list_agents', 'delegate_to_agent', 'enable_agent', 'fetch_site_metadata', 'update_tenant_branding', 'update_tenant_settings', 'update_tenant_domain',
                 'list_task_chains', 'start_task_chain', 'advance_task_chain',
                 'campaign_plan_draft', 'campaign_plan_commit', 'campaign_status',
                 'thread_review', 'thread_track', 'thread_untrack',
-                'tag_customer', 'create_script_draft', 'save_oauth_config', 'create_distribution_plan',
-                'manage_tags', 'ai_auto_tag', 'create_live_code', 'send_message', 'create_product', 'issue_coupon',
-                'create_sms_signature', 'send_sms_batch', 'schedule_sms_batch', 'create_poster',
-                'adjust_points', 'create_moments_sop', 'create_mass_push',
-                // 代操作前置查询配套（确认对象/模板/余额后再发起写操作）
-                'search_customer', 'get_customer_tags', 'list_coupon_templates', 'list_poster_templates',
-                'get_points_balance', 'list_sms_signatures', 'sms_list_templates', 'list_moments_sop',
-                'list_mass_push', 'product_list', 'coupon_list',
+                'create_product', 'product_list', 'coupon_list', 'sms_list_templates',
             ],
             $template['tools']
+        );
+
+        // optional_tools：下游 L2 代操作工具 + 前置查询配套（未注册静默跳过属设计意图）
+        $this->assertEquals(
+            [
+                'tag_customer', 'create_script_draft', 'save_oauth_config', 'create_distribution_plan',
+                'manage_tags', 'ai_auto_tag', 'create_live_code', 'send_message', 'issue_coupon',
+                'create_sms_signature', 'send_sms_batch', 'schedule_sms_batch', 'create_poster',
+                'adjust_points', 'create_moments_sop', 'create_mass_push',
+                'search_customer', 'get_customer_tags', 'list_coupon_templates', 'list_poster_templates',
+                'get_points_balance', 'list_sms_signatures', 'list_moments_sop', 'list_mass_push',
+            ],
+            $template['optional_tools']
         );
     }
 

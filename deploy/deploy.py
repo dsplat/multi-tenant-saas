@@ -25,16 +25,19 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 CONFIG_FILE = SCRIPT_DIR / "config.env"
 
-# 拆包映射（源自 .github/workflows/split.yml）：PascalCase -> kebab
+# 拆包映射（与 .github/workflows/split.yml 逐条对齐，新增模块两处同步）：PascalCase -> kebab
 MODULE_MAP = {
-    "Ai": "ai", "ApiToken": "api-token", "Auth": "auth", "Billing": "billing",
-    "Conversation": "conversation", "Coupon": "coupon",
-    "DeveloperPortal": "developer-portal", "Domain": "domain", "Event": "event",
-    "Form": "form", "Infrastructure": "infrastructure", "Logging": "logging",
-    "Lottery": "lottery", "Monitoring": "monitoring", "Notification": "notification",
-    "Operator": "operator", "Payment": "payment", "Platform": "platform",
-    "Plugin": "plugin", "Sms": "sms", "SSL": "ssl", "Storage": "storage",
-    "User": "user", "Voting": "voting", "Workflow": "workflow",
+    "Ai": "ai", "AiStreaming": "ai-streaming", "ApiToken": "api-token", "Auth": "auth",
+    "Billing": "billing", "Campaign": "campaign", "Commerce": "commerce",
+    "Contracts": "contracts", "Conversation": "conversation", "Coupon": "coupon",
+    "Course": "course", "DeveloperPortal": "developer-portal", "Domain": "domain",
+    "Event": "event", "Form": "form", "Ibot": "ibot",
+    "Infrastructure": "infrastructure", "Knowledge": "knowledge", "Logging": "logging",
+    "Logistics": "logistics", "Lottery": "lottery", "Monitoring": "monitoring",
+    "Notification": "notification", "Operator": "operator", "Order": "order",
+    "Pay": "pay", "Payment": "payment", "Platform": "platform", "Plugin": "plugin",
+    "Product": "product", "Sms": "sms", "SSL": "ssl", "Storage": "storage",
+    "Ticket": "ticket", "User": "user", "Voting": "voting", "Workflow": "workflow",
 }
 # 根包包含的顶层目录（src/Modules 单独走拆分包）
 ROOT_DIRS = ["src", "app", "config", "database", "resources", "lang", "routes", "stubs"]

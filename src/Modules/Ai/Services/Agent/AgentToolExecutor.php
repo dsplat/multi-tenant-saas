@@ -101,8 +101,9 @@ class AgentToolExecutor
             $role = $msg['role'] ?? '';
 
             if ($role !== 'assistant' || empty($msg['tool_calls'])) {
-                if ($role === 'tool' && empty($msg['tool_call_id'])) {
-                    // 前方无 assistant.tool_calls 可配对的孤儿 tool 消息 → 降级保留信息
+                if ($role === 'tool') {
+                    // 不在任何 assistant.tool_calls 组内的 tool 消息无论有无 id 均无法配对
+                    // （assistant 分支已消费紧随的 tool 段），协议上必须降级保留信息
                     $msg = ['role' => 'user', 'content' => '[工具执行结果] ' . ($msg['content'] ?? '')];
                 }
                 unset($msg['_tool_name']);

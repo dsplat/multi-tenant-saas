@@ -154,6 +154,11 @@ const CHAIN_LABELS: Record<string, string> = {
   demo_poster_flow: '海报生成流程',
 }
 
+/** 常见锚点名 → 可读词条（锚点纪律：全计划统一用 event.starts_at；未收录锚点仅展示时间值） */
+const ANCHOR_LABELS: Record<string, string> = {
+  'event.starts_at': '活动开始时间',
+}
+
 /** 单行超长截断阈值（确认卡片只看要点） */
 const MAX_FIELD_VALUE_LENGTH = 120
 
@@ -174,6 +179,21 @@ export function friendlyFieldEntries(
     if (key === 'chain_key') {
       const label = CHAIN_LABELS[String(value)]
       if (label) entries.push({ key: '任务链', value: label })
+      continue
+    }
+
+    // 锚点时间映射：原始键名（如 event.starts_at）对用户无意义，
+    // 转为「关键时间：活动开始时间 2026-08-20 00:00」的可读形式
+    if (key === 'anchor_times' && typeof value === 'object' && value !== null) {
+      const parts = Object.entries(value as Record<string, unknown>)
+        .map(([anchor, dt]) => {
+          const time = String(dt ?? '').trim()
+          if (!time) return ''
+          const label = ANCHOR_LABELS[anchor]
+          return label ? `${label} ${time}` : time
+        })
+        .filter((t) => t !== '')
+      if (parts.length) entries.push({ key: '关键时间', value: parts.join('；') })
       continue
     }
 

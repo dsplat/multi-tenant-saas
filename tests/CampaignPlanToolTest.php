@@ -181,6 +181,9 @@ class CampaignPlanToolTest extends TestCase
         $this->assertSame(1, $result['tasks_count']);
         $this->assertNotEmpty($result['timeline_preview']);
         $this->assertSame('sms_d1', $result['timeline_preview'][0]['key']);
+        // 定稿后必带下一步指引（营销内容准备），不得依赖模型自由发挥
+        $this->assertNotEmpty($result['next_action']);
+        $this->assertStringContainsString('营销内容准备', $result['next_action']);
 
         // 验证 DB 任务
         $tasks = CampaignTask::where('plan_id', $plan->plan_id)->get();

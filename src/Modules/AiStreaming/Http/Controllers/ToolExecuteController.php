@@ -99,7 +99,7 @@ class ToolExecuteController extends AiStreamingController
                 'success' => true,
                 'data' => ['result' => [
                     'action' => 'pending_confirmation',
-                    'status' => '已提交用户确认，等待用户在确认卡片上操作。不要重复调用该工具，告知用户确认后将自动执行即可。',
+                    'status' => '已提交用户确认，等待用户在确认卡片上操作。确认卡片展示在本条回复下方的对话区（向用户描述卡片位置时只说「下方」，严禁说「上方」）。不要重复调用该工具，告知用户确认后将自动执行即可。',
                     'token' => $issued['token'],
                     'args_hash' => $issued['args_hash'],
                     'expires_in' => $issued['expires_in'],

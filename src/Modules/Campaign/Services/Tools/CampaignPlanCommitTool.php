@@ -125,6 +125,11 @@ class CampaignPlanCommitTool implements ToolHandlerContract
                 'trigger_type' => $task->trigger_type,
                 'execution_mode' => $task->execution_mode,
             ])->values()->toArray(),
+            // 下一步指引（确定性事实源，不依赖模型自由发挥）：定稿后标准动作是
+            // 营销内容与物料准备；每项排期任务到点时系统会在对话中提示确认执行
+            'next_action' => '定稿成功。向用户播报结果后，主动引导下一步：活动进入「营销内容准备」阶段——'
+                . '如优惠券规则配置、推广文案、海报素材等，询问用户是否现在就开始准备（你能协助生成文案与素材）；'
+                . '并说明每项排期任务到达时间点时会在对话中提示确认执行，可在「活动日历」查看排期全貌。',
         ];
     }
 

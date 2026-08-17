@@ -2,7 +2,9 @@
 
 namespace MultiTenantSaas\Modules\Campaign\Services\Tools;
 
+use MultiTenantSaas\Modules\Ai\Models\AiTask;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
+use MultiTenantSaas\Modules\Ai\Services\Agent\ToolConversationContext;
 use MultiTenantSaas\Modules\Campaign\Events\CampaignPlanScheduled;
 use MultiTenantSaas\Modules\Campaign\Models\CampaignPlan;
 use MultiTenantSaas\Modules\Campaign\Services\PlanCompiler;
@@ -22,6 +24,7 @@ class CampaignPlanCommitTool implements ToolHandlerContract
 {
     public function __construct(
         private readonly PlanCompiler $compiler,
+        private readonly ?ToolConversationContext $conversationContext = null,
     ) {}
 
     public function __invoke(array $arguments, int $tenantId): mixed
@@ -29,17 +32,19 @@ class CampaignPlanCommitTool implements ToolHandlerContract
         $planId = (int) ($arguments['plan_id'] ?? 0);
         $anchorTimes = (array) ($arguments['anchor_times'] ?? []);
 
-        if ($planId <= 0) {
-            return ['error' => true, 'message' => '请提供 plan_id'];
-        }
-
-        // 1. 取计划
-        $plan = CampaignPlan::where('plan_id', $planId)
-            ->where('tenant_id', $tenantId)
-            ->first();
+        // 1. 取计划：传入 plan_id 有效则直取；无效/缺失时机械兑底。
+        // 背景：前端跨轮上行历史为纯文本，draft 工具结果（含 plan_id）
+        // 不随历史传递，新轮定稿时模型易幻觉 plan_id（如传 1）。
+        $plan = $planId > 0
+            ? CampaignPlan::where('plan_id', $planId)->where('tenant_id', $tenantId)->first()
+            : null;
 
         if ($plan === null) {
-            return ['error' => true, 'message' => "计划 [{$planId}] 不存在"];
+            $plan = $this->resolveFallbackPlan($tenantId);
+        }
+
+        if ($plan === null) {
+            return $this->planNotFoundError($planId, $tenantId);
         }
 
         if ($plan->status !== CampaignPlan::STATUS_PLANNING) {
@@ -120,6 +125,60 @@ class CampaignPlanCommitTool implements ToolHandlerContract
                 'trigger_type' => $task->trigger_type,
                 'execution_mode' => $task->execution_mode,
             ])->values()->toArray(),
+        ];
+    }
+
+    /**
+     * plan_id 无效时的机械兑底：取当前会话最近一次成功的 draft 任务结果里的 plan_id。
+     * 无会话上下文（运维直调等）或无 draft 任务时返回 null 交由错误分支。
+     */
+    private function resolveFallbackPlan(int $tenantId): ?CampaignPlan
+    {
+        $conversationId = $this->conversationContext?->get() ?? 0;
+
+        if ($conversationId <= 0) {
+            return null;
+        }
+
+        $task = AiTask::where('tenant_id', $tenantId)
+            ->where('conversation_id', $conversationId)
+            ->where('type', 'campaign_plan_draft')
+            ->where('status', AiTask::STATUS_COMPLETED)
+            ->orderByDesc('created_at')
+            ->first();
+
+        $fallbackPlanId = (int) ($task->result['plan_id'] ?? 0);
+
+        if ($fallbackPlanId <= 0) {
+            return null;
+        }
+
+        return CampaignPlan::where('plan_id', $fallbackPlanId)
+            ->where('tenant_id', $tenantId)
+            ->first();
+    }
+
+    /**
+     * 兑底也找不到计划：附当前租户 planning 计划清单引导 LLM 自愈重试
+     */
+    private function planNotFoundError(int $planId, int $tenantId): array
+    {
+        $candidates = CampaignPlan::where('tenant_id', $tenantId)
+            ->where('status', CampaignPlan::STATUS_PLANNING)
+            ->orderByDesc('created_at')
+            ->limit(3)
+            ->get()
+            ->map(fn ($p) => [
+                'plan_id' => (int) $p->plan_id,
+                'title' => (string) ($p->plan_doc['title'] ?? '未命名'),
+            ])->values()->toArray();
+
+        return [
+            'error' => true,
+            'message' => ($planId > 0 ? "计划 [{$planId}] 不存在。" : '请提供 plan_id。')
+                . 'plan_id 必须使用 campaign_plan_draft 返回结果中的真实编号（长数字，不得自行编造）。'
+                . ($candidates !== [] ? '当前可定稿的计划见 planning_plans 字段。' : ''),
+            'planning_plans' => $candidates,
         ];
     }
 }

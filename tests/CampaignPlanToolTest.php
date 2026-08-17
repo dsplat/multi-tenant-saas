@@ -7,6 +7,7 @@ use MultiTenantSaas\Contracts\AiTextServiceContract;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Ai\Models\AiTask;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
+use MultiTenantSaas\Modules\Ai\Services\Agent\ToolConversationContext;
 use MultiTenantSaas\Modules\Ai\Services\Ai\AiResponse;
 use MultiTenantSaas\Modules\Ai\Services\AiTask\AiTaskHandlerRegistry;
 use MultiTenantSaas\Modules\Campaign\Models\CampaignPlan;
@@ -233,6 +234,63 @@ class CampaignPlanToolTest extends TestCase
 
         $this->assertTrue($result['error']);
         $this->assertStringContainsString('planning', $result['message']);
+    }
+
+    /**
+     * 跨轮历史纯文本丢失 draft 结果的 plan_id，模型幻觉传短数字（如 1）：
+     * commit 应从当前会话最近成功的 draft 任务结果机械兑底出真实计划
+     */
+    public function test_commit_falls_back_to_latest_draft_result_when_plan_id_invalid(): void
+    {
+        $this->registerStubTool('send_sms');
+
+        $plan = CampaignPlan::create([
+            'tenant_id' => self::TENANT,
+            'plan_doc' => $this->validPlanDoc(),
+            'status' => CampaignPlan::STATUS_PLANNING,
+            'created_by' => 0,
+        ]);
+
+        AiTask::create([
+            'tenant_id' => self::TENANT,
+            'conversation_id' => 777,
+            'type' => 'campaign_plan_draft',
+            'status' => AiTask::STATUS_COMPLETED,
+            'payload' => [],
+            'result' => ['plan_id' => $plan->plan_id],
+        ]);
+
+        $this->app->make(ToolConversationContext::class)->set(777);
+
+        $tool = $this->app->make(CampaignPlanCommitTool::class);
+        $result = $tool([
+            'plan_id' => 1, // 幻觉编号
+            'anchor_times' => ['event.starts_at' => '2026-09-01 09:00'],
+        ], self::TENANT);
+
+        $this->assertFalse($result['error'] ?? false);
+        $this->assertSame((int) $plan->plan_id, (int) $result['plan_id']);
+        $this->assertSame('scheduled', $result['status']);
+    }
+
+    /**
+     * 无会话上下文且无可兑底 draft：错误附 planning 计划清单引导 LLM 自愈重试
+     */
+    public function test_commit_error_lists_planning_plans_when_no_fallback(): void
+    {
+        $plan = CampaignPlan::create([
+            'tenant_id' => self::TENANT,
+            'plan_doc' => $this->validPlanDoc(),
+            'status' => CampaignPlan::STATUS_PLANNING,
+            'created_by' => 0,
+        ]);
+
+        $tool = new CampaignPlanCommitTool($this->app->make(PlanCompiler::class));
+        $result = $tool(['plan_id' => 1], self::TENANT);
+
+        $this->assertTrue($result['error']);
+        $this->assertNotEmpty($result['planning_plans']);
+        $this->assertSame((int) $plan->plan_id, $result['planning_plans'][0]['plan_id']);
     }
 
     public function test_commit_returns_validation_errors(): void

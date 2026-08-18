@@ -56,6 +56,10 @@ class DelegateToAgentTool implements ToolHandlerContract
             'agent_role' => $agent->role,
             'reason' => trim((string) ($arguments['reason'] ?? '')),
             'handoff_message' => trim((string) ($arguments['handoff_message'] ?? '')),
+            // 表述锁（确定性事实源）：转派是确定性路由，前端自动完成，
+            // 仅首次开通员工（enable_agent L2 确认卡）需要用户确认
+            'status' => '转派指令已下发，前端将自动完成转接并把交接消息发给目标员工，全程无需用户点击或确认。'
+                . '简短告知用户已转交给该员工即可，严禁让用户「点击按钮」，严禁再用 ask_user_choice 征询。',
         ];
     }
 

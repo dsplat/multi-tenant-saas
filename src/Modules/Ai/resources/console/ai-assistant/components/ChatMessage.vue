@@ -108,12 +108,22 @@ const navigateActions = computed(() =>
     .filter(a => typeof a.route_path === 'string' && a.route_path.startsWith('/')),
 )
 
-/** 秘书 delegate 转派：从 toolCalls 提取转派指令 */
+/** 秘书 delegate 转派：以工具结果为准（后端校验过的真实 agent_id/名称），
+ * 调用参数只作兜底——模型可能传 role 标识而非长数字 id */
 const delegateActions = computed(() =>
   (props.message.toolCalls || [])
     .filter(c => toolName(c) === 'delegate_to_agent')
-    .map(c => parseArgs(c))
-    .filter(a => a.agent_id),
+    .map((c) => {
+      const args = parseArgs(c)
+      const res = (c as any).result ?? {}
+      return {
+        agentId: String(res.agent_id ?? args.agent_id ?? ''),
+        agentName: String(res.agent_name ?? args.agent_name ?? ''),
+        handoffMessage: String(args.handoff_message ?? ''),
+        verified: res.action === 'delegate',
+      }
+    })
+    .filter(d => d.agentId && d.verified),
 )
 
 function handleNavigate(routePath: string) {
@@ -133,18 +143,26 @@ function isLatestAssistantMessage(): boolean {
   return lastAssistant?.id === props.message.id
 }
 
-/** 尝试自动转接（onMounted + watch 共用） */
+/** 尝试自动转接（onMounted + watch 共用）：转派是确定性路由，全程无需用户点击 */
 function tryAutoDelegate() {
   if (autoDelegated.value || isUser.value) return
+  if (store.isDelegated(props.message.id)) {
+    autoDelegated.value = true
+    return
+  }
   if (!isLatestAssistantMessage()) return
   const delegates = delegateActions.value
   if (delegates.length === 0) return
+  // 秘书本轮尚未结束（工具返回后模型还要继续播报）：此时发交接消息会被
+  // handleSend 的 streaming 守卫拦下，不置位门控，等流结束 watch 重试
+  if (store.streaming) return
   autoDelegated.value = true
+  store.markDelegated(props.message.id)
   const d = delegates[0]
   emit('delegate', {
-    agentId: String(d.agent_id),
-    agentName: String(d.agent_name || ''),
-    handoffMessage: String(d.handoff_message || ''),
+    agentId: d.agentId,
+    agentName: d.agentName,
+    handoffMessage: d.handoffMessage,
   })
 }
 
@@ -181,11 +199,18 @@ watch(delegateActions, (newVal) => {
   if (newVal.length > 0) tryAutoDelegate()
 })
 
+/** 流结束重试：转派结果先于秘书结束语到达时，等 streaming 置 false 后再自动转接 */
+watch(() => store.streaming, (v) => {
+  if (!v) tryAutoDelegate()
+})
+
 function handleDelegate(a: Record<string, any>) {
+  autoDelegated.value = true
+  store.markDelegated(props.message.id)
   emit('delegate', {
-    agentId: String(a.agent_id),
-    agentName: String(a.agent_name || ''),
-    handoffMessage: String(a.handoff_message || ''),
+    agentId: String(a.agentId ?? a.agent_id),
+    agentName: String(a.agentName ?? a.agent_name ?? ''),
+    handoffMessage: String(a.handoffMessage ?? a.handoff_message ?? ''),
   })
 }
 
@@ -262,16 +287,14 @@ function handleChoice(answers: string[]) {
         {{ nav.label || nav.route_path }}
       </button>
 
-      <!-- 秘书转派：delegate 接手按钮 -->
-      <button
-        v-for="(d, i) in delegateActions"
-        :key="'dlg' + i"
-        class="msg-action-btn"
-        @click="handleDelegate(d)"
-      >
-        <span class="action-arrow">⇄</span>
-        转接给 {{ d.agent_name || '数字员工' }}
-      </button>
+      <!-- 秘书转派：自动执行后展示已转接状态；未自动执行时才保留兜底按钮 -->
+      <template v-for="(d, i) in delegateActions" :key="'dlg' + i">
+        <span v-if="autoDelegated" class="delegate-done">⇄ 已转接给「{{ d.agentName || '数字员工' }}」</span>
+        <button v-else class="msg-action-btn" @click="handleDelegate(d)">
+          <span class="action-arrow">⇄</span>
+          转接给 {{ d.agentName || '数字员工' }}
+        </button>
+      </template>
 
       <!-- 表单填充建议卡片 -->
       <FormFillCard v-if="message.formFill" :suggestion="message.formFill" />
@@ -418,6 +441,19 @@ function handleChoice(answers: string[]) {
   font-weight: 500;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
+  align-self: flex-start;
+}
+
+/* 已自动转接状态（非交互）：转派是确定性路由，自动执行后不再需要用户点击 */
+.delegate-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #0a9e6c;
+  font-size: 12px;
   align-self: flex-start;
 }
 .msg-action-btn:hover {

@@ -147,6 +147,9 @@ class SecretaryToolsTest extends TestCase
         $this->assertEquals('marketing', $result['agent_role']);
         $this->assertEquals('需要写文案', $result['reason']);
         $this->assertEquals('请帮用户写一篇活动文案', $result['handoff_message']);
+        // 表述锁：转派自动完成，严禁模型让用户点击/确认
+        $this->assertNotEmpty($result['status']);
+        $this->assertStringContainsString('无需用户点击或确认', $result['status']);
     }
 
     public function test_delegate_rejects_missing_agent_id(): void

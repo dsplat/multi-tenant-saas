@@ -263,7 +263,7 @@ async function handleSend(text?: string) {
     },
     onText: (t) => store.appendText(assistantMsg.id, t),
     onToolCall: (calls) => store.appendToolCalls(assistantMsg.id, calls),
-    onToolResult: (toolCallId, result) => store.completeToolCall(assistantMsg.id, toolCallId, !!result?.error),
+    onToolResult: (toolCallId, result) => store.completeToolCall(assistantMsg.id, toolCallId, !!result?.error, result),
     onFormFill: (suggestion) => store.setFormFill(assistantMsg.id, suggestion),
     onWorkflow: (wf) => store.setWorkflow(assistantMsg.id, wf),
     onPendingConfirmation: (confirm) => store.setActionConfirm(assistantMsg.id, confirm),

@@ -88,6 +88,8 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   const targetAgentName = ref<string | null>(persisted?.agentName ?? null)
   /** 历史恢复是否已尝试过（避免重复拉取） */
   const hydrated = ref(false)
+  /** 已自动转派的消息 ID（会话级去重：组件重挂载/流结束重触发时不再重复转派） */
+  const delegatedMsgIds = new Set<string>()
 
   // ─── 计算属性 ─────────────────────────────────────────────
   /** 最终是否展示助手入口（用户未关闭即显示浮动按钮，可用性仅影响面板内容） */
@@ -174,11 +176,14 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     if (msg) msg.toolCalls = [...(msg.toolCalls || []), ...calls]
   }
 
-  /** 工具结果到达：按 toolCallId 回填卡片执行状态 */
-  function completeToolCall(msgId: string, toolCallId: string, isError = false) {
+  /** 工具结果到达：按 toolCallId 回填卡片执行状态，并留存结果（delegate 等结构化指令从中取后端校验过的真实字段） */
+  function completeToolCall(msgId: string, toolCallId: string, isError = false, result: any = null) {
     const msg = messages.value.find((m: ChatMessage) => m.id === msgId)
     const call = msg?.toolCalls?.find((c: ToolCall) => c.id === toolCallId)
-    if (call) call.status = isError ? 'error' : 'done'
+    if (call) {
+      call.status = isError ? 'error' : 'done'
+      if (result) call.result = result
+    }
   }
 
   /** 向指定 assistant 消息设置表单填充建议 */
@@ -293,6 +298,15 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     persistConversation()
   }
 
+  /** 标记消息已自动转派（防重复） */
+  function markDelegated(msgId: string) {
+    delegatedMsgIds.add(msgId)
+  }
+
+  function isDelegated(msgId: string): boolean {
+    return delegatedMsgIds.has(msgId)
+  }
+
   /** 用历史消息恢复面板（刷新后调用；已有对话时不覆盖） */
   function hydrateMessages(list: HistoryMessage[]) {
     hydrated.value = true
@@ -349,7 +363,7 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     openPanel, closePanel, togglePin,
     pushUserMessage, startAssistantMessage, appendText, appendToolCalls, completeToolCall, setFormFill, setWorkflow,
     setActionConfirm, updateActionConfirmStatus, setUserChoice, setUserChoiceAnswered, pushAssistantMessage,
-    finishMessage, pushError, setStreaming, setConversationId, setTargetAgent, clearMessages,
+    finishMessage, pushError, setStreaming, setConversationId, setTargetAgent, markDelegated, isDelegated, clearMessages,
     switchConversation, startNewConversation,
     hydrateMessages, markHydrated,
   }

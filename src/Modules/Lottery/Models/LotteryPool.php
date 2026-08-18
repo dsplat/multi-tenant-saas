@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 抽奖池模型（遗留）
@@ -16,6 +17,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class LotteryPool extends Model
 {
+    use SerializesFriendlyDates;
     use HasFactory, HasGlobalId;
 
     protected $primaryKey = 'id';

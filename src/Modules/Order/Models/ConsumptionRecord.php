@@ -7,12 +7,14 @@ namespace MultiTenantSaas\Modules\Order\Models;
 use Illuminate\Database\Eloquent\Model;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 消费流水（订单支付成功时写入，现金/积分分轨）
  */
 class ConsumptionRecord extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId;
 
     protected $table = 'consumption_records';

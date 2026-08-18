@@ -7,6 +7,7 @@ namespace MultiTenantSaas\Modules\Commerce\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 商业体订单项
@@ -16,6 +17,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class CommerceOrderItem extends Model
 {
+    use SerializesFriendlyDates;
     use HasGlobalId;
 
     public const FULFILL_PENDING = 'pending';

@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Auth\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 多因素认证设备
@@ -16,6 +17,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class MfaDevice extends Model
 {
+    use SerializesFriendlyDates;
     use HasGlobalId;
 
     protected $primaryKey = 'mfa_device_id';

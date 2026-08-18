@@ -6,6 +6,7 @@ namespace MultiTenantSaas\Modules\Commerce\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 平台商品（SKU）
@@ -15,6 +16,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class CommerceSku extends Model
 {
+    use SerializesFriendlyDates;
     use HasGlobalId;
 
     public const ROLE_CONSUMER = 'consumer';

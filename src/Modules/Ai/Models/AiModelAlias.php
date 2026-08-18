@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Enums\AiModelEnum;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * AI 模型别名模型
@@ -19,6 +20,7 @@ use MultiTenantSaas\Enums\AiModelEnum;
  */
 class AiModelAlias extends Model
 {
+    use SerializesFriendlyDates;
     use HasFactory, HasGlobalId;
 
     protected $primaryKey = 'alias_id';

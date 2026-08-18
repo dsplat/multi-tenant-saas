@@ -15,9 +15,11 @@ use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Concerns\Searchable;
 use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 class User extends Authenticatable
 {
+    use SerializesFriendlyDates;
     use HasApiTokens, HasFactory, HasGlobalId, Notifiable, Searchable, SoftDeletes;
 
     protected array $searchable = ['name', 'email', 'phone'];

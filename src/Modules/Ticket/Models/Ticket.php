@@ -9,9 +9,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 class Ticket extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId, SoftDeletes;
 
     protected $primaryKey = 'ticket_id';

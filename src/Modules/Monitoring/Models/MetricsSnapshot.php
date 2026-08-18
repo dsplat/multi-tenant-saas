@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 指标快照
@@ -24,6 +25,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class MetricsSnapshot extends Model
 {
+    use SerializesFriendlyDates;
     use HasGlobalId;
 
     /** 粒度：分钟 */

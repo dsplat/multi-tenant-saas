@@ -10,9 +10,11 @@ use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 class CreditTransaction extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasFactory, HasGlobalId;
 
     protected $primaryKey = 'transaction_id';

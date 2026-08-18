@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Ai\Models;
 use Illuminate\Database\Eloquent\Model;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 任务链运行实例（docs/task-chain.md 第四节）
@@ -14,6 +15,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class TaskChainRun extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId;
 
     // 运行状态

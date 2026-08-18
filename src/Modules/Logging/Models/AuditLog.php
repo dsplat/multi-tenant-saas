@@ -6,12 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 审计日志模型
  */
 class AuditLog extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId;
 
     protected $primaryKey = 'log_id';

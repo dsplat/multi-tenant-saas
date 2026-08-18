@@ -5,12 +5,14 @@ namespace MultiTenantSaas\Modules\Ai\Models;
 use Illuminate\Database\Eloquent\Model;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * AI 审计日志模型
  */
 class AiAuditLog extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId;
 
     protected $primaryKey = 'audit_id';

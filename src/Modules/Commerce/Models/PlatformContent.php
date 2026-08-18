@@ -6,6 +6,7 @@ namespace MultiTenantSaas\Modules\Commerce\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 平台内容条目（内容库，平台级无 tenant_id）
@@ -14,6 +15,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class PlatformContent extends Model
 {
+    use SerializesFriendlyDates;
     use HasGlobalId;
 
     public const STATUS_DRAFT = 'draft';

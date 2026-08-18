@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 统一订单（一切交易皆订单）
@@ -19,6 +20,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class Order extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId, SoftDeletes;
 
     public const TYPE_REGISTRATION = 'registration';

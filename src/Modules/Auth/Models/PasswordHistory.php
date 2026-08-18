@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Auth\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 密码历史
@@ -17,6 +18,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class PasswordHistory extends Model
 {
+    use SerializesFriendlyDates;
     use HasGlobalId;
 
     protected $primaryKey = 'password_history_id';

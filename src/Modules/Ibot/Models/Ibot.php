@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * IM 机器人实例（租户级）
@@ -17,6 +18,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class Ibot extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId;
 
     // 频道类型

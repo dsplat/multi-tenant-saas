@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Crypt;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * AI 提供商模型
@@ -23,6 +24,7 @@ use MultiTenantSaas\Context\TenantContext;
  */
 class AiProvider extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasFactory, HasGlobalId;
 
     /**

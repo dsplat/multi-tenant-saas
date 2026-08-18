@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Crypt;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 用户 API Token 模型
@@ -16,6 +17,7 @@ use MultiTenantSaas\Modules\Auth\Models\User;
  */
 class UserApiToken extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, SoftDeletes;
 
     protected $table = 'user_api_tokens';

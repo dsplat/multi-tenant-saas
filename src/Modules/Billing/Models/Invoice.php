@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 发票模型
@@ -16,6 +17,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class Invoice extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasFactory, HasGlobalId;
 
     protected $primaryKey = 'invoice_id';

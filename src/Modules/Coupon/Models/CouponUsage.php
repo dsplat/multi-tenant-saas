@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 优惠券核销记录模型
@@ -19,6 +20,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class CouponUsage extends Model
 {
+    use SerializesFriendlyDates;
     use HasFactory, HasGlobalId;
 
     protected $primaryKey = 'coupon_usage_id';

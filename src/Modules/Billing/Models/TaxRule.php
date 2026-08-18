@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 税务规则模型
@@ -15,6 +16,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class TaxRule extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasFactory, HasGlobalId;
 
     protected $primaryKey = 'tax_rule_id';

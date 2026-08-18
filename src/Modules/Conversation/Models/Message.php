@@ -8,9 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 class Message extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasFactory, HasGlobalId;
 
     protected $primaryKey = 'message_id';

@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Modules\Operator\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * Operator-Tenant 关联表模型（Operator 直连租户模式）
@@ -20,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class OperatorTenant extends Model
 {
+    use SerializesFriendlyDates;
     protected $table = 'operator_tenants';
 
     protected $fillable = [

@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Infrastructure\Models;
 use Illuminate\Database\Eloquent\Model;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 白标品牌配置模型
@@ -14,6 +15,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class BrandingConfig extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId;
 
     protected $primaryKey = 'branding_config_id';

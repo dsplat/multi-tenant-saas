@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 租户申请模型
@@ -15,6 +16,7 @@ use MultiTenantSaas\Modules\Operator\Models\Operator;
  */
 class TenantApplication extends Model
 {
+    use SerializesFriendlyDates;
     use HasGlobalId;
 
     protected $primaryKey = 'application_id';

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * SSO 提供方（租户级 IdP 配置）
@@ -15,6 +16,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class SsoProvider extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId;
 
     public const TYPE_SAML = 'saml';

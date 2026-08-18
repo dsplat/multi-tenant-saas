@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 短信发送记录模型
@@ -14,6 +15,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class SmsSendLog extends Model
 {
+    use SerializesFriendlyDates;
     use HasFactory, HasGlobalId;
 
     protected $primaryKey = 'log_id';

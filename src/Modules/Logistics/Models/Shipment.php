@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 发货单（物流登记，不对接第三方快递 API）
@@ -16,6 +17,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class Shipment extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId, SoftDeletes;
 
     public const STATUS_PENDING = 'pending';      // 待发货

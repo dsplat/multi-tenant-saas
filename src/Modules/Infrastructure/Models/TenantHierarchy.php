@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Scopes\TenantScope;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 租户层级关系模型
@@ -26,6 +27,7 @@ use MultiTenantSaas\Scopes\TenantScope;
  */
 class TenantHierarchy extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId;
 
     /** 关系类型：子公司 */

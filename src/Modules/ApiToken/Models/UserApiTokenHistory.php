@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\ApiToken\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * API Token 轮换历史
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class UserApiTokenHistory extends Model
 {
+    use SerializesFriendlyDates;
     protected $table = 'user_api_token_histories';
 
     protected $primaryKey = 'id';

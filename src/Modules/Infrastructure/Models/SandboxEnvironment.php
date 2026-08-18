@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Infrastructure\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 沙箱环境
@@ -14,6 +15,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class SandboxEnvironment extends Model
 {
+    use SerializesFriendlyDates;
     use HasGlobalId;
 
     protected $primaryKey = 'sandbox_environment_id';

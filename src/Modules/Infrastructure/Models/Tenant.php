@@ -15,12 +15,14 @@ use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Concerns\Searchable;
 use MultiTenantSaas\Modules\Billing\Models\CreditAccount;
 use MultiTenantSaas\Modules\Billing\Models\SubscriptionPlan;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 租户模型
  */
 class Tenant extends Model
 {
+    use SerializesFriendlyDates;
     use HasFactory, HasGlobalId, Searchable, SoftDeletes;
 
     protected array $searchable = ['name', 'slug', 'contact_email'];

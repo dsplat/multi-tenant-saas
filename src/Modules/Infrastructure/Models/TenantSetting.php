@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Crypt;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Scopes\TenantScope;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 租户配置模型
@@ -19,6 +20,7 @@ use MultiTenantSaas\Scopes\TenantScope;
  */
 class TenantSetting extends Model
 {
+    use SerializesFriendlyDates;
     use HasGlobalId;
 
     protected $primaryKey = 'setting_id';

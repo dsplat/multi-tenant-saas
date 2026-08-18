@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 自定义报表
@@ -24,6 +25,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class CustomReport extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId, SoftDeletes;
 
     /** 状态：草稿 */

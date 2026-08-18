@@ -10,12 +10,14 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentTemplateRegistry;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * Agent 模型（数字员工）
  */
 class Agent extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasFactory, HasGlobalId;
 
     protected $primaryKey = 'agent_id';

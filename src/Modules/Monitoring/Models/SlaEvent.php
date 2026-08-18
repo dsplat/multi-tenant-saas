@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * SLA 事件
@@ -24,6 +25,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class SlaEvent extends Model
 {
+    use SerializesFriendlyDates;
     use HasGlobalId;
 
     /** 事件类型：停机 */

@@ -6,12 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 支付订单模型
  */
 class PaymentOrder extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId, SoftDeletes;
 
     protected $primaryKey = 'id';

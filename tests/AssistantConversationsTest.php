@@ -93,7 +93,10 @@ class AssistantConversationsTest extends TestCase
 
     protected function createConversation(int $tenantId = 1001, string $channel = 'assistant', ?string $subject = null, ?\DateTimeInterface $updatedAt = null): AgentConversation
     {
-        $conversation = AgentConversation::forceCreate([
+        // updated_at 直接随 forceCreate 写入：测试上下文无租户（TenantContext::getId()=null），
+        // TenantScope fail-closed（WHERE 1=0）会拦掉后续 Eloquent where()->update()，
+        // 旧写法两条记录 updated_at 相同导致排序断言 flaky
+        $attributes = [
             'conversation_id' => random_int(1000000000000000, 9007199254740991),
             'agent_id' => 1001,
             'tenant_id' => $tenantId,
@@ -101,14 +104,12 @@ class AssistantConversationsTest extends TestCase
             'subject' => $subject,
             'status' => 'active',
             'message_count' => 0,
-        ]);
-
+        ];
         if ($updatedAt) {
-            AgentConversation::where('conversation_id', $conversation->conversation_id)
-                ->update(['updated_at' => $updatedAt]);
+            $attributes['updated_at'] = $updatedAt;
         }
 
-        return $conversation;
+        return AgentConversation::forceCreate($attributes);
     }
 
     // ========== 列表 ==========

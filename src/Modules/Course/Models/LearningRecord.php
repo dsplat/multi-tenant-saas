@@ -7,12 +7,14 @@ namespace MultiTenantSaas\Modules\Course\Models;
 use Illuminate\Database\Eloquent\Model;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 学习记录（每用户每课程一行，进度累计）
  */
 class LearningRecord extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId;
 
     protected $table = 'learning_records';

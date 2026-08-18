@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 功能开关
@@ -23,6 +24,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class FeatureFlag extends Model
 {
+    use SerializesFriendlyDates;
     use HasGlobalId, SoftDeletes;
 
     /** 范围：全局 */

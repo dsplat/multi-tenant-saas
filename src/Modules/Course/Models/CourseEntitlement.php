@@ -7,12 +7,14 @@ namespace MultiTenantSaas\Modules\Course\Models;
 use Illuminate\Database\Eloquent\Model;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 课程权益（订单支付后授予；免费课程直授）
  */
 class CourseEntitlement extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId;
 
     protected $table = 'course_entitlements';

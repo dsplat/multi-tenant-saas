@@ -10,9 +10,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 class TenantUser extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasFactory, HasGlobalId;
 
     /**

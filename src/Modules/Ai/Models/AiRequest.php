@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Modules\Auth\Models\User;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * AI 请求日志模型
@@ -24,6 +25,7 @@ use MultiTenantSaas\Modules\Auth\Models\User;
  */
 class AiRequest extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasFactory, HasGlobalId;
 
     protected $primaryKey = 'request_id';

@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Sms\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 短信发送任务模型
@@ -13,6 +14,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class SmsBatchTask extends Model
 {
+    use SerializesFriendlyDates;
     use HasFactory, HasGlobalId;
 
     // 任务类型

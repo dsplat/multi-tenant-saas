@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Modules\Commerce\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 内容包⇄内容关联（复合主键，仅排序承载）
  */
 class PlatformContentPackItem extends Model
 {
+    use SerializesFriendlyDates;
     public $incrementing = false;
 
     public $timestamps = false;

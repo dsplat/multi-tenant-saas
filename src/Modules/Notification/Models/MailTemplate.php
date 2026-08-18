@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 邮件模板模型
@@ -19,6 +20,7 @@ use MultiTenantSaas\Context\TenantContext;
  */
 class MailTemplate extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasFactory, HasGlobalId, SoftDeletes;
 
     protected $primaryKey = 'template_id';

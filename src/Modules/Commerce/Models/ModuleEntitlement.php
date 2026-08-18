@@ -7,6 +7,7 @@ namespace MultiTenantSaas\Modules\Commerce\Models;
 use Illuminate\Database\Eloquent\Model;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 模块权益（tenant_modules 保持纯开关语义，权益单独承载——已决策）
@@ -16,6 +17,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class ModuleEntitlement extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId;
 
     public const SOURCE_PLAN = 'plan';

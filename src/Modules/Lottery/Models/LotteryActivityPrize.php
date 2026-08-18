@@ -9,9 +9,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 class LotteryActivityPrize extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasFactory, HasGlobalId;
 
     protected $primaryKey = 'prize_id';

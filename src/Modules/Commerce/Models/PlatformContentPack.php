@@ -7,12 +7,14 @@ namespace MultiTenantSaas\Modules\Commerce\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 平台内容包（content_pack SKU payload.pack_id 指向）
  */
 class PlatformContentPack extends Model
 {
+    use SerializesFriendlyDates;
     use HasGlobalId;
 
     public const STATUS_DRAFT = 'draft';

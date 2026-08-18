@@ -648,6 +648,41 @@ class AiStreamingControllerTest extends TestCase
             ->hasChoicePending(1001, (int) $conversation->conversation_id));
     }
 
+    public function test_tool_execute_blocks_second_choice_in_same_turn(): void
+    {
+        $this->agent->forceFill(['tools' => ['demo_tool', 'ask_user_choice']])->save();
+
+        $conversation = AgentConversation::create([
+            'tenant_id' => 1001,
+            'agent_id' => 1001,
+            'channel' => 'assistant',
+            'subject' => '测试会话',
+            'status' => 'active',
+        ]);
+
+        // 先手：本轮已发出一张选项卡（选择中标记已置位，复现轻量模型单轮连发 6 张选项卡时序）
+        app(\MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService::class)
+            ->markChoicePending(1001, (int) $conversation->conversation_id);
+
+        $registryMock = Mockery::mock(ToolRegistry::class);
+        $registryMock->shouldReceive('get')->with('ask_user_choice')->andReturn(null);
+        // 拦截即不执行：第二张选项卡发不出去
+        $registryMock->shouldNotReceive('execute');
+        $this->app->instance(ToolRegistry::class, $registryMock);
+
+        $response = $this->withHeaders($this->authHeaders())
+            ->postJson('/api/v1/ai-streaming/tools/execute', [
+                'agent_id' => 1001,
+                'tool' => 'ask_user_choice',
+                'arguments' => ['question' => '优惠券适用范围？', 'options' => ['全场通用', '指定品类']],
+                'conversation_id' => $conversation->conversation_id,
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('data.result.error', true);
+
+        $this->assertStringContainsString('不得连续发第二张选项卡', (string) $response->json('data.result.message'));
+    }
+
     // ========== usage/report ==========
 
     public function test_usage_report_records_tokens(): void

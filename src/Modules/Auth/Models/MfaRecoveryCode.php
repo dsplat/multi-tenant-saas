@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Auth\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * MFA 恢复码
@@ -14,6 +15,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class MfaRecoveryCode extends Model
 {
+    use SerializesFriendlyDates;
     use HasGlobalId;
 
     public const UPDATED_AT = null;

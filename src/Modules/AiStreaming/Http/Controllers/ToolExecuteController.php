@@ -147,6 +147,21 @@ class ToolExecuteController extends AiStreamingController
             ]);
         }
 
+        // 同轮连发拦截：本轮已发出选项卡（选择中标记未清除）时，拦截后续 ask_user_choice。
+        // 轻量模型会单轮连发多张选项卡「自问自答」跑完整问卷；每轮只允许一张选项卡，
+        // 标记在用户应答（新轮到达）时清除，下一轮可正常再问。错误交还 LLM 自愈（停下等点选）
+        if ($data['tool'] === 'ask_user_choice'
+            && $this->actionConfirm->hasChoicePending($tenantId, $executeConversationId)) {
+            return response()->json([
+                'success' => true,
+                'data' => ['result' => [
+                    'error' => true,
+                    'message' => '本轮已有一张选项卡正在等待用户点选，不得连续发第二张选项卡。'
+                        . '请立即停下，正文只引导用户完成上方选择；用户点选回传后的下一轮再问下一个问题。严禁重试。',
+                ]],
+            ]);
+        }
+
         // ToolRegistry::execute 内部已将处理器异常封装为 ['error'=>true, ...]，
         // 此处仅需兜底工具未注册等注册表层异常
         try {

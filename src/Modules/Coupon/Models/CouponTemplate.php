@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Coupon\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 优惠券模板模型
@@ -13,6 +14,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class CouponTemplate extends Model
 {
+    use SerializesFriendlyDates;
     use HasFactory, HasGlobalId;
 
     protected $primaryKey = 'template_id';

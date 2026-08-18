@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Modules\User\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 用户偏好设置
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class UserPreference extends Model
 {
+    use SerializesFriendlyDates;
     protected $table = 'user_preferences';
 
     protected $fillable = [

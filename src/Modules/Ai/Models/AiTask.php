@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Ai\Models;
 use Illuminate\Database\Eloquent\Model;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * AI 长任务模型（task/queue 跟踪机制）
@@ -17,6 +18,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class AiTask extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId;
 
     public const STATUS_PENDING = 'pending';

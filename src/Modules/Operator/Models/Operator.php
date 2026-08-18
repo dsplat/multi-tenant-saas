@@ -9,9 +9,11 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 class Operator extends Authenticatable
 {
+    use SerializesFriendlyDates;
     use HasApiTokens, HasGlobalId, Notifiable, SoftDeletes;
 
     protected $primaryKey = 'operator_id';

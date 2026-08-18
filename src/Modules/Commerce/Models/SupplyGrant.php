@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * 供给授权（内容分销 / 积分商城 SKU 共用，已决策）
@@ -19,6 +20,7 @@ use MultiTenantSaas\Concerns\HasGlobalId;
  */
 class SupplyGrant extends Model
 {
+    use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId;
 
     public const STATUS_ACTIVE = 'active';

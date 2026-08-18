@@ -103,6 +103,22 @@ class ToolExecuteController extends AiStreamingController
                 ]);
             }
 
+            // L2 串行铁律机械拦截：会话已有待确认的 L2 卡片时，拒发第二张确认卡。
+            // 轻量模型会同轮并发多个写操作（如连发 3 个 save_promo_copy），确认卡
+            // 前端只渲染最后一张、其余令牌作废丢失；拦截后错误交还 LLM，引导其
+            // 告知用户逐个确认：当前卡确认/取消后（标记清除）下一轮再调下一个写操作。
+            if ($this->actionConfirm->hasConfirmPending($tenantId, $conversationId)) {
+                return response()->json([
+                    'success' => true,
+                    'data' => ['result' => [
+                        'error' => true,
+                        'message' => '同一时刻只允许一张执行确认卡：本会话已有一张待确认卡片，本次调用被拒。'
+                            . '严禁重试。请告知用户先对下方已有的确认卡片点「确认执行」或「取消」；'
+                            . '该操作完成后（下一轮）再调用本工具处理下一个交付物，逐个串行入库。',
+                    ]],
+                ]);
+            }
+
             $arguments = (array) ($data['arguments'] ?? []);
             // LLM 原生 tool_call id 随令牌存储：确认后续答时 tool 消息据此与 assistant.tool_calls 配对
             $issued = $this->actionConfirm->issue(

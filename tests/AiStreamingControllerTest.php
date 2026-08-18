@@ -582,6 +582,41 @@ class AiStreamingControllerTest extends TestCase
             ->hasConfirmPending(1001, (int) $conversation->conversation_id));
     }
 
+    public function test_tool_execute_blocks_second_l2_confirm_when_confirm_pending(): void
+    {
+        $conversation = AgentConversation::create([
+            'tenant_id' => 1001,
+            'agent_id' => 1001,
+            'channel' => 'assistant',
+            'subject' => '测试会话',
+            'status' => 'active',
+        ]);
+
+        // 先手：第一张 L2 确认卡已签发（issue 自动置会话级确认中标记，
+        // 复现轻量模型同轮并发 3 个 save_promo_copy 的时序）
+        app(\MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService::class)
+            ->issue(1001, (int) $conversation->conversation_id, 'demo_tool', ['title' => '第一篇']);
+
+        $l2Tool = new Tool('demo_tool', 'L2 写工具', 'desc', [], 'Handler', 'core', Tool::RISK_L2);
+        $registryMock = Mockery::mock(ToolRegistry::class);
+        $registryMock->shouldReceive('get')->with('demo_tool')->andReturn($l2Tool);
+        $this->app->instance(ToolRegistry::class, $registryMock);
+
+        // 第二个并行写操作：拒发第二张确认卡，串行纪律机械生效
+        $response = $this->withHeaders($this->authHeaders())
+            ->postJson('/api/v1/ai-streaming/tools/execute', [
+                'agent_id' => 1001,
+                'tool' => 'demo_tool',
+                'arguments' => ['title' => '第二篇'],
+                'conversation_id' => $conversation->conversation_id,
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('data.result.error', true);
+
+        // 拦截即不签发第二张令牌
+        $this->assertArrayNotHasKey('token', (array) $response->json('data.result'));
+    }
+
     public function test_tool_execute_blocks_ask_user_choice_when_confirm_pending(): void
     {
         $this->agent->forceFill(['tools' => ['demo_tool', 'ask_user_choice']])->save();

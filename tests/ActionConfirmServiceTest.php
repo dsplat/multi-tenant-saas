@@ -141,4 +141,34 @@ class ActionConfirmServiceTest extends TestCase
         $hashC = $this->service->hashArguments(['tag_names' => ['高意向', 'VIP'], 'user_id' => 5]);
         $this->assertNotSame($hashA, $hashC);
     }
+
+    /**
+     * 同轮交互互斥门：签发令牌自动置会话级确认中标记，消费后清除；
+     * 标记严格限定租户+会话，不串扰其他会话
+     */
+    public function test_issue_marks_conversation_confirm_pending_and_consume_clears_it(): void
+    {
+        $this->assertFalse($this->service->hasConfirmPending(1001, 2001));
+
+        $issued = $this->service->issue(1001, 2001, 'tag_customer', ['user_id' => 5]);
+
+        $this->assertTrue($this->service->hasConfirmPending(1001, 2001));
+        $this->assertFalse($this->service->hasConfirmPending(1001, 2002));
+        $this->assertFalse($this->service->hasConfirmPending(1002, 2001));
+
+        $this->service->consume($issued['token'], 1001, 2001, $issued['args_hash']);
+        $this->assertFalse($this->service->hasConfirmPending(1001, 2001));
+    }
+
+    public function test_choice_pending_marker_lifecycle(): void
+    {
+        $this->assertFalse($this->service->hasChoicePending(1001, 2001));
+
+        $this->service->markChoicePending(1001, 2001);
+        $this->assertTrue($this->service->hasChoicePending(1001, 2001));
+        $this->assertFalse($this->service->hasChoicePending(1001, 2002));
+
+        $this->service->clearChoicePending(1001, 2001);
+        $this->assertFalse($this->service->hasChoicePending(1001, 2001));
+    }
 }

@@ -545,6 +545,109 @@ class AiStreamingControllerTest extends TestCase
             ->assertJson(['success' => false]);
     }
 
+    // ========== 同轮交互互斥门（确认卡 ∥ 选项卡，同时只允许一个） ==========
+
+    public function test_tool_execute_blocks_l2_tool_when_choice_pending(): void
+    {
+        $conversation = AgentConversation::create([
+            'tenant_id' => 1001,
+            'agent_id' => 1001,
+            'channel' => 'assistant',
+            'subject' => '测试会话',
+            'status' => 'active',
+        ]);
+
+        // 先手：选项卡已发出等待点选（轻量模型同轮并行写操作的真实时序）
+        app(\MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService::class)
+            ->markChoicePending(1001, (int) $conversation->conversation_id);
+
+        $l2Tool = new Tool('demo_tool', 'L2 写工具', 'desc', [], 'Handler', 'core', Tool::RISK_L2);
+        $registryMock = Mockery::mock(ToolRegistry::class);
+        $registryMock->shouldReceive('get')->with('demo_tool')->andReturn($l2Tool);
+        $this->app->instance(ToolRegistry::class, $registryMock);
+
+        $response = $this->withHeaders($this->authHeaders())
+            ->postJson('/api/v1/ai-streaming/tools/execute', [
+                'agent_id' => 1001,
+                'tool' => 'demo_tool',
+                'arguments' => ['title' => '训练营'],
+                'conversation_id' => $conversation->conversation_id,
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('data.result.error', true);
+
+        // 拦截即不签发令牌：双卡弹不出来了
+        $this->assertArrayNotHasKey('token', (array) $response->json('data.result'));
+        $this->assertFalse(app(\MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService::class)
+            ->hasConfirmPending(1001, (int) $conversation->conversation_id));
+    }
+
+    public function test_tool_execute_blocks_ask_user_choice_when_confirm_pending(): void
+    {
+        $this->agent->forceFill(['tools' => ['demo_tool', 'ask_user_choice']])->save();
+
+        $conversation = AgentConversation::create([
+            'tenant_id' => 1001,
+            'agent_id' => 1001,
+            'channel' => 'assistant',
+            'subject' => '测试会话',
+            'status' => 'active',
+        ]);
+
+        // 先手：L2 确认卡已签发等待操作（issue 自动置会话级确认中标记）
+        app(\MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService::class)
+            ->issue(1001, (int) $conversation->conversation_id, 'demo_tool', ['title' => '训练营']);
+
+        $registryMock = Mockery::mock(ToolRegistry::class);
+        $registryMock->shouldReceive('get')->with('ask_user_choice')->andReturn(null);
+        // 拦截即不执行选项工具
+        $registryMock->shouldNotReceive('execute');
+        $this->app->instance(ToolRegistry::class, $registryMock);
+
+        $this->withHeaders($this->authHeaders())
+            ->postJson('/api/v1/ai-streaming/tools/execute', [
+                'agent_id' => 1001,
+                'tool' => 'ask_user_choice',
+                'arguments' => ['question' => '是否定稿？', 'options' => ['满意', '调整']],
+                'conversation_id' => $conversation->conversation_id,
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('data.result.error', true);
+    }
+
+    public function test_tool_execute_marks_choice_pending_on_successful_choice(): void
+    {
+        $this->agent->forceFill(['tools' => ['demo_tool', 'ask_user_choice']])->save();
+
+        $conversation = AgentConversation::create([
+            'tenant_id' => 1001,
+            'agent_id' => 1001,
+            'channel' => 'assistant',
+            'subject' => '测试会话',
+            'status' => 'active',
+        ]);
+
+        $registryMock = Mockery::mock(ToolRegistry::class);
+        $registryMock->shouldReceive('get')->with('ask_user_choice')->andReturn(null);
+        $registryMock->shouldReceive('execute')
+            ->andReturn(['action' => 'user_choice', 'question' => '是否定稿？', 'options' => ['满意', '调整'], 'multiple' => false]);
+        $this->app->instance(ToolRegistry::class, $registryMock);
+
+        $this->withHeaders($this->authHeaders())
+            ->postJson('/api/v1/ai-streaming/tools/execute', [
+                'agent_id' => 1001,
+                'tool' => 'ask_user_choice',
+                'arguments' => ['question' => '是否定稿？', 'options' => ['满意', '调整']],
+                'conversation_id' => $conversation->conversation_id,
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('data.result.action', 'user_choice');
+
+        // 选项卡成功发出 → 选择中标记置位（供后续 L2 确认门拦截同轮并行写操作）
+        $this->assertTrue(app(\MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService::class)
+            ->hasChoicePending(1001, (int) $conversation->conversation_id));
+    }
+
     // ========== usage/report ==========
 
     public function test_usage_report_records_tokens(): void

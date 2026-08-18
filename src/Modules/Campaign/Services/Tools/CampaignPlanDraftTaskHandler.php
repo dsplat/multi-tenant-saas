@@ -142,7 +142,8 @@ class CampaignPlanDraftTaskHandler implements AiTaskHandlerContract
             . ($result['required_anchors'] !== []
                 ? 'required_anchors 列出的锚点需要具体时间：用用户听得懂的话追问（如「活动几点开始？」），绝不向用户提及锚点名等内部标识；拿到时间后在用户确认满意时 commit 一次性传入 anchor_times。'
                 : '')
-            . '等用户明确表示满意后才可 commit；严禁同一轮内 draft+commit 连做。';
+            . '等用户明确表示满意后才可 commit；严禁同一轮内 draft+commit 连做；'
+            . '用 ask_user_choice 征询是否满意时，该轮严禁同时调用 commit（系统会拦截并报错）。';
 
         // 断连兜底落库会话用的人性化摘要
         $result['summary'] = sprintf(

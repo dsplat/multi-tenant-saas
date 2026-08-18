@@ -11,6 +11,7 @@ use MultiTenantSaas\Contracts\TenantContextContract;
 use MultiTenantSaas\Events\ConversationStarted;
 use MultiTenantSaas\Modules\Ai\Models\Agent;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
+use MultiTenantSaas\Modules\Ai\Services\Agent\ActionConfirmService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\AgentProvisioningService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\StreamHistoryBuilder;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
@@ -31,6 +32,7 @@ class ResolveController extends AiStreamingController
         private AiUsageService $usageService,
         private ToolRegistry $toolRegistry,
         private StreamHistoryBuilder $historyBuilder,
+        private ActionConfirmService $actionConfirm,
     ) {
         parent::__construct($tenantContext, $agentService);
     }
@@ -154,6 +156,10 @@ class ResolveController extends AiStreamingController
         if ((bool) config('ai-streaming.server_history', true)) {
             $payload['history'] = $this->historyBuilder->build((int) $payload['conversation_id'], $tenantId);
         }
+
+        // 新一轮用户消息到达：上一轮选项卡已被应答（点选回传或自由输入），
+        // 清除选择中标记，释放同轮交互互斥门（确认卡标记不受影响，由 consume 清除）
+        $this->actionConfirm->clearChoicePending((int) $tenantId, (int) $payload['conversation_id']);
 
         // direct 模式：下发 api_key（仅限 Node 与 PHP 同机/内网回环链路）
         if (config('ai-streaming.key_delivery', 'direct') === 'direct') {

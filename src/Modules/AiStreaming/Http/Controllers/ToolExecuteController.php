@@ -89,6 +89,20 @@ class ToolExecuteController extends AiStreamingController
                 ], 403);
             }
 
+            // 同轮交互互斥门：会话已有选项卡待点选时，拦截 L2 确认卡，
+            // 杜绝轻量模型同轮并行「写操作 + ask_user_choice」双卡弹出；
+            // 错误作为观察结果交还 LLM 自愈（等用户点选后再调用）
+            if ($this->actionConfirm->hasChoicePending($tenantId, $conversationId)) {
+                return response()->json([
+                    'success' => true,
+                    'data' => ['result' => [
+                        'error' => true,
+                        'message' => '选项卡已展示在用户对话区，正在等待用户点选，本轮不得再弹确认卡。'
+                            . '请告知用户先完成上方选择；用户点选（如「满意，可以定稿」）后的下一轮再调用本工具。严禁重试。',
+                    ]],
+                ]);
+            }
+
             $arguments = (array) ($data['arguments'] ?? []);
             // LLM 原生 tool_call id 随令牌存储：确认后续答时 tool 消息据此与 assistant.tool_calls 配对
             $issued = $this->actionConfirm->issue(
@@ -118,6 +132,21 @@ class ToolExecuteController extends AiStreamingController
             $this->conversationContext->set((int) $data['conversation_id']);
         }
 
+        // 同轮交互互斥门（反向）：会话已有 L2 确认卡待操作时，拦截 ask_user_choice，
+        // 避免确认卡与选项卡双卡并存干扰用户；错误交还 LLM 自愈（只引导用户看确认卡）
+        $executeConversationId = (int) ($data['conversation_id'] ?? 0);
+        if ($data['tool'] === 'ask_user_choice'
+            && $this->actionConfirm->hasConfirmPending($tenantId, $executeConversationId)) {
+            return response()->json([
+                'success' => true,
+                'data' => ['result' => [
+                    'error' => true,
+                    'message' => '本会话已有待确认的执行卡片，不得再发选项卡干扰用户。'
+                        . '请只引导用户在确认卡片上点「确认执行」或「取消」，不要重复征询。',
+                ]],
+            ]);
+        }
+
         // ToolRegistry::execute 内部已将处理器异常封装为 ['error'=>true, ...]，
         // 此处仅需兜底工具未注册等注册表层异常
         try {
@@ -131,6 +160,12 @@ class ToolExecuteController extends AiStreamingController
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
+        }
+
+        // 选项卡成功发出：置会话级选择中标记（供 L2 确认门拦截同轮并行写操作）
+        if ($data['tool'] === 'ask_user_choice'
+            && is_array($result) && empty($result['error']) && $executeConversationId > 0) {
+            $this->actionConfirm->markChoicePending($tenantId, $executeConversationId);
         }
 
         return response()->json([

@@ -26,6 +26,11 @@ class ActionConfirmService
 
     private const CACHE_PREFIX = 'ai:action_confirm:';
 
+    /** 会话级互斥标记前缀：确认卡/选项卡同一时刻只允许存在一个（同轮交互互斥门） */
+    private const CONV_CONFIRM_PREFIX = 'ai:action_confirm_conv:';
+
+    private const CONV_CHOICE_PREFIX = 'ai:user_choice_conv:';
+
     /**
      * 签发一次性确认令牌
      *
@@ -52,6 +57,10 @@ class ActionConfirmService
             'tool_call_id' => $toolCallId,
             'issued_at' => now()->timestamp,
         ], $ttl);
+
+        // 会话级确认中标记（同轮交互互斥门）：存续期内拦截同会话的 ask_user_choice，
+        // 杜绝轻量模型同轮并行「写操作确认卡 + 选项卡」双卡弹出
+        $this->markConfirmPending($tenantId, $conversationId, $ttl);
 
         return [
             'token' => $token,
@@ -92,7 +101,46 @@ class ActionConfirmService
             throw new DomainException('操作参数与确认时不一致，已拒绝执行');
         }
 
+        $this->clearConfirmPending($tenantId, $conversationId);
+
         return $payload;
+    }
+
+    // ─── 会话级同轮交互互斥门（确认卡 ∥ 选项卡，同时只允许一个） ───
+
+    /** 标记会话存在待确认的 L2 操作（issue 内部自动调用） */
+    public function markConfirmPending(int $tenantId, int $conversationId, int $ttl = self::TTL_SECONDS): void
+    {
+        Cache::put(self::CONV_CONFIRM_PREFIX . $tenantId . ':' . $conversationId, true, $ttl);
+    }
+
+    public function hasConfirmPending(int $tenantId, int $conversationId): bool
+    {
+        return $conversationId > 0
+            && (bool) Cache::get(self::CONV_CONFIRM_PREFIX . $tenantId . ':' . $conversationId);
+    }
+
+    /** 确认/取消消费成功后清除（consume 内部自动调用） */
+    public function clearConfirmPending(int $tenantId, int $conversationId): void
+    {
+        Cache::forget(self::CONV_CONFIRM_PREFIX . $tenantId . ':' . $conversationId);
+    }
+
+    /** 标记会话已发出选项卡（ask_user_choice 执行成功后调用）；新一轮用户消息到达时清除 */
+    public function markChoicePending(int $tenantId, int $conversationId): void
+    {
+        Cache::put(self::CONV_CHOICE_PREFIX . $tenantId . ':' . $conversationId, true, self::TTL_SECONDS);
+    }
+
+    public function hasChoicePending(int $tenantId, int $conversationId): bool
+    {
+        return $conversationId > 0
+            && (bool) Cache::get(self::CONV_CHOICE_PREFIX . $tenantId . ':' . $conversationId);
+    }
+
+    public function clearChoicePending(int $tenantId, int $conversationId): void
+    {
+        Cache::forget(self::CONV_CHOICE_PREFIX . $tenantId . ':' . $conversationId);
     }
 
     /**

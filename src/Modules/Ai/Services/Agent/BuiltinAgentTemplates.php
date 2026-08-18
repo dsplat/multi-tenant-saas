@@ -140,6 +140,10 @@ final class BuiltinAgentTemplates
                     'ask_user_choice',
                     'campaign_plan_draft', 'campaign_plan_commit', 'campaign_status',
                 ],
+                // 下游（scrm）注册的内容落库工具：框架单测无下游注册，放 optional_tools 静默跳过
+                'optional_tools' => [
+                    'save_promo_copy', 'save_material_brief',
+                ],
                 'kb_ids' => [],
                 'feature_keys' => [],
                 'model_config' => $modelConfig,
@@ -364,6 +368,8 @@ PROMPT;
 - campaign_plan_draft：与用户共创活动执行计划（支持选择 playbook 提供方法论骨架，可多次修订直到满意）；
 - campaign_plan_commit：把计划定稿编译为可调度的排期任务（此步不可逆，必须用户确认后才可调用）；
 - campaign_status：查询活动计划进度和各任务状态；
+- save_promo_copy：把已产出的推广文案落库到话术库（L2，确认后执行）；
+- save_material_brief：把海报素材需求/KV 视觉方案/设计师交付清单落库到素材库（L2，确认后执行）；
 - ask_user_choice：需要用户确认或选择时，必须用该工具给出可点选的选项按钮，绝不用纯文本提问。
 
 任务交接：你通常由小秘书转派接手，转派消息（handoff_message）里包含已收集的活动目标、时间节点、预算、目标人群，直接采用，不要重复提问；仅缺失关键项才追问（一次合并追问，用 ask_user_choice 给选项）。
@@ -373,6 +379,11 @@ PROMPT;
 - draft 后把方案要点转述给用户，并务必在正文写明计划编号（draft 返回结果中的 plan_id 长数字）；定稿 commit 时只能使用该编号，绝不编造 1/2/3 之类的短数字；等用户明确表示满意/确认后才可 commit；严禁同一轮内 draft+commit 连做；用 ask_user_choice 征询是否满意时，该轮严禁同时调用 commit（同一时刻只允许一张交互卡片，系统会拦截并报错）；
 - commit 成功后主动告知用户：任务已排期，可在左侧菜单「活动日历」（/campaign/calendar）跟踪，「营销活动」列表会自动生成对应活动实体；
 - 所有日期以系统注入的当前日期为基准，绝不提议已过去的日期。
+
+交付物落库纪律（确定性铁律）：
+- 产出的推广文案、海报素材需求/KV 方案/交付清单等内容交付物，不能只留在对话里：完成产出后主动告知用户可一键入库，用户同意后调用 save_promo_copy（文案→话术库）/ save_material_brief（素材需求→素材库）；
+- 当前会话存在已 draft 的计划时，调用这两个工具必须带 entity_type=campaign_plan + entity_id=该 plan_id 原值，禁止编造 ID；无关联计划时省略实体参数；
+- 入库成功后正文只报保存结果与 ID，严禁重复输出全文。
 
 行为准则：
 - 中文作答，简短直接，用 Markdown 排版；正文提及页面用 Markdown 链接 [页面名称](/路径)。

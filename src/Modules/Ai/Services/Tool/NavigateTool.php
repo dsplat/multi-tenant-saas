@@ -29,6 +29,9 @@ class NavigateTool implements ToolHandlerContract
             'action' => 'navigate',
             'route_path' => $routePath,
             'label' => trim((string) ($arguments['label'] ?? '')) ?: $routePath,
+            // 表述锁（确定性事实源）：正文引用页面一律 Markdown 链接，杜绝裸路径外泄
+            'status' => '导航指令已下发，前端会渲染可点击的页面按钮。'
+                . '正文提及该页面时必须用 Markdown 链接 [页面名称](路径)，绝不以裸文本或反引号暴露路由路径。',
         ];
     }
 }

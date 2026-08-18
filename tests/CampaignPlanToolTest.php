@@ -468,6 +468,30 @@ class CampaignPlanToolTest extends TestCase
     }
 
     /**
+     * draft 结果必带表述锁（next_action）：播报要点/回显编号/锚点追问方式/
+     * 时序约束由代码确定性给出，不依赖模型自由发挥
+     */
+    public function test_draft_result_locks_expression(): void
+    {
+        $mock = $this->createMock(AiTextServiceContract::class);
+        $mock->method('chat')->willReturn(
+            new AiResponse(content: json_encode($this->validPlanDoc(), JSON_UNESCAPED_UNICODE), finishReason: 'stop')
+        );
+
+        $this->setUpDraftTask($mock);
+        $tool = $this->app->make(CampaignPlanDraftTool::class);
+
+        $submit = $tool(['user_input' => '做一个七夕会员活动'], self::TENANT);
+
+        $task = AiTask::find((int) $submit['task_id']);
+        $this->assertNotEmpty($task->result['next_action'] ?? null);
+        // 必须锁定：回显真实计划编号 + 锚点追问不提内部标识 + 禁止同轮 commit
+        $this->assertStringContainsString('计划编号', $task->result['next_action']);
+        $this->assertStringContainsString('锚点', $task->result['next_action']);
+        $this->assertStringContainsString('严禁同一轮内 draft+commit 连做', $task->result['next_action']);
+    }
+
+    /**
      * 内部生成调用必须显式放宽超时（平台默认 AI_TIMEOUT 生产 30s 不够），
      * 否则重模型生成超时致任务 failed
      */

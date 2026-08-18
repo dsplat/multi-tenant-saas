@@ -45,6 +45,9 @@ class AskUserChoiceTool implements ToolHandlerContract
             'question' => $question,
             'options' => $options,
             'multiple' => (bool) ($arguments['multiple'] ?? false),
+            // 表述锁（确定性事实源）：卡片位置与正文约束，防止模型重复提问/罗列选项
+            'status' => '选项卡已展示在本条回复下方的对话区，用户点选后选项文案会作为用户消息自动回传。'
+                . '正文只需一句话引导用户点选，严禁重复问题原文，严禁用文字罗列选项，严禁再问一遍。',
         ];
     }
 }

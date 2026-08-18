@@ -137,6 +137,13 @@ class CampaignPlanDraftTaskHandler implements AiTaskHandlerContract
                 . '（带 plan_id 与针对上述问题的修订说明 user_input）修复后再定稿';
         }
 
+        // 表述锁（确定性事实源）：draft 后的播报要点与锚点追问方式，不依赖模型自由发挥
+        $result['next_action'] = '向用户转述方案要点（阶段/任务数/时间周期），并务必在正文写明 plan_id 字段中的真实计划编号（长数字，定稿只能用它）。'
+            . ($result['required_anchors'] !== []
+                ? 'required_anchors 列出的锚点需要具体时间：用用户听得懂的话追问（如「活动几点开始？」），绝不向用户提及锚点名等内部标识；拿到时间后在用户确认满意时 commit 一次性传入 anchor_times。'
+                : '')
+            . '等用户明确表示满意后才可 commit；严禁同一轮内 draft+commit 连做。';
+
         // 断连兜底落库会话用的人性化摘要
         $result['summary'] = sprintf(
             '活动计划《%s》方案已生成（计划编号 %s，%d 个阶段 / %d 个任务），可继续对话查看与定稿。',

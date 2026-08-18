@@ -26,7 +26,8 @@ onMounted(() => load(1))
 
 function formatTime(iso?: string | null): string {
   if (!iso) return ''
-  const d = new Date(iso)
+  // 后端日期序列化为 Y-m-d H:i:s；Safari 不认空格分隔，转 ISO 分隔符再解析
+  const d = new Date(iso.replace(' ', 'T'))
   if (Number.isNaN(d.getTime())) return ''
   const now = new Date()
   const sameDay = d.toDateString() === now.toDateString()

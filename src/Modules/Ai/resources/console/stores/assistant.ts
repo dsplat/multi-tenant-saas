@@ -315,7 +315,8 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
       id: `hist_${m.message_id}`,
       role: m.role,
       content: m.content,
-      timestamp: m.created_at ? Date.parse(m.created_at) : Date.now(),
+      // 后端日期序列化为 Y-m-d H:i:s；Safari 不认空格分隔，转 ISO 分隔符再解析
+      timestamp: m.created_at ? Date.parse(m.created_at.replace(' ', 'T')) : Date.now(),
     }))
   }
 

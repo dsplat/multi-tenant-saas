@@ -66,9 +66,9 @@ class AssistantController extends Controller
      *         required={"user_intent"},
      *
      *         @OA\Property(property="user_intent", type="string", example="帮我创建一个抽奖活动", description="用户自然语言意图"),
-     *         @OA\Property(property="route", type="string", nullable=true, example="marketing.campaign.create", description="当前前端路由"),
+     *         @OA\Property(property="route", type="string", nullable=true, example="activity.create", description="当前前端路由"),
      *         @OA\Property(property="module", type="string", nullable=true, example="Marketing", description="当前模块名"),
-     *         @OA\Property(property="entity_type", type="string", nullable=true, example="campaign"),
+     *         @OA\Property(property="entity_type", type="string", nullable=true, example="activity"),
      *         @OA\Property(property="entity_id", type="integer", nullable=true),
      *         @OA\Property(property="form_state", type="object", nullable=true, description="当前表单状态"),
      *         @OA\Property(property="visible_data_summary", type="string", nullable=true, description="页面可见数据摘要"),

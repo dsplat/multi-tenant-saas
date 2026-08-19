@@ -367,7 +367,7 @@ SQL);
 CREATE TABLE `task_chain_runs` (
   `run_id` bigint unsigned NOT NULL COMMENT '运行ID',
   `tenant_id` bigint unsigned NOT NULL COMMENT '租户ID',
-  `conversation_id` bigint unsigned DEFAULT NULL COMMENT '归属会话（链在会话内推进；campaign 触发为 null）',
+  `conversation_id` bigint unsigned DEFAULT NULL COMMENT '归属会话（链在会话内推进；活动计划触发为 null）',
   `chain_key` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '链定义 key',
   `steps_state` json NOT NULL COMMENT '每步状态快照 + context KV 包',
   `current_step` int unsigned NOT NULL DEFAULT '0' COMMENT '当前步下标（0 起）',

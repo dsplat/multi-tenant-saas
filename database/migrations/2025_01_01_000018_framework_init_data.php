@@ -61,7 +61,7 @@ SQL);
 INSERT INTO `permissions` (`permission_id`, `name`, `display_name`, `group`, `description`, `created_at`, `updated_at`) VALUES (1363989099719568,'faq.view','查看FAQ','faq','查看常见问题知识库','2026-07-17 02:38:54','2026-07-17 02:38:54');
 SQL);
         DB::statement(<<<'SQL'
-INSERT INTO `permissions` (`permission_id`, `name`, `display_name`, `group`, `description`, `created_at`, `updated_at`) VALUES (1507230908682125,'campaign.update','更新活动','campaign','更新营销活动','2026-07-17 02:38:54','2026-07-17 02:38:54');
+INSERT INTO `permissions` (`permission_id`, `name`, `display_name`, `group`, `description`, `created_at`, `updated_at`) VALUES (1507230908682125,'activity.update','更新活动','activity','更新活动','2026-07-17 02:38:54','2026-07-17 02:38:54');
 SQL);
         DB::statement(<<<'SQL'
 INSERT INTO `permissions` (`permission_id`, `name`, `display_name`, `group`, `description`, `created_at`, `updated_at`) VALUES (1607120163831110,'material.delete','删除素材','material','删除素材','2026-07-17 02:38:54','2026-07-17 02:38:54');
@@ -166,7 +166,7 @@ SQL);
 INSERT INTO `permissions` (`permission_id`, `name`, `display_name`, `group`, `description`, `created_at`, `updated_at`) VALUES (5583689973347444,'credit.recharge','积分充值','credit','充值积分','2026-07-11 06:53:22','2026-07-11 06:53:22');
 SQL);
         DB::statement(<<<'SQL'
-INSERT INTO `permissions` (`permission_id`, `name`, `display_name`, `group`, `description`, `created_at`, `updated_at`) VALUES (5723577550261159,'campaign.create','创建活动','campaign','创建营销活动','2026-07-17 02:38:54','2026-07-17 02:38:54');
+INSERT INTO `permissions` (`permission_id`, `name`, `display_name`, `group`, `description`, `created_at`, `updated_at`) VALUES (5723577550261159,'activity.create','创建活动','activity','创建活动','2026-07-17 02:38:54','2026-07-17 02:38:54');
 SQL);
         DB::statement(<<<'SQL'
 INSERT INTO `permissions` (`permission_id`, `name`, `display_name`, `group`, `description`, `created_at`, `updated_at`) VALUES (5771423400686490,'credit.adjust','积分调整','credit','手动调整积分','2026-07-11 06:53:22','2026-07-11 06:53:22');
@@ -241,7 +241,7 @@ SQL);
 INSERT INTO `permissions` (`permission_id`, `name`, `display_name`, `group`, `description`, `created_at`, `updated_at`) VALUES (8024944528056609,'contact.view','查看联系人','contact','查看联系人列表','2026-07-17 02:38:54','2026-07-17 02:38:54');
 SQL);
         DB::statement(<<<'SQL'
-INSERT INTO `permissions` (`permission_id`, `name`, `display_name`, `group`, `description`, `created_at`, `updated_at`) VALUES (8195253679478735,'campaign.delete','删除活动','campaign','删除营销活动','2026-07-17 02:38:54','2026-07-17 02:38:54');
+INSERT INTO `permissions` (`permission_id`, `name`, `display_name`, `group`, `description`, `created_at`, `updated_at`) VALUES (8195253679478735,'activity.delete','删除活动','activity','删除活动','2026-07-17 02:38:54','2026-07-17 02:38:54');
 SQL);
         DB::statement(<<<'SQL'
 INSERT INTO `permissions` (`permission_id`, `name`, `display_name`, `group`, `description`, `created_at`, `updated_at`) VALUES (8307255481128602,'template.view','查看模板','template','查看消息/文案模板','2026-07-17 02:38:54','2026-07-17 02:38:54');
@@ -268,7 +268,7 @@ SQL);
 INSERT INTO `permissions` (`permission_id`, `name`, `display_name`, `group`, `description`, `created_at`, `updated_at`) VALUES (8834847223404059,'template.create','创建模板','template','创建模板','2026-07-17 02:38:54','2026-07-17 02:38:54');
 SQL);
         DB::statement(<<<'SQL'
-INSERT INTO `permissions` (`permission_id`, `name`, `display_name`, `group`, `description`, `created_at`, `updated_at`) VALUES (8901442712462846,'campaign.view','查看活动','campaign','查看营销活动','2026-07-17 02:38:54','2026-07-17 02:38:54');
+INSERT INTO `permissions` (`permission_id`, `name`, `display_name`, `group`, `description`, `created_at`, `updated_at`) VALUES (8901442712462846,'activity.view','查看活动','activity','查看活动','2026-07-17 02:38:54','2026-07-17 02:38:54');
 SQL);
 
         // Seed: role_permissions (266 rows)

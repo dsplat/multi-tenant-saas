@@ -7,15 +7,15 @@ use MultiTenantSaas\Contracts\ThreadAssetProbeContract;
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Ai\Models\AgentConversation;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
-use MultiTenantSaas\Modules\Campaign\Models\CampaignPlan;
-use MultiTenantSaas\Modules\Campaign\Models\CampaignTask;
-use MultiTenantSaas\Modules\Campaign\Services\PlanCompiler;
-use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignPlanCommitTool;
-use MultiTenantSaas\Modules\Campaign\Services\Tools\ThreadReviewTool;
-use MultiTenantSaas\Modules\Campaign\Services\Tools\ThreadTrackTool;
-use MultiTenantSaas\Modules\Campaign\Services\Tools\ThreadUntrackTool;
+use MultiTenantSaas\Modules\ActivityPlan\Models\ActivityPlan;
+use MultiTenantSaas\Modules\ActivityPlan\Models\ActivityTask;
+use MultiTenantSaas\Modules\ActivityPlan\Services\PlanCompiler;
+use MultiTenantSaas\Modules\ActivityPlan\Services\Tools\ActivityPlanCommitTool;
+use MultiTenantSaas\Modules\ActivityPlan\Services\Tools\ThreadReviewTool;
+use MultiTenantSaas\Modules\ActivityPlan\Services\Tools\ThreadTrackTool;
+use MultiTenantSaas\Modules\ActivityPlan\Services\Tools\ThreadUntrackTool;
 use MultiTenantSaas\Tests\Schema\AgentModule;
-use MultiTenantSaas\Tests\Schema\CampaignModule;
+use MultiTenantSaas\Tests\Schema\ActivityPlanModule;
 
 /**
  * 工作脉络三工具单测（项目大脑 Phase 2）
@@ -23,11 +23,11 @@ use MultiTenantSaas\Tests\Schema\CampaignModule;
  * - thread_review：脉络快照聚合（计划/任务/资产探测/关联会话）
  * - thread_track：建立跟踪（既有计划标记 / 无计划创建轻量载体）
  * - thread_untrack：取消跟踪
- * - campaign_plan_commit：定稿自动置 tracked（天然脉络）
+ * - activity_plan_commit：定稿自动置 tracked（天然脉络）
  */
 class ThreadToolsTest extends TestCase
 {
-    protected array $uses = [CampaignModule::class, AgentModule::class];
+    protected array $uses = [ActivityPlanModule::class, AgentModule::class];
 
     private const TENANT = 3001;
 
@@ -41,26 +41,26 @@ class ThreadToolsTest extends TestCase
 
     public function test_review_returns_thread_snapshot_by_anchor(): void
     {
-        $plan = CampaignPlan::create([
+        $plan = ActivityPlan::create([
             'tenant_id' => self::TENANT,
             'anchor_type' => 'event',
             'anchor_id' => 88,
-            'plan_doc' => ['schema' => 'campaign.plan/v1', 'title' => '21天训练营', 'phases' => []],
-            'status' => CampaignPlan::STATUS_RUNNING,
+            'plan_doc' => ['schema' => 'activity.plan/v1', 'title' => '21天训练营', 'phases' => []],
+            'status' => ActivityPlan::STATUS_RUNNING,
             'metadata' => ['tracked' => true, 'health' => ['summary' => '已停滞 3 天']],
             'created_by' => 0,
         ]);
-        CampaignTask::create([
+        ActivityTask::create([
             'tenant_id' => self::TENANT, 'plan_id' => $plan->plan_id,
-            'task_key' => 't1', 'title' => '策划', 'trigger_type' => CampaignTask::TRIGGER_AT_TIME,
+            'task_key' => 't1', 'title' => '策划', 'trigger_type' => ActivityTask::TRIGGER_AT_TIME,
             'scheduled_at' => now()->subDays(3), 'action' => ['type' => 'human'],
-            'status' => CampaignTask::STATUS_DONE,
+            'status' => ActivityTask::STATUS_DONE,
         ]);
-        CampaignTask::create([
+        ActivityTask::create([
             'tenant_id' => self::TENANT, 'plan_id' => $plan->plan_id,
-            'task_key' => 't2', 'title' => '群发', 'trigger_type' => CampaignTask::TRIGGER_AT_TIME,
+            'task_key' => 't2', 'title' => '群发', 'trigger_type' => ActivityTask::TRIGGER_AT_TIME,
             'scheduled_at' => now()->subDay(), 'action' => ['type' => 'human'],
-            'status' => CampaignTask::STATUS_PENDING,
+            'status' => ActivityTask::STATUS_PENDING,
         ]);
 
         $result = (new ThreadReviewTool)(['anchor_type' => 'event', 'anchor_id' => 88], self::TENANT);
@@ -101,12 +101,12 @@ class ThreadToolsTest extends TestCase
 
     public function test_review_includes_related_conversations(): void
     {
-        CampaignPlan::create([
+        ActivityPlan::create([
             'tenant_id' => self::TENANT,
             'anchor_type' => 'event',
             'anchor_id' => 88,
-            'plan_doc' => ['schema' => 'campaign.plan/v1', 'title' => '21天训练营', 'phases' => []],
-            'status' => CampaignPlan::STATUS_PLANNING,
+            'plan_doc' => ['schema' => 'activity.plan/v1', 'title' => '21天训练营', 'phases' => []],
+            'status' => ActivityPlan::STATUS_PLANNING,
             'created_by' => 0,
         ]);
         AgentConversation::create([
@@ -135,12 +135,12 @@ class ThreadToolsTest extends TestCase
 
     public function test_track_marks_existing_plan(): void
     {
-        $plan = CampaignPlan::create([
+        $plan = ActivityPlan::create([
             'tenant_id' => self::TENANT,
             'anchor_type' => 'event',
             'anchor_id' => 88,
-            'plan_doc' => ['schema' => 'campaign.plan/v1', 'title' => '21天训练营', 'phases' => []],
-            'status' => CampaignPlan::STATUS_PLANNING,
+            'plan_doc' => ['schema' => 'activity.plan/v1', 'title' => '21天训练营', 'phases' => []],
+            'status' => ActivityPlan::STATUS_PLANNING,
             'created_by' => 0,
         ]);
 
@@ -164,10 +164,10 @@ class ThreadToolsTest extends TestCase
         $this->assertFalse($result['error'] ?? false);
         $this->assertTrue($result['created']);
 
-        $plan = CampaignPlan::find($result['plan_id']);
+        $plan = ActivityPlan::find($result['plan_id']);
         $this->assertSame('customer', $plan->anchor_type);
         $this->assertSame(55, (int) $plan->anchor_id);
-        $this->assertSame(CampaignPlan::STATUS_PLANNING, $plan->status);
+        $this->assertSame(ActivityPlan::STATUS_PLANNING, $plan->status);
         $this->assertSame('大客户跟进', $plan->plan_doc['title']);
         $this->assertSame('每周回访', $plan->plan_doc['tracking_note']);
         $this->assertTrue((bool) data_get($plan->metadata, 'tracked'));
@@ -182,10 +182,10 @@ class ThreadToolsTest extends TestCase
 
     public function test_untrack_clears_tracked_flag(): void
     {
-        $plan = CampaignPlan::create([
+        $plan = ActivityPlan::create([
             'tenant_id' => self::TENANT,
-            'plan_doc' => ['schema' => 'campaign.plan/v1', 'title' => '训练营', 'phases' => []],
-            'status' => CampaignPlan::STATUS_RUNNING,
+            'plan_doc' => ['schema' => 'activity.plan/v1', 'title' => '训练营', 'phases' => []],
+            'status' => ActivityPlan::STATUS_RUNNING,
             'metadata' => ['tracked' => true],
             'created_by' => 0,
         ]);
@@ -206,10 +206,10 @@ class ThreadToolsTest extends TestCase
             ['type' => 'object', 'properties' => []], 'test', 'L1',
         );
 
-        $plan = CampaignPlan::create([
+        $plan = ActivityPlan::create([
             'tenant_id' => self::TENANT,
             'plan_doc' => [
-                'schema' => 'campaign.plan/v1',
+                'schema' => 'activity.plan/v1',
                 'title' => '测试活动',
                 'phases' => [[
                     'key' => 'notify',
@@ -222,11 +222,11 @@ class ThreadToolsTest extends TestCase
                     ]],
                 ]],
             ],
-            'status' => CampaignPlan::STATUS_PLANNING,
+            'status' => ActivityPlan::STATUS_PLANNING,
             'created_by' => 0,
         ]);
 
-        $tool = new CampaignPlanCommitTool($this->app->make(PlanCompiler::class));
+        $tool = new ActivityPlanCommitTool($this->app->make(PlanCompiler::class));
         $result = $tool([
             'plan_id' => $plan->plan_id,
             'anchor_times' => ['event.starts_at' => '2026-09-01 09:00'],

@@ -11,14 +11,14 @@ use MultiTenantSaas\Modules\Ai\Services\Agent\Dto\Tool;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
 use MultiTenantSaas\Modules\Ai\Services\AiUsageService;
 use MultiTenantSaas\Modules\Auth\Models\User;
-use MultiTenantSaas\Modules\Campaign\Models\CampaignPlan;
-use MultiTenantSaas\Modules\Campaign\Models\CampaignTask;
+use MultiTenantSaas\Modules\ActivityPlan\Models\ActivityPlan;
+use MultiTenantSaas\Modules\ActivityPlan\Models\ActivityTask;
 use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
 use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 use MultiTenantSaas\Tests\Schema\AgentModule;
-use MultiTenantSaas\Tests\Schema\CampaignModule;
+use MultiTenantSaas\Tests\Schema\ActivityPlanModule;
 use MultiTenantSaas\Tests\Schema\RbacModule;
 
 /**
@@ -31,7 +31,7 @@ use MultiTenantSaas\Tests\Schema\RbacModule;
  */
 class AiStreamingControllerTest extends TestCase
 {
-    protected array $uses = [AgentModule::class, RbacModule::class, CampaignModule::class];
+    protected array $uses = [AgentModule::class, RbacModule::class, ActivityPlanModule::class];
 
     protected Tenant $tenant;
 
@@ -339,35 +339,35 @@ class AiStreamingControllerTest extends TestCase
         ]);
 
         // tracked 脉络：1 项完成 + 1 项逾期，带 health 巡检摘要
-        CampaignPlan::forceCreate([
+        ActivityPlan::forceCreate([
             'plan_id' => 5001,
             'tenant_id' => 1001,
             'anchor_type' => 'event',
             'anchor_id' => 88,
-            'plan_doc' => ['schema' => 'campaign.plan/v1', 'title' => '21天训练营'],
-            'status' => CampaignPlan::STATUS_RUNNING,
+            'plan_doc' => ['schema' => 'activity.plan/v1', 'title' => '21天训练营'],
+            'status' => ActivityPlan::STATUS_RUNNING,
             'metadata' => ['tracked' => true, 'health' => ['summary' => '已停滞 3 天']],
             'created_by' => 1,
         ]);
-        CampaignTask::forceCreate([
+        ActivityTask::forceCreate([
             'task_id' => 6001, 'tenant_id' => 1001, 'plan_id' => 5001,
             'task_key' => 't1', 'title' => '策划', 'trigger_type' => 'at_time',
             'scheduled_at' => now()->subDays(2), 'action' => ['type' => 'human'],
-            'status' => CampaignTask::STATUS_DONE,
+            'status' => ActivityTask::STATUS_DONE,
         ]);
-        CampaignTask::forceCreate([
+        ActivityTask::forceCreate([
             'task_id' => 6002, 'tenant_id' => 1001, 'plan_id' => 5001,
             'task_key' => 't2', 'title' => '群发', 'trigger_type' => 'at_time',
             'scheduled_at' => now()->subDay(), 'action' => ['type' => 'human'],
-            'status' => CampaignTask::STATUS_PENDING,
+            'status' => ActivityTask::STATUS_PENDING,
         ]);
 
         // 未跟踪脉络不得注入
-        CampaignPlan::forceCreate([
+        ActivityPlan::forceCreate([
             'plan_id' => 5002,
             'tenant_id' => 1001,
-            'plan_doc' => ['schema' => 'campaign.plan/v1', 'title' => '未跟踪计划'],
-            'status' => CampaignPlan::STATUS_RUNNING,
+            'plan_doc' => ['schema' => 'activity.plan/v1', 'title' => '未跟踪计划'],
+            'status' => ActivityPlan::STATUS_RUNNING,
             'created_by' => 1,
         ]);
 
@@ -412,11 +412,11 @@ class AiStreamingControllerTest extends TestCase
             'enabled' => true,
         ]);
 
-        CampaignPlan::forceCreate([
+        ActivityPlan::forceCreate([
             'plan_id' => 5001,
             'tenant_id' => 1001,
-            'plan_doc' => ['schema' => 'campaign.plan/v1', 'title' => '21天训练营'],
-            'status' => CampaignPlan::STATUS_RUNNING,
+            'plan_doc' => ['schema' => 'activity.plan/v1', 'title' => '21天训练营'],
+            'status' => ActivityPlan::STATUS_RUNNING,
             'metadata' => ['tracked' => true],
             'created_by' => 1,
         ]);

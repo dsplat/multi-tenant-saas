@@ -8,11 +8,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
+use MultiTenantSaas\Contracts\OrderableEntity;
 use MultiTenantSaas\Modules\Order\Events\OrderPaid;
 use MultiTenantSaas\Modules\Order\Events\OrderRefunded;
 use MultiTenantSaas\Modules\Order\Models\ConsumptionRecord;
 use MultiTenantSaas\Modules\Order\Models\Order;
 use MultiTenantSaas\Modules\Order\Models\OrderItem;
+use MultiTenantSaas\Modules\Order\Support\EntityTypes;
 use MultiTenantSaas\Modules\Pay\Services\TradePayService;
 use MultiTenantSaas\Modules\Product\Models\ProductSku;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -26,8 +28,11 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  * - points：虚拟支付（渠道由项目层注册，事务内扣减即时置 paid）
  * - mixed：虚拟折现抵扣 + 现金补差（SalesConfig 租户级配置）
  *
- * 履约委托 FulfillmentRegistry（按订单行 item_type 分发）。
+ * 履约委托 FulfillmentRegistry（按订单行 entity_type 分发）。
  * 计佣基数 = 实付现金（total_amount），虚拟抵扣部分不计佣。
+ *
+ * 实体绑定：orders.entity_type/entity_id（主实体）+ secondary_entity_*（次要关联），
+ * 归因上下文走 orders.source JSON；行级实体见 order_items.entity_type/entity_id。
  */
 class OrderService
 {
@@ -42,10 +47,11 @@ class OrderService
     /**
      * 创建订单
      *
-     * $data: order_type, pay_method, items[], points_to_use?, source?, metadata?
+     * $data: order_type, pay_method, items[], points_to_use?, source?, metadata?,
+     *        entity_type?, entity_id?, secondary_entity_type?, secondary_entity_id?
      * items 两种形态：
      * - ['sku_id' => x, 'quantity' => n]：从 SKU 解析价格/名称/规格
-     * - ['item_type', 'ref_id', 'item_name', 'unit_price', 'points_unit_price', 'spec', 'quantity']：外部直接给价（课程/兑换等）
+     * - ['entity_type', 'entity_id', 'item_name', 'unit_price', 'points_unit_price', 'spec', 'quantity']：外部直接给价（课程/兑换等）
      */
     public function createOrder(int $tenantId, ?int $userId, array $data): Order
     {
@@ -85,6 +91,10 @@ class OrderService
                 'total_amount'  => $totalAmount,
                 'points_amount' => $pointsAmount,
                 'pay_method'    => $payMethod,
+                'entity_type'   => $data['entity_type'] ?? null,
+                'entity_id'     => isset($data['entity_id']) ? (string) $data['entity_id'] : null,
+                'secondary_entity_type' => $data['secondary_entity_type'] ?? null,
+                'secondary_entity_id'   => isset($data['secondary_entity_id']) ? (string) $data['secondary_entity_id'] : null,
                 'status'        => Order::STATUS_PENDING,
                 'source'        => $data['source'] ?? null,
                 'metadata'      => $data['metadata'] ?? null,
@@ -97,8 +107,8 @@ class OrderService
                     'order_id'          => $order->order_id,
                     'sku_id'            => $item['sku_id'] ?? null,
                     'product_id'        => $item['product_id'] ?? null,
-                    'item_type'         => $item['item_type'] ?? 'sku',
-                    'ref_id'            => $item['ref_id'] ?? null,
+                    'entity_type'       => $item['entity_type'] ?? EntityTypes::SKU,
+                    'entity_id'         => isset($item['entity_id']) ? (string) $item['entity_id'] : null,
                     'item_name'         => $item['item_name'],
                     'spec'              => $item['spec'] ?? null,
                     'quantity'          => $item['quantity'],
@@ -110,6 +120,37 @@ class OrderService
 
             return $order;
         });
+    }
+
+    /**
+     * 为可下单实体创建订单（跨层契约：任何实现 OrderableEntity 的实体均可下单）
+     *
+     * $options: pay_method?, quantity?, points_to_use?, source?, metadata?,
+     *           secondary_entity_type?, secondary_entity_id?
+     */
+    public function createForEntity(int $tenantId, ?int $userId, OrderableEntity $entity, array $options = []): Order
+    {
+        if (! $entity->isPurchasable()) {
+            throw new UnprocessableEntityHttpException("Entity [{$entity->getEntityType()}:{$entity->getEntityId()}] is not purchasable");
+        }
+
+        if (! EntityTypes::isValid($entity->getEntityType())) {
+            throw new UnprocessableEntityHttpException("Invalid entity_type: {$entity->getEntityType()}");
+        }
+
+        return $this->createOrder($tenantId, $userId, array_merge($options, [
+            'order_type'  => $options['order_type'] ?? Order::TYPE_PRODUCT,
+            'entity_type' => $entity->getEntityType(),
+            'entity_id'   => $entity->getEntityId(),
+            'items'       => $options['items'] ?? [[
+                'entity_type'       => $entity->getEntityType(),
+                'entity_id'         => $entity->getEntityId(),
+                'item_name'         => $options['item_name'] ?? $entity->getEntityType(),
+                'unit_price'        => $entity->getPayableAmount(),
+                'points_unit_price' => (int) ($options['points_unit_price'] ?? 0),
+                'quantity'          => (int) ($options['quantity'] ?? 1),
+            ]],
+        ]));
     }
 
     /**
@@ -139,8 +180,8 @@ class OrderService
                 $items[] = [
                     'sku_id'            => $sku->sku_id,
                     'product_id'        => $sku->product_id,
-                    'item_type'         => $sku->isMirror() ? ($sku->ref_type ?? 'sku') : 'sku',
-                    'ref_id'            => $sku->ref_id,
+                    'entity_type'       => $sku->isMirror() ? ($sku->ref_type ?? EntityTypes::SKU) : EntityTypes::SKU,
+                    'entity_id'         => $sku->ref_id !== null ? (string) $sku->ref_id : null,
                     'item_name'         => $sku->name,
                     'spec'              => $sku->spec_attrs,
                     'quantity'          => $quantity,
@@ -156,8 +197,8 @@ class OrderService
             }
 
             $items[] = [
-                'item_type'         => $raw['item_type'] ?? 'sku',
-                'ref_id'            => $raw['ref_id'] ?? null,
+                'entity_type'       => $raw['entity_type'] ?? EntityTypes::SKU,
+                'entity_id'         => isset($raw['entity_id']) ? (string) $raw['entity_id'] : null,
                 'item_name'         => $raw['item_name'],
                 'spec'              => $raw['spec'] ?? null,
                 'quantity'          => $quantity,
@@ -273,7 +314,7 @@ class OrderService
                 $this->deductSkuStock((int) $locked->tenant_id, $item);
             }
 
-            // 履约分发（按订单行 item_type 委托 Registry）
+            // 履约分发（按订单行 entity_type 委托 Registry）
             $this->fulfillOrder($locked);
 
             $locked->update([
@@ -299,7 +340,7 @@ class OrderService
                 buyerUserId: $fresh->user_id ? (int) $fresh->user_id : null,
                 amount: (float) $fresh->total_amount,
                 context: [
-                    'goods_id' => $fresh->items->first()?->ref_id
+                    'goods_id' => $fresh->items->first()?->entity_id
                         ?? $fresh->items->first()?->product_id
                         ?? $fresh->items->first()?->sku_id,
                 ],
@@ -472,12 +513,12 @@ class OrderService
         ]);
     }
 
-    // ========== 履约（按订单行 item_type 分发） ==========
+    // ========== 履约（按订单行 entity_type 分发） ==========
 
     /**
      * 支付确认后的履约分发（事务内执行，与扣款原子一致）
      *
-     * handler 未注册的 item_type 静默跳过（项目层按需注册）。
+     * handler 未注册的 entity_type 静默跳过（项目层按需注册）。
      */
     protected function fulfillOrder(Order $order): void
     {
@@ -486,7 +527,7 @@ class OrderService
         }
 
         foreach ($order->items as $item) {
-            $handler = $this->fulfillmentRegistry->get((string) $item->item_type);
+            $handler = $this->fulfillmentRegistry->get((string) $item->entity_type);
 
             if ($handler) {
                 $handler->fulfill($order, $item);

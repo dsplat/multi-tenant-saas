@@ -19,7 +19,7 @@ CREATE TABLE `ai_tasks` (
   `tenant_id` bigint unsigned NOT NULL COMMENT '租户ID',
   `conversation_id` bigint unsigned DEFAULT NULL COMMENT '发起会话 ID（断连兜底落库用）',
   `agent_id` bigint unsigned DEFAULT NULL COMMENT '发起 Agent ID',
-  `type` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务类型（handler 标识，如 campaign_plan_draft）',
+  `type` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '任务类型（handler 标识，如 activity_plan_draft）',
   `status` enum('pending','processing','completed','failed') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending' COMMENT '任务状态',
   `payload` json DEFAULT NULL COMMENT '任务入参快照',
   `result` json DEFAULT NULL COMMENT '执行结果',

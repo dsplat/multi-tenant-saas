@@ -4,9 +4,9 @@ namespace MultiTenantSaas\Tests;
 
 use Carbon\Carbon;
 use MultiTenantSaas\Context\TenantContext;
-use MultiTenantSaas\Modules\Campaign\Models\CampaignPlan;
-use MultiTenantSaas\Modules\Campaign\Models\CampaignTask;
-use MultiTenantSaas\Tests\Schema\CampaignModule;
+use MultiTenantSaas\Modules\ActivityPlan\Models\ActivityPlan;
+use MultiTenantSaas\Modules\ActivityPlan\Models\ActivityTask;
+use MultiTenantSaas\Tests\Schema\ActivityPlanModule;
 use MultiTenantSaas\Tests\Schema\NotificationModule;
 
 /**
@@ -17,7 +17,7 @@ use MultiTenantSaas\Tests\Schema\NotificationModule;
  */
 class ThreadHealthCheckTest extends TestCase
 {
-    protected array $uses = [CampaignModule::class, NotificationModule::class];
+    protected array $uses = [ActivityPlanModule::class, NotificationModule::class];
 
     private const TENANT = 5001;
 
@@ -25,28 +25,28 @@ class ThreadHealthCheckTest extends TestCase
     {
         parent::setUp();
         TenantContext::setTenantId((string) self::TENANT);
-        config(['ai.campaign.enabled' => true, 'ai.brain.enabled' => true]);
+        config(['ai.activity_plan.enabled' => true, 'ai.brain.enabled' => true]);
     }
 
-    private function createTrackedPlan(array $overrides = []): CampaignPlan
+    private function createTrackedPlan(array $overrides = []): ActivityPlan
     {
-        return CampaignPlan::create(array_merge([
+        return ActivityPlan::create(array_merge([
             'tenant_id' => self::TENANT,
-            'plan_doc' => ['schema' => 'campaign.plan/v1', 'title' => '21天训练营', 'phases' => []],
-            'status' => CampaignPlan::STATUS_RUNNING,
+            'plan_doc' => ['schema' => 'activity.plan/v1', 'title' => '21天训练营', 'phases' => []],
+            'status' => ActivityPlan::STATUS_RUNNING,
             'metadata' => ['tracked' => true],
             'created_by' => 0,
         ], $overrides));
     }
 
-    private function createTask(int $planId, string $key, string $status, ?Carbon $scheduledAt): CampaignTask
+    private function createTask(int $planId, string $key, string $status, ?Carbon $scheduledAt): ActivityTask
     {
-        return CampaignTask::create([
+        return ActivityTask::create([
             'tenant_id' => self::TENANT,
             'plan_id' => $planId,
             'task_key' => $key,
             'title' => $key,
-            'trigger_type' => CampaignTask::TRIGGER_AT_TIME,
+            'trigger_type' => ActivityTask::TRIGGER_AT_TIME,
             'scheduled_at' => $scheduledAt,
             'action' => ['type' => 'human'],
             'status' => $status,
@@ -56,11 +56,11 @@ class ThreadHealthCheckTest extends TestCase
     public function test_writes_health_with_overdue_and_upcoming(): void
     {
         $plan = $this->createTrackedPlan();
-        $this->createTask($plan->plan_id, 'overdue1', CampaignTask::STATUS_PENDING, Carbon::now()->subDay());
-        $this->createTask($plan->plan_id, 'overdue2', CampaignTask::STATUS_AWAITING_CONFIRM, Carbon::now()->subHours(2));
-        $this->createTask($plan->plan_id, 'upcoming', CampaignTask::STATUS_PENDING, Carbon::now()->addDay());
-        $this->createTask($plan->plan_id, 'far', CampaignTask::STATUS_PENDING, Carbon::now()->addDays(10));
-        $this->createTask($plan->plan_id, 'done', CampaignTask::STATUS_DONE, Carbon::now()->subDays(2));
+        $this->createTask($plan->plan_id, 'overdue1', ActivityTask::STATUS_PENDING, Carbon::now()->subDay());
+        $this->createTask($plan->plan_id, 'overdue2', ActivityTask::STATUS_AWAITING_CONFIRM, Carbon::now()->subHours(2));
+        $this->createTask($plan->plan_id, 'upcoming', ActivityTask::STATUS_PENDING, Carbon::now()->addDay());
+        $this->createTask($plan->plan_id, 'far', ActivityTask::STATUS_PENDING, Carbon::now()->addDays(10));
+        $this->createTask($plan->plan_id, 'done', ActivityTask::STATUS_DONE, Carbon::now()->subDays(2));
 
         $this->artisan('thread:health-check')->assertSuccessful();
 
@@ -76,9 +76,9 @@ class ThreadHealthCheckTest extends TestCase
 
     public function test_reports_stalled_thread_without_tasks(): void
     {
-        $plan = $this->createTrackedPlan(['status' => CampaignPlan::STATUS_PLANNING]);
+        $plan = $this->createTrackedPlan(['status' => ActivityPlan::STATUS_PLANNING]);
         // 模拟 10 天前建立跟踪、至今无任何任务
-        CampaignPlan::where('plan_id', $plan->plan_id)
+        ActivityPlan::where('plan_id', $plan->plan_id)
             ->update(['created_at' => Carbon::now()->subDays(10)]);
 
         $this->artisan('thread:health-check')->assertSuccessful();
@@ -91,7 +91,7 @@ class ThreadHealthCheckTest extends TestCase
     public function test_healthy_plan_reports_normal(): void
     {
         $plan = $this->createTrackedPlan();
-        $this->createTask($plan->plan_id, 'future', CampaignTask::STATUS_PENDING, Carbon::now()->addDays(5));
+        $this->createTask($plan->plan_id, 'future', ActivityTask::STATUS_PENDING, Carbon::now()->addDays(5));
 
         $this->artisan('thread:health-check')->assertSuccessful();
 
@@ -101,7 +101,7 @@ class ThreadHealthCheckTest extends TestCase
     public function test_skips_untracked_and_inactive_plans(): void
     {
         $untracked = $this->createTrackedPlan(['metadata' => null]);
-        $closed = $this->createTrackedPlan(['status' => CampaignPlan::STATUS_CLOSED]);
+        $closed = $this->createTrackedPlan(['status' => ActivityPlan::STATUS_CLOSED]);
 
         $this->artisan('thread:health-check')->assertSuccessful();
 
@@ -113,7 +113,7 @@ class ThreadHealthCheckTest extends TestCase
     {
         $plan = $this->createTrackedPlan();
         $original = Carbon::now()->subDays(3)->startOfSecond();
-        CampaignPlan::where('plan_id', $plan->plan_id)
+        ActivityPlan::where('plan_id', $plan->plan_id)
             ->update(['created_at' => $original, 'updated_at' => $original]);
 
         $this->artisan('thread:health-check')->assertSuccessful();
@@ -128,7 +128,7 @@ class ThreadHealthCheckTest extends TestCase
         config(['ai.brain.enabled' => false]);
 
         $plan = $this->createTrackedPlan();
-        $this->createTask($plan->plan_id, 'overdue', CampaignTask::STATUS_PENDING, Carbon::now()->subDay());
+        $this->createTask($plan->plan_id, 'overdue', ActivityTask::STATUS_PENDING, Carbon::now()->subDay());
 
         $this->artisan('thread:health-check')->assertSuccessful();
 

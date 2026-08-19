@@ -22,6 +22,10 @@ class OrderModule implements SchemaModuleInterface
             $table->decimal('total_amount', 12, 2)->default(0);
             $table->integer('points_amount')->default(0);
             $table->string('pay_method', 20)->default('cash');
+            $table->string('entity_type', 50)->nullable();
+            $table->string('entity_id', 64)->nullable();
+            $table->string('secondary_entity_type', 50)->nullable();
+            $table->string('secondary_entity_id', 64)->nullable();
             $table->string('status', 20)->default('pending');
             $table->timestamp('paid_at')->nullable();
             $table->timestamp('refunded_at')->nullable();
@@ -33,6 +37,8 @@ class OrderModule implements SchemaModuleInterface
             $table->index(['tenant_id', 'status']);
             $table->index(['tenant_id', 'user_id']);
             $table->index(['tenant_id', 'order_type']);
+            $table->index(['tenant_id', 'entity_type', 'entity_id'], 'orders_entity_idx');
+            $table->index(['tenant_id', 'secondary_entity_type', 'secondary_entity_id'], 'orders_secondary_entity_idx');
         });
 
         Schema::create('order_items', function (Blueprint $table) {
@@ -41,8 +47,8 @@ class OrderModule implements SchemaModuleInterface
             $table->unsignedBigInteger('order_id');
             $table->unsignedBigInteger('sku_id')->nullable();
             $table->unsignedBigInteger('product_id')->nullable();
-            $table->string('item_type', 30)->default('sku');
-            $table->unsignedBigInteger('ref_id')->nullable();
+            $table->string('entity_type', 30)->default('sku');
+            $table->string('entity_id', 64)->nullable();
             $table->string('item_name', 255);
             $table->json('spec')->nullable();
             $table->integer('quantity')->default(1);

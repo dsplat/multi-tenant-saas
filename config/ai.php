@@ -298,18 +298,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Campaign 排期引擎（docs/event-plan.md Phase 0）
+    | ActivityPlan 排期引擎（docs/event-plan.md Phase 0）
     |--------------------------------------------------------------------------
     |
-    | 平台级开关：AI_CAMPAIGN_ENABLED=true 启用 campaign:process-due 调度。
+    | 平台级开关：AI_ACTIVITY_PLAN_ENABLED=true 启用 activity_plan:process-due 调度。
     | 默认关闭（AI 可选性铁律）。
     |
     */
-    'campaign' => [
-        'enabled' => (bool) env('AI_CAMPAIGN_ENABLED', false),
+    'activity_plan' => [
+        'enabled' => (bool) env('AI_ACTIVITY_PLAN_ENABLED', false),
         'extra_playbook_classes' => [],
         // on_event 任务监听的事件类列表（下游通过 ServiceProvider 追加业务事件）
-        // 仅列入此处的事件类才会被 CampaignEventSubscriber 监听
+        // 仅列入此处的事件类才会被 ActivityPlanEventSubscriber 监听
         'listen_events' => [],
     ],
 

@@ -2,7 +2,7 @@
 
 namespace MultiTenantSaas\Tests;
 
-use MultiTenantSaas\Modules\Campaign\Services\PlaybookRegistry;
+use MultiTenantSaas\Modules\ActivityPlan\Services\PlaybookRegistry;
 
 /**
  * PlaybookRegistry 单测（docs/event-plan.md Phase 1：B1 + B2）
@@ -29,7 +29,7 @@ class PlaybookRegistryTest extends TestCase
         $this->assertNotNull($pb);
         $this->assertSame('三天短信序列（演示）', $pb['title']);
         $this->assertArrayHasKey('skeleton', $pb);
-        $this->assertSame('campaign.plan/v1', $pb['skeleton']['schema']);
+        $this->assertSame('activity.plan/v1', $pb['skeleton']['schema']);
         $this->assertNotEmpty($pb['skeleton']['phases']);
     }
 
@@ -48,7 +48,7 @@ class PlaybookRegistryTest extends TestCase
 
     public function test_extra_playbook_classes_are_merged(): void
     {
-        config(['ai.campaign.extra_playbook_classes' => [StubPlaybooks::class]]);
+        config(['ai.activity_plan.extra_playbook_classes' => [StubPlaybooks::class]]);
 
         $registry = $this->registry();
 
@@ -59,7 +59,7 @@ class PlaybookRegistryTest extends TestCase
 
     public function test_downstream_overrides_builtin_by_key(): void
     {
-        config(['ai.campaign.extra_playbook_classes' => [OverridePlaybooks::class]]);
+        config(['ai.activity_plan.extra_playbook_classes' => [OverridePlaybooks::class]]);
 
         $registry = $this->registry();
 
@@ -71,7 +71,7 @@ class PlaybookRegistryTest extends TestCase
 
     public function test_invalid_playbook_skipped_without_breaking_others(): void
     {
-        config(['ai.campaign.extra_playbook_classes' => [InvalidPlaybooks::class]]);
+        config(['ai.activity_plan.extra_playbook_classes' => [InvalidPlaybooks::class]]);
 
         $registry = $this->registry();
 
@@ -110,7 +110,7 @@ class PlaybookRegistryTest extends TestCase
         $this->assertNull($registry->find('stub_playbook'));
 
         // 修改 config 后缓存仍返回旧结果
-        config(['ai.campaign.extra_playbook_classes' => [StubPlaybooks::class]]);
+        config(['ai.activity_plan.extra_playbook_classes' => [StubPlaybooks::class]]);
         $this->assertNull($registry->find('stub_playbook'));
 
         // clearCache 后重新加载
@@ -133,7 +133,7 @@ class StubPlaybooks
                 'description' => '用于测试的桩 playbook',
                 'methodology' => '测试方法论',
                 'skeleton' => [
-                    'schema' => 'campaign.plan/v1',
+                    'schema' => 'activity.plan/v1',
                     'phases' => [
                         [
                             'key' => 'phase_1',
@@ -166,7 +166,7 @@ class OverridePlaybooks
                 'key' => 'demo_sms_sequence',
                 'title' => '下游覆盖版短信序列',
                 'skeleton' => [
-                    'schema' => 'campaign.plan/v1',
+                    'schema' => 'activity.plan/v1',
                     'phases' => [
                         [
                             'key' => 'override_phase',

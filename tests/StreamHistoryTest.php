@@ -168,13 +168,13 @@ class StreamHistoryTest extends TestCase
         $this->storeMessage([
             'role' => 'assistant',
             'content' => '',
-            'tool_calls' => [['id' => 'call_abc123', 'name' => 'campaign_plan_draft', 'arguments' => ['title' => '训练营']]],
+            'tool_calls' => [['id' => 'call_abc123', 'name' => 'activity_plan_draft', 'arguments' => ['title' => '训练营']]],
         ]);
         $this->storeMessage([
             'role' => 'tool',
             'content' => '{"plan_id":' . self::REAL_PLAN_ID . ',"status":"drafted"}',
             'tool_call_id' => 'call_abc123',
-            'metadata' => ['source' => 'ai-streaming', 'tool_name' => 'campaign_plan_draft'],
+            'metadata' => ['source' => 'ai-streaming', 'tool_name' => 'activity_plan_draft'],
         ]);
         $this->storeMessage(['role' => 'assistant', 'content' => '草稿已生成']);
 
@@ -185,7 +185,7 @@ class StreamHistoryTest extends TestCase
 
         // assistant.tool_calls 平铺格式归一化为 OpenAI 标准（id 原样保留，不合成）
         $this->assertSame('call_abc123', $history[1]['tool_calls'][0]['id']);
-        $this->assertSame('campaign_plan_draft', $history[1]['tool_calls'][0]['function']['name']);
+        $this->assertSame('activity_plan_draft', $history[1]['tool_calls'][0]['function']['name']);
 
         // tool 结果原样回放：真实长数字 ID 随结构化历史到达下一轮模型
         $this->assertSame('tool', $history[2]['role']);
@@ -319,10 +319,10 @@ class StreamHistoryTest extends TestCase
                 'agent_id' => 1001,
                 'user_message' => '帮我做活动计划',
                 'assistant_message' => '好的，正在生成草稿。',
-                'tool_calls' => [['id' => 'call_abc123', 'name' => 'campaign_plan_draft', 'arguments' => ['title' => '训练营']]],
+                'tool_calls' => [['id' => 'call_abc123', 'name' => 'activity_plan_draft', 'arguments' => ['title' => '训练营']]],
                 'tool_results' => [[
                     'tool_call_id' => 'call_abc123',
-                    'tool_name' => 'campaign_plan_draft',
+                    'tool_name' => 'activity_plan_draft',
                     'content' => '{"plan_id":' . self::REAL_PLAN_ID . ',"status":"drafted"}',
                 ]],
             ])
@@ -339,7 +339,7 @@ class StreamHistoryTest extends TestCase
         $tool = $messages->last();
         $this->assertSame('call_abc123', $tool->tool_call_id, 'tool_call_id 直接取 LLM 原生 id（不靠猜）');
         $this->assertStringContainsString((string) self::REAL_PLAN_ID, $tool->content);
-        $this->assertSame('campaign_plan_draft', $tool->metadata['tool_name']);
+        $this->assertSame('activity_plan_draft', $tool->metadata['tool_name']);
 
         // message_count 含 tool 消息
         $this->assertSame(3, (int) $this->conversation->fresh()->message_count);
@@ -398,10 +398,10 @@ class StreamHistoryTest extends TestCase
                 'agent_id' => 1001,
                 'user_message' => '帮我做活动计划',
                 'assistant_message' => '草稿已生成。',
-                'tool_calls' => [['id' => 'call_abc123', 'name' => 'campaign_plan_draft', 'arguments' => []]],
+                'tool_calls' => [['id' => 'call_abc123', 'name' => 'activity_plan_draft', 'arguments' => []]],
                 'tool_results' => [[
                     'tool_call_id' => 'call_abc123',
-                    'tool_name' => 'campaign_plan_draft',
+                    'tool_name' => 'activity_plan_draft',
                     'content' => '{"plan_id":' . self::REAL_PLAN_ID . ',"status":"drafted"}',
                 ]],
             ])

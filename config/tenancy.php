@@ -139,7 +139,7 @@ return [
             ['name' => 'scrm_communities', 'description' => 'SCRM 社群管理', 'scope' => 'tenant', 'status' => 'active', 'rollout_percentage' => 100],
             ['name' => 'scrm_live_codes', 'description' => 'SCRM 活码管理', 'scope' => 'tenant', 'status' => 'active', 'rollout_percentage' => 100],
             ['name' => 'scrm_knowledge', 'description' => 'SCRM 知识库', 'scope' => 'tenant', 'status' => 'active', 'rollout_percentage' => 100],
-            ['name' => 'scrm_campaigns', 'description' => 'SCRM 营销活动', 'scope' => 'tenant', 'status' => 'inactive', 'rollout_percentage' => 0],
+            ['name' => 'scrm_activities', 'description' => 'SCRM 活动管理', 'scope' => 'tenant', 'status' => 'inactive', 'rollout_percentage' => 0],
         ],
     ],
 

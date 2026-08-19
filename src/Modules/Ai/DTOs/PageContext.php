@@ -13,11 +13,11 @@ namespace MultiTenantSaas\Modules\Ai\DTOs;
 class PageContext
 {
     public function __construct(
-        /** 前端路由（如 marketing.campaign.create） */
+        /** 前端路由（如 activity.create） */
         public readonly string $route,
         /** 模块名（Marketing） */
         public readonly string $module,
-        /** 实体类型（campaign） */
+        /** 实体类型（activity） */
         public readonly ?string $entityType = null,
         /** 实体 ID（编辑时有值） */
         public readonly ?int $entityId = null,

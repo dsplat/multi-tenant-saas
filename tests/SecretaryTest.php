@@ -74,7 +74,7 @@ class SecretaryTest extends TestCase
             [
                 'system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'ask_user_choice', 'suggest_kb_update', 'list_agents', 'delegate_to_agent', 'enable_agent', 'fetch_site_metadata', 'update_tenant_branding', 'update_tenant_settings', 'update_tenant_domain',
                 'list_task_chains', 'start_task_chain', 'advance_task_chain',
-                'campaign_plan_draft', 'campaign_plan_commit', 'campaign_status',
+                'activity_plan_draft', 'activity_plan_commit', 'activity_status',
                 'thread_review', 'thread_track', 'thread_untrack',
                 'create_product', 'product_list', 'coupon_list', 'sms_list_templates',
             ],

@@ -90,7 +90,7 @@ class OrderModuleTest extends TestCase
         $this->assertEquals(100.00, (float) $order->total_amount);
         $this->assertSame(0, (int) $order->points_amount);
         $this->assertCount(1, $order->items);
-        $this->assertSame('sku', (string) $order->items->first()->item_type);
+        $this->assertSame('sku', (string) $order->items->first()->entity_type);
     }
 
     public function test_virtual_payment_confirms_and_dispatches_paid_event(): void
@@ -129,7 +129,7 @@ class OrderModuleTest extends TestCase
         });
     }
 
-    public function test_fulfillment_registry_dispatches_by_item_type(): void
+    public function test_fulfillment_registry_dispatches_by_entity_type(): void
     {
         $this->registerFakeChannel(1000);
 
@@ -140,7 +140,7 @@ class OrderModuleTest extends TestCase
             'order_type' => Order::TYPE_COURSE,
             'pay_method' => Order::PAY_POINTS,
             'items' => [[
-                'item_type' => 'external',
+                'entity_type' => 'external',
                 'item_name' => '外部直给行',
                 'points_unit_price' => 100,
                 'quantity' => 1,
@@ -159,7 +159,7 @@ class OrderModuleTest extends TestCase
 
         $this->orderService->createOrder(self::TENANT_ID, 1, [
             'pay_method' => Order::PAY_POINTS,
-            'items' => [['item_type' => 'sku', 'item_name' => '无积分价', 'unit_price' => 10]],
+            'items' => [['entity_type' => 'sku', 'item_name' => '无积分价', 'unit_price' => 10]],
         ]);
     }
 
@@ -240,7 +240,7 @@ class OrderFakeFulfillmentHandler implements OrderFulfillmentHandlerContract
 
     public function __construct(private string $type) {}
 
-    public function itemType(): string
+    public function entityType(): string
     {
         return $this->type;
     }

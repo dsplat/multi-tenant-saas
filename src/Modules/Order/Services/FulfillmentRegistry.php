@@ -7,7 +7,7 @@ namespace MultiTenantSaas\Modules\Order\Services;
 use MultiTenantSaas\Modules\Order\Contracts\OrderFulfillmentHandlerContract;
 
 /**
- * 订单履约注册表（按 order_items.item_type 分发）
+ * 订单履约注册表（按 order_items.entity_type 分发）
  *
  * 模块/项目层在 Provider boot 中注册：
  *   app(FulfillmentRegistry::class)->register(new CourseFulfillmentHandler());
@@ -19,17 +19,17 @@ class FulfillmentRegistry
 
     public function register(OrderFulfillmentHandlerContract $handler): void
     {
-        $this->handlers[$handler->itemType()] = $handler;
+        $this->handlers[$handler->entityType()] = $handler;
     }
 
-    public function has(string $itemType): bool
+    public function has(string $entityType): bool
     {
-        return isset($this->handlers[$itemType]);
+        return isset($this->handlers[$entityType]);
     }
 
-    public function get(string $itemType): ?OrderFulfillmentHandlerContract
+    public function get(string $entityType): ?OrderFulfillmentHandlerContract
     {
-        return $this->handlers[$itemType] ?? null;
+        return $this->handlers[$entityType] ?? null;
     }
 
     /** @return array<string, OrderFulfillmentHandlerContract> */

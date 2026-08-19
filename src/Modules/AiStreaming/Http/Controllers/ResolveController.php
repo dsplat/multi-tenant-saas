@@ -16,7 +16,7 @@ use MultiTenantSaas\Modules\Ai\Services\Agent\AgentProvisioningService;
 use MultiTenantSaas\Modules\Ai\Services\Agent\StreamHistoryBuilder;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolRegistry;
 use MultiTenantSaas\Modules\Ai\Services\AiUsageService;
-use MultiTenantSaas\Modules\Campaign\Services\ThreadDigestService;
+use MultiTenantSaas\Modules\ActivityPlan\Services\ThreadDigestService;
 
 /**
  * @OA\Tag(
@@ -176,8 +176,8 @@ class ResolveController extends AiStreamingController
      * 有效 system_prompt + 活跃脉络摘要附录（项目大脑 Phase 1b）
      *
      * 仅系统小助手注入（resolve 也服务业务数字员工，不得污染其上下文）；
-     * ai.brain.enabled 默认关闭；Campaign 模块未安装时静默跳过（软依赖，
-     * AiStreaming 不声明对 campaign 包的 composer 依赖）。
+     * ai.brain.enabled 默认关闭；ActivityPlan 模块未安装时静默跳过（软依赖，
+     * AiStreaming 不声明对 activity-plan 包的 composer 依赖）。
      */
     private function composeSystemPrompt(Agent $agent, int $tenantId): string
     {

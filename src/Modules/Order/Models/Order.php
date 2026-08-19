@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MultiTenantSaas\Modules\Order\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -17,6 +18,9 @@ use MultiTenantSaas\Concerns\SerializesFriendlyDates;
  * order_type：registration | product | course | exchange
  * pay_method：cash | points | mixed（积分折现抵扣 + 现金补差）
  * 计佣基数 = total_amount（实付现金，积分抵扣部分不计佣）
+ *
+ * 实体绑定隔离层：entity_type/entity_id（主实体）+ secondary_entity_*（次要关联，
+ * 如"活动推广课程"），字符串枚举见 Support\EntityTypes，不绑类名、不加业务专属 ID 字段。
  */
 class Order extends Model
 {
@@ -53,7 +57,9 @@ class Order extends Model
 
     protected $fillable = [
         'tenant_id', 'user_id', 'order_no', 'order_type', 'total_amount',
-        'points_amount', 'pay_method', 'status', 'paid_at', 'refunded_at',
+        'points_amount', 'pay_method', 'entity_type', 'entity_id',
+        'secondary_entity_type', 'secondary_entity_id',
+        'status', 'paid_at', 'refunded_at',
         'payment_order_id', 'source', 'metadata',
     ];
 
@@ -72,6 +78,14 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class, 'order_id', 'order_id');
+    }
+
+    /**
+     * 按主实体过滤订单（entity_type 取 EntityTypes 白名单值）
+     */
+    public function scopeForEntity(Builder $query, string $entityType, string $entityId): Builder
+    {
+        return $query->where('entity_type', $entityType)->where('entity_id', $entityId);
     }
 
     public function isPaid(): bool

@@ -12,7 +12,7 @@ use MultiTenantSaas\Tests\Schema\AgentModule;
  *
  * 数值确定性治理：模板 tools 是「必须已注册」意图，缺失即失败（fail-fast）；
  * optional_tools 是「下游扩展」意图，未注册静默跳过属设计意图。
- * 引擎开关（campaign/task_chains/brain）在此全开，校验开关全开下的注册完整性。
+ * 引擎开关（activity_plan/task_chains/brain）在此全开，校验开关全开下的注册完整性。
  */
 class AgentTemplateToolsConsistencyTest extends TestCase
 {
@@ -26,7 +26,7 @@ class AgentTemplateToolsConsistencyTest extends TestCase
     {
         parent::defineEnvironment($app);
 
-        $app['config']->set('ai.campaign.enabled', true);
+        $app['config']->set('ai.activity_plan.enabled', true);
         $app['config']->set('ai.task_chains.enabled', true);
         $app['config']->set('ai.brain.enabled', true);
     }

@@ -7,7 +7,7 @@
  *
  * useAiFormContext({
  *   module: 'Marketing',
- *   entity_type: 'campaign',
+ *   entity_type: 'activity',
  *   entity_id: route.params.id ? Number(route.params.id) : null,
  *   formModel: form,
  *   fields: ['name', 'budget', 'start_time', 'end_time', 'target_audience'],

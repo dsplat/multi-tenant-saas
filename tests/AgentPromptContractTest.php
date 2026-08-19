@@ -31,6 +31,7 @@ class AgentPromptContractTest extends TestCase
         'agent_id', 'plan_id', 'handoff_message', 'available_to_enable',
         'form_state', 'next_action', 'step_input', 'step_output',
         'route_path', 'navigate_hint', 'tool_call_id',
+        'activity_plan', 'entity_type', 'entity_id',
     ];
 
     /**
@@ -38,8 +39,11 @@ class AgentPromptContractTest extends TestCase
      * 由下游 split 包注册；每条须注明提供方，禁止无据扩充）
      */
     private const DOWNSTREAM_ROUTE_WHITELIST = [
-        // scrm-platform Marketing 模块 CampaignManagement 页面（营销活动实体列表）
-        '/campaign',
+        // scrm-platform Activity 模块 ActivityManagement 页面（活动列表）
+        '/activity',
+        // scrm-platform Content 模块素材管理/话术库页面
+        '/materials',
+        '/scripts',
     ];
 
     /**
@@ -52,8 +56,8 @@ class AgentPromptContractTest extends TestCase
     {
         parent::defineEnvironment($app);
 
-        // campaign/thread/task_chain 工具受引擎开关门控，全开才能校验 prompt 标识符的注册完整性
-        $app['config']->set('ai.campaign.enabled', true);
+        // activity_plan/thread/task_chain 工具受引擎开关门控，全开才能校验 prompt 标识符的注册完整性
+        $app['config']->set('ai.activity_plan.enabled', true);
         $app['config']->set('ai.task_chains.enabled', true);
         $app['config']->set('ai.brain.enabled', true);
     }

@@ -26,7 +26,7 @@ export const AI_PAGE_CONTEXT_KEY = 'aiPageContext'
 
 /**
  * 从路由路径推断模块名。
- * 约定：console 模块路由形如 /customers、/marketing/campaigns、/events/:id …
+ * 约定：console 模块路由形如 /customers、/activity、/events/:id …
  * 取第一段路径并转 PascalCase。
  */
 function inferModuleFromPath(path: string): string {
@@ -37,7 +37,7 @@ function inferModuleFromPath(path: string): string {
 }
 
 /**
- * 把路由路径转为点分 route 标识（如 marketing.campaign.create）。
+ * 把路由路径转为点分 route 标识（如 activity.create）。
  */
 function routeToDotted(path: string): string {
   return path.split('/').filter(Boolean).join('.') || 'dashboard'

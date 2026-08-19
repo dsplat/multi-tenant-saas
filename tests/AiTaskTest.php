@@ -12,20 +12,20 @@ use MultiTenantSaas\Modules\Ai\Services\Ai\AiResponse;
 use MultiTenantSaas\Modules\Ai\Services\AiTask\AiTaskHandlerContract;
 use MultiTenantSaas\Modules\Ai\Services\AiTask\AiTaskHandlerRegistry;
 use MultiTenantSaas\Modules\Ai\Services\Agent\ToolConversationContext;
-use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignPlanDraftTaskHandler;
-use MultiTenantSaas\Modules\Campaign\Services\Tools\CampaignPlanDraftTool;
+use MultiTenantSaas\Modules\ActivityPlan\Services\Tools\ActivityPlanDraftTaskHandler;
+use MultiTenantSaas\Modules\ActivityPlan\Services\Tools\ActivityPlanDraftTool;
 use MultiTenantSaas\Tests\Schema\AgentModule;
 use MultiTenantSaas\Tests\Schema\AiModule;
-use MultiTenantSaas\Tests\Schema\CampaignModule;
+use MultiTenantSaas\Tests\Schema\ActivityPlanModule;
 
 /**
  * AI 长任务跟踪机制（task/queue + Node 流内轮询）：
  * IdGenerator 主键铁律、Job 状态机、handler 分发、断连兜底落库、
- * campaign_plan_draft 任务化提交（await_task 协议）。
+ * activity_plan_draft 任务化提交（await_task 协议）。
  */
 class AiTaskTest extends TestCase
 {
-    protected array $uses = [AiModule::class, AgentModule::class, CampaignModule::class];
+    protected array $uses = [AiModule::class, AgentModule::class, ActivityPlanModule::class];
 
     private const TENANT = 1001;
 
@@ -213,16 +213,16 @@ class AiTaskTest extends TestCase
         $this->assertSame(0, AgentConversationMessage::where('conversation_id', self::CONVERSATION)->count());
     }
 
-    // ---------- campaign_plan_draft 任务化 ----------
+    // ---------- activity_plan_draft 任务化 ----------
 
-    public function test_campaign_plan_draft_tool_submits_await_task(): void
+    public function test_activity_plan_draft_tool_submits_await_task(): void
     {
-        $this->registry()->register('campaign_plan_draft', CampaignPlanDraftTaskHandler::class);
+        $this->registry()->register('activity_plan_draft', ActivityPlanDraftTaskHandler::class);
         $this->bindLlmStub();
 
         $this->app->make(ToolConversationContext::class)->set(self::CONVERSATION);
 
-        $tool = $this->app->make(CampaignPlanDraftTool::class);
+        $tool = $this->app->make(ActivityPlanDraftTool::class);
         $result = $tool(['user_input' => '策划七夕活动'], self::TENANT);
 
         // 工具返回 await_task 协议载荷
@@ -232,16 +232,16 @@ class AiTaskTest extends TestCase
         // queue sync 下任务已同步执行完毕：plan_doc 生成并落库结果
         $task = AiTask::find((int) $result['task_id']);
         $this->assertSame(AiTask::STATUS_COMPLETED, $task->status);
-        $this->assertSame('campaign_plan_draft', $task->type);
+        $this->assertSame('activity_plan_draft', $task->type);
         $this->assertSame(self::CONVERSATION, (int) $task->conversation_id);
         $this->assertNotEmpty($task->result['plan_id'] ?? null);
         $this->assertSame('七夕甜蜜企划', $task->result['plan_doc_preview']['title'] ?? null);
         $this->assertNotEmpty($task->result['summary'] ?? null);
     }
 
-    public function test_campaign_plan_draft_tool_requires_user_input(): void
+    public function test_activity_plan_draft_tool_requires_user_input(): void
     {
-        $tool = $this->app->make(CampaignPlanDraftTool::class);
+        $tool = $this->app->make(ActivityPlanDraftTool::class);
         $result = $tool([], self::TENANT);
 
         $this->assertTrue($result['error'] ?? false);
@@ -254,7 +254,7 @@ class AiTaskTest extends TestCase
     private function bindLlmStub(): void
     {
         $planDoc = json_encode([
-            'schema' => 'campaign.plan/v1',
+            'schema' => 'activity.plan/v1',
             'title' => '七夕甜蜜企划',
             'phases' => [
                 ['key' => 'warmup', 'title' => '预热', 'tasks' => []],

@@ -100,9 +100,9 @@ class AgentContextNormalizeTest extends TestCase
         // Node 平铺格式落库 + confirmAction 落库的 tool 结果（无 tool_call_id，靠工具名配对）
         $this->addMessage('user', '帮我定稿计划');
         $this->addMessage('assistant', '好的，我来提交定稿。', [
-            ['name' => 'campaign_plan_commit', 'arguments' => ['plan_id' => 42]],
+            ['name' => 'activity_plan_commit', 'arguments' => ['plan_id' => 42]],
         ], [], 1);
-        $this->addMessage('tool', '{"status":"scheduled"}', null, ['tool_name' => 'campaign_plan_commit'], 2);
+        $this->addMessage('tool', '{"status":"scheduled"}', null, ['tool_name' => 'activity_plan_commit'], 2);
 
         $context = $this->runtime->getConversationContext(2001);
 
@@ -112,7 +112,7 @@ class AgentContextNormalizeTest extends TestCase
 
         $call = $assistant['tool_calls'][0];
         $this->assertSame('function', $call['type']);
-        $this->assertSame('campaign_plan_commit', $call['function']['name']);
+        $this->assertSame('activity_plan_commit', $call['function']['name']);
         $this->assertIsString($call['function']['arguments']);
         $this->assertSame(['plan_id' => 42], json_decode($call['function']['arguments'], true));
         $this->assertNotEmpty($call['id']);
@@ -129,16 +129,16 @@ class AgentContextNormalizeTest extends TestCase
         // Node 多步展平：流内已解决的 L1 调用（无 tool 响应落库）须剔除，仅保留有响应的 L2
         $this->addMessage('user', '策划并定稿');
         $this->addMessage('assistant', '已完成策划，提交定稿。', [
-            ['name' => 'campaign_plan_draft', 'arguments' => ['user_input' => '21天训练营']],
-            ['name' => 'campaign_plan_commit', 'arguments' => ['plan_id' => 42]],
+            ['name' => 'activity_plan_draft', 'arguments' => ['user_input' => '21天训练营']],
+            ['name' => 'activity_plan_commit', 'arguments' => ['plan_id' => 42]],
         ], [], 1);
-        $this->addMessage('tool', '{"status":"scheduled"}', null, ['tool_name' => 'campaign_plan_commit'], 2);
+        $this->addMessage('tool', '{"status":"scheduled"}', null, ['tool_name' => 'activity_plan_commit'], 2);
 
         $context = $this->runtime->getConversationContext(2001);
 
         $assistant = collect($context)->firstWhere('role', 'assistant');
         $this->assertCount(1, $assistant['tool_calls']);
-        $this->assertSame('campaign_plan_commit', $assistant['tool_calls'][0]['function']['name']);
+        $this->assertSame('activity_plan_commit', $assistant['tool_calls'][0]['function']['name']);
     }
 
     public function test_assistant_without_any_tool_response_loses_tool_calls(): void
@@ -146,7 +146,7 @@ class AgentContextNormalizeTest extends TestCase
         // 全部 tool_call 无响应 → 去掉 tool_calls 字段，保留文本（协议合法）
         $this->addMessage('user', '查一下');
         $this->addMessage('assistant', '我查询了相关信息，结果如下…', [
-            ['name' => 'system_kb_search', 'arguments' => ['query' => 'campaign']],
+            ['name' => 'system_kb_search', 'arguments' => ['query' => 'activity']],
         ], [], 1);
         $this->addMessage('user', '继续', null, [], 2);
 
@@ -177,10 +177,10 @@ class AgentContextNormalizeTest extends TestCase
         // Node 修复后落库带 LLM 原生 id 的平铺格式 + 令牌携带 tool_call_id 的 tool 消息：精确配对
         $this->addMessage('user', '定稿');
         $this->addMessage('assistant', '提交定稿。', [
-            ['id' => 'call_abc123', 'name' => 'campaign_plan_commit', 'arguments' => ['plan_id' => 7]],
+            ['id' => 'call_abc123', 'name' => 'activity_plan_commit', 'arguments' => ['plan_id' => 7]],
         ], [], 1);
         $this->addMessage('tool', '{"status":"scheduled"}', null, [
-            'tool_name' => 'campaign_plan_commit',
+            'tool_name' => 'activity_plan_commit',
             'tool_call_id' => 'call_abc123',
         ], 2);
 
@@ -188,7 +188,7 @@ class AgentContextNormalizeTest extends TestCase
 
         $assistant = collect($context)->firstWhere('role', 'assistant');
         $this->assertSame('call_abc123', $assistant['tool_calls'][0]['id']);
-        $this->assertSame('campaign_plan_commit', $assistant['tool_calls'][0]['function']['name']);
+        $this->assertSame('activity_plan_commit', $assistant['tool_calls'][0]['function']['name']);
 
         $tool = collect($context)->firstWhere('role', 'tool');
         $this->assertSame('call_abc123', $tool['tool_call_id']);

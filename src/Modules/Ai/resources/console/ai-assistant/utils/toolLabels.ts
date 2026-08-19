@@ -25,15 +25,15 @@ const TOOL_LABELS: Record<string, string> = {
   list_mass_push: '查看群发任务',
   product_list: '查看商品列表',
   coupon_list: '查看优惠券列表',
-  campaign_status: '查询活动进度',
+  activity_status: '查询活动进度',
   list_task_chains: '查看任务链目录',
   thread_review: '回顾工作脉络',
   thread_track: '建立脉络跟踪',
   thread_untrack: '取消脉络跟踪',
 
   // ── 策划/任务链类 ──
-  campaign_plan_draft: '起草活动方案',
-  campaign_plan_commit: '定稿活动计划',
+  activity_plan_draft: '起草活动方案',
+  activity_plan_commit: '定稿活动计划',
   start_task_chain: '启动任务链',
   advance_task_chain: '推进任务链',
 
@@ -62,13 +62,13 @@ const TOOL_LABELS: Record<string, string> = {
   create_mass_push: '创建群发任务',
 
   // ── 下游 SCRM 工具 ──
-  plan_campaign: '策划营销方案',
+  plan_activity: '策划活动方案',
   generate_image_prompt: '生成海报创意提示词',
   generate_video_script: '生成视频脚本',
   analyze_trend: '分析趋势',
   get_event_info: '查看活动详情',
   create_event: '创建活动',
-  create_campaign: '创建营销活动',
+  create_activity: '创建活动',
 }
 
 /**
@@ -150,7 +150,7 @@ const HIDDEN_FIELDS = new Set<string>([
 
 /** 任务链 key → 可读链名（未收录的 chain_key 整行隐藏） */
 const CHAIN_LABELS: Record<string, string> = {
-  launch_marketing_campaign: '营销活动上线',
+  launch_activity: '活动上线',
   demo_poster_flow: '海报生成流程',
 }
 

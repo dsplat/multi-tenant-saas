@@ -104,10 +104,10 @@ class SchedulerService
             'description' => '自动备份所有活跃租户数据',
         ]);
 
-        $this->addTask($schedule, 'campaign-process-due', [
-            'command' => 'campaign:process-due',
+        $this->addTask($schedule, 'activity-plan-process-due', [
+            'command' => 'activity_plan:process-due',
             'schedule' => 'cron:*/5 * * * *',
-            'description' => 'Campaign 排期任务到点触发（跨租户扫描）',
+            'description' => '活动排期任务到点触发（跨租户扫描）',
         ]);
 
         $this->addTask($schedule, 'thread-health-check', [

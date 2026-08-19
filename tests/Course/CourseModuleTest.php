@@ -113,8 +113,8 @@ class CourseModuleTest extends TestCase
             'order_type' => Order::TYPE_COURSE,
             'pay_method' => Order::PAY_POINTS,
             'items' => [[
-                'item_type' => 'course',
-                'ref_id' => $course->course_id,
+                'entity_type' => 'course',
+                'entity_id' => (string) $course->course_id,
                 'item_name' => $course->title,
                 'points_unit_price' => 800,
                 'quantity' => 1,

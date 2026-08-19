@@ -15,7 +15,7 @@ use MultiTenantSaas\Modules\Ai\Services\Tool\NavigateTool;
  * 一律由代码确定性给出，模型的转述据此锁定，不依赖提示词与模型自觉。
  * 工具返回是紧贴模型下一次输出的上下文，是全链路最强锁定点。
  *
- * campaign 系工具（draft/commit）的表述锁断言见 CampaignPlanToolTest。
+ * 活动排期系工具（draft/commit）的表述锁断言见 ActivityPlanToolTest。
  */
 class ToolResultContractTest extends TestCase
 {
@@ -36,7 +36,7 @@ class ToolResultContractTest extends TestCase
     public function test_navigate_result_locks_expression(): void
     {
         $result = (new NavigateTool)([
-            'route_path' => '/campaign/calendar',
+            'route_path' => '/activity/calendar',
             'label' => '活动日历',
         ], 1);
 

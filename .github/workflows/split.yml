@@ -25,8 +25,8 @@ jobs:
             repo: multi-tenant-saas-module-auth
           - prefix: 'src/Modules/Billing'
             repo: multi-tenant-saas-module-billing
-          - prefix: 'src/Modules/Campaign'
-            repo: multi-tenant-saas-module-campaign
+          - prefix: 'src/Modules/ActivityPlan'
+            repo: multi-tenant-saas-module-activity-plan
           - prefix: 'src/Modules/Commerce'
             repo: multi-tenant-saas-module-commerce
           - prefix: 'src/Modules/Contracts'

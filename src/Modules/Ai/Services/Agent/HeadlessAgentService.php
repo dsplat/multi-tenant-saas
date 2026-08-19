@@ -11,7 +11,7 @@ use MultiTenantSaas\Modules\Ai\Services\Agent\Dto\Tool;
 /**
  * Headless Agent Execution — 无用户交互的短 ReAct 会话
  *
- * 供 task-chain delegate 步和 campaign agent_react 任务共享使用。
+ * 供 task-chain delegate 步和活动计划 agent_react 任务共享使用。
  * 派给指定 agent role 执行若干轮工具调用后返回文本产出。
  *
  * 安全铁律：

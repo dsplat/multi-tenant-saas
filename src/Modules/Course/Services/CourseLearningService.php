@@ -114,8 +114,8 @@ class CourseLearningService
             'pay_method'    => $payMethod,
             'points_to_use' => $options['points_to_use'] ?? 0,
             'items'         => [[
-                'item_type'         => 'course',
-                'ref_id'            => $courseId,
+                'entity_type'       => 'course',
+                'entity_id'         => (string) $courseId,
                 'item_name'         => $course->title,
                 'unit_price'        => (float) $course->price,
                 'points_unit_price' => (int) $course->points_price,

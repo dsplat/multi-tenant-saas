@@ -9,11 +9,11 @@
 
 /** 前端页面上下文（对应框架 PageContext DTO） */
 export interface PageContext {
-  /** 前端路由（如 marketing.campaign.create） */
+  /** 前端路由（如 activity.create） */
   route: string
   /** 模块名（如 Marketing） */
   module: string
-  /** 实体类型（如 campaign） */
+  /** 实体类型（如 activity） */
   entity_type?: string | null
   /** 实体 ID（编辑时有值） */
   entity_id?: number | null

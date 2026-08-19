@@ -16,9 +16,9 @@ class ToolSummaryLabels
     /** slug → 可读名称（覆盖高频工具；未收录的回退 slug 本身） */
     private const LABELS = [
         'ask_user_choice' => '提供选项待你选择',
-        'campaign_plan_draft' => '起草活动方案',
-        'campaign_plan_commit' => '定稿活动方案',
-        'campaign_status' => '查询活动进度',
+        'activity_plan_draft' => '起草活动方案',
+        'activity_plan_commit' => '定稿活动方案',
+        'activity_status' => '查询活动进度',
         'navigate' => '导航到功能页面',
         'system_kb_search' => '检索系统知识库',
         'list_agents' => '查看数字员工名录',

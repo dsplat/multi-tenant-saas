@@ -155,6 +155,71 @@ class ActivityPlanCompilerTest extends TestCase
         $this->assertNull($task->scheduled_at);
     }
 
+    // ========== compile: recurring 锚点解析 ==========
+
+    public function test_compile_recurring_without_anchor_falls_back_to_event_start(): void
+    {
+        // 无 anchor 的 recurring 必须回退 event.starts_at 锚点展开，
+        // 而非编译时刻（否则周期任务落在活动期外，见计划 6039020542432178 缺陷）
+        $doc = $this->validPlanDoc();
+        $doc['phases'][0]['tasks'][0] = [
+            'key' => 'daily_seckill',
+            'title' => '每日社群秒杀',
+            'trigger' => ['type' => 'recurring', 'from' => '+0d', 'until' => '+2d', 'interval' => '1d', 'at' => '09:30'],
+            'action' => ['type' => 'notify', 'channel' => 'sms'],
+            'execution_mode' => 'auto',
+        ];
+
+        $plan = ActivityPlan::create([
+            'tenant_id' => 1001,
+            'plan_doc' => $doc,
+            'status' => 'planning',
+            'created_by' => 1,
+        ]);
+
+        $this->compiler->compile($plan, ['event.starts_at' => '2026-09-15 09:00']);
+
+        $tasks = ActivityTask::where('plan_id', $plan->plan_id)
+            ->where('task_key', 'like', 'daily_seckill_%')
+            ->orderBy('task_key')
+            ->get();
+        $this->assertCount(3, $tasks);
+        // 以活动开始日为基准展开：9/15、9/16、9/17 每天 09:30
+        $this->assertEquals('2026-09-15 09:30:00', $tasks[0]->scheduled_at->format('Y-m-d H:i:s'));
+        $this->assertEquals('2026-09-17 09:30:00', $tasks[2]->scheduled_at->format('Y-m-d H:i:s'));
+    }
+
+    public function test_compile_recurring_with_explicit_anchor_prefers_it(): void
+    {
+        $doc = $this->validPlanDoc();
+        $doc['phases'][0]['tasks'][0] = [
+            'key' => 'daily_seckill',
+            'title' => '每日社群秒杀',
+            'trigger' => [
+                'type' => 'recurring', 'anchor' => 'custom.starts_at',
+                'from' => '+0d', 'until' => '+1d', 'interval' => '1d', 'at' => '10:00',
+            ],
+            'action' => ['type' => 'notify', 'channel' => 'sms'],
+            'execution_mode' => 'auto',
+        ];
+
+        $plan = ActivityPlan::create([
+            'tenant_id' => 1001,
+            'plan_doc' => $doc,
+            'status' => 'planning',
+            'created_by' => 1,
+        ]);
+
+        $this->compiler->compile($plan, [
+            'event.starts_at' => '2026-09-15 09:00',
+            'custom.starts_at' => '2026-10-01 08:00',
+        ]);
+
+        $first = ActivityTask::where('plan_id', $plan->plan_id)->where('task_key', 'daily_seckill_0')->first();
+        // 显式锚点优先于 event.starts_at 回退
+        $this->assertEquals('2026-10-01 10:00:00', $first->scheduled_at->format('Y-m-d H:i:s'));
+    }
+
     // ========== compile: 重编译幂等 ==========
 
     public function test_recompile_is_idempotent_and_preserves_done(): void

@@ -328,11 +328,15 @@ class PlanCompiler
         $atTime = $trigger['at'] ?? null;
         $anchor = $trigger['anchor'] ?? '';
 
-        // 解析锡点基础时间
+        // 解析锚点基础时间
         if ($anchor !== '' && isset($anchorTimes[$anchor])) {
             $baseTime = Carbon::parse($anchorTimes[$anchor]);
+        } elseif (isset($anchorTimes['event.starts_at'])) {
+            // 未声明锚点时回退活动开始锚点（全计划统一锚点纪律），
+            // 避免以编译时刻为基准展开导致周期任务落在活动期外
+            $baseTime = Carbon::parse($anchorTimes['event.starts_at']);
         } else {
-            // 无锡点时以编译时刻为基准
+            // 无锚点时以编译时刻为基准
             $baseTime = Carbon::now();
         }
 

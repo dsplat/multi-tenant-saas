@@ -191,7 +191,9 @@ class ActivityPlanDraftTaskHandler implements AiTaskHandlerContract
         $parts[] = '## action.type 硬性规则';
         $parts[] = '- "tool"：必须同时提供 "tool" 字段且值为系统已注册的工具 slug；不确定有哪些工具时禁用此类型';
         $parts[] = '- "human"：人工待办（到点通知操作人执行），没有合适工具的任务一律用 human，这是默认选择';
-        $parts[] = '- trigger.type=relative 必须带 anchor 与 offset；recurring 必须带 from/until/interval';
+        $parts[] = '- trigger.type=relative 必须带 anchor 与 offset；recurring 必须带 anchor/from/until/interval，'
+            . 'anchor 统一用 "event.starts_at"，from/until 是相对锚点的偏移（如 from "+0d" until "+9d" 表示自活动开始日起连续 10 天）；'
+            . '禁止省略 anchor（省略会按定稿日展开，周期任务将落在活动期外）';
         $parts[] = '- 锚点纪律：全计划统一只用一个锚点名 "event.starts_at"（活动开始时间），'
             . '其他时点用 offset 相对表达（如开营前3天 = anchor "event.starts_at" + offset "-3d"）；'
             . '禁止自造多个锚点名，除非用户明确提供了多个独立日期';

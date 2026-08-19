@@ -104,6 +104,17 @@ class ActivityPlanCommitTool implements ToolHandlerContract
         // 5. 返回结果
         $tasks = $plan->tasks()->orderBy('scheduled_at')->get();
 
+        // 周期任务展开统计（数值确定性：向用户播报任务数时必须解释定义数与实例数的口径差异）
+        $definedTasks = collect($planDoc['phases'] ?? [])->flatMap(fn ($phase) => $phase['tasks'] ?? []);
+        $definedCount = $definedTasks->count();
+        $recurringCount = $definedTasks
+            ->filter(fn ($task) => (($task['trigger']['type'] ?? '') === 'recurring'))
+            ->count();
+        $expansionNote = $recurringCount > 0
+            ? sprintf('注意：本计划定义 %d 项任务，其中 %d 项周期任务按日期展开为多个实例，共生成 %d 条排期实例；'
+                . '向用户播报时必须同时说明定义任务数与展开后的排期实例数，不得只报单一数字。', $definedCount, $recurringCount, $tasks->count())
+            : '';
+
         // 6. 派发定稿排期事件：项目层可监听同步创建营销活动实体等扩展
         event(new ActivityPlanScheduled(
             tenantId: (int) $plan->tenant_id,
@@ -118,6 +129,8 @@ class ActivityPlanCommitTool implements ToolHandlerContract
             'plan_id' => $plan->plan_id,
             'status' => $plan->status,
             'tasks_count' => $tasks->count(),
+            'defined_tasks_count' => $definedCount,
+            'recurring_tasks_count' => $recurringCount,
             'timeline_preview' => $tasks->map(fn ($task) => [
                 'key' => $task->task_key,
                 'title' => $task->title,
@@ -129,7 +142,8 @@ class ActivityPlanCommitTool implements ToolHandlerContract
             // 营销内容与物料准备；每项排期任务到点时系统会在对话中提示确认执行
             'next_action' => '定稿成功。向用户播报结果后，主动引导下一步：活动进入「营销内容准备」阶段——'
                 . '如优惠券规则配置、推广文案、海报素材等，询问用户是否现在就开始准备（你能协助生成文案与素材）；'
-                . '并说明每项排期任务到达时间点时会在对话中提示确认执行，可在「活动日历」查看排期全貌。',
+                . '并说明每项排期任务到达时间点时会在对话中提示确认执行，可在「活动日历」查看排期全貌。'
+                . ($expansionNote !== '' ? ' ' . $expansionNote : ''),
         ];
     }
 

@@ -131,7 +131,7 @@
 
 ## 模块系统
 
-框架内置 32 个模块，每个模块是独立的 Composer 包，通过 `ModuleServiceProvider` 基类自动注册路由、迁移和配置。
+框架现有 37 个模块目录（含根包共 38 个 split 拆分包，以 `.github/workflows/split.yml` matrix 为唯一事实源），每个模块是独立的 Composer 包，通过 `ModuleServiceProvider` 基类自动注册路由、迁移和配置。
 
 ```
 src/Modules/
@@ -301,7 +301,7 @@ multi-tenant-saas/
 │   ├── Mail/               # 邮件类
 │   ├── Middleware/         # 中间件
 │   ├── Models/             # 框架模型
-│   ├── Modules/            # 32 个模块（独立 Composer 包）
+│   ├── Modules/            # 37 个模块（独立 Composer 包）
 │   ├── Scopes/             # 全局作用域（TenantScope）
 │   ├── Services/           # 服务层
 │   └── TenancyServiceProvider.php

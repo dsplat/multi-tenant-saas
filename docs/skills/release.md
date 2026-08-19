@@ -77,7 +77,7 @@ gh run list --workflow=split.yml --limit 3
 # 如果没有自动触发，手动触发
 gh workflow run split.yml --ref main
 
-# 等待完成并验证 33/33 成功（1 核心 + 32 模块）
+# 等待完成并验证 38/38 成功（1 根包 + 37 模块，以 split.yml matrix 为准）
 sleep 180 && gh run view <run-id> --json jobs -q '.jobs | length'
 ```
 

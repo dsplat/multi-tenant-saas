@@ -19,7 +19,7 @@ Laravel 多租户 SaaS 基础框架 — 开箱即用的企业级项目骨架。
 - **SPA 后台**：27 个 Admin 页面 + 12 个 Console 页面，支持暗色模式 + 主题切换
 - **模块自动发现**：Vue 页面放在 `src/Modules/*/resources/{admin,console}/views/` 自动注册到侧边栏
 - **多 UI 框架**：每个页面支持 Bootstrap 和 Element Plus 两套变体
-- **30 个模块**：计费、认证、表单、抽奖、投票、短信、优惠券、工作流、对话、AI Agent 等
+- **37 个模块**：活动计划、计费、认证、课程、订单、表单、抽奖、投票、短信、优惠券、工作流、对话、AI Agent 等（以 split.yml 为准）
 - **20 个接口**：面向接口架构，下游项目可自由扩展
 - **领域异常体系**：DomainException 基类 + 11 个具体异常，携带 HTTP 状态码
 - **领域事件**：14 个事件 + 6 个监听器，覆盖租户/Agent/Tool 生命周期

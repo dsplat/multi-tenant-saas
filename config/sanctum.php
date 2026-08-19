@@ -18,12 +18,19 @@ return [
     |
     */
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
-        'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
-        Sanctum::currentApplicationUrlWithPort(),
-        // Sanctum::currentRequestHost(),
-    ))),
+    'stateful' => array_values(array_unique(array_filter(array_merge(
+        explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
+            '%s%s',
+            'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
+            Sanctum::currentApplicationUrlWithPort(),
+            // Sanctum::currentRequestHost(),
+        ))),
+        // 自动并入通配租户域：多租户 SPA 经 {slug}.<wildcard_base> 子域访问，
+        // 白名单缺此项时租户域登录不下发会话 Cookie → /auth/user 401 → 无限登录循环。
+        // 与 config('domain.wildcard_base') 同源（模块 config 合并晚于本文件加载，故直读 env）。
+        // 边界：租户 approved 自定义域名仍需手工追加进 SANCTUM_STATEFUL_DOMAINS。
+        env('PLATFORM_WILDCARD_BASE') ? ['*.'.env('PLATFORM_WILDCARD_BASE')] : [],
+    )))),
 
     /*
     |--------------------------------------------------------------------------

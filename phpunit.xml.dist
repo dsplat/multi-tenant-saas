@@ -37,5 +37,7 @@
         <env name="MAIL_MAILER" value="log"/>
         <env name="LOG_CHANNEL" value="errorlog"/>
         <env name="HASHING_BCRYPT_ROUNDS" value="4"/>
+        <env name="PLATFORM_WILDCARD_BASE" value="neihang.test"/>
+        <env name="SANCTUM_STATEFUL_DOMAINS" value="localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1,www.neihang.test,console.neihang.test"/>
     </php>
 </phpunit>

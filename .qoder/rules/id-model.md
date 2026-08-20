@@ -1,3 +1,8 @@
+---
+trigger: always_on
+alwaysApply: true
+---
+
 # 主键机制铁律（生成代码时必须遵守）
 
 本规则定义全系统唯一的主键生成方案，杜绝 snowflake/UUID/自增 ID 等平行方案。

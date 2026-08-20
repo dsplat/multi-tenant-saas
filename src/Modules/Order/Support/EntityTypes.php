@@ -9,7 +9,8 @@ namespace MultiTenantSaas\Modules\Order\Support;
  *
  * orders / order_items / materials / scripts / evaluations 等表的
  * entity_type 字段一律取本类常量（字符串枚举，非类名，禁止绑业务模型类）。
- * 'sku' 保留为商品履约路径值（自建 SKU 的订单行分发键）。
+ * SKU 不是实体：它只是 Product 下的规格维度（sku_id 存 order_items），
+ * 商品订单的实体永远是 product。
  */
 final class EntityTypes
 {
@@ -22,11 +23,8 @@ final class EntityTypes
     /** 课程 */
     public const COURSE = 'course';
 
-    /** 商品 */
+    /** 商品（SKU 订单的实体为其上一级 Product） */
     public const PRODUCT = 'product';
-
-    /** 商品 SKU（自建 SKU 履约路径） */
-    public const SKU = 'sku';
 
     /** 票种（活动/线下门票） */
     public const TICKET = 'ticket';
@@ -39,7 +37,6 @@ final class EntityTypes
         self::ACTIVITY_PLAN,
         self::COURSE,
         self::PRODUCT,
-        self::SKU,
         self::TICKET,
         self::POINTS_PRODUCT,
     ];

@@ -90,8 +90,9 @@ class OrderModuleTest extends TestCase
         $this->assertEquals(100.00, (float) $order->total_amount);
         $this->assertSame(0, (int) $order->points_amount);
         $this->assertCount(1, $order->items);
-        // 订单级主实体兜底：全 SKU 行 → entity_type='sku'（行级 entity 已收敛移除）
-        $this->assertSame('sku', (string) $order->entity_type);
+        // SKU 非实体：订单级实体为上一级 Product（行级 sku_id 留在明细）
+        $this->assertSame('product', (string) $order->entity_type);
+        $this->assertSame((string) $sku->product_id, (string) $order->entity_id);
     }
 
     public function test_virtual_payment_confirms_and_dispatches_paid_event(): void
@@ -101,7 +102,7 @@ class OrderModuleTest extends TestCase
         $channel = $this->registerFakeChannel(1000);
         $sku = $this->makeSku();
 
-        $fulfillHandler = new OrderFakeFulfillmentHandler('sku');
+        $fulfillHandler = new OrderFakeFulfillmentHandler('product');
         $this->app->make(FulfillmentRegistry::class)->register($fulfillHandler);
 
         $order = $this->orderService->createOrder(self::TENANT_ID, 7, [

@@ -72,15 +72,17 @@ class OrderService
             throw new UnprocessableEntityHttpException('Order items cannot be empty');
         }
 
-        // 订单级主实体兜底：未显式传入且全部为 SKU 行 → 'sku'（自建 SKU 履约路径）
+        // 订单级主实体兜底：未显式传入且全部为 SKU 行 → 实体为上一级 Product
+        // （SKU 只是明细行的规格维度，sku_id 留在 order_items，非实体）
         $entityType = $data['entity_type'] ?? null;
         $entityId = isset($data['entity_id']) ? (string) $data['entity_id'] : null;
         if ($entityType === null && empty(array_filter($items, fn ($i) => empty($i['sku_id'])))) {
-            $entityType = EntityTypes::SKU;
-            // 单一 SKU 时同步填充 entity_id，保持一单一实体完整
-            $skuIds = array_unique(array_column($items, 'sku_id'));
-            if ($entityId === null && count($skuIds) === 1) {
-                $entityId = (string) reset($skuIds);
+            $productIds = array_unique(array_filter(array_column($items, 'product_id')));
+            if (count($productIds) === 1) {
+                $entityType = EntityTypes::PRODUCT;
+                if ($entityId === null) {
+                    $entityId = (string) reset($productIds);
+                }
             }
         }
 

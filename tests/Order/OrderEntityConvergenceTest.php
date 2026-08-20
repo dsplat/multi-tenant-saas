@@ -134,7 +134,7 @@ class OrderEntityConvergenceTest extends TestCase
         ]);
     }
 
-    public function test_sku_only_order_falls_back_to_sku_primary_entity(): void
+    public function test_sku_only_order_falls_back_to_product_primary_entity(): void
     {
         $product = $this->app->make(ProductService::class)->create(self::TENANT_ID, [
             'name' => '兜底商品',
@@ -153,8 +153,8 @@ class OrderEntityConvergenceTest extends TestCase
             'items' => [['sku_id' => $sku->sku_id, 'quantity' => 1]],
         ]);
 
-        // 未显式传 entity_type 且全 SKU 行 → 订单级兜底 'sku'（履约分发键）
-        $this->assertSame(EntityTypes::SKU, $order->entity_type);
-        $this->assertSame((string) $sku->sku_id, (string) $order->entity_id);
+        // SKU 非实体：未显式传 entity_type 且全 SKU 行 → 订单级实体为上一级 Product
+        $this->assertSame(EntityTypes::PRODUCT, $order->entity_type);
+        $this->assertSame((string) $product->product_id, (string) $order->entity_id);
     }
 }

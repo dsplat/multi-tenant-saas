@@ -133,6 +133,23 @@ class CourseModuleTest extends TestCase
         $this->assertSame(1, CourseEntitlement::where('course_id', $course->course_id)->count());
     }
 
+    public function test_purchase_fills_order_level_entity(): void
+    {
+        // 免费课：purchase 走 createForEntity，订单级 entity_type/entity_id 必须填充
+        $course = $this->courseService->create(self::TENANT_ID, [
+            'title' => '实体绑定验证课',
+            'price' => 0,
+            'sale_mode' => 'cash',
+        ]);
+        $this->courseService->publish(self::TENANT_ID, $course->course_id);
+
+        $learning = $this->app->make(CourseLearningService::class);
+        $order = $learning->purchase(self::TENANT_ID, 9, $course->course_id);
+
+        $this->assertSame('course', $order->entity_type);
+        $this->assertSame((string) $course->course_id, $order->entity_id);
+    }
+
     public function test_learning_completion_invokes_reward_hook(): void
     {
         $course = $this->courseService->create(self::TENANT_ID, [

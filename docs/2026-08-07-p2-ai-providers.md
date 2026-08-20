@@ -128,7 +128,7 @@ Platform 模块的自定义 routes.ts 只声明了 3 个页面，漏了 `Setting
 **修复**：两版布局「平台配置」分组新增 `ai-settings` 菜单项（perm: setting.view）。
 
 修复后回归验证三项全过（菜单入口 / AI 配置页 / 系统设置 + 配置中心渲染），
-54 个请求全 200/204，控制台无错误。截图见 `docs/screenshots/fix-*.png`。
+54 个请求全 200/204，控制台无错误。
 
 ### 缺陷 3：删除确认弹窗左上角 + 无遮罩（提交 f364325）
 
@@ -145,8 +145,7 @@ overlay CSS 被带进而表现正常，导致测试截图未复现。
 **修复**：生产 `neihang.conf` 新增 `location ~ ^/(admin|console|app)/index.html$` 发
 `Cache-Control: no-cache`（备份 `/root/neihang.conf.bak.*`），已 reload 验证。
 
-两缺陷修复后经浏览器实测：弹窗精确居中（中心点与视口重合）+ `rgba(0,0,0,0.5)` 全屏遮罩，
-截图见 `docs/screenshots/dlg-*.png`。
+两缺陷修复后经浏览器实测：弹窗精确居中（中心点与视口重合）+ `rgba(0,0,0,0.5)` 全屏遮罩。
 
 ---
 

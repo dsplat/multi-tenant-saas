@@ -8,8 +8,11 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Order\Services\OrderService;
+use MultiTenantSaas\Modules\Order\Support\EntityTypes;
+use MultiTenantSaas\Modules\Order\Support\OrderRelationTypes;
 
 /**
  * 统一订单中心
@@ -75,16 +78,17 @@ class OrderController extends Controller
             'points_to_use'           => 'nullable|integer|min:0',
             'entity_type'             => 'nullable|string|max:50',
             'entity_id'               => 'nullable|string|max:64',
-            'secondary_entity_type'   => 'nullable|string|max:50',
-            'secondary_entity_id'     => 'nullable|string|max:64',
             'items'                   => 'required|array|min:1',
             'items.*.sku_id'          => 'nullable|integer',
-            'items.*.entity_type'     => 'nullable|string|max:50',
-            'items.*.entity_id'       => 'nullable|string|max:64',
             'items.*.item_name'       => 'nullable|string|max:255',
             'items.*.unit_price'      => 'nullable|numeric|min:0',
             'items.*.points_unit_price' => 'nullable|integer|min:0',
             'items.*.quantity'        => 'nullable|integer|min:1|max:99',
+            'entity_relations'          => 'nullable|array',
+            'entity_relations.*.entity_type'   => ['required_with:entity_relations', 'string', Rule::in(EntityTypes::ALL)],
+            'entity_relations.*.entity_id'     => 'required_with:entity_relations|string|max:64',
+            'entity_relations.*.relation_type' => ['nullable', 'string', Rule::in(OrderRelationTypes::ALL)],
+            'entity_relations.*.share_amount'  => 'nullable|numeric|min:0',
             'source'                  => 'nullable|array',
             'metadata'                => 'nullable|array',
         ]);

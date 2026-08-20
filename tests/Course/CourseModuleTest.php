@@ -112,9 +112,9 @@ class CourseModuleTest extends TestCase
         $order = $orderService->createOrder(self::TENANT_ID, 9, [
             'order_type' => Order::TYPE_COURSE,
             'pay_method' => Order::PAY_POINTS,
+            'entity_type' => 'course',
+            'entity_id' => (string) $course->course_id,
             'items' => [[
-                'entity_type' => 'course',
-                'entity_id' => (string) $course->course_id,
                 'item_name' => $course->title,
                 'points_unit_price' => 800,
                 'quantity' => 1,

@@ -90,7 +90,8 @@ class OrderModuleTest extends TestCase
         $this->assertEquals(100.00, (float) $order->total_amount);
         $this->assertSame(0, (int) $order->points_amount);
         $this->assertCount(1, $order->items);
-        $this->assertSame('sku', (string) $order->items->first()->entity_type);
+        // 订单级主实体兜底：全 SKU 行 → entity_type='sku'（行级 entity 已收敛移除）
+        $this->assertSame('sku', (string) $order->entity_type);
     }
 
     public function test_virtual_payment_confirms_and_dispatches_paid_event(): void
@@ -139,8 +140,9 @@ class OrderModuleTest extends TestCase
         $order = $this->orderService->createOrder(self::TENANT_ID, 7, [
             'order_type' => Order::TYPE_COURSE,
             'pay_method' => Order::PAY_POINTS,
+            'entity_type' => 'external',
+            'entity_id' => 'ext-1',
             'items' => [[
-                'entity_type' => 'external',
                 'item_name' => '外部直给行',
                 'points_unit_price' => 100,
                 'quantity' => 1,
@@ -159,7 +161,7 @@ class OrderModuleTest extends TestCase
 
         $this->orderService->createOrder(self::TENANT_ID, 1, [
             'pay_method' => Order::PAY_POINTS,
-            'items' => [['entity_type' => 'sku', 'item_name' => '无积分价', 'unit_price' => 10]],
+            'items' => [['item_name' => '无积分价', 'unit_price' => 10]],
         ]);
     }
 

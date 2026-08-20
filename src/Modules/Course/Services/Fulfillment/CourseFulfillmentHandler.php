@@ -11,7 +11,7 @@ use MultiTenantSaas\Modules\Order\Models\Order;
 /**
  * 课程履约处理器
  *
- * 订单行 entity_type='course' 时，幂等授予课程权益。
+ * 订单级 entity_type='course' 支付确认后，幂等授予课程权益（身份取订单级主实体）。
  * 由 CourseServiceProvider boot 注册进 Order 模块 FulfillmentRegistry。
  */
 class CourseFulfillmentHandler implements OrderFulfillmentHandlerContract
@@ -23,16 +23,16 @@ class CourseFulfillmentHandler implements OrderFulfillmentHandlerContract
 
     public function fulfill(Order $order, mixed $item): void
     {
-        if (! $item->entity_id || ! $order->user_id) {
+        if (! $order->entity_id || ! $order->user_id) {
             return;
         }
 
-        // 幂等授予课程权益
+        // 幂等授予课程权益（身份取订单级主实体）
         CourseEntitlement::firstOrCreate(
             [
                 'tenant_id' => (int) $order->tenant_id,
                 'user_id'   => (int) $order->user_id,
-                'course_id' => (int) $item->entity_id,
+                'course_id' => (int) $order->entity_id,
             ],
             ['order_id' => $order->order_id]
         );

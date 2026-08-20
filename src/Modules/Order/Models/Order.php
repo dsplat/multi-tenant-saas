@@ -19,8 +19,8 @@ use MultiTenantSaas\Concerns\SerializesFriendlyDates;
  * pay_method：cash | points | mixed（积分折现抵扣 + 现金补差）
  * 计佣基数 = total_amount（实付现金，积分抵扣部分不计佣）
  *
- * 实体绑定隔离层：entity_type/entity_id（主实体）+ secondary_entity_*（次要关联，
- * 如"活动推广课程"），字符串枚举见 Support\EntityTypes，不绑类名、不加业务专属 ID 字段。
+ * 实体绑定隔离层：entity_type/entity_id（主实体，一单一实体），字符串枚举见
+ * Support\EntityTypes；次要实体归因走 order_entity_relations 关系表，不在本表存字段。
  */
 class Order extends Model
 {
@@ -58,7 +58,6 @@ class Order extends Model
     protected $fillable = [
         'tenant_id', 'user_id', 'order_no', 'order_type', 'total_amount',
         'points_amount', 'pay_method', 'entity_type', 'entity_id',
-        'secondary_entity_type', 'secondary_entity_id',
         'status', 'paid_at', 'refunded_at',
         'payment_order_id', 'source', 'metadata',
     ];
@@ -78,6 +77,14 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class, 'order_id', 'order_id');
+    }
+
+    /**
+     * 次要实体关系（归因/关联，relation_type 见 Support\OrderRelationTypes）
+     */
+    public function entityRelations(): HasMany
+    {
+        return $this->hasMany(OrderEntityRelation::class, 'order_id', 'order_id');
     }
 
     /**

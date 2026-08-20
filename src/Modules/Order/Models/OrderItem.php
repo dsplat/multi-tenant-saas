@@ -11,9 +11,10 @@ use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
- * 订单商品行（下单时快照名称/规格/单价）
+ * 订单商品行（下单时快照名称/规格/单价的交易明细）
  *
- * 行级实体绑定：entity_type/entity_id（全系统统一命名，见 Support\EntityTypes）
+ * 身份归订单级：实体身份统一在 orders.entity_type/entity_id，本表只承载
+ * SKU 规格（sku_id）与数量/价格快照，不再冗余行级 entity。
  */
 class OrderItem extends Model
 {
@@ -25,7 +26,7 @@ class OrderItem extends Model
     protected $primaryKey = 'item_id';
 
     protected $fillable = [
-        'tenant_id', 'order_id', 'sku_id', 'product_id', 'entity_type', 'entity_id',
+        'tenant_id', 'order_id', 'sku_id', 'product_id',
         'item_name', 'spec', 'quantity', 'unit_price', 'points_unit_price', 'amount',
     ];
 

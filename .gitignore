@@ -62,7 +62,10 @@ deploy/config.env
 deploy/__pycache__/
 
 # IDE/AI 工具配置
-.qoder/
+.qoder/*
+# 例外：架构规则随仓库版本化（团队共享的 AI 架构约束），其余 .qoder 本地状态仍忽略
+!.qoder/rules/
+!.qoder/rules/**
 .verify_lanyantu_login.png
 .verify_*.png
 .migrate-qoder.sh

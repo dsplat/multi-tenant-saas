@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * 商品模块（Product）
- * 表: products, product_categories, product_skus
+ * 表: products, product_categories, product_skus, package_items
  */
 class ProductModule implements SchemaModuleInterface
 {
@@ -64,10 +64,24 @@ class ProductModule implements SchemaModuleInterface
             $table->index(['tenant_id', 'product_id']);
             $table->index(['tenant_id', 'ref_type', 'ref_id'], 'product_skus_tenant_ref_index');
         });
+
+        Schema::create('package_items', function (Blueprint $table) {
+            $table->unsignedBigInteger('package_item_id')->primary();
+            $table->unsignedBigInteger('tenant_id');
+            $table->unsignedBigInteger('package_id');
+            $table->string('item_type', 50);
+            $table->string('item_id', 64);
+            $table->unsignedBigInteger('sku_id')->nullable();
+            $table->integer('quantity')->default(1);
+            $table->integer('sort')->default(0);
+            $table->timestamps();
+            $table->unique(['tenant_id', 'package_id', 'item_type', 'item_id'], 'package_items_unique');
+            $table->index(['tenant_id', 'package_id']);
+        });
     }
 
     public function getTableNames(): array
     {
-        return ['products', 'product_categories', 'product_skus'];
+        return ['products', 'product_categories', 'product_skus', 'package_items'];
     }
 }

@@ -22,6 +22,11 @@ class DomainService
 
     const STATUS_REJECTED = 'rejected';
 
+    /** 保证金联动 TenantSetting 键（domain 组） */
+    const SETTING_DEPOSIT_TX_ID = 'deposit_lock_tx_id';
+
+    const SETTING_DEPOSIT_AMOUNT = 'deposit_lock_amount';
+
     public function getDomainInfo(int $tenantId): array
     {
         $tenant = Tenant::findOrFail($tenantId);
@@ -75,7 +80,14 @@ class DomainService
         $this->generateVerificationToken($tenantId);
     }
 
-    public function approveDomain(int $tenantId): void
+    /**
+     * 审批通过域名（admin）
+     *
+     * 保证金联动：config('commerce.domain_deposit_fen') > 0 时经
+     * SupplySettlementService 锁定保证金；经 TenantSetting（deposit_lock_tx_id）
+     * 幂等防重复锁。Commerce 模块未启用时静默跳过。
+     */
+    public function approveDomain(int $tenantId, ?int $operatorId = null): void
     {
         $tenant = Tenant::findOrFail($tenantId);
 
@@ -86,8 +98,25 @@ class DomainService
         TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'domain_status', self::STATUS_APPROVED);
         TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'domain_verified_at', now()->toDateTimeString());
 
+        // 保证金生命周期联动（0 = 关闭；幂等：已锁过不重复锁）
+        $this->lockDepositOnApprove($tenantId, $operatorId);
+
         // 自定义域名生效后，自动子域名（t-xxxxxx 免费兜底）退役
         $this->deactivateAutoSlug($tenantId);
+    }
+
+    /**
+     * 停用域名（admin）：状态置 rejected + 退还保证金（有锁定记录才退）
+     *
+     * 违规扣除不走本方法，沿用 admin 手工 deductDeposit。
+     */
+    public function deactivateDomain(int $tenantId, int $operatorId): void
+    {
+        Tenant::findOrFail($tenantId);
+
+        TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'domain_status', self::STATUS_REJECTED);
+
+        $this->releaseDepositOnDeactivate($tenantId, $operatorId);
     }
 
     public function rejectDomain(int $tenantId, string $reason = ''): void
@@ -292,6 +321,68 @@ class DomainService
         if ($slugService->isReservedAutoPrefix($tenant->slug)) {
             $slugService->rejectSlug($tenantId, '自定义域名生效，自动子域名退役');
         }
+    }
+
+    /**
+     * 审批通过时锁定域名保证金（幂等 + Commerce 模块可选）
+     */
+    protected function lockDepositOnApprove(int $tenantId, ?int $operatorId): void
+    {
+        $amountFen = (int) config('commerce.domain_deposit_fen', 0);
+
+        if ($amountFen <= 0) {
+            return; // 联动关闭
+        }
+        if (TenantSetting::get($tenantId, self::GROUP_DOMAIN, self::SETTING_DEPOSIT_TX_ID)) {
+            return; // 幂等：已有锁定记录
+        }
+        if (! class_exists(\MultiTenantSaas\Modules\Commerce\Services\SupplySettlementService::class)) {
+            Log::warning('DomainService: commerce module unavailable, skip deposit lock', ['tenant_id' => $tenantId]);
+
+            return;
+        }
+
+        $tx = app(\MultiTenantSaas\Modules\Commerce\Services\SupplySettlementService::class)->lockDeposit(
+            $tenantId,
+            $amountFen,
+            $operatorId ?? 0,
+            '域名审批通过自动锁定保证金'
+        );
+
+        TenantSetting::set($tenantId, self::GROUP_DOMAIN, self::SETTING_DEPOSIT_TX_ID, $tx->getKey());
+        TenantSetting::set($tenantId, self::GROUP_DOMAIN, self::SETTING_DEPOSIT_AMOUNT, $amountFen);
+    }
+
+    /**
+     * 停用域名时退还保证金（仅存在锁定记录时）
+     */
+    protected function releaseDepositOnDeactivate(int $tenantId, int $operatorId): void
+    {
+        $txId = TenantSetting::get($tenantId, self::GROUP_DOMAIN, self::SETTING_DEPOSIT_TX_ID);
+
+        if (! $txId) {
+            return; // 未锁过保证金（联动关闭或历史域名）
+        }
+        if (! class_exists(\MultiTenantSaas\Modules\Commerce\Services\SupplySettlementService::class)) {
+            Log::warning('DomainService: commerce module unavailable, skip deposit release', ['tenant_id' => $tenantId]);
+
+            return;
+        }
+
+        $amountFen = (int) TenantSetting::get($tenantId, self::GROUP_DOMAIN, self::SETTING_DEPOSIT_AMOUNT, 0);
+        if ($amountFen <= 0) {
+            $amountFen = (int) config('commerce.domain_deposit_fen', 0);
+        }
+
+        app(\MultiTenantSaas\Modules\Commerce\Services\SupplySettlementService::class)->releaseDeposit(
+            $tenantId,
+            $amountFen,
+            $operatorId,
+            '域名停用自动退还保证金'
+        );
+
+        TenantSetting::set($tenantId, self::GROUP_DOMAIN, self::SETTING_DEPOSIT_TX_ID, null);
+        TenantSetting::set($tenantId, self::GROUP_DOMAIN, self::SETTING_DEPOSIT_AMOUNT, null);
     }
 
     /**

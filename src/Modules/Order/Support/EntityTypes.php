@@ -26,6 +26,9 @@ final class EntityTypes
     /** 商品（SKU 订单的实体为其上一级 Product） */
     public const PRODUCT = 'product';
 
+    /** 组合实体（Package：若干原子实体打包成的新可消费对象，履约递归拆解） */
+    public const PACKAGE = 'package';
+
     /** 票种（活动/线下门票） */
     public const TICKET = 'ticket';
 
@@ -37,6 +40,7 @@ final class EntityTypes
         self::ACTIVITY_PLAN,
         self::COURSE,
         self::PRODUCT,
+        self::PACKAGE,
         self::TICKET,
         self::POINTS_PRODUCT,
     ];

@@ -41,7 +41,7 @@ class ProductController extends Controller
             'market_price'   => 'nullable|numeric|min:0',
             'stock'          => 'nullable|integer|min:0',
             'category_id'    => 'nullable|integer',
-            'type'           => 'nullable|string|in:physical,virtual,course,event,points_goods',
+            'type'           => 'nullable|string|in:physical,virtual,course,event,points_goods,package',
             'sale_mode'      => 'nullable|string|in:cash,points,mixed',
             'price_strategy' => 'nullable|array',
             'media_assets'   => 'nullable|array',

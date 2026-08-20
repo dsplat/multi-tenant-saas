@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
 use MultiTenantSaas\Contracts\OrderableEntity;
+use MultiTenantSaas\Modules\Order\Contracts\OrderSupplyHookContract;
 use MultiTenantSaas\Modules\Order\Events\OrderPaid;
 use MultiTenantSaas\Modules\Order\Events\OrderRefunded;
 use MultiTenantSaas\Modules\Order\Models\ConsumptionRecord;
@@ -35,9 +36,15 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  *
  * 实体绑定三层职责分离：orders.entity_type/entity_id（主实体）、order_items（SKU+数量/
  * 价格明细，身份归订单级）、order_entity_relations（次要实体归因）。渠道归因走 orders.source JSON。
+ *
+ * 供货结算钩子（OrderSupplyHookContract）：项目层绑定后在下单/支付/退款
+ * 事务内触发锁库存→扣预存→补偿；未绑定时链路零影响。
  */
 class OrderService
 {
+    /** 供货钩子懒解析缓存（false=未解析，null=未绑定） */
+    private bool|null|OrderSupplyHookContract $supplyHook = false;
+
     public function __construct(
         protected IdGeneratorContract $idGenerator,
         protected TradePayService $tradePayService,
@@ -135,6 +142,9 @@ class OrderService
             foreach ($data['entity_relations'] ?? [] as $relation) {
                 $this->createEntityRelation($tenantId, (int) $order->order_id, $relation);
             }
+
+            // 供货钩子：事务内锁供给库存（不足抛异常 → 回滚下单）
+            $this->resolveSupplyHook()?->onOrderCreated($order);
 
             return $order;
         });
@@ -351,6 +361,9 @@ class OrderService
                 $this->deductSkuStock((int) $locked->tenant_id, $item);
             }
 
+            // 供货钩子：履约前扣预存结算（不足抛异常 → 回滚支付）
+            $this->resolveSupplyHook()?->onOrderPaid($locked);
+
             // 履约分发（按订单级 entity_type 委托 Registry）
             $this->fulfillOrder($locked);
 
@@ -431,6 +444,9 @@ class OrderService
                     $order->order_no,
                 );
             }
+
+            // 供货钩子：补偿回补供给库存/预存
+            $this->resolveSupplyHook()?->onOrderRefunded($order);
 
             return $order->fresh();
         });
@@ -571,6 +587,20 @@ class OrderService
         if ($handler && $item) {
             $handler->fulfill($order, $item);
         }
+    }
+
+    /**
+     * 懒解析供货钩子（项目层绑定 OrderSupplyHookContract 后生效，未绑定为 null）
+     */
+    protected function resolveSupplyHook(): ?OrderSupplyHookContract
+    {
+        if ($this->supplyHook === false) {
+            $this->supplyHook = app()->bound(OrderSupplyHookContract::class)
+                ? app(OrderSupplyHookContract::class)
+                : null;
+        }
+
+        return $this->supplyHook;
     }
 
     // ========== 库存（仅自建 SKU；镜像 SKU 由源模块履约） ==========

@@ -6,6 +6,7 @@ namespace MultiTenantSaas\Modules\Product;
 
 use MultiTenantSaas\Contracts\ToolRegistryContract;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
+use MultiTenantSaas\Modules\Product\Services\Fulfillment\PackageFulfillmentHandler;
 use MultiTenantSaas\Modules\Product\Services\Tools\CreateProductHandler;
 use MultiTenantSaas\Modules\Product\Services\Tools\ProductListHandler;
 
@@ -13,8 +14,10 @@ use MultiTenantSaas\Modules\Product\Services\Tools\ProductListHandler;
  * Product 模块（统一商品目录）
  *
  * 一切皆商品：products + product_skus + product_categories。
- * 商品类型 physical / virtual / course / event / points_goods；
+ * 商品类型 physical / virtual / course / event / points_goods / package；
  * SKU 分自建与镜像（ref_type/ref_id 指向外部供给）两种形态。
+ * boot 时将 PackageFulfillmentHandler 注册进 Order 模块 FulfillmentRegistry，
+ * 实现「组合实体下单 → 支付 → 递归拆解逐项履约」闭环。
  */
 class ProductServiceProvider extends ModuleServiceProvider
 {
@@ -22,7 +25,17 @@ class ProductServiceProvider extends ModuleServiceProvider
 
     protected function bootModule(): void
     {
+        $this->registerPackageFulfillment();
         $this->registerTools();
+    }
+
+    private function registerPackageFulfillment(): void
+    {
+        // Package 履约注册（Order 模块未启用时跳过；容器解析构造依赖）
+        if (class_exists(\MultiTenantSaas\Modules\Order\Services\FulfillmentRegistry::class)) {
+            $this->app->make(\MultiTenantSaas\Modules\Order\Services\FulfillmentRegistry::class)
+                ->register($this->app->make(PackageFulfillmentHandler::class));
+        }
     }
 
     private function registerTools(): void

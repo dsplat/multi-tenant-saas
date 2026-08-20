@@ -43,7 +43,20 @@ class TenantDomainController extends Controller
         $this->ensureTenantAccess($request, $tenantId);
 
         $service = new DomainService;
-        $service->approveDomain($tenantId);
+        $service->approveDomain($tenantId, $request->user()?->getKey() !== null ? (int) $request->user()->getKey() : null);
+
+        return response()->json(['success' => true, 'message' => trans('common.success')]);
+    }
+
+    /**
+     * 停用域名（超管）：状态置 rejected + 自动退还保证金
+     */
+    public function deactivate(Request $request, int $tenantId)
+    {
+        $this->ensureSuperAdmin($request);
+
+        $service = new DomainService;
+        $service->deactivateDomain($tenantId, (int) $request->user()->getKey());
 
         return response()->json(['success' => true, 'message' => trans('common.success')]);
     }

@@ -7,3 +7,4 @@ Route::get('/tenants/{tenantId}/domain', [TenantDomainController::class, 'index'
 Route::put('/tenants/{tenantId}/domain', [TenantDomainController::class, 'update']);
 Route::post('/tenants/{tenantId}/domain/approve', [TenantDomainController::class, 'approve']);
 Route::post('/tenants/{tenantId}/domain/reject', [TenantDomainController::class, 'reject']);
+Route::post('/tenants/{tenantId}/domain/deactivate', [TenantDomainController::class, 'deactivate']);

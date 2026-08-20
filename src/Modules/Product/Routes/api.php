@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
+use MultiTenantSaas\Modules\Product\Http\Controllers\PackageController;
 use MultiTenantSaas\Modules\Product\Http\Controllers\ProductController;
 use MultiTenantSaas\Modules\Product\Http\Controllers\SkuController;
 
@@ -27,5 +28,14 @@ Route::get('product-categories', [ProductController::class, 'indexCategories']);
 Route::post('product-categories', [ProductController::class, 'storeCategory']);
 Route::put('product-categories/{id}', [ProductController::class, 'updateCategory']);
 Route::delete('product-categories/{id}', [ProductController::class, 'destroyCategory']);
+
+// Package 组合实体（type=package 的商品 + package_items 组成）
+Route::post('packages', [PackageController::class, 'store']);
+Route::get('packages/{id}', [PackageController::class, 'show']);
+Route::put('packages/{id}', [PackageController::class, 'update']);
+Route::delete('packages/{id}', [PackageController::class, 'destroy']);
+Route::get('packages/{id}/items', [PackageController::class, 'indexItems']);
+Route::post('packages/{id}/items', [PackageController::class, 'storeItem']);
+Route::delete('packages/{id}/items/{itemId}', [PackageController::class, 'destroyItem']);
 
 });

@@ -6,6 +6,7 @@ namespace MultiTenantSaas\Modules\Product\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
@@ -25,6 +26,9 @@ class Product extends Model
     public const TYPE_EVENT = 'event';
 
     public const TYPE_POINTS_GOODS = 'points_goods';
+
+    /** 组合实体（Package）：组成见 package_items，履约递归拆解 */
+    public const TYPE_PACKAGE = 'package';
 
     public const SALE_MODE_CASH = 'cash';
 
@@ -55,6 +59,12 @@ class Product extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(ProductCategory::class, 'category_id', 'product_category_id');
+    }
+
+    /** Package 组成项（仅 type=package 时有意义） */
+    public function packageItems(): HasMany
+    {
+        return $this->hasMany(PackageItem::class, 'package_id', 'product_id');
     }
 }
 

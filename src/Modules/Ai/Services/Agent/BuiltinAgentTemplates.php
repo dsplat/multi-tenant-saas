@@ -86,6 +86,7 @@ final class BuiltinAgentTemplates
                     'activity_plan_draft', 'activity_plan_commit', 'activity_status',
                     'thread_review', 'thread_track', 'thread_untrack',
                     'create_product', 'product_list', 'coupon_list', 'sms_list_templates',
+                    'course_list', 'create_course', 'update_course',
                 ],
                 // 下游 L2 代操作工具 + 前置查询配套（下游扩展，纯框架部署未注册时
                 // 静默跳过属设计意图；L2 均经确认门 + 审计）

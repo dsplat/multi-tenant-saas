@@ -78,5 +78,11 @@ class AgentTemplateToolsConsistencyTest extends TestCase
         // 框架自有工具仍属 tools（必须注册）
         $this->assertContains('navigate', $secretary['tools']);
         $this->assertNotContains('navigate', $secretary['optional_tools']);
+        // 商品/课程管理工具属框架 tools（Course 模块已注册，防止误删）
+        $this->assertContains('create_product', $secretary['tools']);
+        $this->assertContains('product_list', $secretary['tools']);
+        $this->assertContains('course_list', $secretary['tools']);
+        $this->assertContains('create_course', $secretary['tools']);
+        $this->assertContains('update_course', $secretary['tools']);
     }
 }

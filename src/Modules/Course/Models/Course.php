@@ -10,11 +10,15 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Concerns\SerializesFriendlyDates;
+use MultiTenantSaas\Contracts\OrderableEntity;
+use MultiTenantSaas\Modules\Order\Support\EntityTypes;
 
 /**
  * 课程本体（价格载体：price/points_price/sale_mode，免费课程 price=0）
+ *
+ * 实现 OrderableEntity 契约：统一订单中心下单（entity_type=course）
  */
-class Course extends Model
+class Course extends Model implements OrderableEntity
 {
     use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId, SoftDeletes;
@@ -53,6 +57,28 @@ class Course extends Model
     public function isPublished(): bool
     {
         return $this->status === self::STATUS_PUBLISHED;
+    }
+
+    // ---- OrderableEntity 契约实现 ----
+
+    public function getEntityType(): string
+    {
+        return EntityTypes::COURSE;
+    }
+
+    public function getEntityId(): string
+    {
+        return (string) $this->course_id;
+    }
+
+    public function getPayableAmount(): float
+    {
+        return (float) $this->price;
+    }
+
+    public function isPurchasable(): bool
+    {
+        return $this->isPublished();
     }
 
     public function isFree(): bool

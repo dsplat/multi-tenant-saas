@@ -23,18 +23,34 @@ class Product extends Model
 
     public const TYPE_COURSE = 'course';
 
-    public const TYPE_EVENT = 'event';
+    public const TYPE_ACTIVITY = 'activity';
 
     public const TYPE_POINTS_GOODS = 'points_goods';
 
     /** 组合实体（Package）：组成见 package_items，履约递归拆解 */
     public const TYPE_PACKAGE = 'package';
 
+    /** 商品类型白名单（唯一事实源，校验/AI schema 一律引用此常量） */
+    public const TYPES = [
+        self::TYPE_PHYSICAL,
+        self::TYPE_VIRTUAL,
+        self::TYPE_COURSE,
+        self::TYPE_ACTIVITY,
+        self::TYPE_POINTS_GOODS,
+        self::TYPE_PACKAGE,
+    ];
+
     public const SALE_MODE_CASH = 'cash';
 
     public const SALE_MODE_POINTS = 'points';
 
     public const SALE_MODE_MIXED = 'mixed';
+
+    public const SALE_MODES = [
+        self::SALE_MODE_CASH,
+        self::SALE_MODE_POINTS,
+        self::SALE_MODE_MIXED,
+    ];
 
     protected $primaryKey = 'product_id';
 

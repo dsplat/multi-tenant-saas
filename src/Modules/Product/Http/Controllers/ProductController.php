@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace MultiTenantSaas\Modules\Product\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use MultiTenantSaas\Modules\Product\Models\Product;
 use MultiTenantSaas\Modules\Product\Services\ProductService;
 use MultiTenantSaas\Modules\Product\Services\SkuService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use MultiTenantSaas\Context\TenantContext;
 
 class ProductController extends Controller
@@ -41,8 +43,8 @@ class ProductController extends Controller
             'market_price'   => 'nullable|numeric|min:0',
             'stock'          => 'nullable|integer|min:0',
             'category_id'    => 'nullable|integer',
-            'type'           => 'nullable|string|in:physical,virtual,course,event,points_goods,package',
-            'sale_mode'      => 'nullable|string|in:cash,points,mixed',
+            'type'           => ['nullable', 'string', Rule::in(Product::TYPES)],
+            'sale_mode'      => ['nullable', 'string', Rule::in(Product::SALE_MODES)],
             'price_strategy' => 'nullable|array',
             'media_assets'   => 'nullable|array',
         ]);

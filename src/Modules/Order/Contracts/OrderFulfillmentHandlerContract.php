@@ -22,4 +22,11 @@ interface OrderFulfillmentHandlerContract
      * 履约单个订单行（处于订单支付事务内，异常将回滚支付）
      */
     public function fulfill(Order $order, mixed $item): void;
+
+    /**
+     * 逆向履约（退款时撤销 fulfill 授予的权益，处于退款事务内）
+     *
+     * 必须幂等：重复退款/重复回调不得重复撤销副作用（如重复递减计数）。
+     */
+    public function revoke(Order $order, mixed $item): void;
 }

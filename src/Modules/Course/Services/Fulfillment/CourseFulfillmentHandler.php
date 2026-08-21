@@ -40,4 +40,21 @@ class CourseFulfillmentHandler extends AbstractOrderFulfillmentHandler
             ['order_id' => $order->order_id]
         );
     }
+
+    /**
+     * 逆向履约：退款时撤销课程权益（幂等：不存在时零副作用）
+     */
+    public function revoke(Order $order, mixed $item): void
+    {
+        $courseId = $this->resolveEntityId($order, $item);
+
+        if (! $courseId || ! $order->user_id) {
+            return;
+        }
+
+        CourseEntitlement::where('tenant_id', (int) $order->tenant_id)
+            ->where('user_id', (int) $order->user_id)
+            ->where('course_id', (int) $courseId)
+            ->delete();
+    }
 }

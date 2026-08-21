@@ -30,4 +30,15 @@ abstract class AbstractOrderFulfillmentHandler implements OrderFulfillmentHandle
 
         return $order->entity_id !== null ? (string) $order->entity_id : null;
     }
+
+    /**
+     * 逆向履约默认空实现（H3）
+     *
+     * 无副作用权益的 handler（如 Package 拆解）无需撤销，沿用默认；
+     * 授予持久权益的 handler（课程/活动等）应覆写本方法做幂等撤销。
+     */
+    public function revoke(Order $order, mixed $item): void
+    {
+        // 默认无副作用，子类按需覆写
+    }
 }

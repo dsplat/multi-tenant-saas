@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Modules\Operator\Models\Operator;
 use MultiTenantSaas\Modules\Order\Services\OrderService;
 use MultiTenantSaas\Modules\Order\Support\EntityTypes;
 use MultiTenantSaas\Modules\Order\Support\OrderRelationTypes;
@@ -54,10 +55,14 @@ class OrderController extends Controller
     }
 
     /**
-     * 退款
+     * 退款（C3：运营专属操作，C 端 User 拒绝）
      */
     public function refund(Request $request, string $orderNo): JsonResponse
     {
+        if (! $request->user() instanceof Operator) {
+            return response()->json(['success' => false, 'message' => 'Refund requires operator'], 403);
+        }
+
         $tenantId = (int) TenantContext::getId();
 
         $order = $this->orderService->refundOrder($tenantId, $orderNo, $request->input('reason'));
@@ -103,21 +108,39 @@ class OrderController extends Controller
 
     /**
      * 发起支付（虚拟支付即时完成；现金返回网关参数）
+     *
+     * C2：User 仅可支付本人订单（Operator 可代付）
      */
     public function pay(Request $request, string $orderNo): JsonResponse
     {
         $tenantId = (int) TenantContext::getId();
 
-        $result = $this->orderService->initiatePayment($tenantId, $orderNo, $request->input('openid'));
+        $actor = $request->user();
+        $actorUserId = $actor instanceof Operator ? null : ($actor?->user_id ? (int) $actor->user_id : null);
+
+        $result = $this->orderService->initiatePayment($tenantId, $orderNo, $request->input('openid'), $actorUserId);
 
         return response()->json(['success' => true, 'data' => $result]);
     }
 
     /**
-     * 支付回调（框架级，验签后调用）
+     * 支付回调（C1：共享密钥头校验，未配置密钥时拒绝一切回调）
      */
     public function payNotify(Request $request): JsonResponse
     {
+        $expected = (string) (config('order.pay_notify_key') ?? '');
+        $provided = (string) $request->header('X-Pay-Notify-Key', '');
+
+        if ($expected === '' || ! hash_equals($expected, $provided)) {
+            Log::warning('OrderController: pay notify rejected (missing or invalid X-Pay-Notify-Key)');
+
+            return response()->json([
+                'success' => false,
+                'code'    => 'FAIL',
+                'message' => 'Invalid notify key',
+            ], 403);
+        }
+
         $orderNo = $request->input('out_trade_no') ?? $request->input('order_no');
         $transactionId = $request->input('transaction_id') ?? $request->input('trade_no', '');
 

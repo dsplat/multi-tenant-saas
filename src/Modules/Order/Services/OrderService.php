@@ -274,12 +274,19 @@ class OrderService
      * - points：虚拟支付，即时确认
      * - 现金金额为 0（免费）：直接置 paid
      * - cash/mixed：走框架支付网关，返回支付参数
+     *
+     * $actorUserId：C 端操作者 user_id（null=运营代付不校归属）；
+     * 非 null 时必须与订单归属一致（C2：禁止替他人订单支付）。
      */
-    public function initiatePayment(int $tenantId, string $orderNo, ?string $openid = null): array
+    public function initiatePayment(int $tenantId, string $orderNo, ?string $openid = null, ?int $actorUserId = null): array
     {
         TenantContext::setTenantId((string) $tenantId);
 
         $order = $this->getOrder($tenantId, $orderNo);
+
+        if ($actorUserId !== null && (int) $order->user_id !== $actorUserId) {
+            throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException('Order does not belong to current user');
+        }
 
         if ($order->status !== Order::STATUS_PENDING) {
             throw new UnprocessableEntityHttpException("Order status is '{$order->status}', cannot pay");
@@ -435,6 +442,9 @@ class OrderService
                 $this->restoreSkuStock((int) $order->tenant_id, $item);
             }
 
+            // 逆向履约（H3：撤销支付时授予的权益，与 fulfillOrder 对称）
+            $this->revokeOrder($order);
+
             // 虚拟资产原路返还（本地事务完成）
             if ($order->points_amount > 0 && $order->user_id) {
                 $this->tradePayService->refundVirtual(
@@ -586,6 +596,26 @@ class OrderService
 
         if ($handler && $item) {
             $handler->fulfill($order, $item);
+        }
+    }
+
+    /**
+     * 退款时的逆向履约分发（与 fulfillOrder 对称，事务内执行）
+     *
+     * 一单一实体：按 orders.entity_type 取 handler 分发一次。
+     * handler 未实现 revoke（基类默认空实现）时静默跳过。
+     */
+    protected function revokeOrder(Order $order): void
+    {
+        if (! $order->user_id || ! $order->entity_type) {
+            return;
+        }
+
+        $handler = $this->fulfillmentRegistry->get((string) $order->entity_type);
+        $item = $order->items->first();
+
+        if ($handler && $item) {
+            $handler->revoke($order, $item);
         }
     }
 

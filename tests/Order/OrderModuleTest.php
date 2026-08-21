@@ -173,6 +173,9 @@ class OrderModuleTest extends TestCase
         $channel = $this->registerFakeChannel(1000);
         $sku = $this->makeSku();
 
+        $fulfillHandler = new OrderFakeFulfillmentHandler('product');
+        $this->app->make(FulfillmentRegistry::class)->register($fulfillHandler);
+
         $order = $this->orderService->createOrder(self::TENANT_ID, 7, [
             'pay_method' => Order::PAY_POINTS,
             'items' => [['sku_id' => $sku->sku_id, 'quantity' => 1]],
@@ -180,6 +183,7 @@ class OrderModuleTest extends TestCase
         $this->orderService->initiatePayment(self::TENANT_ID, $order->order_no);
         $this->assertSame(500, $channel->balance);
         $this->assertSame(9, (int) $sku->fresh()->stock);
+        $this->assertSame([$order->order_no], $fulfillHandler->calls);
 
         $refunded = $this->orderService->refundOrder(self::TENANT_ID, $order->order_no, '用户申请');
 
@@ -187,6 +191,9 @@ class OrderModuleTest extends TestCase
         $this->assertNotNull($refunded->refunded_at);
         $this->assertSame(1000, $channel->balance);
         $this->assertSame(10, (int) $sku->fresh()->stock);
+
+        // H3：退款分发逆向履约（与支付履约对称）
+        $this->assertSame([$order->order_no], $fulfillHandler->revokeCalls);
 
         Event::assertDispatched(OrderRefunded::class, function (OrderRefunded $e) use ($order) {
             return $e->orderNo === $order->order_no && $e->pointsAmount === 500;
@@ -241,6 +248,8 @@ class OrderFakeFulfillmentHandler implements OrderFulfillmentHandlerContract
 {
     public array $calls = [];
 
+    public array $revokeCalls = [];
+
     public function __construct(private string $type) {}
 
     public function entityType(): string
@@ -251,5 +260,10 @@ class OrderFakeFulfillmentHandler implements OrderFulfillmentHandlerContract
     public function fulfill(Order $order, mixed $item): void
     {
         $this->calls[] = $order->order_no;
+    }
+
+    public function revoke(Order $order, mixed $item): void
+    {
+        $this->revokeCalls[] = $order->order_no;
     }
 }

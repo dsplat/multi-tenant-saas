@@ -334,6 +334,20 @@ function goToAgents() {
   router.push('/agents')
 }
 
+/** 外部引导唤醒：消费待预填提示词，填入输入框并聚焦（不自动发送，留用户确认） */
+watch(() => store.pendingPrompt, async (prompt) => {
+  if (!prompt) return
+  const consumed = store.consumePendingPrompt()
+  if (!consumed) return
+  input.value = consumed
+  await nextTick()
+  textareaEl.value?.focus()
+  adjustHeight()
+  // 光标移到末尾便于续写参数
+  textareaEl.value?.setSelectionRange(consumed.length, consumed.length)
+  await scrollToBottom()
+})
+
 onMounted(() => {
   // 空会话时异步拉开场引导（不阻塞面板渲染，失败回退内置建议）
   if (store.messages.length === 0) fetchSuggestions()

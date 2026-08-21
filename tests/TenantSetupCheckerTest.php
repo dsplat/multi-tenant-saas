@@ -41,6 +41,7 @@ class TenantSetupCheckerTest extends TestCase
         foreach ($checklist['items'] as $item) {
             $this->assertFalse($item['done'], "{$item['key']} 应为未完成");
             $this->assertNotEmpty($item['route'], "{$item['key']} 需携带跳转路由");
+            $this->assertNotEmpty($item['prompt'], "{$item['key']} 需携带唤醒小助手提示词");
         }
     }
 
@@ -122,6 +123,10 @@ class TenantSetupCheckerTest extends TestCase
 
         $keys = array_column($checklist['items'], 'key');
         $this->assertContains('scrm_channel', $keys);
+
+        // 扩展项 prompt 透传（Dashboard 引导卡片据此唤起小秘书）
+        $scrmChannel = collect($checklist['items'])->firstWhere('key', 'scrm_channel');
+        $this->assertSame('帮我配置获客渠道', $scrmChannel['prompt']);
     }
 
     private function itemDone(string $key): bool
@@ -150,6 +155,7 @@ class FakeSetupChecks
                 'done' => true,
                 'route' => '/channels',
                 'description' => '配置至少一个获客渠道。',
+                'prompt' => '帮我配置获客渠道',
             ],
         ];
     }

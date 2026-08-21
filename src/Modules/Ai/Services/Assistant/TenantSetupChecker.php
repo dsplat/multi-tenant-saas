@@ -23,7 +23,10 @@ class TenantSetupChecker
     /**
      * 生成完善度清单。
      *
-     * @return array{items: list<array{key: string, label: string, done: bool, route: ?string, description: string}>, completed: int, total: int}
+     * 条目可选携带 prompt：点击引导项时唤醒小助手并预填的提示词
+     * （供 console Dashboard 引导卡片消费；开场引导可忽略）。
+     *
+     * @return array{items: list<array{key: string, label: string, done: bool, route: ?string, description: string, prompt: ?string}>, completed: int, total: int}
      */
     public function checklist(int $tenantId): array
     {
@@ -41,7 +44,7 @@ class TenantSetupChecker
     /**
      * 框架内置检查项。
      *
-     * @return list<array{key: string, label: string, done: bool, route: ?string, description: string}>
+     * @return list<array{key: string, label: string, done: bool, route: ?string, description: string, prompt: ?string}>
      */
     private function frameworkChecks(int $tenantId): array
     {
@@ -52,6 +55,7 @@ class TenantSetupChecker
                 'done' => $this->hasWechatLogin($tenantId),
                 'route' => '/oauth',
                 'description' => '配置微信扫码或企业微信登录后，成员可免密进入控制台。',
+                'prompt' => '帮我配置微信登录',
             ],
             [
                 'key' => 'staff_invited',
@@ -59,6 +63,7 @@ class TenantSetupChecker
                 'done' => $this->hasInvitedStaff($tenantId),
                 'route' => '/members',
                 'description' => '邀请同事加入团队，协同使用数字员工。',
+                'prompt' => '帮我邀请团队成员',
             ],
             [
                 'key' => 'knowledge_base',
@@ -66,6 +71,7 @@ class TenantSetupChecker
                 'done' => $this->hasActiveKb($tenantId),
                 'route' => '/external-kb',
                 'description' => '接入外部知识库后，AI 回答将基于你的业务资料。',
+                'prompt' => '帮我接入知识库',
             ],
             [
                 'key' => 'agents_enabled',
@@ -73,6 +79,7 @@ class TenantSetupChecker
                 'done' => $this->hasEnabledAgents($tenantId),
                 'route' => '/agents',
                 'description' => '启用销售、客服、营销等数字员工，让 AI 替你干活。',
+                'prompt' => '帮我启用数字员工',
             ],
         ];
     }
@@ -80,7 +87,7 @@ class TenantSetupChecker
     /**
      * 下游扩展检查项（config ai.secretary.extra_setup_checkers）。
      *
-     * @return list<array{key: string, label: string, done: bool, route: ?string, description: string}>
+     * @return list<array{key: string, label: string, done: bool, route: ?string, description: string, prompt: ?string}>
      */
     private function extraChecks(int $tenantId): array
     {
@@ -99,6 +106,7 @@ class TenantSetupChecker
                         'done' => (bool) $item['done'],
                         'route' => $item['route'] ?? null,
                         'description' => (string) ($item['description'] ?? ''),
+                        'prompt' => isset($item['prompt']) ? (string) $item['prompt'] : null,
                     ];
                 }
             }

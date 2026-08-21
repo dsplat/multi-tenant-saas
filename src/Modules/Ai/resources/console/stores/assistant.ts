@@ -75,6 +75,8 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   const panelMode = ref<PanelMode>(loadPinnedPreference() ? 'pinned' : 'closed')
   /** 当前模块名（随路由变化） */
   const currentModule = ref('')
+  /** 待预填提示词（外部引导卡片唤醒时写入，面板消费后清空） */
+  const pendingPrompt = ref<string | null>(null)
 
   // ─── 对话 ─────────────────────────────────────────────────
   const messages = ref<ChatMessage[]>(loadPersistedMessages())
@@ -114,6 +116,19 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   function openPanel() {
     // 带图钉偏好打开时直接进入常驻模式
     panelMode.value = loadPinnedPreference() ? 'pinned' : 'panel'
+  }
+
+  /** 唤醒面板并预填提示词（消费后自动清空；供 dashboard 引导卡片等外部入口使用） */
+  function openWithPrompt(prompt: string) {
+    pendingPrompt.value = prompt
+    openPanel()
+  }
+
+  /** 消费并清空待预填提示词，返回其值（无待预填时返回 null） */
+  function consumePendingPrompt(): string | null {
+    const p = pendingPrompt.value
+    pendingPrompt.value = null
+    return p
   }
 
   function closePanel() {
@@ -354,14 +369,14 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   return {
     // state
     available, availabilityLoaded, userEnabled,
-    panelMode, currentModule,
+    panelMode, currentModule, pendingPrompt,
     messages, streaming, conversationId,
     targetAgentId, targetAgentName, hydrated,
     // computed
     visible, isOpen,
     // actions
     setAvailability, setUserEnabled, setModule,
-    openPanel, closePanel, togglePin,
+    openPanel, openWithPrompt, consumePendingPrompt, closePanel, togglePin,
     pushUserMessage, startAssistantMessage, appendText, appendToolCalls, completeToolCall, setFormFill, setWorkflow,
     setActionConfirm, updateActionConfirmStatus, setUserChoice, setUserChoiceAnswered, pushAssistantMessage,
     finishMessage, pushError, setStreaming, setConversationId, setTargetAgent, markDelegated, isDelegated, clearMessages,

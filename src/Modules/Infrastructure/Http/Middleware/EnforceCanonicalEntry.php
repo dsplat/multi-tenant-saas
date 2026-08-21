@@ -7,8 +7,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Domain\Services\DomainService;
-use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
-use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -51,34 +49,26 @@ class EnforceCanonicalEntry
         $host = $request->header('X-Original-Host') ?? $request->getHost();
         $wildcardBase = config('domain.wildcard_base');
 
-        $slugActive = $tenant->slug && $tenant->slug_status === 'active';
-        $customDomain = $this->approvedCustomDomain($tenant);
+        // 规范入口（单一事实源：DomainService::getCanonicalHost，与链接生成同规则）
+        $canonicalHost = app(DomainService::class)->getCanonicalHost((int) $tenant->tenant_id);
+        if (! $canonicalHost) {
+            return $next($request); // 无规范入口（未配通配 base 且无 approved 自定义域名）
+        }
 
         // 解析当前入口形态：仅自定义域名与 {base} 子域名两种租户入口
-        $isTenantEntry = ($customDomain && $host === $customDomain)
+        $isTenantEntry = ($host === $canonicalHost)
             || ($wildcardBase && $host !== $wildcardBase && str_ends_with($host, ".{$wildcardBase}"));
 
         if (! $isTenantEntry) {
             return $next($request); // 非租户入口形态（平台域名等），不收敛
         }
 
-        // 计算规范入口
-        if ($customDomain) {
-            $targetHost = $customDomain;
-        } elseif ($slugActive && $wildcardBase) {
-            $targetHost = "{$tenant->slug}.{$wildcardBase}";
-        } elseif ($wildcardBase) {
-            $targetHost = "{$tenant->tenant_id}.{$wildcardBase}";
-        } else {
-            return $next($request); // 无规范入口（未配通配 base 且无自定义域名）
-        }
-
         // 已是规范入口 → 放行（防循环）
-        if ($host === $targetHost) {
+        if ($host === $canonicalHost) {
             return $next($request);
         }
 
-        $target = $this->scheme($request) . '://' . $targetHost . $request->getPathInfo();
+        $target = $this->scheme($request) . '://' . $canonicalHost . $request->getPathInfo();
         $query = $request->getQueryString();
         if ($query) {
             $target .= '?' . $query;
@@ -109,25 +99,6 @@ class EnforceCanonicalEntry
         }
 
         return true;
-    }
-
-    /**
-     * 已审核通过的自定义域名（domain_status 存于 tenant_settings）
-     */
-    protected function approvedCustomDomain(Tenant $tenant): ?string
-    {
-        if (! $tenant->domain) {
-            return null;
-        }
-
-        $status = TenantSetting::get(
-            $tenant->tenant_id,
-            DomainService::GROUP_DOMAIN,
-            'domain_status',
-            DomainService::STATUS_PENDING
-        );
-
-        return $status === DomainService::STATUS_APPROVED ? $tenant->domain : null;
     }
 
     /**

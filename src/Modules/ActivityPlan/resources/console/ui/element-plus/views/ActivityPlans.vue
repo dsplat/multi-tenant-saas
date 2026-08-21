@@ -15,6 +15,12 @@
             <el-link type="primary" @click="openCalendar(row)">{{ planTitle(row) }}</el-link>
           </template>
         </el-table-column>
+        <el-table-column label="类型" width="100">
+          <template #default="{ row }">
+            <el-tag v-if="row.plan_doc?.manual" type="warning" size="small">手动</el-tag>
+            <el-tag v-else type="primary" size="small">AI 策划</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 'scheduled' ? 'success' : 'info'" size="small">{{ statusText(row.status) }}</el-tag>
@@ -27,7 +33,7 @@
         <el-table-column label="操作" width="150">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="openCalendar(row)">日历</el-button>
-            <el-button link type="danger" size="small" @click="remove(row)">删除</el-button>
+            <el-button v-if="row.plan_doc?.manual" link type="danger" size="small" @click="remove(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -71,7 +77,7 @@ const load = async () => {
   loading.value = true
   try {
     const res = await axios.get(`${API}/plans`)
-    plans.value = (res.data.data || []).filter((p: any) => p.plan_doc?.manual)
+    plans.value = res.data.data || []
   } catch {
     ElMessage.error('加载活动列表失败')
   } finally {

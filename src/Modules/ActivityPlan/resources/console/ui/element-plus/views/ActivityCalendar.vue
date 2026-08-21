@@ -3,13 +3,25 @@
     <div class="page-header">
       <h2>活动日历</h2>
       <div class="toolbar">
-        <el-select v-model="planFilter" placeholder="全部活动" clearable style="width: 200px" @change="loadTasks">
-          <el-option label="全部活动" value="" />
-          <el-option v-for="p in plans" :key="p.plan_id" :label="planTitle(p)" :value="p.plan_id" />
-        </el-select>
         <el-button @click="goPlans">管理活动</el-button>
         <el-button type="primary" @click="openCreate()">＋ 新建事项</el-button>
       </div>
+    </div>
+
+    <div class="plan-cards">
+      <span class="plan-card" :class="{ active: planFilter === '' }" @click="setFilter('')">
+        <span class="plan-swatch all" />全部活动
+      </span>
+      <span
+        v-for="p in plans"
+        :key="p.plan_id"
+        class="plan-card"
+        :class="{ active: planFilter === p.plan_id }"
+        @click="setFilter(p.plan_id)"
+      >
+        <span class="plan-swatch" :style="{ background: planColor(p.plan_id) }" />
+        {{ planTitle(p) }}
+      </span>
     </div>
 
     <div class="legend">
@@ -34,7 +46,15 @@
                 @click.stop
               >
                 <template #reference>
-                  <span class="chip" :class="`st-${t.status}`" @click.stop>
+                  <span
+                    class="chip"
+                    :style="{
+                      background: planColor(t.plan_id) + '1A',
+                      borderColor: planColor(t.plan_id) + '66',
+                      borderLeftColor: statusColor(t.status),
+                    }"
+                    @click.stop
+                  >
                     <span class="chip-time">{{ fmtTime(t.scheduled_at) }}</span>
                     {{ t.title }}<template v-if="t.remind"> 🔔</template>
                   </span>
@@ -124,6 +144,31 @@ const planFilter = ref<number | string>('')
 
 const planTitle = (p: any) => p.plan_doc?.title || p.plan_doc?.name || `活动 ${p.plan_id}`
 
+// 活动独立色：10 色调色板按 plan_id 取模稳定映射，同一活动各处颜色一致
+const PLAN_COLORS = [
+  '#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#8E44AD',
+  '#16A085', '#D35400', '#2C3E50', '#C0392B', '#2980B9',
+]
+const planColor = (planId: number) => PLAN_COLORS[planId % PLAN_COLORS.length]
+
+// 状态色条（chip 左侧），在活动浅色底上区分任务状态
+const STATUS_COLORS: Record<string, string> = {
+  pending: '#409EFF',
+  awaiting_confirm: '#E6A23C',
+  running: '#f59e0b',
+  done: '#67C23A',
+  failed: '#909399',
+  cancelled: '#909399',
+  skipped: '#909399',
+}
+const statusColor = (s: string) => STATUS_COLORS[s] || '#909399'
+
+// 第一行活动卡片过滤：点击切换，重复点击取消回到全部
+const setFilter = (id: number | string) => {
+  planFilter.value = planFilter.value === id ? '' : id
+  loadTasks()
+}
+
 const tasksByDate = computed(() => {
   const map: Record<string, Task[]> = {}
   for (const t of tasks.value) {
@@ -142,7 +187,7 @@ const statusText = (s: string) =>
 const loadPlans = async () => {
   try {
     const res = await axios.get(`${API}/plans`)
-    plans.value = (res.data.data || []).filter((p: any) => p.plan_doc?.manual)
+    plans.value = res.data.data || []
   } catch {}
 }
 
@@ -246,6 +291,12 @@ onMounted(async () => {
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .page-header h2 { margin: 0; }
 .toolbar { display: flex; gap: 8px; align-items: center; }
+.plan-cards { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; overflow-x: auto; padding-bottom: 2px; }
+.plan-card { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border: 1px solid var(--el-border-color); border-radius: 16px; font-size: 13px; color: var(--el-text-color-regular); background: #fff; cursor: pointer; white-space: nowrap; transition: all .15s; }
+.plan-card:hover { border-color: var(--el-color-primary); color: var(--el-color-primary); }
+.plan-card.active { border-color: var(--el-color-primary); color: var(--el-color-primary); background: var(--el-color-primary-light-9); font-weight: 600; }
+.plan-swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+.plan-swatch.all { background: var(--el-text-color-secondary); }
 .legend { display: flex; gap: 16px; align-items: center; margin-bottom: 12px; font-size: 13px; color: var(--el-text-color-regular); }
 .legend-item { display: inline-flex; align-items: center; gap: 4px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
@@ -256,13 +307,8 @@ onMounted(async () => {
 .cell { min-height: 78px; cursor: pointer; }
 .day-num { font-size: 13px; color: var(--el-text-color-secondary); }
 .chips { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
-.chip { font-size: 12px; line-height: 1.4; padding: 1px 5px; border-radius: 4px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.chip { font-size: 12px; line-height: 1.4; padding: 1px 5px 1px 7px; border-radius: 4px; color: #303133; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; border: 1px solid #dcdfe6; border-left-width: 3px; }
 .chip-time { opacity: .85; margin-right: 2px; }
-.st-pending { background: var(--el-color-primary); }
-.st-awaiting_confirm { background: var(--el-color-warning); }
-.st-running { background: #f59e0b; }
-.st-done { background: var(--el-color-success); }
-.st-failed, .st-cancelled, .st-skipped { background: var(--el-color-info); }
 .pop-title { font-weight: 600; margin-bottom: 6px; }
 .pop-meta { font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 2px; }
 .pop-actions { margin-top: 10px; display: flex; gap: 8px; }

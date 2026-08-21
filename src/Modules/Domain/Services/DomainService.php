@@ -167,6 +167,44 @@ class DomainService
         return $this->getDomainStatus($tenantId) === self::STATUS_APPROVED;
     }
 
+    /**
+     * 解析租户规范入口 host（不含 scheme）
+     *
+     * 与 EnforceCanonicalEntry 同规则，单一事实源：
+     *   自定义域名（domain 非空 且 domain_status=approved）
+     *   > {slug}.{wildcard_base}（slug_status=active，含自动码 t-xxxxxx）
+     *   > {tenant_id}.{wildcard_base}（兑底）
+     * 全不满足返回 null（无规范入口）。
+     */
+    public function getCanonicalHost(int $tenantId): ?string
+    {
+        $tenant = Tenant::find($tenantId);
+
+        if (! $tenant) {
+            return null;
+        }
+
+        // 1. 自定义域名 approved 优先
+        if (! empty($tenant->domain)
+            && TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'domain_status', self::STATUS_PENDING) === self::STATUS_APPROVED) {
+            return $tenant->domain;
+        }
+
+        $wildcardBase = config('domain.wildcard_base');
+
+        // 2. slug active 二级域名
+        if (! empty($tenant->slug) && $tenant->slug_status === 'active' && $wildcardBase) {
+            return "{$tenant->slug}.{$wildcardBase}";
+        }
+
+        // 3. tenant_id 兑底
+        if ($wildcardBase) {
+            return "{$tenant->tenant_id}.{$wildcardBase}";
+        }
+
+        return null;
+    }
+
     // ========================================
     // 域名归属文件验证（Domain Ownership Verification）
     // ========================================

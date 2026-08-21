@@ -515,4 +515,102 @@ class AiImageServiceTest extends TestCase
 
         $this->service->textToImage('prompt', ['provider' => 'stability', 'model' => 'unknown-model']);
     }
+
+    // ======================================================================
+    // textToImage — Bailian qwen-image（原生 multimodal-generation 端点）
+    // ======================================================================
+
+    public function test_text_to_image_with_bailian_qwen_image_uses_native_multimodal_endpoint(): void
+    {
+        config(['ai.providers.bailian.api_key' => 'test-bailian-key']);
+        config(['ai.providers.bailian.base_url' => 'https://dashscope.aliyuncs.com/compatible-mode/v1']);
+
+        Http::fake([
+            'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation' => Http::response([
+                'output' => [
+                    'choices' => [
+                        ['message' => ['content' => [['b64_image' => self::PNG_B64]]]],
+                    ],
+                ],
+                'usage' => ['total_tokens' => 100],
+            ], 200),
+        ]);
+
+        $result = $this->service->textToImage('一只红色苹果', [
+            'provider' => 'bailian',
+            'model' => 'qwen-image-2.0',
+            'size' => '1024x1792',
+        ]);
+
+        $this->assertSame('bailian', $result['provider']);
+        $this->assertSame('qwen-image-2.0', $result['model']);
+        $this->assertCount(1, $result['images']);
+        $this->assertNotEmpty($result['images'][0]['file_upload_id']);
+
+        // 走原生端点，尺寸转换为 * 分隔（1024x1792 → 1024*1792）
+        Http::assertSent(function (Request $request): bool {
+            return str_contains($request->url(), 'multimodal-generation/generation')
+                && $request['model'] === 'qwen-image-2.0'
+                && $request['parameters']['size'] === '1024*1792';
+        });
+
+        $this->assertDatabaseHas('ai_requests', [
+            'request_id' => $result['request_id'],
+            'provider' => 'bailian',
+            'model' => 'qwen-image-2.0',
+            'status' => AiRequest::STATUS_SUCCESS,
+        ]);
+    }
+
+    // ======================================================================
+    // textToImage — Bailian wan 系列（原生 text2image 异步任务 + 轮询）
+    // ======================================================================
+
+    public function test_text_to_image_with_bailian_wan_uses_async_task_polling(): void
+    {
+        config(['ai.providers.bailian.api_key' => 'test-bailian-key']);
+        config(['ai.providers.bailian.base_url' => 'https://dashscope.aliyuncs.com/compatible-mode/v1']);
+
+        Http::fake([
+            'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis' => Http::response([
+                'output' => ['task_id' => 'task-12345', 'task_status' => 'PENDING'],
+            ], 200),
+            'https://dashscope.aliyuncs.com/api/v1/tasks/task-12345' => Http::response([
+                'output' => [
+                    'task_status' => 'SUCCEEDED',
+                    'results' => [['url' => 'https://cdn.example.com/wan-img.png']],
+                ],
+            ], 200),
+            'https://cdn.example.com/*' => Http::response(base64_decode(self::PNG_B64, true), 200, [
+                'Content-Type' => 'image/png',
+            ]),
+        ]);
+
+        $result = $this->service->textToImage('水墨山水', [
+            'provider' => 'bailian',
+            'model' => 'wan2.7-image',
+            'size' => '1024x1024',
+        ]);
+
+        $this->assertSame('bailian', $result['provider']);
+        $this->assertSame('wan2.7-image', $result['model']);
+        $this->assertCount(1, $result['images']);
+        $this->assertNotEmpty($result['images'][0]['file_upload_id']);
+
+        // 先提交任务（原生 text2image），再轮询 /tasks/{id}
+        Http::assertSent(function (Request $request): bool {
+            return str_contains($request->url(), 'text2image/image-synthesis')
+                && $request['input']['prompt'] === '水墨山水';
+        });
+        Http::assertSent(function (Request $request): bool {
+            return str_contains($request->url(), '/api/v1/tasks/task-12345');
+        });
+
+        $this->assertDatabaseHas('ai_requests', [
+            'request_id' => $result['request_id'],
+            'provider' => 'bailian',
+            'model' => 'wan2.7-image',
+            'status' => AiRequest::STATUS_SUCCESS,
+        ]);
+    }
 }

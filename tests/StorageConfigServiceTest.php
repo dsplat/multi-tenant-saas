@@ -167,6 +167,22 @@ class StorageConfigServiceTest extends TestCase
         $this->assertFalse($this->service->isCloudDisk('local'));
     }
 
+    public function test_dynamic_disk_with_local_driver_is_not_cloud(): void
+    {
+        // 单机部署预设：平台存储显式配置为 local 驱动时，platform-oss 按本地盘处理
+        config(['filesystems.disks.' . StorageConfigService::PLATFORM_DISK => [
+            'driver' => 'local',
+            'root' => storage_path('app'),
+        ]]);
+        $this->assertFalse($this->service->isCloudDisk(StorageConfigService::PLATFORM_DISK));
+
+        config(['filesystems.disks.' . StorageConfigService::TENANT_DISK => [
+            'driver' => 'local',
+            'root' => storage_path('app'),
+        ]]);
+        $this->assertFalse($this->service->isCloudDisk(StorageConfigService::TENANT_DISK));
+    }
+
     public function test_dynamic_disk_names_fit_column_limit(): void
     {
         // file_uploads.disk 为 varchar(20)

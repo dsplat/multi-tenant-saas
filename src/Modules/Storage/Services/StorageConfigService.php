@@ -110,10 +110,20 @@ class StorageConfigService
 
     /**
      * 是否云端磁盘（支持 temporaryUrl）
+     *
+     * 动态磁盘（tenant-oss/platform-oss）可能被配置为 local 驱动
+     * （单机部署预设），此时按本地盘处理，不能仅凭磁盘名一刀切。
      */
     public function isCloudDisk(string $disk): bool
     {
-        return in_array($disk, ['s3', 'oss', self::TENANT_DISK, self::PLATFORM_DISK], true);
+        if (! in_array($disk, ['s3', 'oss', self::TENANT_DISK, self::PLATFORM_DISK], true)) {
+            return false;
+        }
+
+        $driver = config("filesystems.disks.{$disk}.driver");
+
+        // 动态磁盘已注册为 local → 本地盘；未注册/未知 → 按云盘处理（默认即 s3/oss）
+        return $driver === null || $driver !== 'local';
     }
 
     /**

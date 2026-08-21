@@ -89,6 +89,17 @@ class MemoryCompressorTest extends TestCase
         $this->assertFalse($result);
     }
 
+    public function test_compress_alias_delegates_to_compress_memory(): void
+    {
+        // 回归：AgentRuntime::compressMemory() 以 compress 名义调用压缩器，
+        // 别名必须与主实现同行为（无消息会话 → false）。
+        $this->createAgent();
+        $this->createConversation();
+
+        $this->assertFalse($this->compressor->compress(2001));
+        $this->assertTrue(method_exists($this->compressor, 'compress'));
+    }
+
     public function test_compress_returns_false_when_under_threshold(): void
     {
         $this->createAgent();

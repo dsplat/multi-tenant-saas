@@ -24,6 +24,17 @@ class MemoryCompressor
     ) {}
 
     /**
+     * 压缩会话记忆（AgentRuntime 兼容别名）
+     *
+     * AgentRuntime::compressMemory() 以 compress 名义调用压缩器，
+     * 此处提供同签名别名避免方法名漂移。
+     */
+    public function compress(int $conversationId, int $maxTokens = 8000): bool
+    {
+        return $this->compressMemory($conversationId, $maxTokens);
+    }
+
+    /**
      * 压缩会话记忆
      *
      * 当会话历史 token 估算超过阈值时，将旧消息分批摘要，

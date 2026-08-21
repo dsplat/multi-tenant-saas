@@ -346,8 +346,8 @@ class FileService
             );
         }
 
-        // 本地私有文件通过 API 下载
-        return url("/api/v1/files/{$file->id}/download");
+        // 本地私有文件通过 API 下载（FileUpload 主键为 file_upload_id）
+        return url("/api/v1/files/{$file->file_upload_id}/download");
     }
 
     /**

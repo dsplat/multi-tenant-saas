@@ -248,6 +248,14 @@ return [
     'image' => [
         'provider' => env('AI_IMAGE_PROVIDER', 'openai'),
         'model' => env('AI_IMAGE_MODEL', 'dall-e-3'),
+        // 自研 AiImageService 默认配置（与 laravel/ai SDK 键分离）
+        'default_provider' => env('AI_IMAGE_DEFAULT_PROVIDER', 'dalle'),
+        'default_model' => env('AI_IMAGE_DEFAULT_MODEL', 'dall-e-3'),
+        'default_size' => env('AI_IMAGE_DEFAULT_SIZE', '1024x1024'),
+        'max_prompt_length' => (int) env('AI_IMAGE_MAX_PROMPT_LENGTH', 4000),
+        'storage_category' => env('AI_IMAGE_STORAGE_CATEGORY', 'ai_generated'),
+        'storage_disk' => env('AI_IMAGE_STORAGE_DISK'),
+        'storage_is_public' => (bool) env('AI_IMAGE_STORAGE_PUBLIC', false),
     ],
     'audio' => [
         'provider' => env('AI_AUDIO_PROVIDER', 'openai'),

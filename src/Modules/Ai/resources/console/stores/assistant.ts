@@ -77,6 +77,8 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   const currentModule = ref('')
   /** 待预填提示词（外部引导卡片唤醒时写入，面板消费后清空） */
   const pendingPrompt = ref<string | null>(null)
+  /** 待自动发送提示词（运营引导唤醒时写入，面板打开后直接发送） */
+  const autoSendPrompt = ref<string | null>(null)
 
   // ─── 对话 ─────────────────────────────────────────────────
   const messages = ref<ChatMessage[]>(loadPersistedMessages())
@@ -124,10 +126,23 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     openPanel()
   }
 
+  /** 唤醒面板并自动发送提示词（运营引导卡片：打开即带小秘书开始，无需用户再点发送） */
+  function openWithPromptAndSend(prompt: string) {
+    autoSendPrompt.value = prompt
+    openPanel()
+  }
+
   /** 消费并清空待预填提示词，返回其值（无待预填时返回 null） */
   function consumePendingPrompt(): string | null {
     const p = pendingPrompt.value
     pendingPrompt.value = null
+    return p
+  }
+
+  /** 消费并清空待自动发送提示词，返回其值（无待发送时返回 null） */
+  function consumeAutoSendPrompt(): string | null {
+    const p = autoSendPrompt.value
+    autoSendPrompt.value = null
     return p
   }
 
@@ -369,14 +384,14 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   return {
     // state
     available, availabilityLoaded, userEnabled,
-    panelMode, currentModule, pendingPrompt,
+    panelMode, currentModule, pendingPrompt, autoSendPrompt,
     messages, streaming, conversationId,
     targetAgentId, targetAgentName, hydrated,
     // computed
     visible, isOpen,
     // actions
     setAvailability, setUserEnabled, setModule,
-    openPanel, openWithPrompt, consumePendingPrompt, closePanel, togglePin,
+    openPanel, openWithPrompt, openWithPromptAndSend, consumePendingPrompt, consumeAutoSendPrompt, closePanel, togglePin,
     pushUserMessage, startAssistantMessage, appendText, appendToolCalls, completeToolCall, setFormFill, setWorkflow,
     setActionConfirm, updateActionConfirmStatus, setUserChoice, setUserChoiceAnswered, pushAssistantMessage,
     finishMessage, pushError, setStreaming, setConversationId, setTargetAgent, markDelegated, isDelegated, clearMessages,

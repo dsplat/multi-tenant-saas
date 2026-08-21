@@ -348,6 +348,17 @@ watch(() => store.pendingPrompt, async (prompt) => {
   await scrollToBottom()
 })
 
+/** 外部运营引导唤醒：消费待自动发送提示词，填入输入框并直接发送 */
+watch(() => store.autoSendPrompt, async (prompt) => {
+  if (!prompt) return
+  const consumed = store.consumeAutoSendPrompt()
+  if (!consumed) return
+  input.value = consumed
+  await nextTick()
+  adjustHeight()
+  await handleSend(consumed)
+})
+
 onMounted(() => {
   // 空会话时异步拉开场引导（不阻塞面板渲染，失败回退内置建议）
   if (store.messages.length === 0) fetchSuggestions()

@@ -334,7 +334,8 @@ function goToAgents() {
   router.push('/agents')
 }
 
-/** 外部引导唤醒：消费待预填提示词，填入输入框并聚焦（不自动发送，留用户确认） */
+/** 外部引导唤醒：消费待预填提示词，填入输入框并聚焦（不自动发送，留用户确认）
+ * 注意：抽屉懒渲染导致组件挂载晚于 openWithPrompt 的赋值，须 immediate 兜底 */
 watch(() => store.pendingPrompt, async (prompt) => {
   if (!prompt) return
   const consumed = store.consumePendingPrompt()
@@ -346,9 +347,10 @@ watch(() => store.pendingPrompt, async (prompt) => {
   // 光标移到末尾便于续写参数
   textareaEl.value?.setSelectionRange(consumed.length, consumed.length)
   await scrollToBottom()
-})
+}, { immediate: true })
 
-/** 外部运营引导唤醒：消费待自动发送提示词，填入输入框并直接发送 */
+/** 外部运营引导唤醒：消费待自动发送提示词，填入输入框并直接发送
+ * 注意：抽屉懒渲染导致组件挂载晚于 openWithPromptAndSend 的赋值，须 immediate 兜底 */
 watch(() => store.autoSendPrompt, async (prompt) => {
   if (!prompt) return
   const consumed = store.consumeAutoSendPrompt()
@@ -357,7 +359,7 @@ watch(() => store.autoSendPrompt, async (prompt) => {
   await nextTick()
   adjustHeight()
   await handleSend(consumed)
-})
+}, { immediate: true })
 
 onMounted(() => {
   // 空会话时异步拉开场引导（不阻塞面板渲染，失败回退内置建议）

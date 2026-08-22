@@ -6,6 +6,7 @@ namespace MultiTenantSaas\Services\Channel\Providers;
 
 use MultiTenantSaas\Contracts\ChannelContract;
 use MultiTenantSaas\DTOs\InboundMessage;
+use MultiTenantSaas\Events\WechatWorkExternalEvent;
 use MultiTenantSaas\Modules\Conversation\Models\Conversation;
 use MultiTenantSaas\Support\WechatWork\WechatWorkApiClient;
 use MultiTenantSaas\Support\WechatWork\WechatWorkCrypto;
@@ -86,6 +87,25 @@ class EnterpriseWechatAppDriver implements ChannelContract
 
         if ($payload === null) {
             return [];
+        }
+
+        // 外部联系/客户群事件（change_external_chat / change_external_contact）：
+        // 不进消息链路（无正文），由 ChannelWebhookController 分发为 WechatWorkExternalEvent
+        $event = $this->str($payload['Event'] ?? '');
+
+        if (in_array($event, [WechatWorkExternalEvent::TYPE_CHAT, WechatWorkExternalEvent::TYPE_CONTACT], true)) {
+            return [new InboundMessage(
+                channel: self::TYPE,
+                conversationType: 'event',
+                externalConvId: $this->str($payload['ChatId'] ?? ''),
+                senderExternalId: $this->str($payload['FromUserName'] ?? ''),
+                senderType: self::SENDER_EXTERNAL,
+                msgType: 'event',
+                content: '',
+                platformMsgId: null,
+                conversationTitle: null,
+                raw: $payload,
+            )];
         }
 
         // 群聊回调带 ChatId（事件/消息均然）；应用回调不推送群消息正文，仅建/维会话

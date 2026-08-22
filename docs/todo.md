@@ -196,6 +196,65 @@
 
 ---
 
+## 四、企微群运营与运营引导收尾（2026-08-23）
+
+> 背景：企微群运营全链路（scrm 0b1380a）与通栏引导卡片（scrm 49ddd3a）已提交；
+> 框架配套（会话存档 RSA→AES 解密 / WechatWorkExternalEvent 分发 / 秘书群运营工具）随本次提交发布。
+
+### TODO-WECOM-001: 企微会话存档 + 外部事件全链路部署生效
+
+**优先级**: 高（框架发布后立即执行）
+
+**仓库**: multi_tenant_saas + scrm-platform
+
+**内容**:
+- 框架提交（会话存档组合解密 / 外部事件分发 / 秘书群运营工具）→ split → scrm `composer update dsplat/*` → `deploy.py incremental`；**顺序必须框架先行**——scrm `ChatArchiveSyncService::fetchFromWeCom` 已调用框架新方法 `decryptChatData`，框架未发布前生产静默失败（catch 吞错返回 null）
+- 生产配置：channels 表 `type=wechat_work` 渠道 `metadata.session_archive.private_key`（RSA PEM，与企微后台会话存档公钥配对）；企微管理后台开通「会话内容存档」付费能力
+
+**完成标准**: 生产 ChatArchive 拉取解密成功落库；`ExternalWechatWorkEventListener`（scrm Community 模块）收到入群/退群/添加客户事件并触发成员同步
+
+---
+
+### TODO-WECOM-002: console Dashboard 企微运营通栏卡片上线
+
+**优先级**: 高（已构建未部署）
+
+**仓库**: scrm-platform（console 前端）
+
+**内容**:
+- `WecomOnboardCard.vue` 已提交（49ddd3a）、本地已构建（产物 `Dashboard-DmqEpKni.js`），生产仍是旧产物（`Dashboard-2eWrTCGM.js`，08-22）
+- rsync `public/console/` 到生产；本次同步同时带上框架 `07883b55`（面板引导 watch immediate 修复）与 8-23 之前所有未同步产物
+
+**完成标准**: 生产 assets 含「企微客户运营」文案；console Dashboard 顶部展示通栏引导卡片
+
+---
+
+### TODO-WECOM-003: AI 成串场景生产验证
+
+**优先级**: 中（依赖 WECOM-001 部署）
+
+**仓库**: scrm-platform
+
+**内容**:
+- 提交 `docs/2026-08-22-ai-chained-scenarios.md`（成串场景五则：全量公告下发 / 传播组合拳 / 存档检索追溯 / 健康巡检 / 配置盘点）
+- 按文档 §8/§9 验证：秘书职责 13（群运营代操作）生效；8 个群运营工具（get_community_list / set_group_announcement / trigger_chat_archive_sync / list_chat_archives / search_chat_archive / list_external_contacts / list_group_bot_rules / list_welcome_messages）可用；L2 串行铁律（每群一张确认卡）
+
+**完成标准**: 场景一~五小秘书可走通；能力边界（§7）如实转述不硬编
+
+---
+
+### TODO-WECOM-004: scrm 未跟踪文档入库
+
+**优先级**: 低（随下次提交捎带）
+
+**仓库**: scrm-platform
+
+**内容**: 提交 `docs/2026-08-21-h5-seo-geo-plan.md`（todo.md TODO-SEO-001~004 引用，当前未入库链接悬空）与 `docs/2026-08-22-ai-chained-scenarios.md`（未入库）
+
+**完成标准**: 文档入库，todo.md 引用不悬空
+
+---
+
 ## 已完成归档
 
 - ✅ 2026-07-31 项目大脑 Phase 0-3 全量上线 + E2E 场景 0-3 验收（L2 确认门 / capability-map / 摘要注入 / thread_review / AssetProbe / health-check）

@@ -95,9 +95,13 @@ final class BuiltinAgentTemplates
                     'manage_tags', 'ai_auto_tag', 'create_live_code', 'send_message', 'issue_coupon',
                     'create_sms_signature', 'send_sms_batch', 'schedule_sms_batch', 'create_poster',
                     'adjust_points', 'create_moments_sop', 'create_mass_push',
+                    'set_group_announcement', 'trigger_chat_archive_sync',
+                    'get_community_list',
                     // 代操作前置查询配套（确认对象/模板/余额后再发起写操作）
                     'search_customer', 'get_customer_tags', 'list_coupon_templates', 'list_poster_templates',
                     'get_points_balance', 'list_sms_signatures', 'list_moments_sop', 'list_mass_push',
+                    'list_external_contacts', 'list_group_bot_rules', 'list_welcome_messages',
+                    'list_chat_archives', 'search_chat_archive',
                 ],
                 'kb_ids' => [],
                 'feature_keys' => [],
@@ -338,6 +342,13 @@ final class BuiltinAgentTemplates
     - 邮件发送（SMTP）、登录方式、注册设置（开放注册/欢迎积分）、短信发送：调用 update_tenant_settings 写入，group 传 mail/auth/registration/sms，settings 只传需要变更的字段；
     - 自定义域名绑定：先调用 ask_user_choice 让用户点选确认该域名是否已完成 ICP 备案（选项如“是，已完成 ICP 备案”“否，尚未备案”，不要用纯文本提问）；用户确认已备案后再调用 update_tenant_domain 写入；绑定提交后把返回的后续步骤（CNAME 解析、归属验证文件、平台审核）如实转述给用户；
     必要信息缺失（如 SMTP 的 host/账号/授权码）时先向用户追问，不猜不凑。若某项配置确实没有对应写工具，坦诚告知并说明需到「租户设置」页面手动操作。
+13. 群运营代操作（企微社群）：用户要求管理客户群/社群运营时，按需调用：
+    - 查群列表：get_community_list（先查再动，确认 community_id 再发起写操作）；
+    - 查外部联系人：list_external_contacts（按姓名/ID/状态筛选，单聊群发选人来源）；
+    - 下发群公告：先用 get_community_list 确认群存在拿到 community_id，再调用 set_group_announcement（L2，确认后执行；公告每分钟最多 200 群，超过自动分批）；
+    - 群机器人规则：list_group_bot_rules 查看规则（入群欢迎/关键词回复/定时播报/群管）；
+    - 欢迎语配置：list_welcome_messages 查看各渠道欢迎语；
+    - 会话存档：search_chat_archive 全文检索历史消息、list_chat_archives 查存档列表；用户要求拉取最新会话时调用 trigger_chat_archive_sync（L2，确认后执行；未开通存档时工具返回原因，如实转述并引导到「渠道管理」配置存档私钥）。
 
 行为准则：
 - 失败不循环：任何工具调用失败后，只能依据错误返回里的指引信息（如候选清单、正确参数格式）修正参数重试一次；严禁用相同参数反复重试同一工具，严禁连续弹出内容相同的选项卡片。连续两次失败就停止尝试，在正文向用户坦诚说明情况并给出可行建议。

@@ -12,7 +12,7 @@ use MultiTenantSaas\Scopes\TenantScope;
 
 class SessionArchiveService
 {
-    private ArchiveDecryptor $decryptor;
+    private ?ArchiveDecryptor $decryptor;
 
     private string $corpId;
 
@@ -25,7 +25,11 @@ class SessionArchiveService
     {
         $this->corpId = $config['corp_id'] ?? '';
         $this->corpSecret = $config['corp_secret'] ?? '';
-        $this->decryptor = new ArchiveDecryptor($config['encoding_aes_key'] ?? '');
+
+        // 企微官方协议中每条消息的 AES key 由 encrypt_random_key（RSA 加密）随消息下发，
+        // 预配置 encoding_aes_key 仅用于 decryptAndStore 简化链路；走 decryptChatData 时可留空。
+        $encodingAesKey = $config['encoding_aes_key'] ?? '';
+        $this->decryptor = $encodingAesKey === '' ? null : new ArchiveDecryptor($encodingAesKey);
     }
 
     /**
@@ -69,6 +73,12 @@ class SessionArchiveService
      */
     public function decryptAndStore(array $chatData, ?int $tenantId = null): int
     {
+        if ($this->decryptor === null) {
+            Log::warning('SessionArchiveService: encoding_aes_key 未配置，decryptAndStore 无法解密（可改用 decryptChatData 走 RSA→AES 链路）');
+
+            return 0;
+        }
+
         $stored = 0;
 
         foreach ($chatData as $item) {
@@ -102,6 +112,59 @@ class SessionArchiveService
         }
 
         return $stored;
+    }
+
+    /**
+     * 组合解密链路（RSA→AES，与企微官方协议一致）：
+     * 1. 用企业 RSA 私钥解密 encrypt_random_key，得到该条消息的 AES key；
+     * 2. 用该 AES key 解密 encrypt_chat_msg，得到消息 JSON。
+     *
+     * 适用于自持消息表的应用（如 scrm 的 chat_messages），
+     * 与 decryptAndStore 的区别：不落框架 ArchivedMessage 表、不依赖预配置 encoding_aes_key。
+     *
+     * @param  list<array<string, mixed>>  $chatData  fetchFromApi 返回的 chatdata
+     * @return list<array<string, mixed>>  解密后的消息数组（企微原始字段，含 msg_id/seq/msgtype）
+     */
+    public function decryptChatData(array $chatData, string $privateKeyPem): array
+    {
+        $messages = [];
+
+        foreach ($chatData as $item) {
+            $encryptedKey = (string) ($item['encrypt_random_key'] ?? '');
+            $encryptedMsg = (string) ($item['encrypt_chat_msg'] ?? '');
+
+            if ($encryptedKey === '' || $encryptedMsg === '') {
+                continue;
+            }
+
+            try {
+                $aesKey = ArchiveDecryptor::decryptRsaKey($encryptedKey, $privateKeyPem);
+            } catch (\Throwable $e) {
+                Log::warning('SessionArchiveService: RSA key decrypt failed', ['error' => $e->getMessage()]);
+
+                continue;
+            }
+
+            if ($aesKey === '') {
+                continue;
+            }
+
+            $decrypted = (new ArchiveDecryptor($aesKey))->decrypt($encryptedMsg);
+
+            if ($decrypted === '') {
+                continue;
+            }
+
+            $msgData = json_decode($decrypted, true);
+
+            if (! is_array($msgData)) {
+                continue;
+            }
+
+            $messages[] = $msgData;
+        }
+
+        return $messages;
     }
 
     /**

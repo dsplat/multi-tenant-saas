@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Events\WechatWorkExternalEvent;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Services\Channel\ChannelManager;
 use MultiTenantSaas\Services\Channel\MessageRouter;
@@ -80,11 +81,43 @@ class ChannelWebhookController
         $inboundMessages = $provider->parseInbound($rawBody, $query);
 
         foreach ($inboundMessages as $inbound) {
+            // 外部联系/客户群事件：不进入消息链路，分发为业务事件（scrm 监听处理）
+            $eventType = $inbound->raw['Event'] ?? '';
+
+            if ($inbound->msgType === 'event'
+                && in_array($eventType, [WechatWorkExternalEvent::TYPE_CHAT, WechatWorkExternalEvent::TYPE_CONTACT], true)) {
+                $this->dispatchExternalEvent($tenantId, $eventType, $inbound->raw);
+
+                continue;
+            }
+
             $this->router->handleInbound($tenantId, $inbound);
         }
 
         // 收到即 ACK（空串），避免平台重试造成重复处理
         return $this->ack('', 200);
+    }
+
+    /**
+     * 分发企微外部联系/客户群事件（事件型回调，无消息正文）。
+     *
+     * @param  array<string, mixed>  $raw
+     */
+    private function dispatchExternalEvent(int $tenantId, string $eventType, array $raw): void
+    {
+        $payload = $raw['payload'] ?? $raw;
+        $changeType = (string) ($payload['ChangeType'] ?? '');
+        $rawPayload = $payload;
+
+        event(new WechatWorkExternalEvent(
+            tenantId: $tenantId,
+            eventType: $eventType,
+            changeType: $changeType,
+            chatId: (string) ($payload['ChatId'] ?? ''),
+            externalUserId: (string) ($payload['UserID'] ?? ''),
+            welcomeCode: (string) ($payload['WelcomeCode'] ?? ''),
+            raw: $rawPayload,
+        ));
     }
 
     private function resolveTenantId(?string $slug): ?int

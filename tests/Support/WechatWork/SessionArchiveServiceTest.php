@@ -338,4 +338,87 @@ class SessionArchiveServiceTest extends TestCase
         $stored2 = $service->decryptAndStore($fetched['chatdata'], 1001);
         $this->assertSame(0, $stored2);
     }
+
+    /**
+     * 生成 RSA 密钥对并返回 [privatePem, publicPem, encryptRandomKey]（用公钥加密 AES key）。
+     */
+    private function rsaFixture(): array
+    {
+        $res = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+        openssl_pkey_export($res, $privateKeyPem);
+        $details = openssl_pkey_get_details($res);
+
+        $encryptedKey = '';
+        openssl_public_encrypt(base64_encode($this->aesKey), $encryptedKey, $details['key']);
+
+        return [$privateKeyPem, base64_encode($encryptedKey)];
+    }
+
+    public function test_session_archive_service_decrypt_chat_data_rsa_chain(): void
+    {
+        [$privateKeyPem, $encryptedKey] = $this->rsaFixture();
+
+        // 走 decryptChatData 链路时无需预配置 encoding_aes_key（AES key 随消息 RSA 下发）
+        $service = new SessionArchiveService([
+            'corp_id' => 'test_corp',
+            'corp_secret' => 'test_secret',
+        ]);
+
+        $chatData = [[
+            'encrypt_random_key' => $encryptedKey,
+            'encrypt_chat_msg' => $this->encryptPayload([
+                'msg_id' => 'msg_rsa_001',
+                'room_id' => 'room_rsa',
+                'msgtype' => 'text',
+                'from_userid' => 'user1',
+                'seq' => 10,
+                'msgtime' => '1625000000000',
+            ]),
+        ]];
+
+        $messages = $service->decryptChatData($chatData, $privateKeyPem);
+
+        $this->assertCount(1, $messages);
+        $this->assertSame('msg_rsa_001', $messages[0]['msg_id']);
+        $this->assertSame('room_rsa', $messages[0]['room_id']);
+        $this->assertSame('text', $messages[0]['msgtype']);
+    }
+
+    public function test_session_archive_service_decrypt_chat_data_wrong_key(): void
+    {
+        [$privateKeyPem] = $this->rsaFixture();
+        [$wrongPrivateKey] = $this->rsaFixture();
+
+        // 用另一对密钥加密（模拟私钥不匹配）
+        $res = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+        $details = openssl_pkey_get_details($res);
+        $encryptedKey = '';
+        openssl_public_encrypt(base64_encode($this->aesKey), $encryptedKey, $details['key']);
+
+        $service = new SessionArchiveService([
+            'corp_id' => 'test_corp',
+            'corp_secret' => 'test_secret',
+        ]);
+
+        $chatData = [[
+            'encrypt_random_key' => base64_encode($encryptedKey),
+            'encrypt_chat_msg' => $this->encryptPayload(['msg_id' => 'msg_rsa_002']),
+        ]];
+
+        // 私钥不匹配：单条失败不阻断整体，返回空数组且不抛异常
+        $messages = $service->decryptChatData($chatData, $wrongPrivateKey);
+        $this->assertSame([], $messages);
+    }
+
+    public function test_session_archive_service_decrypt_and_store_without_aes_key(): void
+    {
+        $service = new SessionArchiveService([
+            'corp_id' => 'test_corp',
+            'corp_secret' => 'test_secret',
+        ]);
+
+        $this->assertSame(0, $service->decryptAndStore([
+            ['encrypt_chat_msg' => 'encrypted'],
+        ], 1001));
+    }
 }

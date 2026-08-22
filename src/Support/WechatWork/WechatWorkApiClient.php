@@ -340,4 +340,491 @@ class WechatWorkApiClient
 
         return true;
     }
+
+    // ========== 企业群发消息 API（externalcontact scope） ==========
+
+    /**
+     * 创建企业群发消息任务
+     *
+     * 异步分发：调用后消息并不直接发送，企微将任务推送给相关成员（群主/服务人员），
+     * 成员在企业微信客户端确认后消息才触达客户/客户群。
+     *
+     * @param  array<string, mixed>  $payload  chat_type / external_userid / chat_id_list / sender / text / attachments
+     * @return array{msgid: string, fail_list: array<int, string>}  msgid 为空表示创建失败
+     */
+    public function addMsgTemplate(array $payload): array
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return ['msgid' => '', 'fail_list' => []];
+        }
+
+        $response = Http::timeout(15)->post(
+            self::API_BASE . "/externalcontact/add_msg_template?access_token={$accessToken}",
+            $payload
+        );
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] add_msg_template 失败', [
+                'corp_id' => $this->corpId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return ['msgid' => '', 'fail_list' => []];
+        }
+
+        return [
+            'msgid' => (string) ($response->json('msgid') ?? ''),
+            'fail_list' => $response->json('fail_list') ?? [],
+        ];
+    }
+
+    /**
+     * 提醒成员群发（externalcontact/remind_msg_template）
+     *
+     * 提醒未确认的成员尽快处理群发任务；不传 userid_list 时提醒所有未确认成员。
+     *
+     * @param  array<int, string>  $userIds
+     */
+    public function remindMsgTemplate(string $msgid, array $userIds = []): bool
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return false;
+        }
+
+        $payload = ['msgid' => $msgid];
+        if ($userIds !== []) {
+            $payload['userid_list'] = $userIds;
+        }
+
+        $response = Http::timeout(15)->post(
+            self::API_BASE . "/externalcontact/remind_msg_template?access_token={$accessToken}",
+            $payload
+        );
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] remind_msg_template 失败', [
+                'corp_id' => $this->corpId,
+                'msgid' => $msgid,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 停止企业群发（externalcontact/cancel_msg_template）
+     */
+    public function cancelMsgTemplate(string $msgid): bool
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return false;
+        }
+
+        $response = Http::timeout(15)->post(
+            self::API_BASE . "/externalcontact/cancel_msg_template?access_token={$accessToken}",
+            ['msgid' => $msgid]
+        );
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] cancel_msg_template 失败', [
+                'corp_id' => $this->corpId,
+                'msgid' => $msgid,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 获取企业群发成员执行结果（externalcontact/get_group_msg_send_result）
+     *
+     * send_list 每项：userid（成员）、status（0=未发送 1=已发送 2=客户不是好友/已删除发送失败 3=客户拒绝接收）、
+     * send_time、external_userid（single 模式）或 chat_id（group 模式）。
+     *
+     * @return array{send_list: array<int, array<string, mixed>>, next_cursor: string}
+     */
+    public function groupMsgSendResult(string $msgid, int $limit = 1000, string $cursor = ''): array
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return ['send_list' => [], 'next_cursor' => ''];
+        }
+
+        $payload = ['msgid' => $msgid, 'limit' => min($limit, 1000)];
+        if ($cursor !== '') {
+            $payload['cursor'] = $cursor;
+        }
+
+        $response = Http::timeout(15)->post(
+            self::API_BASE . "/externalcontact/get_group_msg_send_result?access_token={$accessToken}",
+            $payload
+        );
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] get_group_msg_send_result 失败', [
+                'corp_id' => $this->corpId,
+                'msgid' => $msgid,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return ['send_list' => [], 'next_cursor' => ''];
+        }
+
+        return [
+            'send_list' => $response->json('send_list') ?? [],
+            'next_cursor' => (string) ($response->json('next_cursor') ?? ''),
+        ];
+    }
+
+    /**
+     * 获取企业的全部群发记录（externalcontact/get_group_msg_list_v2）
+     *
+     * @param  array<string, mixed>  $filters  chat_type / start_time / end_time / creator / limit / cursor 等
+     * @return array{group_msg_list: array<int, array<string, mixed>>, next_cursor: string}
+     */
+    public function groupMsgListV2(array $filters = []): array
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return ['group_msg_list' => [], 'next_cursor' => ''];
+        }
+
+        $payload = array_merge(['limit' => min((int) ($filters['limit'] ?? 1000), 1000)], $filters);
+        if (($filters['cursor'] ?? '') === '') {
+            unset($payload['cursor']);
+        }
+
+        $response = Http::timeout(15)->post(
+            self::API_BASE . "/externalcontact/get_group_msg_list_v2?access_token={$accessToken}",
+            $payload
+        );
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] get_group_msg_list_v2 失败', [
+                'corp_id' => $this->corpId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return ['group_msg_list' => [], 'next_cursor' => ''];
+        }
+
+        return [
+            'group_msg_list' => $response->json('group_msg_list') ?? [],
+            'next_cursor' => (string) ($response->json('next_cursor') ?? ''),
+        ];
+    }
+
+    // ========== 外部联系人 API（externalcontact scope） ==========
+
+    /**
+     * 获取成员名下的客户列表（externalcontact/list）
+     *
+     * @return array<int, string> external_userid 列表
+     */
+    public function externalContactList(string $userId): array
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return [];
+        }
+
+        $response = Http::timeout(15)->get(self::API_BASE . '/externalcontact/list', [
+            'access_token' => $accessToken,
+            'userid' => $userId,
+        ]);
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] externalcontact/list 失败', [
+                'corp_id' => $this->corpId,
+                'userid' => $userId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return [];
+        }
+
+        return $response->json('external_userid') ?? [];
+    }
+
+    /**
+     * 获取外部联系人详情（externalcontact/get）
+     *
+     * @return array<string, mixed>|null  含 external_contact / follow_user
+     */
+    public function externalContactGet(string $externalUserId): ?array
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return null;
+        }
+
+        $response = Http::timeout(15)->get(self::API_BASE . '/externalcontact/get', [
+            'access_token' => $accessToken,
+            'external_userid' => $externalUserId,
+        ]);
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] externalcontact/get 失败', [
+                'corp_id' => $this->corpId,
+                'external_userid' => $externalUserId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return null;
+        }
+
+        return $response->json();
+    }
+
+    /**
+     * 批量获取客户详情（externalcontact/batch/get_by_user）
+     *
+     * @param  array<int, string>  $userIds  企业成员 userid 列表（最多 100）
+     * @return array{external_contact_list: array<int, array<string, mixed>>, next_cursor: string}
+     */
+    public function externalContactBatchGet(array $userIds, string $cursor = '', int $limit = 100): array
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return ['external_contact_list' => [], 'next_cursor' => ''];
+        }
+
+        $payload = ['userid_list' => array_slice($userIds, 0, 100), 'limit' => min($limit, 100)];
+        if ($cursor !== '') {
+            $payload['cursor'] = $cursor;
+        }
+
+        $response = Http::timeout(15)->post(
+            self::API_BASE . "/externalcontact/batch/get_by_user?access_token={$accessToken}",
+            $payload
+        );
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] batch/get_by_user 失败', [
+                'corp_id' => $this->corpId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return ['external_contact_list' => [], 'next_cursor' => ''];
+        }
+
+        return [
+            'external_contact_list' => $response->json('external_contact_list') ?? [],
+            'next_cursor' => (string) ($response->json('next_cursor') ?? ''),
+        ];
+    }
+
+    /**
+     * 获取企业成员列表（通讯录 user/list）
+     *
+     * 外部联系人同步（batch/get_by_user）需要先拿到企业成员 userid 列表。
+     * 仅返回自建应用可见范围内的成员。
+     *
+     * @return array<int, string> userid 列表
+     */
+    public function userList(int $departmentId = 1): array
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return [];
+        }
+
+        $response = Http::timeout(15)->get(self::API_BASE . '/user/list', [
+            'access_token' => $accessToken,
+            'department_id' => $departmentId,
+            'fetch_child' => 1,
+        ]);
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] user/list 失败', [
+                'corp_id' => $this->corpId,
+                'department_id' => $departmentId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return [];
+        }
+
+        $userIds = [];
+        foreach ($response->json('userlist') ?? [] as $user) {
+            $userid = $user['userid'] ?? '';
+            if ($userid !== '') {
+                $userIds[] = (string) $userid;
+            }
+        }
+
+        return $userIds;
+    }
+
+    // ========== 素材管理 ==========
+
+    /**
+     * 上传临时素材（media/upload）
+     *
+     * 企业群发附件（image/video/file）需先上传获得 media_id。
+     *
+     * @param  string  $type  image|voice|video|file
+     * @return string|null media_id
+     */
+    public function mediaUpload(string $type, string $filePath): ?string
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '' || ! is_file($filePath)) {
+            return null;
+        }
+
+        $response = Http::timeout(30)
+            ->attach('media', file_get_contents($filePath), basename($filePath))
+            ->post(self::API_BASE . "/media/upload?access_token={$accessToken}&type={$type}");
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] media/upload 失败', [
+                'corp_id' => $this->corpId,
+                'type' => $type,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return null;
+        }
+
+        return $response->json('media_id') ? (string) $response->json('media_id') : null;
+    }
+
+    // ========== 群聊会话管理 ==========
+
+    /**
+     * 修改应用群聊会话（appchat/update）
+     *
+     * 支持 name / owner / add_user_list / del_user_list 等变更；用于自建群成员管理（如踢人）。
+     *
+     * @param  array<string, mixed>  $changes
+     */
+    public function updateAppChat(string $chatId, array $changes): bool
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return false;
+        }
+
+        $payload = array_merge(['chatid' => $chatId], $changes);
+
+        $response = Http::timeout(15)->post(
+            self::API_BASE . "/appchat/update?access_token={$accessToken}",
+            $payload
+        );
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] appchat/update 失败', [
+                'corp_id' => $this->corpId,
+                'chatid' => $chatId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 更新客户群（externalcontact/groupchat/update）
+     *
+     * 支持修改群名/群主/群公告；空值字段不更新。
+     * 注意：客户群公告写入后需成员在客户端确认可见，读回经 groupChatGet。
+     *
+     * @param  array<string, mixed>  $changes  name|owner|announcement
+     */
+    public function groupChatUpdate(string $chatId, array $changes): bool
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return false;
+        }
+
+        $payload = array_merge(['chat_id' => $chatId], $changes);
+
+        $response = Http::timeout(15)->post(
+            self::API_BASE . "/externalcontact/groupchat/update?access_token={$accessToken}",
+            $payload
+        );
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] groupchat/update 失败', [
+                'corp_id' => $this->corpId,
+                'chat_id' => $chatId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 发送入群欢迎语（externalcontact/send_welcome_msg）
+     *
+     * 仅能在客户添加成员后的 20 秒窗口内发送，且每个 welcome_code 仅一次。
+     * welcome_code 由 add_external_contact 事件回调携带。
+     *
+     * @param  array<string, mixed>  $payload  text/attachments/buttons
+     */
+    public function sendWelcomeMsg(string $welcomeCode, array $payload): bool
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return false;
+        }
+
+        $response = Http::timeout(15)->post(
+            self::API_BASE . "/externalcontact/send_welcome_msg?access_token={$accessToken}",
+            array_merge(['welcome_code' => $welcomeCode], $payload)
+        );
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] send_welcome_msg 失败', [
+                'corp_id' => $this->corpId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return false;
+        }
+
+        return true;
+    }
 }

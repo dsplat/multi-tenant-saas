@@ -60,9 +60,12 @@ class ArchiveDecryptor
     }
 
     /**
+     * 用企业 RSA 私钥解密 encrypt_random_key，得到该条消息的 AES key（base64）。
+     * 不依赖实例的 AES key 状态，声明为静态便于在 RSA→AES 链路中直接调用。
+     *
      * @param  string  $privateKeyPem  PEM 格式私钥
      */
-    public function decryptRsaKey(string $encryptedKey, string $privateKeyPem): string
+    public static function decryptRsaKey(string $encryptedKey, string $privateKeyPem): string
     {
         $privateKey = openssl_pkey_get_private($privateKeyPem);
 

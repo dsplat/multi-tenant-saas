@@ -255,6 +255,108 @@
 
 ---
 
+## 五、私域运营缺陷遗留项（2026-08-21 深度审计）
+
+> 背景：对私域运营功能做「需求设计 × 实现现状」全量比对与历史溯源。
+> 根因：需求先行但无验收映射、AI 铺量期无铁律约束、测试偏斜（重 console/API、轻 H5/逆向路径）→ 缺陷静默沉淀。
+> 已解决不重复登记：H5 活动报名链路（C4，event.ts 已迁移 activities）、交易链路 C1-C3/H1-H3/M1（8-21 修复）、企微客户联系/群运营全链路（scrm 0b1380a）。
+
+### TODO-SCRM-001: 企微聊天侧边栏（JSSDK）未实现
+
+**优先级**: 中（需产品确认是否排期）
+
+**仓库**: scrm-platform
+
+**内容**: 需求规划模块 6（内容中心）要求「企微聊天侧边栏集成：客户画像、话术库、素材库、营销活动，一键发送」。当前全仓无 JSSDK/侧边栏实现（NavContextController 仅为导航上下文），属「设计有、实现无」的静默消失项。
+
+**完成标准**: 按 JSSDK 方案实现侧边栏 H5，或在需求文档中显式标注延期及理由
+
+---
+
+### TODO-SCRM-002: 自动拉群能力缺失
+
+**优先级**: 中
+
+**仓库**: scrm-platform
+
+**内容**: 需求规划模块 4 要求「基于客户标签/行为/阶段自动邀请入群，支持精准分流规则」。当前仅有入群/退群/添加客户事件触发的成员同步（ExternalWechatWorkEventListener），无「按条件自动邀请入群」引擎。
+
+**完成标准**: 实现自动拉群规则（触发条件 → 目标群 → 分流）或需求文档显式砍掉
+
+---
+
+### TODO-SCRM-003: 客户旅程可视化画布降级为表单
+
+**优先级**: 低
+
+**仓库**: scrm-platform
+
+**内容**: 需求规划模块 5 要求「多阶段营销流程画布，支持分支判断、延时等待、A/B 测试」；实现为 RuleEditor 表单化规则（触发→动作），AutomationABTestService 有服务层但无 UI 入口。
+
+**完成标准**: 画布落地，或需求文档更新为表单化实现并记录决策
+
+---
+
+### TODO-SCRM-004: SopService 主键违规（uniqid）——铁律存量清理
+
+**优先级**: 高（铁律合规）
+
+**仓库**: scrm-platform
+
+**内容**: `app/Modules/Community/Services/SopService.php` 仍用 `'sop_' . uniqid()` 生成 SOP ID，违反 id-model.md 铁律（16 位数字全局 ID，IdGenerator 生成）。铁律 2026-08-20 才版本化入库，7 月无规则期代码未做存量合规扫描。
+
+**完成标准**: 改为 `IdGeneratorContract` 生成；顺带全仓扫描同类 uniqid/UUID 主键违规并输出清理清单
+
+---
+
+### TODO-SCRM-005: scrm_automation 功能开关默认关闭
+
+**优先级**: 中（待产品确认）
+
+**仓库**: scrm-platform
+
+**内容**: `config/tenancy.php` 中 `scrm_automation` 自 2026-07-11 起 `inactive` 0%，自动化规则引擎（触发→动作已完整实现）在租户侧不可见。灰度开关无「功能完成→打开」生命周期管理，灰度变成封存。
+
+**完成标准**: 确认功能稳定性后打开开关，或明确长期关闭原因并记录
+
+---
+
+### TODO-SCRM-006: scrm_activities 功能开关默认关闭
+
+**优先级**: 中
+
+**仓库**: scrm-platform
+
+**内容**: `scrm_activities` 2026-08-19 随 Activity 统一模块（取代 Campaign/Event）新建时默认 `inactive`；该模块已全量上线（含 H5 链路迁移、数据迁移），但开关未打开。
+
+**完成标准**: 验证后打开开关，或按灰度计划推进并记录
+
+---
+
+### TODO-SCRM-007: 商品/课程无评价能力（审计 M2）
+
+**优先级**: 低（需产品确认）
+
+**仓库**: scrm-platform + multi_tenant_saas
+
+**内容**: 评价仅覆盖活动域（activity_evaluations），Course/Product 无 evaluation/review 端点与入口。若产品要求商品/课程评价，需按 entity_type/entity_id 多态 reviews 设计补建。
+
+**完成标准**: 按多态 reviews 设计补建，或产品确认不做并记录
+
+---
+
+### TODO-SCRM-008: 存量代码铁律合规扫描（流程性治理）
+
+**优先级**: 高（防复发）
+
+**仓库**: multi_tenant_saas + scrm-platform
+
+**内容**: id-model/identity-model/scrm-architecture 铁律 2026-08-20 才版本化，7 月 AI 高速铺量期（单次提交 2784 行）代码未做合规扫描；已发现 SopService uniqid（SCRM-004）、历史 customer_id 32 表误用（已迁移）。同时补「需求→实现」验收映射检查，防设计项静默消失（如侧边栏/自动拉群）。
+
+**完成标准**: 全仓扫描（uniqid/UUID 主键、customer 身份误用、大小写路径）输出清理清单；需求文档增加可勾选验收清单
+
+---
+
 ## 已完成归档
 
 - ✅ 2026-07-31 项目大脑 Phase 0-3 全量上线 + E2E 场景 0-3 验收（L2 确认门 / capability-map / 摘要注入 / thread_review / AssetProbe / health-check）

@@ -1,7 +1,7 @@
 # 待办清单
 
 > 跨迭代遗留项与待决策项跟踪。已完成的条目移入文末「已完成归档」。
-> 更新时间：2026-08-23
+> 更新时间：2026-08-23（归档 WECOM-002 / WECOM-004）
 
 ---
 
@@ -215,20 +215,6 @@
 
 ---
 
-### TODO-WECOM-002: console Dashboard 企微运营通栏卡片上线
-
-**优先级**: 高（已构建未部署）
-
-**仓库**: scrm-platform（console 前端）
-
-**内容**:
-- `WecomOnboardCard.vue` 已提交（49ddd3a）、本地已构建（产物 `Dashboard-DmqEpKni.js`），生产仍是旧产物（`Dashboard-2eWrTCGM.js`，08-22）
-- rsync `public/console/` 到生产；本次同步同时带上框架 `07883b55`（面板引导 watch immediate 修复）与 8-23 之前所有未同步产物
-
-**完成标准**: 生产 assets 含「企微客户运营」文案；console Dashboard 顶部展示通栏引导卡片
-
----
-
 ### TODO-WECOM-003: AI 成串场景生产验证
 
 **优先级**: 中（依赖 WECOM-001 部署）
@@ -236,22 +222,12 @@
 **仓库**: scrm-platform
 
 **内容**:
-- 提交 `docs/2026-08-22-ai-chained-scenarios.md`（成串场景五则：全量公告下发 / 传播组合拳 / 存档检索追溯 / 健康巡检 / 配置盘点）
+- 场景文档已入库（`docs/2026-08-22-ai-chained-scenarios.md`，f353954）
 - 按文档 §8/§9 验证：秘书职责 13（群运营代操作）生效；8 个群运营工具（get_community_list / set_group_announcement / trigger_chat_archive_sync / list_chat_archives / search_chat_archive / list_external_contacts / list_group_bot_rules / list_welcome_messages）可用；L2 串行铁律（每群一张确认卡）
 
 **完成标准**: 场景一~五小秘书可走通；能力边界（§7）如实转述不硬编
 
----
 
-### TODO-WECOM-004: scrm 未跟踪文档入库
-
-**优先级**: 低（随下次提交捎带）
-
-**仓库**: scrm-platform
-
-**内容**: 提交 `docs/2026-08-21-h5-seo-geo-plan.md`（todo.md TODO-SEO-001~004 引用，当前未入库链接悬空）与 `docs/2026-08-22-ai-chained-scenarios.md`（未入库）
-
-**完成标准**: 文档入库，todo.md 引用不悬空
 
 ---
 
@@ -359,6 +335,8 @@
 
 ## 已完成归档
 
+- ✅ 2026-08-23 console Dashboard 企微运营通栏卡片上线（原 TODO-WECOM-002）：生产已含 `WecomOnboardCard` + 面板引导 watch `immediate` 修复（框架 07883b55），entry→卡片/ConsoleLayout→AiAssistant 引用链完整；点击卡片可打开小秘书侧边栏并自动发送引导提示词。
+- ✅ 2026-08-23 scrm 文档入库（原 TODO-WECOM-004）：`docs/2026-08-21-h5-seo-geo-plan.md`（9c70580）+ `docs/2026-08-22-ai-chained-scenarios.md`（f353954）已入库，todo.md 链接不悬空。
 - ✅ 2026-07-31 项目大脑 Phase 0-3 全量上线 + E2E 场景 0-3 验收（L2 确认门 / capability-map / 摘要注入 / thread_review / AssetProbe / health-check）
 - ✅ 2026-07-31 tool_calls 落库格式 400 修复（normalizeToolCalls + reconcileToolCallPairs 配对裁剪，框架 5323880）
 - ✅ 2026-07-31 锚点预检修复（collectRequiredAnchors 一次性预检 + missing_anchors 结构化返回 + draft 单锚点纪律，框架 5e8b2ff）

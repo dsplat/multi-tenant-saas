@@ -271,6 +271,51 @@ class NginxConfigServiceTest extends TestCase
         $this->assertStringContainsString('"1:0"    1;', $content);
     }
 
+    public function test_bot_map_includes_seo_bot_detection(): void
+    {
+        // M2 方案 B0：直出分流判定（传统搜索引擎爬虫 + AI 爬虫派生）
+        $service = new NginxConfigService;
+        $outputPath = sys_get_temp_dir() . '/test-seobot-' . uniqid() . '.map';
+        $service->generateBotMap($outputPath);
+        $content = file_get_contents($outputPath);
+        unlink($outputPath);
+
+        $this->assertStringContainsString('map $http_user_agent $is_seo_bot {', $content);
+        // 主流搜索引擎爬虫识别（不区分大小写 ~*）
+        foreach (['Googlebot', 'Bingbot', 'Baiduspider', 'Sogou', '360Spider', 'Applebot'] as $bot) {
+            $this->assertStringContainsString($bot, $content, "SEO 爬虫 {$bot} 未识别");
+        }
+        // 派生变量：SEO 爬虫或 AI 爬虫任一命中即直出分流（仅内容优化，不承载安全）
+        $this->assertStringContainsString('map "$is_seo_bot:$is_ai_bot" $is_seo_or_ai_bot {', $content);
+        $this->assertStringContainsString('"0:1"    1;', $content);
+    }
+
+    public function test_seo_direct_out_locations_rendered_from_config(): void
+    {
+        $this->platformConfig();
+
+        // 默认空配置：不渲染任何直出 location，仅留注释占位
+        config(['domain.seo_direct_out_paths' => []]);
+        $service = new NginxConfigService;
+        $stub = $service->renderTenantServerStub();
+        $this->assertStringNotContainsString('SEO 直出：/', $stub);
+        $this->assertStringContainsString('未启用 SEO 直出分流', $stub);
+
+        // 配置路径后：渲染 ^~ 前缀 location（爬虫 rewrite 到 PHP，真人落回 SPA）
+        config(['domain.seo_direct_out_paths' => [
+            'h5/pages/course/detail',
+            '/h5/pages/event/detail/', // 首尾斜杠应被归一化
+        ]]);
+        $stub = $service->renderTenantServerStub();
+        $this->assertStringContainsString('location ^~ /h5/pages/course/detail {', $stub);
+        $this->assertStringContainsString('location ^~ /h5/pages/event/detail {', $stub);
+        $this->assertStringContainsString('if ($is_seo_or_ai_bot = 1) {', $stub);
+        $this->assertStringContainsString('rewrite ^ /index.php?$query_string last;', $stub);
+        $this->assertStringContainsString('try_files $uri $uri/ /h5/index.html;', $stub);
+        // add_header 继承规则：location 内须自行补 X-Robots-Tag
+        $this->assertStringContainsString('add_header X-Robots-Tag $x_robots_tag always;', $stub);
+    }
+
     public function test_deploy_bundle_generates_seo_and_bot_maps(): void
     {
         $this->platformConfig();

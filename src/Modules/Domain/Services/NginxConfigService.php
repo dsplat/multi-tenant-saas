@@ -312,10 +312,57 @@ class NginxConfigService
             '    default  0;',
             '}',
             '',
+            $this->buildSeoBotMapBlock(),
         ]);
 
         File::ensureDirectoryExists(dirname($outputPath));
         File::put($outputPath, $mapContent);
+    }
+
+    /**
+     * SEO 直出爬虫判定块（M2 方案 B0）。
+     *
+     * $is_seo_bot = 1 当 UA 命中传统搜索引擎爬虫；另派生 $is_seo_or_ai_bot
+     * 并入 AI 爬虫（复用 $is_ai_bot）。仅供「内容优化分流」（爬虫 → PHP 直出，
+     * 真人 → SPA），不承载任何安全边界（UA 可伪造，付费内容保护依赖数据层白名单）。
+     */
+    private function buildSeoBotMapBlock(): string
+    {
+        $seoBots = [
+            'Googlebot' => 'Google',
+            'Bingbot' => 'Bing',
+            'Slurp' => 'Yahoo',
+            'Baiduspider' => 'Baidu',
+            'Sogou' => 'Sogou',
+            '360Spider' => '360',
+            'YisouSpider' => 'Yisou',
+            'YandexBot' => 'Yandex',
+            'DuckDuckBot' => 'DuckDuckGo',
+            'Applebot/' => 'Apple',
+        ];
+
+        $botLines = implode("\n", array_map(
+            fn ($ua, $vendor) => sprintf('    ~*%-28s 1;  # %s', $ua, $vendor),
+            array_keys($seoBots),
+            array_values($seoBots)
+        ));
+
+        return implode("\n", [
+            '# SEO 直出分流判定（map $http_user_agent $is_seo_bot，M2 方案 B0）',
+            '# 传统搜索引擎爬虫；仅供内容优化分流，不承载安全边界。',
+            'map $http_user_agent $is_seo_bot {',
+            '    default 0;',
+            '',
+            $botLines,
+            '}',
+            '',
+            '# AI 爬虫并入（双变量派生，任一命中即 1）：直出分流统一用 $is_seo_or_ai_bot',
+            'map "$is_seo_bot:$is_ai_bot" $is_seo_or_ai_bot {',
+            '    default  $is_seo_bot;',
+            '    "0:1"    1;',
+            '}',
+            '',
+        ]);
     }
 
     /**
@@ -552,8 +599,46 @@ class NginxConfigService
             '{{FASTCGI_PASS}}' => config('domain.nginx_fastcgi_pass')
                 ?? '127.0.0.1:' . config('domain.nginx_fastcgi_port', 9001),
             '{{AI_STREAMING_INCLUDE}}' => 'include snippets/ai-streaming.conf;',
+            '{{SEO_DIRECT_OUT_LOCATIONS}}' => $this->renderSeoDirectOutLocations(),
             '{{LOG_DIR}}' => config('domain.nginx_log_dir', '/home/wwwlogs'),
         ]);
+    }
+
+    /**
+     * 渲染 SEO 直出分流 location 组（M2 方案 B1）。
+     *
+     * 路径列表来自 domain.seo_direct_out_paths（框架默认空 → 不渲染）。
+     * 每个路径渲染为 `^~` 前缀 location（最长前缀优先于 `^~ /h5/`）：
+     *   爬虫（$is_seo_or_ai_bot=1）→ rewrite 到 PHP 直出（保留 query）；
+     *   真人 → try_files 落回 H5 SPA。
+     * 注意 add_header 继承规则：location 内须自行补 X-Robots-Tag。
+     */
+    private function renderSeoDirectOutLocations(): string
+    {
+        $paths = array_values(array_filter(array_map(
+            fn ($p) => trim((string) $p, " \t/"),
+            (array) config('domain.seo_direct_out_paths', [])
+        )));
+
+        if ($paths === []) {
+            return '# （domain.seo_direct_out_paths 为空，未启用 SEO 直出分流）';
+        }
+
+        $blocks = array_map(function (string $path): string {
+            return implode("\n", [
+                "    # SEO 直出：/{$path}（爬虫 → PHP，真人 → SPA；^~ 最长前缀优先于 /h5/）",
+                "    location ^~ /{$path} {",
+                '        add_header Cache-Control "no-cache";',
+                '        add_header X-Robots-Tag $x_robots_tag always;',
+                '        if ($is_seo_or_ai_bot = 1) {',
+                '            rewrite ^ /index.php?$query_string last;',
+                '        }',
+                '        try_files $uri $uri/ /h5/index.html;',
+                '    }',
+            ]);
+        }, $paths);
+
+        return implode("\n\n", $blocks);
     }
 
     /**

@@ -68,6 +68,10 @@ server {
         fastcgi_read_timeout 300s;
     }
 
+    # SEO 直出分流（由 domains:generate-nginx 渲染，路径列表来自 domain.seo_direct_out_paths）
+    # 爬虫（$is_seo_or_ai_bot=1）→ PHP 直出；真人 → 落回 SPA。默认空配置不渲染任何 location。
+    {{SEO_DIRECT_OUT_LOCATIONS}}
+
     # H5 终端用户 SPA
     location ^~ /h5/ {
         add_header Cache-Control "no-cache";

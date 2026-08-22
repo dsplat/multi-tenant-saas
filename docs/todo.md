@@ -273,18 +273,6 @@
 
 ---
 
-### TODO-SCRM-004: SopService 主键违规（uniqid）——铁律存量清理
-
-**优先级**: 高（铁律合规）
-
-**仓库**: scrm-platform
-
-**内容**: `app/Modules/Community/Services/SopService.php` 仍用 `'sop_' . uniqid()` 生成 SOP ID，违反 id-model.md 铁律（16 位数字全局 ID，IdGenerator 生成）。铁律 2026-08-20 才版本化入库，7 月无规则期代码未做存量合规扫描。
-
-**完成标准**: 改为 `IdGeneratorContract` 生成；顺带全仓扫描同类 uniqid/UUID 主键违规并输出清理清单
-
----
-
 ### TODO-SCRM-005: scrm_automation 功能开关默认关闭
 
 **优先级**: 中（待产品确认）
@@ -327,14 +315,17 @@
 
 **仓库**: multi_tenant_saas + scrm-platform
 
-**内容**: id-model/identity-model/scrm-architecture 铁律 2026-08-20 才版本化，7 月 AI 高速铺量期（单次提交 2784 行）代码未做合规扫描；已发现 SopService uniqid（SCRM-004）、历史 customer_id 32 表误用（已迁移）。同时补「需求→实现」验收映射检查，防设计项静默消失（如侧边栏/自动拉群）。
+**进度（2026-08-23）**: ✅ uniqid/UUID 主键扫描已完成并清理 4 处（scrm b5b19b8，清单见归档）；剩余：customer 身份误用扫描、大小写路径扫描、「需求→实现」验收映射检查。
 
-**完成标准**: 全仓扫描（uniqid/UUID 主键、customer 身份误用、大小写路径）输出清理清单；需求文档增加可勾选验收清单
+**内容**: id-model/identity-model/scrm-architecture 铁律 2026-08-20 才版本化，7 月 AI 高速铺量期（单次提交 2784 行）代码未做合规扫描；已发现 SopService uniqid（已修）、历史 customer_id 32 表误用（已迁移）。同时补「需求→实现」验收映射检查，防设计项静默消失（如侧边栏/自动拉群）。
+
+**完成标准**: 全仓扫描（customer 身份误用、大小写路径）输出清理清单；需求文档增加可勾选验收清单
 
 ---
 
 ## 已完成归档
 
+- ✅ 2026-08-23 铁律存量清理：uniqid 自造 ID 扫描与修复（原 TODO-SCRM-004 + SCRM-008 uniqid 部分，scrm b5b19b8）。修复 4 处：SopService(sop_id)/AutoWelcomeService(rule_id)/KeywordReplyService(rule_id)/BroadcastService(task_id) 均改 `IdGeneratorContract::generate()`。扫描定性清单：① 已修 4 处（Cache 记录标识）；② 非违规保留：PayoutOrder 打款流水号（业务单号）、Distributor 邀请码、AgentService session_id（会话分组字段非主键）、Customer 占位邮箱/随机密码、MaterialShare 分享令牌；③ 框架侧 5 处为签名 nonce/临时文件名/沙箱名，非主键。测试 71 passed。
 - ✅ 2026-08-23 console Dashboard 企微运营通栏卡片上线（原 TODO-WECOM-002）：生产已含 `WecomOnboardCard` + 面板引导 watch `immediate` 修复（框架 07883b55），entry→卡片/ConsoleLayout→AiAssistant 引用链完整；点击卡片可打开小秘书侧边栏并自动发送引导提示词。
 - ✅ 2026-08-23 scrm 文档入库（原 TODO-WECOM-004）：`docs/2026-08-21-h5-seo-geo-plan.md`（9c70580）+ `docs/2026-08-22-ai-chained-scenarios.md`（f353954）已入库，todo.md 链接不悬空。
 - ✅ 2026-07-31 项目大脑 Phase 0-3 全量上线 + E2E 场景 0-3 验收（L2 确认门 / capability-map / 摘要注入 / thread_review / AssetProbe / health-check）

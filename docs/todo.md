@@ -8,23 +8,7 @@
 ## 〇、H5 SEO/GEO 优化（方案 A + 方案 B）
 
 > 详细方案：`scrm-platform/docs/2026-08-21-h5-seo-geo-plan.md`（decision-complete，含验证矩阵与部署路径）
-> 状态：已出方案文档，**未动工**。用户确认后从 M1 开始。
-
-### TODO-SEO-001: M1 方案 A —— SPA 基础 SEO 化（前端）
-
-**优先级**: 高（前置，0.5-1 天）
-
-**仓库**: scrm-platform-front
-
-**内容**:
-- `apps/h5/src/manifest.json` 开 history 路由（`h5.router.mode="history"`，nginx fallback 已就绪）
-- `apps/h5/src/main.ts` 入口兼容旧 hash 链接（`#/pages/` → 301 新 URL，必须与路由切换同步上线）
-- `apps/h5/index.html` 补 title/description/OG/品牌 JSON-LD（注意：先构建验证 uni-app 是否覆盖 title，决定改 index.html 还是 pages.json）
-- 新增 `useSeoMeta` composable（title + description + canonical），接入 5 个关键页面（首页/课程列表/课程详情/商品详情/活动详情）
-
-**完成标准**: 新 URL 可访问且刷新不 404；旧 hash 链接自动跳转；构建产物 index.html 元数据非空
-
----
+> 状态：**M1 已完成**（front a9b2e4d，产物部署验证待做），下一步 M2（SEO-002）。
 
 ### TODO-SEO-002: M2 方案 B-1 —— nginx 分流 + 课程页 PHP 直出（后端）
 
@@ -174,18 +158,6 @@
 
 ---
 
-### TODO-API-001: 平台开放能力盘点（方向二，企微先行）
-
-**优先级**: 高（方向二前置）
-
-**仓库**: scrm-platform（EnterpriseWechat 相关）
-
-**内容**: 按企微官方开放 API 文档分析「开放能力 × 可支撑场景」，产出盘点文档；不搞全量对接、不做「API 菜单」
-
-**完成标准**: 盘点文档覆盖主要运营动作（群发 / 接龙 / 入群 / 消息确认）并给出自动化边界
-
----
-
 ### TODO-API-002: 运营动作场景封装 + AI 起草员工确认发送（方向二）
 
 **优先级**: 中（依赖 API-001）
@@ -325,6 +297,8 @@
 
 ## 已完成归档
 
+- ✅ 2026-08-23 企微开放能力盘点（原 TODO-API-001）：产出 `scrm-platform/docs/2026-08-23-wecom-open-capability-inventory.md`——SDK 24 方法 × 官方端点 × 业务落地对照表；运营动作矩阵覆盖群发/接龙/入群/消息确认四项；自动化边界 9 条（接龙无 API/禁言无 API/群公告受限等）；缺口清单按方向二优先级排序（template_card 回调 P0/联系我活码 P1/朋友圈 P2）。结论：API-002 最小可行路径 = 复用企业群发员工确认流 + 补 template_card 卡片回调。
+- ✅ 2026-08-23 H5 SEO/GEO M1 SPA 基础 SEO 化（原 TODO-SEO-001，front 359ba3d+a9b2e4d）：history 路由 + 旧 hash 链接重定向 + 入口 description/OG/JSON-LD + useSeoMeta 接 6 页（canonical 自指）；实测发现 uni-app 构建清空 title，新增 `scripts/patch-h5-seo.mjs` 构建后回填（已验证产物元数据齐全）。同步修复活动域死页：campaign 页重建为活动中心列表页（迁 Activity API）、首页推荐接真实列表、删除 410 端点函数。待办：产物部署 + 真机验证（刷新不 404/旧链跳转）。
 - ✅ 2026-08-23 铁律存量清理：uniqid 自造 ID 扫描与修复（原 TODO-SCRM-004 + SCRM-008 uniqid 部分，scrm b5b19b8）。修复 4 处：SopService(sop_id)/AutoWelcomeService(rule_id)/KeywordReplyService(rule_id)/BroadcastService(task_id) 均改 `IdGeneratorContract::generate()`。扫描定性清单：① 已修 4 处（Cache 记录标识）；② 非违规保留：PayoutOrder 打款流水号（业务单号）、Distributor 邀请码、AgentService session_id（会话分组字段非主键）、Customer 占位邮箱/随机密码、MaterialShare 分享令牌；③ 框架侧 5 处为签名 nonce/临时文件名/沙箱名，非主键。测试 71 passed。
 - ✅ 2026-08-23 console Dashboard 企微运营通栏卡片上线（原 TODO-WECOM-002）：生产已含 `WecomOnboardCard` + 面板引导 watch `immediate` 修复（框架 07883b55），entry→卡片/ConsoleLayout→AiAssistant 引用链完整；点击卡片可打开小秘书侧边栏并自动发送引导提示词。
 - ✅ 2026-08-23 scrm 文档入库（原 TODO-WECOM-004）：`docs/2026-08-21-h5-seo-geo-plan.md`（9c70580）+ `docs/2026-08-22-ai-chained-scenarios.md`（f353954）已入库，todo.md 链接不悬空。

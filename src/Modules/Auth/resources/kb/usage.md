@@ -36,7 +36,11 @@ generated_by: secretary:kb:build
 - 授权成功后，系统自动获取用户信息并创建或关联账户；
 - 用户可在个人资料页查看已绑定的第三方账号列表，并选择解绑。
 
-> 注：所有 OAuth 登录流程均通过公开路由 `/auth/{provider}/redirect` 和 `/auth/{provider}/callback` 实现。
+> 注：所有 OAuth 登录流程均通过公开路由 `/api/v1/auth/{provider}/redirect` 和 `/api/v1/auth/{provider}/callback` 实现。
+>
+> **统一回调域（平台级虚拟 IDP）**：平台启用 `OAUTH_CALLBACK_DOMAIN`（如 auth.neihang.com）后，回调地址固定为 `https://{callback_domain}/api/v1/auth/{provider}/callback`（如 `https://auth.neihang.com/api/v1/auth/wechat/callback`），与租户自定义域名无关——租户在微信/支付宝后台只需配置一次回调域，改域名不断登录；未启用时按租户域名自动推导。
+>
+> 判断当前是否启用：租户 OAuth 配置页展示的「回调地址」若为 `{callback_domain}` 域即为启用（console 页面只读展示）。
 
 ---
 

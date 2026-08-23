@@ -58,9 +58,14 @@ class EnforceCanonicalEntry
         }
 
         // 解析当前入口形态：仅自定义域名与 {base} 子域名两种租户入口
-        // （app 域路径形态不参与收敛——SEO 内容页保持直出，见类注释）
-        $isTenantEntry = ($host === $canonicalHost)
-            || ($wildcardBase && $host !== $wildcardBase && str_ends_with($host, ".{$wildcardBase}"));
+        // app 域（app.neihang.com）虽形如 {label}.{base} 子域名且与租户接入域同属
+        // DOMAIN_APP 类型，但它是 SEO 内容积累主域（/{slug}/... 路径形态），
+        // 不参与收敛——内容页在 app 域保持直出（见类注释）。
+        $appDomain = config('domain.platform_domains.app');
+        $isAppHost = $appDomain !== null && $appDomain !== '' && hash_equals((string) $appDomain, $host);
+        $isTenantEntry = ! $isAppHost
+            && (($host === $canonicalHost)
+                || ($wildcardBase && $host !== $wildcardBase && str_ends_with($host, ".{$wildcardBase}")));
 
         if (! $isTenantEntry) {
             return $next($request); // 非租户入口形态（平台域名等），不收敛

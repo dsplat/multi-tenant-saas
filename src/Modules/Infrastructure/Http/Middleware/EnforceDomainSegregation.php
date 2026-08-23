@@ -84,12 +84,17 @@ class EnforceDomainSegregation
 
     /**
      * 租户面：console 后台 / app 前台 / console API
+     *
+     * 含 app 域路径形态（/{slug}/console、/{slug}/api/v1/console）：app 域纯 SEO
+     * 内容面，不提供租户后台，路径第一段为 slug 的 console 形态同样直接拒绝。
      */
     protected function isTenantSurface(string $path): bool
     {
         return str_starts_with($path, '/console')
             || str_starts_with($path, '/app')
-            || str_starts_with($path, '/api/v1/console');
+            || str_starts_with($path, '/api/v1/console')
+            // app 域路径形态：/{slug}/console 与 /{slug}/api/v1/console
+            || (bool) preg_match('#^/[^/]+/(?:console|api/v1/console)(?:/|$)#', $path);
     }
 
     /**

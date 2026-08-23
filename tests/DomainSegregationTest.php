@@ -127,6 +127,21 @@ class DomainSegregationTest extends TestCase
         $this->asHost(self::APP_HOST)->get('/console/')->assertStatus(403);
     }
 
+    public function test_app_host_blocks_slug_prefixed_console_spa(): void
+    {
+        // app 域路径形态：/{slug}/console（纯 SEO 内容面，租户后台形态一律拒绝）
+        $this->asHost(self::APP_HOST)->get('/acme/console/')->assertStatus(403);
+    }
+
+    public function test_app_host_blocks_slug_prefixed_console_api(): void
+    {
+        // app 域路径形态：/{slug}/api/v1/console（console 认证 API 同样拒绝）
+        $this->asHost(self::APP_HOST)
+            ->postJson('/acme/api/v1/console/auth/login', ['email' => 'a@b.com', 'password' => 'x'])
+            ->assertStatus(403)
+            ->assertJsonPath('error', 'DomainSegregationForbidden');
+    }
+
     public function test_app_host_blocks_app_spa(): void
     {
         $this->asHost(self::APP_HOST)->get('/app/')->assertStatus(403);

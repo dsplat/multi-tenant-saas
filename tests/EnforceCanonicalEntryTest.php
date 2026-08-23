@@ -242,6 +242,31 @@ class EnforceCanonicalEntryTest extends TestCase
         $this->assertSame(200, $response->getStatusCode());
     }
 
+    public function test_app_domain_path_form_is_not_converged(): void
+    {
+        // app 域虽形如 {label}.{base} 子域名，但属 SEO 内容积累主域（/{slug}/ 路径形态），
+        // 不参与 canonical 收敛——内容页在 app 域保持直出（防 301 破坏 SEO 抓取）
+        config(['domain.platform_domains.app' => 'app.' . self::BASE]);
+        $tenant = $this->createTenant(['slug' => 'acme', 'slug_status' => 'active']);
+
+        $response = $this->invokeMiddleware('http://app.' . self::BASE . '/acme/course-100.html', $tenant);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('OK', $response->getContent());
+    }
+
+    public function test_app_domain_console_path_is_not_converged(): void
+    {
+        // app 域 + /{slug}/console：不属于本中间件收敛面（隔离由 EnforceDomainSegregation
+        // 直接 403），此处仅确认不 301 到子域规范入口
+        config(['domain.platform_domains.app' => 'app.' . self::BASE]);
+        $tenant = $this->createTenant(['slug' => 'acme', 'slug_status' => 'active']);
+
+        $response = $this->invokeMiddleware('http://app.' . self::BASE . '/acme/console/', $tenant);
+
+        $this->assertSame(200, $response->getStatusCode());
+    }
+
     public function test_no_tenant_context_passes_through(): void
     {
         TenantContext::setTenant(null);

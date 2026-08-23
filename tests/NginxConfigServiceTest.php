@@ -121,6 +121,28 @@ class NginxConfigServiceTest extends TestCase
         $this->assertStringContainsString('fastcgi_param HTTPS on;', $stub);
     }
 
+    public function test_stub_forwards_verification_files_to_php(): void
+    {
+        // 回归：微信/企微/支付宝验证服务器直连租户域名根路径 .txt，
+        // 基桩必须把两类验证文件请求转发 PHP 动态服务，而非当静态文件 404
+        $this->platformConfig();
+        $service = new NginxConfigService;
+        $stub = $service->renderTenantServerStub();
+
+        // 平台归属验证：/.well-known/tenant-verify/ 优先于 ACME 静态 location，转发 PHP
+        $this->assertStringContainsString('location ^~ /.well-known/tenant-verify/', $stub);
+        $this->assertStringContainsString('try_files $uri /index.php?$query_string;', $stub);
+
+        // 第三方平台验证：根路径 WW_verify/MP_verify/alipay_verify/verify_ 前缀 .txt 转发 PHP
+        $this->assertStringContainsString(
+            'location ~* ^/(WW_verify|MP_verify|alipay_verify|verify_)[A-Za-z0-9]{8,64}\\.txt$',
+            $stub
+        );
+
+        // ACME 静态挑战 location 仍保留（放 public/.well-known/acme-challenge/）
+        $this->assertStringContainsString('location ^~ /.well-known/ {', $stub);
+    }
+
     public function test_whitelist_uses_default_deny_and_explicit_slugs(): void
     {
         $this->platformConfig();

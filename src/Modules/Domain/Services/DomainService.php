@@ -27,6 +27,15 @@ class DomainService
 
     const SETTING_DEPOSIT_AMOUNT = 'deposit_lock_amount';
 
+    /** 第三方平台（微信/企微/支付宝）域名验证文件存储键（domain 组，JSON 数组，存完整文件名含 .txt） */
+    const SETTING_THIRD_PARTY_VERIFY_FILES = 'third_party_verify_files';
+
+    /** 第三方验证文件名安全前缀白名单（防路径穿越/乱录；内容 = 文件名去 .txt） */
+    const THIRD_PARTY_VERIFY_PREFIXES = ['WW_verify', 'MP_verify', 'alipay_verify', 'verify_'];
+
+    /** 第三方验证文件名正则（前缀 + 分隔下划线 + 8~64 位字母数字/下划线，不含路径分隔符） */
+    const THIRD_PARTY_VERIFY_PATTERN = '/^(WW_verify|MP_verify|alipay_verify|verify_)[A-Za-z0-9_]{8,64}$/';
+
     public function getDomainInfo(int $tenantId): array
     {
         $tenant = Tenant::findOrFail($tenantId);
@@ -336,7 +345,60 @@ class DomainService
             'generated_at' => TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'verification_token_generated_at'),
             'attempts' => (int) TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'verification_attempts', 0),
             'max_attempts' => (int) config('domain.verification.max_attempts', 5),
+            // 第三方平台（微信/企微/支付宝）域名验证文件：完整文件名（含 .txt），内容为去掉 .txt 的文件名
+            'third_party_verify_files' => $this->getThirdPartyVerifyFiles($tenantId),
         ];
+    }
+
+    /**
+     * 获取第三方平台域名验证文件列表（完整文件名，含 .txt）
+     */
+    public function getThirdPartyVerifyFiles(int $tenantId): array
+    {
+        $raw = TenantSetting::get($tenantId, self::GROUP_DOMAIN, self::SETTING_THIRD_PARTY_VERIFY_FILES, []);
+
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        return array_values(array_filter($raw, fn ($f) => is_string($f) && $f !== ''));
+    }
+
+    /**
+     * 保存第三方平台域名验证文件列表（覆盖式）
+     *
+     * 入参允许带或不带 .txt 后缀；统一归一化为完整文件名（含 .txt）。
+     * 文件名须匹配安全白名单（前缀 + 8~64 位字母数字），防路径穿越与任意文件写入。
+     */
+    public function saveThirdPartyVerifyFiles(int $tenantId, array $files): array
+    {
+        $normalized = [];
+
+        foreach ($files as $file) {
+            $name = trim((string) $file);
+            if ($name === '') {
+                continue;
+            }
+
+            // 容错：输入带 .txt 时剥掉
+            if (str_ends_with($name, '.txt')) {
+                $name = substr($name, 0, -4);
+            }
+
+            if (! preg_match(self::THIRD_PARTY_VERIFY_PATTERN, $name)) {
+                throw ValidationException::withMessages([
+                    'files' => trans('domain.verify_file_invalid', ['name' => $name]),
+                ]);
+            }
+
+            $normalized[] = $name . '.txt';
+        }
+
+        $normalized = array_values(array_unique($normalized));
+
+        TenantSetting::set($tenantId, self::GROUP_DOMAIN, self::SETTING_THIRD_PARTY_VERIFY_FILES, $normalized);
+
+        return $normalized;
     }
 
     /**

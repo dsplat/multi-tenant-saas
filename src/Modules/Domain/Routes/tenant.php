@@ -14,6 +14,9 @@ Route::prefix('tenant/{tenantId}/domain')->group(function () {
     Route::post('/verify-token', [TenantDomainController::class, 'generateVerifyToken']);
     Route::post('/verify', [TenantDomainController::class, 'verify']);
     Route::get('/verify-info', [TenantDomainController::class, 'verifyInfo']);
+
+    // 第三方平台（微信/企微/支付宝）验证文件管理
+    Route::post('/verify-files', [TenantDomainController::class, 'saveVerifyFiles']);
 });
 
 // Slug 设置（Console 端）

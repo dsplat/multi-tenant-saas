@@ -129,12 +129,35 @@
                 <el-button :loading="verifying" type="primary" plain @click="handleVerify">验证域名归属</el-button>
                 <el-button :loading="tokenGenning" @click="handleGenToken">重新生成验证文件</el-button>
               </el-form-item>
-              <el-form-item v-if="verifyInfo.file_path" label="验证文件">
+              <el-form-item v-if="verifyInfo.file_path" label="平台归属验证">
                 <div style="font-size: 12px; line-height: 2">
-                  <div>在域名根目录创建文件：<code>{{ verifyInfo.file_path }}</code></div>
+                  <div style="color: var(--el-text-color-secondary, #909399)">用于向平台证明您拥有该域名。微信/企微/支付宝的域名验证请使用下方「第三方验证文件」。</div>
+                  <div>验证文件已由系统自动提供，无需自行创建：<code>{{ verifyInfo.file_path }}</code></div>
                   <div>文件内容：<code>{{ verifyInfo.file_content }}</code></div>
                   <div v-if="verifyInfo.verify_url">验证地址：<a :href="verifyInfo.verify_url" target="_blank" rel="noopener">{{ verifyInfo.verify_url }}</a></div>
                   <div>剩余尝试次数：{{ verifyAttemptsLeft }} / {{ verifyInfo.max_attempts ?? 5 }}</div>
+                </div>
+              </el-form-item>
+              <el-form-item label="第三方验证文件">
+                <div style="font-size: 12px; line-height: 1.9; width: 100%">
+                  <el-alert type="warning" :closable="false" style="margin-bottom: 8px">
+                    <template #title>微信 / 企业微信 / 支付宝 域名验证</template>
+                    <div style="font-weight: 400">在这些平台后台配置域名时，平台会下发验证文件名（如 <code>WW_verify_xxxxxxxx</code>）并要求下载后放到域名根目录。将文件名填入下方即可，系统自动在您的域名根路径提供该文件（访问返回内容为文件名本身），无需自行上传。</div>
+                  </el-alert>
+                  <div v-for="f in verifyInfo.third_party_verify_files || []" :key="f" style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px">
+                    <code style="flex: 0 0 auto">{{ f }}</code>
+                    <span v-if="domainInfo.domain" style="color: var(--el-text-color-secondary, #909399); overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
+                      <a :href="`https://${domainInfo.domain}/${f}`" target="_blank" rel="noopener">https://{{ domainInfo.domain }}/{{ f }}</a>
+                      <span style="margin: 0 4px">/</span>
+                      <a :href="`http://${domainInfo.domain}/${f}`" target="_blank" rel="noopener">http://{{ domainInfo.domain }}/{{ f }}</a>
+                    </span>
+                    <el-button link type="danger" size="small" @click="handleRemoveVerifyFile(f)">删除</el-button>
+                  </div>
+                  <div v-if="!(verifyInfo.third_party_verify_files || []).length" style="color: var(--el-text-color-secondary, #909399); margin-bottom: 4px">尚未添加验证文件</div>
+                  <div style="display: flex; gap: 8px; margin-top: 8px">
+                    <el-input v-model="thirdPartyFileInput" size="small" style="max-width: 280px" placeholder="如：WW_verify_xxxxxxxx" @keyup.enter="handleAddVerifyFile" />
+                    <el-button size="small" type="primary" :loading="verifyFilesSaving" @click="handleAddVerifyFile">添加</el-button>
+                  </div>
                 </div>
               </el-form-item>
             </template>
@@ -345,6 +368,45 @@ const handleGenToken = async () => {
   } finally {
     tokenGenning.value = false
   }
+}
+
+// ─── 第三方平台（微信/企微/支付宝）验证文件 ───────────────────────
+const thirdPartyFileInput = ref('')
+const verifyFilesSaving = ref(false)
+
+const saveVerifyFiles = async (files: string[]) => {
+  verifyFilesSaving.value = true
+  try {
+    const res = await axios.post(`/api/v1/tenant/${userStore.tenantId}/domain/verify-files`, { files })
+    Object.assign(verifyInfo, res.data.data || {})
+    return true
+  } catch (e) {
+    ElMessage.error(errMsg(e))
+    return false
+  } finally {
+    verifyFilesSaving.value = false
+  }
+}
+
+const handleAddVerifyFile = async () => {
+  const name = thirdPartyFileInput.value.trim()
+  if (!name) return
+  const files = [...(verifyInfo.third_party_verify_files || [])]
+  if (files.includes(name) || files.includes(name + '.txt')) {
+    ElMessage.warning('该验证文件已存在')
+    return
+  }
+  const ok = await saveVerifyFiles([...files, name])
+  if (ok) {
+    thirdPartyFileInput.value = ''
+    ElMessage.success('验证文件已添加，微信/企微/支付宝可立即校验')
+  }
+}
+
+const handleRemoveVerifyFile = async (file: string) => {
+  const files = (verifyInfo.third_party_verify_files || []).filter((f: string) => f !== file)
+  const ok = await saveVerifyFiles(files)
+  if (ok) ElMessage.success('验证文件已删除')
 }
 
 const fetchMail = async () => {

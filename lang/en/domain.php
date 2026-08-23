@@ -22,4 +22,5 @@ return [
     'reserved' => 'Domain :domain is a reserved platform domain and cannot be bound to a tenant',
     'reserved_wildcard' => 'Domain :domain falls under the platform wildcard domain and cannot be bound to a tenant',
     'reserved_domains_updated' => 'Reserved domains blacklist updated',
+    'verify_file_invalid' => 'Verification filename :name is invalid: must start with WW_verify / MP_verify / alipay_verify / verify_ followed by 8-64 alphanumeric or underscore chars',
 ];

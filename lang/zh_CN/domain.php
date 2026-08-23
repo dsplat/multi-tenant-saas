@@ -22,4 +22,5 @@ return [
     'reserved' => '域名 :domain 是平台保留域名，禁止绑定到租户',
     'reserved_wildcard' => '域名 :domain 属于平台通配域名范围，禁止绑定到租户',
     'reserved_domains_updated' => '保留域名黑名单已更新',
+    'verify_file_invalid' => '验证文件名 :name 不合法：须以 WW_verify / MP_verify / alipay_verify / verify_ 开头且仅含字母、数字、下划线（8~64 位）',
 ];

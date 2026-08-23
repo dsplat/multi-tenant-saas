@@ -179,4 +179,58 @@ class TenantDomainController extends Controller
             'data' => $service->getVerificationInstructions($tenantId),
         ]);
     }
+
+    /**
+     * 保存第三方平台验证文件列表（覆盖式）
+     *
+     * POST /api/v1/tenant/domain/verify-files
+     * body: {"files": ["WW_verify_xxx", "MP_verify_yyy.txt"]}
+     */
+    public function saveVerifyFiles(Request $request, ?int $tenantId = null)
+    {
+        $tenantId = $tenantId ?? (int) TenantContext::getId();
+        $this->ensureTenantAccess($request, $tenantId);
+
+        $validated = $request->validate([
+            'files' => 'required|array|max:20',
+            'files.*' => 'string|max:100',
+        ]);
+
+        $service = new DomainService;
+
+        try {
+            $files = $service->saveThirdPartyVerifyFiles($tenantId, $validated['files']);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'third_party_verify_files' => $files,
+                'verify_urls' => array_map(
+                    fn (string $f) => [
+                        'file' => $f,
+                        'url' => $this->verifyFileUrl($tenantId, $f),
+                    ],
+                    $files
+                ),
+            ],
+        ]);
+    }
+
+    /**
+     * 生成第三方验证文件的完整访问 URL（https://{domain}/{file}）
+     */
+    protected function verifyFileUrl(int $tenantId, string $file): ?string
+    {
+        $tenant = \MultiTenantSaas\Modules\Infrastructure\Models\Tenant::find($tenantId);
+        $domain = $tenant?->domain;
+
+        if (! $domain) {
+            return null;
+        }
+
+        return "https://{$domain}/{$file}";
+    }
 }

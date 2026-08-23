@@ -31,7 +31,28 @@ class DomainServiceProvider extends ModuleServiceProvider
     protected function bootModule(): void
     {
         $this->loadAdminTenantRoutes();
+        $this->registerVerificationFileRoutes();
         $this->loadModuleViews();
+    }
+
+    /**
+     * 域名验证文件动态服务路由（裸路由，无中间件链）
+     *
+     * 不挂 web 组：规避 EnforceCanonicalEntry 对 pending 自定义域名的 301 收敛
+     * （验证文件必须在域名未生效时即可访问）。控制器内按 Host 手动解析租户。
+     */
+    protected function registerVerificationFileRoutes(): void
+    {
+        if ($this->app->routesAreCached()) {
+            return;
+        }
+
+        $moduleDir = dirname((new \ReflectionClass($this))->getFileName());
+        $path = $moduleDir . '/Routes/verify-file.php';
+
+        if (file_exists($path)) {
+            $this->loadRoutesFrom($path);
+        }
     }
 
     protected function loadAdminTenantRoutes(): void

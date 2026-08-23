@@ -26,7 +26,7 @@ use MultiTenantSaas\Scopes\TenantScope;
  *    的 301 收敛——验证文件必须在「域名尚未 approved」时即可访问，收敛会致验证失败
  *  - 控制器内按真实 Host 手动解析租户（tenants.domain 精确匹配 → {slug}.{base} 兜底），
  *    与 IdentifyTenant 第 3/7 级同规则；不信任 X-Original-Host 等可伪造头
- *  - 平台统一回调域（OAUTH_CALLBACK_DOMAIN，如 auth.neihang.com）：微信/企微验证的
+ *  - 平台统一回调域（OAUTH_CALLBACK_DOMAIN，如 auth.dsplat.com）：微信/企微验证的
  *    是回调域而非租户域名，该域无法解析租户 → 跨租户匹配文件名（微信下发的文件名
  *    全局唯一，内容即文件名本身，无敏感数据）
  *  - 未命中一律 404（不区分「无此租户/无此文件」，避免探测）

@@ -30,7 +30,7 @@ class VerificationFileControllerTest extends TestCase
     {
         parent::setUp();
 
-        config(['domain.wildcard_base' => 'neihang.com']);
+        config(['domain.wildcard_base' => 'dsplat.com']);
         Tenant::create([
             'tenant_id' => self::TENANT_ID,
             'name' => 'Club',
@@ -132,7 +132,7 @@ class VerificationFileControllerTest extends TestCase
         TenantSetting::set(self::TENANT_ID, DomainService::GROUP_DOMAIN, 'verification_token', $token);
 
         $response = (new VerificationFileController)->token(
-            $this->requestTo('club.neihang.com', "/.well-known/tenant-verify/{$token}.txt"),
+            $this->requestTo('club.dsplat.com', "/.well-known/tenant-verify/{$token}.txt"),
             $token
         );
 
@@ -146,7 +146,7 @@ class VerificationFileControllerTest extends TestCase
 
         try {
             (new VerificationFileController)->token(
-                $this->requestTo('club.neihang.com', '/.well-known/tenant-verify/abc1234567890XYZabc1234567890XYZ.txt'),
+                $this->requestTo('club.dsplat.com', '/.well-known/tenant-verify/abc1234567890XYZabc1234567890XYZ.txt'),
                 'abc1234567890XYZabc1234567890XYZ'
             );
             $this->fail('Expected 404 for rejected slug');
@@ -159,13 +159,13 @@ class VerificationFileControllerTest extends TestCase
     {
         // 企微/微信验证的是回调域（OAUTH_CALLBACK_DOMAIN），该域不属于任何租户，
         // 需跨租户匹配已注册的文件名
-        config(['auth.oauth.callback_domain' => 'auth.neihang.com']);
+        config(['auth.oauth.callback_domain' => 'auth.dsplat.com']);
         TenantSetting::set(self::TENANT_ID, DomainService::GROUP_DOMAIN, DomainService::SETTING_THIRD_PARTY_VERIFY_FILES, [
             'WW_verify_mLUxXhK2fEC6jPsB.txt',
         ]);
 
         $response = (new VerificationFileController)->file(
-            $this->requestTo('auth.neihang.com', '/WW_verify_mLUxXhK2fEC6jPsB.txt'),
+            $this->requestTo('auth.dsplat.com', '/WW_verify_mLUxXhK2fEC6jPsB.txt'),
             'WW_verify_mLUxXhK2fEC6jPsB'
         );
 
@@ -175,11 +175,11 @@ class VerificationFileControllerTest extends TestCase
 
     public function test_callback_domain_unregistered_file_returns_404(): void
     {
-        config(['auth.oauth.callback_domain' => 'auth.neihang.com']);
+        config(['auth.oauth.callback_domain' => 'auth.dsplat.com']);
 
         try {
             (new VerificationFileController)->file(
-                $this->requestTo('auth.neihang.com', '/WW_verify_NotSaved000.txt'),
+                $this->requestTo('auth.dsplat.com', '/WW_verify_NotSaved000.txt'),
                 'WW_verify_NotSaved000'
             );
             $this->fail('Expected 404 for unregistered file on callback domain');
@@ -198,7 +198,7 @@ class VerificationFileControllerTest extends TestCase
 
         try {
             (new VerificationFileController)->file(
-                $this->requestTo('auth.neihang.com', '/WW_verify_mLUxXhK2fEC6jPsB.txt'),
+                $this->requestTo('auth.dsplat.com', '/WW_verify_mLUxXhK2fEC6jPsB.txt'),
                 'WW_verify_mLUxXhK2fEC6jPsB'
             );
             $this->fail('Expected 404 when callback domain not configured');

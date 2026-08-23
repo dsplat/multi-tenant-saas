@@ -106,6 +106,20 @@
               <el-form-item v-if="config.wechat_work.redirect" label="回调地址">
                 <el-input :model-value="config.wechat_work.redirect" readonly />
               </el-form-item>
+              <el-form-item label="域名验证文件">
+                <div style="width: 100%; font-size: 12px">
+                  <div style="color: var(--el-text-color-secondary); margin-bottom: 6px">企业微信设置「授权回调域/可信域名」时下发的验证文件名（如 WW_verify_xxx），填入后系统自动在您的域名根路径提供该文件</div>
+                  <div v-for="f in verifyFiles" :key="f" style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px">
+                    <code>{{ f }}</code>
+                    <a v-if="tenantDomain" :href="`https://${tenantDomain}/${f}`" target="_blank" rel="noopener">验证</a>
+                    <el-button link type="danger" size="small" @click="handleRemoveVerifyFile(f)">删除</el-button>
+                  </div>
+                  <div style="display: flex; gap: 6px; margin-top: 4px">
+                    <el-input v-model="verifyFileInput" size="small" style="max-width: 280px" placeholder="如：WW_verify_mLUxXhK2fEC6jPsB" @keyup.enter="handleAddVerifyFile" />
+                    <el-button size="small" type="primary" :loading="verifyFilesSaving" @click="handleAddVerifyFile">添加</el-button>
+                  </div>
+                </div>
+              </el-form-item>
             </el-form>
 
             <div class="help-box">
@@ -145,6 +159,20 @@
               <el-form-item label="AppSecret"><el-input v-model="config.wechat.client_secret" /></el-form-item>
               <el-form-item v-if="config.wechat.redirect" label="回调地址">
                 <el-input :model-value="config.wechat.redirect" readonly />
+              </el-form-item>
+              <el-form-item label="域名验证文件">
+                <div style="width: 100%; font-size: 12px">
+                  <div style="color: var(--el-text-color-secondary); margin-bottom: 6px">微信开放平台/公众号设置「授权回调域/网页授权域名」时下发的验证文件名（如 MP_verify_xxx），填入后系统自动在您的域名根路径提供该文件</div>
+                  <div v-for="f in verifyFiles" :key="f" style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px">
+                    <code>{{ f }}</code>
+                    <a v-if="tenantDomain" :href="`https://${tenantDomain}/${f}`" target="_blank" rel="noopener">验证</a>
+                    <el-button link type="danger" size="small" @click="handleRemoveVerifyFile(f)">删除</el-button>
+                  </div>
+                  <div style="display: flex; gap: 6px; margin-top: 4px">
+                    <el-input v-model="verifyFileInput" size="small" style="max-width: 280px" placeholder="如：MP_verify_xxxxxxxx" @keyup.enter="handleAddVerifyFile" />
+                    <el-button size="small" type="primary" :loading="verifyFilesSaving" @click="handleAddVerifyFile">添加</el-button>
+                  </div>
+                </div>
               </el-form-item>
             </el-form>
 
@@ -244,6 +272,9 @@
 import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { useUserStore } from '@stores/user'
+
+const userStore = useUserStore()
 
 const saving = ref(false)
 const activeTab = ref('idp')
@@ -323,7 +354,60 @@ const handleSave = async () => {
   }
 }
 
-onMounted(loadConfig)
+// ─── 域名验证文件（微信/企微/支付宝回调域验证） ───────────────────
+const tenantDomain = ref('')
+const verifyFiles = ref<string[]>([])
+const verifyFileInput = ref('')
+const verifyFilesSaving = ref(false)
+
+const loadVerifyFiles = async () => {
+  try {
+    const res = await axios.get(`/api/v1/tenant/${userStore.tenantId}/domain/verify-info`)
+    const data = res.data.data || {}
+    tenantDomain.value = data.domain || ''
+    verifyFiles.value = data.third_party_verify_files || []
+  } catch {}
+}
+
+const saveVerifyFiles = async (files: string[]) => {
+  verifyFilesSaving.value = true
+  try {
+    const res = await axios.post(`/api/v1/tenant/${userStore.tenantId}/domain/verify-files`, { files })
+    const data = res.data.data || {}
+    verifyFiles.value = data.third_party_verify_files || []
+    return true
+  } catch (e) {
+    const m = e?.response?.data?.message
+    ElMessage.error(typeof m === 'string' ? m : '操作失败')
+    return false
+  } finally {
+    verifyFilesSaving.value = false
+  }
+}
+
+const handleAddVerifyFile = async () => {
+  const name = verifyFileInput.value.trim()
+  if (!name) return
+  if (verifyFiles.value.includes(name) || verifyFiles.value.includes(name + '.txt')) {
+    ElMessage.warning('该验证文件已存在')
+    return
+  }
+  const ok = await saveVerifyFiles([...verifyFiles.value, name])
+  if (ok) {
+    verifyFileInput.value = ''
+    ElMessage.success('验证文件已添加，微信/企微/支付宝可立即校验')
+  }
+}
+
+const handleRemoveVerifyFile = async (file: string) => {
+  const ok = await saveVerifyFiles(verifyFiles.value.filter(f => f !== file))
+  if (ok) ElMessage.success('验证文件已删除')
+}
+
+onMounted(() => {
+  loadConfig()
+  loadVerifyFiles()
+})
 </script>
 
 <style scoped>

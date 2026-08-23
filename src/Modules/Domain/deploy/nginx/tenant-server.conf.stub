@@ -112,7 +112,7 @@ server {
     # 第三方平台（微信/企微/支付宝）域名验证文件 → PHP 动态服务（VerificationFileController）
     # 微信要求访问域名根路径 WW_verify_xxx.txt / MP_verify_xxx.txt / alipay_verify_xxx.txt
     # 注意：正则含花括号 {8,64} 必须用双引号包裹，否则 nginx 解析为块起始报错
-    location ~* "^/(WW_verify|MP_verify|alipay_verify|verify_)[A-Za-z0-9_]{8,64}\\.txt$" {
+    location ~* "^/(WW_verify|MP_verify|alipay_verify|verify_)[A-Za-z0-9_]{8,64}\.txt$" {
         try_files $uri /index.php?$query_string;
     }
 

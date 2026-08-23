@@ -21,6 +21,9 @@ import { useAssistantHistory } from './composables/useAssistantHistory'
 import FloatingTrigger from './components/FloatingTrigger.vue'
 import AssistantPanel from './components/AssistantPanel.vue'
 
+/** 当前登录租户 ID（由宿主布局注入，如 console 的 userStore.tenantId） */
+const props = defineProps<{ tenantId?: string }>()
+
 const store = useAssistantStore()
 const route = useRoute()
 const { pageContext } = usePageContext()
@@ -39,6 +42,8 @@ function probeModule() {
 }
 
 onMounted(() => {
+  // 绑定租户上下文：保证本地会话/消息按租户隔离（同浏览器多租户不串数据）
+  store.setTenantContext(props.tenantId || '')
   // 用户未关闭时才探测（可完全关闭铁律）
   if (store.userEnabled) {
     probeModule()
@@ -50,6 +55,15 @@ onMounted(() => {
 // 路由变化 → 更新模块 + 重新探测
 watch(() => route.path, () => {
   if (store.userEnabled) probeModule()
+})
+
+// 租户切换（同浏览器切换账号/租户）→ 重置本地会话隔离 + 重新探测/恢复
+watch(() => props.tenantId, (tid) => {
+  store.setTenantContext(tid || '')
+  if (store.userEnabled) {
+    probeModule()
+    restore()
+  }
 })
 </script>
 

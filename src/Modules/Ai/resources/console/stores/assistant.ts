@@ -13,17 +13,31 @@ function nextId(): string {
   return `msg_${Date.now()}_${++msgSeq}`
 }
 
-/** 会话持久化 key（刷新不丢：conversation_id + 转派目标一起存） */
-const CONVERSATION_STORAGE_KEY = 'ai_assistant_conversation'
+/** 当前登录租户 ID（scrm 登录态约定 key；无则回退无租户 key） */
+function readTenantId(): string {
+  try { return localStorage.getItem('auth_tenant_id') || '' } catch { return '' }
+}
 
-/** 消息本地持久化 key（Node 流式链路无服务端会话，刷新恢复靠本地） */
-const MESSAGES_STORAGE_KEY = 'ai_assistant_messages'
+/** 租户维度持久化 key：同一浏览器切换租户不串数据（跨租户历史泄漏修复） */
+function tenantScopedKey(base: string): string {
+  const tid = readTenantId()
+  return tid ? `${base}_${tid}` : base
+}
+
+/** 动态获取会话/消息持久化 key（随登录租户变化，勿缓存为常量） */
+function storageKeys() {
+  return {
+    conversation: tenantScopedKey('ai_assistant_conversation'),
+    messages: tenantScopedKey('ai_assistant_messages'),
+  }
+}
+
 /** 本地持久化消息上限（控 localStorage 体积） */
 const MESSAGES_PERSIST_LIMIT = 50
 
 function loadPersistedMessages(): ChatMessage[] {
   try {
-    const raw = localStorage.getItem(MESSAGES_STORAGE_KEY)
+    const raw = localStorage.getItem(storageKeys().messages)
     if (!raw) return []
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
@@ -44,7 +58,7 @@ interface PersistedConversation {
 
 function loadPersistedConversation(): PersistedConversation | null {
   try {
-    const raw = localStorage.getItem(CONVERSATION_STORAGE_KEY)
+    const raw = localStorage.getItem(storageKeys().conversation)
     if (!raw) return null
     const parsed = JSON.parse(raw)
     if (typeof parsed?.id !== 'number') return null
@@ -70,6 +84,8 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   const availabilityLoaded = ref(false)
   /** 用户级偏好：始终启用（浮动按钮即开关，无需额外禁用入口） */
   const userEnabled = ref(true)
+  /** 已绑定的租户上下文（setTenantContext 注入；切换时重置本地会话，防止跨租户泄漏） */
+  const boundTenantId = ref<string>('')
 
   // ─── 面板状态 ─────────────────────────────────────────────
   const panelMode = ref<PanelMode>(loadPinnedPreference() ? 'pinned' : 'closed')
@@ -113,6 +129,20 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
 
   function setModule(mod: string) {
     currentModule.value = mod
+  }
+
+  /** 绑定租户上下文：租户变化时重置内存会话，并从新租户的本地持久化恢复（无则全新开始） */
+  function setTenantContext(tenantId: string) {
+    const tid = tenantId || readTenantId()
+    if (boundTenantId.value === tid) return
+    boundTenantId.value = tid
+    messages.value = loadPersistedMessages()
+    const persisted = loadPersistedConversation()
+    conversationId.value = persisted?.id ?? null
+    targetAgentId.value = persisted?.agentId ?? null
+    targetAgentName.value = persisted?.agentName ?? null
+    hydrated.value = false
+    delegatedMsgIds.clear()
   }
 
   function openPanel() {
@@ -165,7 +195,7 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
         .filter(m => m.content && !m.isError)
         .slice(-MESSAGES_PERSIST_LIMIT)
         .map(m => ({ id: m.id, role: m.role, content: m.content, timestamp: m.timestamp }))
-      localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(slim))
+      localStorage.setItem(storageKeys().messages, JSON.stringify(slim))
     } catch { /* 存储不可用时静默降级 */ }
   }
 
@@ -303,13 +333,13 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
   function persistConversation() {
     try {
       if (conversationId.value) {
-        localStorage.setItem(CONVERSATION_STORAGE_KEY, JSON.stringify({
+        localStorage.setItem(storageKeys().conversation, JSON.stringify({
           id: conversationId.value,
           agentId: targetAgentId.value,
           agentName: targetAgentName.value,
         }))
       } else {
-        localStorage.removeItem(CONVERSATION_STORAGE_KEY)
+        localStorage.removeItem(storageKeys().conversation)
       }
     } catch { /* 存储不可用时静默降级（不影响对话） */ }
   }
@@ -361,7 +391,7 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     targetAgentId.value = null
     targetAgentName.value = null
     persistConversation()
-    try { localStorage.removeItem(MESSAGES_STORAGE_KEY) } catch { /* 静默降级 */ }
+    try { localStorage.removeItem(storageKeys().messages) } catch { /* 静默降级 */ }
   }
 
   /** 切换到历史会话（多会话管理）：清空当前消息并重置 hydrated，由历史恢复流程重新拉取 */
@@ -390,7 +420,7 @@ export const useAssistantStore = defineStore('aiAssistant', () => {
     // computed
     visible, isOpen,
     // actions
-    setAvailability, setUserEnabled, setModule,
+    setAvailability, setUserEnabled, setModule, setTenantContext,
     openPanel, openWithPrompt, openWithPromptAndSend, consumePendingPrompt, consumeAutoSendPrompt, closePanel, togglePin,
     pushUserMessage, startAssistantMessage, appendText, appendToolCalls, completeToolCall, setFormFill, setWorkflow,
     setActionConfirm, updateActionConfirmStatus, setUserChoice, setUserChoiceAnswered, pushAssistantMessage,

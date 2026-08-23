@@ -31,11 +31,12 @@ class RejectPlatformDomain
 
         $host = $request->header('X-Original-Host') ?? $request->getHost();
 
-        // console 服务只在租户面提供：平台后台域名（admin）与平台首页域名（www）拒绝；
-        // 租户接入域名（console 共享域/自定义域名/通配子域名）放行。
+        // console 服务只在租户面提供：平台后台域名（admin）、平台首页域名（www）与
+        // 用户终端域（app，纯 SEO 内容面）拒绝；租户接入域名放行。
         $forbiddenHosts = array_filter([
             config('tenancy.admin_domain'),
             config('domain.platform_domains.main'),
+            config('domain.platform_domains.app'),
         ]);
 
         if (in_array($host, $forbiddenHosts, true)) {

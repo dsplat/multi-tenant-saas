@@ -34,6 +34,7 @@ class IdentifyTenantPlatformDomainTest extends TestCase
             'domain.platform_domains.main' => 'www.neihang.com',
             'domain.platform_domains.console' => 'console.neihang.com',
             'domain.platform_domains.admin' => 'admin.neihang.com',
+            'domain.platform_domains.app' => 'app.neihang.com',
             'tenancy.default_tenant_id' => self::DEFAULT_TENANT_ID,
         ]);
         TenantContext::clear();
@@ -85,6 +86,34 @@ class IdentifyTenantPlatformDomainTest extends TestCase
     public function test_main_platform_domain_not_resolved_to_default_tenant(): void
     {
         $this->assertNull($this->identify('www.neihang.com'));
+    }
+
+    public function test_app_platform_domain_not_resolved_to_default_tenant(): void
+    {
+        // app 域是平台自有域（与 base 同基座），禁止进入通配解析/默认租户兜底
+        $this->assertNull($this->identify('app.neihang.com'));
+    }
+
+    public function test_app_domain_slug_path_resolves_tenant(): void
+    {
+        // app 域路径形态：app.neihang.com/{slug}/...（SEO 内容积累）
+        $request = Request::create('http://app.neihang.com/acme/id-100.html');
+        $this->app->instance('request', $request);
+        TenantContext::clear();
+        (new IdentifyTenant)->handle($request, fn () => new Response('OK'));
+
+        $this->assertSame('3001', $request->attributes->get('tenant_id'));
+    }
+
+    public function test_app_domain_unknown_slug_path_not_falls_back_to_default(): void
+    {
+        // app 域未知 slug：不识别也不兜底（区别于未知子域兜底默认租户）
+        $request = Request::create('http://app.neihang.com/nosuchtenant/h5/home');
+        $this->app->instance('request', $request);
+        TenantContext::clear();
+        (new IdentifyTenant)->handle($request, fn () => new Response('OK'));
+
+        $this->assertNull($request->attributes->get('tenant_id'));
     }
 
     public function test_real_tenant_subdomain_still_resolves(): void

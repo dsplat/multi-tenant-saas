@@ -20,8 +20,10 @@ use Symfony\Component\HttpFoundation\Response;
  *       > {slug}.{wildcard_base}（slug_status=active，含自动码 t-xxxxxx）
  *       > {tenant_id}.{wildcard_base}（兜底）
  *
- * 架构约束：不支持 app 域路径前缀（/{slug}/、/{tenant_id}/）形态，
- * 租户共享入口一律为子域名，与 nginx 统一基桩白名单同构。
+ * 架构约束（2026-08 更新）：app 域路径前缀形态（app.neihang.com/{slug}/...）已重新启用，
+ * 用于租户内容积累到主域做 SEO（app/{slug}/id-xxx.html ⇔ {slug}.neihang.com/id-xxx.html）。
+ * app 域非 {base} 子域、非自定义域名，不进入本中间件收敛（内容页保持直出）；
+ * 收敛仍仅覆盖自定义域名 / slug 二级域名 / tenant_id 二级域名三种子域形态。
  *
  * 守护面判定（不依赖路径前缀，路由入口文件天然隔离）：
  * - 本中间件仅注册于 web 组；API 路由走 api 组（routes/api.php + 模块 api/v1），
@@ -56,6 +58,7 @@ class EnforceCanonicalEntry
         }
 
         // 解析当前入口形态：仅自定义域名与 {base} 子域名两种租户入口
+        // （app 域路径形态不参与收敛——SEO 内容页保持直出，见类注释）
         $isTenantEntry = ($host === $canonicalHost)
             || ($wildcardBase && $host !== $wildcardBase && str_ends_with($host, ".{$wildcardBase}"));
 

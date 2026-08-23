@@ -25,6 +25,8 @@ class DomainSegregationTest extends TestCase
 
     private const MAIN_HOST = 'www.neihang.com';
 
+    private const APP_HOST = 'app.neihang.com';
+
     private const TENANT_CUSTOM_HOST = 'social.dsplat.com';
 
     protected function defineEnvironment($app): void
@@ -35,6 +37,7 @@ class DomainSegregationTest extends TestCase
         $app['config']->set('domain.platform_domains.main', self::MAIN_HOST);
         $app['config']->set('domain.platform_domains.admin', self::ADMIN_HOST);
         $app['config']->set('domain.platform_domains.console', self::CONSOLE_HOST);
+        $app['config']->set('domain.platform_domains.app', self::APP_HOST);
     }
 
     protected function setUp(): void
@@ -103,6 +106,42 @@ class DomainSegregationTest extends TestCase
         // 通过隔离进入路由层（验证失败 422），而非 403
         $resp = $this->asHost(self::CONSOLE_HOST)
             ->postJson('/api/v1/console/auth/login', []);
+        $this->assertNotEquals(403, $resp->getStatusCode());
+    }
+
+    // ==================================================================
+    // app 域名（用户终端/SEO 内容面）：不提供租户后台
+    // ==================================================================
+
+    public function test_app_host_blocks_console_api(): void
+    {
+        $this->asHost(self::APP_HOST)
+            ->postJson('/api/v1/console/auth/login', ['email' => 'a@b.com', 'password' => 'x'])
+            ->assertStatus(403)
+            ->assertJsonPath('error', 'DomainSegregationForbidden');
+    }
+
+    public function test_app_host_blocks_console_spa(): void
+    {
+        // app 裸域与 app/{slug}/ 均属 app 域，/console 一律直接拒绝（不收敛 301）
+        $this->asHost(self::APP_HOST)->get('/console/')->assertStatus(403);
+    }
+
+    public function test_app_host_blocks_app_spa(): void
+    {
+        $this->asHost(self::APP_HOST)->get('/app/')->assertStatus(403);
+    }
+
+    public function test_app_host_blocks_admin_api(): void
+    {
+        $this->asHost(self::APP_HOST)->getJson('/api/v1/admin/auth/user')->assertStatus(403);
+    }
+
+    public function test_app_host_allows_seo_content_path(): void
+    {
+        // app 域仅承载 SEO 直出内容路径（/{slug}/{type}-{id}.html），非租户面不拦截
+        // （无 Seo 路由注册 → 404 而非隔离 403）
+        $resp = $this->asHost(self::APP_HOST)->get('/acme/course-100.html');
         $this->assertNotEquals(403, $resp->getStatusCode());
     }
 

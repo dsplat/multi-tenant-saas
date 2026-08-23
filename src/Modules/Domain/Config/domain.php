@@ -11,6 +11,8 @@ return [
         'main' => env('PLATFORM_MAIN_DOMAIN'),
         'admin' => env('PLATFORM_ADMIN_DOMAIN', 'admin.example.com'),
         'console' => env('PLATFORM_CONSOLE_DOMAIN', 'console.example.com'),
+        // 用户终端域名（app；租户内容路径形态入口 app/{slug}/...，SEO 内容积累主域）
+        'app' => env('PLATFORM_APP_DOMAIN'),
         // 独立 API 域名（可选；未配置时 API 随各 SPA 域名提供）
         'api' => env('PLATFORM_API_DOMAIN'),
     ],

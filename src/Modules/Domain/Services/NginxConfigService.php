@@ -153,8 +153,11 @@ class NginxConfigService
     protected function platformDomains(): array
     {
         return array_values(array_unique(array_filter([
+            config('domain.platform_domains.main'),
             config('domain.platform_domains.admin'),
             config('domain.platform_domains.console'),
+            config('domain.platform_domains.app'),
+            config('domain.platform_domains.api'),
         ])));
     }
 
@@ -607,24 +610,51 @@ class NginxConfigService
     /**
      * 渲染 SEO 直出分流 location 组（M2 方案 B1）。
      *
-     * 路径列表来自 domain.seo_direct_out_paths（框架默认空 → 不渲染）。
-     * 每个路径渲染为 `^~` 前缀 location（最长前缀优先于 `^~ /h5/`）：
-     *   爬虫（$is_seo_or_ai_bot=1）→ rewrite 到 PHP 直出（保留 query）；
-     *   真人 → try_files 落回 H5 SPA。
+     * 路径列表来自 domain.seo_direct_out_paths（框架默认空 → 不渲染），条目两种形态：
+     *   1. 字符串路径 → `^~` 前缀 location（最长前缀优先于 `^~ /h5/`）：
+     *      爬虫（$is_seo_or_ai_bot=1）→ rewrite 到 PHP 直出（保留 query）；
+     *      真人 → try_files 落回 H5 SPA。
+     *   2. 数组条目（详情页直出 {type}-{id}.html 双形态）→ `~*` 正则 location：
+     *      ['pattern' => 正则, 'redirects' => [type => SPA 路径]]；
+     *      爬虫 → rewrite 到 PHP 直出（canonical 自指）；真人 → 301 到 H5 SPA 详情页
+     *      （SPA 无此 .html 路由，必须重定向而非落 SPA，否则 404）。
      * 注意 add_header 继承规则：location 内须自行补 X-Robots-Tag。
      */
     private function renderSeoDirectOutLocations(): string
     {
-        $paths = array_values(array_filter(array_map(
-            fn ($p) => trim((string) $p, " \t/"),
-            (array) config('domain.seo_direct_out_paths', [])
-        )));
+        $paths = array_values(array_filter(
+            (array) config('domain.seo_direct_out_paths', []),
+            fn ($p) => is_array($p) ? ($p['pattern'] ?? '') !== '' : trim((string) $p, " \t/") !== ''
+        ));
 
         if ($paths === []) {
             return '# （domain.seo_direct_out_paths 为空，未启用 SEO 直出分流）';
         }
 
-        $blocks = array_map(function (string $path): string {
+        $blocks = array_map(function ($path): string {
+            // 详情页正则直出条目：{type}-{id}.html（子域根路径 + app/{slug}/ 双形态）
+            if (is_array($path)) {
+                $pattern = (string) $path['pattern'];
+                $redirects = (array) ($path['redirects'] ?? []);
+                $lines = [
+                    "    # SEO 直出：{$pattern}（爬虫 → PHP 直出；真人 → H5 SPA 详情）",
+                    "    location ~* {$pattern} {",
+                    '        add_header Cache-Control "no-cache";',
+                    '        add_header X-Robots-Tag $x_robots_tag always;',
+                    '        if ($is_seo_or_ai_bot = 1) {',
+                    '            rewrite ^ /index.php?$query_string last;',
+                    '        }',
+                ];
+                foreach ($redirects as $type => $target) {
+                    $lines[] = "        rewrite ^/([^/]+/)?{$type}-([0-9]+)\\.html$ {$target} permanent;";
+                }
+                $lines[] = '        return 404;';
+                $lines[] = '    }';
+
+                return implode("\n", $lines);
+            }
+
+            $path = trim((string) $path, " \t/");
             // 机器可读文件（如 sitemap.xml）：精确匹配，无 SPA 落回（真人访问 404 即可，
             // 若落回 /h5/index.html 反而会被收录为假页面）。
             if (preg_match('/\.(xml|txt)$/i', $path)) {

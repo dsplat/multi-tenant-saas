@@ -17,6 +17,8 @@ use Symfony\Component\HttpFoundation\Response;
  * / PLATFORM_API_DOMAIN），本中间件只负责按域名排除互串：
  *
  *  - admin 域名：平台后台专用，不提供租户服务（/console、console API）
+ *  - app 域名（用户终端/SEO 内容面）：不提供租户后台（/console、/app、console API）；
+ *    app 域仅承载 SEO 直出内容（/{slug}/{type}-{id}.html），路径前缀形态不做租户交互
  *  - 非 admin 域名：不提供平台后台（/admin、admin API）
  *  - 平台主域（DOMAIN_DEFAULT）：不提供租户面（/console、/app）；
  *    页面请求 301 收敛到 console 专属域，API 请求 403；
@@ -51,6 +53,14 @@ class EnforceDomainSegregation
         // admin 域名不提供租户服务（console 后台 / app 前台 / console API）
         if ($isAdminHost && $this->isTenantSurface($path)) {
             return $this->forbidden($request, '平台管理域名不提供租户服务，请通过租户域名访问。');
+        }
+
+        // app 域名（用户终端/SEO 内容面）不提供租户后台：
+        // app 裸域与 app/{slug}/ 路径均拒绝 console SPA 与 console API（直接 403，不收敛）；
+        // app 域仅承载 SEO 直出内容路径（/ {slug}/{type}-{id}.html，不在租户面清单内）。
+        $appDomain = config('domain.platform_domains.app');
+        if ($appDomain && hash_equals($appDomain, $host) && $this->isTenantSurface($path)) {
+            return $this->forbidden($request, '用户终端域不提供租户后台，请通过租户域名访问。');
         }
 
         // 平台主域不提供租户面：页面 301 收敛到 console 专属域，API 拒绝；

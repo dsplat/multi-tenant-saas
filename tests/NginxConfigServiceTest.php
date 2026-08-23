@@ -320,6 +320,36 @@ class NginxConfigServiceTest extends TestCase
         $this->assertStringContainsString('return 404;', $stub);
     }
 
+    public function test_seo_direct_out_regex_entry_renders_detail_location(): void
+    {
+        $this->platformConfig();
+
+        // 详情页直出 {type}-{id}.html：正则条目 → ~* location，爬虫 PHP 直出、真人 301 SPA
+        config(['domain.seo_direct_out_paths' => [
+            'h5/pages/course/index',
+            [
+                'pattern' => '^/(?:[^/]+/)?(course|product|event)-([0-9]+)\\.html$',
+                'redirects' => [
+                    'course' => '/h5/pages/course/detail?id=$2',
+                    'product' => '/h5/pages/shop/detail?id=$2',
+                    'event' => '/h5/pages/event/detail?eventId=$2',
+                ],
+            ],
+        ]]);
+        $service = new NginxConfigService;
+        $stub = $service->renderTenantServerStub();
+
+        // 正则 location（~*）覆盖子域根路径与 app/{slug}/ 双形态
+        $this->assertStringContainsString('location ~* ^/(?:[^/]+/)?(course|product|event)-([0-9]+)\\.html$ {', $stub);
+        $this->assertStringContainsString('if ($is_seo_or_ai_bot = 1) {', $stub);
+        // 真人 → 301 到 H5 SPA 详情页（SPA 无 .html 路由，必须重定向）
+        $this->assertStringContainsString('rewrite ^/([^/]+/)?course-([0-9]+)\.html$ /h5/pages/course/detail?id=$2 permanent;', $stub);
+        $this->assertStringContainsString('rewrite ^/([^/]+/)?event-([0-9]+)\.html$ /h5/pages/event/detail?eventId=$2 permanent;', $stub);
+        $this->assertStringContainsString('return 404;', $stub);
+        // 前缀条目不受影响
+        $this->assertStringContainsString('location ^~ /h5/pages/course/index {', $stub);
+    }
+
     public function test_deploy_bundle_generates_seo_and_bot_maps(): void
     {
         $this->platformConfig();

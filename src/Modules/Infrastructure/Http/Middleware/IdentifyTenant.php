@@ -21,12 +21,15 @@ use Symfony\Component\HttpFoundation\Response;
  * 4. Cookie（需校验用户归属）
  * 5. Session
  * 6. 认证用户
- * 7. 通配子域名解析（{tenant_id}.{base} 直查 / {slug}.{base}，租户共享入口唯一形态）
- * 8. 未识别不兜底（EnsureTenantContext 返 403）
+ * 7. app 域路径前缀（app.{base}/{slug}/...，SEO 内容积累形态）
+ * 8. 通配子域名解析（{tenant_id}.{base} 直查 / {slug}.{base}）
+ * 9. 未识别不兜底（EnsureTenantContext 返 403）
  *
- * 架构约束：不支持 app 域路径前缀（/{slug}/、/{tenant_id}/）形态——
- * 租户共享入口一律为子域名（{slug}.{base} / {tenant_id}.{base}），
- * 与 nginx 统一基桩白名单同构，避免共享域 cookie 串扰与 SEO 污染。
+ * 架构约束（2026-08 重新启用）：app 域路径前缀形态（/{slug}/、/{tenant_id}/）
+ * 仅限 app 域（domain.platform_domains.app），用于租户内容积累到主域做 SEO
+ * （app.neihang.com/{slug}/id-xxx.html ⇔ {slug}.neihang.com/id-xxx.html）；
+ * 基础域（wildcard_base 裸域）路径前缀仍不支持。
+ * 租户共享入口 = {slug}.{base} / {tenant_id}.{base} 子域 + app/{slug} 路径 双形态。
  *
  * 安全原则：不可信来源（URL/Header/Cookie）解析的租户，
  * 必须校验已认证用户确实属于该租户，防止越权。
@@ -125,8 +128,14 @@ class IdentifyTenant
             return (string) $tokenable->current_tenant_id;
         }
 
-        // 7. 通配子域名解析（租户共享入口唯一形态：{tenant_id}.{base} / {slug}.{base}）
-        //    平台自有域名（www/admin/console/api）可能与通配 base 后缀重合
+        // 7. app 域路径前缀（app.neihang.com/{slug}/...）——SEO 内容积累形态，
+        //    路径第一段即租户标识，与通配子域名同构（16 位 tenant_id 直查 / slug 查询）
+        if ($tenantId = $this->resolveFromAppPath($request)) {
+            return $tenantId;
+        }
+
+        // 8. 通配子域名解析（租户共享入口：{tenant_id}.{base} / {slug}.{base}）
+        //    平台自有域名（www/admin/console/api/app）可能与通配 base 后缀重合
         //    （如 console.neihang.com 与 base=neihang.com），不是租户接入域，
         //    禁止进入通配解析/默认租户兜底，否则无租户 Operator 会被误绑默认租户
         $host = $request->header('X-Original-Host') ?? $request->getHost();
@@ -139,7 +148,7 @@ class IdentifyTenant
             return config('tenancy.default_tenant_id') ? (string) config('tenancy.default_tenant_id') : null;
         }
 
-        // 8. 未识别域名不兜底，由 EnsureTenantContext 返回 403
+        // 9. 未识别域名不兜底，由 EnsureTenantContext 返回 403
         return null;
     }
 
@@ -260,22 +269,43 @@ class IdentifyTenant
     }
 
     /**
-     * 从通配子域名提取标识并解析租户
+     * app 域路径前缀形态：app.neihang.com/{slug}/...
      *
-     * 两种同质形态（子域名前缀即租户标识）：
-     *   {tenant_id}.{wildcard_base}（16 位雪花 ID 直查，如 9007199254740992.dsplat.com）
-     *   {slug}.{wildcard_base}（含自动码 t-xxxxxx，如 lanyantu.dsplat.com）
-     * 带缓存，避免每次请求查库。
+     * 与通配子域名同构（路径第一段 = 租户标识），支持 16 位 tenant_id 直查 /
+     * t-xxx 自动码 / 自定义 slug（slug_status=active）。
+     * 用于 SEO 内容积累：app.neihang.com/{slug}/id-xxx.html ⇔ {slug}.neihang.com/id-xxx.html。
+     * app 裸域（无路径第一段）不是租户入口，返回 null。
      */
-    protected function resolveFromSubdomain(string $host): ?string
+    protected function resolveFromAppPath(Request $request): ?string
     {
-        $wildcardBase = config('domain.wildcard_base');
-        $label = substr($host, 0, -(strlen($wildcardBase) + 1)); // 去掉 ".dsplat.com"
-
-        if (empty($label) || str_contains($label, '.')) {
-            return null; // 多级子域名（如 a.b.dsplat.com）不支持
+        $appDomain = config('domain.platform_domains.app');
+        if (! $appDomain) {
+            return null;
         }
 
+        $host = $request->header('X-Original-Host') ?? $request->getHost();
+        if ($host !== $appDomain) {
+            return null;
+        }
+
+        $firstSegment = strtok(ltrim($request->getPathInfo(), '/'), '/');
+        if ($firstSegment === false || $firstSegment === '' || str_contains($firstSegment, '.')) {
+            return null; // 裸域 / 多级路径段不作为租户标识
+        }
+
+        return $this->resolveFromSlug($firstSegment);
+    }
+
+    /**
+     * 按租户标识解析租户（子域 label 与 app 路径第一段共用）
+     *
+     * 两种同质形态：
+     *   {tenant_id}（16 位雪花 ID 直查，如 9007199254740992）
+     *   {slug}（含自动码 t-xxxxxx，如 lanyantu / t-a3k9z2）
+     * 带缓存，避免每次请求查库。
+     */
+    protected function resolveFromSlug(string $label): ?string
+    {
         // 纯数字且符合雪花 ID 长度（16 位）→ 按 tenant_id 直查
         if (ctype_digit($label) && strlen($label) === 16) {
             $cacheKey = config('tenancy.cache.prefix', 'tenant:') . 'subdomain-id:' . $label;
@@ -303,6 +333,26 @@ class IdentifyTenant
         );
 
         return $tenantId ? (string) $tenantId : null;
+    }
+
+    /**
+     * 从通配子域名提取标识并解析租户
+     *
+     * 两种同质形态（子域名前缀即租户标识）：
+     *   {tenant_id}.{wildcard_base}（16 位雪花 ID 直查，如 9007199254740992.dsplat.com）
+     *   {slug}.{wildcard_base}（含自动码 t-xxxxxx，如 lanyantu.dsplat.com）
+     * 带缓存，避免每次请求查库。
+     */
+    protected function resolveFromSubdomain(string $host): ?string
+    {
+        $wildcardBase = config('domain.wildcard_base');
+        $label = substr($host, 0, -(strlen($wildcardBase) + 1)); // 去掉 ".dsplat.com"
+
+        if (empty($label) || str_contains($label, '.')) {
+            return null; // 多级子域名（如 a.b.dsplat.com）不支持
+        }
+
+        return $this->resolveFromSlug($label);
     }
 
     /**

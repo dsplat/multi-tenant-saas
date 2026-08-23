@@ -134,8 +134,9 @@ class NginxConfigServiceTest extends TestCase
         $this->assertStringContainsString('try_files $uri /index.php?$query_string;', $stub);
 
         // 第三方平台验证：根路径 WW_verify/MP_verify/alipay_verify/verify_ 前缀 .txt 转发 PHP
+        // （花括号正则须带双引号，nginx 才能解析）
         $this->assertStringContainsString(
-            'location ~* ^/(WW_verify|MP_verify|alipay_verify|verify_)[A-Za-z0-9]{8,64}\\.txt$',
+            'location ~* "^/(WW_verify|MP_verify|alipay_verify|verify_)[A-Za-z0-9_]{8,64}\\.txt$" {',
             $stub
         );
 

@@ -1,46 +1,19 @@
 # 待办清单
 
 > 跨迭代遗留项与待决策项跟踪。已完成的条目移入文末「已完成归档」。
-> 更新时间：2026-08-23（归档 WECOM-002 / WECOM-004）
+> 更新时间：2026-08-23（归档 SEO-002/003 / SCRM-005/006 / API-002，登记第二梯队计划）
 
 ---
 
 ## 〇、H5 SEO/GEO 优化（方案 A + 方案 B）
 
 > 详细方案：`scrm-platform/docs/2026-08-21-h5-seo-geo-plan.md`（decision-complete，含验证矩阵与部署路径）
-> 状态：**M1 已完成**（front a9b2e4d，产物部署验证待做），下一步 M2（SEO-002）。
+> 状态：**M1/M2/M3 全部完成**（M2 课程页直出 scrm 67c2605，M3 商品/活动直出 + sitemap scrm 46c52cb + 框架 c3759895，见文末归档）。遗留：课程评价直出（方案 B2 标注「字段实施时确认，本期未做」）与预存 27 个测试失败清理（单列）保留未排期，见 TODO-SEO-004。
 
-### TODO-SEO-002: M2 方案 B-1 —— nginx 分流 + 课程页 PHP 直出（后端）
+### ~~TODO-SEO-002: M2 方案 B-1 —— nginx 分流 + 课程页 PHP 直出（后端）~~ ✅ 已完成
 
-**优先级**: 高（1-2 天）
-
-**仓库**: multi_tenant_saas（nginx 基桩）+ scrm-platform（PHP 层）
-
-**内容**:
-- 框架：`tenant-server.conf.stub` 新增 `{{SEO_DIRECT_OUT_LOCATIONS}}` 占位符 + `NginxConfigService` 渲染能力，路径列表由 `config/domain.php` 的 `seo_direct_out_paths` 注入（默认空，落地在项目）；新增 `$is_seo_bot` map（普通搜索引擎爬虫 + 复用 `$is_ai_bot`）
-- 分流规则：`location ^~ /h5/pages/{course,shop,event}/...`（最长前缀优先于现有 `^~ /h5/`），爬虫 → PHP 直出，真人 → 静态 SPA；location 内须自行补 `X-Robots-Tag`（add_header 继承坑）
-- scrm：新增 `app/Modules/Seo/`（SeoController + SeoRenderService + Blade 模板），复用框架 CourseService 公开数据
-- 中间件纪律：挂 IdentifyTenant、**不挂** tenant.ensure（对齐 console SPA 403 教训）；SeoDirectOut 兜底把真人 302 回 SPA
-
-**安全红线**: 付费章节 content/file_url 禁止直出（数据层白名单，模板零权限判断）；未发布内容 404
-
-**完成标准**: Googlebot/Baiduspider/GPTBot 拿完整 HTML+JSON-LD；Chrome UA 拿 SPA；付费内容不泄露；基桩安全矩阵不回归
-
----
-
-### TODO-SEO-003: M3 方案 B-2 —— 商品/活动直出 + JSON-LD + sitemap（后端）
-
-**优先级**: 中（1 天，可与 M2 并行）
-
-**仓库**: scrm-platform + multi_tenant_saas（robots.txt 联动）
-
-**内容**:
-- 商品详情/活动详情直出（复用 Product/Event Service）
-- JSON-LD 补齐：Course/Product/Event/Organization/BreadcrumbList（GEO 核心）
-- `/sitemap.xml`：按域名识别租户输出已发布内容 URL；基桩 robots.txt 的 `$seo_allowed=1` 分支追加 Sitemap 行
-- 直出页 `Cache-Control: public, max-age=600`
-
-**完成标准**: 方案文档 §7 验证矩阵全过
+> 2026-08-23 归档（scrm 67c2605，详见文末归档条目）；原 TODO-SEO-003（M3 商品/活动直出 + sitemap）同日完成（scrm 46c52cb）。
+> 剩余待确认项见下方 TODO-SEO-004（课程评价直出已保留未排期）。
 
 ---
 
@@ -158,13 +131,9 @@
 
 ---
 
-### TODO-API-002: 运营动作场景封装 + AI 起草员工确认发送（方向二）
+### ~~TODO-API-002: 运营动作场景封装 + AI 起草员工确认发送（方向二）~~ ✅ 已完成
 
-**优先级**: 中（依赖 API-001）
-
-**内容**: 以运营动作（社群接龙 / 评测活动）为封装单元，编排多个接口成 Skill；「AI 起草 + 员工确认」：AI 备好待发内容 → 企微通知绑定员工 → 员工点「同意」 → Bot 发送直达群；人只做审一眼 + 点一下
-
-**完成标准**: 一个运营动作从发起到发送，人的操作仅为一次确认点击
+> 2026-08-23 第二梯队阶段 2 完成：评测活动闭环 Skill（EvalCampaignSkill）+ wecom_confirm_tasks 确认流 + template_card 员工确认卡 + 场景卡片 skill 接线，已部署生产验证（详见文末归档）。
 
 ---
 
@@ -245,27 +214,15 @@
 
 ---
 
-### TODO-SCRM-005: scrm_automation 功能开关默认关闭
+### ~~TODO-SCRM-005: scrm_automation 功能开关默认关闭~~ ✅ 已完成
 
-**优先级**: 中（待产品确认）
-
-**仓库**: scrm-platform
-
-**内容**: `config/tenancy.php` 中 `scrm_automation` 自 2026-07-11 起 `inactive` 0%，自动化规则引擎（触发→动作已完整实现）在租户侧不可见。灰度开关无「功能完成→打开」生命周期管理，灰度变成封存。
-
-**完成标准**: 确认功能稳定性后打开开关，或明确长期关闭原因并记录
+> 2026-08-23 第二梯队阶段 0：presets 改 active/100 + 生产 enable + rollout(100)，见文末归档。
 
 ---
 
-### TODO-SCRM-006: scrm_activities 功能开关默认关闭
+### ~~TODO-SCRM-006: scrm_activities 功能开关默认关闭~~ ✅ 已完成
 
-**优先级**: 中
-
-**仓库**: scrm-platform
-
-**内容**: `scrm_activities` 2026-08-19 随 Activity 统一模块（取代 Campaign/Event）新建时默认 `inactive`；该模块已全量上线（含 H5 链路迁移、数据迁移），但开关未打开。
-
-**完成标准**: 验证后打开开关，或按灰度计划推进并记录
+> 2026-08-23 第二梯队阶段 0：同 SCRM-005 一并打开（active/100 + 生产 rollout），见文末归档。
 
 ---
 
@@ -297,6 +254,8 @@
 
 ## 已完成归档
 
+- ✅ 2026-08-23 第二梯队三阶段计划全部完成（SCRM-005/006 开关 × NAV-001 场景导航 × API-002 运营动作封装）：计划文档 `scrm-platform/docs/2026-08-23-second-tier-plan.md`（scrm 5967c24）。阶段 0：`scrm_automation`/`scrm_activities` presets 改 active/100（scrm 5967c24）+ 生产 FeatureFlagService enable + setRolloutPercentage(100)（seedPresets 幂等只创建不更新，须显式调）。阶段 1：scene-context 接口（scrm c344951）+ ConsoleLayout AI/传统模式切换（localStorage `console.navMode`，默认 AI）+ SceneLandingPage + `/console/scene/:slug` 路由，部署后 rsync console 产物。阶段 2：框架 template_card SDK（f96791a3：sendTemplateCard + TYPE_TEMPLATE_CARD 事件）+ wecom_confirm_tasks 确认流（task_no/token/expires_at/status，回调验签 + FromUserName 防冒用，同意后触发 ExternalGroupPushService，scrm 196d38a）+ EvalCampaignSkill 评测活动闭环（起草→活动→活码→群发草稿→员工确认卡，scrm 3941ec4）+ 场景卡片 skill 接线（`POST /api/v1/scrm/scene/skills/eval-campaign` + 小秘书工具 `eval_campaign` risk=L2）。生产验证全过：路由/工具注册/卡片接线/驱动能力/迁移记录。
+- ✅ 2026-08-23 H5 SEO/GEO M2+M3 直出与 sitemap（原 TODO-SEO-002/003）：M2 课程页 PHP 直出（scrm 67c2605，`app/Modules/Seo/` + nginx 分流 `seo_direct_out_paths` + `$is_seo_bot` map；付费内容数据层白名单不直出，真人 302 回 SPA）。M3 商品/活动直出 + JSON-LD（Course/Product/Event/Organization/BreadcrumbList）+ `/sitemap.xml` 按域名输出已发布内容 URL（scrm 46c52cb，框架 domain c3759895 robots.txt 联动 + 直出页 `Cache-Control: public, max-age=600`）。遗留：课程评价直出（方案 B2 标注「字段实施时确认，本期未做」）与预存 27 个测试失败清理（单列）保留未排期。
 - ✅ 2026-08-23 企微开放能力盘点（原 TODO-API-001）：产出 `scrm-platform/docs/2026-08-23-wecom-open-capability-inventory.md`——SDK 24 方法 × 官方端点 × 业务落地对照表；运营动作矩阵覆盖群发/接龙/入群/消息确认四项；自动化边界 9 条（接龙无 API/禁言无 API/群公告受限等）；缺口清单按方向二优先级排序（template_card 回调 P0/联系我活码 P1/朋友圈 P2）。结论：API-002 最小可行路径 = 复用企业群发员工确认流 + 补 template_card 卡片回调。
 - ✅ 2026-08-23 H5 SEO/GEO M1 SPA 基础 SEO 化（原 TODO-SEO-001，front 359ba3d+a9b2e4d）：history 路由 + 旧 hash 链接重定向 + 入口 description/OG/JSON-LD + useSeoMeta 接 6 页（canonical 自指）；实测发现 uni-app 构建清空 title，新增 `scripts/patch-h5-seo.mjs` 构建后回填（已验证产物元数据齐全）。同步修复活动域死页：campaign 页重建为活动中心列表页（迁 Activity API）、首页推荐接真实列表、删除 410 端点函数。待办：产物部署 + 真机验证（刷新不 404/旧链跳转）。
 - ✅ 2026-08-23 铁律存量清理：uniqid 自造 ID 扫描与修复（原 TODO-SCRM-004 + SCRM-008 uniqid 部分，scrm b5b19b8）。修复 4 处：SopService(sop_id)/AutoWelcomeService(rule_id)/KeywordReplyService(rule_id)/BroadcastService(task_id) 均改 `IdGeneratorContract::generate()`。扫描定性清单：① 已修 4 处（Cache 记录标识）；② 非违规保留：PayoutOrder 打款流水号（业务单号）、Distributor 邀请码、AgentService session_id（会话分组字段非主键）、Customer 占位邮箱/随机密码、MaterialShare 分享令牌；③ 框架侧 5 处为签名 nonce/临时文件名/沙箱名，非主键。测试 71 passed。

@@ -35,19 +35,39 @@ class SocialiteService
     }
 
     /**
-     * 解析租户 OAuth 回调完整 URL
+     * 解析租户 OAuth 回调完整 URL（统一回调域优先）
      *
-     * 优先使用 TenantSetting 中存储的值：
-     * - 已是完整 URL（http 开头）→ 直接使用
-     * - 相对路径或未设置 → 基于租户 domain 动态拼接
+     * 配置 OAUTH_CALLBACK_DOMAIN（平台级虚拟 IDP）后：
+     * - 所有租户回调统一指向 https://{callback_domain}/api/v1/auth/{provider}/callback
+     * - 租户在微信后台只需配置一次回调域，改自定义域名不再断登录
+     * - 租户显式存储的完整 URL 仍被尊重（租户自选回调地址）
+     *
+     * 未配置统一回调域时回退到按租户域名推导（resolveTenantRedirectUrl）。
      */
     public function resolveRedirectUrl(int $tenantId, string $provider, string $storedRedirect = ''): string
     {
-        // 已存储完整 URL
+        // 已存储完整 URL（显式覆盖）
         if ($storedRedirect && str_starts_with($storedRedirect, 'http')) {
             return $storedRedirect;
         }
 
+        // 平台统一回调域
+        $callbackDomain = config('auth.oauth.callback_domain', '');
+        if ($callbackDomain !== '') {
+            return "https://{$callbackDomain}/api/v1/auth/{$provider}/callback";
+        }
+
+        return $this->resolveTenantRedirectUrl($tenantId, $provider, $storedRedirect);
+    }
+
+    /**
+     * 基于租户域名推导回调 URL（原逻辑）
+     *
+     * 供 IDP 委托模式（delegated）使用：该场景微信回调域归企业 IDP 管理，
+     * 本系统回调地址不受微信回调域限制，保持租户域/自定义地址即可。
+     */
+    public function resolveTenantRedirectUrl(int $tenantId, string $provider, string $storedRedirect = ''): string
+    {
         // 基于租户域名动态拼接（路由前缀 /api/v1）
         $domain = Tenant::where('tenant_id', $tenantId)->value('domain');
 
@@ -120,27 +140,31 @@ class SocialiteService
      *
      * 委托模式优先：若租户配置了 oauth_mode=delegated，跳转到认证中心
      * 支付宝使用 RSA2 签名的独立授权流程，不走 Socialite 驱动
+     *
+     * @param  string  $originDomain  用户来源域名（登录页所在租户域，回调后回跳）
      */
-    public function getRedirectUrl(string $provider, int $tenantId): string
+    public function getRedirectUrl(string $provider, int $tenantId, string $originDomain = ''): string
     {
         // 委托模式：跳转到公司认证中心
         $idp = app(IdentityProviderOAuthService::class);
         if ($idp->isConfigured($tenantId)) {
-            return $idp->getRedirectUrl($tenantId, $provider);
+            return $idp->getRedirectUrl($tenantId, $provider, $originDomain);
         }
 
         if ($provider === 'alipay') {
-            return app(AlipayOAuthService::class)->getAuthorizeUrl($tenantId);
+            return app(AlipayOAuthService::class)->getAuthorizeUrl($tenantId, $originDomain);
         }
 
         if ($provider === 'wechat_work') {
-            return app(WechatWorkOAuthService::class)->getAuthorizeUrl($tenantId);
+            return app(WechatWorkOAuthService::class)->getAuthorizeUrl($tenantId, $originDomain);
         }
 
         if ($provider === 'wechat') {
-            return app(WechatOAuthService::class)->getAuthorizeUrl($tenantId);
+            return app(WechatOAuthService::class)->getAuthorizeUrl($tenantId, $originDomain);
         }
 
+        // 通用 provider（Socialite）：state 由 Socialite 管理，无法携带来源上下文，
+        // 回调后回跳租户默认域名（后台场景域名固定，无影响）
         $this->configureDriver($provider, $tenantId);
 
         try {

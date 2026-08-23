@@ -16,9 +16,9 @@ class TenantOAuthController extends Controller
     use AuthorizesTenantAccess;
 
     /**
-     * 从请求解析租户 ID（支持 domain 查询参数）
+     * 从请求解析租户 ID
      *
-     * 优先级：domain 查询参数 > TenantContext
+     * 优先级：domain 查询参数 > TenantContext > state 前缀（统一回调域）
      * OAuth 公开端点需要显式指定租户域名
      */
     protected function resolveTenantId(Request $request): ?int
@@ -37,6 +37,20 @@ class TenantOAuthController extends Controller
         // 回退到 TenantContext
         if ($id = TenantContext::getId()) {
             return (int) $id;
+        }
+
+        // 统一回调域（OAUTH_CALLBACK_DOMAIN）：回调请求 Host 为平台统一域，
+        // 无法解析租户域名 → 从 state 前缀 {tenantId}. 恢复（state 由本系统签发，
+        // 篡改前缀无法通过后续 verifyState 校验）
+        $state = (string) $request->query('state', '');
+        if (preg_match('/^(\d{4,20})\./', $state, $m)) {
+            $tenantId = Tenant::where('tenant_id', (int) $m[1])
+                ->where('status', 'active')
+                ->value('tenant_id');
+
+            if ($tenantId) {
+                return (int) $tenantId;
+            }
         }
 
         return null;
@@ -81,8 +95,14 @@ class TenantOAuthController extends Controller
             return response()->json(['success' => false, 'message' => 'tenant_not_found'], 404);
         }
 
+        // 来源域名（用户当前所在租户域），回调后回跳；必须属于该租户，防 open redirect
+        $originDomain = strtolower((string) $request->query('origin_domain', ''));
+        if ($originDomain !== '') {
+            $this->assertOriginDomain($tenantId, $originDomain);
+        }
+
         try {
-            $url = app(SocialiteService::class)->getRedirectUrl($provider, $tenantId);
+            $url = app(SocialiteService::class)->getRedirectUrl($provider, $tenantId, $originDomain);
         } catch (\RuntimeException $e) {
             // provider 未配置/不存在 → 422（避免 500）
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
@@ -109,6 +129,9 @@ class TenantOAuthController extends Controller
         // delegated 模式：IdP 已担保用户身份，跳过联系方式检测
         $isDelegated = app(IdentityProviderOAuthService::class)->isConfigured($tenantId);
 
+        // 回跳来源域（state 上下文恢复），未携带则回退租户默认域
+        $originDomain = $result['origin_domain'] ?? '';
+
         // direct 模式：检查用户是否已绑定有效联系方式（phone/email 已验证）
         $user = User::find($result['user']['user_id']);
         if (! $isDelegated && $user && ! $this->hasVerifiedContact($user)) {
@@ -119,22 +142,26 @@ class TenantOAuthController extends Controller
             return $this->redirectToH5($request, $tenantId, [
                 'needs_bindcontact' => '1',
                 'pending_token' => $pendingToken,
-            ]);
+            ], $originDomain);
         }
 
         // 正常登录：重定向到 H5 带 token
         return $this->redirectToH5($request, $tenantId, [
             'token' => $result['token'],
             'user_id' => $result['user']['user_id'],
-        ]);
+        ], $originDomain);
     }
 
     /**
      * 重定向到 H5 前端（OAuth 回调后浏览器跳转）
+     *
+     * @param  string  $originDomain  用户来源域名（优先回跳），空则回退租户默认域
      */
-    protected function redirectToH5(Request $request, int $tenantId, array $params)
+    protected function redirectToH5(Request $request, int $tenantId, array $params, string $originDomain = '')
     {
-        $domain = Tenant::where('tenant_id', $tenantId)->value('domain');
+        $domain = $originDomain !== ''
+            ? $originDomain
+            : Tenant::where('tenant_id', $tenantId)->value('domain');
         $base = $domain ? "https://{$domain}" : '';
 
         $query = http_build_query($params);
@@ -154,6 +181,28 @@ class TenantOAuthController extends Controller
         }
 
         return redirect("{$base}/h5/#/pages/auth/callback?{$query}");
+    }
+
+    /**
+     * 校验来源域名属于租户（防 open redirect）
+     *
+     * 合法范围：租户自定义域名精确匹配，或平台通配基础域的子域
+     * （{tenant_id}.{base} / {slug}.{base} 等租户接入形态）。
+     */
+    protected function assertOriginDomain(int $tenantId, string $originDomain): void
+    {
+        $tenant = Tenant::find($tenantId);
+
+        if ($tenant && $tenant->domain === $originDomain) {
+            return;
+        }
+
+        $wildcardBase = strtolower((string) config('domain.wildcard_base', ''));
+        if ($wildcardBase !== '' && ($originDomain === $wildcardBase || str_ends_with($originDomain, ".{$wildcardBase}"))) {
+            return;
+        }
+
+        abort(422, 'invalid_origin_domain');
     }
 
     /**

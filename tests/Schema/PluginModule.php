@@ -166,6 +166,10 @@ class PluginModule implements SchemaModuleInterface
             $table->bigInteger('user_id')->unsigned();
             $table->string('provider', 50);
             $table->string('provider_id', 100);
+            $table->string('unionid', 64)->nullable()->index();
+            $table->string('openid', 128)->nullable();
+            $table->string('appid', 64)->nullable();
+            $table->string('session_key', 128)->nullable();
             $table->string('provider_email')->nullable();
             $table->string('provider_name')->nullable();
             $table->string('provider_avatar', 500)->nullable();

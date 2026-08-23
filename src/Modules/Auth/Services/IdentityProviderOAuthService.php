@@ -37,8 +37,10 @@ class IdentityProviderOAuthService
 {
     /**
      * 获取委托登录跳转 URL
+     *
+     * @param  string  $originDomain  用户来源域名（standard 协议随 state 存上下文）
      */
-    public function getRedirectUrl(int $tenantId, string $provider): string
+    public function getRedirectUrl(int $tenantId, string $provider, string $originDomain = ''): string
     {
         $base = $this->getBaseUrl($tenantId);
         $callbackUrl = $this->resolveCallbackUrl($tenantId, $provider);
@@ -46,8 +48,8 @@ class IdentityProviderOAuthService
         if ($this->getProtocol($tenantId) === 'standard') {
             // 标准协议：{login_path}?client_id=&redirect_uri=&state=&provider=
             $state = Str::random(32);
-            // 存 state 到 cache（5 分钟有效）
-            Cache::put("idp_state:{$state}", $tenantId, 300);
+            // 存 state 到 cache（5 分钟有效），上下文含租户与来源域
+            Cache::put("idp_state:{$state}", ['tenant_id' => $tenantId, 'origin_domain' => $originDomain], 300);
 
             $params = http_build_query([
                 'client_id' => $this->getClientId($tenantId),
@@ -101,11 +103,12 @@ class IdentityProviderOAuthService
             throw new DomainException(trans('common.invalid_request'));
         }
 
-        // 验证 state（防 CSRF）
-        $cachedTenant = Cache::pull("idp_state:{$state}");
-        if ($cachedTenant === null) {
+        // 验证 state（防 CSRF），兼容旧格式（直接存 tenantId 整数）
+        $cached = Cache::pull("idp_state:{$state}");
+        if ($cached === null) {
             throw new DomainException(trans('common.oauth_state_invalid'));
         }
+        $originDomain = is_array($cached) ? ($cached['origin_domain'] ?? '') : '';
 
         // 用 code 换 token（POST /token）
         $base = $this->getBaseUrl($tenantId);
@@ -127,7 +130,7 @@ class IdentityProviderOAuthService
         $data = $response->json();
         $idpUser = $data['user'] ?? [];
 
-        return $this->provisionUser($idpUser, $tenantId, $provider, $data['access_token'] ?? '');
+        return $this->provisionUser($idpUser, $tenantId, $provider, $data['access_token'] ?? '', $originDomain);
     }
 
     // ==================== 兼容模式（JWT 直传） ====================
@@ -206,7 +209,7 @@ class IdentityProviderOAuthService
     /**
      * 根据 IdP 返回的用户信息，查找或创建本地用户
      */
-    protected function provisionUser(array $idpUser, int $tenantId, string $provider, string $idpToken): array
+    protected function provisionUser(array $idpUser, int $tenantId, string $provider, string $idpToken, string $originDomain = ''): array
     {
         $mapped = $this->mapFields($idpUser, $tenantId);
 
@@ -235,7 +238,7 @@ class IdentityProviderOAuthService
             $this->syncUserProfile($oauthAccount->user, $mapped);
             $this->updateOAuthBindings($oauthAccount->user, $oauthBindings, $tenantId, $provider);
 
-            return $this->buildResult($oauthAccount->user, $provider);
+            return $this->buildResult($oauthAccount->user, $provider, $originDomain);
         }
 
         // 2. 通过 unionid 查找（跨 provider 匹配）
@@ -248,7 +251,7 @@ class IdentityProviderOAuthService
                     $this->syncUserProfile($byUnionid->user, $mapped);
                     $this->updateOAuthBindings($byUnionid->user, $oauthBindings, $tenantId, $provider);
 
-                    return $this->buildResult($byUnionid->user, $provider);
+                    return $this->buildResult($byUnionid->user, $provider, $originDomain);
                 }
             }
         }
@@ -261,7 +264,7 @@ class IdentityProviderOAuthService
                 $this->syncUserProfile($user, $mapped);
                 $this->recordIdpAccount($user, $guid, $nickname, $avatar, $tenantId, $provider, $idpToken, $oauthBindings);
 
-                return $this->buildResult($user, $provider);
+                return $this->buildResult($user, $provider, $originDomain);
             }
         }
 
@@ -273,7 +276,7 @@ class IdentityProviderOAuthService
                 $this->syncUserProfile($user, $mapped);
                 $this->recordIdpAccount($user, $guid, $nickname, $avatar, $tenantId, $provider, $idpToken, $oauthBindings);
 
-                return $this->buildResult($user, $provider);
+                return $this->buildResult($user, $provider, $originDomain);
             }
         }
 
@@ -383,7 +386,7 @@ class IdentityProviderOAuthService
         return self::DEFAULT_FIELD_MAPPING;
     }
 
-    protected function buildResult(User $user, string $provider): array
+    protected function buildResult(User $user, string $provider, string $originDomain = ''): array
     {
         return [
             'user' => [
@@ -393,6 +396,7 @@ class IdentityProviderOAuthService
                 'role' => $user->role,
             ],
             'token' => $user->createToken("{$provider}-login")->plainTextToken,
+            'origin_domain' => $originDomain,
         ];
     }
 
@@ -514,7 +518,9 @@ class IdentityProviderOAuthService
     /**
      * 回跳地址（IdP 授权完成后回调本系统的 URL）
      *
-     * 优先 idp_redirect_uri 配置覆盖，否则按租户域名自动推导
+     * 优先 idp_redirect_uri 配置覆盖，否则按租户域名自动推导。
+     * 委托模式（delegated）不参与平台统一回调域：该场景微信回调域归企业 IDP
+     * 管理，本系统回调地址不受微信回调域限制，保持租户域/自定义地址即可。
      * 支持 {provider} 占位符
      */
     public function resolveCallbackUrl(int $tenantId, string $provider): string
@@ -525,7 +531,7 @@ class IdentityProviderOAuthService
             return str_replace('{provider}', $provider, $custom);
         }
 
-        return app(SocialiteService::class)->resolveRedirectUrl($tenantId, $provider);
+        return app(SocialiteService::class)->resolveTenantRedirectUrl($tenantId, $provider);
     }
 
     protected function ensureTenantUser(User $user, int $tenantId): void

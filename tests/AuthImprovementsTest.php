@@ -750,7 +750,9 @@ class AuthImprovementsTest extends TestCase
         $state = $params['state'] ?? '';
 
         $this->assertNotEmpty($state);
-        $this->assertEquals(40, strlen($state));
+        // 新格式：{tenantId}.{random}（租户前缀供统一回调域恢复租户）
+        $this->assertStringStartsWith('1001.', $state);
+        $this->assertGreaterThanOrEqual(29, strlen($state));
 
         // 验证 state 存在于 Cache
         $cacheKey = sprintf('oauth_state:wechat_work:%d:%s', 1001, hash('sha256', $state));

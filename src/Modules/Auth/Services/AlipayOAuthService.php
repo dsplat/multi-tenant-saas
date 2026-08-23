@@ -81,12 +81,14 @@ class AlipayOAuthService
 
     /**
      * 生成授权跳转 URL
+     *
+     * @param  string  $originDomain  用户来源域名（回调后回跳）
      */
-    public function getAuthorizeUrl(int $tenantId): string
+    public function getAuthorizeUrl(int $tenantId, string $originDomain = ''): string
     {
         $config = $this->getConfig($tenantId);
 
-        $state = $this->generateState($tenantId, 'alipay');
+        $state = $this->generateState($tenantId, 'alipay', ['origin_domain' => $originDomain]);
 
         $params = [
             'app_id' => $config['app_id'],
@@ -111,7 +113,7 @@ class AlipayOAuthService
         $authCode = (string) request()->input('auth_code', '');
         $state = (string) request()->input('state', '');
 
-        $this->verifyState($state, $tenantId, 'alipay');
+        $context = $this->verifyState($state, $tenantId, 'alipay');
 
         if ($authCode === '') {
             throw new DomainException(trans('common.invalid_request'));
@@ -131,6 +133,7 @@ class AlipayOAuthService
                 'role' => $user->role,
             ],
             'token' => $user->createToken('alipay-login')->plainTextToken,
+            'origin_domain' => $context['origin_domain'] ?? '',
         ];
     }
 

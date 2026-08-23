@@ -68,12 +68,14 @@ class WechatOAuthService
 
     /**
      * 生成授权跳转 URL
+     *
+     * @param  string  $originDomain  用户来源域名（回调后回跳）
      */
-    public function getAuthorizeUrl(int $tenantId): string
+    public function getAuthorizeUrl(int $tenantId, string $originDomain = ''): string
     {
         $config = $this->getConfig($tenantId);
 
-        $state = $this->generateState($tenantId, 'wechat');
+        $state = $this->generateState($tenantId, 'wechat', ['origin_domain' => $originDomain]);
 
         $params = [
             'appid' => $config['app_id'],
@@ -94,14 +96,13 @@ class WechatOAuthService
         $code = (string) request()->input('code', '');
         $state = (string) request()->input('state', '');
 
-        $this->verifyState($state, $tenantId, 'wechat');
+        $context = $this->verifyState($state, $tenantId, 'wechat');
 
         if ($code === '') {
             throw new DomainException(trans('common.invalid_request'));
         }
 
         $config = $this->getConfig($tenantId);
-
         // 通过 code 换取 access_token + openid + unionid
         $tokenData = $this->getAccessToken($config, $code);
         $accessToken = $tokenData['access_token'];
@@ -122,6 +123,7 @@ class WechatOAuthService
                 'role' => $user->role,
             ],
             'token' => $user->createToken('wechat-login')->plainTextToken,
+            'origin_domain' => $context['origin_domain'] ?? '',
         ];
     }
 

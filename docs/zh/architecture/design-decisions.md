@@ -268,6 +268,15 @@
 - `IdentifyTenant` 中间件按 9 个优先级源解析租户，不可信来源（URL/Header/Cookie）必须校验用户归属
 - `RejectPlatformDomain` 阻止从平台域名访问 console 路由
 
+> **2026-08-23 决策更新（app 域路径前缀重新启用，限定 SEO 内容）**：
+> 共享域名路径前缀曾于 2026-08 初整体废除（cookie 串扰 / SEO 污染 / 与 nginx 基桩白名单分裂），
+> 2026-08-23 在 `platform_domains.app` 限定下重新启用：`app.{base}/{slug}/{type}-{id}.html`
+> 与 `{slug}.{base}/{type}-{id}.html` 双形态等价直出（纯 SEO 内容设计）。边界：
+> - `IdentifyTenant` 第 7 级 `resolveFromAppPath()`（16 位 tenant_id 直查 / slug 查，须 active）
+> - app 域不参与 canonical 收敛（`EnforceCanonicalEntry` 显式排除 host）
+> - app 域（含 `/{slug}/console` 形态）一律拒绝 console（nginx `host_is_app` + `EnforceDomainSegregation`）
+> - 业务入口（/console、API、SPA）仍以子域名/自定义域名为准
+
 ---
 
 ## 16. 为什么引入 AI Streaming 模块（Node SSE 引擎契约）

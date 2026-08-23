@@ -199,29 +199,32 @@ L56-58  无 PLATFORM_MAIN_DOMAIN / PLATFORM_CONSOLE_DOMAIN / PLATFORM_API_DOMAIN
 
 ## 七、建议统一动作（待用户确认后执行）
 
-> **2026-08-23 已实施：app slug 启用（识别链路）**——config 补 app 域、IdentifyDomain 精确匹配、
+> **2026-08-23 已全部实施（识别链路 + 内容面 + 生产）**——config 补 app 域、IdentifyDomain 精确匹配、
 > IdentifyTenant 新增第 7 级 app 路径前缀识别（resolveFromAppPath + resolveFromSlug 抽取）、
 > EnforceCanonicalEntry 放开约束（app 形态不收敛）、NginxConfigService::platformDomains() 补全、
-> 测试 72 断言全过；scrm .env 修占位符 + 补 WILDCARD_BASE/NGINX_*；neihang.conf 补 app/裸域。
-> 未完成：Seo 模块 app/{slug}/id-xxx.html 直出路由（待需求细节）、生产重生成基桩。
+> 测试全过；scrm .env 修占位符 + 补 WILDCARD_BASE/NGINX_*；neihang.conf 补 app/裸域；
+> 直出路由 `{type}-{id}.html` 双形态落地（scrm d2b1bb2）；app 域拒 console（框架 6399e722）；
+> sitemap 域感知 + slug 回退防死链（scrm 84473ce）；生产基桩重生成 + neihang.conf/maps 手工同步
+> + .env 补 PLATFORM_APP_DOMAIN + 全验证矩阵通过。
 
 ### 7.1 目标规范落地（对应 5.1 差距）
 
-1. ✅ **新增 app 域路径形态**（核心改造，2026-08-23 已完成）：IdentifyTenant 第 7 级
-   `resolveFromAppPath()`（app 域 + 路径第一段 slug，16 位 tenant_id 直查 / slug 查询），
-   `resolveFromSlug()` 与子域解析共用；EnforceCanonicalEntry 已放开约束并明确 app 形态不收敛
-   （SEO 内容页保持直出）。**待办**：scrm Seo 模块新增 `app/{slug}/id-xxx.html` 直出路由
-   （需求细节待确认：id-xxx 的 type-id 编码规则）；nginx `seo_direct_out_paths` 需新增
-   app 形态前缀（或基桩对 app 域单独分流）。
+1. ✅ **新增 app 域路径形态**（2026-08-23 全部完成）：IdentifyTenant 第 7 级
+   `resolveFromAppPath()`（app 域 + 路径第一段 slug，16 位 tenant_id 直查 / slug 查询，
+   须 slug_status=active），`resolveFromSlug()` 与子域解析共用；EnforceCanonicalEntry 显式
+   排除 app 域 host（内容页保持直出，框架 6399e722）；scrm Seo 模块直出路由
+   `/{type}-{id}.html` + `/{slug}/{type}-{id}.html` 双形态落地（scrm d2b1bb2）；
+   sitemap 域感知 contentBase 对 rejected slug 回退 tenant_id 防死链（scrm 84473ce）。
 2. ✅ **app 域入平台清单**：config/domain.php platform_domains 补 `app` 键；tenancy.platform_domains
    补 PLATFORM_APP_DOMAIN；NginxConfigService::platformDomains() 补 main/api/app；
    neihang.conf server_name 补 app.neihang.com + 裸域 neihang.com。
-3. 🟡 **RejectPlatformDomain 细化**：app 裸域拒 console auth、app/{slug} 放行（当前代码只拒
-   admin+www；app 域加入后需确认拒绝策略——见 5.1 A5）。
+3. ✅ **app 域拒 console（2026-08-23 实施）**：app 裸域与 `app/{slug}/` 路径形态一律拒绝
+   console（nginx `host_is_app` map 403 + EnforceDomainSegregation `isTenantSurface` 补
+   slug 形态正则，框架 6399e722），`app/{slug}/` 纯 SEO 内容放行。
 4. ✅ **修 .env**：scrm/.env 删除 L483-484 占位符重复定义（2026-08-23），补 PLATFORM_WILDCARD_BASE
    与 NGINX_*；框架/.env 删除 ADMIN_DOMAIN 重复（lyt.com）。
-5. 🟡 **重生成基桩**：待配置推送后上生产 `domains:generate-nginx --reload`（同步解决
-   sitemap.xml 404 + app 域白名单 + seo.map 平台域区块）。
+5. ✅ **生产重生成基桩（2026-08-23 完成）**：服务器 `domains:generate-nginx --reload` +
+   neihang.conf/maps 手工同步 + `.env` 补 PLATFORM_APP_DOMAIN + config:cache，全验证矩阵通过。
 6. 🟡 **清理旧文档**：废弃 nginx.conf.template / nginx-vhost.conf，更新 deploy_neihang.md §3.4、
    nginx-guide.md 形态表述、RejectPlatformDomain 注释、tenant.md §2.0 路径形态约束表述
    （已重新启用 app 域路径前缀）。

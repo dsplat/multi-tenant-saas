@@ -1,7 +1,7 @@
 # 租户体系
 
 > **文档性质**: 系统现状权威描述
-> **最后更新**: 2026-08-04
+> **最后更新**: 2026-08-23
 > **关联文档**: `docs/auth.md`（认证与权限）、`docs/zh/deployment/nginx-guide.md`（部署配置）
 > **已删除旧文档**: `docs/zh/architecture/multi-domain.md`、`docs/zh/guides/domain-config.md`（内容已合并入本文及 `nginx-guide.md`）
 
@@ -60,7 +60,7 @@ Tenant
 |---|---|
 | **域名 >> slug** | 有域名走域名，没域名走 slug。`tenants.domain` 是租户入口的唯一判定字段 |
 | 品牌域与服务域分离 | 平台品牌域（官网/后台）不与租户服务域混用 |
-| **子域名为唯一共享入口** | 不支持路径前缀（`/{slug}/`、`/{tenant_id}/`）；共享入口一律为 `{slug}.{base}` / `{tenant_id}.{base}`，与 nginx 基桩白名单同构，避免共享域 cookie 串扰与 SEO 污染 |
+| **子域名为主入口，app 域路径前缀仅限 SEO 内容** | 业务入口一律为 `{slug}.{base}` / `{tenant_id}.{base}` 子域名，与 nginx 基桩白名单同构；2026-08-23 起 `platform_domains.app`（如 `app.{base}`）重新启用路径前缀形态（`app/{slug}/...`），**纯 SEO 内容设计**——拒绝 console 服务、不参与 canonical 收敛（见 §2.5.2） |
 | 共享域名为默认 | 新租户零配置即可访问（`{tenant_id}.{base}` 兜底，无需单独 DNS/SSL 配置） |
 | 独立域名是特权 | 自定义 slug 二级域名需保证金，自定义域名需审核 |
 | 框架不硬编码域名 | 一切通过 `config/domain.php` + `.env` 注入 |
@@ -94,6 +94,15 @@ canonical(tenant) =
 租户 C：无可用 slug（slug_status=rejected）
   {tenant_id}.dsplat.com/h5/      → 200（兜底即规范）
 ```
+
+**app 域路径形态（2026-08-23 重新启用，仅限 SEO 内容）**：
+
+```
+app.{base}/{slug}/{type}-{id}.html  ⇔  {slug}.{base}/{type}-{id}.html
+```
+
+两种形态内容等价直出，但 app 域是 SEO 内容积累主域，**不参与 canonical 收敛**（内容页在
+app 域保持直出，防 301 破坏爬虫抓取）；app 域亦拒绝 console 服务。识别与边界详见 §2.5.2。
 
 **实现**：由 `EnforceCanonicalEntry` 中间件落地（web 组，紧跟 `IdentifyTenant` 之后）。
 约束：仅 GET/HEAD；XHR、JSON 请求不重定向；
@@ -133,7 +142,8 @@ canonical(tenant) =
 - `{wildcard_base}` = `config('domain.wildcard_base')`（如 `example.com`）
 - `{tenant_domain}` = `tenants.domain` 字段
 
-> 平台域名不含 app 域：租户前台不设共享路径前缀载体，一律走子域名/自定义域名。
+> 平台域名含 app 域（`platform_domains.app`）：app 域承载租户内容的 SEO 路径形态
+> （`app/{slug}/...`，纯 SEO 设计，拒绝 console 服务）；业务前台入口仍以子域名/自定义域名为准。
 > `{tenant_id}.{wildcard_base}` 与 `{slug}.{wildcard_base}` 同质，为白名单精确放行的零配置兜底。
 
 ### 2.2 免费层：通配子域名
@@ -210,12 +220,14 @@ pending → rejected（管理员拒绝，附原因）
 4. Cookie tenant_id（不可信，需归属校验）
 5. Session tenant_id
 6. 认证用户关联（Operator → operator_tenants / User → current_tenant_id）
-7. 通配子域名解析（16 位纯数字按 tenant_id 直查 / 否则按 slug 查，带缓存）
+7. 通配子域名 / app 域路径前缀解析（16 位纯数字按 tenant_id 直查 / 否则按 slug 查，带缓存；
+   app 域时路径第一段为租户标识，见 2.5.2）
 8. 未识别不兜底（EnsureTenantContext 返 403）
 ```
 
-> 已废除：共享域名路径前缀（app_domain/{slug}/、/{tenant_id}/）。平台域名不再包含 app 域，
-> 租户共享入口唯一形态为子域名，与 nginx 基桩白名单同构。
+> 2026-08 演进：共享域名路径前缀曾于 2026-08 初废除，**2026-08-23 在 app 域限定下重新启用**
+> （`app/{slug}/` 纯 SEO 内容形态，拒绝 console 服务，不参与 canonical 收敛）；
+> 业务入口仍为子域名/自定义域名。详见 §2.5.2。
 
 ### 2.5.1 域名类型分类模型（IdentifyDomain）
 
@@ -227,7 +239,7 @@ pending → rejected（管理员拒绝，附原因）
 | `console` | 租户管理后台面 | host 匹配 `PLATFORM_CONSOLE_DOMAIN` |
 | `api` | API 面 | host 匹配 `PLATFORM_API_DOMAIN`（可选）或路径声明 `/api` |
 | `default` | 平台主域/未归类 | host 匹配 `PLATFORM_MAIN_DOMAIN`；测试环境 localhost |
-| `app` | 租户入口面（兜底） | 自定义域名 / {slug}.{base} / {tenant_id}.{base} |
+| `app` | 租户入口面（兜底）+ SEO 内容主域 | 自定义域名 / {slug}.{base} / {tenant_id}.{base}；`platform_domains.app`（如 app.neihang.com）精确匹配归入 app 面，路径第一段为租户标识（§2.5.2） |
 
 判定序：**host 精确匹配（platform_domains，env 注入）> 单域名部署的路径声明
 （/admin、/console、/api，兼容无独立子域名的部署形态）> 兜底 app**。
@@ -252,6 +264,27 @@ EnforceCanonicalEntry（仅 web 组） → 只守护 app 面，301 收敛到规�
   不进 PHP，不在 PHP 层守护范围内
 - 框架不硬编码 SPA 挂载路径（/h5、/console 等命名是项目落地层决策，可改名）；
   重定向不改写路径，落地页跳转由项目入口层处理（如 nginx `location = /` → 302 /h5/）
+
+### 2.5.2 app 域路径形态（SEO 内容主域，2026-08-23 重新启用）
+
+`platform_domains.app`（如 `app.neihang.com`）重新启用路径前缀形态，**纯 SEO 内容设计**：
+
+```
+app.{base}/{slug}/{type}-{id}.html   ⇔   {slug}.{base}/{type}-{id}.html
+app.{base}/{slug}/sitemap.xml        ⇔   {slug}.{base}/sitemap.xml
+```
+
+| 边界 | 规则 |
+|---|---|
+| 租户识别 | `IdentifyTenant` 第 7 级 `resolveFromAppPath()`：app 域时取路径第一段——16 位纯数字按 `tenant_id` 直查 / 其余按 `slug` 查询（须 `slug_status=active`，带缓存） |
+| 内容直出 | `/{type}-{id}.html` 双形态等价（type ∈ course/product/event）；canonical 自指当前 URL |
+| canonical 收敛 | app 域 host 被 `EnforceCanonicalEntry` 显式排除（`hash_equals` 比对 `platform_domains.app`）——不参与子域收敛，内容页保持直出，防 301 破坏爬虫抓取 |
+| console 拒绝 | app 域（含 `/{slug}/console`、`/{slug}/api/v1/console` 路径形态）一律拒 console：nginx 层 `host_is_app` map → 403；PHP 层 `EnforceDomainSegregation::isTenantSurface` 正则覆盖 slug 形态 → 403 |
+| sitemap | `contentBase()` 域感知：app 域时 slug 前缀仅当 `slug_status=active`，否则回退 16 位 `tenant_id`（与识别链规则同构，防死链） |
+| SEO 收录 | app 域 `seo_allowed=1`（收录开放，AI 爬虫放行） |
+
+> 曾于 2026-08 初废除（cookie 串扰 / SEO 污染 / 与基桩白名单分裂），2026-08-23 在
+> app 域限定下重新启用：仅承载 SEO 直出内容，业务入口（/console、API、SPA）仍走子域名/自定义域名。
 
 ### 2.6 Slug 治理（三层防护）
 
@@ -644,6 +677,7 @@ Model::query() → WHERE tenant_id = {current_tenant_id}
 | 付费二级域名 | `{slug}.{wildcard_base}` | 0 | 禁止 | 403 |
 | 自定义域名 | `{tenant_domain}` | 1 | 开放 | 放行 |
 | 平台域名 | admin/app/console | 1 | 开放 | 放行 |
+| app 域路径形态 | `app.{base}/{slug}/...`（直出内容/sitemap） | 1 | 开放 | 放行 |
 
 policy 由单一 `$seo_allowed` 变量驱动：基桩同一条 `if ($block_ai_bot) return 403` 据此对子域名禁 GEO、对自定义域名开放 GEO。
 
@@ -713,9 +747,11 @@ policy 由单一 `$seo_allowed` 变量驱动：基桩同一条 `if ($block_ai_bo
 ## 十一、域名体系重构——代码修改范围
 
 > 本节记录从旧模型（通配子域名为主）迁移到共享域名 + 路径前缀模型的历史变更清单。
-> **⚠️ 2026-08 更正：路径前缀模型已整体废除**（共享域 cookie 串扰风险、SEO 污染、
-> 与 nginx 基桩白名单架构分裂）。`resolveFromPathPrefix()` 已删除，`platform_domains.app`
-> 已除名，租户共享入口唯一形态为子域名（{slug}.{base} / {tenant_id}.{base}），见 §2.0。
+> **⚠️ 2026-08 演进更正**：路径前缀模型曾于 2026-08 初整体废除（共享域 cookie 串扰风险、
+> SEO 污染、与 nginx 基桩白名单架构分裂），`resolveFromPathPrefix()` 删除、`platform_domains.app`
+> 除名；**2026-08-23 在 app 域限定下重新启用**——`resolveFromAppPath()` 重新加入（仅
+> `platform_domains.app` 触发，路径第一段为租户标识），`platform_domains.app` 恢复配置，
+> 但仅承载 SEO 内容直出（拒绝 console 服务），业务入口仍为子域名形态（见 §2.5.2）。
 
 ### 11.1 修改文件
 
@@ -746,7 +782,7 @@ policy 由单一 `$seo_allowed` 变量驱动：基桩同一条 `if ($block_ai_bo
 |---|---|
 | `slug_status` 加在 tenants 表而非 tenant_settings | 高频读取（每次请求），避免 settings 表查询开销 |
 | AI 评估为同步调用（非队列） | slug 设置是低频操作，同步体验更好 |
-| ~~路径解析仅在 `app_domain` 触发~~ | 已随路径前缀模型废除（2026-08） |
+| ~~路径解析仅在 `app_domain` 触发~~ | 曾随路径前缀模型废除（2026-08 初），2026-08-23 重新启用（`resolveFromAppPath`，仅 app 域路径形态，限 SEO 内容直出） |
 | 通配子域名解析为共享入口唯一形态 | 与 nginx 基桩白名单同构；子域名 host 级隔离 cookie/session |
 | 框架不硬编码任何具体域名 | 所有域名通过 env 注入，避免泄露部署信息 |
 

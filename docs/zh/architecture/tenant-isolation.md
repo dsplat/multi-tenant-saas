@@ -1,6 +1,6 @@
 # 租户隔离架构
 
-**最后更新**: 2026-08-04
+**最后更新**: 2026-08-23
 
 ---
 
@@ -20,19 +20,21 @@
 
 **职责**：按优先级从多个来源解析租户 ID，验证后注入请求属性和全局上下文。
 
-**识别优先级**（9 个来源）：
+**识别优先级**（8 个来源，2026-08-23 更新：第 7 级合并通配子域名与 app 域路径前缀）：
 
 | 优先级 | 来源 | 说明 |
 |--------|------|------|
 | 1（最高） | URL 参数 `?tenant_id=` / `?tid=` | API 调试、显式指定（不可信，需校验归属） |
 | 2 | Header `X-Tenant-ID` | 标准 API 调用（不可信，需校验归属） |
 | 3 | 自定义域名 DB 查询 | 企业域名自动识别（可信，域名即归属证明） |
-| 4 | 共享域名路径前缀 | `app_domain/{slug}/` 或 `app_domain/{tenant_id}/`（可信） |
-| 5 | Cookie `tenant_id` | Web 会话（不可信，需校验归属） |
-| 6 | Session `tenant_id` | 登录后持久化 |
-| 7 | 认证用户 | Operator/User 的关联租户（多租户 Operator 通过 header 切换） |
-| 8 | 通配子域名 slug 解析 | `*.dsplat.com` 旧模式兼容（优先级降低） |
-| 9（兜底） | 未识别域名不兜底 | 由 `EnsureTenantContext` 返回 403 |
+| 4 | Cookie `tenant_id` | Web 会话（不可信，需校验归属） |
+| 5 | Session `tenant_id` | 登录后持久化 |
+| 6 | 认证用户 | Operator/User 的关联租户（多租户 Operator 通过 header 切换） |
+| 7 | 通配子域名 / app 域路径前缀解析 | 子域名前缀 或 app 域（`platform_domains.app`）路径第一段：16 位纯数字按 tenant_id 直查，否则查 slug（须 `slug_status=active`，带缓存） |
+| 8（兜底） | 未识别域名不兜底 | 由 `EnsureTenantContext` 返回 403 |
+
+> 2026-08-23 演进：app 域路径前缀形态（`app.{base}/{slug}/...`）在限定 app 域下重新启用，
+> 仅承载 SEO 直出内容（拒绝 console 服务）；业务入口仍为子域名/自定义域名。
 
 **安全原则**：不可信来源（URL/Header/Cookie）解析的租户，必须校验已认证用户确实属于该租户（`tenant_users` 或 `operator_tenants` 表），防止越权。未认证请求不做归属校验（公开页面、OAuth 回调等）。
 

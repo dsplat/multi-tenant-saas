@@ -20,10 +20,12 @@
 ### TODO-SEO-004: 实施前待确认项
 
 1. 课程评价数据源与字段（entity_type='course' 多态表，昵称脱敏规则）
-2. 活动详情 URL 参数形态（event_id? campaign_id?），与直出路由对齐
-3. 商品详情 URL 参数形态（query 还是路径参数），决定 nginx location 写法
+2. ✅ 活动详情 URL 参数形态——2026-08-23 已解决：详情页改为路径形态 `{type}-{id}.html`
+   （type ∈ course/product/event，双形态：子域根路径 + `app/{slug}/` 路径），query 形态取消
+3. ✅ 商品详情 URL 参数形态——同上，统一 `{type}-{id}.html` 路径形态
 4. uni-app 构建产物中 index.html 的 title 处理行为（决定 A3 二选一）
-5. `sitemap.xml` 对二级域名（seo_allowed=0）的响应策略（200 空 / 404）
+5. ✅ `sitemap.xml` 对二级域名（seo_allowed=0）的响应策略——2026-08-23 已解决：sitemap 按域名
+   输出已发布内容（自定义域名/app 域可访问）；`contentBase()` 对 rejected slug 回退 tenant_id 防死链
 6. JSON-LD priceCurrency 货币符号来源（租户配置项是否存在）
 
 **部署约束**: 框架基桩改动 → push → scrm `composer update dsplat/*` + commit lock → incremental → 服务器 `domains:generate-nginx` + nginx reload；方案 A 走 front 仓 `deploy.py module --app h5`
@@ -254,6 +256,7 @@
 
 ## 已完成归档
 
+- ✅ 2026-08-23 直出路由路径形态升级（原 TODO-SEO-004 的 2/3/5）：详情页 `?id=` query 形态取消，改 `{type}-{id}.html` 路径形态双等价（`{slug}.{base}/course-123.html` ⇔ `app.{base}/{slug}/course-123.html`，scrm d2b1bb2 + 框架 b35c8091）。app 域纯 SEO 设计：拒绝 console（含 `/{slug}/console` 形态，框架 6399e722）、不参与 canonical 收敛（`EnforceCanonicalEntry` 排除 app host）、sitemap 域感知（`contentBase` 对 rejected slug 回退 tenant_id 防死链，scrm 84473ce）。生产验证矩阵全过（app 域 console 403 / 直出 200 / sitemap 可访问 / 子域回归）。
 - ✅ 2026-08-23 第二梯队三阶段计划全部完成（SCRM-005/006 开关 × NAV-001 场景导航 × API-002 运营动作封装）：计划文档 `scrm-platform/docs/2026-08-23-second-tier-plan.md`（scrm 5967c24）。阶段 0：`scrm_automation`/`scrm_activities` presets 改 active/100（scrm 5967c24）+ 生产 FeatureFlagService enable + setRolloutPercentage(100)（seedPresets 幂等只创建不更新，须显式调）。阶段 1：scene-context 接口（scrm c344951）+ ConsoleLayout AI/传统模式切换（localStorage `console.navMode`，默认 AI）+ SceneLandingPage + `/console/scene/:slug` 路由，部署后 rsync console 产物。阶段 2：框架 template_card SDK（f96791a3：sendTemplateCard + TYPE_TEMPLATE_CARD 事件）+ wecom_confirm_tasks 确认流（task_no/token/expires_at/status，回调验签 + FromUserName 防冒用，同意后触发 ExternalGroupPushService，scrm 196d38a）+ EvalCampaignSkill 评测活动闭环（起草→活动→活码→群发草稿→员工确认卡，scrm 3941ec4）+ 场景卡片 skill 接线（`POST /api/v1/scrm/scene/skills/eval-campaign` + 小秘书工具 `eval_campaign` risk=L2）。生产验证全过：路由/工具注册/卡片接线/驱动能力/迁移记录。
 - ✅ 2026-08-23 H5 SEO/GEO M2+M3 直出与 sitemap（原 TODO-SEO-002/003）：M2 课程页 PHP 直出（scrm 67c2605，`app/Modules/Seo/` + nginx 分流 `seo_direct_out_paths` + `$is_seo_bot` map；付费内容数据层白名单不直出，真人 302 回 SPA）。M3 商品/活动直出 + JSON-LD（Course/Product/Event/Organization/BreadcrumbList）+ `/sitemap.xml` 按域名输出已发布内容 URL（scrm 46c52cb，框架 domain c3759895 robots.txt 联动 + 直出页 `Cache-Control: public, max-age=600`）。遗留：课程评价直出（方案 B2 标注「字段实施时确认，本期未做」）与预存 27 个测试失败清理（单列）保留未排期。
 - ✅ 2026-08-23 企微开放能力盘点（原 TODO-API-001）：产出 `scrm-platform/docs/2026-08-23-wecom-open-capability-inventory.md`——SDK 24 方法 × 官方端点 × 业务落地对照表；运营动作矩阵覆盖群发/接龙/入群/消息确认四项；自动化边界 9 条（接龙无 API/禁言无 API/群公告受限等）；缺口清单按方向二优先级排序（template_card 回调 P0/联系我活码 P1/朋友圈 P2）。结论：API-002 最小可行路径 = 复用企业群发员工确认流 + 补 template_card 卡片回调。

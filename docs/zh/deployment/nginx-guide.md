@@ -1,6 +1,6 @@
 # Nginx 配置指南
 
-**最后更新**: 2026-08-08
+**最后更新**: 2026-08-23
 
 本指南描述租户域名接入层的 nginx 产物与部署方式。所有产物由框架 `NginxConfigService` 自动生成，**无需手写租户域名配置**。模块设计详见 `docs/tenant.md` 第二节与第八节。
 
@@ -247,6 +247,8 @@ curl -sk --noproxy "*" --resolve $D:443:127.0.0.1 https://$D/robots.txt
 |---|---|---|---|---|
 | 自定义域名（seo_allowed=1）| 200 | 200（GEO 开放）| 无 | `Allow: /` |
 | 二级域名 / t-xxxxxx（seo_allowed=0）| 200 | 403 | `noindex, nofollow` | `Disallow: /` |
+| app 域路径形态 `app.{base}/{slug}/course-1.html` | 200（直出） | 200（GEO 开放）| 无 | `Allow: /` |
+| app 域 console（`app.{base}/console`、`/{slug}/console`）| 403（nginx `host_is_app`）| — | — | — |
 | 恶意域名（domain_allowed=0）| 444 断连 | — | — | — |
 
 ### 常见问题

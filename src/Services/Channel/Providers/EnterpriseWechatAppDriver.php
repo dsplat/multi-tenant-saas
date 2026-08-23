@@ -108,6 +108,23 @@ class EnterpriseWechatAppDriver implements ChannelContract
             )];
         }
 
+        // 模板卡片事件（template_card_event，按钮点击：TaskId + ButtonKey 回传）：
+        // 不进消息链路，由 ChannelWebhookController 分发为 WechatWorkExternalEvent
+        if ($event === WechatWorkExternalEvent::TYPE_TEMPLATE_CARD) {
+            return [new InboundMessage(
+                channel: self::TYPE,
+                conversationType: 'event',
+                externalConvId: $this->str($payload['FromUserName'] ?? ''),
+                senderExternalId: $this->str($payload['FromUserName'] ?? ''),
+                senderType: self::SENDER_INTERNAL,
+                msgType: 'event',
+                content: '',
+                platformMsgId: null,
+                conversationTitle: null,
+                raw: $payload,
+            )];
+        }
+
         // 群聊回调带 ChatId（事件/消息均然）；应用回调不推送群消息正文，仅建/维会话
         $chatId = $this->str($payload['ChatId'] ?? '');
 

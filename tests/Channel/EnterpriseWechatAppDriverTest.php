@@ -235,6 +235,33 @@ class EnterpriseWechatAppDriverTest extends TestCase
         $this->assertSame([], $this->driver->parseInbound($body, []));
     }
 
+    public function test_parse_inbound_template_card_event(): void
+    {
+        // 模板卡片按钮点击回调：Event=template_card_event，TaskId + ButtonKey 回传
+        $plainXml = '<xml>'
+            . '<ToUserName><![CDATA[wwcorp123]]></ToUserName>'
+            . '<FromUserName><![CDATA[zhangsan]]></FromUserName>'
+            . '<MsgType><![CDATA[event]]></MsgType>'
+            . '<Event><![CDATA[template_card_event]]></Event>'
+            . '<TaskId><![CDATA[confirm-20260823-0001]]></TaskId>'
+            . '<CardType><![CDATA[text_notice]]></CardType>'
+            . '<EventKey><![CDATA[agree:abc123]]></EventKey>'
+            . '</xml>';
+
+        $body = $this->encryptedBody($plainXml);
+        $messages = $this->driver->parseInbound($body, []);
+
+        $this->assertCount(1, $messages);
+        $msg = $messages[0];
+        $this->assertSame('event', $msg->msgType);
+        $this->assertSame('event', $msg->conversationType);
+        $this->assertSame('zhangsan', $msg->senderExternalId);
+        $this->assertSame('internal', $msg->senderType);
+        $this->assertSame('template_card_event', $msg->raw['Event']);
+        $this->assertSame('confirm-20260823-0001', $msg->raw['TaskId']);
+        $this->assertSame('agree:abc123', $msg->raw['EventKey']);
+    }
+
     public function test_parse_inbound_ignores_empty_from_user(): void
     {
         $plainXml = '<xml>'

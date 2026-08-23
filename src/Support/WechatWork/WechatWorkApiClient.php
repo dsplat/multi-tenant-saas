@@ -120,6 +120,25 @@ class WechatWorkApiClient
     }
 
     /**
+     * 发送模板卡片应用消息（template_card，按钮点击经回调回传 task_id + key）
+     *
+     * @param  string  $toUser  接收人 userid
+     * @param  array<string, mixed>  $card  template_card 内容体：
+     *   - task_id: 卡片任务 ID（按钮回调原样回传，用于业务定位）
+     *   - main_title: {title, desc}
+     *   - sub_title_text: string
+     *   - horizontal_content_list: [{keyname, value}]
+     *   - button_list: [{text, style, key}]（style: 1 主按钮 / 2 次按钮）
+     */
+    public function sendTemplateCard(string $toUser, array $card): bool
+    {
+        return $this->sendMessage($toUser, [
+            'msgtype' => 'template_card',
+            'template_card' => $card,
+        ]);
+    }
+
+    /**
      * 发送应用群聊消息（appchat/send，面向内部群 chatid）
      *
      * 与 message/send 不同：群聊不带 agentid/touser，改以 chatid 为接收方。

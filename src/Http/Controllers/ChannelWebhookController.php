@@ -81,11 +81,15 @@ class ChannelWebhookController
         $inboundMessages = $provider->parseInbound($rawBody, $query);
 
         foreach ($inboundMessages as $inbound) {
-            // 外部联系/客户群事件：不进入消息链路，分发为业务事件（scrm 监听处理）
+            // 外部联系/客户群/模板卡片事件：不进入消息链路，分发为业务事件（scrm 监听处理）
             $eventType = $inbound->raw['Event'] ?? '';
 
             if ($inbound->msgType === 'event'
-                && in_array($eventType, [WechatWorkExternalEvent::TYPE_CHAT, WechatWorkExternalEvent::TYPE_CONTACT], true)) {
+                && in_array($eventType, [
+                    WechatWorkExternalEvent::TYPE_CHAT,
+                    WechatWorkExternalEvent::TYPE_CONTACT,
+                    WechatWorkExternalEvent::TYPE_TEMPLATE_CARD,
+                ], true)) {
                 $this->dispatchExternalEvent($tenantId, $eventType, $inbound->raw);
 
                 continue;

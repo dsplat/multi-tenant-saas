@@ -275,4 +275,47 @@ class WechatWorkApiClientTest extends TestCase
         Http::assertSent(fn ($request) => str_contains($request->url(), '/externalcontact/send_welcome_msg')
             && $request['welcome_code'] === 'CALLBACK_WELCOME_CODE');
     }
+
+    public function test_send_template_card_success(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            '*/message/send*' => Http::response(['errcode' => 0, 'errmsg' => 'ok']),
+        ]);
+
+        $ok = $this->client->sendTemplateCard('zhangsan', [
+            'task_id' => 'confirm-20260823-0001',
+            'card_type' => 'text_notice',
+            'main_title' => ['title' => '请确认发送', 'desc' => '评测活动群发内容已就绪'],
+            'button_list' => [
+                ['text' => '同意', 'style' => 1, 'key' => 'agree:confirm-20260823-0001'],
+                ['text' => '拒绝', 'style' => 2, 'key' => 'reject:confirm-20260823-0001'],
+            ],
+        ]);
+
+        $this->assertTrue($ok);
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/message/send')
+            && $request['msgtype'] === 'template_card'
+            && $request['touser'] === 'zhangsan'
+            // 既有测试 client agentId='agent1'，sendMessage 内 (int) 转换后为 0
+            && $request['agentid'] === 0
+            && $request['template_card']['task_id'] === 'confirm-20260823-0001'
+            && count($request['template_card']['button_list']) === 2);
+    }
+
+    public function test_send_template_card_failure_returns_false(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            '*/message/send*' => Http::response(['errcode' => 93000, 'errmsg' => 'invalid template card']),
+        ]);
+
+        $ok = $this->client->sendTemplateCard('zhangsan', [
+            'task_id' => 'confirm-20260823-0002',
+            'card_type' => 'text_notice',
+            'main_title' => ['title' => 't'],
+        ]);
+
+        $this->assertFalse($ok);
+    }
 }

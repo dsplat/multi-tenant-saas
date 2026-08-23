@@ -26,6 +26,9 @@ class WechatWorkExternalEvent
     /** 外部联系人事件（添加/删除客户） */
     public const TYPE_CONTACT = 'change_external_contact';
 
+    /** 模板卡片事件（按钮点击，task_id + button key 回传） */
+    public const TYPE_TEMPLATE_CARD = 'template_card_event';
+
     public function __construct(
         public readonly int $tenantId,
         public readonly string $eventType,

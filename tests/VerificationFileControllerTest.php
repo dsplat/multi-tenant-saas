@@ -154,4 +154,56 @@ class VerificationFileControllerTest extends TestCase
             $this->assertTrue(true);
         }
     }
+
+    public function test_callback_domain_serves_registered_file_across_tenants(): void
+    {
+        // 企微/微信验证的是回调域（OAUTH_CALLBACK_DOMAIN），该域不属于任何租户，
+        // 需跨租户匹配已注册的文件名
+        config(['auth.oauth.callback_domain' => 'auth.neihang.com']);
+        TenantSetting::set(self::TENANT_ID, DomainService::GROUP_DOMAIN, DomainService::SETTING_THIRD_PARTY_VERIFY_FILES, [
+            'WW_verify_mLUxXhK2fEC6jPsB.txt',
+        ]);
+
+        $response = (new VerificationFileController)->file(
+            $this->requestTo('auth.neihang.com', '/WW_verify_mLUxXhK2fEC6jPsB.txt'),
+            'WW_verify_mLUxXhK2fEC6jPsB'
+        );
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('WW_verify_mLUxXhK2fEC6jPsB', $response->getContent());
+    }
+
+    public function test_callback_domain_unregistered_file_returns_404(): void
+    {
+        config(['auth.oauth.callback_domain' => 'auth.neihang.com']);
+
+        try {
+            (new VerificationFileController)->file(
+                $this->requestTo('auth.neihang.com', '/WW_verify_NotSaved000.txt'),
+                'WW_verify_NotSaved000'
+            );
+            $this->fail('Expected 404 for unregistered file on callback domain');
+        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+            $this->assertTrue(true);
+        }
+    }
+
+    public function test_platform_domain_without_callback_config_returns_404(): void
+    {
+        // 未配置统一回调域时，平台域上的验证文件请求不得放行（防任意平台域探测）
+        config(['auth.oauth.callback_domain' => '']);
+        TenantSetting::set(self::TENANT_ID, DomainService::GROUP_DOMAIN, DomainService::SETTING_THIRD_PARTY_VERIFY_FILES, [
+            'WW_verify_mLUxXhK2fEC6jPsB.txt',
+        ]);
+
+        try {
+            (new VerificationFileController)->file(
+                $this->requestTo('auth.neihang.com', '/WW_verify_mLUxXhK2fEC6jPsB.txt'),
+                'WW_verify_mLUxXhK2fEC6jPsB'
+            );
+            $this->fail('Expected 404 when callback domain not configured');
+        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+            $this->assertTrue(true);
+        }
+    }
 }

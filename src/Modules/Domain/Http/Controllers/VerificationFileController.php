@@ -9,6 +9,7 @@ use Illuminate\Http\Response;
 use MultiTenantSaas\Modules\Domain\Services\DomainService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
+use MultiTenantSaas\Scopes\TenantScope;
 
 /**
  * 域名验证文件动态服务控制器
@@ -25,6 +26,9 @@ use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
  *    的 301 收敛——验证文件必须在「域名尚未 approved」时即可访问，收敛会致验证失败
  *  - 控制器内按真实 Host 手动解析租户（tenants.domain 精确匹配 → {slug}.{base} 兜底），
  *    与 IdentifyTenant 第 3/7 级同规则；不信任 X-Original-Host 等可伪造头
+ *  - 平台统一回调域（OAUTH_CALLBACK_DOMAIN，如 auth.neihang.com）：微信/企微验证的
+ *    是回调域而非租户域名，该域无法解析租户 → 跨租户匹配文件名（微信下发的文件名
+ *    全局唯一，内容即文件名本身，无敏感数据）
  *  - 未命中一律 404（不区分「无此租户/无此文件」，避免探测）
  */
 class VerificationFileController
@@ -52,26 +56,52 @@ class VerificationFileController
 
     public function file(Request $request, string $file): Response
     {
-        $tenant = $this->resolveTenantByHost($request);
-
-        if (! $tenant) {
-            abort(404);
-        }
-
-        $files = TenantSetting::get(
-            (int) $tenant->tenant_id,
-            DomainService::GROUP_DOMAIN,
-            DomainService::SETTING_THIRD_PARTY_VERIFY_FILES,
-            []
-        );
-
         $fullName = $file . '.txt';
 
-        if (! is_array($files) || ! in_array($fullName, $files, true)) {
+        // 1. 租户域名（自定义域/通配子域）：按 Host 解析租户后查该租户的注册列表
+        $tenant = $this->resolveTenantByHost($request);
+
+        if ($tenant) {
+            $files = TenantSetting::get(
+                (int) $tenant->tenant_id,
+                DomainService::GROUP_DOMAIN,
+                DomainService::SETTING_THIRD_PARTY_VERIFY_FILES,
+                []
+            );
+
+            if (is_array($files) && in_array($fullName, $files, true)) {
+                return $this->plainText($file);
+            }
+
             abort(404);
         }
 
-        return $this->plainText($file);
+        // 2. 平台统一回调域（OAUTH_CALLBACK_DOMAIN）：微信/企微验证的是回调域，
+        //    该域不属于任何租户 → 跨租户匹配文件名（文件名全局唯一）
+        $host = strtolower((string) $request->getHost());
+        $callbackDomain = strtolower((string) config('auth.oauth.callback_domain', ''));
+
+        if ($callbackDomain !== '' && $host === $callbackDomain
+            && $this->fileRegisteredAcrossTenants($fullName)) {
+            return $this->plainText($file);
+        }
+
+        abort(404);
+    }
+
+    /**
+     * 跨租户匹配第三方验证文件名（仅平台回调域场景使用）
+     *
+     * 验证文件存于各租户 tenant_settings（domain 组 / third_party_verify_files，
+     * JSON 数组）；微信下发的文件名全局唯一，命中任一租户即返回。
+     */
+    protected function fileRegisteredAcrossTenants(string $fullName): bool
+    {
+        return TenantSetting::withoutGlobalScope(TenantScope::class)
+            ->where('group', DomainService::GROUP_DOMAIN)
+            ->where('key', DomainService::SETTING_THIRD_PARTY_VERIFY_FILES)
+            ->get()
+            ->contains(fn ($setting) => is_array($setting->value) && in_array($fullName, $setting->value, true));
     }
 
     /**

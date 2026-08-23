@@ -108,10 +108,10 @@
               </el-form-item>
               <el-form-item label="域名验证文件">
                 <div style="width: 100%; font-size: 12px">
-                  <div style="color: var(--el-text-color-secondary); margin-bottom: 6px">企业微信设置「授权回调域/可信域名」时下发的验证文件名（如 WW_verify_xxx），填入后系统自动在您的域名根路径提供该文件</div>
+                  <div style="color: var(--el-text-color-secondary); margin-bottom: 6px">企业微信设置「授权回调域/可信域名」时下发的验证文件名（如 WW_verify_xxx）。企微验证的是回调域名（{{ verifyDomain || '未配置回调域' }}），填入后系统自动在该域名根路径提供该文件</div>
                   <div v-for="f in verifyFiles" :key="f" style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px">
                     <code>{{ f }}</code>
-                    <a v-if="tenantDomain" :href="`https://${tenantDomain}/${f}`" target="_blank" rel="noopener">验证</a>
+                    <a v-if="verifyDomain" :href="`https://${verifyDomain}/${f}`" target="_blank" rel="noopener">验证</a>
                     <el-button link type="danger" size="small" @click="handleRemoveVerifyFile(f)">删除</el-button>
                   </div>
                   <div style="display: flex; gap: 6px; margin-top: 4px">
@@ -162,10 +162,10 @@
               </el-form-item>
               <el-form-item label="域名验证文件">
                 <div style="width: 100%; font-size: 12px">
-                  <div style="color: var(--el-text-color-secondary); margin-bottom: 6px">微信开放平台/公众号设置「授权回调域/网页授权域名」时下发的验证文件名（如 MP_verify_xxx），填入后系统自动在您的域名根路径提供该文件</div>
+                  <div style="color: var(--el-text-color-secondary); margin-bottom: 6px">微信开放平台/公众号设置「授权回调域/网页授权域名」时下发的验证文件名（如 MP_verify_xxx）。微信验证的是回调域名（{{ verifyDomain || '未配置回调域' }}），填入后系统自动在该域名根路径提供该文件</div>
                   <div v-for="f in verifyFiles" :key="f" style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px">
                     <code>{{ f }}</code>
-                    <a v-if="tenantDomain" :href="`https://${tenantDomain}/${f}`" target="_blank" rel="noopener">验证</a>
+                    <a v-if="verifyDomain" :href="`https://${verifyDomain}/${f}`" target="_blank" rel="noopener">验证</a>
                     <el-button link type="danger" size="small" @click="handleRemoveVerifyFile(f)">删除</el-button>
                   </div>
                   <div style="display: flex; gap: 6px; margin-top: 4px">
@@ -269,7 +269,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@stores/user'
@@ -354,11 +354,23 @@ const handleSave = async () => {
   }
 }
 
-// ─── 域名验证文件（微信/企微/支付宝回调域验证） ───────────────────
+// ─── 域名验证文件（微信/企微回调域验证） ───────────────────
 const tenantDomain = ref('')
 const verifyFiles = ref<string[]>([])
 const verifyFileInput = ref('')
 const verifyFilesSaving = ref(false)
+
+// 验证文件宿主域名 = 回调地址的域名（微信/企微验证的是回调域，而非租户自定义域名）；
+// 未配置统一回调域时回退租户自定义域名（租户以自有域名作回调域的场景）
+const verifyDomain = computed(() => {
+  const url = config.wechat_work.redirect || config.wechat.redirect
+  if (url) {
+    try {
+      return new URL(url).host
+    } catch {}
+  }
+  return tenantDomain.value
+})
 
 const loadVerifyFiles = async () => {
   try {

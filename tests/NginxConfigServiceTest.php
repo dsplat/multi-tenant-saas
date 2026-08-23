@@ -305,6 +305,7 @@ class NginxConfigServiceTest extends TestCase
         config(['domain.seo_direct_out_paths' => [
             'h5/pages/course/detail',
             '/h5/pages/event/detail/', // 首尾斜杠应被归一化
+            'sitemap.xml',             // 机器可读文件 → 精确匹配 + 非爬虫 404
         ]]);
         $stub = $service->renderTenantServerStub();
         $this->assertStringContainsString('location ^~ /h5/pages/course/detail {', $stub);
@@ -314,6 +315,9 @@ class NginxConfigServiceTest extends TestCase
         $this->assertStringContainsString('try_files $uri $uri/ /h5/index.html;', $stub);
         // add_header 继承规则：location 内须自行补 X-Robots-Tag
         $this->assertStringContainsString('add_header X-Robots-Tag $x_robots_tag always;', $stub);
+        // 机器可读文件：精确匹配且不落回 SPA（防假页面被收录）
+        $this->assertStringContainsString('location = /sitemap.xml {', $stub);
+        $this->assertStringContainsString('return 404;', $stub);
     }
 
     public function test_deploy_bundle_generates_seo_and_bot_maps(): void
@@ -350,6 +354,8 @@ class NginxConfigServiceTest extends TestCase
         $this->assertStringContainsString('location = /robots.txt', $stub);
         $this->assertStringContainsString('if ($seo_allowed = 1)', $stub);
         $this->assertStringContainsString('Disallow: /', $stub);
+        // 收录域名分支带 Sitemap 指引（B5：指向项目层直出路由）
+        $this->assertStringContainsString('Sitemap: https://$host/sitemap.xml', $stub);
 
         $this->removeDir($base);
     }

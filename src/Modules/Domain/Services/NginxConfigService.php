@@ -625,6 +625,20 @@ class NginxConfigService
         }
 
         $blocks = array_map(function (string $path): string {
+            // 机器可读文件（如 sitemap.xml）：精确匹配，无 SPA 落回（真人访问 404 即可，
+            // 若落回 /h5/index.html 反而会被收录为假页面）。
+            if (preg_match('/\.(xml|txt)$/i', $path)) {
+                return implode("\n", [
+                    "    # SEO 直出：/{$path}（爬虫 → PHP；非爬虫 404）",
+                    "    location = /{$path} {",
+                    '        if ($is_seo_or_ai_bot = 1) {',
+                    '            rewrite ^ /index.php?$query_string last;',
+                    '        }',
+                    '        return 404;',
+                    '    }',
+                ]);
+            }
+
             return implode("\n", [
                 "    # SEO 直出：/{$path}（爬虫 → PHP，真人 → SPA；^~ 最长前缀优先于 /h5/）",
                 "    location ^~ /{$path} {",

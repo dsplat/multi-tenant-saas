@@ -52,7 +52,9 @@ server {
         default_type "text/plain";
         add_header X-Robots-Tag $x_robots_tag always;
         if ($seo_allowed = 1) {
-            return 200 "User-agent: *\nAllow: /\n";
+            # Sitemap 指向项目层 PHP 直出路由（如 scrm Seo 模块 /sitemap.xml）；
+            # 未实现该路由时返回 404，不影响收录。索引一律走 https。
+            return 200 "User-agent: *\nAllow: /\nSitemap: https://$host/sitemap.xml\n";
         }
         return 200 "User-agent: *\nDisallow: /\n";
     }

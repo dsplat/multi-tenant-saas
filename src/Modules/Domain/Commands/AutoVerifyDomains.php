@@ -3,6 +3,8 @@
 namespace MultiTenantSaas\Modules\Domain\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use MultiTenantSaas\Modules\Domain\Services\DomainService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
@@ -41,10 +43,23 @@ class AutoVerifyDomains extends Command
             $query->where('tenant_id', $only);
         }
 
+        $tenants = $query->get(['tenant_id', 'name', 'domain']);
+
+        // 白名单死锁自愈：新配置/变更的域名若尚未进源站白名单，会被接入层基桩 444 断连，
+        // 验证文件永远不可达 → 永远无法通过审批。本命令经 cron 以 root 运行，
+        // 在此先检测白名单缺失并重生源站 nginx 产物（含 reload），打通验证链路。
+        if (! $dryRun && ! $this->option('no-nginx') && $this->whitelistStale($tenants)) {
+            if (Artisan::call('domains:generate-nginx', ['--reload' => true]) === 0) {
+                $this->info('源站白名单产物已补齐并 reload（存在已配置但未放行的域名）');
+            } else {
+                $this->warn('源站白名单产物重生失败，请人工执行：php artisan domains:generate-nginx --reload');
+            }
+        }
+
         $approved = [];
         $checked = 0;
 
-        foreach ($query->get(['tenant_id', 'name', 'domain']) as $tenant) {
+        foreach ($tenants as $tenant) {
             $tenantId = (int) $tenant->tenant_id;
 
             // 只轮询 pending：rejected（管理员驳回）不应被自动翻转，
@@ -95,6 +110,36 @@ class AutoVerifyDomains extends Command
     }
 
     /**
+     * 源站白名单是否缺失已配置的租户域名（缺失即验证文件不可达的死锁态）
+     *
+     * @param  Collection<int, Tenant>  $tenants
+     */
+    protected function whitelistStale($tenants): bool
+    {
+        if ($tenants->isEmpty()) {
+            return false;
+        }
+
+        $deployPath = (string) (config('domain.nginx_deploy_path') ?: base_path('deploy/nginx'));
+        $mapFile = $deployPath . '/maps/tenant-auth.map';
+
+        if (! is_file($mapFile)) {
+            return true;
+        }
+
+        $content = (string) file_get_contents($mapFile);
+
+        foreach ($tenants as $tenant) {
+            if ($tenant->domain
+                && ! preg_match('/^\s*' . preg_quote((string) $tenant->domain, '/') . '\s+1;/m', $content)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * 域名配置是否已超期（超过轮询窗口即停止检测）
      */
     protected function expired(int $tenantId): bool
@@ -111,6 +156,6 @@ class AutoVerifyDomains extends Command
             return false;
         }
 
-        return (int) \Illuminate\Support\Carbon::parse($generatedAt)->diffInDays(now()) > $maxAgeDays;
+        return (int) Carbon::parse($generatedAt)->diffInDays(now()) > $maxAgeDays;
     }
 }

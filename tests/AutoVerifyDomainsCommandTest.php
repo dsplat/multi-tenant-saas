@@ -2,10 +2,13 @@
 
 namespace MultiTenantSaas\Tests;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Http;
+use MultiTenantSaas\Modules\Domain\Commands\AutoVerifyDomains;
 use MultiTenantSaas\Modules\Domain\Services\DomainService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
+use MultiTenantSaas\Modules\Infrastructure\Services\SchedulerService;
 
 /**
  * domains:auto-verify 轮询命令测试
@@ -144,11 +147,41 @@ class AutoVerifyDomainsCommandTest extends TestCase
 
     public function test_scheduler_registers_domain_auto_verify_task(): void
     {
-        $scheduler = app(\MultiTenantSaas\Modules\Infrastructure\Services\SchedulerService::class);
-        $scheduler->register(new \Illuminate\Console\Scheduling\Schedule);
+        $scheduler = app(SchedulerService::class);
+        $scheduler->register(new Schedule);
         $tasks = $scheduler->getTasks();
 
         $this->assertArrayHasKey('domain-auto-verify', $tasks);
         $this->assertSame('domains:auto-verify', $tasks['domain-auto-verify']['command']);
+    }
+
+    public function test_whitelist_stale_detection_triggers_self_heal_gate(): void
+    {
+        // 白名单死锁自愈的前置检测：已配置域名不在源站白名单 → 判为过期（命令随后重生产物）；
+        // 补齐后不再判过期（避免每 15 分钟无谓 reload）。（Testbench Console Kernel 为 final
+        // 无法 mock Artisan 门面，此处反射验证检测分支）
+        $deployPath = sys_get_temp_dir() . '/auto-verify-whitelist-' . self::TENANT_ID;
+        @mkdir($deployPath . '/maps', 0777, true);
+        file_put_contents($deployPath . '/maps/tenant-auth.map', "map \$host \$domain_allowed {\n    default 0;\n}\n");
+        config(['domain.nginx_deploy_path' => $deployPath]);
+
+        $command = app(AutoVerifyDomains::class);
+        $method = new \ReflectionMethod($command, 'whitelistStale');
+        $method->setAccessible(true);
+        $tenants = Tenant::where('tenant_id', self::TENANT_ID)->get();
+
+        // 域名不在白名单 → 过期（死锁态，需重生）
+        $this->assertTrue($method->invoke($command, $tenants));
+
+        // 补齐域名后 → 不再判过期（精确行匹配，带 1; 放行标记）
+        file_put_contents(
+            $deployPath . '/maps/tenant-auth.map',
+            "map \$host \$domain_allowed {\n    " . self::DOMAIN . "              1;\n}\n"
+        );
+        $this->assertFalse($method->invoke($command, $tenants));
+
+        // map 文件不存在 → 视为过期（产物未生成同样死锁）
+        @unlink($deployPath . '/maps/tenant-auth.map');
+        $this->assertTrue($method->invoke($command, $tenants));
     }
 }

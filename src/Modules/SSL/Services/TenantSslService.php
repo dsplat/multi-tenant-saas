@@ -223,7 +223,7 @@ class TenantSslService
             '--install-cert', '-d', $domain,
             '--key-file', "{$dir}/{$domain}.key",
             '--fullchain-file', "{$dir}/{$domain}.crt",
-            '--reloadcmd', 'nginx -s reload',
+            '--reloadcmd', $this->acmeReloadCmd(),
         ]);
 
         if (! $install['ok']) {
@@ -314,6 +314,23 @@ class TenantSslService
     public function regenerateNginxMap(): void
     {
         app(NginxConfigService::class)->generateSslMap($this->nginxMapFile);
+    }
+
+    /**
+     * acme.sh reloadcmd：源站 reload 后链式推送边缘（被 acme.sh 持久化，续期自动重放）
+     */
+    protected function acmeReloadCmd(): string
+    {
+        $cmd = 'nginx -s reload';
+        if (config('ssl.edge.enabled') && config('ssl.edge.push_script')) {
+            $cmd .= sprintf(
+                ' && SSL_EDGE_ENABLED=true SSL_CERTS_PATH=%s bash %s',
+                escapeshellarg($this->certsPath),
+                escapeshellarg((string) config('ssl.edge.push_script'))
+            );
+        }
+
+        return $cmd;
     }
 
     /**

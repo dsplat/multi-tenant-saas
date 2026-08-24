@@ -323,25 +323,45 @@ class DomainService
     {
         $timeout = (int) config('domain.verification.http_timeout', 10);
         $path = "/{$pathPrefix}/{$token}.txt";
-    
-        foreach (["https://{$domain}{$path}", "http://{$domain}{$path}"] as $url) {
-            try {
-                $response = Http::timeout($timeout)
-                    ->withOptions(['verify' => false])
-                    ->get($url);
-    
-                if ($response->successful() && trim($response->body()) === $token) {
-                    return [true, $url];
+
+        // 域名验证必须直连租户域名：服务器全局出站代理（生产实测会改写 Host/301 到无关站点）
+        // 会拦截请求导致误判，且租户域名无法穷举进 no_proxy，故在进程内临时清除代理环境变量。
+        $proxyVars = ['http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY', 'all_proxy', 'ALL_PROXY'];
+        $saved = [];
+        foreach ($proxyVars as $var) {
+            $saved[$var] = getenv($var);
+            putenv($var);
+            unset($_SERVER[$var], $_ENV[$var]);
+        }
+
+        try {
+            foreach (["https://{$domain}{$path}", "http://{$domain}{$path}"] as $url) {
+                try {
+                    $response = Http::timeout($timeout)
+                        ->withOptions(['verify' => false])
+                        ->get($url);
+
+                    if ($response->successful() && trim($response->body()) === $token) {
+                        return [true, $url];
+                    }
+
+                    // 已连通但内容/状态不对（404 或文件内容不匹配）：域名已指向平台，
+                    // 无需再试降级协议，直接判失败（避免将错就错误批准）
+                    return [false, $url];
+                } catch (\Throwable $e) {
+                    // 连接失败（DNS 未解析/证书不存在/超时）→ 尝试下一协议或判失败，不抛出（轮询常态）
                 }
-    
-                // 已连通但内容/状态不对（404 或文件内容不匹配）：域名已指向平台，
-                // 无需再试降级协议，直接判失败（避免将错就错误批准）
-                return [false, $url];
-            } catch (\Throwable $e) {
-                // 连接失败（DNS 未解析/证书不存在/超时）→ 尝试下一协议或判失败，不抛出（轮询常态）
+            }
+        } finally {
+            // 恢复代理环境（同进程后续出站请求仍走原配置）
+            foreach ($saved as $var => $value) {
+                if ($value !== false) {
+                    putenv("{$var}={$value}");
+                    $_SERVER[$var] = $value;
+                }
             }
         }
-    
+
         return [false, "https://{$domain}{$path}"];
     }
 

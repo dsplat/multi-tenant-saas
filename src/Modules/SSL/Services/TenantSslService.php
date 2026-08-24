@@ -124,9 +124,13 @@ class TenantSslService
     {
         $domain = $tenant->domain;
 
-        $hasCert = $domain
-            && file_exists("{$this->certsPath}/{$domain}.crt")
-            && file_exists("{$this->certsPath}/{$domain}.key");
+        // 以 DB 到期时间为事实源：证书目录可能 750 root（www-data 不可读），
+        // 文件探测仅作无元数据时的兼容辅助。
+        $hasCert = $tenant->ssl_cert_expires_at
+            ? ! $tenant->ssl_cert_expires_at->isPast()
+            : ($domain
+                && file_exists("{$this->certsPath}/{$domain}.crt")
+                && file_exists("{$this->certsPath}/{$domain}.key"));
 
         return [
             'has_certificate' => $hasCert,
@@ -172,8 +176,18 @@ class TenantSslService
      */
     public function acmeAvailable(): bool
     {
-        return (bool) config('ssl.acme.enabled', true)
-            && is_executable((string) config('ssl.acme.binary'));
+        if (! (bool) config('ssl.acme.enabled', true)) {
+            return false;
+        }
+
+        // Web 进程（www-data）无法探测 /root/.acme.sh，允许 env 显式声明环境可用性；
+        // 签发命令以 root 运行，未显式声明时仍回退二进制探测。
+        $declared = env('SSL_ACME_AVAILABLE');
+        if ($declared !== null && $declared !== '') {
+            return filter_var($declared, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return is_executable((string) config('ssl.acme.binary'));
     }
 
     /**

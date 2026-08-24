@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Modules\SSL\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Artisan;
 use MultiTenantSaas\Modules\Domain\Services\DomainService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
@@ -23,7 +24,8 @@ class AutoIssueSsl extends Command
 {
     protected $signature = 'ssl:auto-issue
                           {--tenant= : 仅处理指定租户（tenant_id）}
-                          {--dry-run : 仅列出待签发域名，不实际执行}';
+                          {--dry-run : 仅列出待签发域名，不实际执行}
+                          {--no-nginx : 签发后不重新生成/重载 nginx}';
 
     protected $description = '为开启自动签发的已审批租户域名签发并部署 SSL 证书（acme.sh）';
 
@@ -97,6 +99,12 @@ class AutoIssueSsl extends Command
         }
 
         $this->info(sprintf('本轮签发 %d 个证书', $issued));
+
+        // 有新证书落盘 → 重生成全部 nginx 产物（含 ssl.map）并 reload，使 SNI 生效
+        if ($issued > 0 && ! $this->option('no-nginx')) {
+            Artisan::call('domains:generate-nginx', ['--reload' => true]);
+            $this->info('  nginx 产物已重新生成并 reload');
+        }
 
         return self::SUCCESS;
     }

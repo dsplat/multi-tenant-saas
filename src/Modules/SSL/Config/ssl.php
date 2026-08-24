@@ -11,11 +11,11 @@ return [
     'certs_path' => env('SSL_CERTS_PATH', '/app/ssl-certs'),
 
     /*
-     * nginx SSL Map 文件路径
-     * 写入后由 systemd path unit 监听目录变更，自动触发 nginx -s reload
-     * 放在证书目录下，同一监听源
+     * SNI 证书 map 文件：默认与 Domain 模块部署目录对齐，
+     * 唯一事实源由 NginxConfigService::generateSslMap 生成，避免双写漂移。
+     * 变更后由调用方触发 domains:generate-nginx --reload 生效。
      */
-    'nginx_map_file' => env('SSL_NGINX_MAP_FILE', '/app/ssl-certs/ssl-map.conf'),
+    'nginx_map_file' => env('SSL_NGINX_MAP_FILE', base_path('deploy/nginx/maps/ssl.map')),
 
     /*
      * ACME 自动签发（Let's Encrypt HTTP-01 webroot 模式，acme.sh 脚本驱动）

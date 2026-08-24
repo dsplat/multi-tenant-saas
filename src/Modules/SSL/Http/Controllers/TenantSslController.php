@@ -5,6 +5,8 @@ namespace MultiTenantSaas\Modules\SSL\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\SSL\Services\TenantSslService;
 
@@ -34,6 +36,7 @@ class TenantSslController extends Controller
         $tenant = Tenant::findOrFail($tenantId);
         $service = new TenantSslService;
         $service->storeCertificate($tenant, $request->certificate, $request->private_key);
+        $this->refreshNginx();
 
         return response()->json(['success' => true, 'message' => trans('common.created')]);
     }
@@ -45,6 +48,7 @@ class TenantSslController extends Controller
         $tenant = Tenant::findOrFail($tenantId);
         $service = new TenantSslService;
         $service->removeCertificate($tenant);
+        $this->refreshNginx();
 
         return response()->json(['success' => true, 'message' => trans('common.deleted')]);
     }
@@ -64,6 +68,18 @@ class TenantSslController extends Controller
         (new TenantSslService)->setAutoIssue($tenantId, $request->boolean('enabled'));
 
         return response()->json(['success' => true, 'message' => trans('common.success')]);
+    }
+
+    /**
+     * 证书变更后刷新 nginx 产物并 reload（失败不阻断业务操作）
+     */
+    protected function refreshNginx(): void
+    {
+        try {
+            Artisan::call('domains:generate-nginx', ['--reload' => true]);
+        } catch (\Throwable $e) {
+            Log::warning('TenantSslController: nginx refresh failed', ['error' => $e->getMessage()]);
+        }
     }
 
     public function renew(Request $request, int $tenantId)

@@ -32,6 +32,8 @@ class AutoIssueSslCommandTest extends TestCase
         config([
             'ssl.certs_path' => $this->certsPath,
             'ssl.nginx_map_file' => $this->certsPath . '/ssl-map.conf',
+            // 委托生成方（NginxConfigService）读 domain 侧证书路径，须同源
+            'domain.ssl_certs_path' => $this->certsPath,
         ]);
 
         Tenant::create([
@@ -77,7 +79,7 @@ class AutoIssueSslCommandTest extends TestCase
     {
         $service = $this->bindService();
 
-        $this->artisan('ssl:auto-issue')->assertSuccessful();
+        $this->artisan('ssl:auto-issue', ['--no-nginx' => true])->assertSuccessful();
 
         $service->shouldHaveReceived('issueCertificate')->once();
     }
@@ -88,7 +90,7 @@ class AutoIssueSslCommandTest extends TestCase
         TenantSetting::set(self::TENANT_ID, DomainService::GROUP_DOMAIN, 'domain_status', DomainService::STATUS_PENDING);
         $service = $this->bindService();
 
-        $this->artisan('ssl:auto-issue')->assertSuccessful();
+        $this->artisan('ssl:auto-issue', ['--no-nginx' => true])->assertSuccessful();
 
         $service->shouldNotHaveReceived('issueCertificate');
     }
@@ -98,7 +100,7 @@ class AutoIssueSslCommandTest extends TestCase
         TenantSetting::set(self::TENANT_ID, TenantSslService::GROUP_SSL, 'auto_issue', 0);
         $service = $this->bindService();
 
-        $this->artisan('ssl:auto-issue')->assertSuccessful();
+        $this->artisan('ssl:auto-issue', ['--no-nginx' => true])->assertSuccessful();
 
         $service->shouldNotHaveReceived('issueCertificate');
     }
@@ -115,7 +117,7 @@ class AutoIssueSslCommandTest extends TestCase
 
         $service = $this->bindService();
 
-        $this->artisan('ssl:auto-issue')->assertSuccessful();
+        $this->artisan('ssl:auto-issue', ['--no-nginx' => true])->assertSuccessful();
 
         $service->shouldNotHaveReceived('issueCertificate');
     }
@@ -132,7 +134,7 @@ class AutoIssueSslCommandTest extends TestCase
 
         $service = $this->bindService();
 
-        $this->artisan('ssl:auto-issue')->assertSuccessful();
+        $this->artisan('ssl:auto-issue', ['--no-nginx' => true])->assertSuccessful();
 
         $service->shouldHaveReceived('issueCertificate')->once();
     }
@@ -141,7 +143,7 @@ class AutoIssueSslCommandTest extends TestCase
     {
         $service = $this->bindService();
 
-        $this->artisan('ssl:auto-issue', ['--tenant' => 9999])->assertSuccessful();
+        $this->artisan('ssl:auto-issue', ['--tenant' => 9999, '--no-nginx' => true])->assertSuccessful();
 
         $service->shouldNotHaveReceived('issueCertificate');
     }

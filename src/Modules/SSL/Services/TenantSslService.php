@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Exceptions\StorageException;
+use MultiTenantSaas\Modules\Domain\Services\NginxConfigService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use RuntimeException;
@@ -16,9 +17,9 @@ use Symfony\Component\Process\Process;
  *
  * 管理企业自定义域名的 SSL 证书：
  *  - 写入证书/私钥文件到安全目录（非 webroot，软链接挂载）
- *  - 重新生成 nginx SSL map 文件
- *  - nginx reload 由系统服务监听目录变更后自动触发（无需 PHP 主动调用）
- *  - ACME 自动签发：acme.sh HTTP-01 webroot 模式，签发/部署/续期全自动
+ *  - 重生成 nginx SSL map（委托 Domain 模块 NginxConfigService，唯一事实源）
+ *  - 变更后由调用方触发 nginx reload（命令/控制器层统一走 domains:generate-nginx --reload）
+ *  - ACME 自动签发：acme.sh HTTP-01 webroot 模式，签发/部署/续期全自动（续期自带 reload 钩子）
  */
 class TenantSslService
 {
@@ -90,7 +91,7 @@ class TenantSslService
 
         TenantSetting::set((int) $tenant->tenant_id, self::GROUP_SSL, 'method', self::METHOD_UPLOAD);
 
-        // 重新生成 nginx map（系统 inotify 监听到变更后自动 reload nginx）
+        // 重生成 nginx map；reload 由调用方（控制器）统一触发
         $this->regenerateNginxMap();
     }
 
@@ -212,7 +213,7 @@ class TenantSslService
             return ['success' => false, 'message' => "证书签发失败（{$domain}）：{$issue['output']}"];
         }
 
-        // 2. 部署到证书目录（目录变更由 systemd path unit 触发 nginx reload）
+        // 2. 部署到证书目录（--reloadcmd 被 acme.sh 持久化，续期时自动重放）
         $dir = $this->certsPath;
         if (! is_dir($dir) && ! mkdir($dir, 0750, true)) {
             return ['success' => false, 'message' => "无法创建证书目录: {$dir}"];
@@ -222,6 +223,7 @@ class TenantSslService
             '--install-cert', '-d', $domain,
             '--key-file', "{$dir}/{$domain}.key",
             '--fullchain-file', "{$dir}/{$domain}.crt",
+            '--reloadcmd', 'nginx -s reload',
         ]);
 
         if (! $install['ok']) {
@@ -304,54 +306,13 @@ class TenantSslService
     }
 
     /**
-     * 重新生成 nginx SSL map 文件
+     * 重新生成 nginx SSL map 文件（委托 Domain 模块，与 domains:generate-nginx 同源）
      *
-     * 遍历所有有证书的租户，生成 nginx map 配置：
-     *   map $ssl_server_name $ssl_cert_file { ... }
-     *   map $ssl_server_name $ssl_key_file  { ... }
+     * 内容：map $ssl_server_name $ssl_cert_file / $ssl_key_file。
+     * 本方法只写文件不 reload；调用方（命令/控制器）负责触发 reload。
      */
     public function regenerateNginxMap(): void
     {
-        // 找出所有有 domain + 证书存在的租户
-        $entries = Tenant::query()
-            ->whereNotNull('domain')
-            ->whereNotNull('ssl_uploaded_at')
-            ->get(['domain'])
-            ->filter(fn ($t) => file_exists("{$this->certsPath}/{$t->domain}.crt"))
-            ->map(fn ($t) => $t->domain)
-            ->values();
-
-        $certLines = implode("\n", $entries->map(
-            fn ($d) => "    {$d}  {$this->certsPath}/{$d}.crt;"
-        )->all());
-        $keyLines = implode("\n", $entries->map(
-            fn ($d) => "    {$d}  {$this->certsPath}/{$d}.key;"
-        )->all());
-
-        $defaultCert = "{$this->certsPath}/default.crt";
-        $defaultKey = "{$this->certsPath}/default.key";
-
-        $mapContent = implode("\n", [
-            '# 自动生成 — 勿手动编辑（由 TenantSslService 生成）',
-            '# 最后更新: ' . now()->toDateTimeString(),
-            '',
-            'map $ssl_server_name $ssl_cert_file {',
-            "    default  {$defaultCert};",
-            $certLines ?: '',
-            '}',
-            '',
-            'map $ssl_server_name $ssl_key_file {',
-            "    default  {$defaultKey};",
-            $keyLines ?: '',
-            '}',
-            '',
-        ]);
-
-        $mapDir = dirname($this->nginxMapFile);
-        if (! is_dir($mapDir)) {
-            mkdir($mapDir, 0755, true);
-        }
-
-        file_put_contents($this->nginxMapFile, $mapContent);
+        app(NginxConfigService::class)->generateSslMap($this->nginxMapFile);
     }
 }

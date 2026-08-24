@@ -138,10 +138,48 @@
                   <div>剩余尝试次数：{{ verifyAttemptsLeft }} / {{ verifyInfo.max_attempts ?? 5 }}</div>
                 </div>
               </el-form-item>
+
+              <el-form-item label="SSL 证书">
+                <div style="width: 100%; font-size: 12px">
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+                    <el-tag v-if="!certInfo.has_certificate" type="info" size="small">未部署</el-tag>
+                    <el-tag v-else-if="certInfo.is_expired" type="danger" size="small">已过期</el-tag>
+                    <el-tag v-else type="success" size="small">有效期至 {{ (certInfo.expires_at || '').slice(0, 10) }}</el-tag>
+                    <el-tag v-if="certInfo.expires_soon" type="warning" size="small">30 天内到期</el-tag>
+                    <el-tag v-if="certInfo.method === 'acme'" size="small" effect="plain">自动签发</el-tag>
+                    <el-button link size="small" @click="showCertUpload = true">{{ certInfo.has_certificate ? '更换证书' : '手动上传' }}</el-button>
+                    <el-button v-if="certInfo.has_certificate" link type="danger" size="small" @click="handleDeleteCert">删除</el-button>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px">
+                    <el-switch v-model="certAutoIssue" :loading="certAutoIssueSaving" :disabled="certInfo.acme_available === false" @change="handleToggleAutoIssue" />
+                    <span>自动签发并续期证书（Let's Encrypt，免费）</span>
+                  </div>
+                  <div style="color: var(--el-text-color-secondary, #909399); margin-top: 4px; line-height: 1.8">
+                    开启后，域名归属验证通过即自动签发部署证书，到期前自动续期，全程无需人工操作。
+                    <div v-if="certInfo.last_issue_error" style="color: var(--el-color-danger, #f56c6c)">最近签发失败：{{ certInfo.last_issue_error }}</div>
+                  </div>
+                </div>
+              </el-form-item>
             </template>
           </el-form>
         </el-tab-pane>
       </el-tabs>
+
+      <el-dialog v-model="showCertUpload" title="手动上传 SSL 证书" width="560px">
+        <div style="font-size: 12px; color: var(--el-text-color-secondary, #909399); margin-bottom: 12px">推荐开启上方「自动签发」由平台免费托管；仅在持有商业证书时手动上传。</div>
+        <el-form label-width="120px">
+          <el-form-item label="证书内容（PEM）">
+            <el-input v-model="certForm.certificate" type="textarea" :rows="6" placeholder="-----BEGIN CERTIFICATE-----" />
+          </el-form-item>
+          <el-form-item label="私钥（PEM）">
+            <el-input v-model="certForm.private_key" type="textarea" :rows="6" placeholder="-----BEGIN PRIVATE KEY-----" />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="showCertUpload = false">取消</el-button>
+          <el-button type="primary" :loading="certUploading" @click="handleUploadCert">上传</el-button>
+        </template>
+      </el-dialog>
     </el-card>
   </div>
 </template>
@@ -149,7 +187,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@stores/user'
 
 const userStore = useUserStore()
@@ -297,6 +335,7 @@ const fetchDomainInfo = async () => {
     Object.assign(domainInfo, data)
     if (domainInfo.domain) newDomain.value = domainInfo.domain
     await fetchVerifyInfo()
+    await fetchCertInfo()
   } catch {}
 }
 
@@ -345,6 +384,72 @@ const handleGenToken = async () => {
     ElMessage.error(errMsg(e))
   } finally {
     tokenGenning.value = false
+  }
+}
+
+// ─── SSL 证书（随域名设置一体化管理） ────────────────────
+const certInfo = reactive<Record<string, any>>({})
+const certAutoIssue = ref(false)
+const certAutoIssueSaving = ref(false)
+const showCertUpload = ref(false)
+const certUploading = ref(false)
+const certForm = reactive({ certificate: '', private_key: '' })
+
+const fetchCertInfo = async () => {
+  if (!domainInfo.domain) return
+  try {
+    const res = await axios.get(`/api/v1/tenants/${userStore.tenantId}/ssl`)
+    Object.assign(certInfo, res.data.data || {})
+    certAutoIssue.value = !!certInfo.auto_issue
+  } catch {}
+}
+
+const handleToggleAutoIssue = async () => {
+  certAutoIssueSaving.value = true
+  try {
+    await axios.post(`/api/v1/tenants/${userStore.tenantId}/ssl/auto-issue`, { enabled: certAutoIssue.value })
+    ElMessage.success(certAutoIssue.value ? '自动签发已开启，域名生效后将自动签发并续期' : '自动签发已关闭')
+  } catch (e) {
+    certAutoIssue.value = !certAutoIssue.value
+    ElMessage.error(errMsg(e))
+  } finally {
+    certAutoIssueSaving.value = false
+  }
+}
+
+const handleUploadCert = async () => {
+  if (!certForm.certificate || !certForm.private_key) {
+    ElMessage.warning('请填写证书内容与私钥')
+    return
+  }
+  certUploading.value = true
+  try {
+    await axios.post(`/api/v1/tenants/${userStore.tenantId}/ssl`, certForm)
+    ElMessage.success('证书上传成功')
+    showCertUpload.value = false
+    certForm.certificate = ''
+    certForm.private_key = ''
+    await fetchCertInfo()
+  } catch (e) {
+    ElMessage.error(errMsg(e))
+  } finally {
+    certUploading.value = false
+  }
+}
+
+const handleDeleteCert = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '确定删除已部署的 SSL 证书？删除后该域名 HTTPS 将回退平台默认证书。',
+      '提示', { type: 'warning' },
+    )
+  } catch { return }
+  try {
+    await axios.delete(`/api/v1/tenants/${userStore.tenantId}/ssl`)
+    ElMessage.success('证书已删除')
+    await fetchCertInfo()
+  } catch (e) {
+    ElMessage.error(errMsg(e))
   }
 }
 

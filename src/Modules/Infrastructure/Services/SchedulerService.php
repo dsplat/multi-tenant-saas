@@ -121,6 +121,12 @@ class SchedulerService
             'schedule' => 'everyFifteenMinutes',
             'description' => '轮询检测 pending 自定义域名的验证文件，可达即自动审批通过',
         ]);
+
+        $this->addTask($schedule, 'ssl-auto-issue', [
+            'command' => 'ssl:auto-issue',
+            'schedule' => 'hourly',
+            'description' => '为开启自动签发的已审批租户域名签发部署 SSL 证书（acme.sh）',
+        ]);
     }
 
     /**

@@ -25,7 +25,7 @@
       "requires_core": ">=1.0.0",
       "provider": "MultiTenantSaas\\Modules\\SSL\\SslServiceProvider",
       "tenant_toggleable": true,
-      "default_enabled": false
+      "default_enabled": true
     }
   }
 }

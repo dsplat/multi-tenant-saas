@@ -305,6 +305,7 @@ return [
         'mailer-health' => true,
         'backup' => true,
         'domain-auto-verify' => true,
+        'ssl-auto-issue' => true,
     ],
 
     // Packagist 发布配置 (用于 module:create --publish)

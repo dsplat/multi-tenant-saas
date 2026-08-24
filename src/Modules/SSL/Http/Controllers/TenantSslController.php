@@ -49,6 +49,23 @@ class TenantSslController extends Controller
         return response()->json(['success' => true, 'message' => trans('common.deleted')]);
     }
 
+    /**
+     * 切换自动签发证书开关（开启后调度器自动签发部署，续期全自动）
+     */
+    public function toggleAutoIssue(Request $request, int $tenantId)
+    {
+        $this->ensureTenantAccess($request, $tenantId);
+
+        $request->validate([
+            'enabled' => 'required|boolean',
+        ]);
+
+        Tenant::findOrFail($tenantId);
+        (new TenantSslService)->setAutoIssue($tenantId, $request->boolean('enabled'));
+
+        return response()->json(['success' => true, 'message' => trans('common.success')]);
+    }
+
     public function renew(Request $request, int $tenantId)
     {
         $this->ensureSuperAdmin($request);

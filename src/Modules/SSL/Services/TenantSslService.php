@@ -180,10 +180,10 @@ class TenantSslService
             return false;
         }
 
-        // Web 进程（www-data）无法探测 /root/.acme.sh，允许 env 显式声明环境可用性；
-        // 签发命令以 root 运行，未显式声明时仍回退二进制探测。
-        $declared = env('SSL_ACME_AVAILABLE');
-        if ($declared !== null && $declared !== '') {
+        // Web 进程（www-data）无法探测 /root/.acme.sh，允许经 config（SSL_ACME_AVAILABLE）
+        // 显式声明环境可用性；签发命令以 root 运行，未显式声明时仍回退二进制探测。
+        $declared = config('ssl.acme.available');
+        if ($declared !== null) {
             return filter_var($declared, FILTER_VALIDATE_BOOLEAN);
         }
 

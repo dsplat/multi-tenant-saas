@@ -27,6 +27,9 @@ return [
      */
     'acme' => [
         'enabled' => (bool) env('SSL_ACME_ENABLED', true),
+        // 显式声明环境可用性（config 缓存下唯一可靠来源）；未设置则回退二进制探测。
+        // Web 进程（www-data）无法探测 /root/.acme.sh，生产应显式设为 true。
+        'available' => env('SSL_ACME_AVAILABLE'),
         // acme.sh 主程序路径（生产以 root 安装于 /root/.acme.sh/）
         'binary' => env('SSL_ACME_BINARY', '/root/.acme.sh/acme.sh'),
         'server' => env('SSL_ACME_SERVER', 'letsencrypt'),

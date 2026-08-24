@@ -76,8 +76,8 @@ if [ -d "$STAGING" ]; then
             echo "[edge-ssl-sync] skip $domain: 缺 .crt/.key" >&2
             continue
         fi
-        cert_mod="$(openssl x509 -noout -modulus -in "$dir/$domain.crt" | md5sum)"
-        key_mod="$(openssl rsa -noout -modulus -in "$dir/$domain.key" 2>/dev/null | md5sum)"
+        cert_mod="$(openssl x509 -noout -pubkey -in "$dir/$domain.crt" 2>/dev/null | md5sum)"
+        key_mod="$(openssl pkey -pubout -in "$dir/$domain.key" 2>/dev/null | md5sum)"
         if [ "$cert_mod" != "$key_mod" ]; then
             echo "[edge-ssl-sync] skip $domain: 证书与私钥不匹配" >&2
             continue

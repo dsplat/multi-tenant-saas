@@ -2,10 +2,12 @@
 
 namespace MultiTenantSaas\Tests;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Mockery;
 use MultiTenantSaas\Modules\Domain\Services\DomainService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
+use MultiTenantSaas\Modules\Infrastructure\Services\SchedulerService;
 use MultiTenantSaas\Modules\SSL\Services\TenantSslService;
 
 /**
@@ -112,14 +114,33 @@ class AutoIssueSslCommandTest extends TestCase
         $tenant->ssl_uploaded_at = now()->subDays(10);
         $tenant->ssl_cert_expires_at = now()->addDays(60);
         $tenant->save();
-        file_put_contents("{$this->certsPath}/" . self::DOMAIN . '.crt', "dummy");
-        file_put_contents("{$this->certsPath}/" . self::DOMAIN . '.key', "dummy");
+        file_put_contents("{$this->certsPath}/" . self::DOMAIN . '.crt', 'dummy');
+        file_put_contents("{$this->certsPath}/" . self::DOMAIN . '.key', 'dummy');
 
         $service = $this->bindService();
 
         $this->artisan('ssl:auto-issue', ['--no-nginx' => true])->assertSuccessful();
 
         $service->shouldNotHaveReceived('issueCertificate');
+    }
+
+    public function test_reissues_when_domain_changed_and_cert_file_missing_for_current_domain(): void
+    {
+        // 域名变更后：DB 元数据（到期时间）属于旧域名，当前域名无落盘证书 → 不得沿用旧元数据跳过，必须重签。
+        // 场景：租户把 club.example.com 改为新域名，旧证书文件仍在但新域名无证书。
+        $tenant = Tenant::query()->where('tenant_id', self::TENANT_ID)->first();
+        $tenant->ssl_uploaded_at = now()->subDays(10);
+        $tenant->ssl_cert_expires_at = now()->addDays(60);
+        $tenant->save();
+        // 只存在旧域名的证书文件（当前域名 self::DOMAIN 无落盘证书）
+        file_put_contents("{$this->certsPath}/old-domain.example.com.crt", 'dummy');
+        file_put_contents("{$this->certsPath}/old-domain.example.com.key", 'dummy');
+
+        $service = $this->bindService();
+
+        $this->artisan('ssl:auto-issue', ['--no-nginx' => true])->assertSuccessful();
+
+        $service->shouldHaveReceived('issueCertificate')->once();
     }
 
     public function test_reissues_when_certificate_expiring_soon(): void
@@ -129,8 +150,8 @@ class AutoIssueSslCommandTest extends TestCase
         $tenant->ssl_uploaded_at = now()->subDays(80);
         $tenant->ssl_cert_expires_at = now()->addDays(10);
         $tenant->save();
-        file_put_contents("{$this->certsPath}/" . self::DOMAIN . '.crt', "dummy");
-        file_put_contents("{$this->certsPath}/" . self::DOMAIN . '.key', "dummy");
+        file_put_contents("{$this->certsPath}/" . self::DOMAIN . '.crt', 'dummy');
+        file_put_contents("{$this->certsPath}/" . self::DOMAIN . '.key', 'dummy');
 
         $service = $this->bindService();
 
@@ -157,8 +178,8 @@ class AutoIssueSslCommandTest extends TestCase
         $service->shouldReceive('runAcme')->andReturnUsing(function (array $args) {
             if (in_array('--install-cert', $args, true)) {
                 // 模拟 acme.sh --install-cert 落盘
-                file_put_contents("{$this->certsPath}/" . self::DOMAIN . '.crt', "dummy-cert");
-                file_put_contents("{$this->certsPath}/" . self::DOMAIN . '.key', "dummy-key");
+                file_put_contents("{$this->certsPath}/" . self::DOMAIN . '.crt', 'dummy-cert');
+                file_put_contents("{$this->certsPath}/" . self::DOMAIN . '.key', 'dummy-key');
 
                 return ['ok' => true, 'output' => 'installed'];
             }
@@ -210,8 +231,8 @@ class AutoIssueSslCommandTest extends TestCase
 
     public function test_scheduler_registers_ssl_auto_issue_task(): void
     {
-        $scheduler = app(\MultiTenantSaas\Modules\Infrastructure\Services\SchedulerService::class);
-        $scheduler->register(new \Illuminate\Console\Scheduling\Schedule);
+        $scheduler = app(SchedulerService::class);
+        $scheduler->register(new Schedule);
         $tasks = $scheduler->getTasks();
 
         $this->assertArrayHasKey('ssl-auto-issue', $tasks);

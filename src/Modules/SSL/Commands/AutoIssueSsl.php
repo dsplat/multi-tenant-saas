@@ -73,12 +73,14 @@ class AutoIssueSsl extends Command
                 continue;
             }
 
-            // 已有有效证书且距到期 > 30 天：跳过；否则重新签发兜底续期（acme.sh cron 为主，此处双保险）
+            // 已有有效证书且距到期 > 30 天：跳过；否则重新签发兜底续期（acme.sh cron 为主，此处双保险）。
+            // 域名变更守卫：DB 元数据属于旧域名，当前域名无落盘证书时必须重签。
             // Carbon 3：now()->diffInDays($future) 为正，反向相减避免带符号陷阱
             if ($sslService->getCertInfo($tenant)['has_certificate']
                 && $tenant->ssl_cert_expires_at
                 && ! $tenant->ssl_cert_expires_at->isPast()
-                && (int) now()->diffInDays($tenant->ssl_cert_expires_at) > 30) {
+                && (int) now()->diffInDays($tenant->ssl_cert_expires_at) > 30
+                && $sslService->certFileExists($tenant->domain)) {
                 continue;
             }
 

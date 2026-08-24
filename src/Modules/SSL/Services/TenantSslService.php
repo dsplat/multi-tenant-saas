@@ -128,9 +128,7 @@ class TenantSslService
         // 文件探测仅作无元数据时的兼容辅助。
         $hasCert = $tenant->ssl_cert_expires_at
             ? ! $tenant->ssl_cert_expires_at->isPast()
-            : ($domain
-                && file_exists("{$this->certsPath}/{$domain}.crt")
-                && file_exists("{$this->certsPath}/{$domain}.key"));
+            : $this->certFileExists($domain);
 
         return [
             'has_certificate' => $hasCert,
@@ -149,6 +147,19 @@ class TenantSslService
             'last_issue_error' => TenantSetting::get((int) $tenant->tenant_id, self::GROUP_SSL, 'last_issue_error'),
             'acme_available' => $this->acmeAvailable(),
         ];
+    }
+
+    /**
+     * 指定域名的证书文件是否真实落盘。
+     *
+     * DB 元数据（到期时间）属于「当时的域名」：域名变更后旧元数据不得被当作
+     * 新域名的证书。本命令经 cron 以 root 运行，可直读证书目录（750 root）。
+     */
+    public function certFileExists(?string $domain): bool
+    {
+        return (bool) $domain
+            && file_exists("{$this->certsPath}/{$domain}.crt")
+            && file_exists("{$this->certsPath}/{$domain}.key");
     }
 
     // ─── ACME 自动签发 ─────────────────────────────────

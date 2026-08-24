@@ -71,7 +71,7 @@ class TenantSslController extends Controller
     }
 
     /**
-     * 证书变更后刷新 nginx 产物并 reload（失败不阻断业务操作）
+     * 证书变更后刷新 nginx 产物并 reload，同步推送到边缘节点（失败不阻断业务操作）
      */
     protected function refreshNginx(): void
     {
@@ -80,6 +80,8 @@ class TenantSslController extends Controller
         } catch (\Throwable $e) {
             Log::warning('TenantSslController: nginx refresh failed', ['error' => $e->getMessage()]);
         }
+
+        (new TenantSslService)->pushToEdge();
     }
 
     public function renew(Request $request, int $tenantId)

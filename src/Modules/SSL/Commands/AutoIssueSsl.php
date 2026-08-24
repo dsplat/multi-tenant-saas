@@ -100,10 +100,11 @@ class AutoIssueSsl extends Command
 
         $this->info(sprintf('本轮签发 %d 个证书', $issued));
 
-        // 有新证书落盘 → 重生成全部 nginx 产物（含 ssl.map）并 reload，使 SNI 生效
+        // 有新证书落盘 → 重生成全部 nginx 产物（含 ssl.map）并 reload，使 SNI 生效，并推送边缘节点
         if ($issued > 0 && ! $this->option('no-nginx')) {
             Artisan::call('domains:generate-nginx', ['--reload' => true]);
             $this->info('  nginx 产物已重新生成并 reload');
+            $sslService->pushToEdge();
         }
 
         return self::SUCCESS;

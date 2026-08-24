@@ -35,4 +35,18 @@ return [
         // 单域名签发超时（秒）
         'timeout' => (int) env('SSL_ACME_TIMEOUT', 180),
     ],
+
+    /*
+     * 边缘节点证书推送（源站签发/上传后自动同步到终结 443 的边缘节点）
+     *
+     * 链路：push 脚本 rsync 证书 → 边缘 sync 脚本安装 + 生成 server 块 + reload
+     * push 脚本随本模块分发：<module>/scripts/edge-ssl-push.sh
+     * 边缘侧脚本经 rsync 随暂存区同步，无需单独部署。
+     */
+    'edge' => [
+        'enabled' => (bool) env('SSL_EDGE_ENABLED', false),
+        'push_script' => env('SSL_EDGE_PUSH_SCRIPT', ''),
+        'host' => env('SSL_EDGE_HOST', 'edge'),
+        'staging' => env('SSL_EDGE_STAGING', 'edge-ssl-staging'),
+    ],
 ];

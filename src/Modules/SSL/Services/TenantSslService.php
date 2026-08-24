@@ -315,4 +315,49 @@ class TenantSslService
     {
         app(NginxConfigService::class)->generateSslMap($this->nginxMapFile);
     }
+
+    /**
+     * 推送全量租户证书到边缘节点（rsync 暂存区 → 生成边缘配置 → reload）
+     *
+     * PHP 进程以 www-data 运行，经 sudo 白名单（NOPASSWD）以 root 执行推送脚本。
+     * 未启用/脚本缺失/失败均仅告警不阻断业务；失败可由调度或手动重推补齐。
+     */
+    public function pushToEdge(): void
+    {
+        if (! config('ssl.edge.enabled')) {
+            return;
+        }
+
+        $script = (string) config('ssl.edge.push_script');
+        if ($script === '' || ! is_file($script)) {
+            Log::warning('TenantSslService: edge push script missing', ['script' => $script]);
+
+            return;
+        }
+
+        try {
+            // 进程 env 不继承 Laravel .env，显式注入脚本所需变量
+            $process = new Process(
+                ['sudo', '-n', 'bash', $script],
+                null,
+                [
+                    'SSL_EDGE_ENABLED' => 'true',
+                    'SSL_EDGE_HOST' => (string) config('ssl.edge.host'),
+                    'SSL_EDGE_STAGING' => (string) config('ssl.edge.staging'),
+                    'SSL_CERTS_PATH' => $this->certsPath,
+                ],
+                null,
+                120
+            );
+            $process->run();
+
+            if (! $process->isSuccessful()) {
+                Log::warning('TenantSslService: edge push failed', [
+                    'output' => mb_substr($process->getErrorOutput() . $process->getOutput(), 0, 800),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('TenantSslService: edge push exception', ['error' => $e->getMessage()]);
+        }
+    }
 }

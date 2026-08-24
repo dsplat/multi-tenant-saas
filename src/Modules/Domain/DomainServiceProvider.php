@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Modules\Domain;
 
 use Illuminate\Support\Facades\Route;
 use MultiTenantSaas\Modules\Contracts\ModuleServiceProvider;
+use MultiTenantSaas\Modules\Domain\Commands\AutoVerifyDomains;
 use MultiTenantSaas\Modules\Domain\Commands\BackfillAutoSlug;
 use MultiTenantSaas\Modules\Domain\Commands\GenerateNginxDeploy;
 use MultiTenantSaas\Modules\Domain\Commands\GenerateNginxDomainMap;
@@ -24,6 +25,7 @@ class DomainServiceProvider extends ModuleServiceProvider
                 GenerateNginxDomainMap::class,
                 GenerateNginxDeploy::class,
                 BackfillAutoSlug::class,
+                AutoVerifyDomains::class,
             ]);
         }
     }

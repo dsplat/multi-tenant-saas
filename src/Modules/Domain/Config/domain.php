@@ -201,5 +201,7 @@ return [
         'http_timeout' => (int) env('DOMAIN_VERIFY_HTTP_TIMEOUT', 10),
         // 最大验证尝试次数（超过后需重新生成 token）
         'max_attempts' => (int) env('DOMAIN_VERIFY_MAX_ATTEMPTS', 5),
+        // 后台自动轮询窗口（天）：域名配置超期仍未完成解析则停止轮询（0 = 永不过期）
+        'auto_verify_max_age_days' => (int) env('DOMAIN_AUTO_VERIFY_MAX_AGE_DAYS', 90),
     ],
 ];

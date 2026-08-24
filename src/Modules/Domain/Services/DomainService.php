@@ -242,82 +242,107 @@ class DomainService
      *
      * 平台侧主动 HTTP GET 租户域名的验证文件，校验内容匹配。
      * 通过后自动将 domain_status 设为 approved。
+     *
+     * @param  bool  $polling  后台轮询模式：不消耗手动验证次数上限（独立计数器），
+     *                         供 domains:auto-verify 持续检测直到租户完成 DNS 解析
      */
-    public function verifyDomainOwnership(int $tenantId): bool
+    public function verifyDomainOwnership(int $tenantId, bool $polling = false): bool
     {
         $tenant = Tenant::findOrFail($tenantId);
         $domain = $tenant->domain;
-
+    
         if (empty($domain)) {
             throw new ServiceUnavailableException(trans('domain.not_configured'));
         }
-
+    
         $token = TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'verification_token');
-
+    
         if (empty($token)) {
             $token = $this->generateVerificationToken($tenantId);
         }
-
-        // 检查尝试次数
-        $maxAttempts = (int) config('domain.verification.max_attempts', 5);
-        $attempts = (int) TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'verification_attempts', 0);
-
-        if ($attempts >= $maxAttempts) {
-            Log::warning('DomainService: verification max attempts reached', [
-                'tenant_id' => $tenantId,
-                'domain' => $domain,
-            ]);
-
-            return false;
-        }
-
-        TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'verification_attempts', $attempts + 1);
-
-        $pathPrefix = config('domain.verification.path_prefix', '.well-known/tenant-verify');
-        $timeout = (int) config('domain.verification.http_timeout', 10);
-        $verifyUrl = "https://{$domain}/{$pathPrefix}/{$token}.txt";
-
-        try {
-            $response = Http::timeout($timeout)
-                ->withOptions(['verify' => false])
-                ->get($verifyUrl);
-
-            if ($response->successful() && trim($response->body()) === $token) {
-                // 验证通过
-                TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'domain_status', self::STATUS_APPROVED);
-                TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'domain_verified_at', now()->toDateTimeString());
-                TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'verification_method', 'file');
-
-                // 自定义域名生效后，自动子域名（t-xxxxxx 免费兜底）退役
-                $this->deactivateAutoSlug($tenantId);
-
-                Log::info('DomainService: domain ownership verified', [
+    
+        if ($polling) {
+            // 轮询模式：独立计数器仅做统计，不阻断（租户完成解析前可能持续失败很久）
+            $autoAttempts = (int) TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'auto_verify_attempts', 0);
+            TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'auto_verify_attempts', $autoAttempts + 1);
+        } else {
+            // 检查手动尝试次数
+            $maxAttempts = (int) config('domain.verification.max_attempts', 5);
+            $attempts = (int) TenantSetting::get($tenantId, self::GROUP_DOMAIN, 'verification_attempts', 0);
+    
+            if ($attempts >= $maxAttempts) {
+                Log::warning('DomainService: verification max attempts reached', [
                     'tenant_id' => $tenantId,
                     'domain' => $domain,
                 ]);
-
-                return true;
+    
+                return false;
             }
-
-            Log::warning('DomainService: verification file check failed', [
-                'tenant_id' => $tenantId,
-                'domain' => $domain,
-                'url' => $verifyUrl,
-                'http_status' => $response->status(),
-                'body_preview' => mb_substr($response->body(), 0, 100),
-            ]);
-
-            return false;
-        } catch (\Throwable $e) {
-            Log::error('DomainService: verification request exception', [
-                'tenant_id' => $tenantId,
-                'domain' => $domain,
-                'url' => $verifyUrl,
-                'error' => $e->getMessage(),
-            ]);
-
-            return false;
+    
+            TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'verification_attempts', $attempts + 1);
         }
+    
+        $pathPrefix = config('domain.verification.path_prefix', '.well-known/tenant-verify');
+    
+        [$verified, $lastUrl] = $this->checkVerificationFile($domain, $token, $pathPrefix);
+    
+        if ($verified) {
+            // 验证通过（与手动验证同语义：直接 approved，自动子域名退役）
+            TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'domain_status', self::STATUS_APPROVED);
+            TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'domain_verified_at', now()->toDateTimeString());
+            TenantSetting::set($tenantId, self::GROUP_DOMAIN, 'verification_method', $polling ? 'auto_polling' : 'file');
+    
+            // 自定义域名生效后，自动子域名（t-xxxxxx 免费兑底）退役
+            $this->deactivateAutoSlug($tenantId);
+    
+            Log::info('DomainService: domain ownership verified', [
+                'tenant_id' => $tenantId,
+                'domain' => $domain,
+                'polling' => $polling,
+            ]);
+    
+            return true;
+        }
+    
+        Log::debug('DomainService: verification file check failed', [
+            'tenant_id' => $tenantId,
+            'domain' => $domain,
+            'url' => $lastUrl,
+            'polling' => $polling,
+        ]);
+    
+        return false;
+    }
+    
+    /**
+     * HTTP 检查验证文件（https 优先，连接失败回退 http——证书未配置时域名归属仍可验证）
+     *
+     * @return array{0: bool, 1: string} 验证结果 + 最后尝试的 URL（日志用）
+     */
+    protected function checkVerificationFile(string $domain, string $token, string $pathPrefix): array
+    {
+        $timeout = (int) config('domain.verification.http_timeout', 10);
+        $path = "/{$pathPrefix}/{$token}.txt";
+    
+        foreach (["https://{$domain}{$path}", "http://{$domain}{$path}"] as $url) {
+            try {
+                $response = Http::timeout($timeout)
+                    ->withOptions(['verify' => false])
+                    ->get($url);
+    
+                if ($response->successful() && trim($response->body()) === $token) {
+                    return [true, $url];
+                }
+    
+                // 已连通但内容/状态不对（404 或文件内容不匹配）：域名已指向平台，
+                // 无需再试降级协议，直接判失败（避免将错就错误批准）
+                return [false, $url];
+            } catch (\Throwable $e) {
+                // 连接失败（DNS 未解析/证书不存在/超时）→ 尝试下一协议或判失败，不抛出（轮询常态）
+            }
+        }
+    
+        return [false, "https://{$domain}{$path}"];
     }
 
     /**

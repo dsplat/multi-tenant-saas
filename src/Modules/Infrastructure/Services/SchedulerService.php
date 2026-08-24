@@ -115,6 +115,12 @@ class SchedulerService
             'schedule' => 'dailyAt:07:30',
             'description' => '工作脉络健康巡检（逾期/停滞/临近里程碑，纯规则零 LLM）',
         ]);
+
+        $this->addTask($schedule, 'domain-auto-verify', [
+            'command' => 'domains:auto-verify',
+            'schedule' => 'everyFifteenMinutes',
+            'description' => '轮询检测 pending 自定义域名的验证文件，可达即自动审批通过',
+        ]);
     }
 
     /**

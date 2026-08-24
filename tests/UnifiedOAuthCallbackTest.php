@@ -18,8 +18,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 /**
  * OAuth 统一回调域（平台级虚拟 IDP）测试
  *
- * 覆盖 OAUTH_CALLBACK_DOMAIN 配置下的完整链路：
- * - resolveRedirectUrl 统一域优先 / 显式覆盖 / 租户域回退
+ * 覆盖回调域解析与完整链路：
+ * - resolveRedirectUrl 自定义域名优先 / 显式覆盖 / 无自定义域名回退统一域 / 租户域回退
  * - state 携带租户前缀 + 上下文（origin_domain）往返，旧格式兼容
  * - 统一回调域下回调请求从 state 恢复租户并回跳来源域
  * - origin_domain 白名单校验（防 open redirect）
@@ -90,9 +90,19 @@ class UnifiedOAuthCallbackTest extends TestCase
 
     // ==================== resolveRedirectUrl ====================
 
-    public function test_resolve_redirect_url_prefers_unified_domain(): void
+    public function test_resolve_redirect_url_prefers_custom_domain_over_unified(): void
     {
         $this->createTestTenant();
+
+        // 微信/企微回调域要求备案主体与企业主体一致，租户自定义域名优先于平台统一域
+        $url = app(SocialiteService::class)->resolveRedirectUrl(1001, 'wechat');
+
+        $this->assertSame('https://crm.test.com/api/v1/auth/wechat/callback', $url);
+    }
+
+    public function test_resolve_redirect_url_falls_back_to_unified_domain_without_custom(): void
+    {
+        $this->createTestTenant(['domain' => '']);
 
         $url = app(SocialiteService::class)->resolveRedirectUrl(1001, 'wechat');
 
@@ -179,6 +189,22 @@ class UnifiedOAuthCallbackTest extends TestCase
 
     public function test_redirect_endpoint_uses_unified_redirect_and_state_prefix(): void
     {
+        // 无自定义域名的租户走平台统一回调域；经 TenantContext 兜底识别租户，
+        // state 携带租户前缀供回调时恢复（真实场景由 IdentifyTenant 中间件设置上下文）
+        $this->createTestTenant(['domain' => '']);
+        $this->configureWechat();
+        config(['tenancy.default_tenant_id' => '1001']);
+
+        $response = $this->getJson('/api/v1/auth/wechat/redirect?origin_domain=1001.dsplat.com');
+
+        $response->assertOk();
+        $url = $response->json('data.url');
+        $this->assertStringContainsString('redirect_uri=' . urlencode('https://auth.neihang.com/api/v1/auth/wechat/callback'), $url);
+        $this->assertStringContainsString('state=1001.', $url);
+    }
+
+    public function test_redirect_endpoint_uses_custom_domain_redirect(): void
+    {
         $this->createTestTenant();
         $this->configureWechat();
 
@@ -186,7 +212,7 @@ class UnifiedOAuthCallbackTest extends TestCase
 
         $response->assertOk();
         $url = $response->json('data.url');
-        $this->assertStringContainsString('redirect_uri=' . urlencode('https://auth.neihang.com/api/v1/auth/wechat/callback'), $url);
+        $this->assertStringContainsString('redirect_uri=' . urlencode('https://crm.test.com/api/v1/auth/wechat/callback'), $url);
         $this->assertStringContainsString('state=1001.', $url);
     }
 

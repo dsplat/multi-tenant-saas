@@ -35,14 +35,15 @@ class SocialiteService
     }
 
     /**
-     * 解析租户 OAuth 回调完整 URL（统一回调域优先）
+     * 解析租户 OAuth 回调完整 URL（自定义域名优先）
      *
-     * 配置 OAUTH_CALLBACK_DOMAIN（平台级虚拟 IDP）后：
-     * - 所有租户回调统一指向 https://{callback_domain}/api/v1/auth/{provider}/callback
-     * - 租户在微信后台只需配置一次回调域，改自定义域名不再断登录
-     * - 租户显式存储的完整 URL 仍被尊重（租户自选回调地址）
-     *
-     * 未配置统一回调域时回退到按租户域名推导（resolveTenantRedirectUrl）。
+     * 优先级：
+     * 1. 租户显式存储的完整 URL（自选回调地址，最高）
+     * 2. 租户自定义域名（tenants.domain）：微信/企微的回调域要求备案主体与
+     *    企业主体一致，平台统一回调域过不了主体校验（2026-08 生产实锤），
+     *    故默认用租户自有域名做回调域，验证文件（WW_verify 等）走租户域服务。
+     * 3. 平台统一回调域（OAUTH_CALLBACK_DOMAIN）：仅无自定义域名的租户使用。
+     * 4. 回退按租户域名推导（resolveTenantRedirectUrl）。
      */
     public function resolveRedirectUrl(int $tenantId, string $provider, string $storedRedirect = ''): string
     {
@@ -51,7 +52,13 @@ class SocialiteService
             return $storedRedirect;
         }
 
-        // 平台统一回调域
+        // 租户自定义域名优先（主体校验要求域名归租户企业所有）
+        $domain = Tenant::where('tenant_id', $tenantId)->value('domain');
+        if ($domain) {
+            return "https://{$domain}/api/v1/auth/{$provider}/callback";
+        }
+
+        // 无自定义域名 → 平台统一回调域（平台级虚拟 IDP）
         $callbackDomain = config('auth.oauth.callback_domain', '');
         if ($callbackDomain !== '') {
             return "https://{$callbackDomain}/api/v1/auth/{$provider}/callback";

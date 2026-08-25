@@ -216,6 +216,35 @@ class AutoIssueSslCommandTest extends TestCase
         $this->assertStringContainsString('Challenge failed', (string) TenantSetting::get(self::TENANT_ID, TenantSslService::GROUP_SSL, 'last_issue_error'));
     }
 
+    public function test_reissues_via_install_when_acme_holds_valid_cert(): void
+    {
+        // 域名回绑场景：acme.sh 已持有该域名有效证书（未到续期窗口）→ --issue 被跳过（非零），
+        // 此时应转走 --install-cert 重装而非判失败（证书文件已归档/丢失时的自愈路径）
+        $service = Mockery::mock(TenantSslService::class, [])->makePartial();
+        $service->shouldReceive('acmeAvailable')->andReturn(true);
+        $service->shouldAllowMockingProtectedMethods();
+        $installed = false;
+        $service->shouldReceive('runAcme')->andReturnUsing(function (array $args) use (&$installed) {
+            if (in_array('--install-cert', $args, true)) {
+                $installed = true;
+                file_put_contents("{$this->certsPath}/" . self::DOMAIN . '.crt', 'dummy-cert');
+                file_put_contents("{$this->certsPath}/" . self::DOMAIN . '.key', 'dummy-key');
+
+                return ['ok' => true, 'output' => 'installed'];
+            }
+
+            return ['ok' => false, 'output' => 'Domains not changed. Skipping. Next renewal time is: ...'];
+        });
+
+        $tenant = Tenant::query()->where('tenant_id', self::TENANT_ID)->first();
+
+        $result = $service->issueCertificate($tenant);
+
+        $this->assertTrue($installed);
+        $this->assertTrue($result['success']);
+        $this->assertFileExists("{$this->certsPath}/" . self::DOMAIN . '.crt');
+    }
+
     public function test_toggle_auto_issue_sets_setting(): void
     {
         $service = new TenantSslService;

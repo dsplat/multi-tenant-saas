@@ -233,9 +233,18 @@ class TenantSslService
         ]);
 
         if (! $issue['ok']) {
-            $this->recordIssueError($tenantId, $issue['output']);
+            // acme.sh 已持有该域名有效证书（未到续期窗口）时会跳过签发并返回非零：
+            // 此时直接走 --install-cert 重装即可（典型场景：域名回绑、证书文件已归档/丢失）。
+            if (! str_contains($issue['output'], 'Domains not changed')) {
+                $this->recordIssueError($tenantId, $issue['output']);
 
-            return ['success' => false, 'message' => "证书签发失败（{$domain}）：{$issue['output']}"];
+                return ['success' => false, 'message' => "证书签发失败（{$domain}）：{$issue['output']}"];
+            }
+
+            Log::info('TenantSslService: acme.sh holds valid cert, reinstalling', [
+                'tenant_id' => $tenantId,
+                'domain' => $domain,
+            ]);
         }
 
         // 2. 部署到证书目录（--reloadcmd 被 acme.sh 持久化，续期时自动重放）

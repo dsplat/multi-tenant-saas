@@ -26,6 +26,13 @@ function resolveView(name: string): () => Promise<any> {
   if (localViews[localBsPath]) return () => (localViews[localBsPath] as () => Promise<any>)()
   const vendorBsPath = `/vendor/dsplat/multi-tenant-saas/resources/pages/console/ui/bootstrap/views/${name}.vue`
   if (frameworkViews[vendorBsPath]) return () => (frameworkViews[vendorBsPath] as () => Promise<any>)()
+  // 跨框架兜底：视图可能只存在于其他 UI 框架目录（如 SelectTenant 仅 element-plus 有），
+  // 直接抛错会整页白屏——退回任意已收录的同名视图，项目层优先。
+  const suffix = `/views/${name}.vue`
+  const localAny = Object.keys(localViews).find(p => p.endsWith(suffix))
+  if (localAny) return () => (localViews[localAny] as () => Promise<any>)()
+  const vendorAny = Object.keys(frameworkViews).find(p => p.endsWith(suffix))
+  if (vendorAny) return () => (frameworkViews[vendorAny] as () => Promise<any>)()
   throw new Error(`View not found: ${name}`)
 }
 
@@ -38,6 +45,12 @@ function resolveLayout(name: string): () => Promise<any> {
   if (localLayouts[localBs]) return () => (localLayouts[localBs] as () => Promise<any>)()
   const vendorBs = `/vendor/dsplat/multi-tenant-saas/resources/pages/console/ui/bootstrap/layouts/${name}.vue`
   if (frameworkLayouts[vendorBs]) return () => (frameworkLayouts[vendorBs] as () => Promise<any>)()
+  // 跨框架兜底（同 resolveView）：避免布局缺失导致整页白屏。
+  const suffix = `/layouts/${name}.vue`
+  const localAny = Object.keys(localLayouts).find(p => p.endsWith(suffix))
+  if (localAny) return () => (localLayouts[localAny] as () => Promise<any>)()
+  const vendorAny = Object.keys(frameworkLayouts).find(p => p.endsWith(suffix))
+  if (vendorAny) return () => (frameworkLayouts[vendorAny] as () => Promise<any>)()
   throw new Error(`Layout not found: ${name}`)
 }
 

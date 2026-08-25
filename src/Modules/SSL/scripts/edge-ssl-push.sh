@@ -99,7 +99,30 @@ for dir in "$CERT_BASE"/*/; do
 server {
     listen 80;
     server_name $domain;
-    return 301 https://\$host\$request_uri;
+
+    # 企微/微信/支付宝验证服务器走 HTTP 且不跟随 301，平台归属验证与
+    # ACME HTTP-01 挑战同理 → 这些路径直接回源，其余跳转 https。
+    location ~ ^/\.well-known/(tenant-verify/[A-Za-z0-9]{16,64}\.txt|acme-challenge/[A-Za-z0-9_-]+)\$ {
+        proxy_pass $BACKEND;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Original-Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    location ~ ^/(WW_verify|MP_verify|alipay_verify|verify_)[A-Za-z0-9_]{8,64}\.txt\$ {
+        proxy_pass $BACKEND;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Original-Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
 }
 
 server {

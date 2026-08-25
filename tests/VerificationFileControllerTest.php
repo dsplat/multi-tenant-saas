@@ -8,6 +8,7 @@ use MultiTenantSaas\Modules\Domain\Http\Controllers\VerificationFileController;
 use MultiTenantSaas\Modules\Domain\Services\DomainService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * 域名验证文件动态服务测试
@@ -78,7 +79,7 @@ class VerificationFileControllerTest extends TestCase
                 'wrong'
             );
             $this->fail('Expected 404 for mismatched token');
-        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+        } catch (NotFoundHttpException) {
             $this->assertTrue(true);
         }
     }
@@ -95,8 +96,30 @@ class VerificationFileControllerTest extends TestCase
         );
 
         $this->assertSame(200, $response->getStatusCode());
-        // 三大平台统一规则：文件内容 = 去掉 .txt 的文件名
-        $this->assertSame('WW_verify_mLUxXhK2fEC6jPsB', $response->getContent());
+        // 企微规则：仅返回 WW_verify_ 前缀后的验证码，无空白字符（微信系同源）
+        $this->assertSame('mLUxXhK2fEC6jPsB', $response->getContent());
+    }
+
+    public function test_third_party_file_content_strips_prefix_for_wechat_family(): void
+    {
+        TenantSetting::set(self::TENANT_ID, DomainService::GROUP_DOMAIN, DomainService::SETTING_THIRD_PARTY_VERIFY_FILES, [
+            'MP_verify_AbCdEfGh123.txt',
+            'alipay_verify_XyZ789.txt',
+        ]);
+
+        // MP_verify 同微信系规则：只返回验证码本体
+        $mp = (new VerificationFileController)->file(
+            $this->requestTo('club.lanyantu.com', '/MP_verify_AbCdEfGh123.txt'),
+            'MP_verify_AbCdEfGh123'
+        );
+        $this->assertSame('AbCdEfGh123', $mp->getContent());
+
+        // 其他前缀（支付宝）保持返回去 .txt 全名
+        $alipay = (new VerificationFileController)->file(
+            $this->requestTo('club.lanyantu.com', '/alipay_verify_XyZ789.txt'),
+            'alipay_verify_XyZ789'
+        );
+        $this->assertSame('alipay_verify_XyZ789', $alipay->getContent());
     }
 
     public function test_third_party_file_not_registered_returns_404(): void
@@ -107,7 +130,7 @@ class VerificationFileControllerTest extends TestCase
                 'WW_verify_NotSaved000'
             );
             $this->fail('Expected 404 for unregistered file');
-        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+        } catch (NotFoundHttpException) {
             $this->assertTrue(true);
         }
     }
@@ -120,7 +143,7 @@ class VerificationFileControllerTest extends TestCase
                 'whatever1234567890'
             );
             $this->fail('Expected 404 for unknown host');
-        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+        } catch (NotFoundHttpException) {
             $this->assertTrue(true);
         }
     }
@@ -150,7 +173,7 @@ class VerificationFileControllerTest extends TestCase
                 'abc1234567890XYZabc1234567890XYZ'
             );
             $this->fail('Expected 404 for rejected slug');
-        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+        } catch (NotFoundHttpException) {
             $this->assertTrue(true);
         }
     }
@@ -170,7 +193,7 @@ class VerificationFileControllerTest extends TestCase
         );
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('WW_verify_mLUxXhK2fEC6jPsB', $response->getContent());
+        $this->assertSame('mLUxXhK2fEC6jPsB', $response->getContent());
     }
 
     public function test_callback_domain_unregistered_file_returns_404(): void
@@ -183,7 +206,7 @@ class VerificationFileControllerTest extends TestCase
                 'WW_verify_NotSaved000'
             );
             $this->fail('Expected 404 for unregistered file on callback domain');
-        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+        } catch (NotFoundHttpException) {
             $this->assertTrue(true);
         }
     }
@@ -202,7 +225,7 @@ class VerificationFileControllerTest extends TestCase
                 'WW_verify_mLUxXhK2fEC6jPsB'
             );
             $this->fail('Expected 404 when callback domain not configured');
-        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+        } catch (NotFoundHttpException) {
             $this->assertTrue(true);
         }
     }

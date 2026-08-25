@@ -19,7 +19,8 @@ use MultiTenantSaas\Scopes\TenantScope;
  *
  *  1. 平台归属验证：/.well-known/tenant-verify/{token}.txt → 内容为 token
  *  2. 第三方平台验证（微信 MP_verify_* / 企微 WW_verify_* / 支付宝 alipay_verify_*）：
- *     /{filename}.txt → 内容为去掉 .txt 的文件名（三大平台统一规则）
+ *     /{filename}.txt → 内容为去掉前缀后的验证码（企微规则：仅返回 WW_verify_ 之后部分，
+ *     纯文本、无空格/换行/不可见字符；微信系同源规则一并适用，其他前缀返回去 .txt 全名）
  *
  * 设计要点：
  *  - 裸路由注册（不挂 web 组）：规避 EnforceCanonicalEntry 对 pending 自定义域名
@@ -70,7 +71,7 @@ class VerificationFileController
             );
 
             if (is_array($files) && in_array($fullName, $files, true)) {
-                return $this->plainText($file);
+                return $this->plainText($this->fileContent($file));
             }
 
             abort(404);
@@ -83,10 +84,23 @@ class VerificationFileController
 
         if ($callbackDomain !== '' && $host === $callbackDomain
             && $this->fileRegisteredAcrossTenants($fullName)) {
-            return $this->plainText($file);
+            return $this->plainText($this->fileContent($file));
         }
 
         abort(404);
+    }
+
+    /**
+     * 验证文件响应内容：微信系（WW_verify_/MP_verify_）只返回前缀后的验证码，
+     * 企微明确要求不得携带前缀且无任何空白字符；其余平台返回去 .txt 全名。
+     */
+    protected function fileContent(string $file): string
+    {
+        if (preg_match('/^(?:WW_verify|MP_verify)_(.+)$/', $file, $m) === 1) {
+            return $m[1];
+        }
+
+        return $file;
     }
 
     /**

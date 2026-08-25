@@ -3,6 +3,14 @@ import { useUserStore } from '../stores/user'
 import { getAllModuleRoutes } from '../module-loader'
 import { createAuthGuard } from './guards'
 
+// 一次性迁移（2026-08-25）：element-plus 版布局已停维月余（缺团队切换器等能力，
+// 且按需样式注入不可靠导致侧边栏裸奔），清除旧选择让用户回到维护中的 bootstrap 布局；
+// 选择器手动切换后键会重建，不受影响。本模块先于 main 主体执行，此处清除早于一切读取。
+if (!localStorage.getItem('mts-ui-fw-migrated-202608')) {
+  localStorage.removeItem('multi-tenant-saas-ui-framework')
+  localStorage.setItem('mts-ui-fw-migrated-202608', '1')
+}
+
 // 绝对路径从 Vite root（项目根）开始
 const frameworkLayouts = import.meta.glob('/vendor/dsplat/multi-tenant-saas/resources/pages/console/ui/*/layouts/*.vue')
 const frameworkViews = import.meta.glob('/vendor/dsplat/multi-tenant-saas/resources/pages/console/ui/*/views/*.vue')
@@ -12,7 +20,7 @@ const localViews = import.meta.glob('/resources/pages/console/ui/*/views/*.vue')
 function getFramework(): string {
   return localStorage.getItem('multi-tenant-saas-ui-framework')
     || (import.meta.env.VITE_UI_FRAMEWORK as string)
-    || 'element-plus'
+    || 'bootstrap'
 }
 
 const fw = getFramework()

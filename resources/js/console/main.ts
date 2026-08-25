@@ -24,7 +24,7 @@ axios.interceptors.response.use(
 
 const fw = localStorage.getItem('multi-tenant-saas-ui-framework')
   || (import.meta.env.VITE_UI_FRAMEWORK as string)
-  || 'element-plus'
+  || 'bootstrap'
 
 /**
  * 注册所有可用 UI 框架（供选择器展示所有选项）
@@ -64,6 +64,9 @@ function registerAllFrameworks() {
  */
 async function loadFramework(name: string) {
   if (name === 'element-plus') {
+    // 完整主题必须显式引入：ElementPlusResolver 的按需样式注入对部分组件（el-menu/
+    // el-dropdown/el-avatar/el-breadcrumb 等）不可靠，缺失时侧边栏等直接裸奔。
+    await import('element-plus/theme-chalk/index.css')
     uiRegistry.setActive('element-plus')
     return
   }
@@ -88,7 +91,8 @@ async function main() {
     await loadFramework(fw)
   } catch (e) {
     console.warn(`Failed to load "${fw}", falling back to bootstrap:`, e)
-    localStorage.removeItem('multi-tenant-saas-ui-framework')
+    // 回退同步写回，避免路由层（模块加载时已读旧值）仍按坏框架解析布局导致裸奔。
+    localStorage.setItem('multi-tenant-saas-ui-framework', 'bootstrap')
     await loadFramework('bootstrap')
   }
 
@@ -99,7 +103,7 @@ async function main() {
       await active.install(app)
     } catch (e) {
       console.warn(`Failed to install "${fw}", falling back to bootstrap:`, e)
-      localStorage.removeItem('multi-tenant-saas-ui-framework')
+      localStorage.setItem('multi-tenant-saas-ui-framework', 'bootstrap')
       await loadFramework('bootstrap')
       const fallback = uiRegistry.getActive()
       if (fallback) await fallback.install(app)

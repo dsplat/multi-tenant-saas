@@ -85,6 +85,39 @@
 
       <!-- 企业微信 -->
       <div v-show="activeTab === 'wechat_work'" class="tab-body">
+        <!-- 平台代开发应用授权（suite 模式，双轨之一） -->
+        <div class="suite-box">
+          <div class="help-title">🤝 平台代开发应用授权（推荐）</div>
+          <p class="form-tip">
+            企业微信自建应用的可信域名须与认证主体一致，租户自有域名无法作为平台回调域（auth.neihang.com）。
+            平台已注册企微服务商（代开发模式），授权后扫码登录将优先走服务商代跑，回调域使用平台统一域；下方「自建应用」配置保留为降级备用。
+          </p>
+          <template v-if="suiteAuth.status === 'authorized'">
+            <div class="form-group">
+              <label>Corp ID</label>
+              <input :value="suiteAuth.corp_id" readonly />
+            </div>
+            <div class="form-group">
+              <label>Agent ID</label>
+              <input :value="suiteAuth.agent_id" readonly />
+            </div>
+            <div class="form-tip">授权时间：{{ suiteAuth.authorized_at || '—' }}</div>
+            <div style="margin-top: 10px">
+              <button class="btn-primary" style="margin-top: 0" :disabled="suiteRevoking" @click="revokeSuiteAuth">{{ suiteRevoking ? '解除中...' : '解除授权' }}</button>
+              <button type="button" class="suite-link" @click="fetchSuiteStatus">刷新状态</button>
+            </div>
+          </template>
+          <template v-else>
+            <div style="margin-top: 6px">
+              <button class="btn-primary" style="margin-top: 0" :disabled="suiteAuthorizing" @click="startSuiteAuth">{{ suiteAuthorizing ? '跳转中...' : '使用平台代开发应用扫码授权' }}</button>
+              <button type="button" class="suite-link" @click="fetchSuiteStatus">刷新状态</button>
+            </div>
+            <p v-if="suiteAuth.status === 'revoked'" class="form-tip" style="margin-top: 6px">当前状态：已解除，可重新扫码授权</p>
+            <p v-if="suiteAuthHint" class="form-tip" style="margin-top: 6px">{{ suiteAuthHint }}</p>
+            <p v-if="suiteAuthError" class="form-tip" style="margin-top: 6px; color: #dc3545">{{ suiteAuthError }}</p>
+          </template>
+        </div>
+
         <div class="enable-row">
           <span>启用企业微信扫码登录</span>
           <label class="switch"><input type="checkbox" v-model="config.wechat_work.enabled" /><span class="slider"></span></label>
@@ -237,6 +270,55 @@ const config = reactive({
 
 const isEnabled = (key: string) => (config as any)[key]?.enabled
 
+// ─── 平台代开发应用授权（suite 模式） ───────────────────
+const suiteAuth = reactive({ status: 'pending', corp_id: '', agent_id: '', authorized_at: '' })
+const suiteAuthorizing = ref(false)
+const suiteRevoking = ref(false)
+const suiteAuthError = ref('')
+const suiteAuthHint = ref('')
+
+const fetchSuiteStatus = async () => {
+  try {
+    const res = await axios.get('/api/v1/tenant/wechat-work/status')
+    Object.assign(suiteAuth, res.data.data || {})
+  } catch (e: any) {
+    suiteAuthError.value = e.response?.data?.message || '查询授权状态失败'
+  }
+}
+
+const startSuiteAuth = async () => {
+  suiteAuthorizing.value = true
+  suiteAuthError.value = ''
+  suiteAuthHint.value = ''
+  try {
+    const res = await axios.post('/api/v1/tenant/wechat-work/authorize')
+    const url = res.data.data?.url
+    if (!url) throw new Error('未返回授权 URL')
+    window.open(url, '_blank')
+    suiteAuthHint.value = '已打开企微授权页，请完成扫码；授权完成后点击「刷新状态」确认。'
+  } catch (e: any) {
+    suiteAuthError.value = e.response?.data?.message || '生成授权链接失败'
+  } finally {
+    suiteAuthorizing.value = false
+  }
+}
+
+const revokeSuiteAuth = async () => {
+  if (!confirm('确认解除平台代开发授权？解除后登录将回退自建应用配置（如有）。')) return
+  suiteRevoking.value = true
+  try {
+    await axios.post('/api/v1/tenant/wechat-work/revoke')
+    message.value = '已解除企微代开发授权'
+    messageType.value = 'success'
+    await fetchSuiteStatus()
+  } catch (e: any) {
+    message.value = e.response?.data?.message || '解除授权失败'
+    messageType.value = 'danger'
+  } finally {
+    suiteRevoking.value = false
+  }
+}
+
 // 按租户域名推导指定 provider 的回调地址（帮助文案展示用）
 const callbackUrl = (provider: string) => {
   const tpl = config.idp.redirect_uri_default
@@ -309,7 +391,7 @@ const handleSave = async () => {
   }
 }
 
-onMounted(loadConfig)
+onMounted(() => { loadConfig(); fetchSuiteStatus() })
 </script>
 
 <style scoped>
@@ -337,6 +419,10 @@ onMounted(loadConfig)
 .alert-success { background: #d1e7dd; color: #0f5132; }
 .alert-danger { background: #f8d7da; color: #842029; }
 .help-box { margin-top: 8px; padding: 12px 16px; background: #f8f9fa; border-radius: 6px; font-size: 13px; line-height: 1.8; color: #495057; }
+.suite-box { margin-bottom: 16px; padding: 12px 16px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; }
+.suite-box .form-group { margin-bottom: 8px; }
+.suite-box input[readonly] { background: #e9ecef; color: #495057; }
+.suite-link { background: none; border: none; color: #0d6efd; cursor: pointer; padding: 0; margin-left: 12px; font-size: 13px; }
 .help-title { font-weight: 600; margin: 4px 0; color: #212529; }
 .help-box ol, .help-box ul { margin: 4px 0 12px; padding-left: 20px; }
 .help-box code { background: #e9ecef; padding: 1px 6px; border-radius: 3px; word-break: break-all; }

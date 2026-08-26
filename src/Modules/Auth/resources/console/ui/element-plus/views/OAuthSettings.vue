@@ -94,6 +94,36 @@
           </template>
 
           <div class="tab-body">
+            <!-- 平台代开发应用授权（suite 模式，双轨之一） -->
+            <div class="suite-box">
+              <div class="help-title">🤝 平台代开发应用授权（推荐）</div>
+              <p class="form-tip">
+                企业微信自建应用的可信域名须与认证主体一致，租户自有域名无法作为平台回调域（auth.neihang.com）。
+                平台已注册企微服务商（代开发模式），授权后扫码登录将优先走服务商代跑，回调域使用平台统一域；下方「自建应用」配置保留为降级备用。
+              </p>
+              <template v-if="suiteAuth.status === 'authorized'">
+                <el-descriptions :column="2" size="small" border style="margin: 8px 0">
+                  <el-descriptions-item label="Corp ID">{{ suiteAuth.corp_id }}</el-descriptions-item>
+                  <el-descriptions-item label="Agent ID">{{ suiteAuth.agent_id }}</el-descriptions-item>
+                  <el-descriptions-item label="授权时间">{{ suiteAuth.authorized_at || '—' }}</el-descriptions-item>
+                  <el-descriptions-item label="状态"><el-tag type="success" size="small">已授权</el-tag></el-descriptions-item>
+                </el-descriptions>
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <el-button type="danger" plain size="small" :loading="suiteRevoking" @click="revokeSuiteAuth">解除授权</el-button>
+                  <el-button link size="small" @click="fetchSuiteStatus">刷新状态</el-button>
+                </div>
+              </template>
+              <template v-else>
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px">
+                  <el-button type="primary" :loading="suiteAuthorizing" @click="startSuiteAuth">使用平台代开发应用扫码授权</el-button>
+                  <el-button link @click="fetchSuiteStatus">刷新状态</el-button>
+                </div>
+                <p v-if="suiteAuth.status === 'revoked'" class="form-tip" style="margin-top: 6px">当前状态：已解除，可重新扫码授权</p>
+                <p v-if="suiteAuthHint" class="form-tip" style="margin-top: 6px">{{ suiteAuthHint }}</p>
+                <p v-if="suiteAuthError" class="form-tip" style="margin-top: 6px; color: var(--el-color-danger)">{{ suiteAuthError }}</p>
+              </template>
+            </div>
+
             <div class="enable-row">
               <span>启用企业微信扫码登录</span>
               <el-switch v-model="config.wechat_work.enabled" />
@@ -271,7 +301,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@stores/user'
 
 const userStore = useUserStore()
@@ -416,9 +446,57 @@ const handleRemoveVerifyFile = async (file: string) => {
   if (ok) ElMessage.success('验证文件已删除')
 }
 
+// ─── 平台代开发应用授权（suite 模式） ───────────────────
+const suiteAuth = reactive({ status: 'pending', corp_id: '', agent_id: '', authorized_at: '' })
+const suiteAuthorizing = ref(false)
+const suiteRevoking = ref(false)
+const suiteAuthError = ref('')
+const suiteAuthHint = ref('')
+
+const fetchSuiteStatus = async () => {
+  try {
+    const res = await axios.get('/api/v1/tenant/wechat-work/status')
+    Object.assign(suiteAuth, res.data.data || {})
+  } catch (e: any) {
+    suiteAuthError.value = e.response?.data?.message || '查询授权状态失败'
+  }
+}
+
+const startSuiteAuth = async () => {
+  suiteAuthorizing.value = true
+  suiteAuthError.value = ''
+  suiteAuthHint.value = ''
+  try {
+    const res = await axios.post('/api/v1/tenant/wechat-work/authorize')
+    const url = res.data.data?.url
+    if (!url) throw new Error('未返回授权 URL')
+    window.open(url, '_blank')
+    suiteAuthHint.value = '已打开企微授权页，请完成扫码；授权完成后点击「刷新状态」确认。'
+  } catch (e: any) {
+    suiteAuthError.value = e.response?.data?.message || '生成授权链接失败'
+  } finally {
+    suiteAuthorizing.value = false
+  }
+}
+
+const revokeSuiteAuth = async () => {
+  try {
+    await ElMessageBox.confirm('确认解除平台代开发授权？解除后登录将回退自建应用配置（如有）。', '提示', { type: 'warning' })
+    suiteRevoking.value = true
+    await axios.post('/api/v1/tenant/wechat-work/revoke')
+    ElMessage.success('已解除企微代开发授权')
+    await fetchSuiteStatus()
+  } catch (e: any) {
+    if (e?.response) ElMessage.error(e.response.data?.message || '解除授权失败')
+  } finally {
+    suiteRevoking.value = false
+  }
+}
+
 onMounted(() => {
   loadConfig()
   loadVerifyFiles()
+  fetchSuiteStatus()
 })
 </script>
 
@@ -433,4 +511,6 @@ onMounted(() => {
 .help-box ol, .help-box ul { margin: 4px 0 12px; padding-left: 20px; }
 .help-box code { background: var(--el-fill-color); padding: 1px 6px; border-radius: 3px; word-break: break-all; }
 .help-box a { color: var(--el-color-primary); }
+.suite-box { margin-bottom: 16px; padding: 12px 16px; background: var(--el-fill-color-light); border: 1px solid var(--el-border-color-lighter); border-radius: 6px; }
+.suite-box .form-tip { margin-top: 6px; }
 </style>

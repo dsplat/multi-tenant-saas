@@ -1,0 +1,28 @@
+{
+  "name": "dsplat/multi-tenant-saas-module-wechatwork",
+  "version": "1.0.0",
+  "description": "企业微信服务商代开发 - 套件凭证管理、suite 回调、租户代开发授权、corp_token 双轨适配",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\WechatWork\\": ""
+    }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "wechatwork",
+      "priority": 110,
+      "dependencies": ["infrastructure", "auth"],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\WechatWork\\WechatWorkServiceProvider",
+      "tenant_toggleable": false,
+      "default_enabled": true
+    }
+  }
+}

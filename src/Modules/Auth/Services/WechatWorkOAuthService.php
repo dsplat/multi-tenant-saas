@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Auth\Services;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Exceptions\ServiceUnavailableException;
@@ -13,6 +14,7 @@ use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Auth\Services\Concerns\ManagesOAuthState;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
+use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
 
 /**
  * 企业微信 OAuth 认证服务
@@ -24,7 +26,12 @@ use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
  * - 用户身份通过 code + access_token 获取（userid），再读取用户详情
  *
  * 因此不能复用 Socialite 的 OAuth2 Provider，需独立实现。
- * 仅支持「企业内部应用」模式，第三方应用模式留作后续扩展。
+ *
+ * 凭证来源双轨（2026-08 新增）：
+ * - 自建应用模式（mode=self）：租户手填凭证，存储于 tenant_settings group='oauth'
+ * - 代开发模式（mode=suite）：租户扫码授权服务商代开发应用，permanent_code 充当
+ *   secret 角色（wechat_work_authorizations 表），回调域用平台统一回调域
+ *   （服务商代配可信域名=平台域，绕过自建应用的主体校验限制）
  *
  * 租户级配置（存储在 tenant_settings, group='oauth'）：
  *  - wechat_work_corp_id    企业 ID（不加密）
@@ -49,10 +56,32 @@ class WechatWorkOAuthService
     /**
      * 获取租户企业微信配置
      *
-     * @throws \RuntimeException 当 corp_id 或 secret 未配置
+     * 凭证来源双轨：租户已完成代开发授权（wechat_work_authorizations
+     * status=authorized）时优先走代开发模式（mode=suite，permanent_code
+     * 充当 secret，回调域用平台统一回调域）；否则走自建应用模式
+     * （mode=self，tenant_settings 手填凭证）。
+     *
+     * @throws \RuntimeException 当两种模式均未配置
      */
     protected function getConfig(int $tenantId): array
     {
+        $authorization = $this->suiteAuthorization($tenantId);
+
+        if ($authorization !== null && $authorization->isAuthorized()) {
+            $callbackDomain = config('auth.oauth.callback_domain', '');
+            $redirect = $callbackDomain !== ''
+                ? "https://{$callbackDomain}/api/v1/auth/wechat_work/callback"
+                : app(SocialiteService::class)->resolveRedirectUrl($tenantId, 'wechat_work', '');
+
+            return [
+                'corp_id' => $authorization->corp_id,
+                'agent_id' => (string) ($authorization->agent_id ?? ''),
+                'secret' => (string) $authorization->permanent_code,
+                'redirect' => $redirect,
+                'mode' => 'suite',
+            ];
+        }
+
         $corpId = TenantSetting::get($tenantId, 'oauth', 'wechat_work_corp_id', '');
         $secret = TenantSetting::get($tenantId, 'oauth', 'wechat_work_secret', '');
 
@@ -69,7 +98,27 @@ class WechatWorkOAuthService
                 'wechat_work',
                 TenantSetting::get($tenantId, 'oauth', 'wechat_work_redirect', '')
             ),
+            'mode' => 'self',
         ];
+    }
+
+    /**
+     * 读取代开发授权记录（双轨查询入口）
+     *
+     * WechatWork 模块为可选拆包（dsplat/multi-tenant-saas-module-wechatwork），
+     * 下游未安装或未迁移时类/表缺失：返回 null 回退自建应用模式，不得抛 SQL 错误。
+     */
+    protected function suiteAuthorization(int $tenantId)
+    {
+        if (! class_exists(WechatWorkSuiteService::class)) {
+            return null;
+        }
+
+        if (! Schema::hasTable('wechat_work_authorizations')) {
+            return null;
+        }
+
+        return app(WechatWorkSuiteService::class)->authorization($tenantId);
     }
 
     /**
@@ -146,11 +195,20 @@ class WechatWorkOAuthService
     /**
      * 获取企业微信 access_token（带缓存，有效期 7200s）
      *
+     * 代开发模式（mode=suite）走服务商 service/get_corp_token（permanent_code
+     * 充当 secret）；自建应用模式走 gettoken。
+     *
      * @throws \RuntimeException
      */
     public function getAccessToken(int $tenantId): string
     {
         $config = $this->getConfig($tenantId);
+
+        // 代开发模式：corp access_token 由套件服务统一缓存管理
+        if (($config['mode'] ?? '') === 'suite') {
+            return app(WechatWorkSuiteService::class)->corpAccessToken($tenantId);
+        }
+
         $cacheKey = "wechat_work_token:{$tenantId}";
 
         $cached = Cache::get($cacheKey);
@@ -330,10 +388,16 @@ class WechatWorkOAuthService
     }
 
     /**
-     * 检查租户是否已配置企业微信 OAuth
+     * 检查租户是否已配置企业微信 OAuth（自建应用或代开发授权任一满足）
      */
     public function isConfigured(int $tenantId): bool
     {
+        $authorization = $this->suiteAuthorization($tenantId);
+
+        if ($authorization !== null && $authorization->isAuthorized()) {
+            return true;
+        }
+
         $corpId = TenantSetting::get($tenantId, 'oauth', 'wechat_work_corp_id', '');
         $secret = TenantSetting::get($tenantId, 'oauth', 'wechat_work_secret', '');
 

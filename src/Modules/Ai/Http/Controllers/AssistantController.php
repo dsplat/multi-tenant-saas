@@ -665,14 +665,17 @@ class AssistantController extends Controller
             return response()->json(['success' => false, 'message' => '当前账号不属于该团队。'], 403);
         }
 
-        $tenantAdminRoleId = DB::table('roles')
+        // 集合判定：租户可能存在专属 tenant_admin 角色行，operator 可能绑定全局或租户专属角色，
+        // 单行取值（value）会误拒绑定另一角色的运营者。
+        $tenantAdminRoleIds = DB::table('roles')
             ->where('name', 'tenant_admin')
             ->where(function ($q) use ($tenantId) {
                 $q->whereNull('tenant_id')->orWhere('tenant_id', $tenantId);
             })
-            ->value('role_id');
+            ->pluck('role_id')
+            ->all();
 
-        if ($operatorTenant->role_id !== $tenantAdminRoleId) {
+        if (! in_array($operatorTenant->role_id, $tenantAdminRoleIds, true)) {
             return response()->json(['success' => false, 'message' => '仅团队管理员可执行代操作。'], 403);
         }
 

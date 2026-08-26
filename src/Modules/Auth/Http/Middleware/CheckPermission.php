@@ -73,15 +73,17 @@ class CheckPermission
                 return $this->forbidden($request, trans('common.not_in_tenant'));
             }
 
-            // console 仅允许 tenant_admin 角色
-            $tenantAdminRoleId = DB::table('roles')
+            // console 仅允许 tenant_admin 角色（全局角色与租户专属角色均放行：
+            // 租户可能存在专属 tenant_admin 角色行，单行取值会误拒绑定全局角色的运营者）
+            $tenantAdminRoleIds = DB::table('roles')
                 ->where('name', 'tenant_admin')
                 ->where(function ($q) use ($tenantId) {
                     $q->whereNull('tenant_id')->orWhere('tenant_id', $tenantId);
                 })
-                ->value('role_id');
+                ->pluck('role_id')
+                ->all();
 
-            if ($operatorTenant->role_id !== $tenantAdminRoleId) {
+            if (! in_array($operatorTenant->role_id, $tenantAdminRoleIds, true)) {
                 return $this->forbidden($request, trans('common.tenant_admin_only'));
             }
 

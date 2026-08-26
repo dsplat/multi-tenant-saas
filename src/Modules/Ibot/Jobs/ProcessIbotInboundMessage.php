@@ -299,14 +299,17 @@ class ProcessIbotInboundMessage implements ShouldQueue
             return false;
         }
 
-        $tenantAdminRoleId = DB::table('roles')
+        // 集合判定：租户可能存在专属 tenant_admin 角色行，operator 可能绑定全局或租户专属角色，
+        // 单行取值（value）会误拒绑定另一角色的运营者。
+        $tenantAdminRoleIds = DB::table('roles')
             ->where('name', 'tenant_admin')
             ->where(function ($q) {
                 $q->whereNull('tenant_id')->orWhere('tenant_id', $this->tenantId);
             })
-            ->value('role_id');
+            ->pluck('role_id')
+            ->all();
 
-        return $operatorTenant->role_id === $tenantAdminRoleId;
+        return in_array($operatorTenant->role_id, $tenantAdminRoleIds, true);
     }
 
     /**

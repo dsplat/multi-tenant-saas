@@ -4,8 +4,10 @@ namespace MultiTenantSaas\Tests\Integration;
 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Contracts\IdGeneratorContract;
+use MultiTenantSaas\Modules\Auth\Http\Middleware\CheckPermission;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Auth\Services\RbacService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
@@ -641,5 +643,41 @@ class PermissionModelIntegrationTest extends TestCase
         $this->assertTrue(class_exists(OperatorTenant::class));
         $this->assertTrue(class_exists(OperatorController::class));
         $this->assertTrue(class_exists(IdentifyOperator::class));
+    }
+
+    /**
+     * 测试：租户存在专属 tenant_admin 角色行时，绑定全局 tenant_admin 角色的
+     * operator 访问 console 仍应放行（回归：value() 单行取值误拒，引导卡片静默消失）。
+     */
+    public function test_console_access_passes_when_tenant_has_own_role_row(): void
+    {
+        // 前置：租户 A 存在专属 tenant_admin 角色行（生产蓝眼兔租户同构数据）
+        \DB::table('roles')->insert([
+            'role_id' => app(IdGeneratorContract::class)->generate(),
+            'name' => 'tenant_admin',
+            'display_name' => '租户管理员',
+            'description' => '租户专属角色行',
+            'tenant_id' => $this->tenantA->tenant_id,
+            'is_system' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // 该 operator 绑定的是全局 tenant_admin 角色
+        $globalRoleId = \DB::table('roles')->where('name', 'tenant_admin')->whereNull('tenant_id')->value('role_id');
+        $operatorTenant = OperatorTenant::where('operator_id', $this->tenantAAdminOperator->operator_id)
+            ->where('tenant_id', $this->tenantA->tenant_id)
+            ->first();
+        $this->assertEquals($globalRoleId, $operatorTenant->role_id, '前置：operator 应绑定全局角色');
+
+        TenantContext::setTenantId((string) $this->tenantA->tenant_id);
+        TenantContext::setDomainType('console');
+
+        $request = Request::create('/api/v1/test', 'GET');
+        $request->setUserResolver(fn () => $this->tenantAAdminOperator);
+        $middleware = new CheckPermission();
+        $result = $middleware->handle($request, fn ($req) => response('PASS'));
+
+        $this->assertEquals('PASS', $result->getContent(), '绑定全局角色的租户管理员应放行 console 访问');
     }
 }

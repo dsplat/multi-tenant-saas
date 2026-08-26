@@ -37,17 +37,21 @@ class NotificationService
      */
     protected function tenantAdminUserIds(int $tenantId): array
     {
-        $tenantAdminRoleId = \DB::table('roles')
+        // 集合判定：全局角色与租户专属角色均视为租户管理员，避免绑定专属角色行的运营者漏收通知
+        $tenantAdminRoleIds = \DB::table('roles')
             ->where('name', 'tenant_admin')
-            ->whereNull('tenant_id')
-            ->value('role_id');
+            ->where(function ($q) use ($tenantId) {
+                $q->whereNull('tenant_id')->orWhere('tenant_id', $tenantId);
+            })
+            ->pluck('role_id')
+            ->all();
 
         return \DB::table('operator_tenants')
             ->where('tenant_id', $tenantId)
             ->where('is_active', true)
             ->whereNotNull('user_id')
-            ->where(function ($q) use ($tenantAdminRoleId) {
-                $q->where('role_id', $tenantAdminRoleId)
+            ->where(function ($q) use ($tenantAdminRoleIds) {
+                $q->whereIn('role_id', $tenantAdminRoleIds)
                     ->orWhere('role', 'tenant_admin');
             })
             ->pluck('user_id')

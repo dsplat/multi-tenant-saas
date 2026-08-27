@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Support\WechatWork;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 
 /**
  * 企业微信服务端 API 客户端（共享 SDK 层）
@@ -201,19 +202,34 @@ class WechatWorkApiClient
             $payload
         );
 
-        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
-            Log::warning('[WechatWork] groupchat/list 失败', [
+        if (! $response->successful()) {
+            Log::warning('[WechatWork] groupchat/list HTTP 失败', [
                 'corp_id' => $this->corpId,
-                'errcode' => $response->json('errcode'),
-                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+                'status' => $response->status(),
             ]);
 
-            return ['group_chat_list' => [], 'next_cursor' => ''];
+            throw new ServiceUnavailableException('WechatWork: groupchat/list HTTP ' . $response->status());
+        }
+
+        $data = $response->json() ?? [];
+
+        if (($data['errcode'] ?? -1) !== 0) {
+            Log::warning('[WechatWork] groupchat/list 失败', [
+                'corp_id' => $this->corpId,
+                'errcode' => $data['errcode'] ?? null,
+                'errmsg' => mb_substr((string) ($data['errmsg'] ?? ''), 0, 200),
+            ]);
+
+            // 抛异常而非静默返回空：60020（IP 白名单）/ 60011（无权限）等必须让上层可见，
+            // 否则同步逻辑会把「接口失败」误报为「0 个群」
+            throw new ServiceUnavailableException(
+                sprintf('WechatWork: groupchat/list failed [%s]: %s', $data['errcode'] ?? '?', $data['errmsg'] ?? '')
+            );
         }
 
         return [
-            'group_chat_list' => $response->json('group_chat_list', []),
-            'next_cursor' => $response->json('next_cursor', ''),
+            'group_chat_list' => $data['group_chat_list'] ?? [],
+            'next_cursor' => $data['next_cursor'] ?? '',
         ];
     }
 

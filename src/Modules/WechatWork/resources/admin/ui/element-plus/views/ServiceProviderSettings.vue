@@ -65,6 +65,11 @@
 
         <!-- 已授权租户 -->
         <el-tab-pane label="已授权租户" name="authorizations">
+          <el-alert type="info" :closable="false" show-icon style="margin-bottom: 12px">
+            <template #title>
+              租户扫码授权后，在企微<b>服务商后台</b>「代开发应用」列表为该企业「开始代开发应用」：应用信息（名称/logo 默认带出模板信息）、应用主页（终端站点如 club.lanyantu.com）、可信域名与 IP 白名单填 <b>auth.neihang.com</b>，回调 URL 填该行「回调配置」中的地址（保存时企微会发起 URL 验证）。验证通过后把企微生成的 Token / EncodingAESKey 回填「回调配置」，即完成该租户应用接入。
+            </template>
+          </el-alert>
           <el-table :data="authorizations" stripe empty-text="暂无租户授权">
             <el-table-column label="租户" min-width="160">
               <template #default="{ row }">
@@ -82,11 +87,24 @@
                 </el-tag>
               </template>
             </el-table-column>
+            <el-table-column label="应用回调" min-width="110">
+              <template #default="{ row }">
+                <el-tag v-if="row.status !== 'authorized'" type="info" size="small">—</el-tag>
+                <el-tag v-else :type="row.app_callback_configured ? 'success' : 'warning'" size="small">
+                  {{ row.app_callback_configured ? '已配置' : '未配置' }}
+                </el-tag>
+              </template>
+            </el-table-column>
             <el-table-column label="授权时间" width="170">
               <template #default="{ row }">{{ row.authorized_at || '—' }}</template>
             </el-table-column>
             <el-table-column label="解除时间" width="170">
               <template #default="{ row }">{{ row.revoked_at || '—' }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="110" fixed="right">
+              <template #default="{ row }">
+                <el-button link type="primary" size="small" :disabled="row.status !== 'authorized'" @click="openCallbackDialog(row)">回调配置</el-button>
+              </template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
@@ -121,6 +139,31 @@
       <template #footer>
         <el-button @click="providerDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="saveProvider">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 应用回调配置弹窗（「开始代开发应用」凭证回填） -->
+    <el-dialog v-model="callbackDialogVisible" title="应用回调配置" width="600px">
+      <el-alert type="info" :closable="false" show-icon style="margin-bottom: 12px">
+        <template #title>
+          在企微<b>服务商后台</b>「开始代开发应用」时填入下方回调 URL（保存时企微发起 URL 验证，需本地址可达且凭证一致）；验证通过后把企微「回调 URL 验证」处生成的 <b>Token</b> / <b>EncodingAESKey</b> 回填此处保存。
+        </template>
+      </el-alert>
+      <el-form label-width="130px">
+        <el-form-item label="租户"><strong>{{ callbackForm.tenant_name }}</strong>（租户 ID {{ callbackForm.tenant_id }}）</el-form-item>
+        <el-form-item label="回调 URL">
+          <div style="display: flex; align-items: center; gap: 8px; width: 100%">
+            <el-input :model-value="callbackForm.app_callback_url" readonly />
+            <el-button @click="copyAppCallbackUrl">复制</el-button>
+          </div>
+          <p class="form-hint" style="margin: 4px 0 0; padding: 0">已带租户标识，须与企微侧实际填写的回调 URL 一致</p>
+        </el-form-item>
+        <el-form-item label="Token"><el-input v-model="callbackForm.app_callback_token" placeholder="企微「回调 URL 验证」处生成" /></el-form-item>
+        <el-form-item label="EncodingAESKey"><el-input v-model="callbackForm.app_encoding_aes_key" type="password" show-password placeholder="企微「回调 URL 验证」处生成" /></el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="callbackDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="callbackSaving" @click="saveAppCallback">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -234,6 +277,49 @@ const fetchAuthorizations = async () => {
   } catch {}
 }
 const statusLabel = (s: string) => ({ pending: '待授权', authorized: '已授权', revoked: '已解除' } as Record<string, string>)[s] || s
+
+// ---- 应用回调配置（「开始代开发应用」凭证回填） ----
+const callbackDialogVisible = ref(false)
+const callbackSaving = ref(false)
+const callbackForm = reactive<any>({ authorization_id: null, tenant_id: null, tenant_name: '', app_callback_url: '', app_callback_token: '', app_encoding_aes_key: '' })
+
+const openCallbackDialog = (row: any) => {
+  Object.assign(callbackForm, {
+    authorization_id: row.authorization_id,
+    tenant_id: row.tenant_id,
+    tenant_name: row.tenant_name || row.tenant_id,
+    app_callback_url: row.app_callback_url,
+    app_callback_token: '',
+    app_encoding_aes_key: '',
+  })
+  callbackDialogVisible.value = true
+}
+
+const copyAppCallbackUrl = async () => {
+  try { await navigator.clipboard.writeText(callbackForm.app_callback_url); ElMessage.success('已复制回调 URL') } catch { ElMessage.error('复制失败，请手动复制') }
+}
+
+const saveAppCallback = async () => {
+  if (!callbackForm.app_callback_token || !callbackForm.app_encoding_aes_key) {
+    ElMessage.warning('请填写 Token 与 EncodingAESKey')
+    return
+  }
+  callbackSaving.value = true
+  try {
+    await axios.put(`${API}/authorizations/${callbackForm.authorization_id}/app-callback`, {
+      app_callback_url: callbackForm.app_callback_url,
+      app_callback_token: callbackForm.app_callback_token,
+      app_encoding_aes_key: callbackForm.app_encoding_aes_key,
+    })
+    ElMessage.success('应用回调配置已保存')
+    callbackDialogVisible.value = false
+    await fetchAuthorizations()
+  } catch (e: any) {
+    ElMessage.error(e.response?.data?.message || '保存失败')
+  } finally {
+    callbackSaving.value = false
+  }
+}
 
 onMounted(() => {
   fetchProviders()

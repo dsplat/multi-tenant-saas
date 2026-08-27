@@ -106,6 +106,19 @@
               <span class="form-tip">已获得模板权限：</span>
               <span v-for="p in suiteAuthPermissions" :key="p.key" class="badge" style="margin-right: 4px">{{ p.label }}</span>
             </div>
+            <!-- 应用回调链路状态（「开始代开发应用」配置进度） -->
+            <div v-if="suiteAuth.callback" class="suite-callback">
+              <div class="callback-row">
+                <span class="callback-label">应用回调 URL（企微「开始代开发应用」时填写）：</span>
+                <code class="callback-code">{{ suiteAuth.callback.app_callback_url }}</code>
+                <button type="button" class="suite-link" style="margin-left: 0" @click="copyText(suiteAuth.callback.app_callback_url)">复制</button>
+              </div>
+              <div v-if="!suiteAuth.callback.app_callback_configured" class="alert alert-warning" style="margin-top: 8px">
+                应用回调尚未配置：请在企微<b>服务商后台</b>「开始代开发应用」时，将上方地址填入「回调URL」，并把生成的 Token / EncodingAESKey 回填平台（管理后台 → 企微服务商 → 已授权租户 → 回调配置）。配置完成前应用无法接收事件推送。
+              </div>
+              <div v-else class="alert alert-success" style="margin-top: 8px">应用回调已配置，回调链路就绪。</div>
+              <p class="form-tip">可信域名须填 <b>{{ suiteCallbackDomain }}</b>（回调 URL 的域名部分，不含 https:// 与路径）；应用主页可填 club.lanyantu.com 等终端站点（与认证无关）。</p>
+            </div>
             <div style="margin-top: 10px">
               <button class="btn-primary" style="margin-top: 0" :disabled="suiteRevoking" @click="revokeSuiteAuth">{{ suiteRevoking ? '解除中...' : '解除授权' }}</button>
               <button type="button" class="suite-link" @click="fetchSuiteStatus">刷新状态</button>
@@ -267,7 +280,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
 import QrcodeVue from 'qrcode.vue'
 
@@ -295,7 +308,7 @@ const config = reactive({
 const isEnabled = (key: string) => (config as any)[key]?.enabled
 
 // ─── 平台代开发应用授权（suite 模式） ───────────────────
-const suiteAuth = reactive({ status: 'pending', corp_id: '', agent_id: '', authorized_at: '' })
+const suiteAuth = reactive({ status: 'pending', corp_id: '', agent_id: '', authorized_at: '', callback: null as any })
 const suiteAuthorizing = ref(false)
 const suiteRevoking = ref(false)
 const suiteAuthError = ref('')
@@ -303,6 +316,22 @@ const suiteAuthHint = ref('')
 // 授权二维码内容（qrcode_url 为授权链接，由前端渲染为二维码）与模板权限清单
 const suiteAuthUrl = ref('')
 const suiteAuthPermissions = ref<{ key: string; label: string }[]>([])
+
+// 可信域名 = 应用回调 URL 的域名（企微可信域名须与回调域名一致，不含 https:// 与路径）
+const suiteCallbackDomain = computed(() => {
+  const url = suiteAuth.callback?.app_callback_url || ''
+  try { return new URL(url).host } catch { return 'auth.neihang.com' }
+})
+
+const copyText = async (text: string) => {
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+    alert('已复制')
+  } catch {
+    alert('复制失败，请手动复制')
+  }
+}
 
 const fetchSuiteStatus = async () => {
   try {
@@ -450,6 +479,7 @@ onMounted(() => { loadConfig(); fetchSuiteStatus() })
 .alert { margin-top: 12px; padding: 8px 12px; border-radius: 4px; font-size: 14px; }
 .alert-success { background: #d1e7dd; color: #0f5132; }
 .alert-danger { background: #f8d7da; color: #842029; }
+.alert-warning { background: #fff3cd; color: #664d03; }
 .help-box { margin-top: 8px; padding: 12px 16px; background: #f8f9fa; border-radius: 6px; font-size: 13px; line-height: 1.8; color: #495057; }
 .suite-box { margin-bottom: 16px; padding: 12px 16px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; }
 .suite-box .form-group { margin-bottom: 8px; }
@@ -457,6 +487,10 @@ onMounted(() => { loadConfig(); fetchSuiteStatus() })
 .suite-qr-box { margin-top: 10px; }
 .suite-qr { display: inline-block; padding: 10px; background: #fff; border: 1px solid #dee2e6; border-radius: 6px; }
 .suite-perms { margin-top: 10px; padding: 8px 10px; background: #fff; border: 1px solid #dee2e6; border-radius: 4px; }
+.suite-callback { margin-top: 10px; }
+.callback-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.callback-label { font-size: 12px; color: #6c757d; white-space: nowrap; }
+.callback-code { font-size: 12px; background: #e9ecef; padding: 2px 6px; border-radius: 3px; word-break: break-all; flex: 1; min-width: 0; }
 .suite-link { background: none; border: none; color: #0d6efd; cursor: pointer; padding: 0; margin-left: 12px; font-size: 13px; }
 .help-title { font-weight: 600; margin: 4px 0; color: #212529; }
 .help-box ol, .help-box ul { margin: 4px 0 12px; padding-left: 20px; }

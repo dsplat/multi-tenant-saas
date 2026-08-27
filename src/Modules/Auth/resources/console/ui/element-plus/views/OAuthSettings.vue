@@ -112,6 +112,23 @@
                   <span class="form-tip" style="margin-right: 6px">已获得模板权限：</span>
                   <el-tag v-for="p in suiteAuthPermissions" :key="p.key" size="small" style="margin-right: 6px">{{ p.label }}</el-tag>
                 </div>
+                <!-- 应用回调链路状态（「开始代开发应用」配置进度） -->
+                <div v-if="suiteAuth.callback" class="suite-callback">
+                  <div class="callback-row">
+                    <span class="callback-label">应用回调 URL（企微「开始代开发应用」时填写）：</span>
+                    <code class="callback-code">{{ suiteAuth.callback.app_callback_url }}</code>
+                    <el-button link type="primary" size="small" @click="copyText(suiteAuth.callback.app_callback_url)">复制</el-button>
+                  </div>
+                  <el-alert v-if="!suiteAuth.callback.app_callback_configured" type="warning" :closable="false" show-icon style="margin-top: 6px">
+                    <template #title>
+                      应用回调尚未配置：请在企微<b>服务商后台</b>「开始代开发应用」时，将上方地址填入「回调URL」，并把生成的 Token / EncodingAESKey 回填平台（管理后台 → 企微服务商 → 已授权租户 → 回调配置）。配置完成前应用无法接收事件推送。
+                    </template>
+                  </el-alert>
+                  <el-alert v-else type="success" :closable="false" show-icon style="margin-top: 6px">
+                    <template #title>应用回调已配置，回调链路就绪。</template>
+                  </el-alert>
+                  <p class="form-tip">可信域名须填 <b>{{ suiteCallbackDomain }}</b>（回调 URL 的域名部分，不含 https:// 与路径）；应用主页可填 club.lanyantu.com 等终端站点（与认证无关）。</p>
+                </div>
                 <div style="display: flex; align-items: center; gap: 8px">
                   <el-button type="danger" plain size="small" :loading="suiteRevoking" @click="revokeSuiteAuth">解除授权</el-button>
                   <el-button link size="small" @click="fetchSuiteStatus">刷新状态</el-button>
@@ -471,7 +488,7 @@ const handleRemoveVerifyFile = async (file: string) => {
 }
 
 // ─── 平台代开发应用授权（suite 模式） ───────────────────
-const suiteAuth = reactive({ status: 'pending', corp_id: '', agent_id: '', authorized_at: '' })
+const suiteAuth = reactive({ status: 'pending', corp_id: '', agent_id: '', authorized_at: '', callback: null as any })
 const suiteAuthorizing = ref(false)
 const suiteRevoking = ref(false)
 const suiteAuthError = ref('')
@@ -479,6 +496,22 @@ const suiteAuthHint = ref('')
 // 授权二维码内容（qrcode_url 为授权链接，由前端渲染为二维码）与模板权限清单
 const suiteAuthUrl = ref('')
 const suiteAuthPermissions = ref<{ key: string; label: string }[]>([])
+
+// 可信域名 = 应用回调 URL 的域名（企微可信域名须与回调域名一致，不含 https:// 与路径）
+const suiteCallbackDomain = computed(() => {
+  const url = suiteAuth.callback?.app_callback_url || ''
+  try { return new URL(url).host } catch { return 'auth.neihang.com' }
+})
+
+const copyText = async (text: string) => {
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('已复制')
+  } catch {
+    ElMessage.error('复制失败，请手动复制')
+  }
+}
 
 const fetchSuiteStatus = async () => {
   try {
@@ -548,4 +581,8 @@ onMounted(() => {
 .suite-qr-box { margin-top: 10px; }
 .suite-qr { display: inline-block; padding: 10px; background: #fff; border: 1px solid var(--el-border-color-lighter); border-radius: 6px; }
 .suite-perms { margin-top: 10px; padding: 8px 10px; background: var(--el-fill-color-light); border-radius: 4px; }
+.suite-callback { margin-top: 10px; }
+.callback-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.callback-label { font-size: 12px; color: var(--el-text-color-secondary); white-space: nowrap; }
+.callback-code { font-size: 12px; background: var(--el-fill-color); padding: 2px 6px; border-radius: 3px; word-break: break-all; flex: 1; min-width: 0; }
 </style>

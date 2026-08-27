@@ -134,6 +134,8 @@ class AdminServiceProviderController extends Controller
 
     public function authorizations(): JsonResponse
     {
+        $suite = $this->suite;
+
         $rows = WechatWorkAuthorization::query()
             ->leftJoin('tenants', 'tenants.tenant_id', '=', 'wechat_work_authorizations.tenant_id')
             ->orderByDesc('wechat_work_authorizations.updated_at')
@@ -142,14 +144,56 @@ class AdminServiceProviderController extends Controller
                 'wechat_work_authorizations.tenant_id',
                 'wechat_work_authorizations.corp_id',
                 'wechat_work_authorizations.agent_id',
+                'wechat_work_authorizations.app_callback_token',
                 'wechat_work_authorizations.status',
                 'wechat_work_authorizations.authorized_at',
                 'wechat_work_authorizations.revoked_at',
                 'tenants.name as tenant_name',
                 'tenants.domain as tenant_domain',
-            ]);
+            ])
+            ->map(function ($row) use ($suite) {
+                // 应用回调 URL 动态生成（带租户标识）；凭证是否已回填只留布尔，密文/明文均不出库
+                $row->app_callback_url = $suite->appCallbackUrl((int) $row->tenant_id);
+                $row->app_callback_configured = $row->app_callback_token !== null && $row->app_callback_token !== '';
+                unset($row->app_callback_token);
+
+                return $row;
+            })
+            ->values();
 
         return response()->json(['success' => true, 'data' => $rows]);
+    }
+
+    /**
+     * 保存租户应用回调凭证（「开始代开发应用」在企微服务商后台生成的 Token/AESKey 回填）
+     */
+    public function appCallbackUpdate(Request $request, int $authorizationId): JsonResponse
+    {
+        $authorization = WechatWorkAuthorization::query()->find($authorizationId);
+
+        if ($authorization === null) {
+            return response()->json(['success' => false, 'message' => trans('common.not_found')], 404);
+        }
+
+        $validated = $request->validate([
+            'app_callback_token' => 'required|string|max:255',
+            'app_encoding_aes_key' => 'required|string|max:255',
+            'app_callback_url' => 'nullable|string|max:500|url',
+        ]);
+
+        $authorization->app_callback_token = $validated['app_callback_token'];
+        $authorization->app_encoding_aes_key = $validated['app_encoding_aes_key'];
+        // 回填 URL 默认用平台生成的（带租户标识），允许覆盖为企微侧实际填写的地址
+        $authorization->app_callback_url = $validated['app_callback_url']
+            ?? $this->suite->appCallbackUrl((int) $authorization->tenant_id);
+        $authorization->save();
+
+        Log::info('[WechatWorkSuite] 应用回调凭证已回填', [
+            'tenant_id' => $authorization->tenant_id,
+            'corp_id' => $authorization->corp_id,
+        ]);
+
+        return response()->json(['success' => true, 'message' => '应用回调配置已保存']);
     }
 
     // ==================================================================

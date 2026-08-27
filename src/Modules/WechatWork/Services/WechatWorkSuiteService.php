@@ -446,6 +446,37 @@ class WechatWorkSuiteService
     }
 
     /**
+     * 生成代开发应用回调 URL（「开始代开发应用」时填入企微服务商后台）
+     *
+     * 路径带租户标识（/suite/cz/{tenantId}），回调到达后直接定位租户的
+     * 应用级回调凭证，无需按 corp_id 反查；兼容手填 URL（无标识）时
+     * 控制器按各租户凭证遍历验签。
+     */
+    public function appCallbackUrl(int $tenantId): string
+    {
+        return $this->callbackDomain() . '/api/v1/wechat-work/suite/cz/' . $tenantId;
+    }
+
+    /**
+     * 解析应用回调候选授权记录
+     *
+     * tenantId 给定 → 该租户单条；null → 全部已授权记录（回调 URL 未带
+     * 租户标识时按各自凭证遍历验签匹配）。回调运行在平台域（无租户上下文），
+     * 显式豁免 TenantScope（同 markRevokedByCorpId 先例）。
+     *
+     * @return WechatWorkAuthorization[]
+     */
+    public function appAuthorizations(?int $tenantId): array
+    {
+        return TenantScope::allowUnscoped(fn () => WechatWorkAuthorization::query()
+            ->when($tenantId !== null, fn ($q) => $q->where('tenant_id', $tenantId))
+            ->where('status', WechatWorkAuthorization::STATUS_AUTHORIZED)
+            ->orderBy('authorization_id')
+            ->get()
+            ->all());
+    }
+
+    /**
      * 幂等保存租户授权（create_auth 事件 / 授权回调兜底均走此入口）
      *
      * 授权回跳运行在平台统一回调域（无租户上下文），TenantScope fail-closed
@@ -454,17 +485,26 @@ class WechatWorkSuiteService
      */
     public function saveAuthorization(int $tenantId, int $providerId, array $data): WechatWorkAuthorization
     {
+        $attributes = [
+            'service_provider_id' => $providerId,
+            'corp_id' => $data['corp_id'],
+            'agent_id' => $data['agent_id'] ?? null,
+            'permanent_code' => $data['permanent_code'],
+            'status' => WechatWorkAuthorization::STATUS_AUTHORIZED,
+            'authorized_at' => now(),
+            'revoked_at' => null,
+        ];
+
+        // 应用级回调凭证可选透传（admin 回填时更新）
+        foreach (['app_callback_token', 'app_encoding_aes_key', 'app_callback_url'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $attributes[$field] = $data[$field];
+            }
+        }
+
         return TenantScope::allowUnscoped(fn () => WechatWorkAuthorization::updateOrCreate(
             ['tenant_id' => $tenantId],
-            [
-                'service_provider_id' => $providerId,
-                'corp_id' => $data['corp_id'],
-                'agent_id' => $data['agent_id'] ?? null,
-                'permanent_code' => $data['permanent_code'],
-                'status' => WechatWorkAuthorization::STATUS_AUTHORIZED,
-                'authorized_at' => now(),
-                'revoked_at' => null,
-            ]
+            $attributes
         ));
     }
 

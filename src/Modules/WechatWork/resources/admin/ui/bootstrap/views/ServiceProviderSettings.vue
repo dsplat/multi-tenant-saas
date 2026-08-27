@@ -75,9 +75,14 @@
 
       <!-- 已授权租户 -->
       <div v-if="activeTab === 'authorizations'">
-        <p class="hint">通过平台服务商代开发模式授权的租户列表（每租户一条，UNIQUE tenant_id）</p>
+        <div class="callback-box">
+          <strong>「开始代开发应用」接入步骤</strong>
+          <p class="hint" style="margin-top: 4px">
+            租户扫码授权后，在企微<b>服务商后台</b>「代开发应用」列表为该企业「开始代开发应用」：应用信息（名称/logo 默认带出模板信息）、应用主页（终端站点如 club.lanyantu.com）、可信域名与 IP 白名单填 <code>auth.neihang.com</code>，回调 URL 填下方「回调配置」中的地址（保存时企微会发起 URL 验证）。验证通过后把企微生成的 Token / EncodingAESKey 回填此处，即完成该租户应用接入。
+          </p>
+        </div>
         <table class="data-table">
-          <thead><tr><th>租户</th><th>租户 ID</th><th>Corp ID</th><th>Agent ID</th><th>状态</th><th>授权时间</th><th>解除时间</th></tr></thead>
+          <thead><tr><th>租户</th><th>租户 ID</th><th>Corp ID</th><th>Agent ID</th><th>状态</th><th>应用回调</th><th>授权时间</th><th>解除时间</th><th>操作</th></tr></thead>
           <tbody>
             <tr v-for="a in authorizations" :key="a.authorization_id">
               <td>
@@ -92,12 +97,40 @@
                   {{ statusLabel(a.status) }}
                 </span>
               </td>
+              <td>
+                <span v-if="a.status !== 'authorized'" class="hint">—</span>
+                <span v-else :class="['badge', a.app_callback_configured ? 'badge-success' : 'badge-danger']">{{ a.app_callback_configured ? '已配置' : '未配置' }}</span>
+              </td>
               <td>{{ a.authorized_at || '—' }}</td>
               <td>{{ a.revoked_at || '—' }}</td>
+              <td>
+                <button class="link-btn" :disabled="a.status !== 'authorized'" @click="openCallbackForm(a)">回调配置</button>
+              </td>
             </tr>
-            <tr v-if="authorizations.length === 0"><td colspan="7" class="empty-row">暂无租户授权</td></tr>
+            <tr v-if="authorizations.length === 0"><td colspan="9" class="empty-row">暂无租户授权</td></tr>
           </tbody>
         </table>
+
+        <!-- 应用回调配置表单（「开始代开发应用」凭证回填） -->
+        <form v-if="callbackForm.authorization_id" style="margin-top: 16px; border-top: 1px solid #eee; padding-top: 12px" @submit.prevent="saveAppCallback">
+          <h4>应用回调配置：{{ callbackForm.tenant_name }}（租户 ID {{ callbackForm.tenant_id }}）</h4>
+          <div class="form-row">
+            <div class="form-group" style="flex: 1">
+              <label>回调 URL（填入企微「开始代开发应用」）</label>
+              <div style="display: flex; gap: 6px">
+                <input :value="callbackForm.app_callback_url" readonly style="flex: 1" />
+                <button type="button" class="link-btn" @click="copyAppCallbackUrl">复制</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Token（企微「回调 URL 验证」处生成）</label><input v-model="callbackForm.app_callback_token" /></div>
+            <div class="form-group"><label>EncodingAESKey（企微「回调 URL 验证」处生成）</label><input v-model="callbackForm.app_encoding_aes_key" type="password" /></div>
+          </div>
+          <p class="hint">保存时企微会对回调 URL 发起验证（需地址可达且 Token/AESKey 与企微侧一致）；验证通过后回填保存，应用事件推送即生效。</p>
+          <button type="submit" class="primary-btn" :disabled="callbackSaving">保存</button>
+          <button type="button" class="link-btn" style="margin-left: 8px" @click="callbackForm.authorization_id = null">取消</button>
+        </form>
       </div>
     </div>
   </div>
@@ -173,6 +206,43 @@ const runTest = async (row: any) => {
 const authorizations = ref<any[]>([])
 const fetchAuthorizations = async () => { try { const r = await axios.get(`${API}/authorizations`); authorizations.value = r.data.data || [] } catch {} }
 const statusLabel = (s: string) => ({ pending: '待授权', authorized: '已授权', revoked: '已解除' } as Record<string, string>)[s] || s
+
+// ---- 应用回调配置（「开始代开发应用」凭证回填） ----
+const callbackSaving = ref(false)
+const callbackForm = reactive<any>({ authorization_id: null, tenant_id: null, tenant_name: '', app_callback_url: '', app_callback_token: '', app_encoding_aes_key: '' })
+
+const openCallbackForm = (row: any) => {
+  Object.assign(callbackForm, {
+    authorization_id: row.authorization_id,
+    tenant_id: row.tenant_id,
+    tenant_name: row.tenant_name || row.tenant_id,
+    app_callback_url: row.app_callback_url,
+    app_callback_token: '',
+    app_encoding_aes_key: '',
+  })
+}
+
+const copyAppCallbackUrl = async () => {
+  try { await navigator.clipboard.writeText(callbackForm.app_callback_url); alert('已复制回调 URL') } catch { alert('复制失败，请手动复制') }
+}
+
+const saveAppCallback = async () => {
+  if (!callbackForm.app_callback_token || !callbackForm.app_encoding_aes_key) {
+    alert('请填写 Token 与 EncodingAESKey')
+    return
+  }
+  callbackSaving.value = true
+  try {
+    await axios.put(`${API}/authorizations/${callbackForm.authorization_id}/app-callback`, {
+      app_callback_url: callbackForm.app_callback_url,
+      app_callback_token: callbackForm.app_callback_token,
+      app_encoding_aes_key: callbackForm.app_encoding_aes_key,
+    })
+    alert('应用回调配置已保存')
+    callbackForm.authorization_id = null
+    await fetchAuthorizations()
+  } catch (e: any) { alert(e.response?.data?.message || '保存失败') } finally { callbackSaving.value = false }
+}
 
 onMounted(() => { fetchProviders(); fetchAuthorizations() })
 </script>

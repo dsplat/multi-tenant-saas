@@ -376,6 +376,56 @@ class WechatWorkSuiteServiceTest extends TestCase
     }
 
     // ==================================================================
+    // 应用回调：URL 生成 / 凭证加密 / 候选解析
+    // ==================================================================
+
+    public function test_app_callback_url_uses_platform_domain_with_tenant_id(): void
+    {
+        config()->set('auth.oauth.callback_domain', 'auth.neihang.com');
+
+        $this->assertSame(
+            'https://auth.neihang.com/api/v1/wechat-work/suite/cz/9001',
+            $this->suite->appCallbackUrl(9001)
+        );
+    }
+
+    public function test_app_callback_credentials_round_trip_encrypted(): void
+    {
+        $authorization = $this->suite->saveAuthorization(9001, 1, [
+            'corp_id' => 'ww_corp_1',
+            'agent_id' => '1000001',
+            'permanent_code' => 'p1',
+            'app_callback_token' => 'app-token',
+            'app_encoding_aes_key' => 'app-aes-key',
+            'app_callback_url' => $this->suite->appCallbackUrl(9001),
+        ]);
+
+        $this->assertSame('app-token', $authorization->app_callback_token);
+        $this->assertSame('app-aes-key', $authorization->app_encoding_aes_key);
+        // 加密落库：原始密文不含明文
+        $this->assertNotSame('app-aes-key', $authorization->getRawOriginal('app_encoding_aes_key'));
+        $this->assertStringNotContainsString('app-aes-key', (string) $authorization->getRawOriginal('app_encoding_aes_key'));
+    }
+
+    public function test_app_authorizations_filters_by_tenant_and_status(): void
+    {
+        $this->suite->saveAuthorization(9001, 1, ['corp_id' => 'ww_corp_1', 'agent_id' => '1000001', 'permanent_code' => 'p1']);
+
+        // 带租户标识：仅该租户
+        $found = $this->suite->appAuthorizations(9001);
+        $this->assertCount(1, $found);
+        $this->assertSame('ww_corp_1', $found[0]->corp_id);
+
+        // 无租户标识：全部已授权
+        $this->assertCount(1, $this->suite->appAuthorizations(null));
+
+        // revoked 记录不参与候选
+        $this->suite->markRevokedByCorpId('ww_corp_1');
+        $this->assertSame([], $this->suite->appAuthorizations(null));
+        $this->assertSame([], $this->suite->appAuthorizations(9001));
+    }
+
+    // ==================================================================
     // 连接测试诊断 / 未配置兜底
     // ==================================================================
 

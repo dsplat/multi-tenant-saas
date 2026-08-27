@@ -15,5 +15,7 @@ Route::prefix('wechat-work')->group(function () {
         Route::put('/providers/{providerId}', [AdminServiceProviderController::class, 'providerUpdate']);
         Route::delete('/providers/{providerId}', [AdminServiceProviderController::class, 'providerDestroy']);
         Route::post('/providers/{providerId}/test', [AdminServiceProviderController::class, 'providerTest']);
+        // 租户应用回调凭证回填（「开始代开发应用」的 Token/AESKey）
+        Route::put('/authorizations/{authorizationId}/app-callback', [AdminServiceProviderController::class, 'appCallbackUpdate']);
     });
 });

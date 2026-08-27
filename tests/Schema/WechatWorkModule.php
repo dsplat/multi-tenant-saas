@@ -43,6 +43,10 @@ class WechatWorkModule implements SchemaModuleInterface
             $table->string('corp_id', 64);
             $table->string('agent_id', 64)->nullable();
             $table->text('permanent_code')->nullable();
+            // 应用级回调凭证（「开始代开发应用」配置后回填；aes 加密存储，密文超 varchar 用 text）
+            $table->string('app_callback_token', 255)->nullable();
+            $table->text('app_encoding_aes_key')->nullable();
+            $table->string('app_callback_url', 500)->nullable();
             $table->string('status', 20)->default('pending');
             $table->timestamp('authorized_at')->nullable();
             $table->timestamp('revoked_at')->nullable();

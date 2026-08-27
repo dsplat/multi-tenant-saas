@@ -144,6 +144,14 @@ class TenantWechatWorkAuthController extends Controller
         }
         $permissions = $provider !== null ? $this->suite->templatePermissions($provider) : [];
 
+        // 回调链路信息：模板回调 URL 平台配置；应用回调 URL 动态生成（带租户标识），
+        // 供「开始代开发应用」时填写，app_callback_configured 标记 Token/AESKey 是否已回填
+        $callback = [
+            'suite_callback_url' => $provider?->callback_url,
+            'app_callback_url' => $tenantId !== null ? $this->suite->appCallbackUrl($tenantId) : null,
+            'app_callback_configured' => $authorization !== null && $authorization->app_callback_token !== null && $authorization->app_callback_token !== '',
+        ];
+
         if ($authorization === null) {
             return response()->json([
                 'success' => true,
@@ -152,6 +160,7 @@ class TenantWechatWorkAuthController extends Controller
                     'corp_id' => null,
                     'agent_id' => null,
                     'permissions' => $permissions,
+                    'callback' => $callback,
                 ],
             ]);
         }
@@ -164,6 +173,7 @@ class TenantWechatWorkAuthController extends Controller
                 'agent_id' => $authorization->agent_id,
                 'authorized_at' => $authorization->authorized_at,
                 'permissions' => $permissions,
+                'callback' => $callback,
             ],
         ]);
     }

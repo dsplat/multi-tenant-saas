@@ -13,6 +13,11 @@ Route::prefix('api/v1/wechat-work')->group(function () {
     // 模板回调事件推送（POST 加密 XML：suite_ticket / create_auth / cancel_auth）
     Route::post('/suite/callback', [SuiteCallbackController::class, 'handle']);
 
+    // 代开发应用回调（「开始代开发应用」配置的应用级回调 URL，路径带租户标识；
+    // 无标识时按各租户凭证遍历匹配，兼容手填 URL）
+    Route::get('/suite/cz/{tenantId?}', [SuiteCallbackController::class, 'verifyApp'])->whereNumber('tenantId');
+    Route::post('/suite/cz/{tenantId?}', [SuiteCallbackController::class, 'handleApp'])->whereNumber('tenantId');
+
     // 租户扫码授权完成回跳（3rdapp/install redirect_uri，浏览器跳转，无认证，
     // state 携带租户前缀并经缓存校验防伪造）
     Route::get('/callback', [TenantWechatWorkAuthController::class, 'callback']);

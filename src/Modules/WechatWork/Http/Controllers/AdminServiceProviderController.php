@@ -168,6 +168,8 @@ class AdminServiceProviderController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:100',
             'provider_corp_id' => 'nullable|string|max:64',
+            // 服务商密钥：代开发模式生成授权二维码（get_customized_auth_url）需换 provider_access_token
+            'provider_secret' => 'nullable|string|max:2000',
             // suite_id 可空：预注册阶段（URL 验证仅需服务商企业 ID + 回调凭证），模板创建成功后补录
             'suite_id' => ['nullable', 'string', 'max:64', $unique],
             'suite_secret' => 'nullable|string|max:2000',
@@ -195,6 +197,7 @@ class AdminServiceProviderController extends Controller
             'service_provider_id' => $provider->service_provider_id,
             'name' => $provider->name,
             'provider_corp_id' => $provider->provider_corp_id,
+            'provider_secret' => $provider->getRawOriginal('provider_secret') ? self::SECRET_MASK : '',
             'suite_id' => $provider->suite_id,
             'suite_secret' => $provider->getRawOriginal('suite_secret') ? self::SECRET_MASK : '',
             'callback_token' => $provider->callback_token,

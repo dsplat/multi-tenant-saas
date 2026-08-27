@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\WechatWork\Services;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Auth\Services\Concerns\ManagesOAuthState;
 use MultiTenantSaas\Scopes\TenantScope;
@@ -14,11 +15,14 @@ use MultiTenantSaas\Modules\WechatWork\Models\WechatWorkAuthorization;
 /**
  * 企业微信服务商代开发套件服务
  *
- * 封装服务商侧全部 API（get_suite_token / get_pre_auth_code /
- * get_permanent_code / get_corp_token），为租户代开发授权链路与
- * Auth 模块 WechatWorkOAuthService 双轨凭证提供底层能力。
+ * 封装服务商侧全部 API（get_provider_token / get_suite_token /
+ * get_customized_auth_url / get_permanent_code / get_corp_token），为租户
+ * 代开发授权链路与 Auth 模块 WechatWorkOAuthService 双轨凭证提供底层能力。
  *
  * 关键机制：
+ * - 代开发模式生成授权二维码用 get_customized_auth_url（provider_access_token
+ *   调用，state 仅限 a-zA-Z0-9 且 ≤32 字节）；get_pre_auth_code + 3rdapp/install
+ *   是第三方应用模式接口，对 dk 代开发模板调用必报 48002，禁止用于本模式
  * - suite_ticket 由模板回调每 10 分钟推送，换取 suite_access_token 必须
  *   使用最新 ticket，缺票/过期即视为服务商未就绪
  * - permanent_code 充当 secret 角色：corp_access_token = get_corp_token
@@ -35,9 +39,11 @@ class WechatWorkSuiteService
     protected const API_BASE = 'https://qyapi.weixin.qq.com/cgi-bin/service';
 
     /**
-     * 代开发应用授权页地址
+     * 代开发应用授权二维码地址（get_customized_auth_url 返回）
+     *
+     * 注意：3rdapp/install 是第三方应用模式授权页，代开发模式禁用。
      */
-    protected const AUTHORIZE_URL = 'https://open.work.weixin.qq.com/3rdapp/install';
+    protected const AUTHORIZE_URL = 'https://open.work.weixin.qq.com/wwopen/customApp/authorize';
 
     /**
      * suite_ticket 缓存 TTL（企微每 10 分钟推送一次，30 分钟未收到视为失联）
@@ -45,9 +51,14 @@ class WechatWorkSuiteService
     protected const SUITE_TICKET_TTL = 1800;
 
     /**
-     * suite_access_token / pre_auth_code / corp_token 有效期（企微 7200s）
+     * suite_access_token / provider_access_token / pre_auth_code / corp_token 有效期（企微 7200s）
      */
     protected const TOKEN_TTL = 7200;
+
+    /**
+     * state 使用的 provider 标识（与登录 OAuth 的 wechat_work 区分，独立缓存空间）
+     */
+    protected const STATE_PROVIDER = 'wechat_work_suite';
 
     /**
      * 获取当前启用的服务商（单服务商模式，按 ID 升序取第一条）
@@ -135,7 +146,54 @@ class WechatWorkSuiteService
     }
 
     /**
+     * 获取服务商 access_token（get_provider_token，带缓存）
+     *
+     * 代开发模式生成授权二维码（get_customized_auth_url）必须使用
+     * provider_access_token 调用，与 suite_access_token 是两个独立凭证。
+     *
+     * @throws ServiceUnavailableException 服务商未配置 provider_secret
+     */
+    public function providerAccessToken(ServiceProvider $provider): string
+    {
+        $cacheKey = "wechat_work_provider_token:{$provider->service_provider_id}";
+
+        $cached = Cache::get($cacheKey);
+        if ($cached) {
+            return $cached;
+        }
+
+        $corpId = (string) $provider->provider_corp_id;
+        $secret = (string) $provider->provider_secret;
+
+        if ($corpId === '' || $secret === '') {
+            throw new ServiceUnavailableException(
+                'WechatWork: 服务商未配置 provider_corp_id / provider_secret（服务商后台「通用开发参数」）'
+            );
+        }
+
+        $resp = Http::post(self::API_BASE . '/get_provider_token', [
+            'corpid' => $corpId,
+            'provider_secret' => $secret,
+        ]);
+
+        $data = $this->parseResponse($resp, 'get_provider_token');
+
+        $token = (string) ($data['provider_access_token'] ?? '');
+        if ($token === '') {
+            throw new ServiceUnavailableException('WechatWork: empty provider access_token returned');
+        }
+
+        $expiresIn = (int) ($data['expires_in'] ?? self::TOKEN_TTL);
+        Cache::put($cacheKey, $token, $expiresIn - 300);
+
+        return $token;
+    }
+
+    /**
      * 获取预授权码（带缓存）
+     *
+     * @deprecated 代开发模式不可用（get_pre_auth_code 是第三方应用接口，对 dk 模板报 48002），
+     *             生成授权二维码请用 customizedAuthUrl()。保留仅供第三方应用模式扩展。
      *
      * @throws ServiceUnavailableException
      */
@@ -168,25 +226,75 @@ class WechatWorkSuiteService
     }
 
     /**
-     * 生成租户扫码授权 URL（3rdapp/install）
+     * 生成租户扫码授权二维码 URL（代开发模式 get_customized_auth_url）
      *
-     * state 携带租户前缀 {tenantId}.{random}，授权完成后回跳
-     * {callback_domain}/api/v1/wechat-work/callback 恢复租户上下文。
+     * state 携带租户前缀 {tenantId}{random}（仅限 a-zA-Z0-9、≤32 字节），
+     * 扫码授权完成后无浏览器回跳，state 随 create_auth 事件经
+     * get_permanent_code 响应返回，据此恢复租户上下文入库。
      */
     public function buildAuthorizeUrl(int $tenantId): string
     {
         $provider = $this->requireProvider();
 
-        $state = $this->generateState($tenantId, 'wechat_work_suite');
+        $state = $this->generateCustomizedState($tenantId);
 
-        $params = [
-            'suite_id' => $provider->suite_id,
-            'pre_auth_code' => $this->preAuthCode($provider),
-            'redirect_uri' => $this->callbackDomain() . '/api/v1/wechat-work/callback',
+        $resp = Http::post(self::API_BASE . '/get_customized_auth_url?provider_access_token=' . $this->providerAccessToken($provider), [
             'state' => $state,
-        ];
+            'templateid_list' => [$provider->suite_id],
+        ]);
 
-        return self::AUTHORIZE_URL . '?' . http_build_query($params);
+        $data = $this->parseResponse($resp, 'get_customized_auth_url');
+
+        $url = (string) ($data['qrcode_url'] ?? '');
+        if ($url === '') {
+            throw new ServiceUnavailableException('WechatWork: empty qrcode_url returned');
+        }
+
+        return $url;
+    }
+
+    /**
+     * 生成代开发授权 state：{16 位租户 ID（左补零）}{16 位随机}（纯字母数字，共 32 字节）
+     *
+     * 企微限定 state 仅 a-zA-Z0-9 且 ≤32 字节；租户 ID 固定 16 位前缀（不足
+     * 左补零），回调时经 tenantIdFromState 恢复租户上下文。
+     */
+    protected function generateCustomizedState(int $tenantId, array $context = []): string
+    {
+        $state = str_pad((string) $tenantId, 16, '0', STR_PAD_LEFT) . Str::random(16);
+        $key = $this->stateCacheKey($state, $tenantId, self::STATE_PROVIDER);
+
+        Cache::put($key, $context ?: true, $this->stateTtl);
+
+        return $state;
+    }
+
+    /**
+     * 从授权 state 解析租户 ID（兼容纯字母数字与旧点号两种格式）
+     */
+    public function tenantIdFromState(string $state): ?int
+    {
+        // 代开发格式：{16 位租户 ID}{16 位随机}
+        if (preg_match('/^(\d{16})[a-zA-Z0-9]{0,16}$/', $state, $m)) {
+            return (int) $m[1];
+        }
+
+        // 第三方应用格式：{tenantId}.{random}
+        if (preg_match('/^(\d{4,20})\./', $state, $m)) {
+            return (int) $m[1];
+        }
+
+        return null;
+    }
+
+    /**
+     * 校验授权 state（一次性，验证后即删），供 create_auth 回调恢复租户上下文
+     *
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException state 无效时 403
+     */
+    public function verifyAuthorizationState(string $state, int $tenantId): array
+    {
+        return $this->verifyState($state, $tenantId, self::STATE_PROVIDER);
     }
 
     /**
@@ -228,7 +336,8 @@ class WechatWorkSuiteService
     /**
      * 用 auth_code 换取永久授权码（get_permanent_code）
      *
-     * @return array{corp_id: string, permanent_code: string, agent_id: string, corp_name: string}
+     * @return array{corp_id: string, permanent_code: string, agent_id: string, corp_name: string, state: string}
+     *         state：代开发模式扫描带参二维码授权时原样返回（可恢复租户上下文）
      *
      * @throws ServiceUnavailableException
      */
@@ -256,6 +365,7 @@ class WechatWorkSuiteService
             'permanent_code' => $permanentCode,
             'agent_id' => $agentId,
             'corp_name' => $corpName,
+            'state' => (string) ($data['state'] ?? ''),
         ];
     }
 

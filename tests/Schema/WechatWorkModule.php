@@ -19,6 +19,8 @@ class WechatWorkModule implements SchemaModuleInterface
             $table->unsignedBigInteger('tenant_id')->nullable();
             $table->string('name', 100);
             $table->string('provider_corp_id', 64)->nullable();
+            // provider_secret 加密存储（代开发授权二维码 get_customized_auth_url 换 provider_access_token 用）
+            $table->text('provider_secret')->nullable();
             // suite_id 可空：模板预注册阶段留空，创建成功后补录（与生产迁移 2026_08_27 一致）
             $table->string('suite_id', 64)->nullable();
             $table->text('suite_secret')->nullable();

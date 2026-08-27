@@ -17,7 +17,8 @@ use MultiTenantSaas\Tests\Schema\WechatWorkModule;
  * 企微服务商代开发套件服务测试
  *
  * 覆盖：suite_access_token（suite_ticket 缺失报错 / 缓存提前过期 / API 错误透传）、
- * pre_auth_code 缓存、buildAuthorizeUrl（state 带租户前缀 + 平台统一回调域）、
+ * pre_auth_code 缓存、providerAccessToken（缺失报错 / 获取并缓存）、
+ * buildAuthorizeUrl（get_customized_auth_url 返回二维码 URL + state 纯字母数字）、
  * exchangePermanentCode 解析、corpAccessToken（未授权报错 / get_corp_token 缓存）、
  * saveAuthorization 幂等、markRevokedByCorpId、testSuiteToken 诊断、未配置服务商报错。
  */
@@ -44,18 +45,19 @@ class WechatWorkSuiteServiceTest extends TestCase
         $this->suite = app(WechatWorkSuiteService::class);
     }
 
-    private function createProvider(): ServiceProvider
+    private function createProvider(array $overrides = []): ServiceProvider
     {
-        return ServiceProvider::create([
+        return ServiceProvider::create(array_merge([
             'tenant_id' => null,
             'name' => 'Test Provider',
             'provider_corp_id' => 'corp_provider',
+            'provider_secret' => 'provider-secret-123',
             'suite_id' => self::SUITE_ID,
             'suite_secret' => self::SUITE_SECRET,
             'callback_token' => 'cb-token',
             'callback_url' => 'https://auth.neihang.com/api/v1/wechat-work/suite/callback',
             'status' => ServiceProvider::STATUS_ACTIVE,
-        ]);
+        ], $overrides));
     }
 
     // ==================================================================
@@ -119,7 +121,7 @@ class WechatWorkSuiteServiceTest extends TestCase
     }
 
     // ==================================================================
-    // pre_auth_code / 授权 URL
+    // pre_auth_code / provider_access_token / 授权二维码
     // ==================================================================
 
     public function test_pre_auth_code_fetches_and_caches(): void
@@ -139,32 +141,86 @@ class WechatWorkSuiteServiceTest extends TestCase
         Http::assertSentCount(2); // get_suite_token 1 + get_pre_auth_code 1
     }
 
-    public function test_build_authorize_url_contains_suite_state_and_platform_callback(): void
+    public function test_provider_access_token_requires_secret(): void
     {
-        config(['auth.oauth.callback_domain' => 'auth.neihang.com']);
+        $provider = $this->createProvider(['provider_secret' => null]);
 
+        $this->expectException(ServiceUnavailableException::class);
+        $this->expectExceptionMessage('provider_secret');
+
+        $this->suite->providerAccessToken($provider);
+    }
+
+    public function test_provider_access_token_fetches_and_caches(): void
+    {
+        $provider = $this->createProvider();
+
+        Http::fake([
+            'qyapi.weixin.qq.com/cgi-bin/service/get_provider_token' => Http::response([
+                'provider_access_token' => 'provider-token-abc',
+                'expires_in' => 7200,
+            ]),
+        ]);
+
+        $this->assertSame('provider-token-abc', $this->suite->providerAccessToken($provider));
+        $this->assertSame('provider-token-abc', $this->suite->providerAccessToken($provider)); // 缓存命中
+
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($request) => $request->url() === 'https://qyapi.weixin.qq.com/cgi-bin/service/get_provider_token'
+            && $request['corpid'] === 'corp_provider'
+            && $request['provider_secret'] === 'provider-secret-123');
+
+        $this->assertSame('provider-token-abc', Cache::get("wechat_work_provider_token:{$provider->service_provider_id}"));
+    }
+
+    public function test_build_authorize_url_returns_qrcode_url_with_alnum_state(): void
+    {
         $provider = $this->createProvider();
         $this->suite->storeSuiteTicket($provider->service_provider_id, self::TICKET);
 
         Http::fake([
-            // get_suite_token 与 get_pre_auth_code 共用通配：前者读 suite_access_token，后者读 pre_auth_code
-            'qyapi.weixin.qq.com/*' => Http::response([
-                'suite_access_token' => 'st',
-                'pre_auth_code' => 'pre-auth-1',
+            'qyapi.weixin.qq.com/cgi-bin/service/get_provider_token' => Http::response([
+                'provider_access_token' => 'pt',
                 'expires_in' => 7200,
+            ]),
+            'qyapi.weixin.qq.com/*' => Http::response([
+                'errcode' => 0,
+                'qrcode_url' => 'https://open.work.weixin.qq.com/wwopen/customApp/authorize?auth_code=abc',
+                'expires_in' => 864000,
             ]),
         ]);
 
         $url = $this->suite->buildAuthorizeUrl(9001);
 
-        $this->assertStringStartsWith('https://open.work.weixin.qq.com/3rdapp/install?', $url);
+        // 返回企微授权二维码 URL（代开发模式，非 3rdapp/install）
+        $this->assertSame('https://open.work.weixin.qq.com/wwopen/customApp/authorize?auth_code=abc', $url);
 
-        parse_str((string) parse_url($url, PHP_URL_QUERY), $params);
-        $this->assertSame(self::SUITE_ID, $params['suite_id']);
-        $this->assertSame('pre-auth-1', $params['pre_auth_code']);
-        $this->assertSame('https://auth.neihang.com/api/v1/wechat-work/callback', $params['redirect_uri']);
-        // state 携带租户前缀，供统一回调域恢复租户上下文
-        $this->assertMatchesRegularExpression('/^9001\.[A-Za-z0-9]{24}$/', (string) $params['state']);
+        // state 纯字母数字（企微限制 a-zA-Z0-9、≤32 字节），携带租户前缀
+        Http::assertSent(function ($request) use ($provider) {
+            if (! str_contains($request->url(), 'get_customized_auth_url')) {
+                return false;
+            }
+
+            $state = (string) $request['state'];
+
+            return $state !== ''
+                // 32 字节纯字母数字：16 位租户 ID（左补零）+ 16 位随机
+                && preg_match('/^\d{16}[a-zA-Z0-9]{16}$/', $state) === 1
+                && strlen($state) === 32
+                && $this->suite->tenantIdFromState($state) === 9001
+                && $request['templateid_list'] === [self::SUITE_ID];
+        });
+    }
+
+    public function test_tenant_id_from_state_supports_both_formats(): void
+    {
+        // 代开发格式：16 位租户 ID（左补零）+ 16 位随机
+        $this->assertSame(9001, $this->suite->tenantIdFromState(str_pad('9001', 16, '0', STR_PAD_LEFT) . str_repeat('x', 16)));
+        // 旧第三方应用格式：{tenantId}.{random}
+        $this->assertSame(9001, $this->suite->tenantIdFromState('9001.abcdefghijklmnopqrstuvwx'));
+        // 纯随机（无租户前缀）与空串均返回 null
+        $this->assertNull($this->suite->tenantIdFromState(str_repeat('x', 40)));
+        $this->assertNull($this->suite->tenantIdFromState(''));
     }
 
     // ==================================================================
@@ -192,9 +248,30 @@ class WechatWorkSuiteServiceTest extends TestCase
         $this->assertSame('perm-code-1', $result['permanent_code']);
         $this->assertSame('1000001', $result['agent_id']);
         $this->assertSame('蓝眼兔', $result['corp_name']);
+        $this->assertSame('', $result['state'], '无 state 时返回空串');
 
         Http::assertSent(fn ($request) => str_contains($request->url(), 'get_permanent_code')
             && $request['auth_code'] === 'auth-code-1');
+    }
+
+    public function test_exchange_permanent_code_returns_state(): void
+    {
+        $provider = $this->createProvider();
+        $this->suite->storeSuiteTicket($provider->service_provider_id, self::TICKET);
+
+        Http::fake([
+            'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response(['suite_access_token' => 'st', 'expires_in' => 7200]),
+            'qyapi.weixin.qq.com/*' => Http::response([
+                'errcode' => 0,
+                'auth_corp_info' => ['corpid' => 'ww_corp_1'],
+                'permanent_code' => 'perm-code-1',
+                'auth_info' => ['agent' => [['agentid' => 1000001]]],
+                'state' => '9001abcdefghijklmnopqrst',
+            ]),
+        ]);
+
+        $result = $this->suite->exchangePermanentCode($provider, 'auth-code-1');
+        $this->assertSame('9001abcdefghijklmnopqrst', $result['state'], '代开发扫码授权后应原样返回 state');
     }
 
     public function test_exchange_permanent_code_rejects_missing_corp_id(): void

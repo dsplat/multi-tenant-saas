@@ -16,10 +16,11 @@ use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
  * - GET   URL 有效性验证（msg_signature + echostr 验签解密）
  * - POST  事件推送：suite_ticket（每 10 分钟）/ create_auth / cancel_auth
  *
- * 授权入库主路径是租户授权回跳（TenantWechatWorkAuthController::callback，
- * 携带 state 可关联租户）；create_auth 推送不含租户上下文，仅换取
- * permanent_code 后记日志供排查（auth_code 与回跳携带的为同一个，
- * 主路径消费后此处换取会报错，属预期）。
+ * 授权入库主路径是 create_auth 事件：代开发模式无浏览器回跳，扫描
+ * 带参二维码（get_customized_auth_url）授权完成后企微推送 create_auth，
+ * 经 get_permanent_code 响应返回 state 恢复租户上下文后幂等入库；
+ * 第三方应用模式的租户回跳（TenantWechatWorkAuthController::callback）
+ * 作为兼容路径保留。
  */
 class SuiteCallbackController extends Controller
 {
@@ -133,11 +134,11 @@ class SuiteCallbackController extends Controller
     }
 
     /**
-     * create_auth：auth_code 换取 permanent_code 后记日志。
+     * create_auth：auth_code 换取 permanent_code，经 state 恢复租户后幂等入库。
      *
-     * 事件不携带租户上下文，无法可靠入库（租户关联由带 state 的授权回跳
-     * TenantWechatWorkAuthController::callback 完成，两路径 auth_code 相同，
-     * 主路径消费后此处换取会报 auth_code 无效，属预期）。
+     * 代开发模式授权闭环主路径：企微推送 create_auth（CreateAuthInfo.auth_code）
+     * → get_permanent_code 响应原样返回扫码时的 state（{tenantId}{random}）
+     * → 校验一次性 state 恢复租户上下文 → saveAuthorization 幂等落库。
      */
     protected function handleCreateAuth($provider, array $payload): void
     {
@@ -149,13 +150,36 @@ class SuiteCallbackController extends Controller
 
         try {
             $result = $this->suite->exchangePermanentCode($provider, $authCode);
-            Log::info('[WechatWorkSuite] 企业授权完成（等待回跳入库）', [
+
+            $state = (string) ($result['state'] ?? '');
+            $tenantId = $state !== '' ? $this->suite->tenantIdFromState($state) : null;
+
+            if ($tenantId === null) {
+                Log::warning('[WechatWorkSuite] create_auth 无法恢复租户上下文（state 缺失或非法）', [
+                    'corp_id' => $result['corp_id'],
+                    'state' => $state,
+                ]);
+
+                return;
+            }
+
+            // 一次性校验并消费 state，防重放
+            $context = $this->suite->verifyAuthorizationState($state, $tenantId);
+
+            $this->suite->saveAuthorization($tenantId, (int) $provider->service_provider_id, [
+                'corp_id' => $result['corp_id'],
+                'agent_id' => $result['agent_id'],
+                'permanent_code' => $result['permanent_code'],
+            ]);
+
+            Log::info('[WechatWorkSuite] 企业授权完成并入库', [
+                'tenant_id' => $tenantId,
                 'corp_id' => $result['corp_id'],
                 'corp_name' => $result['corp_name'],
                 'agent_id' => $result['agent_id'],
+                'origin_domain' => $context['origin_domain'] ?? '',
             ]);
         } catch (\Throwable $e) {
-            // 回跳主路径已消费 auth_code / 网络抖动,均属预期,仅记录
             Log::info('[WechatWorkSuite] create_auth 换取 permanent_code 未消费', [
                 'suite_id' => $provider->suite_id,
                 'error' => $e->getMessage(),

@@ -128,6 +128,7 @@ class WechatWorkAuthzTest extends TestCase
             'tenant_id' => null,
             'name' => 'Test Provider',
             'provider_corp_id' => 'corp_provider',
+            'provider_secret' => 'provider-secret-123',
             'suite_id' => 'ww_suite_test',
             'suite_secret' => 'suite-secret-123',
             'callback_token' => 'cb-token',
@@ -185,17 +186,20 @@ class WechatWorkAuthzTest extends TestCase
             ->assertJsonPath('success', false);
     }
 
-    public function test_authorize_returns_install_url_when_provider_ready(): void
+    public function test_authorize_returns_qrcode_url_when_provider_ready(): void
     {
         $provider = $this->createProvider();
         $this->suite->storeSuiteTicket($provider->service_provider_id, 'ticket-abc');
 
         Http::fake([
+            'qyapi.weixin.qq.com/cgi-bin/service/get_provider_token' => Http::response([
+                'provider_access_token' => 'pt',
+                'expires_in' => 7200,
+            ]),
             'qyapi.weixin.qq.com/*' => Http::response([
                 'errcode' => 0,
-                'access_token' => 'st',
-                'pre_auth_code' => 'pre-auth-1',
-                'expires_in' => 7200,
+                'qrcode_url' => 'https://open.work.weixin.qq.com/wwopen/customApp/authorize?auth_code=abc',
+                'expires_in' => 864000,
             ]),
         ]);
 
@@ -204,13 +208,22 @@ class WechatWorkAuthzTest extends TestCase
             ->assertJsonPath('success', true);
 
         $url = $response->json('data.url');
-        $this->assertStringStartsWith('https://open.work.weixin.qq.com/3rdapp/install?', $url);
+        // 代开发模式返回企微授权二维码 URL（非 3rdapp/install）
+        $this->assertStringStartsWith('https://open.work.weixin.qq.com/wwopen/customApp/authorize?', $url);
 
-        parse_str((string) parse_url($url, PHP_URL_QUERY), $params);
-        $this->assertSame('ww_suite_test', $params['suite_id']);
-        $this->assertSame('pre-auth-1', $params['pre_auth_code']);
-        // state 携带租户前缀，供统一回调域恢复租户上下文
-        $this->assertMatchesRegularExpression('/^9001\.[A-Za-z0-9]{24}$/', (string) $params['state']);
+        // 请求体携带纯字母数字 state（16 位租户 ID 左补零 + 16 位随机）与模板 ID
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), 'get_customized_auth_url')) {
+                return false;
+            }
+
+            $state = (string) $request['state'];
+
+            return preg_match('/^\d{16}[a-zA-Z0-9]{16}$/', $state) === 1
+                && strlen($state) === 32
+                && $this->suite->tenantIdFromState($state) === $this->tenantId
+                && $request['templateid_list'] === ['ww_suite_test'];
+        });
     }
 
     public function test_revoke_rejects_without_authorization(): void
@@ -246,31 +259,42 @@ class WechatWorkAuthzTest extends TestCase
         $provider = $this->createProvider();
         $this->suite->storeSuiteTicket($provider->service_provider_id, 'ticket-abc');
 
+        // 捕获 buildAuthorizeUrl 生成的 state（代开发二维码无 query 参数，从请求体提取）
+        $capturedState = null;
+
         Http::fake([
-            'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response([
-                'errcode' => 0,
-                'access_token' => 'st',
+            'qyapi.weixin.qq.com/cgi-bin/service/get_provider_token' => Http::response([
+                'provider_access_token' => 'pt',
                 'expires_in' => 7200,
             ]),
-            // 带查询参数（?suite_access_token=）的请求，模式需带 * 通配
-            'qyapi.weixin.qq.com/cgi-bin/service/get_pre_auth_code*' => Http::response([
-                'errcode' => 0,
-                'pre_auth_code' => 'pre-auth-1',
-                'expires_in' => 7200,
-            ]),
-            'qyapi.weixin.qq.com/*' => Http::response([
-                'errcode' => 0,
-                'auth_corp_info' => ['corpid' => 'ww_corp_1', 'corp_name' => '蓝眼兔'],
-                'permanent_code' => 'perm-code-1',
-                'auth_info' => ['agent' => [['agentid' => 1000001]]],
-            ]),
+            'qyapi.weixin.qq.com/*' => function ($request) use (&$capturedState) {
+                if (str_contains($request->url(), 'get_customized_auth_url')) {
+                    $capturedState = (string) $request['state'];
+
+                    return Http::response(['errcode' => 0, 'qrcode_url' => 'https://open.work.weixin.qq.com/wwopen/customApp/authorize?auth_code=abc', 'expires_in' => 864000]);
+                }
+
+                // get_suite_token：成功响应无 errcode，字段为 suite_access_token
+                if (str_contains($request->url(), 'get_suite_token')) {
+                    return Http::response(['suite_access_token' => 'st', 'expires_in' => 7200]);
+                }
+
+                // get_permanent_code：代开发模式原样返回扫码时的 state
+                return Http::response([
+                    'errcode' => 0,
+                    'auth_corp_info' => ['corpid' => 'ww_corp_1', 'corp_name' => '蓝眼兔'],
+                    'permanent_code' => 'perm-code-1',
+                    'auth_info' => ['agent' => [['agentid' => 1000001]]],
+                    'state' => $capturedState,
+                ]);
+            },
         ]);
 
-        // 用真实链路生成 state（generateState 已写入缓存，回跳一次性校验）
-        $authorizeUrl = $this->suite->buildAuthorizeUrl($this->tenantId);
-        parse_str((string) parse_url($authorizeUrl, PHP_URL_QUERY), $params);
+        // 用真实链路生成 state（generateCustomizedState 已写入缓存，回调一次性校验）
+        $this->suite->buildAuthorizeUrl($this->tenantId);
+        $this->assertNotNull($capturedState, '应捕获到 get_customized_auth_url 请求的 state');
 
-        $response = $this->get('/api/v1/wechat-work/callback?state=' . urlencode($params['state']) . '&auth_code=auth-code-1');
+        $response = $this->get('/api/v1/wechat-work/callback?state=' . urlencode((string) $capturedState) . '&auth_code=auth-code-1');
 
         $response->assertStatus(200);
         $this->assertStringContainsString('授权成功', $response->getContent());
@@ -369,8 +393,7 @@ class WechatWorkAuthzTest extends TestCase
 
         Http::fake([
             'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response([
-                'errcode' => 0,
-                'access_token' => 'st',
+                'suite_access_token' => 'st',
                 'expires_in' => 7200,
             ]),
             'qyapi.weixin.qq.com/cgi-bin/service/get_corp_token*' => Http::response([

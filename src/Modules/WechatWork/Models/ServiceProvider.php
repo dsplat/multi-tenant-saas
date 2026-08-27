@@ -20,7 +20,7 @@ use MultiTenantSaas\Context\TenantContext;
  * 说明：覆写 BelongsToTenant 默认 boot（同 AiProvider 先例）：
  * tenant_id 为 null 的记录为平台级配置，由 admin 后台管理，创建时不自动
  * 填充当前租户。
- * suite_secret / encoding_aes_key 始终加密存储，永不以明文持久化。
+ * suite_secret / encoding_aes_key / provider_secret 始终加密存储，永不以明文持久化。
  */
 class ServiceProvider extends Model
 {
@@ -62,6 +62,7 @@ class ServiceProvider extends Model
         'tenant_id',
         'name',
         'provider_corp_id',
+        'provider_secret',
         'suite_id',
         'suite_secret',
         'callback_token',
@@ -78,6 +79,7 @@ class ServiceProvider extends Model
     protected $hidden = [
         'suite_secret',
         'encoding_aes_key',
+        'provider_secret',
     ];
 
     protected function casts(): array
@@ -115,6 +117,41 @@ class ServiceProvider extends Model
             return Crypt::decryptString($value);
         } catch (\Exception $e) {
             logger()->error('Failed to decrypt service provider suite_secret', [
+                'service_provider_id' => $this->service_provider_id,
+                'suite_id' => $this->suite_id,
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * 加密写入服务商密钥（mutator 实现加解密，勿加入 $casts）
+     */
+    public function setProviderSecretAttribute($value): void
+    {
+        if ($value === null || $value === '') {
+            $this->attributes['provider_secret'] = null;
+
+            return;
+        }
+
+        $this->attributes['provider_secret'] = Crypt::encryptString($value);
+    }
+
+    /**
+     * 解密读取服务商密钥
+     */
+    public function getProviderSecretAttribute($value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        try {
+            return Crypt::decryptString($value);
+        } catch (\Exception $e) {
+            logger()->error('Failed to decrypt service provider provider_secret', [
                 'service_provider_id' => $this->service_provider_id,
                 'suite_id' => $this->suite_id,
             ]);

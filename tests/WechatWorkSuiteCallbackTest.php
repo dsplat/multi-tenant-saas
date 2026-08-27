@@ -239,8 +239,13 @@ class WechatWorkSuiteCallbackTest extends TestCase
                 'auth_corp_info' => ['corpid' => 'ww_corp_1', 'corp_name' => '蓝眼兔'],
                 'permanent_code' => 'perm-code-1',
                 'auth_info' => ['agent' => [['agentid' => 1000001]]],
+                'state' => str_pad('9001', 16, '0', STR_PAD_LEFT) . str_repeat('x', 16),
             ]),
         ]);
+
+        // 授权前生成一次性的 state（与 buildAuthorizeUrl 相同的缓存 key 格式），供回调校验恢复租户
+        $state = str_pad('9001', 16, '0', STR_PAD_LEFT) . str_repeat('x', 16);
+        Cache::put('oauth_state:wechat_work_suite:9001:' . hash('sha256', $state), true, 600);
 
         $plain = '<xml><SuiteId>' . self::SUITE_ID . '</SuiteId>'
             . '<InfoType>create_auth</InfoType>'
@@ -249,9 +254,19 @@ class WechatWorkSuiteCallbackTest extends TestCase
 
         $this->postCallback($plain)->assertStatus(200);
 
-        // 事件路径仅换码记日志（入库由带 state 的租户回跳完成），验证请求已发出
+        // 事件路径经 get_permanent_code 响应中的 state 恢复租户，幂等入库（代开发模式主路径）
         Http::assertSent(fn ($request) => str_contains($request->url(), 'get_permanent_code')
             && $request['auth_code'] === 'auth-code-1');
+
+        // 回调请求无租户上下文（TenantContext 存于 Request attributes），断言前恢复
+        TenantContext::setTenantId(9001);
+
+        $authorization = app(WechatWorkSuiteService::class)->authorization(9001);
+        $this->assertNotNull($authorization);
+        $this->assertTrue($authorization->isAuthorized());
+        $this->assertSame('ww_corp_1', $authorization->corp_id);
+        $this->assertSame('1000001', $authorization->agent_id);
+        $this->assertSame('perm-code-1', $authorization->permanent_code);
     }
 
     public function test_post_cancel_auth_marks_revoked(): void

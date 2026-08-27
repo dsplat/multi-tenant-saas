@@ -76,7 +76,7 @@ class TenantWechatWorkAuthController extends Controller
     {
         $state = (string) $request->query('state', '');
         $authCode = (string) $request->query('auth_code', '');
-        $tenantId = $this->tenantIdFromState($state);
+        $tenantId = $this->suite->tenantIdFromState($state);
 
         if ($tenantId === null) {
             return $this->callbackPage(false, '授权回调缺少有效租户上下文（state 无效）');

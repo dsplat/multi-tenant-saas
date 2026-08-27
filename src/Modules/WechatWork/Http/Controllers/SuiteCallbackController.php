@@ -34,7 +34,9 @@ class SuiteCallbackController extends Controller
     {
         $provider = $this->resolveProvider();
 
-        $plain = $this->crypto($provider)->verifyUrl(
+        // 企微协议：代开发模板回调 GET（URL 验证）明文尾部 receiveid = 服务商企业 ID；
+        // 模板创建中尚无 suite_id，此阶段只需 服务商 corp_id + Token + AESKey 即可通过验证
+        $plain = $this->crypto($provider, (string) $provider->provider_corp_id)->verifyUrl(
             (string) $request->query('msg_signature', ''),
             (string) $request->query('timestamp', ''),
             (string) $request->query('nonce', ''),
@@ -178,14 +180,18 @@ class SuiteCallbackController extends Controller
     }
 
     /**
-     * 构造回调加解密器（receiveid = suite_id，套件回调明文尾部为套件 ID）
+     * 构造回调加解密器。
+     *
+     * receiveid 按企微协议区分：GET URL 验证 = 服务商企业 ID（provider_corp_id），
+     * POST 事件推送 = 套件 ID（suite_id）；对应值未配置时 WechatWorkCrypto 跳过
+     * receiveid 校验（宽松模式，验签 + AES 解密仍强制）。
      */
-    protected function crypto($provider): WechatWorkCrypto
+    protected function crypto($provider, ?string $receiveId = null): WechatWorkCrypto
     {
         return new WechatWorkCrypto(
             (string) $provider->callback_token,
             (string) $provider->encoding_aes_key,
-            (string) $provider->suite_id,
+            $receiveId ?? (string) $provider->suite_id,
         );
     }
 

@@ -165,10 +165,11 @@ class AdminServiceProviderController extends Controller
             $unique->ignore($ignoreId, 'service_provider_id');
         }
 
-        return $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:100',
             'provider_corp_id' => 'nullable|string|max:64',
-            'suite_id' => ['required', 'string', 'max:64', $unique],
+            // suite_id 可空：预注册阶段（URL 验证仅需服务商企业 ID + 回调凭证），模板创建成功后补录
+            'suite_id' => ['nullable', 'string', 'max:64', $unique],
             'suite_secret' => 'nullable|string|max:2000',
             'callback_token' => 'nullable|string|max:255',
             'encoding_aes_key' => 'nullable|string|max:255',
@@ -176,6 +177,13 @@ class AdminServiceProviderController extends Controller
             'status' => 'sometimes|in:' . implode(',', ServiceProvider::STATUSES),
             'metadata' => 'sometimes|nullable|array',
         ]);
+
+        // 空串归一为 null（数据库可空列，避免存 '' 造成解析歧义）
+        if (($validated['suite_id'] ?? null) === '') {
+            $validated['suite_id'] = null;
+        }
+
+        return $validated;
     }
 
     /**

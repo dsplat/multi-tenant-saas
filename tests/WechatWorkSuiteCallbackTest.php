@@ -43,9 +43,9 @@ class WechatWorkSuiteCallbackTest extends TestCase
         TenantContext::setTenantId(9001);
     }
 
-    private function createProvider(): ServiceProvider
+    private function createProvider(array $overrides = []): ServiceProvider
     {
-        return ServiceProvider::create([
+        return ServiceProvider::create(array_merge([
             'tenant_id' => null,
             'name' => 'Test Provider',
             'provider_corp_id' => 'corp_provider',
@@ -55,7 +55,7 @@ class WechatWorkSuiteCallbackTest extends TestCase
             'encoding_aes_key' => self::AES_KEY,
             'callback_url' => 'https://auth.neihang.com/api/v1/wechat-work/suite/callback',
             'status' => ServiceProvider::STATUS_ACTIVE,
-        ]);
+        ], $overrides));
     }
 
     // ==================================================================
@@ -66,11 +66,13 @@ class WechatWorkSuiteCallbackTest extends TestCase
      * 模拟企微加密：random(16B) + msg_len(4B 网络序) + msg + receiveid，
      * PKCS7 pad 到 32 字节块，AES-256-CBC 加密（openssl_encrypt 默认输出 base64，
      * 即企微 Encrypt 节点值；切勿再包 base64_encode，否则双重编码解密失败）。
+     *
+     * 企微协议 receiveid：GET URL 验证 = 服务商企业 ID，POST 事件推送 = suite_id。
      */
-    private function encrypt(string $plain): string
+    private function encrypt(string $plain, string $receiveId = self::SUITE_ID): string
     {
         $aesKey = base64_decode(self::AES_KEY . '=', true);
-        $raw = random_bytes(16) . pack('N', strlen($plain)) . $plain . self::SUITE_ID;
+        $raw = random_bytes(16) . pack('N', strlen($plain)) . $plain . $receiveId;
         $pad = 32 - (strlen($raw) % 32);
         $raw .= str_repeat(chr($pad), $pad);
 
@@ -120,7 +122,8 @@ class WechatWorkSuiteCallbackTest extends TestCase
         $this->createProvider();
 
         $plain = 'hello-echostr-123';
-        $encrypt = $this->encrypt($plain);
+        // 企微协议：URL 验证明文尾部 receiveid = 服务商企业 ID（非 suite_id）
+        $encrypt = $this->encrypt($plain, 'corp_provider');
         $timestamp = '1700000000';
         $nonce = 'nonce123';
 
@@ -136,6 +139,49 @@ class WechatWorkSuiteCallbackTest extends TestCase
         $response->assertStatus(200);
         $this->assertSame('text/plain; charset=utf-8', $response->headers->get('Content-Type'));
         $this->assertSame($plain, $response->getContent());
+    }
+
+    /**
+     * 预注册场景：suite_id 为空（模板创建中），仅录 服务商企业 ID + 回调凭证，
+     * URL 验证用服务商企业 ID 解密必须通过——这是创建模板的前置条件。
+     */
+    public function test_get_verify_without_suite_id_passes_pre_registration(): void
+    {
+        $this->createProvider(['suite_id' => null, 'suite_secret' => null]);
+
+        $plain = 'pre-register-echostr';
+        $encrypt = $this->encrypt($plain, 'corp_provider');
+        $timestamp = '1700000000';
+        $nonce = 'nonce123';
+
+        $url = '/api/v1/wechat-work/suite/callback'
+            . '?msg_signature=' . $this->sign($timestamp, $nonce, $encrypt)
+            . '&timestamp=' . $timestamp
+            . '&nonce=' . $nonce
+            . '&echostr=' . urlencode($encrypt);
+
+        $this->get($url)->assertStatus(200)->assertContent($plain);
+    }
+
+    /**
+     * 兜底：服务商企业 ID 也未配置时，验签 + AES 解密通过即放行（宽松 receiveid）。
+     */
+    public function test_get_verify_without_provider_corp_id_falls_back_lax(): void
+    {
+        $this->createProvider(['suite_id' => null, 'provider_corp_id' => null, 'suite_secret' => null]);
+
+        $plain = 'lax-echostr';
+        $encrypt = $this->encrypt($plain, 'whatever-receiveid');
+        $timestamp = '1700000000';
+        $nonce = 'nonce123';
+
+        $url = '/api/v1/wechat-work/suite/callback'
+            . '?msg_signature=' . $this->sign($timestamp, $nonce, $encrypt)
+            . '&timestamp=' . $timestamp
+            . '&nonce=' . $nonce
+            . '&echostr=' . urlencode($encrypt);
+
+        $this->get($url)->assertStatus(200)->assertContent($plain);
     }
 
     public function test_get_verify_rejects_bad_signature(): void

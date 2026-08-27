@@ -51,7 +51,7 @@
           <h4>{{ providerForm.service_provider_id ? '编辑服务商' : '新增服务商' }}</h4>
           <div class="form-row">
             <div class="form-group"><label>名称（必填）</label><input v-model="providerForm.name" placeholder="如 蓝眼兔服务商" /></div>
-            <div class="form-group"><label>Suite ID（必填）</label><input v-model="providerForm.suite_id" placeholder="企微服务商套件 ID" /></div>
+            <div class="form-group"><label>Suite ID（模板创建后补录）</label><input v-model="providerForm.suite_id" placeholder="模板创建成功后填写，URL 验证阶段可留空" /></div>
           </div>
           <div class="form-row">
             <div class="form-group"><label>服务商企业 ID</label><input v-model="providerForm.provider_corp_id" placeholder="provider corp id" /></div>

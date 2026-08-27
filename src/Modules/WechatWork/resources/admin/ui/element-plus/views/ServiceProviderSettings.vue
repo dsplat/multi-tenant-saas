@@ -89,8 +89,8 @@
     <el-dialog v-model="providerDialogVisible" :title="providerForm.service_provider_id ? '编辑服务商' : '新增服务商'" width="560px">
       <el-form label-width="140px">
         <el-form-item label="名称（必填）"><el-input v-model="providerForm.name" placeholder="如 蓝眼兔服务商" /></el-form-item>
-        <el-form-item label="Suite ID（必填）"><el-input v-model="providerForm.suite_id" placeholder="企微服务商套件 ID" /></el-form-item>
-        <el-form-item label="服务商企业 ID"><el-input v-model="providerForm.provider_corp_id" placeholder="provider corp id" /></el-form-item>
+        <el-form-item label="Suite ID（模板创建后补录）"><el-input v-model="providerForm.suite_id" placeholder="模板创建成功后填写，URL 验证阶段可留空" /></el-form-item>
+        <el-form-item label="服务商企业 ID"><el-input v-model="providerForm.provider_corp_id" placeholder="服务商后台可查，URL 验证解密需要" /></el-form-item>
         <el-form-item label="Suite Secret"><el-input v-model="providerForm.suite_secret" type="password" show-password placeholder="掩码表示未修改" /></el-form-item>
         <el-form-item label="回调 Token"><el-input v-model="providerForm.callback_token" placeholder="模板回调 Token" /></el-form-item>
         <el-form-item label="EncodingAESKey"><el-input v-model="providerForm.encoding_aes_key" type="password" show-password placeholder="掩码表示未修改" /></el-form-item>

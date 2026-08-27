@@ -218,7 +218,9 @@ class WechatWorkSuiteCallbackTest extends TestCase
             . '<TimeStamp>1700000000</TimeStamp>'
             . '<SuiteTicket>ticket-xyz</SuiteTicket></xml>';
 
-        $this->postCallback($plain)->assertStatus(200);
+        $this->postCallback($plain)
+            ->assertStatus(200)
+            ->assertContent('success');
 
         $this->assertSame('ticket-xyz', Cache::get("wechat_work_suite_ticket:{$provider->service_provider_id}"));
     }
@@ -252,7 +254,9 @@ class WechatWorkSuiteCallbackTest extends TestCase
             . '<TimeStamp>1700000000</TimeStamp>'
             . '<CreateAuthInfo><auth_code>auth-code-1</auth_code></CreateAuthInfo></xml>';
 
-        $this->postCallback($plain)->assertStatus(200);
+        $this->postCallback($plain)
+            ->assertStatus(200)
+            ->assertContent('success');
 
         // 事件路径经 get_permanent_code 响应中的 state 恢复租户，幂等入库（代开发模式主路径）
         Http::assertSent(fn ($request) => str_contains($request->url(), 'get_permanent_code')

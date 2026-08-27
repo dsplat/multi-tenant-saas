@@ -93,8 +93,9 @@ class SuiteCallbackController extends Controller
 
         $this->dispatch($provider, $payload);
 
-        // 收到即 ACK（空串），避免企微重试造成重复处理
-        return response('', 200);
+        // 企微协议：事件推送须在 5 秒内返回纯文本 success，否则判定失败并重试
+        // （create_auth 响应非 success 会导致企业侧「安装失败」）
+        return response('success', 200)->header('Content-Type', 'text/plain');
     }
 
     /**
@@ -113,6 +114,10 @@ class SuiteCallbackController extends Controller
                 break;
 
             case 'create_auth':
+                Log::info('[WechatWorkSuite] 收到 create_auth 事件', [
+                    'suite_id' => $provider->suite_id,
+                    'corp_id' => (string) ($payload['AuthCorpId'] ?? ''),
+                ]);
                 $this->handleCreateAuth($provider, $payload);
                 break;
 
@@ -125,8 +130,8 @@ class SuiteCallbackController extends Controller
                 break;
 
             default:
-                // change_auth / contact_sync 等事件：记录但不处理
-                Log::debug('[WechatWorkSuite] 未处理事件', [
+                // change_auth / contact_sync 等事件：记录但不处理（info 级别，便于排查授权链路）
+                Log::info('[WechatWorkSuite] 未处理事件', [
                     'suite_id' => $provider->suite_id,
                     'info_type' => $infoType,
                 ]);

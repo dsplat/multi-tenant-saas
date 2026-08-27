@@ -23,7 +23,8 @@ class WechatWorkModule implements SchemaModuleInterface
             $table->string('suite_id', 64)->nullable();
             $table->text('suite_secret')->nullable();
             $table->string('callback_token', 255)->nullable();
-            $table->string('encoding_aes_key', 255)->nullable();
+            // encoding_aes_key 加密存储，密文超 varchar(255)，用 text（与生产迁移一致）
+            $table->text('encoding_aes_key')->nullable();
             $table->string('callback_url', 500)->nullable();
             $table->string('status', 20)->default('active');
             $table->json('metadata')->nullable();

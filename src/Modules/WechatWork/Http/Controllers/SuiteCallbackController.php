@@ -83,6 +83,10 @@ class SuiteCallbackController extends Controller
      * 模板回调与应用回调 URL 相同（「开始代开发应用」自动带出模板地址），
      * 同一端点先试模板凭证（suite_ticket / create_auth / cancel_auth），再试
      * 应用级凭证（用户消息 / 进入应用事件等），按事件类型分流。
+     *
+     * 注意：模板与应用可能共用同一套 Token/AESKey（企微自动带出模板值），
+     * 此时应用事件会被第一轨验签放行但解密失败（receiveId=企业 corp_id ≠
+     * suite_id），必须回退第二轨，不得因第一轨失败直接 400。
      */
     public function handle(Request $request)
     {
@@ -104,17 +108,19 @@ class SuiteCallbackController extends Controller
             $plain = $crypto->decrypt($encrypt);
             $payload = $plain !== null ? $this->xmlToArray($plain) : null;
 
-            if ($payload === null) {
-                Log::warning('[WechatWorkSuite] 回调解密/解析失败', ['suite_id' => $provider->suite_id]);
+            if ($payload !== null) {
+                $this->dispatch($provider, $payload);
 
-                return response('', 400);
+                // 企微协议：事件推送须在 5 秒内返回纯文本 success，否则判定失败并重试
+                // （create_auth 响应非 success 会导致企业侧「安装失败」）
+                return response('success', 200)->header('Content-Type', 'text/plain');
             }
 
-            $this->dispatch($provider, $payload);
-
-            // 企微协议：事件推送须在 5 秒内返回纯文本 success，否则判定失败并重试
-            // （create_auth 响应非 success 会导致企业侧「安装失败」）
-            return response('success', 200)->header('Content-Type', 'text/plain');
+            // 验签通过但解密/解析失败：共享同一套凭证时应用事件在第一轨被
+            // 验签放行但 receiveId 不匹配，解密失败不回 400，继续尝试应用凭证
+            Log::debug('[WechatWorkSuite] 模板凭证验签通过但解密失败，回退应用凭证', [
+                'suite_id' => $provider->suite_id,
+            ]);
         }
 
         // 2) 应用级凭证：应用业务事件（统一回调地址下按事件明文反查租户）

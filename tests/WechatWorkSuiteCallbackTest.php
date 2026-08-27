@@ -491,6 +491,28 @@ class WechatWorkSuiteCallbackTest extends TestCase
         ]);
     }
 
+    /**
+     * 模板与应用共用同一套 Token/AESKey 的服务商 + 已授权租户
+     *
+     * 生产真实场景：企微将模板回调 URL/Token/EncodingAESKey 自动带出为
+     * 企业应用回调配置，模板凭证与应用凭证完全相同（app_callback_* ==
+     * callback_*）。此时应用事件在第一轨验签必然放行（token 相同），
+     * 只能靠 receiveId 校验拦截并回退第二轨。
+     */
+    private function createProviderWithSharedCredentials(string $corpId = 'ww_corp_1'): WechatWorkAuthorization
+    {
+        $provider = $this->createProvider([
+            'app_callback_token' => self::TOKEN,
+            'app_encoding_aes_key' => self::AES_KEY,
+        ]);
+
+        return app(WechatWorkSuiteService::class)->saveAuthorization(9001, (int) $provider->service_provider_id, [
+            'corp_id' => $corpId,
+            'agent_id' => '1000001',
+            'permanent_code' => 'perm-code-1',
+        ]);
+    }
+
     public function test_get_verify_app_credentials_on_unified_url(): void
     {
         // 模板 URL 收到应用级（模板带出）凭证加密的 echostr：模板凭证验签失败后回退应用凭证
@@ -535,6 +557,66 @@ class WechatWorkSuiteCallbackTest extends TestCase
             $nonce,
             '/api/v1/wechat-work/suite/callback',
         )->assertStatus(200)->assertContent('success');
+    }
+
+    public function test_get_verify_on_unified_url_with_shared_credentials(): void
+    {
+        // 共享凭证下 GET 验证：第一轨验签通过（token 相同）但 receiveId（corp_id ≠
+        // provider_corp_id）不匹配，解密失败须回退第二轨才能回显 echostr
+        $this->createProviderWithSharedCredentials();
+
+        $plain = 'shared-echostr';
+        $encrypt = $this->encrypt($plain, 'ww_corp_1', self::AES_KEY);
+        $timestamp = '1700000000';
+        $nonce = 'nonce123';
+
+        $url = '/api/v1/wechat-work/suite/callback'
+            . '?msg_signature=' . $this->sign($timestamp, $nonce, $encrypt)
+            . '&timestamp=' . $timestamp
+            . '&nonce=' . $nonce
+            . '&echostr=' . urlencode($encrypt);
+
+        $this->get($url)->assertStatus(200)->assertContent($plain);
+    }
+
+    public function test_post_app_event_on_unified_url_with_shared_credentials(): void
+    {
+        // 生产真实场景：应用事件加密 receiveId=corp_id，第一轨验签通过但解密失败，
+        // 必须回退第二轨应用凭证解密成功并秒回 success，不得 400 触发企微重试
+        $this->createProviderWithSharedCredentials();
+
+        $plain = '<xml><ToUserName><![CDATA[ww_corp_1]]></ToUserName>'
+            . '<FromUserName><![CDATA[zhangsan]]></FromUserName>'
+            . '<CreateTime>1700000000</CreateTime>'
+            . '<MsgType><![CDATA[event]]></MsgType>'
+            . '<Event><![CDATA[change_external_contact]]></Event>'
+            . '<ChangeType><![CDATA[add_external_contact]]></ChangeType>'
+            . '</xml>';
+
+        $encrypt = $this->encrypt($plain, 'ww_corp_1', self::AES_KEY);
+        $timestamp = '1700000000';
+        $nonce = 'nonce123';
+
+        $this->postEncrypt(
+            $encrypt,
+            $this->sign($timestamp, $nonce, $encrypt),
+            $timestamp,
+            $nonce,
+            '/api/v1/wechat-work/suite/callback',
+        )->assertStatus(200)->assertContent('success');
+    }
+
+    public function test_post_suite_event_on_unified_url_with_shared_credentials(): void
+    {
+        // 共享凭证下模板事件（receiveId=suite_id）仍走第一轨成功，不受回退逻辑影响
+        $this->createProviderWithSharedCredentials();
+
+        $plain = '<xml><SuiteId><![CDATA[' . self::SUITE_ID . ']]></SuiteId>'
+            . '<InfoType><![CDATA[suite_ticket]]></InfoType>'
+            . '<SuiteTicket><![CDATA[ticket-shared-1]]></SuiteTicket>'
+            . '</xml>';
+
+        $this->postCallback($plain)->assertStatus(200)->assertContent('success');
     }
 
     public function test_post_app_event_on_unified_url_without_authorization_still_returns_success(): void

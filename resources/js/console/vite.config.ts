@@ -34,6 +34,7 @@ export const nodeModuleAliases: Array<{ find: string; replacement: string }> = [
   { find: 'axios', replacement: resolve(FW_CONSOLE, 'node_modules/axios') },
   { find: 'element-plus', replacement: resolve(FW_CONSOLE, 'node_modules/element-plus') },
   { find: '@element-plus/icons-vue', replacement: resolve(FW_CONSOLE, 'node_modules/@element-plus/icons-vue') },
+  { find: 'qrcode.vue', replacement: resolve(FW_CONSOLE, 'node_modules/qrcode.vue') },
 ]
 
 /**

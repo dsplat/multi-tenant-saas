@@ -51,6 +51,8 @@ class TenantWechatWorkAuthController extends Controller
 
         try {
             $url = $this->suite->buildAuthorizeUrl($tenantId);
+            // 模板权限清单随授权 URL 一并返回：租户扫码即一次性获得全部权限，无需逐项配置
+            $provider = $this->suite->requireProvider();
         } catch (\Throwable $e) {
             Log::warning('[WechatWorkAuth] 生成授权 URL 失败', [
                 'tenant_id' => $tenantId,
@@ -63,7 +65,14 @@ class TenantWechatWorkAuthController extends Controller
             ], 503);
         }
 
-        return response()->json(['success' => true, 'data' => ['url' => $url]]);
+        return response()->json(['success' => true, 'data' => [
+            'url' => $url,
+            'provider' => [
+                'name' => $provider->name,
+                'suite_id' => $provider->suite_id,
+                'permissions' => $this->suite->templatePermissions($provider),
+            ],
+        ]]);
     }
 
     /**
@@ -127,6 +136,14 @@ class TenantWechatWorkAuthController extends Controller
             ? $this->suite->authorization($tenantId)
             : null;
 
+        // 模板权限集（服务商声明，授权前后均展示给租户）
+        try {
+            $provider = $this->suite->requireProvider();
+        } catch (\Throwable $e) {
+            $provider = null;
+        }
+        $permissions = $provider !== null ? $this->suite->templatePermissions($provider) : [];
+
         if ($authorization === null) {
             return response()->json([
                 'success' => true,
@@ -134,6 +151,7 @@ class TenantWechatWorkAuthController extends Controller
                     'status' => WechatWorkAuthorization::STATUS_PENDING,
                     'corp_id' => null,
                     'agent_id' => null,
+                    'permissions' => $permissions,
                 ],
             ]);
         }
@@ -145,6 +163,7 @@ class TenantWechatWorkAuthController extends Controller
                 'corp_id' => $authorization->corp_id,
                 'agent_id' => $authorization->agent_id,
                 'authorized_at' => $authorization->authorized_at,
+                'permissions' => $permissions,
             ],
         ]);
     }

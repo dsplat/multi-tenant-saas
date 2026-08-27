@@ -102,14 +102,37 @@
               <input :value="suiteAuth.agent_id" readonly />
             </div>
             <div class="form-tip">授权时间：{{ suiteAuth.authorized_at || '—' }}</div>
+            <div v-if="suiteAuthPermissions.length" style="margin-top: 8px">
+              <span class="form-tip">已获得模板权限：</span>
+              <span v-for="p in suiteAuthPermissions" :key="p.key" class="badge" style="margin-right: 4px">{{ p.label }}</span>
+            </div>
             <div style="margin-top: 10px">
               <button class="btn-primary" style="margin-top: 0" :disabled="suiteRevoking" @click="revokeSuiteAuth">{{ suiteRevoking ? '解除中...' : '解除授权' }}</button>
               <button type="button" class="suite-link" @click="fetchSuiteStatus">刷新状态</button>
             </div>
           </template>
           <template v-else>
-            <div style="margin-top: 6px">
-              <button class="btn-primary" style="margin-top: 0" :disabled="suiteAuthorizing" @click="startSuiteAuth">{{ suiteAuthorizing ? '跳转中...' : '使用平台代开发应用扫码授权' }}</button>
+            <!-- 页面内展示授权二维码（qrcode_url 需自行渲染为二维码，非图片直链） -->
+            <div v-if="suiteAuthUrl" class="suite-qr-box">
+              <div class="suite-qr">
+                <QrcodeVue :value="suiteAuthUrl" :size="168" level="M" render-as="canvas" />
+              </div>
+              <p class="form-tip" style="margin: 8px 0 0; text-align: center">
+                请使用<b>企业微信</b>扫描二维码，由企业管理员确认授权；授权完成后点击「刷新状态」
+              </p>
+              <div style="margin-top: 8px">
+                <button class="btn-primary" style="margin-top: 0" :disabled="suiteAuthorizing" @click="startSuiteAuth">{{ suiteAuthorizing ? '生成中...' : '重新生成二维码' }}</button>
+                <button type="button" class="suite-link" @click="fetchSuiteStatus">刷新状态</button>
+              </div>
+              <div v-if="suiteAuthPermissions.length" class="suite-perms">
+                <div class="help-title" style="font-size: 13px">授权后将获得以下模板权限（可信域名/回调域由服务商代管，无需逐项配置）</div>
+                <div style="margin-top: 4px">
+                  <span v-for="p in suiteAuthPermissions" :key="p.key" class="badge" style="margin-right: 4px">{{ p.label }}</span>
+                </div>
+              </div>
+            </div>
+            <div v-else style="margin-top: 6px">
+              <button class="btn-primary" style="margin-top: 0" :disabled="suiteAuthorizing" @click="startSuiteAuth">{{ suiteAuthorizing ? '生成中...' : '使用平台代开发应用扫码授权' }}</button>
               <button type="button" class="suite-link" @click="fetchSuiteStatus">刷新状态</button>
             </div>
             <p v-if="suiteAuth.status === 'revoked'" class="form-tip" style="margin-top: 6px">当前状态：已解除，可重新扫码授权</p>
@@ -246,6 +269,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
+import QrcodeVue from 'qrcode.vue'
 
 const saving = ref(false)
 const message = ref('')
@@ -276,11 +300,16 @@ const suiteAuthorizing = ref(false)
 const suiteRevoking = ref(false)
 const suiteAuthError = ref('')
 const suiteAuthHint = ref('')
+// 授权二维码内容（qrcode_url 为授权链接，由前端渲染为二维码）与模板权限清单
+const suiteAuthUrl = ref('')
+const suiteAuthPermissions = ref<{ key: string; label: string }[]>([])
 
 const fetchSuiteStatus = async () => {
   try {
     const res = await axios.get('/api/v1/tenant/wechat-work/status')
-    Object.assign(suiteAuth, res.data.data || {})
+    const data = res.data.data || {}
+    Object.assign(suiteAuth, data)
+    suiteAuthPermissions.value = data.permissions || []
   } catch (e: any) {
     suiteAuthError.value = e.response?.data?.message || '查询授权状态失败'
   }
@@ -292,12 +321,15 @@ const startSuiteAuth = async () => {
   suiteAuthHint.value = ''
   try {
     const res = await axios.post('/api/v1/tenant/wechat-work/authorize')
-    const url = res.data.data?.url
+    const data = res.data.data || {}
+    const url = data.url
     if (!url) throw new Error('未返回授权 URL')
-    window.open(url, '_blank')
-    suiteAuthHint.value = '已打开企微授权页，请完成扫码；授权完成后点击「刷新状态」确认。'
+    // 页面内直接展示二维码（企微 qrcode_url 是授权链接，需自行渲染为二维码图片）
+    suiteAuthUrl.value = url
+    suiteAuthPermissions.value = data.provider?.permissions || []
+    suiteAuthHint.value = '已生成授权二维码，请用企业微信扫码；授权完成后点击「刷新状态」确认。'
   } catch (e: any) {
-    suiteAuthError.value = e.response?.data?.message || '生成授权链接失败'
+    suiteAuthError.value = e.response?.data?.message || '生成授权二维码失败'
   } finally {
     suiteAuthorizing.value = false
   }
@@ -422,6 +454,9 @@ onMounted(() => { loadConfig(); fetchSuiteStatus() })
 .suite-box { margin-bottom: 16px; padding: 12px 16px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; }
 .suite-box .form-group { margin-bottom: 8px; }
 .suite-box input[readonly] { background: #e9ecef; color: #495057; }
+.suite-qr-box { margin-top: 10px; }
+.suite-qr { display: inline-block; padding: 10px; background: #fff; border: 1px solid #dee2e6; border-radius: 6px; }
+.suite-perms { margin-top: 10px; padding: 8px 10px; background: #fff; border: 1px solid #dee2e6; border-radius: 4px; }
 .suite-link { background: none; border: none; color: #0d6efd; cursor: pointer; padding: 0; margin-left: 12px; font-size: 13px; }
 .help-title { font-weight: 600; margin: 4px 0; color: #212529; }
 .help-box ol, .help-box ul { margin: 4px 0 12px; padding-left: 20px; }

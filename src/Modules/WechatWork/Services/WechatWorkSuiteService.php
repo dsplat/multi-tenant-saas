@@ -254,6 +254,24 @@ class WechatWorkSuiteService
     }
 
     /**
+     * 服务商代开发模板权限清单（[{key, label}]，未知 key 原样展示）
+     *
+     * 权限集由服务商在平台声明（metadata.template_permissions，对应企微服务商
+     * 后台模板勾选的权限点）；企业扫码授权即一次性获得模板全部权限，
+     * 可信 IP / 回调域名由服务商代管，使用方无需逐项配置。
+     */
+    public function templatePermissions(ServiceProvider $provider): array
+    {
+        $labels = ServiceProvider::TEMPLATE_PERMISSIONS;
+        $keys = $provider->metadata['template_permissions'] ?? [];
+
+        return array_values(array_map(
+            fn (string $key) => ['key' => $key, 'label' => $labels[$key] ?? $key],
+            $keys,
+        ));
+    }
+
+    /**
      * 生成代开发授权 state：{16 位租户 ID（左补零）}{16 位随机}（纯字母数字，共 32 字节）
      *
      * 企微限定 state 仅 a-zA-Z0-9 且 ≤32 字节；租户 ID 固定 16 位前缀（不足

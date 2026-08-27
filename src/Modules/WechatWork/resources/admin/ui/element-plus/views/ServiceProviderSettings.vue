@@ -45,6 +45,14 @@
                 <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">{{ row.status === 'active' ? '启用' : '停用' }}</el-tag>
               </template>
             </el-table-column>
+            <el-table-column label="模板权限" min-width="220">
+              <template #default="{ row }">
+                <template v-if="row.permissions?.length">
+                  <el-tag v-for="k in row.permissions" :key="k" size="small" style="margin-right: 4px">{{ PERMISSION_OPTIONS[k] || k }}</el-tag>
+                </template>
+                <span v-else class="form-hint" style="margin: 0">未声明</span>
+              </template>
+            </el-table-column>
             <el-table-column label="操作" width="170">
               <template #default="{ row }">
                 <el-button link type="primary" size="small" @click="openProviderDialog(row)">编辑</el-button>
@@ -101,6 +109,14 @@
             <el-option label="停用 (inactive)" value="inactive" />
           </el-select>
         </el-form-item>
+        <el-form-item label="模板权限集">
+          <el-checkbox-group v-model="providerForm.permissions" style="width: 100%">
+            <el-checkbox v-for="(label, key) in PERMISSION_OPTIONS" :key="key" :value="key" style="display: flex; margin-bottom: 6px">{{ label }}</el-checkbox>
+          </el-checkbox-group>
+          <p class="form-hint" style="margin: 6px 0 0; padding: 0; width: 100%">
+            需与企微服务商后台模板勾选的权限一致；租户扫码授权即一次性获得全部权限，无需逐项配置白名单/授权域名
+          </p>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="providerDialogVisible = false">取消</el-button>
@@ -119,6 +135,17 @@ const API = '/api/v1/admin/wechat-work'
 const activeTab = ref('providers')
 const saving = ref(false)
 
+// 代开发模板权限字典（key => 展示名），与后端 ServiceProvider::TEMPLATE_PERMISSIONS 同步
+const PERMISSION_OPTIONS: Record<string, string> = {
+  'contact:read': '通讯录读取（成员/部门）',
+  'contact:write': '通讯录写（组织架构同步）',
+  'message:send': '应用消息发送',
+  'external_contact:read': '客户联系-客户信息读取',
+  'external_contact:write': '客户联系-客户群/标签管理',
+  'media:upload': '素材上传（图片/文件/视频）',
+  'userinfo:read': '成员身份信息读取',
+}
+
 // admin SPA 与平台域同源，直接取当前 origin 拼套件回调地址
 const callbackUrl = window.location.origin + '/api/v1/wechat-work/suite/callback'
 const copyCallbackUrl = async () => {
@@ -128,7 +155,7 @@ const copyCallbackUrl = async () => {
 // ---- 服务商凭证 ----
 const providers = ref<any[]>([])
 const providerDialogVisible = ref(false)
-const providerForm = reactive<any>({ service_provider_id: null, name: '', provider_corp_id: '', suite_id: '', suite_secret: '', callback_token: '', encoding_aes_key: '', callback_url: '', status: 'active' })
+const providerForm = reactive<any>({ service_provider_id: null, name: '', provider_corp_id: '', suite_id: '', suite_secret: '', callback_token: '', encoding_aes_key: '', callback_url: '', status: 'active', permissions: [] })
 
 const fetchProviders = async () => {
   try {
@@ -138,7 +165,7 @@ const fetchProviders = async () => {
 }
 
 const openProviderDialog = (row?: any) => {
-  Object.assign(providerForm, { service_provider_id: null, name: '', provider_corp_id: '', suite_id: '', suite_secret: '', callback_token: '', encoding_aes_key: '', callback_url: '', status: 'active' })
+  Object.assign(providerForm, { service_provider_id: null, name: '', provider_corp_id: '', suite_id: '', suite_secret: '', callback_token: '', encoding_aes_key: '', callback_url: '', status: 'active', permissions: [] })
   if (row) Object.assign(providerForm, row)
   providerDialogVisible.value = true
 }
@@ -155,6 +182,7 @@ const saveProvider = async () => {
       encoding_aes_key: providerForm.encoding_aes_key || null,
       callback_url: providerForm.callback_url || null,
       status: providerForm.status,
+      permissions: providerForm.permissions,
     }
     if (providerForm.service_provider_id) {
       await axios.put(`${API}/providers/${providerForm.service_provider_id}`, payload)

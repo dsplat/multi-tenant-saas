@@ -51,6 +51,24 @@ class ServiceProvider extends Model
 
     public const STATUS_ACTIVE = 'active';
 
+    /**
+     * 代开发模板权限字典（key => 展示名）
+     *
+     * 由服务商（平台）在企微服务商后台创建代开发模板时勾选声明，平台侧
+     * 同步记录于 metadata.template_permissions。企业扫码授权即一次性获得
+     * 模板全部权限，无需使用方逐项配置白名单/回调域名（可信 IP 与回调域名
+     * 由服务商统一代管）。key 对应企微模板权限点，新增权限点在此补充即可。
+     */
+    public const TEMPLATE_PERMISSIONS = [
+        'contact:read' => '通讯录读取（成员/部门）',
+        'contact:write' => '通讯录写（组织架构同步）',
+        'message:send' => '应用消息发送',
+        'external_contact:read' => '客户联系-客户信息读取',
+        'external_contact:write' => '客户联系-客户群/标签管理',
+        'media:upload' => '素材上传（图片/文件/视频）',
+        'userinfo:read' => '成员身份信息读取',
+    ];
+
     public const STATUS_INACTIVE = 'inactive';
 
     public const STATUSES = [

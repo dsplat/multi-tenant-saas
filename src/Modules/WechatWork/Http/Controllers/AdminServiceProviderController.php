@@ -178,7 +178,18 @@ class AdminServiceProviderController extends Controller
             'callback_url' => 'nullable|string|max:500|url',
             'status' => 'sometimes|in:' . implode(',', ServiceProvider::STATUSES),
             'metadata' => 'sometimes|nullable|array',
+            // 代开发模板权限集：服务商在企微后台勾选后在此声明，租户扫码授权即全部获得
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'string|max:64',
         ]);
+
+        // 权限集合并进 metadata.template_permissions（不新增列，随服务商凭证一同存取）
+        if (array_key_exists('permissions', $validated)) {
+            $metadata = $validated['metadata'] ?? [];
+            $metadata['template_permissions'] = array_values(array_unique($validated['permissions']));
+            $validated['metadata'] = $metadata;
+            unset($validated['permissions']);
+        }
 
         // 空串归一为 null（数据库可空列，避免存 '' 造成解析歧义）
         if (($validated['suite_id'] ?? null) === '') {
@@ -205,6 +216,8 @@ class AdminServiceProviderController extends Controller
             'callback_url' => $provider->callback_url,
             'status' => $provider->status,
             'metadata' => $provider->metadata,
+            // 模板权限集（key 列表，展示名见 ServiceProvider::TEMPLATE_PERMISSIONS）
+            'permissions' => $provider->metadata['template_permissions'] ?? [],
             'created_at' => $provider->created_at,
             'updated_at' => $provider->updated_at,
         ];

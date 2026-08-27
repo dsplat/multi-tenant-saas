@@ -122,9 +122,9 @@ class WechatWorkAuthzTest extends TestCase
             ->withHeader('X-Tenant-ID', (string) $this->tenantId);
     }
 
-    private function createProvider(): ServiceProvider
+    private function createProvider(array $overrides = []): ServiceProvider
     {
-        return ServiceProvider::create([
+        return ServiceProvider::create(array_merge([
             'tenant_id' => null,
             'name' => 'Test Provider',
             'provider_corp_id' => 'corp_provider',
@@ -134,7 +134,7 @@ class WechatWorkAuthzTest extends TestCase
             'callback_token' => 'cb-token',
             'callback_url' => 'https://auth.neihang.com/api/v1/wechat-work/suite/callback',
             'status' => ServiceProvider::STATUS_ACTIVE,
-        ]);
+        ], $overrides));
     }
 
     /**
@@ -161,6 +161,21 @@ class WechatWorkAuthzTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', WechatWorkAuthorization::STATUS_PENDING)
             ->assertJsonPath('data.corp_id', null);
+    }
+
+    public function test_status_returns_template_permissions_when_pending(): void
+    {
+        $this->createProvider([
+            'metadata' => ['template_permissions' => ['contact:read', 'message:send']],
+        ]);
+
+        // 未授权时也展示模板权限清单：租户扫码前即可知晓将获得哪些权限
+        $this->auth()->getJson('/api/v1/tenant/wechat-work/status')
+            ->assertOk()
+            ->assertJsonPath('data.status', WechatWorkAuthorization::STATUS_PENDING)
+            ->assertJsonPath('data.permissions.0.key', 'contact:read')
+            ->assertJsonPath('data.permissions.0.label', ServiceProvider::TEMPLATE_PERMISSIONS['contact:read'])
+            ->assertJsonPath('data.permissions.1.key', 'message:send');
     }
 
     public function test_status_returns_authorization_when_authorized(): void
@@ -224,6 +239,61 @@ class WechatWorkAuthzTest extends TestCase
                 && $this->suite->tenantIdFromState($state) === $this->tenantId
                 && $request['templateid_list'] === ['ww_suite_test'];
         });
+    }
+
+    public function test_authorize_returns_template_permissions(): void
+    {
+        $provider = $this->createProvider([
+            'metadata' => ['template_permissions' => ['contact:read', 'external_contact:write']],
+        ]);
+        $this->suite->storeSuiteTicket($provider->service_provider_id, 'ticket-abc');
+
+        Http::fake([
+            'qyapi.weixin.qq.com/cgi-bin/service/get_provider_token' => Http::response([
+                'provider_access_token' => 'pt',
+                'expires_in' => 7200,
+            ]),
+            'qyapi.weixin.qq.com/*' => Http::response([
+                'errcode' => 0,
+                'qrcode_url' => 'https://open.work.weixin.qq.com/wwopen/customApp/authorize?auth_code=abc',
+                'expires_in' => 864000,
+            ]),
+        ]);
+
+        // 授权 URL 携带服务商声明的模板权限清单（key + 展示名，未知 key 原样展示）
+        $this->auth()->postJson('/api/v1/tenant/wechat-work/authorize')
+            ->assertOk()
+            ->assertJsonPath('data.provider.name', 'Test Provider')
+            ->assertJsonPath('data.provider.suite_id', 'ww_suite_test')
+            ->assertJsonPath('data.provider.permissions.0.key', 'contact:read')
+            ->assertJsonPath('data.provider.permissions.0.label', ServiceProvider::TEMPLATE_PERMISSIONS['contact:read'])
+            ->assertJsonPath('data.provider.permissions.1.key', 'external_contact:write')
+            ->assertJsonPath('data.provider.permissions.1.label', ServiceProvider::TEMPLATE_PERMISSIONS['external_contact:write']);
+    }
+
+    public function test_authorize_returns_unknown_permission_key_as_is(): void
+    {
+        $provider = $this->createProvider([
+            'metadata' => ['template_permissions' => ['future:scope']],
+        ]);
+        $this->suite->storeSuiteTicket($provider->service_provider_id, 'ticket-abc');
+
+        Http::fake([
+            'qyapi.weixin.qq.com/cgi-bin/service/get_provider_token' => Http::response([
+                'provider_access_token' => 'pt',
+                'expires_in' => 7200,
+            ]),
+            'qyapi.weixin.qq.com/*' => Http::response([
+                'errcode' => 0,
+                'qrcode_url' => 'https://open.work.weixin.qq.com/wwopen/customApp/authorize?auth_code=abc',
+                'expires_in' => 864000,
+            ]),
+        ]);
+
+        $this->auth()->postJson('/api/v1/tenant/wechat-work/authorize')
+            ->assertOk()
+            ->assertJsonPath('data.provider.permissions.0.key', 'future:scope')
+            ->assertJsonPath('data.provider.permissions.0.label', 'future:scope');
     }
 
     public function test_revoke_rejects_without_authorization(): void

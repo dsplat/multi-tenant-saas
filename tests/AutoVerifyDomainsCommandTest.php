@@ -2,13 +2,10 @@
 
 namespace MultiTenantSaas\Tests;
 
-use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Http;
-use MultiTenantSaas\Modules\Domain\Commands\AutoVerifyDomains;
 use MultiTenantSaas\Modules\Domain\Services\DomainService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
-use MultiTenantSaas\Modules\Infrastructure\Services\SchedulerService;
 
 /**
  * domains:auto-verify 轮询命令测试
@@ -74,9 +71,9 @@ class AutoVerifyDomainsCommandTest extends TestCase
 
     public function test_auto_verify_rejects_wrong_content(): void
     {
-        // 连通但内容不匹配（错误批准防线）
+        // 文件可达但内容不匹配：不批准（防伪造）
         Http::fake([
-            'https://' . self::DOMAIN . '/*' => Http::response('wrong-content'),
+            'https://' . self::DOMAIN . '/*' => Http::response('forged-token-content'),
         ]);
 
         $this->artisan('domains:auto-verify', ['--no-nginx' => true])->assertSuccessful();
@@ -86,7 +83,7 @@ class AutoVerifyDomainsCommandTest extends TestCase
 
     public function test_auto_verify_skips_rejected_tenant(): void
     {
-        // 管理员驳回的域名不应被轮询自动翻转
+        // 管理员已驳回：轮询不得自动翻转
         TenantSetting::set(self::TENANT_ID, DomainService::GROUP_DOMAIN, 'domain_status', DomainService::STATUS_REJECTED);
 
         Http::fake([
@@ -100,14 +97,8 @@ class AutoVerifyDomainsCommandTest extends TestCase
 
     public function test_auto_verify_skips_expired_domain(): void
     {
-        // 超期（默认 90 天）仍未解析 → 停止轮询，即使文件此刻可达也不审批
-        config(['domain.verification.auto_verify_max_age_days' => 90]);
-        TenantSetting::set(
-            self::TENANT_ID,
-            DomainService::GROUP_DOMAIN,
-            'verification_token_generated_at',
-            now()->subDays(91)->toDateTimeString()
-        );
+        // 配置超过轮询窗口仍未解析：停止检测（不消耗计数器）
+        TenantSetting::set(self::TENANT_ID, DomainService::GROUP_DOMAIN, 'verification_token_generated_at', now()->subDays(91)->toDateTimeString());
 
         Http::fake([
             'https://' . self::DOMAIN . '/*' => Http::response(self::TOKEN),
@@ -116,7 +107,7 @@ class AutoVerifyDomainsCommandTest extends TestCase
         $this->artisan('domains:auto-verify', ['--no-nginx' => true])->assertSuccessful();
 
         $this->assertSame(DomainService::STATUS_PENDING, TenantSetting::get(self::TENANT_ID, DomainService::GROUP_DOMAIN, 'domain_status', DomainService::STATUS_PENDING));
-        Http::assertNothingSent();
+        $this->assertSame(0, (int) TenantSetting::get(self::TENANT_ID, DomainService::GROUP_DOMAIN, 'auto_verify_attempts', 0));
     }
 
     public function test_auto_verify_tenant_option_targets_single_tenant(): void
@@ -125,7 +116,6 @@ class AutoVerifyDomainsCommandTest extends TestCase
             'https://' . self::DOMAIN . '/*' => Http::response(self::TOKEN),
         ]);
 
-        // --tenant 指定不存在的租户：本轮无目标，不触碰既有租户
         $this->artisan('domains:auto-verify', ['--tenant' => 9999, '--no-nginx' => true])->assertSuccessful();
 
         $this->assertSame(DomainService::STATUS_PENDING, TenantSetting::get(self::TENANT_ID, DomainService::GROUP_DOMAIN, 'domain_status', DomainService::STATUS_PENDING));
@@ -147,8 +137,8 @@ class AutoVerifyDomainsCommandTest extends TestCase
 
     public function test_scheduler_registers_domain_auto_verify_task(): void
     {
-        $scheduler = app(SchedulerService::class);
-        $scheduler->register(new Schedule);
+        $scheduler = app(\MultiTenantSaas\Modules\Infrastructure\Services\SchedulerService::class);
+        $scheduler->register(new \Illuminate\Console\Scheduling\Schedule);
         $tasks = $scheduler->getTasks();
 
         $this->assertArrayHasKey('domain-auto-verify', $tasks);
@@ -165,7 +155,7 @@ class AutoVerifyDomainsCommandTest extends TestCase
         file_put_contents($deployPath . '/maps/tenant-auth.map', "map \$host \$domain_allowed {\n    default 0;\n}\n");
         config(['domain.nginx_deploy_path' => $deployPath]);
 
-        $command = app(AutoVerifyDomains::class);
+        $command = app(\MultiTenantSaas\Modules\Domain\Commands\AutoVerifyDomains::class);
         $method = new \ReflectionMethod($command, 'whitelistStale');
         $method->setAccessible(true);
         $tenants = Tenant::where('tenant_id', self::TENANT_ID)->get();

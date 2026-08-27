@@ -458,6 +458,73 @@ class WechatWorkSuiteService
     }
 
     /**
+     * 模板统一应用回调 URL（「开始代开发应用」自动带出）
+     *
+     * 企微将模板回调 URL 默认带出为企业应用回调 URL，即与模板回调同址
+     * /suite/callback；端点以双凭证探测分流模板事件与应用事件，故所有
+     * 企业共用此地址，无需逐企业手填。
+     */
+    public function appCallbackUrlUnified(): string
+    {
+        return $this->callbackDomain() . '/api/v1/wechat-work/suite/callback';
+    }
+
+    /**
+     * 解析应用回调凭证（企业级覆盖优先，为空回退模板级）
+     *
+     * 「开始代开发应用」时企微将模板的 URL/Token/EncodingAESKey 自动带出到
+     * 企业应用回调配置，故模板级凭证（service_providers.app_callback_*）一次
+     * 录入后所有租户共用；wechat_work_authorizations.app_callback_* 保留为
+     * 企业级覆盖（企微侧手动修改过回调配置时使用）。
+     *
+     * @return array{token: string, aes_key: string}
+     */
+    public function appCredentials(WechatWorkAuthorization $authorization): array
+    {
+        $token = (string) ($authorization->app_callback_token ?? '');
+        $aesKey = (string) ($authorization->app_encoding_aes_key ?? '');
+
+        if ($token === '' || $aesKey === '') {
+            $provider = $authorization->service_provider_id !== null
+                ? ServiceProvider::query()->find($authorization->service_provider_id)
+                : null;
+
+            if ($provider !== null) {
+                $token = $token !== '' ? $token : (string) ($provider->app_callback_token ?? '');
+                $aesKey = $aesKey !== '' ? $aesKey : (string) ($provider->app_encoding_aes_key ?? '');
+            }
+        }
+
+        return ['token' => $token, 'aes_key' => $aesKey];
+    }
+
+    /**
+     * 应用回调凭证是否已配置（企业级或模板级任一满足）
+     */
+    public function appCallbackConfigured(WechatWorkAuthorization $authorization): bool
+    {
+        $credentials = $this->appCredentials($authorization);
+
+        return $credentials['token'] !== '' && $credentials['aes_key'] !== '';
+    }
+
+    /**
+     * 按企业 ID 反查已授权记录（统一回调地址下的事件路由）
+     */
+    public function authorizationByCorpId(string $corpId): ?WechatWorkAuthorization
+    {
+        if ($corpId === '') {
+            return null;
+        }
+
+        return TenantScope::allowUnscoped(fn () => WechatWorkAuthorization::query()
+            ->where('corp_id', $corpId)
+            ->where('status', WechatWorkAuthorization::STATUS_AUTHORIZED)
+            ->first());
+    }
+
+
+    /**
      * 解析应用回调候选授权记录
      *
      * tenantId 给定 → 该租户单条；null → 全部已授权记录（回调 URL 未带

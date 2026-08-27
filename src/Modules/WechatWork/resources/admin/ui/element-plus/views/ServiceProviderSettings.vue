@@ -67,7 +67,7 @@
         <el-tab-pane label="已授权租户" name="authorizations">
           <el-alert type="info" :closable="false" show-icon style="margin-bottom: 12px">
             <template #title>
-              租户扫码授权后，在企微<b>服务商后台</b>「代开发应用」列表为该企业「开始代开发应用」：应用信息（名称/logo 默认带出模板信息）、应用主页（终端站点如 club.lanyantu.com）、可信域名与 IP 白名单填 <b>auth.neihang.com</b>，回调 URL 填该行「回调配置」中的地址（保存时企微会发起 URL 验证）。验证通过后把企微生成的 Token / EncodingAESKey 回填「回调配置」，即完成该租户应用接入。
+              租户扫码授权后，在企微<b>服务商后台</b>「代开发应用」列表为该企业「开始代开发应用」：应用信息（名称/logo/介绍/回调 URL 默认带出模板信息）、应用主页（终端站点如 club.lanyantu.com）、可信域名与 IP 白名单填 <b>auth.neihang.com</b>。<b>回调 URL / Token / EncodingAESKey 均自动带出模板值</b>，与「服务商凭证」中配置的模板级应用回调凭证一致，无需逐企业填写；如企微侧手动改过回调配置，可在该行「回调配置」中按企业覆盖。
             </template>
           </el-alert>
           <el-table :data="authorizations" stripe empty-text="暂无租户授权">
@@ -121,6 +121,11 @@
         <el-form-item label="回调 Token"><el-input v-model="providerForm.callback_token" placeholder="模板回调 Token" /></el-form-item>
         <el-form-item label="EncodingAESKey"><el-input v-model="providerForm.encoding_aes_key" type="password" show-password placeholder="掩码表示未修改" /></el-form-item>
         <el-form-item label="模板回调 URL"><el-input v-model="providerForm.callback_url" placeholder="https://auth.neihang.com/api/v1/wechat-work/suite/callback" /></el-form-item>
+        <el-form-item label="应用回调 Token"><el-input v-model="providerForm.app_callback_token" placeholder="「创建代开发应用模板」生成的 Token，开始代开发应用时自动带出" /></el-form-item>
+        <el-form-item label="应用回调 EncodingAESKey"><el-input v-model="providerForm.app_encoding_aes_key" type="password" show-password placeholder="掩码表示未修改；模板生成，自动带出" /></el-form-item>
+        <p class="form-hint" style="margin: 0 0 6px; padding: 0; width: 100%">
+          模板级应用回调凭证：企微「创建代开发应用模板」时生成，每家企业「开始代开发应用」时随 URL 自动带出，所有租户共用；未配置时可在「已授权租户 → 回调配置」按企业单独回填。
+        </p>
         <el-form-item label="状态">
           <el-select v-model="providerForm.status" style="width: 100%">
             <el-option label="启用 (active)" value="active" />
@@ -142,24 +147,31 @@
       </template>
     </el-dialog>
 
-    <!-- 应用回调配置弹窗（「开始代开发应用」凭证回填） -->
-    <el-dialog v-model="callbackDialogVisible" title="应用回调配置" width="600px">
+    <!-- 应用回调配置弹窗（企业级覆盖，默认回退模板级统一凭证） -->
+    <el-dialog v-model="callbackDialogVisible" title="应用回调配置" width="640px">
       <el-alert type="info" :closable="false" show-icon style="margin-bottom: 12px">
         <template #title>
-          在企微<b>服务商后台</b>「开始代开发应用」时填入下方回调 URL（保存时企微发起 URL 验证，需本地址可达且凭证一致）；验证通过后把企微「回调 URL 验证」处生成的 <b>Token</b> / <b>EncodingAESKey</b> 回填此处保存。
+          回调 URL 为<b>模板统一地址</b>（「开始代开发应用」时企微自动带出，与下方一致，保存时企微会发起 URL 验证）。Token / EncodingAESKey 默认回退「服务商凭证」中的模板级配置；仅当该企业在企微侧手动改过回调配置时，才在此按企业覆盖。
         </template>
       </el-alert>
       <el-form label-width="130px">
         <el-form-item label="租户"><strong>{{ callbackForm.tenant_name }}</strong>（租户 ID {{ callbackForm.tenant_id }}）</el-form-item>
-        <el-form-item label="回调 URL">
+        <el-form-item label="回调 URL（统一）">
           <div style="display: flex; align-items: center; gap: 8px; width: 100%">
             <el-input :model-value="callbackForm.app_callback_url" readonly />
             <el-button @click="copyAppCallbackUrl">复制</el-button>
           </div>
-          <p class="form-hint" style="margin: 4px 0 0; padding: 0">已带租户标识，须与企微侧实际填写的回调 URL 一致</p>
+          <p class="form-hint" style="margin: 4px 0 0; padding: 0">所有企业共用此地址，无需逐租户填写</p>
         </el-form-item>
-        <el-form-item label="Token"><el-input v-model="callbackForm.app_callback_token" placeholder="企微「回调 URL 验证」处生成" /></el-form-item>
-        <el-form-item label="EncodingAESKey"><el-input v-model="callbackForm.app_encoding_aes_key" type="password" show-password placeholder="企微「回调 URL 验证」处生成" /></el-form-item>
+        <el-form-item label="备用地址">
+          <div style="display: flex; align-items: center; gap: 8px; width: 100%">
+            <el-input :model-value="callbackForm.app_callback_url_legacy" readonly />
+            <el-button @click="copyAppCallbackLegacyUrl">复制</el-button>
+          </div>
+          <p class="form-hint" style="margin: 4px 0 0; padding: 0">带租户标识，仅当企微侧手填自定义地址时使用</p>
+        </el-form-item>
+        <el-form-item label="Token（可选）"><el-input v-model="callbackForm.app_callback_token" placeholder="留空 = 使用模板级统一凭证（自动带出）" /></el-form-item>
+        <el-form-item label="EncodingAESKey（可选）"><el-input v-model="callbackForm.app_encoding_aes_key" type="password" show-password placeholder="留空 = 使用模板级统一凭证（自动带出）" /></el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="callbackDialogVisible = false">取消</el-button>
@@ -198,7 +210,7 @@ const copyCallbackUrl = async () => {
 // ---- 服务商凭证 ----
 const providers = ref<any[]>([])
 const providerDialogVisible = ref(false)
-const providerForm = reactive<any>({ service_provider_id: null, name: '', provider_corp_id: '', suite_id: '', suite_secret: '', callback_token: '', encoding_aes_key: '', callback_url: '', status: 'active', permissions: [] })
+const providerForm = reactive<any>({ service_provider_id: null, name: '', provider_corp_id: '', suite_id: '', suite_secret: '', callback_token: '', encoding_aes_key: '', callback_url: '', app_callback_token: '', app_encoding_aes_key: '', status: 'active', permissions: [] })
 
 const fetchProviders = async () => {
   try {
@@ -208,7 +220,7 @@ const fetchProviders = async () => {
 }
 
 const openProviderDialog = (row?: any) => {
-  Object.assign(providerForm, { service_provider_id: null, name: '', provider_corp_id: '', suite_id: '', suite_secret: '', callback_token: '', encoding_aes_key: '', callback_url: '', status: 'active', permissions: [] })
+  Object.assign(providerForm, { service_provider_id: null, name: '', provider_corp_id: '', suite_id: '', suite_secret: '', callback_token: '', encoding_aes_key: '', callback_url: '', app_callback_token: '', app_encoding_aes_key: '', status: 'active', permissions: [] })
   if (row) Object.assign(providerForm, row)
   providerDialogVisible.value = true
 }
@@ -224,6 +236,8 @@ const saveProvider = async () => {
       callback_token: providerForm.callback_token || null,
       encoding_aes_key: providerForm.encoding_aes_key || null,
       callback_url: providerForm.callback_url || null,
+      app_callback_token: providerForm.app_callback_token || null,
+      app_encoding_aes_key: providerForm.app_encoding_aes_key || null,
       status: providerForm.status,
       permissions: providerForm.permissions,
     }
@@ -281,7 +295,7 @@ const statusLabel = (s: string) => ({ pending: '待授权', authorized: '已授�
 // ---- 应用回调配置（「开始代开发应用」凭证回填） ----
 const callbackDialogVisible = ref(false)
 const callbackSaving = ref(false)
-const callbackForm = reactive<any>({ authorization_id: null, tenant_id: null, tenant_name: '', app_callback_url: '', app_callback_token: '', app_encoding_aes_key: '' })
+const callbackForm = reactive<any>({ authorization_id: null, tenant_id: null, tenant_name: '', app_callback_url: '', app_callback_url_legacy: '', app_callback_token: '', app_encoding_aes_key: '' })
 
 const openCallbackDialog = (row: any) => {
   Object.assign(callbackForm, {
@@ -289,6 +303,7 @@ const openCallbackDialog = (row: any) => {
     tenant_id: row.tenant_id,
     tenant_name: row.tenant_name || row.tenant_id,
     app_callback_url: row.app_callback_url,
+    app_callback_url_legacy: row.app_callback_url_legacy,
     app_callback_token: '',
     app_encoding_aes_key: '',
   })
@@ -299,17 +314,18 @@ const copyAppCallbackUrl = async () => {
   try { await navigator.clipboard.writeText(callbackForm.app_callback_url); ElMessage.success('已复制回调 URL') } catch { ElMessage.error('复制失败，请手动复制') }
 }
 
+const copyAppCallbackLegacyUrl = async () => {
+  try { await navigator.clipboard.writeText(callbackForm.app_callback_url_legacy); ElMessage.success('已复制备用地址') } catch { ElMessage.error('复制失败，请手动复制') }
+}
+
 const saveAppCallback = async () => {
-  if (!callbackForm.app_callback_token || !callbackForm.app_encoding_aes_key) {
-    ElMessage.warning('请填写 Token 与 EncodingAESKey')
-    return
-  }
+  // Token/AESKey 可留空：清空企业级覆盖，回退模板级统一凭证（自动带出场景的默认形态）
   callbackSaving.value = true
   try {
     await axios.put(`${API}/authorizations/${callbackForm.authorization_id}/app-callback`, {
       app_callback_url: callbackForm.app_callback_url,
-      app_callback_token: callbackForm.app_callback_token,
-      app_encoding_aes_key: callbackForm.app_encoding_aes_key,
+      app_callback_token: callbackForm.app_callback_token || null,
+      app_encoding_aes_key: callbackForm.app_encoding_aes_key || null,
     })
     ElMessage.success('应用回调配置已保存')
     callbackDialogVisible.value = false

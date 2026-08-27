@@ -469,4 +469,94 @@ class WechatWorkSuiteCallbackTest extends TestCase
             '/api/v1/wechat-work/suite/cz/9001',
         )->assertStatus(403);
     }
+
+    // ==================================================================
+    // 统一回调地址双凭证探测（/suite/callback，模板 URL 收应用事件）
+    // ==================================================================
+
+    /**
+     * 建模板级应用回调凭证的服务商 + 已授权租户（自动带出场景：企业级未回填）
+     */
+    private function createProviderWithTemplateAppCredentials(string $corpId = 'ww_corp_1'): WechatWorkAuthorization
+    {
+        $provider = $this->createProvider([
+            'app_callback_token' => self::APP_TOKEN,
+            'app_encoding_aes_key' => self::APP_AES_KEY,
+        ]);
+
+        return app(WechatWorkSuiteService::class)->saveAuthorization(9001, (int) $provider->service_provider_id, [
+            'corp_id' => $corpId,
+            'agent_id' => '1000001',
+            'permanent_code' => 'perm-code-1',
+        ]);
+    }
+
+    public function test_get_verify_app_credentials_on_unified_url(): void
+    {
+        // 模板 URL 收到应用级（模板带出）凭证加密的 echostr：模板凭证验签失败后回退应用凭证
+        $this->createProviderWithTemplateAppCredentials();
+
+        $plain = 'app-echostr-on-unified-url';
+        $encrypt = $this->encrypt($plain, 'ww_corp_1', self::APP_AES_KEY);
+        $timestamp = '1700000000';
+        $nonce = 'nonce123';
+
+        $url = '/api/v1/wechat-work/suite/callback'
+            . '?msg_signature=' . $this->signApp($timestamp, $nonce, $encrypt)
+            . '&timestamp=' . $timestamp
+            . '&nonce=' . $nonce
+            . '&echostr=' . urlencode($encrypt);
+
+        $this->get($url)->assertStatus(200)->assertContent($plain);
+    }
+
+    public function test_post_app_event_on_unified_url_returns_success(): void
+    {
+        // 「开始代开发应用」自动带出后，应用事件（模板级应用凭证加密）推送到统一 URL：
+        // 模板凭证验签失败 → 应用凭证解密 → 按明文 ToUserName(corp_id) 反查租户 → success
+        $this->createProviderWithTemplateAppCredentials();
+
+        $plain = '<xml><ToUserName><![CDATA[ww_corp_1]]></ToUserName>'
+            . '<FromUserName><![CDATA[zhangsan]]></FromUserName>'
+            . '<CreateTime>1700000000</CreateTime>'
+            . '<MsgType><![CDATA[event]]></MsgType>'
+            . '<Event><![CDATA[change_external_contact]]></Event>'
+            . '<ChangeType><![CDATA[add_external_contact]]></ChangeType>'
+            . '</xml>';
+
+        $encrypt = $this->encrypt($plain, 'ww_corp_1', self::APP_AES_KEY);
+        $timestamp = '1700000000';
+        $nonce = 'nonce123';
+
+        $this->postEncrypt(
+            $encrypt,
+            $this->signApp($timestamp, $nonce, $encrypt),
+            $timestamp,
+            $nonce,
+            '/api/v1/wechat-work/suite/callback',
+        )->assertStatus(200)->assertContent('success');
+    }
+
+    public function test_post_app_event_on_unified_url_without_authorization_still_returns_success(): void
+    {
+        // 事件明文无对应已授权租户（如已解除授权的存量事件）：仍秒回 success，避免企微重试风暴
+        $this->createProviderWithTemplateAppCredentials('ww_corp_ghost');
+
+        $plain = '<xml><ToUserName><![CDATA[ww_unknown]]></ToUserName>'
+            . '<MsgType><![CDATA[event]]></MsgType>'
+            . '<Event><![CDATA[change_external_contact]]></Event>'
+            . '</xml>';
+
+        $encrypt = $this->encrypt($plain, 'ww_unknown', self::APP_AES_KEY);
+        $timestamp = '1700000000';
+        $nonce = 'nonce123';
+
+        $this->postEncrypt(
+            $encrypt,
+            $this->signApp($timestamp, $nonce, $encrypt),
+            $timestamp,
+            $nonce,
+            '/api/v1/wechat-work/suite/callback',
+        )->assertStatus(200)->assertContent('success');
+    }
 }

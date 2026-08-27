@@ -177,4 +177,29 @@ class WechatWorkAdminProviderTest extends TestCase
             ->assertJsonPath('data.encoding_aes_key', '********')
             ->assertJsonPath('data.callback_token', 'cb-token');
     }
+
+    public function test_provider_app_callback_credentials_round_trip_with_mask(): void
+    {
+        // 模板级应用回调凭证：token 明文返回，aes key 掩码；更新时掩码/留空不覆盖
+        $create = $this->auth()->postJson('/api/v1/admin/wechat-work/providers', $this->providerPayload([
+            'app_callback_token' => 'app-cb-token',
+            'app_encoding_aes_key' => 'app-aes-key',
+        ]));
+
+        $create->assertCreated()
+            ->assertJsonPath('data.app_callback_token', 'app-cb-token')
+            ->assertJsonPath('data.app_encoding_aes_key', '********');
+
+        $providerId = $create->json('data.service_provider_id');
+
+        // 掩码回存不覆盖真实密钥
+        $this->auth()->putJson("/api/v1/admin/wechat-work/providers/{$providerId}", $this->providerPayload([
+            'app_callback_token' => 'app-cb-token',
+            'app_encoding_aes_key' => '********',
+        ]))->assertOk();
+
+        $provider = ServiceProvider::find($providerId);
+        $this->assertSame('app-cb-token', $provider->app_callback_token);
+        $this->assertSame('app-aes-key', $provider->app_encoding_aes_key);
+    }
 }

@@ -68,6 +68,11 @@
               <select v-model="providerForm.status"><option value="active">启用 (active)</option><option value="inactive">停用 (inactive)</option></select>
             </div>
           </div>
+          <div class="form-row">
+            <div class="form-group"><label>应用回调 Token（模板生成，自动带出）</label><input v-model="providerForm.app_callback_token" placeholder="「创建代开发应用模板」生成的 Token" /></div>
+            <div class="form-group"><label>应用回调 EncodingAESKey（掩码表示未修改）</label><input v-model="providerForm.app_encoding_aes_key" type="password" /></div>
+          </div>
+          <p class="hint" style="margin: 0 0 8px">模板级应用回调凭证：企微「创建代开发应用模板」时生成，每家企业「开始代开发应用」时随 URL 自动带出，所有租户共用；未配置时可在「已授权租户 → 回调配置」按企业单独回填。</p>
           <button type="submit" class="primary-btn" :disabled="saving">保存</button>
           <button v-if="providerForm.service_provider_id" type="button" class="link-btn" style="margin-left: 8px" @click="resetProviderForm">取消编辑</button>
         </form>
@@ -78,7 +83,7 @@
         <div class="callback-box">
           <strong>「开始代开发应用」接入步骤</strong>
           <p class="hint" style="margin-top: 4px">
-            租户扫码授权后，在企微<b>服务商后台</b>「代开发应用」列表为该企业「开始代开发应用」：应用信息（名称/logo 默认带出模板信息）、应用主页（终端站点如 club.lanyantu.com）、可信域名与 IP 白名单填 <code>auth.neihang.com</code>，回调 URL 填下方「回调配置」中的地址（保存时企微会发起 URL 验证）。验证通过后把企微生成的 Token / EncodingAESKey 回填此处，即完成该租户应用接入。
+            租户扫码授权后，在企微<b>服务商后台</b>「代开发应用」列表为该企业「开始代开发应用」：应用信息（名称/logo/介绍/回调 URL 默认带出模板信息）、应用主页（终端站点如 club.lanyantu.com）、可信域名与 IP 白名单填 <code>auth.neihang.com</code>。<b>回调 URL / Token / EncodingAESKey 均自动带出模板值</b>，与「服务商凭证」中配置的模板级应用回调凭证一致，无需逐企业填写；如企微侧手动改过回调配置，可在该行「回调配置」中按企业覆盖。
           </p>
         </div>
         <table class="data-table">
@@ -111,12 +116,12 @@
           </tbody>
         </table>
 
-        <!-- 应用回调配置表单（「开始代开发应用」凭证回填） -->
+        <!-- 应用回调配置表单（企业级覆盖，默认回退模板级统一凭证） -->
         <form v-if="callbackForm.authorization_id" style="margin-top: 16px; border-top: 1px solid #eee; padding-top: 12px" @submit.prevent="saveAppCallback">
           <h4>应用回调配置：{{ callbackForm.tenant_name }}（租户 ID {{ callbackForm.tenant_id }}）</h4>
           <div class="form-row">
             <div class="form-group" style="flex: 1">
-              <label>回调 URL（填入企微「开始代开发应用」）</label>
+              <label>回调 URL（模板统一地址，企微自动带出）</label>
               <div style="display: flex; gap: 6px">
                 <input :value="callbackForm.app_callback_url" readonly style="flex: 1" />
                 <button type="button" class="link-btn" @click="copyAppCallbackUrl">复制</button>
@@ -124,10 +129,19 @@
             </div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>Token（企微「回调 URL 验证」处生成）</label><input v-model="callbackForm.app_callback_token" /></div>
-            <div class="form-group"><label>EncodingAESKey（企微「回调 URL 验证」处生成）</label><input v-model="callbackForm.app_encoding_aes_key" type="password" /></div>
+            <div class="form-group" style="flex: 1">
+              <label>备用地址（手填时使用）</label>
+              <div style="display: flex; gap: 6px">
+                <input :value="callbackForm.app_callback_url_legacy" readonly style="flex: 1" />
+                <button type="button" class="link-btn" @click="copyAppCallbackLegacyUrl">复制</button>
+              </div>
+            </div>
           </div>
-          <p class="hint">保存时企微会对回调 URL 发起验证（需地址可达且 Token/AESKey 与企微侧一致）；验证通过后回填保存，应用事件推送即生效。</p>
+          <div class="form-row">
+            <div class="form-group"><label>Token（可选，留空 = 模板级统一凭证）</label><input v-model="callbackForm.app_callback_token" /></div>
+            <div class="form-group"><label>EncodingAESKey（可选，留空 = 模板级统一凭证）</label><input v-model="callbackForm.app_encoding_aes_key" type="password" /></div>
+          </div>
+          <p class="hint">仅当该企业在企微侧手动改过回调配置时在此按企业覆盖；留空保存 = 清空企业级覆盖，回退模板级统一凭证（自动带出场景的默认形态）。</p>
           <button type="submit" class="primary-btn" :disabled="callbackSaving">保存</button>
           <button type="button" class="link-btn" style="margin-left: 8px" @click="callbackForm.authorization_id = null">取消</button>
         </form>
@@ -155,9 +169,9 @@ const copyCallbackUrl = async () => {
 }
 
 const providers = ref<any[]>([])
-const providerForm = reactive<any>({ service_provider_id: null, name: '', provider_corp_id: '', suite_id: '', suite_secret: '', callback_token: '', encoding_aes_key: '', callback_url: '', status: 'active' })
+const providerForm = reactive<any>({ service_provider_id: null, name: '', provider_corp_id: '', suite_id: '', suite_secret: '', callback_token: '', encoding_aes_key: '', callback_url: '', app_callback_token: '', app_encoding_aes_key: '', status: 'active' })
 const fetchProviders = async () => { try { const r = await axios.get(`${API}/providers`); providers.value = r.data.data || [] } catch {} }
-const resetProviderForm = () => Object.assign(providerForm, { service_provider_id: null, name: '', provider_corp_id: '', suite_id: '', suite_secret: '', callback_token: '', encoding_aes_key: '', callback_url: '', status: 'active' })
+const resetProviderForm = () => Object.assign(providerForm, { service_provider_id: null, name: '', provider_corp_id: '', suite_id: '', suite_secret: '', callback_token: '', encoding_aes_key: '', callback_url: '', app_callback_token: '', app_encoding_aes_key: '', status: 'active' })
 const editProvider = (row: any) => Object.assign(providerForm, row)
 
 const saveProvider = async () => {
@@ -171,6 +185,8 @@ const saveProvider = async () => {
       callback_token: providerForm.callback_token || null,
       encoding_aes_key: providerForm.encoding_aes_key || null,
       callback_url: providerForm.callback_url || null,
+      app_callback_token: providerForm.app_callback_token || null,
+      app_encoding_aes_key: providerForm.app_encoding_aes_key || null,
       status: providerForm.status,
     }
     if (providerForm.service_provider_id) {
@@ -207,9 +223,9 @@ const authorizations = ref<any[]>([])
 const fetchAuthorizations = async () => { try { const r = await axios.get(`${API}/authorizations`); authorizations.value = r.data.data || [] } catch {} }
 const statusLabel = (s: string) => ({ pending: '待授权', authorized: '已授权', revoked: '已解除' } as Record<string, string>)[s] || s
 
-// ---- 应用回调配置（「开始代开发应用」凭证回填） ----
+// ---- 应用回调配置（企业级覆盖，默认回退模板级统一凭证） ----
 const callbackSaving = ref(false)
-const callbackForm = reactive<any>({ authorization_id: null, tenant_id: null, tenant_name: '', app_callback_url: '', app_callback_token: '', app_encoding_aes_key: '' })
+const callbackForm = reactive<any>({ authorization_id: null, tenant_id: null, tenant_name: '', app_callback_url: '', app_callback_url_legacy: '', app_callback_token: '', app_encoding_aes_key: '' })
 
 const openCallbackForm = (row: any) => {
   Object.assign(callbackForm, {
@@ -217,6 +233,7 @@ const openCallbackForm = (row: any) => {
     tenant_id: row.tenant_id,
     tenant_name: row.tenant_name || row.tenant_id,
     app_callback_url: row.app_callback_url,
+    app_callback_url_legacy: row.app_callback_url_legacy,
     app_callback_token: '',
     app_encoding_aes_key: '',
   })
@@ -226,17 +243,18 @@ const copyAppCallbackUrl = async () => {
   try { await navigator.clipboard.writeText(callbackForm.app_callback_url); alert('已复制回调 URL') } catch { alert('复制失败，请手动复制') }
 }
 
+const copyAppCallbackLegacyUrl = async () => {
+  try { await navigator.clipboard.writeText(callbackForm.app_callback_url_legacy); alert('已复制备用地址') } catch { alert('复制失败，请手动复制') }
+}
+
 const saveAppCallback = async () => {
-  if (!callbackForm.app_callback_token || !callbackForm.app_encoding_aes_key) {
-    alert('请填写 Token 与 EncodingAESKey')
-    return
-  }
+  // Token/AESKey 可留空：清空企业级覆盖，回退模板级统一凭证（自动带出场景的默认形态）
   callbackSaving.value = true
   try {
     await axios.put(`${API}/authorizations/${callbackForm.authorization_id}/app-callback`, {
       app_callback_url: callbackForm.app_callback_url,
-      app_callback_token: callbackForm.app_callback_token,
-      app_encoding_aes_key: callbackForm.app_encoding_aes_key,
+      app_callback_token: callbackForm.app_callback_token || null,
+      app_encoding_aes_key: callbackForm.app_encoding_aes_key || null,
     })
     alert('应用回调配置已保存')
     callbackForm.authorization_id = null

@@ -144,12 +144,15 @@ class TenantWechatWorkAuthController extends Controller
         }
         $permissions = $provider !== null ? $this->suite->templatePermissions($provider) : [];
 
-        // 回调链路信息：模板回调 URL 平台配置；应用回调 URL 动态生成（带租户标识），
-        // 供「开始代开发应用」时填写，app_callback_configured 标记 Token/AESKey 是否已回填
+        // 回调链路信息：模板回调 URL 平台配置；应用回调 URL 为模板统一地址
+        // （「开始代开发应用」自动带出，与模板回调同址 /suite/callback），
+        // 带租户标识的 /suite/cz/{tenantId} 保留为手填兑底；app_callback_configured
+        // 标记 Token/AESKey 是否已配置（企业级覆盖或模板级统一凭证任一）
         $callback = [
             'suite_callback_url' => $provider?->callback_url,
-            'app_callback_url' => $tenantId !== null ? $this->suite->appCallbackUrl($tenantId) : null,
-            'app_callback_configured' => $authorization !== null && $authorization->app_callback_token !== null && $authorization->app_callback_token !== '',
+            'app_callback_url' => $this->suite->appCallbackUrlUnified(),
+            'app_callback_url_legacy' => $tenantId !== null ? $this->suite->appCallbackUrl($tenantId) : null,
+            'app_callback_configured' => $authorization !== null && $this->suite->appCallbackConfigured($authorization),
         ];
 
         if ($authorization === null) {

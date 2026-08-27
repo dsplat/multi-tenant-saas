@@ -86,6 +86,8 @@ class ServiceProvider extends Model
         'callback_token',
         'encoding_aes_key',
         'callback_url',
+        'app_callback_token',
+        'app_encoding_aes_key',
         'status',
         'metadata',
     ];
@@ -98,6 +100,7 @@ class ServiceProvider extends Model
         'suite_secret',
         'encoding_aes_key',
         'provider_secret',
+        'app_encoding_aes_key',
     ];
 
     protected function casts(): array
@@ -205,6 +208,41 @@ class ServiceProvider extends Model
             return Crypt::decryptString($value);
         } catch (\Exception $e) {
             logger()->error('Failed to decrypt service provider encoding_aes_key', [
+                'service_provider_id' => $this->service_provider_id,
+                'suite_id' => $this->suite_id,
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * 加密写入应用回调 EncodingAESKey（模板级，mutator 实现加解密，勿加入 $casts）
+     */
+    public function setAppEncodingAesKeyAttribute($value): void
+    {
+        if ($value === null || $value === '') {
+            $this->attributes['app_encoding_aes_key'] = null;
+
+            return;
+        }
+
+        $this->attributes['app_encoding_aes_key'] = Crypt::encryptString($value);
+    }
+
+    /**
+     * 解密读取应用回调 EncodingAESKey
+     */
+    public function getAppEncodingAesKeyAttribute($value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        try {
+            return Crypt::decryptString($value);
+        } catch (\Exception $e) {
+            logger()->error('Failed to decrypt service provider app_encoding_aes_key', [
                 'service_provider_id' => $this->service_provider_id,
                 'suite_id' => $this->suite_id,
             ]);

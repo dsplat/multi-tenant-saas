@@ -389,23 +389,87 @@ class WechatWorkSuiteServiceTest extends TestCase
         );
     }
 
-    public function test_app_callback_credentials_round_trip_encrypted(): void
+    public function test_app_callback_url_unified_uses_template_endpoint(): void
     {
+        config()->set('auth.oauth.callback_domain', 'auth.neihang.com');
+
+        // 统一地址 = 模板回调同址（「开始代开发应用」自动带出），所有企业一致、不带租户标识
+        $this->assertSame(
+            'https://auth.neihang.com/api/v1/wechat-work/suite/callback',
+            $this->suite->appCallbackUrlUnified()
+        );
+    }
+
+    public function test_app_credentials_falls_back_to_provider_template_level(): void
+    {
+        // 模板级应用回调凭证（service_providers.app_callback_*）已配置，企业级未回填 → 回退模板级
+        $provider = $this->createProvider([
+            'app_callback_token' => 'tmpl-app-token',
+            'app_encoding_aes_key' => 'tmpl-app-aes-key',
+        ]);
+
+        $authorization = $this->suite->saveAuthorization(9001, (int) $provider->service_provider_id, [
+            'corp_id' => 'ww_corp_1',
+            'agent_id' => '1000001',
+            'permanent_code' => 'p1',
+        ]);
+
+        $credentials = $this->suite->appCredentials($authorization);
+        $this->assertSame('tmpl-app-token', $credentials['token']);
+        $this->assertSame('tmpl-app-aes-key', $credentials['aes_key']);
+        $this->assertTrue($this->suite->appCallbackConfigured($authorization));
+    }
+
+    public function test_app_credentials_prefers_enterprise_override(): void
+    {
+        // 企业级覆盖非空时优先于模板级（企微侧手动改过该企业回调配置的场景）
+        $provider = $this->createProvider([
+            'app_callback_token' => 'tmpl-app-token',
+            'app_encoding_aes_key' => 'tmpl-app-aes-key',
+        ]);
+
+        $authorization = $this->suite->saveAuthorization(9001, (int) $provider->service_provider_id, [
+            'corp_id' => 'ww_corp_1',
+            'agent_id' => '1000001',
+            'permanent_code' => 'p1',
+            'app_callback_token' => 'ent-app-token',
+            'app_encoding_aes_key' => 'ent-app-aes-key',
+        ]);
+
+        $credentials = $this->suite->appCredentials($authorization);
+        $this->assertSame('ent-app-token', $credentials['token']);
+        $this->assertSame('ent-app-aes-key', $credentials['aes_key']);
+    }
+
+    public function test_app_credentials_empty_when_neither_configured(): void
+    {
+        $this->createProvider();
         $authorization = $this->suite->saveAuthorization(9001, 1, [
             'corp_id' => 'ww_corp_1',
             'agent_id' => '1000001',
             'permanent_code' => 'p1',
-            'app_callback_token' => 'app-token',
-            'app_encoding_aes_key' => 'app-aes-key',
-            'app_callback_url' => $this->suite->appCallbackUrl(9001),
         ]);
 
-        $this->assertSame('app-token', $authorization->app_callback_token);
-        $this->assertSame('app-aes-key', $authorization->app_encoding_aes_key);
-        // 加密落库：原始密文不含明文
-        $this->assertNotSame('app-aes-key', $authorization->getRawOriginal('app_encoding_aes_key'));
-        $this->assertStringNotContainsString('app-aes-key', (string) $authorization->getRawOriginal('app_encoding_aes_key'));
+        $credentials = $this->suite->appCredentials($authorization);
+        $this->assertSame('', $credentials['token']);
+        $this->assertSame('', $credentials['aes_key']);
+        $this->assertFalse($this->suite->appCallbackConfigured($authorization));
     }
+
+    public function test_provider_app_callback_credentials_round_trip_encrypted(): void
+    {
+        $provider = $this->createProvider([
+            'app_callback_token' => 'tmpl-app-token',
+            'app_encoding_aes_key' => 'tmpl-app-aes-key',
+        ]);
+
+        $this->assertSame('tmpl-app-token', $provider->app_callback_token);
+        $this->assertSame('tmpl-app-aes-key', $provider->app_encoding_aes_key);
+        // 加密落库：原始密文不含明文
+        $this->assertNotSame('tmpl-app-aes-key', $provider->getRawOriginal('app_encoding_aes_key'));
+        $this->assertStringNotContainsString('tmpl-app-aes-key', (string) $provider->getRawOriginal('app_encoding_aes_key'));
+    }
+
 
     public function test_app_authorizations_filters_by_tenant_and_status(): void
     {

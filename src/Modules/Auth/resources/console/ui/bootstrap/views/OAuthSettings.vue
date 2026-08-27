@@ -106,15 +106,20 @@
               <span class="form-tip">已获得模板权限：</span>
               <span v-for="p in suiteAuthPermissions" :key="p.key" class="badge" style="margin-right: 4px">{{ p.label }}</span>
             </div>
-            <!-- 应用回调链路状态（「开始代开发应用」配置进度） -->
+            <!-- 应用回调链路状态（模板统一地址 + 自动带出） -->
             <div v-if="suiteAuth.callback" class="suite-callback">
               <div class="callback-row">
-                <span class="callback-label">应用回调 URL（企微「开始代开发应用」时填写）：</span>
+                <span class="callback-label">应用回调 URL（模板统一地址，企微自动带出）：</span>
                 <code class="callback-code">{{ suiteAuth.callback.app_callback_url }}</code>
                 <button type="button" class="suite-link" style="margin-left: 0" @click="copyText(suiteAuth.callback.app_callback_url)">复制</button>
               </div>
+              <div v-if="suiteAuth.callback.app_callback_url_legacy" class="callback-row" style="margin-top: 4px">
+                <span class="callback-label">备用地址（手填时使用）：</span>
+                <code class="callback-code">{{ suiteAuth.callback.app_callback_url_legacy }}</code>
+                <button type="button" class="suite-link" style="margin-left: 0" @click="copyText(suiteAuth.callback.app_callback_url_legacy)">复制</button>
+              </div>
               <div v-if="!suiteAuth.callback.app_callback_configured" class="alert alert-warning" style="margin-top: 8px">
-                应用回调尚未配置：请在企微<b>服务商后台</b>「开始代开发应用」时，将上方地址填入「回调URL」，并把生成的 Token / EncodingAESKey 回填平台（管理后台 → 企微服务商 → 已授权租户 → 回调配置）。配置完成前应用无法接收事件推送。
+                应用回调尚未配置：请平台在<b>管理后台 → 企微服务商</b>配置模板级应用回调 Token / EncodingAESKey。一次配置后，每家企业「开始代开发应用」时企微自动带出模板的 URL / Token / EncodingAESKey，无需逐企业填写。配置完成前应用无法接收事件推送。
               </div>
               <div v-else class="alert alert-success" style="margin-top: 8px">应用回调已配置，回调链路就绪。</div>
               <p class="form-tip">可信域名须填 <b>{{ suiteCallbackDomain }}</b>（回调 URL 的域名部分，不含 https:// 与路径）；应用主页可填 club.lanyantu.com 等终端站点（与认证无关）。</p>

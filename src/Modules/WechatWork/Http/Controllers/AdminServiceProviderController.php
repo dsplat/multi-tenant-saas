@@ -64,8 +64,8 @@ class AdminServiceProviderController extends Controller
 
         $validated = $this->validateProvider($request, $providerId);
 
-        // 掩码/空值 = 未修改，跳过回存避免覆盖真实密钥
-        foreach (['suite_secret', 'encoding_aes_key'] as $field) {
+        // 掩码/空值 = 未修改，跳过回存避免覆盖真实密钥（app_encoding_aes_key 同属加密存储）
+        foreach (['suite_secret', 'encoding_aes_key', 'app_encoding_aes_key'] as $field) {
             $value = $validated[$field] ?? null;
             if (! is_string($value) || $value === '' || $value === self::SECRET_MASK) {
                 unset($validated[$field]);
@@ -136,6 +136,12 @@ class AdminServiceProviderController extends Controller
     {
         $suite = $this->suite;
 
+        // 模板级应用回调凭证是否已配置（自动带出场景下企业级无需逐租户回填）
+        $provider = $suite->provider();
+        $templateAppConfigured = $provider !== null
+            && (string) ($provider->app_callback_token ?? '') !== ''
+            && (string) ($provider->app_encoding_aes_key ?? '') !== '';
+
         $rows = WechatWorkAuthorization::query()
             ->leftJoin('tenants', 'tenants.tenant_id', '=', 'wechat_work_authorizations.tenant_id')
             ->orderByDesc('wechat_work_authorizations.updated_at')
@@ -151,10 +157,13 @@ class AdminServiceProviderController extends Controller
                 'tenants.name as tenant_name',
                 'tenants.domain as tenant_domain',
             ])
-            ->map(function ($row) use ($suite) {
-                // 应用回调 URL 动态生成（带租户标识）；凭证是否已回填只留布尔，密文/明文均不出库
-                $row->app_callback_url = $suite->appCallbackUrl((int) $row->tenant_id);
-                $row->app_callback_configured = $row->app_callback_token !== null && $row->app_callback_token !== '';
+            ->map(function ($row) use ($suite, $templateAppConfigured) {
+                // 应用回调 URL 为模板统一地址（自动带出，所有企业一致）；凭证是否已配置
+                // （企业级或模板级任一）只留布尔，密文/明文均不出库
+                $row->app_callback_url = $suite->appCallbackUrlUnified();
+                $row->app_callback_url_legacy = $suite->appCallbackUrl((int) $row->tenant_id);
+                $row->app_callback_configured = $templateAppConfigured
+                    || ($row->app_callback_token !== null && $row->app_callback_token !== '');
                 unset($row->app_callback_token);
 
                 return $row;
@@ -165,7 +174,7 @@ class AdminServiceProviderController extends Controller
     }
 
     /**
-     * 保存租户应用回调凭证（「开始代开发应用」在企微服务商后台生成的 Token/AESKey 回填）
+     * 保存租户应用回调凭证（企业级覆盖；模板级凭证已配置时此字段可留空回退模板级）
      */
     public function appCallbackUpdate(Request $request, int $authorizationId): JsonResponse
     {
@@ -176,14 +185,14 @@ class AdminServiceProviderController extends Controller
         }
 
         $validated = $request->validate([
-            'app_callback_token' => 'required|string|max:255',
-            'app_encoding_aes_key' => 'required|string|max:255',
+            'app_callback_token' => 'nullable|string|max:255',
+            'app_encoding_aes_key' => 'nullable|string|max:255',
             'app_callback_url' => 'nullable|string|max:500|url',
         ]);
 
-        $authorization->app_callback_token = $validated['app_callback_token'];
-        $authorization->app_encoding_aes_key = $validated['app_encoding_aes_key'];
-        // 回填 URL 默认用平台生成的（带租户标识），允许覆盖为企微侧实际填写的地址
+        // 留空 = 清空企业级覆盖，回退模板级统一凭证（自动带出场景下模板级即事实标准）
+        $authorization->app_callback_token = $validated['app_callback_token'] ?? null;
+        $authorization->app_encoding_aes_key = $validated['app_encoding_aes_key'] ?? null;
         $authorization->app_callback_url = $validated['app_callback_url']
             ?? $this->suite->appCallbackUrl((int) $authorization->tenant_id);
         $authorization->save();
@@ -220,6 +229,10 @@ class AdminServiceProviderController extends Controller
             'callback_token' => 'nullable|string|max:255',
             'encoding_aes_key' => 'nullable|string|max:255',
             'callback_url' => 'nullable|string|max:500|url',
+            // 模板级应用回调凭证：企微「创建代开发应用模板」生成的 Token/AESKey，
+            // 「开始代开发应用」时自动带出到企业应用回调配置，所有租户共用
+            'app_callback_token' => 'nullable|string|max:255',
+            'app_encoding_aes_key' => 'nullable|string|max:255',
             'status' => 'sometimes|in:' . implode(',', ServiceProvider::STATUSES),
             'metadata' => 'sometimes|nullable|array',
             // 代开发模板权限集：服务商在企微后台勾选后在此声明，租户扫码授权即全部获得
@@ -258,6 +271,8 @@ class AdminServiceProviderController extends Controller
             'callback_token' => $provider->callback_token,
             'encoding_aes_key' => $provider->getRawOriginal('encoding_aes_key') ? self::SECRET_MASK : '',
             'callback_url' => $provider->callback_url,
+            'app_callback_token' => $provider->app_callback_token,
+            'app_encoding_aes_key' => $provider->getRawOriginal('app_encoding_aes_key') ? self::SECRET_MASK : '',
             'status' => $provider->status,
             'metadata' => $provider->metadata,
             // 模板权限集（key 列表，展示名见 ServiceProvider::TEMPLATE_PERMISSIONS）

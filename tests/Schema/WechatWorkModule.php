@@ -28,6 +28,10 @@ class WechatWorkModule implements SchemaModuleInterface
             // encoding_aes_key 加密存储，密文超 varchar(255)，用 text（与生产迁移一致）
             $table->text('encoding_aes_key')->nullable();
             $table->string('callback_url', 500)->nullable();
+            // 模板级应用回调凭证（「创建代开发应用模板」生成，「开始代开发应用」自动带出到企业；
+            // aes 加密存储用 text，与生产迁移 2026_08_27_000004 一致）
+            $table->string('app_callback_token', 255)->nullable();
+            $table->text('app_encoding_aes_key')->nullable();
             $table->string('status', 20)->default('active');
             $table->json('metadata')->nullable();
             $table->timestamps();

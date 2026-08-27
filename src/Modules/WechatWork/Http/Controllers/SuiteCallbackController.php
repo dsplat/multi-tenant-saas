@@ -36,32 +36,53 @@ class SuiteCallbackController extends Controller
 
     /**
      * GET 回调 URL 有效性验证：验签 + 解密 echostr，原样返回明文
+     *
+     * 双凭证探测：「开始代开发应用」时企微将模板回调 URL 自动带出到企业
+     * 应用回调配置（URL 相同），URL 验证请求可能使用模板凭证（创建模板时）
+     * 或应用级凭证（带出后保存应用回调时），两者都试。
      */
     public function verify(Request $request)
     {
         $provider = $this->resolveProvider();
 
-        // 企微协议：代开发模板回调 GET（URL 验证）明文尾部 receiveid = 服务商企业 ID；
-        // 模板创建中尚无 suite_id，此阶段只需 服务商 corp_id + Token + AESKey 即可通过验证
+        $signature = (string) $request->query('msg_signature', '');
+        $timestamp = (string) $request->query('timestamp', '');
+        $nonce = (string) $request->query('nonce', '');
+        $echostr = (string) $request->query('echostr', '');
+
+        // 1) 模板凭证：企微协议代开发模板回调 GET（URL 验证）明文尾部 receiveid =
+        //    服务商企业 ID；模板创建中尚无 suite_id，此阶段只需服务商 corp_id +
+        //    Token + AESKey 即可通过验证
         $plain = $this->crypto($provider, (string) $provider->provider_corp_id)->verifyUrl(
-            (string) $request->query('msg_signature', ''),
-            (string) $request->query('timestamp', ''),
-            (string) $request->query('nonce', ''),
-            (string) $request->query('echostr', ''),
+            $signature, $timestamp, $nonce, $echostr,
         );
 
-        if ($plain === null) {
-            Log::warning('[WechatWorkSuite] 回调 URL 验证失败', ['suite_id' => $provider->suite_id]);
-
-            return response('', 403);
+        if ($plain !== null) {
+            return response($plain, 200)->header('Content-Type', 'text/plain');
         }
 
-        // 企微要求原样返回明文 echostr（纯文本，无引号无 JSON）
-        return response($plain, 200)->header('Content-Type', 'text/plain');
+        // 2) 应用级凭证（模板级，宽松 receiveid）：保存应用回调时企微以应用
+        //    Token/AESKey 加密 echostr，且 URL 与模板相同
+        $appCrypto = $this->providerAppCrypto($provider);
+        if ($appCrypto !== null) {
+            $plain = $appCrypto->verifyUrl($signature, $timestamp, $nonce, $echostr);
+
+            if ($plain !== null) {
+                return response($plain, 200)->header('Content-Type', 'text/plain');
+            }
+        }
+
+        Log::warning('[WechatWorkSuite] 回调 URL 验证失败', ['suite_id' => $provider->suite_id]);
+
+        return response('', 403);
     }
 
     /**
-     * POST 事件推送（加密 XML）
+     * POST 事件推送（加密 XML，双凭证探测）
+     *
+     * 模板回调与应用回调 URL 相同（「开始代开发应用」自动带出模板地址），
+     * 同一端点先试模板凭证（suite_ticket / create_auth / cancel_auth），再试
+     * 应用级凭证（用户消息 / 进入应用事件等），按事件类型分流。
      */
     public function handle(Request $request)
     {
@@ -73,35 +94,52 @@ class SuiteCallbackController extends Controller
             return response('', 400);
         }
 
+        $signature = (string) $request->query('msg_signature', '');
+        $timestamp = (string) $request->query('timestamp', '');
+        $nonce = (string) $request->query('nonce', '');
+
+        // 1) 模板凭证：套件事件（suite_ticket / create_auth / cancel_auth）
         $crypto = $this->crypto($provider);
+        if ($crypto->verifySignature($signature, $timestamp, $nonce, $encrypt)) {
+            $plain = $crypto->decrypt($encrypt);
+            $payload = $plain !== null ? $this->xmlToArray($plain) : null;
 
-        $signatureValid = $crypto->verifySignature(
-            (string) $request->query('msg_signature', ''),
-            (string) $request->query('timestamp', ''),
-            (string) $request->query('nonce', ''),
-            $encrypt,
-        );
+            if ($payload === null) {
+                Log::warning('[WechatWorkSuite] 回调解密/解析失败', ['suite_id' => $provider->suite_id]);
 
-        if (! $signatureValid) {
-            Log::warning('[WechatWorkSuite] 回调验签失败', ['suite_id' => $provider->suite_id]);
+                return response('', 400);
+            }
 
-            return response('', 403);
+            $this->dispatch($provider, $payload);
+
+            // 企微协议：事件推送须在 5 秒内返回纯文本 success，否则判定失败并重试
+            // （create_auth 响应非 success 会导致企业侧「安装失败」）
+            return response('success', 200)->header('Content-Type', 'text/plain');
         }
 
-        $plain = $crypto->decrypt($encrypt);
-        $payload = $plain !== null ? $this->xmlToArray($plain) : null;
+        // 2) 应用级凭证：应用业务事件（统一回调地址下按事件明文反查租户）
+        $appCrypto = $this->providerAppCrypto($provider);
+        if ($appCrypto !== null && $appCrypto->verifySignature($signature, $timestamp, $nonce, $encrypt)) {
+            $plain = $appCrypto->decrypt($encrypt);
+            $payload = $plain !== null ? $this->xmlToArray($plain) : null;
 
-        if ($payload === null) {
-            Log::warning('[WechatWorkSuite] 回调解密/解析失败', ['suite_id' => $provider->suite_id]);
+            if ($payload === null) {
+                Log::warning('[WechatWorkSuite] 应用回调解密/解析失败', ['suite_id' => $provider->suite_id]);
 
-            return response('', 400);
+                return response('', 400);
+            }
+
+            $this->handleAppEventByCorpId($provider, $payload);
+
+            return response('success', 200)->header('Content-Type', 'text/plain');
         }
 
-        $this->dispatch($provider, $payload);
+        Log::warning('[WechatWorkSuite] 回调验签失败（模板/应用凭证均未匹配）', [
+            'suite_id' => $provider->suite_id,
+            'tenant_id' => null,
+        ]);
 
-        // 企微协议：事件推送须在 5 秒内返回纯文本 success，否则判定失败并重试
-        // （create_auth 响应非 success 会导致企业侧「安装失败」）
-        return response('success', 200)->header('Content-Type', 'text/plain');
+        return response('', 403);
     }
 
     /**
@@ -213,25 +251,60 @@ class SuiteCallbackController extends Controller
 
     /**
      * 分发应用级回调事件（业务事件骨架：记录日志，后续按需扩展）
+     *
+     * $authorization 可能为 null（统一回调地址下事件明文未携带可识别企业
+     * 的标识时，仅记录日志不阻塞响应——企微 5 秒超时重试机制下必须秒回）。
      */
-    protected function dispatchAppEvent(WechatWorkAuthorization $authorization, array $payload): void
+    protected function dispatchAppEvent(?WechatWorkAuthorization $authorization, array $payload): void
     {
         Log::info('[WechatWorkSuite] 收到应用回调事件', [
-            'tenant_id' => $authorization->tenant_id,
-            'corp_id' => $authorization->corp_id,
+            'tenant_id' => $authorization?->tenant_id,
+            'corp_id' => $authorization?->corp_id ?? (string) ($payload['ToUserName'] ?? ''),
             'info_type' => (string) ($payload['InfoType'] ?? ''),
+            'event' => (string) ($payload['Event'] ?? ''),
         ]);
     }
 
     /**
-     * 构造应用回调加解密器（应用级 Token/AESKey，宽松 receiveid）。
+     * 统一回调地址下的应用事件：从事件明文反查企业 → 租户后分发。
      *
-     * 应用级凭证未配置（「开始代开发应用」未回填）时返回 null，调用方跳过。
+     * 应用回调事件明文 XML 中 ToUserName 为事件所属企业标识（代开发应用
+     * 事件为企业 CorpID），据此反查授权记录定位租户；查不到时仅记日志。
+     */
+    protected function handleAppEventByCorpId($provider, array $payload): void
+    {
+        $corpId = (string) ($payload['ToUserName'] ?? $payload['CorpID'] ?? '');
+        $authorization = $this->suite->authorizationByCorpId($corpId);
+
+        $this->dispatchAppEvent($authorization, $payload);
+    }
+
+    /**
+     * 构造应用回调加解密器（企业级凭证优先，回退模板级；宽松 receiveid）。
+     *
+     * 应用级凭证未配置时返回 null，调用方跳过。
      */
     protected function appCrypto(WechatWorkAuthorization $authorization): ?WechatWorkCrypto
     {
-        $token = (string) $authorization->app_callback_token;
-        $aesKey = (string) $authorization->app_encoding_aes_key;
+        $credentials = $this->suite->appCredentials($authorization);
+
+        if ($credentials['token'] === '' || $credentials['aes_key'] === '') {
+            return null;
+        }
+
+        return new WechatWorkCrypto($credentials['token'], $credentials['aes_key']);
+    }
+
+    /**
+     * 构造模板级应用回调加解密器（宽松 receiveid）。
+     *
+     * 「开始代开发应用」自动带出的应用回调凭证即模板级凭证，所有企业共用；
+     * 未配置时返回 null。
+     */
+    protected function providerAppCrypto($provider): ?WechatWorkCrypto
+    {
+        $token = (string) ($provider->app_callback_token ?? '');
+        $aesKey = (string) ($provider->app_encoding_aes_key ?? '');
 
         if ($token === '' || $aesKey === '') {
             return null;

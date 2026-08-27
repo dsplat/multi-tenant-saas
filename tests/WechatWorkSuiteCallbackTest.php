@@ -4,7 +4,9 @@ namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Modules\WechatWork\Jobs\ProcessCreateAuthJob;
 use MultiTenantSaas\Modules\WechatWork\Models\ServiceProvider;
 use MultiTenantSaas\Modules\WechatWork\Models\WechatWorkAuthorization;
 use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
@@ -225,52 +227,32 @@ class WechatWorkSuiteCallbackTest extends TestCase
         $this->assertSame('ticket-xyz', Cache::get("wechat_work_suite_ticket:{$provider->service_provider_id}"));
     }
 
-    public function test_post_create_auth_exchanges_permanent_code(): void
+    public function test_post_create_auth_dispatches_async_job(): void
     {
         $provider = $this->createProvider();
         Cache::put("wechat_work_suite_ticket:{$provider->service_provider_id}", 'ticket-abc');
 
-        Http::fake([
-            // 企微 get_suite_token 成功响应无 errcode，字段为 suite_access_token
-            'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response([
-                'suite_access_token' => 'suite-token-1',
-                'expires_in' => 7200,
-            ]),
-            'qyapi.weixin.qq.com/*' => Http::response([
-                'errcode' => 0,
-                'auth_corp_info' => ['corpid' => 'ww_corp_1', 'corp_name' => '蓝眼兔'],
-                'permanent_code' => 'perm-code-1',
-                'auth_info' => ['agent' => [['agentid' => 1000001]]],
-                'state' => str_pad('9001', 16, '0', STR_PAD_LEFT) . str_repeat('x', 16),
-            ]),
-        ]);
+        Queue::fake();
 
-        // 授权前生成一次性的 state（与 buildAuthorizeUrl 相同的缓存 key 格式），供回调校验恢复租户
+        // 官方 create_auth 事件结构：auth_code 为顶层 <AuthCode>，并携带扫码时的 <State>
         $state = str_pad('9001', 16, '0', STR_PAD_LEFT) . str_repeat('x', 16);
-        Cache::put('oauth_state:wechat_work_suite:9001:' . hash('sha256', $state), true, 600);
-
         $plain = '<xml><SuiteId>' . self::SUITE_ID . '</SuiteId>'
             . '<InfoType>create_auth</InfoType>'
             . '<TimeStamp>1700000000</TimeStamp>'
-            . '<CreateAuthInfo><auth_code>auth-code-1</auth_code></CreateAuthInfo></xml>';
+            . '<AuthCode>auth-code-1</AuthCode>'
+            . '<State>' . $state . '</State></xml>';
 
         $this->postCallback($plain)
             ->assertStatus(200)
             ->assertContent('success');
 
-        // 事件路径经 get_permanent_code 响应中的 state 恢复租户，幂等入库（代开发模式主路径）
-        Http::assertSent(fn ($request) => str_contains($request->url(), 'get_permanent_code')
-            && $request['auth_code'] === 'auth-code-1');
-
-        // 回调请求无租户上下文（TenantContext 存于 Request attributes），断言前恢复
-        TenantContext::setTenantId(9001);
-
-        $authorization = app(WechatWorkSuiteService::class)->authorization(9001);
-        $this->assertNotNull($authorization);
-        $this->assertTrue($authorization->isAuthorized());
-        $this->assertSame('ww_corp_1', $authorization->corp_id);
-        $this->assertSame('1000001', $authorization->agent_id);
-        $this->assertSame('perm-code-1', $authorization->permanent_code);
+        // 回调仅派发异步 Job，不在此同步换码（1000ms 响应约束）
+        Queue::assertPushed(ProcessCreateAuthJob::class, function (ProcessCreateAuthJob $job) use ($state, $provider) {
+            return $job->authCode === 'auth-code-1'
+                && $job->state === $state
+                && $job->tenantId === 9001
+                && $job->serviceProviderId === (int) $provider->service_provider_id;
+        });
     }
 
     public function test_post_cancel_auth_marks_revoked(): void

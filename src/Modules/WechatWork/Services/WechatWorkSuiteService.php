@@ -122,7 +122,8 @@ class WechatWorkSuiteService
 
         $data = $this->parseResponse($resp, 'get_suite_token');
 
-        $token = (string) ($data['access_token'] ?? '');
+        // 企微 get_suite_token 成功返回字段为 suite_access_token（非 access_token）
+        $token = (string) ($data['suite_access_token'] ?? '');
         if ($token === '') {
             throw new ServiceUnavailableException('WechatWork: empty suite access_token returned');
         }
@@ -212,7 +213,8 @@ class WechatWorkSuiteService
 
         $data = $this->parseResponse($resp, 'get_suite_token');
 
-        $token = (string) ($data['access_token'] ?? '');
+        // 企微 get_suite_token 成功返回字段为 suite_access_token（非 access_token）
+        $token = (string) ($data['suite_access_token'] ?? '');
         if ($token === '') {
             throw new ServiceUnavailableException('WechatWork: empty suite access_token returned');
         }
@@ -373,7 +375,9 @@ class WechatWorkSuiteService
         }
 
         $data = $resp->json();
-        $errCode = $data['errcode'] ?? -1;
+        // 注意：企微 get_suite_token 成功响应无 errcode 字段（仅 suite_access_token/expires_in），
+        // 无 errcode 一律视为成功；错误响应才带 errcode（如 60020/40013）
+        $errCode = $data['errcode'] ?? 0;
 
         if ($errCode !== 0) {
             $errMsg = $data['errmsg'] ?? 'unknown error';

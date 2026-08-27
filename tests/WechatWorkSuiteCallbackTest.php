@@ -229,9 +229,9 @@ class WechatWorkSuiteCallbackTest extends TestCase
         Cache::put("wechat_work_suite_ticket:{$provider->service_provider_id}", 'ticket-abc');
 
         Http::fake([
+            // 企微 get_suite_token 成功响应无 errcode，字段为 suite_access_token
             'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response([
-                'errcode' => 0,
-                'access_token' => 'suite-token-1',
+                'suite_access_token' => 'suite-token-1',
                 'expires_in' => 7200,
             ]),
             'qyapi.weixin.qq.com/*' => Http::response([

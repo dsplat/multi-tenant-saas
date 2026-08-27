@@ -78,9 +78,9 @@ class WechatWorkSuiteServiceTest extends TestCase
         $this->suite->storeSuiteTicket($provider->service_provider_id, self::TICKET);
 
         Http::fake([
+            // 企微 get_suite_token 成功响应无 errcode，字段为 suite_access_token
             'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response([
-                'errcode' => 0,
-                'access_token' => 'suite-token-abc',
+                'suite_access_token' => 'suite-token-abc',
                 'expires_in' => 7200,
             ]),
         ]);
@@ -128,7 +128,7 @@ class WechatWorkSuiteServiceTest extends TestCase
         $this->suite->storeSuiteTicket($provider->service_provider_id, self::TICKET);
 
         Http::fake([
-            'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response(['errcode' => 0, 'access_token' => 'st', 'expires_in' => 7200]),
+            'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response(['suite_access_token' => 'st', 'expires_in' => 7200]),
             // 注意: get_pre_auth_code 请求带 ?suite_access_token= 查询参数,
             // Laravel Str::is 全串匹配, 模式必须带 * 通配才能命中
             'qyapi.weixin.qq.com/cgi-bin/service/get_pre_auth_code*' => Http::response(['errcode' => 0, 'pre_auth_code' => 'pre-auth-1', 'expires_in' => 7200]),
@@ -147,9 +147,9 @@ class WechatWorkSuiteServiceTest extends TestCase
         $this->suite->storeSuiteTicket($provider->service_provider_id, self::TICKET);
 
         Http::fake([
+            // get_suite_token 与 get_pre_auth_code 共用通配：前者读 suite_access_token，后者读 pre_auth_code
             'qyapi.weixin.qq.com/*' => Http::response([
-                'errcode' => 0,
-                'access_token' => 'st',
+                'suite_access_token' => 'st',
                 'pre_auth_code' => 'pre-auth-1',
                 'expires_in' => 7200,
             ]),
@@ -177,7 +177,7 @@ class WechatWorkSuiteServiceTest extends TestCase
         $this->suite->storeSuiteTicket($provider->service_provider_id, self::TICKET);
 
         Http::fake([
-            'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response(['errcode' => 0, 'access_token' => 'st', 'expires_in' => 7200]),
+            'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response(['suite_access_token' => 'st', 'expires_in' => 7200]),
             'qyapi.weixin.qq.com/*' => Http::response([
                 'errcode' => 0,
                 'auth_corp_info' => ['corpid' => 'ww_corp_1', 'corp_name' => '蓝眼兔'],
@@ -203,7 +203,7 @@ class WechatWorkSuiteServiceTest extends TestCase
         $this->suite->storeSuiteTicket($provider->service_provider_id, self::TICKET);
 
         Http::fake([
-            'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response(['errcode' => 0, 'access_token' => 'st', 'expires_in' => 7200]),
+            'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response(['suite_access_token' => 'st', 'expires_in' => 7200]),
             'qyapi.weixin.qq.com/*' => Http::response([
                 'errcode' => 0,
                 'permanent_code' => 'perm-code-1',
@@ -249,8 +249,7 @@ class WechatWorkSuiteServiceTest extends TestCase
                 'expires_in' => 7200,
             ]),
             'qyapi.weixin.qq.com/*' => Http::response([
-                'errcode' => 0,
-                'access_token' => 'st',
+                'suite_access_token' => 'st',
                 'expires_in' => 7200,
             ]),
         ]);
@@ -321,7 +320,7 @@ class WechatWorkSuiteServiceTest extends TestCase
         $this->suite->storeSuiteTicket($provider->service_provider_id, self::TICKET);
 
         Http::fake([
-            'qyapi.weixin.qq.com/*' => Http::response(['errcode' => 0, 'access_token' => 'abcdefgh-suite-token', 'expires_in' => 7200]),
+            'qyapi.weixin.qq.com/*' => Http::response(['suite_access_token' => 'abcdefgh-suite-token', 'expires_in' => 7200]),
         ]);
 
         $result = $this->suite->testSuiteToken($provider);

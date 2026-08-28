@@ -99,7 +99,7 @@
               <div class="help-title">🤝 平台代开发应用授权（推荐）</div>
               <p class="form-tip">
                 企业微信自建应用的可信域名须与认证主体一致，租户自有域名无法作为平台回调域（auth.neihang.com）。
-                平台已注册企微服务商（代开发模式），授权后扫码登录将优先走服务商代跑，回调域使用平台统一域；下方「自建应用」配置保留为降级备用。
+                平台已注册企微服务商（代开发模式），扫码授权后即完成接入、无需任何配置；未使用平台代开发时，可自行填写下方「自建应用」凭证（含其他服务商代开发，对本平台等同自建）。
               </p>
               <template v-if="suiteAuth.status === 'authorized'">
                 <el-descriptions :column="2" size="small" border style="margin: 8px 0">
@@ -169,6 +169,22 @@
               </template>
             </div>
 
+            <!-- 已授权：与自建配置互斥，禁止再填写自建凭证（后端同样拒绝），防止双轨凭证并存 -->
+            <el-alert
+              v-if="suiteAuth.status === 'authorized'"
+              type="success"
+              :closable="false"
+              show-icon
+              style="margin-bottom: 16px"
+            >
+              <template #title>
+                当前使用平台代开发应用授权，企业微信扫码登录已自动启用，无需配置下方自建应用。
+                如需改用自建应用（含其他服务商代开发），请先「解除授权」。
+              </template>
+            </el-alert>
+
+            <!-- 自建应用配置：仅未使用平台代开发时可用 -->
+            <template v-if="suiteAuth.status !== 'authorized'">
             <div class="enable-row">
               <span>启用企业微信扫码登录</span>
               <el-switch v-model="config.wechat_work.enabled" />
@@ -200,6 +216,7 @@
             <div class="help-box">
               <div class="help-title">📖 配置指引（企业微信管理后台）</div>
               <ol>
+                <li><b>适用场景</b>：未使用平台代开发应用时（含企业自建应用、其他服务商代开发应用），在此填入企微应用凭证；已使用平台代开发授权时本区域不可用，须先解除授权。</li>
                 <li>管理员登录 <a href="https://work.weixin.qq.com/wework_admin/" target="_blank" rel="noopener">企业微信管理后台</a> →「应用管理」→「自建」→「创建应用」。</li>
                 <li>进入应用详情页，复制 <b>AgentId</b> 和 <b>Secret</b> 填入本页。</li>
                 <li>「我的企业」→「企业信息」页面底部，复制 <b>企业 ID（CorpID）</b> 填入本页。</li>
@@ -214,6 +231,7 @@
                 <li><b>扫码成功但登录失败</b>：确认扫码人属于该应用的「可见范围」。</li>
               </ul>
             </div>
+            </template>
           </div>
         </el-tab-pane>
 
@@ -405,8 +423,8 @@ const handleSave = async () => {
     const { redirect_uri_default: _omit, ...idpPayload } = config.idp
     await axios.put('/api/v1/tenant/auth/oauth/idp', idpPayload)
 
-    // 各直连提供商：仅保存已开启的 tab
-    if (config.wechat_work.enabled) {
+    // 各直连提供商：仅保存已开启的 tab；套件授权后自建配置互斥，前端不发、后端同样拒绝
+    if (config.wechat_work.enabled && suiteAuth.status !== 'authorized') {
       const { corp_id, agent_id, secret } = config.wechat_work
       await axios.put('/api/v1/tenant/auth/oauth/wechat_work', { corp_id, agent_id, secret })
     }

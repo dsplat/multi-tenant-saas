@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\WechatWork\Models\ServiceProvider;
 use MultiTenantSaas\Modules\WechatWork\Models\WechatWorkAuthorization;
 use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
@@ -203,6 +204,92 @@ class AdminServiceProviderController extends Controller
         ]);
 
         return response()->json(['success' => true, 'message' => '应用回调配置已保存']);
+    }
+
+    // ==================================================================
+    // 租户企微出口代理（9.1）
+    // ==================================================================
+
+    /**
+     * 读取租户企微出口代理配置（password 永不出库，仅回传 has_password）
+     *
+     * 企微 API 要求服务器出口 IP 在企业应用可信 IP 白名单内（否则 60020），
+     * 平台为租户分配独立代理出口（IP 刚性，不可共享摊薄），客户将代理出口 IP
+     * 加入企业后台可信 IP 后，企业侧接口全部经该代理出网。
+     */
+    public function proxyShow(int $tenantId): JsonResponse
+    {
+        if (! Tenant::query()->where('tenant_id', $tenantId)->exists()) {
+            return response()->json(['success' => false, 'message' => trans('common.not_found')], 404);
+        }
+
+        $config = TenantSetting::get($tenantId, 'wechatwork', 'proxy', []);
+
+        return response()->json(['success' => true, 'data' => [
+            'enabled' => ! empty($config['enabled']),
+            'scheme' => $config['scheme'] ?? 'http',
+            'host' => (string) ($config['host'] ?? ''),
+            'port' => (string) ($config['port'] ?? ''),
+            'username' => (string) ($config['username'] ?? ''),
+            'has_password' => ! empty($config['password']),
+            // 出口 IP 为代理服务器公网 IP（客户需加入企业可信 IP），配置时由运营人工核对
+            'exit_ip' => (string) ($config['exit_ip'] ?? ''),
+        ]]);
+    }
+
+    /**
+     * 保存租户企微出口代理配置（密码掩码跳过回存，JSON 整体加密存储）
+     */
+    public function proxyUpdate(Request $request, int $tenantId): JsonResponse
+    {
+        if (! Tenant::query()->where('tenant_id', $tenantId)->exists()) {
+            return response()->json(['success' => false, 'message' => trans('common.not_found')], 404);
+        }
+
+        $validated = $request->validate([
+            'enabled' => 'required|boolean',
+            'scheme' => 'nullable|in:http,https,socks5',
+            'host' => 'required_with:enabled|nullable|string|max:255',
+            'port' => 'nullable|integer|min:1|max:65535',
+            'username' => 'nullable|string|max:255',
+            'password' => 'nullable|string|max:255',
+            'exit_ip' => 'nullable|string|max:64',
+        ]);
+
+        $current = TenantSetting::get($tenantId, 'wechatwork', 'proxy', []);
+        $config = is_array($current) ? $current : [];
+
+        $config['enabled'] = ! empty($validated['enabled']);
+        if (array_key_exists('scheme', $validated) && $validated['scheme'] !== null) {
+            $config['scheme'] = $validated['scheme'];
+        }
+        if (array_key_exists('host', $validated)) {
+            $config['host'] = (string) $validated['host'];
+        }
+        if (array_key_exists('port', $validated) && $validated['port'] !== null) {
+            $config['port'] = (int) $validated['port'];
+        }
+        if (array_key_exists('username', $validated)) {
+            $config['username'] = (string) $validated['username'];
+        }
+        // 掩码占位符 = 未修改，跳过回存避免覆盖真实密码
+        if (! empty($validated['password']) && $validated['password'] !== self::SECRET_MASK) {
+            $config['password'] = (string) $validated['password'];
+        }
+        if (array_key_exists('exit_ip', $validated)) {
+            $config['exit_ip'] = (string) $validated['exit_ip'];
+        }
+
+        // 整组加密存储（password 随 JSON 一并加密）
+        TenantSetting::set($tenantId, 'wechatwork', 'proxy', $config, true, '企微出口代理（企业侧接口可信 IP 出网）');
+
+        Log::info('[WechatWork] 租户企微出口代理已更新', [
+            'tenant_id' => $tenantId,
+            'enabled' => $config['enabled'],
+            'host' => $config['host'] ?? '',
+        ]);
+
+        return response()->json(['success' => true, 'message' => '企微出口代理配置已保存']);
     }
 
     // ==================================================================

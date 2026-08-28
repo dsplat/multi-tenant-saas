@@ -19,12 +19,18 @@ class SessionArchiveService
     private string $corpSecret;
 
     /**
-     * @param  array<string, string>  $config
+     * 企微出口代理 URL（9.1：可为空直连，非空时经代理出网满足可信 IP 白名单）
+     */
+    private string $proxy;
+
+    /**
+     * @param  array<string, string>  $config  支持 proxy（Guzzle 代理 URL）可选键
      */
     public function __construct(array $config)
     {
         $this->corpId = $config['corp_id'] ?? '';
         $this->corpSecret = $config['corp_secret'] ?? '';
+        $this->proxy = $config['proxy'] ?? '';
 
         // 企微官方协议中每条消息的 AES key 由 encrypt_random_key（RSA 加密）随消息下发，
         // 预配置 encoding_aes_key 仅用于 decryptAndStore 简化链路；走 decryptChatData 时可留空。
@@ -45,7 +51,7 @@ class SessionArchiveService
             return ['chatdata' => [], 'seq' => $seq];
         }
 
-        $response = Http::post(
+        $response = Http::withOptions($this->proxyOptions())->post(
             "https://qyapi.weixin.qq.com/cgi-bin/msgaudit/get_chat_data?access_token={$accessToken}",
             [
                 'seq' => $seq,
@@ -226,6 +232,16 @@ class SessionArchiveService
             ->get();
     }
 
+    /**
+     * 企微出口代理选项（未配置返回空数组直连）
+     *
+     * @return array{proxy?: string}
+     */
+    private function proxyOptions(): array
+    {
+        return $this->proxy === '' ? [] : ['proxy' => $this->proxy];
+    }
+
     private function getArchiveToken(): string
     {
         $cacheKey = "enterprise_wechat:archive_token:{$this->corpId}";
@@ -235,7 +251,7 @@ class SessionArchiveService
             return (string) $cached;
         }
 
-        $response = Http::get('https://qyapi.weixin.qq.com/cgi-bin/gettoken', [
+        $response = Http::withOptions($this->proxyOptions())->get('https://qyapi.weixin.qq.com/cgi-bin/gettoken', [
             'corpid' => $this->corpId,
             'corpsecret' => $this->corpSecret,
         ]);

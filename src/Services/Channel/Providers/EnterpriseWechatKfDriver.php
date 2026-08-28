@@ -8,6 +8,7 @@ use MultiTenantSaas\Contracts\ChannelContract;
 use MultiTenantSaas\Contracts\InboundFetcherContract;
 use MultiTenantSaas\DTOs\InboundMessage;
 use MultiTenantSaas\Modules\Conversation\Models\Conversation;
+use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
 use MultiTenantSaas\Services\Channel\Fetchers\KfSyncFetcher;
 use MultiTenantSaas\Support\WechatWork\WechatWorkApiClient;
 use MultiTenantSaas\Support\WechatWork\WechatWorkCrypto;
@@ -24,6 +25,12 @@ use MultiTenantSaas\Support\WechatWork\WechatWorkCrypto;
  * 凭证（tenant_settings group=channel key=enterprise_wechat_kf）：
  *   corp_id / kf_secret / token / encoding_aes_key / enabled
  *   可选：receive_strategy（kf|archive，默认 kf）
+ *
+ * 凭证双轨（9.4）：
+ * - 自建应用模式：kf_secret 经 gettoken 换取客服 token
+ * - 代开发模式（mode=suite + tenant_id，ChannelManager 注入）：企业将微信客服
+ *   授权服务商托管，无独立 kf_secret，直接用企业 token（permanent_code 换取，
+ *   模板权限含微信客服）调 kf 接口；proxy 为企业侧接口出口代理（9.1）
  */
 class EnterpriseWechatKfDriver implements ChannelContract
 {
@@ -45,7 +52,7 @@ class EnterpriseWechatKfDriver implements ChannelContract
     public function __construct(array $config)
     {
         $this->corpId = (string) ($config['corp_id'] ?? '');
-        $this->kfSecret = (string) ($config['kf_secret'] ?? '');
+        $kfSecret = (string) ($config['kf_secret'] ?? '');
 
         $this->crypto = new WechatWorkCrypto(
             (string) ($config['token'] ?? ''),
@@ -53,10 +60,29 @@ class EnterpriseWechatKfDriver implements ChannelContract
             $this->corpId,
         );
 
-        $this->apiClient = new WechatWorkApiClient($this->corpId, $this->kfSecret);
+        $tokenResolver = null;
+
+        // 代开发模式：客服由服务商托管，企业 token 调 kf 接口（无独立 kf_secret）
+        if (($config['mode'] ?? '') === 'suite') {
+            $tenantId = (int) ($config['tenant_id'] ?? 0);
+
+            if ($tenantId > 0 && class_exists(WechatWorkSuiteService::class)) {
+                $kfSecret = '';
+                $tokenResolver = static fn (): string => app(WechatWorkSuiteService::class)->corpAccessToken($tenantId);
+            }
+        }
+
+        $this->kfSecret = $kfSecret;
+        $this->apiClient = new WechatWorkApiClient(
+            $this->corpId,
+            $kfSecret,
+            '',
+            $tokenResolver,
+            isset($config['proxy']) && is_string($config['proxy']) ? $config['proxy'] : null,
+        );
 
         // 接收策略：默认 kf（sync_msg 拉取），后续可扩展 archive
-        $this->fetcher = new KfSyncFetcher($this->apiClient, $this->kfSecret);
+        $this->fetcher = new KfSyncFetcher($this->apiClient, $kfSecret);
     }
 
     public function type(): string

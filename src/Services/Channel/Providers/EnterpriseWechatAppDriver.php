@@ -8,6 +8,7 @@ use MultiTenantSaas\Contracts\ChannelContract;
 use MultiTenantSaas\DTOs\InboundMessage;
 use MultiTenantSaas\Events\WechatWorkExternalEvent;
 use MultiTenantSaas\Modules\Conversation\Models\Conversation;
+use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
 use MultiTenantSaas\Support\WechatWork\WechatWorkApiClient;
 use MultiTenantSaas\Support\WechatWork\WechatWorkCrypto;
 
@@ -21,6 +22,12 @@ use MultiTenantSaas\Support\WechatWork\WechatWorkCrypto;
  *
  * 凭证（tenant_settings group=channel key=enterprise_wechat_app）：
  *   corp_id / corp_secret / agent_id / token / encoding_aes_key
+ *
+ * 凭证双轨（9.4，与 WeWorkCommunityDriver 同构）：
+ * - 自建应用模式：corp_secret 经 gettoken 换取 access_token
+ * - 代开发模式（mode=suite + tenant_id，ChannelManager 注入）：无 corp_secret，
+ *   token 由 WechatWorkSuiteService::corpAccessToken 解析（permanent_code 充当
+ *   secret）；proxy 为企业侧接口出口代理（9.1，可信 IP 白名单出网）
  */
 class EnterpriseWechatAppDriver implements ChannelContract
 {
@@ -49,10 +56,25 @@ class EnterpriseWechatAppDriver implements ChannelContract
             $this->corpId,
         );
 
+        $corpSecret = (string) ($config['corp_secret'] ?? '');
+        $tokenResolver = null;
+
+        // 代开发模式：token 由套件服务统一解析（corpAccessToken 链路，缓存提前过期）
+        if (($config['mode'] ?? '') === 'suite') {
+            $tenantId = (int) ($config['tenant_id'] ?? 0);
+
+            if ($tenantId > 0 && class_exists(WechatWorkSuiteService::class)) {
+                $corpSecret = '';
+                $tokenResolver = static fn (): string => app(WechatWorkSuiteService::class)->corpAccessToken($tenantId);
+            }
+        }
+
         $this->apiClient = new WechatWorkApiClient(
             $this->corpId,
-            (string) ($config['corp_secret'] ?? ''),
+            $corpSecret,
             (string) ($config['agent_id'] ?? ''),
+            $tokenResolver,
+            isset($config['proxy']) && is_string($config['proxy']) ? $config['proxy'] : null,
         );
     }
 

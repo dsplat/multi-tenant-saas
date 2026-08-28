@@ -2,6 +2,7 @@
 
 namespace MultiTenantSaas\Support\WechatWork;
 
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Exceptions\ServiceUnavailableException;
@@ -19,6 +20,9 @@ use MultiTenantSaas\Exceptions\ServiceUnavailableException;
  * - 自建应用模式：corp_id + corp_secret 经 gettoken 换取 access_token
  * - 代开发模式：传入 tokenResolver（如 WechatWorkSuiteService::corpAccessToken，
  *   permanent_code 充当应用 secret 经 gettoken 换取企业 token），优先级最高
+ *
+ * 出口代理（9.1）：proxy 为 Guzzle 代理 URL（如 http://user:pass@host:port），
+ * 非空时全部企业侧请求经该代理出网（企微可信 IP 白名单要求）。
  */
 class WechatWorkApiClient
 {
@@ -29,7 +33,24 @@ class WechatWorkApiClient
         private readonly string $corpSecret,
         private readonly string $agentId = '',
         private readonly ?\Closure $tokenResolver = null,
+        private readonly ?string $proxy = null,
     ) {}
+
+    /**
+     * 构造企微 API 请求（统一超时 + 出口代理注入）
+     *
+     * 所有企业侧接口必须经此方法发起请求，代理未配置时等价于 Http::timeout()。
+     */
+    private function http(int $timeout = 15): PendingRequest
+    {
+        $request = Http::timeout($timeout);
+
+        if ($this->proxy !== null && $this->proxy !== '') {
+            $request = $request->withOptions(['proxy' => $this->proxy]);
+        }
+
+        return $request;
+    }
 
     /**
      * 获取 access_token（缓存优先）
@@ -54,7 +75,7 @@ class WechatWorkApiClient
             return (string) $cached;
         }
 
-        $response = Http::timeout(15)->get(self::API_BASE . '/gettoken', [
+        $response = $this->http()->get(self::API_BASE . '/gettoken', [
             'corpid' => $this->corpId,
             'corpsecret' => $this->corpSecret,
         ]);
@@ -96,7 +117,7 @@ class WechatWorkApiClient
             'agentid' => (int) $this->agentId,
         ], $message);
 
-        $response = Http::timeout(15)->post(self::API_BASE . "/message/send?access_token={$accessToken}", $payload);
+        $response = $this->http()->post(self::API_BASE . "/message/send?access_token={$accessToken}", $payload);
 
         if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
             Log::warning('[WechatWork] message/send 失败', [
@@ -172,7 +193,7 @@ class WechatWorkApiClient
             'msgtype' => $message['msgtype'] ?? 'text',
         ], $message);
 
-        $response = Http::timeout(15)->post(self::API_BASE . "/appchat/send?access_token={$accessToken}", $payload);
+        $response = $this->http()->post(self::API_BASE . "/appchat/send?access_token={$accessToken}", $payload);
 
         if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
             Log::warning('[WechatWork] appchat/send 失败', [
@@ -210,7 +231,7 @@ class WechatWorkApiClient
             $payload['cursor'] = $cursor;
         }
 
-        $response = Http::timeout(15)->post(
+        $response = $this->http()->post(
             self::API_BASE . "/externalcontact/groupchat/list?access_token={$accessToken}",
             $payload
         );
@@ -259,7 +280,7 @@ class WechatWorkApiClient
             return null;
         }
 
-        $response = Http::timeout(15)->post(
+        $response = $this->http()->post(
             self::API_BASE . "/externalcontact/groupchat/get?access_token={$accessToken}",
             ['chat_id' => $chatId, 'need_name' => $needName ? 1 : 0]
         );
@@ -282,9 +303,16 @@ class WechatWorkApiClient
 
     /**
      * 获取客服 access_token（corp + kf_secret，与自建应用 token 不同 scope）
+     *
+     * 代开发模式（tokenResolver 非空）：微信客服由服务商托管时无独立 kf_secret，
+     * 直接用企业 token（permanent_code 换取，模板权限含微信客服）调 kf 接口。
      */
     public function kfAccessToken(string $kfSecret): string
     {
+        if ($this->tokenResolver !== null) {
+            return (string) call_user_func($this->tokenResolver);
+        }
+
         if ($this->corpId === '' || $kfSecret === '') {
             return '';
         }
@@ -296,7 +324,7 @@ class WechatWorkApiClient
             return (string) $cached;
         }
 
-        $response = Http::timeout(15)->get(self::API_BASE . '/gettoken', [
+        $response = $this->http()->get(self::API_BASE . '/gettoken', [
             'corpid' => $this->corpId,
             'corpsecret' => $kfSecret,
         ]);
@@ -332,7 +360,7 @@ class WechatWorkApiClient
             return ['msg_list' => [], 'next_cursor' => ''];
         }
 
-        $response = Http::timeout(15)->post(self::API_BASE . "/kf/sync_msg?access_token={$accessToken}", [
+        $response = $this->http()->post(self::API_BASE . "/kf/sync_msg?access_token={$accessToken}", [
             'cursor' => $cursor,
             'token' => $token,
             'limit' => $limit,
@@ -373,7 +401,7 @@ class WechatWorkApiClient
             'msgtype' => $message['msgtype'] ?? 'text',
         ], $message);
 
-        $response = Http::timeout(15)->post(self::API_BASE . "/kf/send_msg?access_token={$accessToken}", $payload);
+        $response = $this->http()->post(self::API_BASE . "/kf/send_msg?access_token={$accessToken}", $payload);
 
         if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
             Log::warning('[WechatWork] kf/send_msg 失败', [
@@ -408,7 +436,7 @@ class WechatWorkApiClient
             return ['msgid' => '', 'fail_list' => []];
         }
 
-        $response = Http::timeout(15)->post(
+        $response = $this->http()->post(
             self::API_BASE . "/externalcontact/add_msg_template?access_token={$accessToken}",
             $payload
         );
@@ -449,7 +477,7 @@ class WechatWorkApiClient
             $payload['userid_list'] = $userIds;
         }
 
-        $response = Http::timeout(15)->post(
+        $response = $this->http()->post(
             self::API_BASE . "/externalcontact/remind_msg_template?access_token={$accessToken}",
             $payload
         );
@@ -479,7 +507,7 @@ class WechatWorkApiClient
             return false;
         }
 
-        $response = Http::timeout(15)->post(
+        $response = $this->http()->post(
             self::API_BASE . "/externalcontact/cancel_msg_template?access_token={$accessToken}",
             ['msgid' => $msgid]
         );
@@ -519,7 +547,7 @@ class WechatWorkApiClient
             $payload['cursor'] = $cursor;
         }
 
-        $response = Http::timeout(15)->post(
+        $response = $this->http()->post(
             self::API_BASE . "/externalcontact/get_group_msg_send_result?access_token={$accessToken}",
             $payload
         );
@@ -560,7 +588,7 @@ class WechatWorkApiClient
             unset($payload['cursor']);
         }
 
-        $response = Http::timeout(15)->post(
+        $response = $this->http()->post(
             self::API_BASE . "/externalcontact/get_group_msg_list_v2?access_token={$accessToken}",
             $payload
         );
@@ -596,7 +624,7 @@ class WechatWorkApiClient
             return [];
         }
 
-        $response = Http::timeout(15)->get(self::API_BASE . '/externalcontact/list', [
+        $response = $this->http()->get(self::API_BASE . '/externalcontact/list', [
             'access_token' => $accessToken,
             'userid' => $userId,
         ]);
@@ -628,7 +656,7 @@ class WechatWorkApiClient
             return null;
         }
 
-        $response = Http::timeout(15)->get(self::API_BASE . '/externalcontact/get', [
+        $response = $this->http()->get(self::API_BASE . '/externalcontact/get', [
             'access_token' => $accessToken,
             'external_userid' => $externalUserId,
         ]);
@@ -666,7 +694,7 @@ class WechatWorkApiClient
             $payload['cursor'] = $cursor;
         }
 
-        $response = Http::timeout(15)->post(
+        $response = $this->http()->post(
             self::API_BASE . "/externalcontact/batch/get_by_user?access_token={$accessToken}",
             $payload
         );
@@ -703,7 +731,7 @@ class WechatWorkApiClient
             return [];
         }
 
-        $response = Http::timeout(15)->get(self::API_BASE . '/user/list', [
+        $response = $this->http()->get(self::API_BASE . '/user/list', [
             'access_token' => $accessToken,
             'department_id' => $departmentId,
             'fetch_child' => 1,
@@ -749,7 +777,7 @@ class WechatWorkApiClient
             return null;
         }
 
-        $response = Http::timeout(30)
+        $response = $this->http(30)
             ->attach('media', file_get_contents($filePath), basename($filePath))
             ->post(self::API_BASE . "/media/upload?access_token={$accessToken}&type={$type}");
 
@@ -786,7 +814,7 @@ class WechatWorkApiClient
 
         $payload = array_merge(['chatid' => $chatId], $changes);
 
-        $response = Http::timeout(15)->post(
+        $response = $this->http()->post(
             self::API_BASE . "/appchat/update?access_token={$accessToken}",
             $payload
         );
@@ -823,7 +851,7 @@ class WechatWorkApiClient
 
         $payload = array_merge(['chat_id' => $chatId], $changes);
 
-        $response = Http::timeout(15)->post(
+        $response = $this->http()->post(
             self::API_BASE . "/externalcontact/groupchat/update?access_token={$accessToken}",
             $payload
         );
@@ -858,7 +886,7 @@ class WechatWorkApiClient
             return false;
         }
 
-        $response = Http::timeout(15)->post(
+        $response = $this->http()->post(
             self::API_BASE . "/externalcontact/send_welcome_msg?access_token={$accessToken}",
             array_merge(['welcome_code' => $welcomeCode], $payload)
         );

@@ -3,15 +3,19 @@
 namespace MultiTenantSaas\Modules\Auth\Services;
 
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\InvalidStateException;
 use MultiTenantSaas\Contracts\TenantContextContract;
+use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Auth\Models\OauthAccount;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
+use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkOAuthService;
+use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
 
 /**
  * 第三方登录服务（租户级配置）
@@ -348,13 +352,38 @@ class SocialiteService
             }
 
             if ($provider === 'wechat_work') {
-                $corpId = TenantSetting::get($tenantId, 'oauth', 'wechat_work_corp_id', '');
+                $corpId = $this->wechatWorkSetting($tenantId, 'corp_id');
+                $agentId = $this->wechatWorkSetting($tenantId, 'agent_id');
+                $secret = $this->wechatWorkSetting($tenantId, 'secret');
+                $redirect = $this->resolveRedirectUrl($tenantId, 'wechat_work', $this->wechatWorkSetting($tenantId, 'redirect'));
+                $mode = 'self';
+
+                // 9.4-3：代开发授权租户显示授权记录的真实凭证与回调地址（原读自建值显示空/错）
+                $suite = $this->suiteAuthorized($tenantId);
+                if ($suite) {
+                    $authorization = app(WechatWorkSuiteService::class)->authorization($tenantId);
+
+                    if ($authorization !== null && $authorization->isAuthorized()) {
+                        $corpId = $authorization->corp_id;
+                        $agentId = (string) ($authorization->agent_id ?? '');
+                        $secret = ''; // permanent_code 由套件服务内部使用，永不出库
+                        $mode = 'suite';
+
+                        // 回调域：套件模式强制平台统一回调域（服务商代配可信域名）
+                        $callbackDomain = config('auth.oauth.callback_domain', '');
+                        if ($callbackDomain !== '') {
+                            $redirect = "https://{$callbackDomain}/api/v1/auth/wechat_work/callback";
+                        }
+                    }
+                }
+
                 $result[$provider] = [
                     'configured' => app(WechatWorkOAuthService::class)->isConfigured($tenantId),
                     'corp_id' => $corpId,
-                    'agent_id' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_agent_id', ''),
-                    'secret' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_secret', ''),
-                    'redirect' => $this->resolveRedirectUrl($tenantId, 'wechat_work', TenantSetting::get($tenantId, 'oauth', 'wechat_work_redirect', '')),
+                    'agent_id' => $agentId,
+                    'secret' => $secret,
+                    'redirect' => $redirect,
+                    'mode' => $mode,
                 ];
 
                 continue;
@@ -400,6 +429,41 @@ class SocialiteService
     }
 
     /**
+     * 检查租户是否已有套件代开发授权（9.2 互斥防御）
+     *
+     * 防御式：模块未启用 / 表不存在返回 false，与 TenantOAuthController 原检查一致。
+     */
+    protected function suiteAuthorized(int $tenantId): bool
+    {
+        if (! class_exists(WechatWorkSuiteService::class)) {
+            return false;
+        }
+
+        if (! Schema::hasTable('wechat_work_authorizations')) {
+            return false;
+        }
+
+        $authorization = app(WechatWorkSuiteService::class)->authorization($tenantId);
+
+        return $authorization !== null && $authorization->isAuthorized();
+    }
+
+    /**
+     * 读取企微租户配置（wechatwork 组优先，旧 oauth.wechat_work_* 回退）
+     *
+     * 9.6 模块边界后配置组为 wechatwork，展示路径只读不回写（登录路径负责读时迁移）。
+     */
+    protected function wechatWorkSetting(int $tenantId, string $key, string $default = ''): string
+    {
+        $new = TenantSetting::get($tenantId, 'wechatwork', $key, null);
+        if ($new !== null && $new !== '') {
+            return (string) $new;
+        }
+
+        return (string) TenantSetting::get($tenantId, 'oauth', "wechat_work_{$key}", $default);
+    }
+
+    /**
      * 更新租户 OAuth 配置
      */
     public function updateOAuthConfig(int $tenantId, string $provider, array $config): void
@@ -408,6 +472,29 @@ class SocialiteService
         if ($provider === 'idp' && array_key_exists('enabled', $config)) {
             TenantSetting::set($tenantId, 'oauth', 'oauth_mode', ! empty($config['enabled']) ? 'delegated' : 'direct');
             unset($config['enabled']);
+        }
+
+        // wechat_work（9.6 模块边界）：enabled 开关写 oauth 组，凭证配置写 wechatwork 组；
+        // 9.2 互斥防御下沉：套件已授权时拒绝写自建凭证（防 SaveOAuthConfigTool 等直调绕过控制器）
+        if ($provider === 'wechat_work') {
+            if (! empty($config['corp_id'] ?? '') && $this->suiteAuthorized($tenantId)) {
+                throw new DomainException('当前租户已使用平台代开发应用授权，无需配置自建应用；如需切换请先解除授权');
+            }
+
+            foreach ($config as $key => $value) {
+                if ($key === 'enabled') {
+                    TenantSetting::set($tenantId, 'oauth', 'wechat_work_enabled', ! empty($value));
+                    continue;
+                }
+
+                if ($key === 'secret' && $value === '********') {
+                    continue; // 跳过遮罩占位符
+                }
+
+                TenantSetting::set($tenantId, 'wechatwork', $key, $value, $key === 'secret');
+            }
+
+            return;
         }
 
         // wechat_work 使用 corp_id/agent_id/secret 模式，alipay 使用 private_key，非标准 client_id/client_secret

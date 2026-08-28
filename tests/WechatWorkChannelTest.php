@@ -7,11 +7,14 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Ibot\Models\Ibot;
 use MultiTenantSaas\Modules\Ibot\Services\Channels\WechatWorkChannel;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
+use MultiTenantSaas\Support\WechatWork\WechatWorkApiClient;
 use MultiTenantSaas\Tests\Schema\IbotModule;
+use MultiTenantSaas\Tests\Schema\WechatWorkModule;
 
 class WechatWorkChannelTest extends TestCase
 {
-    protected array $uses = [IbotModule::class];
+    protected array $uses = [IbotModule::class, WechatWorkModule::class];
 
     private WechatWorkChannel $channel;
 
@@ -216,5 +219,77 @@ class WechatWorkChannelTest extends TestCase
         sort($parts, SORT_STRING);
 
         $this->assertTrue($crypto->verifySignature(sha1(implode('', $parts)), '123', 'nonce', 'cipher'));
+    }
+
+    // ---------- 9.3 凭证双轨（套件授权 → tokenResolver） ----------
+
+    /** 反射调用私有 apiClient，验证双轨构造 */
+    private function apiClientOf(Ibot $ibot): WechatWorkApiClient
+    {
+        $method = new \ReflectionMethod($this->channel, 'apiClient');
+
+        return $method->invoke($this->channel, $ibot);
+    }
+
+    private function authorizeSuite(): void
+    {
+        app(WechatWorkSuiteService::class)->saveAuthorization(1001, 1, [
+            'corp_id' => 'ww_suite_corp',
+            'agent_id' => '1000009',
+            'permanent_code' => 'perm-code-1',
+        ]);
+    }
+
+    private static function prop(object $object, string $name): mixed
+    {
+        return (new \ReflectionProperty($object, $name))->getValue($object);
+    }
+
+    public function test_api_client_uses_suite_resolver_when_authorized(): void
+    {
+        $this->authorizeSuite();
+
+        $api = $this->apiClientOf($this->createIbot(['corp_secret' => '']));
+
+        // 代开发双轨：corp_secret 空 + 套件授权 → 企业 token 走 corpAccessToken
+        $this->assertSame('', self::prop($api, 'corpSecret'));
+        $this->assertNotNull(self::prop($api, 'tokenResolver'));
+        $this->assertSame('wwcorp123', self::prop($api, 'corpId'));
+    }
+
+    public function test_api_client_keeps_self_secret_when_present(): void
+    {
+        $this->authorizeSuite();
+
+        $api = $this->apiClientOf($this->createIbot());
+
+        // 自建轨优先：已填 corp_secret 即使有套件授权也不覆盖
+        $this->assertSame('secret-abc', self::prop($api, 'corpSecret'));
+        $this->assertNull(self::prop($api, 'tokenResolver'));
+    }
+
+    public function test_api_client_no_suite_without_authorization(): void
+    {
+        $api = $this->apiClientOf($this->createIbot(['corp_secret' => '']));
+
+        // 无授权回退自建形态：空 secret + 无 resolver（发送时 gettoken 失败而非走套件）
+        $this->assertSame('', self::prop($api, 'corpSecret'));
+        $this->assertNull(self::prop($api, 'tokenResolver'));
+    }
+
+    public function test_api_client_injects_proxy_for_suite_tenant(): void
+    {
+        $this->authorizeSuite();
+        \MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting::set(1001, 'wechatwork', 'proxy', [
+            'enabled' => true,
+            'scheme' => 'http',
+            'host' => '10.0.0.1',
+            'port' => 8080,
+        ], true);
+
+        $api = $this->apiClientOf($this->createIbot(['corp_secret' => '']));
+
+        // 企业侧接口出口代理注入（9.1）
+        $this->assertSame('http://10.0.0.1:8080', self::prop($api, 'proxy'));
     }
 }

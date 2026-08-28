@@ -8,9 +8,10 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Auth\Services\Concerns\ManagesOAuthState;
-use MultiTenantSaas\Scopes\TenantScope;
 use MultiTenantSaas\Modules\WechatWork\Models\ServiceProvider;
 use MultiTenantSaas\Modules\WechatWork\Models\WechatWorkAuthorization;
+use MultiTenantSaas\Scopes\TenantScope;
+use MultiTenantSaas\Support\WechatWork\WechatWorkProxy;
 
 /**
  * 企业微信服务商代开发套件服务
@@ -420,8 +421,9 @@ class WechatWorkSuiteService
         }
 
         // 代开发应用：permanent_code 即应用 secret，用 gettoken 换取企业 token
-        // （gettoken 无 service 前缀，与自建应用同一接口）
-        $resp = Http::get('https://qyapi.weixin.qq.com/cgi-bin/gettoken', [
+        // （gettoken 无 service 前缀，与自建应用同一接口；企业侧接口走租户出口代理，
+        //   服务商侧接口永不走代理——见 WechatWorkProxy）
+        $resp = Http::withOptions(WechatWorkProxy::resolve($tenantId))->get('https://qyapi.weixin.qq.com/cgi-bin/gettoken', [
             'corpid' => $authorization->corp_id,
             'corpsecret' => $authorization->permanent_code,
         ]);
@@ -444,9 +446,10 @@ class WechatWorkSuiteService
      */
     public function authorization(int $tenantId): ?WechatWorkAuthorization
     {
-        return WechatWorkAuthorization::query()
+        // 显式按 tenant_id 查询（绕过 TenantScope）：webhook/后台无租户上下文亦安全
+        return TenantScope::allowUnscoped(fn () => WechatWorkAuthorization::query()
             ->where('tenant_id', $tenantId)
-            ->first();
+            ->first());
     }
 
     /**

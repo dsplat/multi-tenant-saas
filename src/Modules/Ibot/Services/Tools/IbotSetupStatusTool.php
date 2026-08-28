@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\Ibot\Services\Tools;
 use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
 use MultiTenantSaas\Modules\Ibot\Models\Ibot;
 use MultiTenantSaas\Modules\Ibot\Models\OperatorIbotBinding;
+use MultiTenantSaas\Modules\Ibot\Services\WechatWorkSuiteGuard;
 
 /**
  * ibot_setup_status — 各 IM 频道机器人配置状态（L1 只读）
@@ -29,6 +30,7 @@ class IbotSetupStatusTool implements ToolHandlerContract
     public function __invoke(array $arguments, int $tenantId): mixed
     {
         $channels = [];
+        $suiteAuthorized = WechatWorkSuiteGuard::authorized($tenantId);
 
         foreach (self::REQUIRED_FIELDS as $channelType => $requiredFields) {
             $ibot = Ibot::where('tenant_id', $tenantId)
@@ -36,7 +38,7 @@ class IbotSetupStatusTool implements ToolHandlerContract
                 ->orderBy('ibot_id')
                 ->first();
 
-            $channels[] = $this->channelStatus($channelType, $requiredFields, $ibot);
+            $channels[] = $this->channelStatus($channelType, $requiredFields, $ibot, $suiteAuthorized);
         }
 
         return [
@@ -52,9 +54,15 @@ class IbotSetupStatusTool implements ToolHandlerContract
      * @param  array<string>  $requiredFields
      * @return array<string, mixed>
      */
-    private function channelStatus(string $channelType, array $requiredFields, ?Ibot $ibot): array
+    private function channelStatus(string $channelType, array $requiredFields, ?Ibot $ibot, bool $suiteAuthorized): array
     {
         $label = self::CHANNEL_LABELS[$channelType];
+
+        // 9.3 双轨：套件授权租户的 corp_secret 由永久授权码充当，不要求自填
+        $wechatWork = $channelType === Ibot::CHANNEL_WECHAT_WORK;
+        if ($wechatWork && $suiteAuthorized) {
+            $requiredFields = array_values(array_diff($requiredFields, ['corp_secret']));
+        }
 
         if (! $ibot) {
             return [
@@ -62,6 +70,7 @@ class IbotSetupStatusTool implements ToolHandlerContract
                 'label' => $label,
                 'configured' => false,
                 'status' => 'not_configured',
+                'mode' => $wechatWork ? ($suiteAuthorized ? 'suite' : 'self') : null,
                 'missing_fields' => $requiredFields,
                 'next_step' => "尚未配置{$label}机器人，请到配置页填写凭证：" . implode('、', $requiredFields),
             ];
@@ -89,6 +98,7 @@ class IbotSetupStatusTool implements ToolHandlerContract
             'ibot_id' => (string) $ibot->ibot_id,
             'name' => $ibot->name,
             'status' => $ibot->status,
+            'mode' => $wechatWork ? ($suiteAuthorized ? 'suite' : 'self') : null,
             'missing_fields' => $missing,
             'active_bindings' => $activeBindings,
             'webhook_url' => $channelType === Ibot::CHANNEL_WECHAT_WORK

@@ -5,13 +5,11 @@ namespace MultiTenantSaas\Modules\Auth\Http\Controllers;
 use App\Http\Controllers\Concerns\AuthorizesTenantAccess;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Auth\Services\IdentityProviderOAuthService;
 use MultiTenantSaas\Modules\Auth\Services\SocialiteService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
-use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
 
 class TenantOAuthController extends Controller
 {
@@ -69,17 +67,6 @@ class TenantOAuthController extends Controller
     {
         $tenantId = TenantContext::getId();
 
-        // 自建企微凭证与平台代开发授权互斥：套件已授权时拒绝写入自建配置，防止双轨凭证并存引发错位
-        if ($provider === 'wechat_work' && ! empty($request->get('corp_id', ''))) {
-            $authorization = $this->suiteAuthorization($tenantId);
-            if ($authorization !== null && $authorization->isAuthorized()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => '当前租户已使用平台代开发应用授权，无需配置自建应用；如需切换请先解除授权',
-                ], 422);
-            }
-        }
-
         // wechat_work 使用 corp_id/agent_id/secret 模式
         $allowed = $provider === 'wechat_work'
             ? ['enabled', 'corp_id', 'agent_id', 'secret', 'redirect']
@@ -95,25 +82,14 @@ class TenantOAuthController extends Controller
             $allowed = ['enabled', 'base_url', 'protocol', 'client_id', 'client_secret', 'login_path', 'redirect_uri', 'field_mapping'];
         }
 
-        app(SocialiteService::class)->updateOAuthConfig($tenantId, $provider, $request->only($allowed));
+        try {
+            app(SocialiteService::class)->updateOAuthConfig($tenantId, $provider, $request->only($allowed));
+        } catch (\RuntimeException $e) {
+            // 互斥拒绝（套件已授权）等业务错误 → 422（9.2 下沉后由 SocialiteService 统一抛出）
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
 
         return response()->json(['success' => true, 'message' => trans('common.updated')]);
-    }
-
-    /**
-     * 查询租户企微代开发授权（防御式：模块未启用 / 表不存在时返回 null）
-     */
-    protected function suiteAuthorization(int $tenantId)
-    {
-        if (! class_exists(WechatWorkSuiteService::class)) {
-            return null;
-        }
-
-        if (! Schema::hasTable('wechat_work_authorizations')) {
-            return null;
-        }
-
-        return app(WechatWorkSuiteService::class)->authorization($tenantId);
     }
 
     public function redirect(Request $request, string $provider)

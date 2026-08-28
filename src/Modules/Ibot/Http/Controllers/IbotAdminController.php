@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Ibot\Models\Ibot;
 use MultiTenantSaas\Modules\Ibot\Models\OperatorIbotBinding;
+use MultiTenantSaas\Modules\Ibot\Services\WechatWorkSuiteGuard;
 
 /**
  * ibot 频道配置管理（租户管理端，权限 setting.update——与 OAuth/邮件配置同级）
@@ -187,6 +188,10 @@ class IbotAdminController extends Controller
             $masked[$field] = self::MASK_PREFIX . substr($value, -4);
         }
 
+        // 9.3 双轨：套件授权租户无需自建 corp_secret（前端据此切换引导文案）
+        $wechatWork = $ibot->channel_type === Ibot::CHANNEL_WECHAT_WORK;
+        $suiteAuthorized = $wechatWork ? WechatWorkSuiteGuard::authorized((int) $ibot->tenant_id) : false;
+
         return [
             'ibot_id' => $ibot->ibot_id,
             'channel_type' => $ibot->channel_type,
@@ -194,6 +199,7 @@ class IbotAdminController extends Controller
             'name' => $ibot->name,
             'agent_id' => $ibot->agent_id,
             'status' => $ibot->status,
+            'mode' => $wechatWork ? ($suiteAuthorized ? 'suite' : 'self') : null,
             'configured_fields' => $configured,
             'credentials_masked' => $masked,
             'webhook_url' => $this->webhookUrl($request, $ibot),

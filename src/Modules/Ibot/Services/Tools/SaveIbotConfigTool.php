@@ -4,6 +4,7 @@ namespace MultiTenantSaas\Modules\Ibot\Services\Tools;
 
 use MultiTenantSaas\Modules\Ai\Services\Agent\Contracts\ToolHandlerContract;
 use MultiTenantSaas\Modules\Ibot\Models\Ibot;
+use MultiTenantSaas\Modules\Ibot\Services\WechatWorkSuiteGuard;
 
 /**
  * save_ibot_config — 按频道白名单保存机器人凭证（L2 写，运行时确认后执行）
@@ -76,6 +77,15 @@ class SaveIbotConfigTool implements ToolHandlerContract
         $requiredFields = $channelType === Ibot::CHANNEL_WECHAT_WORK
             ? self::CREDENTIAL_FIELDS[$channelType]
             : ['bot_token'];
+
+        // 9.3 双轨：套件授权租户的 corp_secret 由永久授权码充当，不要求自填
+        $suiteAuthorized = $channelType === Ibot::CHANNEL_WECHAT_WORK
+            ? WechatWorkSuiteGuard::authorized($tenantId)
+            : false;
+        if ($suiteAuthorized) {
+            $requiredFields = array_values(array_diff($requiredFields, ['corp_secret']));
+        }
+
         $saved = $ibot->credentials ?? [];
         $missing = array_values(array_filter(
             $requiredFields,
@@ -86,20 +96,25 @@ class SaveIbotConfigTool implements ToolHandlerContract
             ? url("/api/v1/ibot/webhook/wechat-work/{$ibot->ibot_id}")
             : null;
 
+        $configuredMessage = match (true) {
+            $missing !== [] => "{$label}配置已保存，但仍缺少字段：" . implode('、', $missing) . '，补齐后才能使用。',
+            $suiteAuthorized => "{$label}配置已保存（平台代开发授权模式）。消息将经平台统一回调自动接入，无需填写 corp_secret，也无需在企微后台配置回调 URL。下一步：生成绑定码。",
+            default => $channelType === Ibot::CHANNEL_WECHAT_WORK
+                ? "{$label}配置已保存。下一步：把回调 URL {$webhookUrl} 填入企微后台「接收消息」完成 URL 验证，然后生成绑定码。"
+                : "{$label}配置已保存。下一步：生成绑定码，在 IM 中发给机器人完成绑定。",
+        };
+
         return [
             'action' => $action,
             'ibot_id' => (string) $ibot->ibot_id,
             'channel_type' => $channelType,
             'name' => $ibot->name,
             'status' => $ibot->status,
+            'mode' => $channelType === Ibot::CHANNEL_WECHAT_WORK ? ($suiteAuthorized ? 'suite' : 'self') : null,
             'saved_fields' => array_keys($filtered),
             'missing_fields' => $missing,
             'webhook_url' => $webhookUrl,
-            'message' => $missing === []
-                ? ($channelType === Ibot::CHANNEL_WECHAT_WORK
-                    ? "{$label}配置已保存。下一步：把回调 URL {$webhookUrl} 填入企微后台「接收消息」完成 URL 验证，然后生成绑定码。"
-                    : "{$label}配置已保存。下一步：生成绑定码，在 IM 中发给机器人完成绑定。")
-                : "{$label}配置已保存，但仍缺少字段：" . implode('、', $missing) . '，补齐后才能使用。',
+            'message' => $configuredMessage,
         ];
     }
 

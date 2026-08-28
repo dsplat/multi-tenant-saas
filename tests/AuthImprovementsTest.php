@@ -9,7 +9,8 @@ use MultiTenantSaas\Modules\Auth\Models\OauthAccount;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Auth\Services\AlipayOAuthService;
 use MultiTenantSaas\Modules\Auth\Services\SocialiteService;
-use MultiTenantSaas\Modules\Auth\Services\WechatWorkOAuthService;
+use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkOAuthService;
+use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
 use MultiTenantSaas\Modules\Domain\Services\NginxConfigService;
 use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\BindSessionDomain;
 use MultiTenantSaas\Modules\Infrastructure\Http\Middleware\IdentifyTenant;
@@ -21,6 +22,7 @@ use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
 use MultiTenantSaas\Tests\Schema\CoreModule;
 use MultiTenantSaas\Tests\Schema\PluginModule;
 use MultiTenantSaas\Tests\Schema\SecurityModule;
+use MultiTenantSaas\Tests\Schema\WechatWorkModule;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -43,6 +45,7 @@ class AuthImprovementsTest extends TestCase
         CoreModule::class,
         PluginModule::class,
         SecurityModule::class,
+        WechatWorkModule::class,
     ];
 
     protected function setUp(): void
@@ -622,6 +625,30 @@ class AuthImprovementsTest extends TestCase
         $this->assertEquals('1000002', $config['wechat_work']['agent_id']);
     }
 
+    public function test_oauth_config_display_wechat_work_suite_mode_shows_real_credentials(): void
+    {
+        $this->createTestTenant();
+        config(['auth.oauth.callback_domain' => 'auth.neihang.com']);
+
+        // 套件授权（代开发）：展示授权记录真实凭证 + 统一回调域 + mode=suite
+        app(WechatWorkSuiteService::class)->saveAuthorization(1001, 1, [
+            'corp_id' => 'ww_suite_corp',
+            'agent_id' => '1000009',
+            'permanent_code' => 'perm-1',
+        ]);
+
+        $config = $this->socialiteService->getOAuthConfigForDisplay(1001);
+
+        $this->assertTrue($config['wechat_work']['configured']);
+        $this->assertSame('suite', $config['wechat_work']['mode']);
+        $this->assertSame('ww_suite_corp', $config['wechat_work']['corp_id']);
+        $this->assertSame('1000009', $config['wechat_work']['agent_id']);
+        // permanent_code 由套件服务内部使用，永不出库
+        $this->assertSame('', $config['wechat_work']['secret']);
+        // 套件模式回调域强制平台统一域（服务商代配可信域名）
+        $this->assertSame('https://auth.neihang.com/api/v1/auth/wechat_work/callback', $config['wechat_work']['redirect']);
+    }
+
     public function test_oauth_config_display_includes_alipay_fields(): void
     {
         $this->createTestTenant();
@@ -706,7 +733,10 @@ class AuthImprovementsTest extends TestCase
             'secret' => '********',
         ]);
 
-        $this->assertEquals('ww-new', TenantSetting::get(1001, 'oauth', 'wechat_work_corp_id'));
+        // 9.6 模块边界：凭证配置写 wechatwork 组（旧 oauth 组不再写入）
+        $this->assertEquals('ww-new', TenantSetting::get(1001, 'wechatwork', 'corp_id'));
+        // 遮罩占位符跳过，不覆盖已有 secret（新组不写入，旧组原值保留）
+        $this->assertNull(TenantSetting::get(1001, 'wechatwork', 'secret'));
         $this->assertEquals('original-secret', TenantSetting::get(1001, 'oauth', 'wechat_work_secret'));
     }
 

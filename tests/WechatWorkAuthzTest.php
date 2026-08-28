@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Http;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Auth\Models\User;
-use MultiTenantSaas\Modules\Auth\Services\WechatWorkOAuthService;
+use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkOAuthService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Operator\Models\Operator;

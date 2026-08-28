@@ -9,14 +9,16 @@ use MultiTenantSaas\Modules\Ibot\Services\Tools\IbotSetupStatusTool;
 use MultiTenantSaas\Modules\Ibot\Services\Tools\SaveIbotConfigTool;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
+use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
 use MultiTenantSaas\Tests\Schema\IbotModule;
+use MultiTenantSaas\Tests\Schema\WechatWorkModule;
 
 /**
  * ibot 三个小助手工具：入参白名单与输出结构
  */
 class IbotAssistantToolsTest extends TestCase
 {
-    protected array $uses = [IbotModule::class];
+    protected array $uses = [IbotModule::class, WechatWorkModule::class];
 
     protected function setUp(): void
     {
@@ -214,5 +216,60 @@ class IbotAssistantToolsTest extends TestCase
 
         $this->assertTrue($result['error']);
         $this->assertStringContainsString('channel_type', $result['message']);
+    }
+
+    // ========== 9.3 双轨（套件授权 → corp_secret 可省略） ==========
+
+    private function authorizeSuite(): void
+    {
+        app(WechatWorkSuiteService::class)->saveAuthorization(1001, 1, [
+            'corp_id' => 'ww_suite_corp',
+            'agent_id' => '1000009',
+            'permanent_code' => 'perm-code-1',
+        ]);
+    }
+
+    public function test_setup_status_suite_mode_excludes_corp_secret(): void
+    {
+        $this->authorizeSuite();
+        $this->createIbot([
+            'channel_type' => Ibot::CHANNEL_WECHAT_WORK,
+            'name' => 'WW Bot',
+            // 套件轨：corp_secret 空 + corp_id/token/aes 齐
+            'credentials' => [
+                'corp_id' => 'ww_suite_corp',
+                'agent_id' => '1000009',
+                'token' => 'tok-1234',
+                'encoding_aes_key' => substr(base64_encode(str_repeat('k', 32)), 0, 43),
+            ],
+        ]);
+
+        $result = (new IbotSetupStatusTool)([], 1001);
+        $wechat = collect($result['channels'])->firstWhere('channel_type', 'wechat_work');
+
+        // 套件授权下 corp_secret 不再列为缺失，mode 标记 suite
+        $this->assertSame('suite', $wechat['mode']);
+        $this->assertTrue($wechat['configured']);
+        $this->assertSame([], $wechat['missing_fields']);
+    }
+
+    public function test_save_config_suite_mode_excludes_corp_secret(): void
+    {
+        $this->authorizeSuite();
+
+        $result = (new SaveIbotConfigTool)([
+            'channel_type' => 'wechat_work',
+            'credentials' => [
+                'corp_id' => 'ww_suite_corp',
+                'agent_id' => '1000009',
+                'token' => 'tok-1234',
+                'encoding_aes_key' => substr(base64_encode(str_repeat('k', 32)), 0, 43),
+            ],
+        ], 1001);
+
+        // corp_secret 不在必填（套件授权），文案走代开发引导
+        $this->assertSame('suite', $result['mode']);
+        $this->assertSame([], $result['missing_fields']);
+        $this->assertStringContainsString('平台代开发授权', $result['message']);
     }
 }

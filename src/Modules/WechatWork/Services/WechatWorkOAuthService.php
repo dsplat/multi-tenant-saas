@@ -1,6 +1,6 @@
 <?php
 
-namespace MultiTenantSaas\Modules\Auth\Services;
+namespace MultiTenantSaas\Modules\WechatWork\Services;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -12,12 +12,13 @@ use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Auth\Models\OauthAccount;
 use MultiTenantSaas\Modules\Auth\Models\User;
 use MultiTenantSaas\Modules\Auth\Services\Concerns\ManagesOAuthState;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantUser;
-use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
+use MultiTenantSaas\Support\WechatWork\WechatWorkProxy;
 
 /**
- * 企业微信 OAuth 认证服务
+ * 企业微信 OAuth 认证服务（WechatWork 模块承载,9.6 从 Auth 模块迁入）
  *
  * 企业微信 OAuth 与标准 OAuth2 有本质差异：
  * - 使用 corp_id + agent_id + secret（非 client_id/client_secret）
@@ -28,16 +29,22 @@ use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
  * 因此不能复用 Socialite 的 OAuth2 Provider，需独立实现。
  *
  * 凭证来源双轨（2026-08 新增）：
- * - 自建应用模式（mode=self）：租户手填凭证，存储于 tenant_settings group='oauth'
+ * - 自建应用模式（mode=self）：租户手填凭证，存储于 tenant_settings group='wechatwork'
  * - 代开发模式（mode=suite）：租户扫码授权服务商代开发应用，permanent_code 充当
  *   secret 角色（wechat_work_authorizations 表），回调域用平台统一回调域
  *   （服务商代配可信域名=平台域，绕过自建应用的主体校验限制）
  *
- * 租户级配置（存储在 tenant_settings, group='oauth'）：
- *  - wechat_work_corp_id    企业 ID（不加密）
- *  - wechat_work_agent_id   应用 AgentId（不加密）
- *  - wechat_work_secret     应用 Secret（加密）
- *  - wechat_work_redirect   回调 URL（不加密）
+ * 模块边界（9.6 决策）：WechatWork 模块承载企微一切（凭证/token/回调/权限/IP 代理），
+ * Auth 侧 SocialiteService/TenantOAuthController 仅委托调用；oauth 组只保留
+ * wechat_work_enabled 开关，WW_verify 域名验证走 domain.verification_token
+ * （VerificationFileController 消费）。
+ *
+ * 租户级配置（tenant_settings, group='wechatwork'）：
+ *  - corp_id    企业 ID（不加密）
+ *  - agent_id   应用 AgentId（不加密）
+ *  - secret     应用 Secret（加密）
+ *  - redirect   回调 URL（不加密）
+ * 旧 oauth.wechat_work_* 存量配置读取时自动迁移到新组（读新写旧）。
  */
 class WechatWorkOAuthService
 {
@@ -52,6 +59,35 @@ class WechatWorkOAuthService
      * 扫码登录授权页地址
      */
     protected const AUTHORIZE_URL = 'https://open.work.weixin.qq.com/wwopen/sso/qrConnect';
+
+    /**
+     * 租户级配置组（WechatWork 模块独立承载全部企微配置）
+     */
+    protected const CONFIG_GROUP = 'wechatwork';
+
+    /**
+     * 读取企微租户配置（读时迁移）
+     *
+     * 新组 wechatwork.{key} 优先；旧 oauth.wechat_work_{key} 存量配置
+     * 读取后回写新组（读新写旧，幂等），保证零迁移平滑过渡。
+     * 返回值保持 TenantSetting 原样（JSON 解码行为，数字字符串 → int），与迁移前一致。
+     */
+    protected function setting(int $tenantId, string $key, mixed $default = ''): mixed
+    {
+        $new = TenantSetting::get($tenantId, self::CONFIG_GROUP, $key, null);
+        if ($new !== null && $new !== '') {
+            return $new;
+        }
+
+        $legacy = TenantSetting::get($tenantId, 'oauth', "wechat_work_{$key}", '');
+        if ($legacy !== '' && $legacy !== null) {
+            TenantSetting::set($tenantId, self::CONFIG_GROUP, $key, $legacy, $key === 'secret');
+
+            return $legacy;
+        }
+
+        return $default;
+    }
 
     /**
      * 获取租户企业微信配置
@@ -71,7 +107,7 @@ class WechatWorkOAuthService
             $callbackDomain = config('auth.oauth.callback_domain', '');
             $redirect = $callbackDomain !== ''
                 ? "https://{$callbackDomain}/api/v1/auth/wechat_work/callback"
-                : app(SocialiteService::class)->resolveRedirectUrl($tenantId, 'wechat_work', '');
+                : $this->resolveWechatWorkRedirectUrl($tenantId, '');
 
             return [
                 'corp_id' => $authorization->corp_id,
@@ -82,8 +118,8 @@ class WechatWorkOAuthService
             ];
         }
 
-        $corpId = TenantSetting::get($tenantId, 'oauth', 'wechat_work_corp_id', '');
-        $secret = TenantSetting::get($tenantId, 'oauth', 'wechat_work_secret', '');
+        $corpId = $this->setting($tenantId, 'corp_id');
+        $secret = $this->setting($tenantId, 'secret');
 
         if (empty($corpId) || empty($secret)) {
             throw new ServiceUnavailableException(trans('common.oauth_not_configured', ['provider' => 'wechat_work', 'tenant' => $tenantId]));
@@ -91,15 +127,46 @@ class WechatWorkOAuthService
 
         return [
             'corp_id' => $corpId,
-            'agent_id' => TenantSetting::get($tenantId, 'oauth', 'wechat_work_agent_id', ''),
+            'agent_id' => $this->setting($tenantId, 'agent_id'),
             'secret' => $secret,
-            'redirect' => app(SocialiteService::class)->resolveRedirectUrl(
-                $tenantId,
-                'wechat_work',
-                TenantSetting::get($tenantId, 'oauth', 'wechat_work_redirect', '')
-            ),
+            'redirect' => $this->resolveWechatWorkRedirectUrl($tenantId, $this->setting($tenantId, 'redirect')),
             'mode' => 'self',
         ];
+    }
+
+    /**
+     * 解析企微回调完整 URL（与 SocialiteService::resolveRedirectUrl 同步实现）
+     *
+     * 9.6 迁移后 WechatWork 模块自包含，消除对 Auth 模块的辅助方法依赖；
+     * 逻辑保持与 SocialiteService::resolveRedirectUrl 一致，后续演化需同步。
+     *
+     * 优先级：
+     * 1. 租户显式存储的完整 URL（自选回调地址，最高）
+     * 2. 租户自定义域名（tenants.domain）：回调域要求备案主体与企业主体一致，
+     *    平台统一回调域过不了主体校验（2026-08 生产实锤）
+     * 3. 平台统一回调域（OAUTH_CALLBACK_DOMAIN）：仅无自定义域名的租户使用
+     * 4. 相对路径兜底（平台域场景）
+     */
+    protected function resolveWechatWorkRedirectUrl(int $tenantId, string $storedRedirect): string
+    {
+        // 已存储完整 URL（显式覆盖）
+        if ($storedRedirect && str_starts_with($storedRedirect, 'http')) {
+            return $storedRedirect;
+        }
+
+        // 租户自定义域名优先（主体校验要求域名归租户企业所有）
+        $domain = Tenant::where('tenant_id', $tenantId)->value('domain');
+        if ($domain) {
+            return "https://{$domain}/api/v1/auth/wechat_work/callback";
+        }
+
+        // 无自定义域名 → 平台统一回调域（平台级虚拟 IDP）
+        $callbackDomain = config('auth.oauth.callback_domain', '');
+        if ($callbackDomain !== '') {
+            return "https://{$callbackDomain}/api/v1/auth/wechat_work/callback";
+        }
+
+        return $storedRedirect ?: "/api/v1/auth/wechat_work/callback";
     }
 
     /**
@@ -216,7 +283,7 @@ class WechatWorkOAuthService
             return $cached;
         }
 
-        $resp = Http::get(self::API_BASE . '/gettoken', [
+        $resp = Http::withOptions(WechatWorkProxy::resolve($tenantId))->get(self::API_BASE . '/gettoken', [
             'corpid' => $config['corp_id'],
             'corpsecret' => $config['secret'],
         ]);
@@ -245,7 +312,7 @@ class WechatWorkOAuthService
      */
     public function getUserIdentity(int $tenantId, string $accessToken, string $code): array
     {
-        $resp = Http::get(self::API_BASE . '/auth/getuserinfo', [
+        $resp = Http::withOptions(WechatWorkProxy::resolve($tenantId))->get(self::API_BASE . '/auth/getuserinfo', [
             'access_token' => $accessToken,
             'code' => $code,
         ]);
@@ -262,7 +329,7 @@ class WechatWorkOAuthService
      */
     public function getUserDetail(int $tenantId, string $accessToken, string $userId): array
     {
-        $resp = Http::get(self::API_BASE . '/user/get', [
+        $resp = Http::withOptions(WechatWorkProxy::resolve($tenantId))->get(self::API_BASE . '/user/get', [
             'access_token' => $accessToken,
             'userid' => $userId,
         ]);
@@ -303,6 +370,18 @@ class WechatWorkOAuthService
     }
 
     /**
+     * 生成命名空间化的 provider 标识（原 SocialiteService 辅助方法内联，
+     * 9.6 迁移后 WechatWork 模块自包含，消除模块反向依赖）
+     *
+     * 格式: wechat_work:tenant:{tenantId}
+     * 确保同一 OAuth 应用在不同租户间隔离
+     */
+    protected function namespacedProvider(int $tenantId): string
+    {
+        return "wechat_work:tenant:{$tenantId}";
+    }
+
+    /**
      * 查找或创建用户
      *
      * 1. 通过 OauthAccount (provider='wechat_work:tenant:{id}', provider_id=userid) 查找
@@ -311,7 +390,7 @@ class WechatWorkOAuthService
      */
     public function findOrCreateUser(array $wwUser, string $userId, int $tenantId): User
     {
-        $nsProvider = app(SocialiteService::class)->namespacedProvider('wechat_work', $tenantId);
+        $nsProvider = $this->namespacedProvider($tenantId);
 
         $oauthAccount = OauthAccount::where('provider', $nsProvider)
             ->where('provider_id', $userId)
@@ -368,7 +447,7 @@ class WechatWorkOAuthService
      */
     protected function recordOAuthAccount(User $user, array $userInfo, string $userId, string $accessToken, int $tenantId): void
     {
-        $nsProvider = app(SocialiteService::class)->namespacedProvider('wechat_work', $tenantId);
+        $nsProvider = $this->namespacedProvider($tenantId);
 
         OauthAccount::updateOrCreate(
             [
@@ -398,8 +477,8 @@ class WechatWorkOAuthService
             return true;
         }
 
-        $corpId = TenantSetting::get($tenantId, 'oauth', 'wechat_work_corp_id', '');
-        $secret = TenantSetting::get($tenantId, 'oauth', 'wechat_work_secret', '');
+        $corpId = $this->setting($tenantId, 'corp_id');
+        $secret = $this->setting($tenantId, 'secret');
 
         return ! empty($corpId) && ! empty($secret);
     }

@@ -6,11 +6,13 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use MultiTenantSaas\Context\TenantContext;
+use MultiTenantSaas\Modules\Ibot\Models\Ibot;
 use MultiTenantSaas\Modules\WechatWork\Jobs\ProcessCreateAuthJob;
 use MultiTenantSaas\Modules\WechatWork\Models\ServiceProvider;
 use MultiTenantSaas\Modules\WechatWork\Models\WechatWorkAuthorization;
 use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
 use MultiTenantSaas\Tests\Schema\CoreModule;
+use MultiTenantSaas\Tests\Schema\IbotModule;
 use MultiTenantSaas\Tests\Schema\WechatWorkModule;
 
 /**
@@ -26,7 +28,7 @@ use MultiTenantSaas\Tests\Schema\WechatWorkModule;
  */
 class WechatWorkSuiteCallbackTest extends TestCase
 {
-    protected array $uses = [CoreModule::class, WechatWorkModule::class];
+    protected array $uses = [CoreModule::class, WechatWorkModule::class, IbotModule::class];
 
     private const SUITE_ID = 'ww_suite_test';
 
@@ -640,5 +642,101 @@ class WechatWorkSuiteCallbackTest extends TestCase
             $nonce,
             '/api/v1/wechat-work/suite/callback',
         )->assertStatus(200)->assertContent('success');
+    }
+
+    // ==================================================================
+    // 9.3 ibot 入向转发（应用 text 消息事件 → IbotGateway）
+    // ==================================================================
+
+    private function createIbot(): Ibot
+    {
+        return Ibot::forceCreate([
+            'ibot_id' => 9001,
+            'tenant_id' => 9001,
+            'channel_type' => Ibot::CHANNEL_WECHAT_WORK,
+            'transport' => Ibot::TRANSPORT_WEBHOOK,
+            'name' => 'WW Assistant',
+            // 套件轨：corp_secret 留空，token 由 corpAccessToken（permanent_code）解析
+            'credentials' => [
+                'corp_id' => 'ww_corp_1',
+                'corp_secret' => '',
+                'agent_id' => '1000001',
+                'token' => 'test-token',
+                'encoding_aes_key' => substr(base64_encode(str_repeat('k', 32)), 0, 43),
+            ],
+            'status' => Ibot::STATUS_ACTIVE,
+        ]);
+    }
+
+    public function test_post_app_text_message_forwards_to_ibot_gateway(): void
+    {
+        // 代开发应用消息回调走模板统一回调地址（/suite/callback），按 corp_id 反查租户后转发 ibot
+        $this->createProviderWithTemplateAppCredentials();
+        $this->createIbot();
+
+        config()->set('ai.ibot.enabled', true);
+
+        // corpAccessToken（gettoken，permanent_code 充当 corpsecret）+ 未绑定引导语发送
+        Http::fake([
+            'qyapi.weixin.qq.com/cgi-bin/gettoken*' => Http::response([
+                'errcode' => 0, 'access_token' => 'suite-corp-token', 'expires_in' => 7200,
+            ]),
+            'qyapi.weixin.qq.com/cgi-bin/message/send*' => Http::response(['errcode' => 0, 'errmsg' => 'ok']),
+        ]);
+
+        $plain = '<xml><ToUserName><![CDATA[ww_corp_1]]></ToUserName>'
+            . '<FromUserName><![CDATA[zhangsan]]></FromUserName>'
+            . '<CreateTime>1700000000</CreateTime>'
+            . '<MsgType><![CDATA[text]]></MsgType>'
+            . '<Content><![CDATA[你好]]></Content>'
+            . '<MsgId>123456789</MsgId>'
+            . '</xml>';
+
+        $encrypt = $this->encrypt($plain, 'ww_corp_1', self::APP_AES_KEY);
+        $timestamp = '1700000000';
+        $nonce = 'nonce123';
+
+        $this->postEncrypt(
+            $encrypt,
+            $this->signApp($timestamp, $nonce, $encrypt),
+            $timestamp,
+            $nonce,
+            '/api/v1/wechat-work/suite/callback',
+        )->assertStatus(200)->assertContent('success');
+
+        // 未绑定用户 → IbotGateway 回复引导语：企业 token 出向发送（套件双轨闭环）
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), '/message/send')
+                && str_contains($request->url(), 'access_token=suite-corp-token');
+        });
+    }
+
+    public function test_post_app_text_without_ibot_silently_ignored(): void
+    {
+        // 有授权但未配置 ibot：不转发、不发送，仍秒回 success
+        $this->createProviderWithTemplateAppCredentials();
+
+        Http::fake();
+
+        $plain = '<xml><ToUserName><![CDATA[ww_corp_1]]></ToUserName>'
+            . '<FromUserName><![CDATA[zhangsan]]></FromUserName>'
+            . '<CreateTime>1700000000</CreateTime>'
+            . '<MsgType><![CDATA[text]]></MsgType>'
+            . '<Content><![CDATA[hello]]></Content>'
+            . '</xml>';
+
+        $encrypt = $this->encrypt($plain, 'ww_corp_1', self::APP_AES_KEY);
+        $timestamp = '1700000000';
+        $nonce = 'nonce123';
+
+        $this->postEncrypt(
+            $encrypt,
+            $this->signApp($timestamp, $nonce, $encrypt),
+            $timestamp,
+            $nonce,
+            '/api/v1/wechat-work/suite/callback',
+        )->assertStatus(200)->assertContent('success');
+
+        Http::assertNothingSent();
     }
 }

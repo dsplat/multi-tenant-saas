@@ -6,9 +6,13 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Support\WechatWork\WechatWorkCrypto;
+use MultiTenantSaas\Modules\Ibot\Models\Ibot;
+use MultiTenantSaas\Modules\Ibot\Services\Channels\WechatWorkChannel;
+use MultiTenantSaas\Modules\Ibot\Services\IbotGateway;
 use MultiTenantSaas\Modules\WechatWork\Jobs\ProcessCreateAuthJob;
 use MultiTenantSaas\Modules\WechatWork\Models\WechatWorkAuthorization;
 use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
+use MultiTenantSaas\Scopes\TenantScope;
 
 /**
  * 企业微信服务商套件回调控制器
@@ -276,6 +280,10 @@ class SuiteCallbackController extends Controller
      *
      * 应用回调事件明文 XML 中 ToUserName 为事件所属企业标识（代开发应用
      * 事件为企业 CorpID），据此反查授权记录定位租户；查不到时仅记日志。
+     *
+     * 9.3：MsgType=text 的消息事件经 ibot 转发链路（Ibot 模块为可选拆包，
+     * class_exists 守卫；代开发应用消息回调走模板统一回调地址，ibot 原按
+     * ibotId 路由的 webhook URL 收不到）。
      */
     protected function handleAppEventByCorpId($provider, array $payload): void
     {
@@ -283,6 +291,51 @@ class SuiteCallbackController extends Controller
         $authorization = $this->suite->authorizationByCorpId($corpId);
 
         $this->dispatchAppEvent($authorization, $payload);
+
+        if ($authorization !== null && ($payload['MsgType'] ?? '') === 'text') {
+            $this->forwardToIbot($authorization, $payload);
+        }
+    }
+
+    /**
+     * 应用 text 消息事件 → ibot 入向网关（9.3）
+     *
+     * 按租户 + channel_type=wechat_work 的启用中 ibot 记录路由，解析
+     * 归一化消息后交 IbotGateway::handleInbound（绑定判定/绑定码消费）。
+     */
+    protected function forwardToIbot(WechatWorkAuthorization $authorization, array $payload): void
+    {
+        if (! class_exists(Ibot::class) || ! class_exists(IbotGateway::class)) {
+            return;
+        }
+
+        $tenantId = (int) $authorization->tenant_id;
+        // 回调为公开端点（无租户上下文），显式 tenant_id 已保证隔离，需豁免
+        // TenantScope fail-closed（与 authorizationByCorpId 同模式），否则查不到
+        $ibot = TenantScope::allowUnscoped(fn () => Ibot::where('tenant_id', $tenantId)
+            ->where('channel_type', Ibot::CHANNEL_WECHAT_WORK)
+            ->where('status', Ibot::STATUS_ACTIVE)
+            ->orderBy('ibot_id')
+            ->first());
+
+        if ($ibot === null) {
+            return;
+        }
+
+        try {
+            $message = app(WechatWorkChannel::class)->parseInbound($ibot, $payload);
+
+            if ($message !== null) {
+                app(IbotGateway::class)->handleInbound($ibot, $message);
+            }
+        } catch (\Throwable $e) {
+            // 转发失败不阻塞企微 5 秒响应（重试机制下必须秒回 success）
+            Log::warning('[WechatWorkSuite] ibot 消息转发失败', [
+                'tenant_id' => $tenantId,
+                'corp_id' => $authorization->corp_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

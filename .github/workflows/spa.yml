@@ -4,12 +4,14 @@ on:
   push:
     branches: [main]
     paths:
+      - '.github/workflows/spa.yml'
       - 'resources/js/**'
       - 'src/Modules/*/resources/admin/**'
       - 'src/Modules/*/resources/console/**'
   pull_request:
     branches: [main]
     paths:
+      - '.github/workflows/spa.yml'
       - 'resources/js/**'
       - 'src/Modules/*/resources/admin/**'
       - 'src/Modules/*/resources/console/**'

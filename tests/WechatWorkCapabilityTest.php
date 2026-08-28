@@ -19,7 +19,7 @@ use MultiTenantSaas\Tests\Schema\WechatWorkModule;
 /**
  * 企微能力门控测试（阶段 C，docs/wecom-service-provider-plan.md 11.2）
  *
- * 覆盖 gate 三态语义（拆包缺失全放行 / 无套餐 free / 按 features 分层）、
+ * 覆盖 gate 三态语义（拆包缺失全放行 / 从未订阅全放行 / 显式订阅按 features 分层）、
  * 套餐配额/用量台账（limits + tenant_settings usage）、能力不足明确报错
  * （feature_not_enabled 风格）、会话存档仅自建可用（archive 依赖 self）、
  * 代开发许可 90 天免费窗口计算（authorized_at + 90 天）。
@@ -55,13 +55,36 @@ class WechatWorkCapabilityTest extends TestCase
     // gate 三态语义
     // ==================================================================
 
-    public function test_no_plan_record_falls_back_to_free_semantics(): void
+    public function test_no_plan_record_grants_all_capabilities(): void
     {
-        // 表存在但租户无任何套餐记录 → free 语义：仅基础包可用
+        // 表存在但租户从未订阅（无套餐记录，存量租户）→ 不门控全放行
+        // （商业化渐进式：显式订阅才受限；communities 回归教训 2026-08-28）
+        foreach (['base', 'intercom', 'self', 'archive'] as $alias) {
+            $this->assertTrue($this->capability->has($this->tenantId, $alias), "{$alias} 未订阅应全放行");
+        }
+    }
+
+    public function test_default_free_plan_string_without_id_grants_all(): void
+    {
+        // 存量租户 subscription_plan='free'（字段 DEFAULT 值，非显式订阅）→ 全放行
+        // （生产回归根因：DEFAULT 'free' + 种子 free 套餐 → intercom 被误拦）
+        Tenant::query()->where('tenant_id', $this->tenantId)
+            ->update(['subscription_plan' => 'free', 'subscription_plan_id' => null]);
+
+        foreach (['base', 'intercom', 'self'] as $alias) {
+            $this->assertTrue($this->capability->has($this->tenantId, $alias), "{$alias} DEFAULT free 应全放行");
+        }
+    }
+
+    public function test_explicit_free_subscription_restricts_intercom(): void
+    {
+        // 显式订阅 free（有 plan_id）→ 受限：仅 base（与 DEFAULT 'free' 本质不同）
+        $plan = $this->createPlan('free', [WechatWorkCapability::BASE]);
+        Tenant::query()->where('tenant_id', $this->tenantId)
+            ->update(['subscription_plan' => 'free', 'subscription_plan_id' => $plan->subscription_plan_id]);
+
         $this->assertTrue($this->capability->has($this->tenantId, 'base'));
         $this->assertFalse($this->capability->has($this->tenantId, 'intercom'));
-        $this->assertFalse($this->capability->has($this->tenantId, 'self'));
-        $this->assertFalse($this->capability->has($this->tenantId, 'archive'));
     }
 
     public function test_basic_plan_grants_base_and_intercom_only(): void
@@ -134,8 +157,10 @@ class WechatWorkCapabilityTest extends TestCase
         $features = $this->capability->featureList($this->tenantId);
 
         $this->assertSame(['base', 'intercom', 'self', 'archive'], array_keys($features));
-        $this->assertTrue($features['base']);
-        $this->assertFalse($features['intercom']);
+        // 从未订阅 → 全放行，四个键均为 true
+        foreach ($features as $enabled) {
+            $this->assertTrue($enabled);
+        }
     }
 
     public function test_unknown_capability_alias_always_false(): void
@@ -156,6 +181,11 @@ class WechatWorkCapabilityTest extends TestCase
 
     public function test_assert_throws_domain_exception_when_missing(): void
     {
+        // 显式订阅了不含 intercom 的套餐，能力不足才报错（从未订阅全放行）
+        $plan = $this->createPlan('base-only', [WechatWorkCapability::BASE]);
+        Tenant::query()->where('tenant_id', $this->tenantId)
+            ->update(['subscription_plan_id' => $plan->subscription_plan_id]);
+
         $this->expectException(DomainException::class);
         // 测试环境 locale=en：消息为英文「not enabled」（生产 zh_CN 为「未开通」）
         $this->expectExceptionMessageMatches('/not enabled|未开通/');
@@ -193,13 +223,14 @@ class WechatWorkCapabilityTest extends TestCase
         $this->assertSame('192.168.100.11', $overview['usage']['proxy_ip']);
     }
 
-    public function test_license_overview_falls_back_to_zero_without_plan(): void
+    public function test_license_overview_unlimited_without_plan(): void
     {
+        // 从未订阅 → 配额不限（null），与 enterprise「不限」同语义（而非 0）
         $overview = $this->capability->licenseOverview($this->tenantId);
 
-        $this->assertSame(0, $overview['limits']['wechat_work_license_basic']);
-        $this->assertSame(0, $overview['limits']['wechat_work_license_intercom']);
-        $this->assertSame(0, $overview['limits']['wechat_work_proxy_ips']);
+        $this->assertNull($overview['limits']['wechat_work_license_basic']);
+        $this->assertNull($overview['limits']['wechat_work_license_intercom']);
+        $this->assertNull($overview['limits']['wechat_work_proxy_ips']);
         $this->assertSame([], $overview['usage']);
     }
 

@@ -9,8 +9,20 @@
         </template>
       </el-alert>
 
-      <!-- ── 平台代开发应用授权（suite 模式，推荐） ── -->
-      <div class="suite-box">
+      <!-- ── 接入模式选择（互斥：平台代开发 / 自建应用） ── -->
+      <div class="mode-cards">
+        <div class="mode-card" :class="{ active: mode === 'suite' }" @click="chooseMode('suite')">
+          <div class="mode-card-title">平台代开发应用 <el-tag size="small" type="success">推荐</el-tag><el-tag v-if="suiteAuth.status === 'authorized'" size="small" style="margin-left: 4px">使用中</el-tag></div>
+          <p>扫码授权即完成接入，可信域名、回调域由服务商代管，无需填写凭证。</p>
+        </div>
+        <div class="mode-card" :class="{ active: mode === 'self' }" @click="chooseMode('self')">
+          <div class="mode-card-title">自建应用</div>
+          <p>在企微后台自建应用并填入凭证，需自行配置可信域名、回调域与可信 IP（含其他服务商代开发，对本平台等同自建）。</p>
+        </div>
+      </div>
+
+      <!-- ── 平台代开发应用授权（suite 模式） ── -->
+      <div v-if="mode === 'suite'" class="suite-box">
         <div class="help-title" style="margin-bottom: 6px">平台代开发应用授权</div>
         <p class="form-tip">
           企业微信自建应用的可信域名须与认证主体一致，租户自有域名无法作为平台回调域（auth.neihang.com）。
@@ -84,9 +96,9 @@
         </template>
       </div>
 
-      <!-- 已授权：与自建配置互斥，禁止再填写自建凭证（后端同样拒绝），防止双轨凭证并存 -->
+      <!-- 已授权提示（suite 模式下展示）：与自建互斥，禁止双轨凭证并存 -->
       <el-alert
-        v-if="suiteAuth.status === 'authorized'"
+        v-if="mode === 'suite' && suiteAuth.status === 'authorized'"
         type="success"
         :closable="false"
         show-icon
@@ -98,8 +110,8 @@
         </template>
       </el-alert>
 
-      <!-- ── 自建应用凭证（仅未使用平台代开发时可用） ── -->
-      <template v-if="suiteAuth.status !== 'authorized'">
+      <!-- ── 自建应用凭证（选中「自建应用」模式时展示） ── -->
+      <template v-if="mode === 'self'">
         <div class="section-title">自建应用凭证</div>
         <p class="form-tip">
           未使用平台代开发时（含企业自建应用、其他服务商代开发应用，对本平台等同自建），在此填入企微应用凭证。保存后回到「第三方登录配置 → 企业微信」打开启用开关即可。
@@ -179,12 +191,14 @@
       <el-divider />
       <div class="section-title">可信域名验证文件（WW_verify）</div>
       <p class="form-tip">
-        自建应用在企微后台「应用详情 → 开发者接口 → 网页授权及JS-SDK」配置<b>可信域名</b>时，企微会下发
-        <code>WW_verify_xxx.txt</code> 验证文件用于域名归属认证。将文件名登记到下方列表，系统自动在回调域名
+        企微在以下场景要求域名归属认证，下发 <code>WW_verify_xxx.txt</code> 验证文件：
+        ① <b>自建应用</b>——企微后台「应用详情 → 开发者接口 → 网页授权及JS-SDK」配置可信域名时；
+        ② <b>代开发模式</b>——为企业配置「企业微信授权登录（Web 登录）」的可信域名时。
+        两种接入模式下均可将文件名登记到下方列表，系统自动在回调域名
         （{{ verifyDomain || '未配置回调域' }}）根路径提供该文件，企微校验即可通过。
       </p>
       <p class="form-tip" style="color: var(--el-color-warning, #e6a23c)">
-        注意：该验证与扫码登录无关——OAuth 登录只需配置「授权回调域」，不需要验证文件。
+        注意：该验证与扫码登录开关无关——OAuth 登录只需配置「授权回调域」；验证文件用于可信域名归属认证。
       </p>
 
       <div v-if="verifyFiles.length" style="margin-bottom: 8px">
@@ -230,6 +244,25 @@ const suiteAuthHint = ref('')
 const suiteAuthUrl = ref('')
 const suiteAuthPermissions = ref<{ key: string; label: string }[]>([])
 
+// ─── 接入模式（互斥选择）：已授权时锁定 suite；切自建需先解除授权 ───
+const mode = ref<'suite' | 'self'>('suite')
+
+const chooseMode = async (m: 'suite' | 'self') => {
+  if (m === mode.value) return
+  if (m === 'self' && suiteAuth.status === 'authorized') {
+    try {
+      await ElMessageBox.confirm(
+        '两种接入方式互斥。切换到自建应用需先解除平台代开发授权，解除后企微扫码登录立即回退（重新授权或配置自建凭证前不可用）。',
+        '切换接入模式',
+        { type: 'warning', confirmButtonText: '解除授权并切换', cancelButtonText: '取消' },
+      )
+    } catch { return }
+    await doRevokeSuiteAuth()
+    if (suiteAuth.status === 'authorized') return // 解除失败则不切换
+  }
+  mode.value = m
+}
+
 // 可信域名 = 应用回调 URL 的域名（企微可信域名须与回调域名一致，不含 https:// 与路径）
 const suiteCallbackDomain = computed(() => {
   const url = suiteAuth.callback?.app_callback_url || ''
@@ -252,6 +285,8 @@ const fetchSuiteStatus = async () => {
     const data = res.data.data || {}
     Object.assign(suiteAuth, data)
     suiteAuthPermissions.value = data.permissions || []
+    // 首次加载：按实际授权状态锁定模式（已授权 → suite）
+    if (data.status === 'authorized') mode.value = 'suite'
   } catch (e: any) {
     suiteAuthError.value = e.response?.data?.message || '查询授权状态失败'
   }
@@ -276,9 +311,8 @@ const startSuiteAuth = async () => {
   }
 }
 
-const revokeSuiteAuth = async () => {
+const doRevokeSuiteAuth = async () => {
   try {
-    await ElMessageBox.confirm('确认解除平台代开发授权？解除后登录将回退自建应用配置（如有）。', '提示', { type: 'warning' })
     suiteRevoking.value = true
     await axios.post('/api/v1/tenant/wechat-work/revoke')
     ElMessage.success('已解除企微代开发授权')
@@ -288,6 +322,13 @@ const revokeSuiteAuth = async () => {
   } finally {
     suiteRevoking.value = false
   }
+}
+
+const revokeSuiteAuth = async () => {
+  try {
+    await ElMessageBox.confirm('确认解除平台代开发授权？解除后登录将回退自建应用配置（如有）。', '提示', { type: 'warning' })
+  } catch { return }
+  await doRevokeSuiteAuth()
 }
 
 // ─── 自建应用凭证 ───────────────────
@@ -427,6 +468,12 @@ onMounted(() => {
 .help-box code { background: var(--el-fill-color); padding: 1px 6px; border-radius: 3px; word-break: break-all; }
 .help-box a { color: var(--el-color-primary); }
 .suite-box { margin-bottom: 16px; padding: 12px 16px; background: var(--el-fill-color-light); border: 1px solid var(--el-border-color-lighter); border-radius: 6px; }
+.mode-cards { display: flex; gap: 12px; margin-bottom: 16px; }
+.mode-card { flex: 1; padding: 12px 14px; border: 1px solid var(--el-border-color-lighter); border-radius: 6px; cursor: pointer; transition: border-color .2s, box-shadow .2s; }
+.mode-card:hover { border-color: var(--el-color-primary-light-5); }
+.mode-card.active { border-color: var(--el-color-primary); box-shadow: 0 0 0 1px var(--el-color-primary-light-7) inset; background: var(--el-color-primary-light-9); }
+.mode-card-title { font-weight: 600; font-size: 14px; color: var(--el-text-color-primary); display: flex; align-items: center; gap: 6px; }
+.mode-card p { font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.5; margin: 6px 0 0; }
 .cap-box { margin-bottom: 8px; }
 .suite-box .form-tip { margin-top: 6px; }
 .suite-qr-box { margin-top: 10px; }

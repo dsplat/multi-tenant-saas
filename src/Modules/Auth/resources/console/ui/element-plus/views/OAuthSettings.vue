@@ -112,7 +112,8 @@
             </div>
             <p class="form-tip" style="max-width: 560px">
               <template v-if="config.wechat_work.mode === 'suite'">已通过平台代开发授权自动启用，无需开关控制。</template>
-              企微接入方式（平台代开发扫码授权 / 自建应用凭证）与可信域名验证文件（WW_verify），请在「企业微信配置」页完成。
+              企微接入方式（平台代开发扫码授权 / 自建应用凭证）与可信域名验证文件（WW_verify）是扫码登录的前提配置，请前往
+              <a href="/console/wechat-work" style="color: var(--el-color-primary); font-weight: 500">企业微信配置 →</a>
             </p>
           </div>
         </el-tab-pane>

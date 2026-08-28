@@ -92,6 +92,11 @@
           <span v-if="wwTrialText" class="form-tip" style="margin-left: 2px">许可免费窗口{{ wwTrialText }}</span>
           <span v-if="wwOverage" class="form-tip" style="color: #dc3545">部分许可已超量</span>
         </div>
+        <!-- 企微配置入口（扫码登录前提：接入方式/可信域名/WW_verify 均在企微配置页） -->
+        <div class="alert alert-info" style="margin-bottom: 12px">
+          企微接入方式（平台代开发扫码授权 / 自建应用凭证）与可信域名验证文件（WW_verify）是扫码登录的前提配置，请前往
+          <a href="/console/wechat-work" style="font-weight: 500">企业微信配置 →</a>
+        </div>
         <!-- 平台代开发应用授权（suite 模式，双轨之一） -->
         <div class="suite-box">
           <div class="help-title">🤝 平台代开发应用授权（推荐）</div>

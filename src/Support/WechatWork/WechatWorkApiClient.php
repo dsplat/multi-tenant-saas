@@ -14,6 +14,11 @@ use MultiTenantSaas\Exceptions\ServiceUnavailableException;
  *
  * 坑：企微 API 要求服务器出口 IP 在应用「企业可信 IP」白名单内，
  * 否则调用报 60020——失败均记日志便于排查。
+ *
+ * 凭证双轨：
+ * - 自建应用模式：corp_id + corp_secret 经 gettoken 换取 access_token
+ * - 代开发模式：传入 tokenResolver（如 WechatWorkSuiteService::corpAccessToken，
+ *   permanent_code 充当 secret 经 get_corp_token 换取企业 token），优先级最高
  */
 class WechatWorkApiClient
 {
@@ -23,13 +28,21 @@ class WechatWorkApiClient
         private readonly string $corpId,
         private readonly string $corpSecret,
         private readonly string $agentId = '',
+        private readonly ?\Closure $tokenResolver = null,
     ) {}
 
     /**
      * 获取 access_token（缓存优先）
+     *
+     * 代开发模式（tokenResolver 非空）：企业 token 由外部解析器提供
+     * （get_corp_token 链路），不再走 corp_secret gettoken。
      */
     public function accessToken(): string
     {
+        if ($this->tokenResolver !== null) {
+            return (string) call_user_func($this->tokenResolver);
+        }
+
         if ($this->corpId === '' || $this->corpSecret === '') {
             return '';
         }

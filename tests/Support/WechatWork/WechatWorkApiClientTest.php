@@ -318,4 +318,43 @@ class WechatWorkApiClientTest extends TestCase
 
         $this->assertFalse($ok);
     }
+
+    public function test_token_resolver_takes_priority_over_gettoken(): void
+    {
+        $resolved = 0;
+        $client = new WechatWorkApiClient('corp123', 'secret456', 'agent1', function () use (&$resolved) {
+            $resolved++;
+
+            return 'suite-token';
+        });
+
+        // 代开发模式：accessToken 直接来自解析器，不应发起任何 gettoken 请求
+        Http::fake([
+            '*/externalcontact/groupchat/list*' => Http::response([
+                'errcode' => 0,
+                'group_chat_list' => [],
+                'next_cursor' => '',
+            ]),
+        ]);
+
+        $this->assertSame('suite-token', $client->accessToken());
+        $this->assertSame(1, $resolved);
+
+        // 业务方法同样使用解析器提供的 token
+        $result = $client->groupChatList();
+        $this->assertSame([], $result['group_chat_list']);
+
+        $sent = Http::recorded();
+        $this->assertCount(1, $sent);
+        $this->assertStringContainsString('access_token=suite-token', $sent[0][0]->url());
+    }
+
+    public function test_token_resolver_empty_returns_empty_token(): void
+    {
+        $client = new WechatWorkApiClient('corp123', 'secret456', 'agent1', fn () => '');
+        Http::fake();
+
+        $this->assertSame('', $client->accessToken());
+        Http::assertNothingSent();
+    }
 }

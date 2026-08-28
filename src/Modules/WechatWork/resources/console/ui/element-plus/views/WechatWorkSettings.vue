@@ -2,159 +2,172 @@
   <div class="page">
     <div class="page-header"><h2>企业微信配置</h2></div>
 
-    <!-- ① 核心配置卡：接入模式（互斥二选一） + 当前模式专属配置 -->
+    <!-- ① 接入模式 = 最外层 Tab（选项与内容一体，互斥切换） -->
     <el-card shadow="never" style="max-width: 860px">
-      <div class="section-title" style="margin-top: 0">接入模式</div>
-      <p class="form-tip">两种方式互斥，选择其一即可完成企业微信接入；切换模式仅展示该模式所需配置。</p>
-      <div class="mode-cards">
-        <div class="mode-card" :class="{ active: mode === 'suite' }" @click="chooseMode('suite')">
-          <div class="mode-card-title">平台代开发应用 <el-tag size="small" type="success">推荐</el-tag><el-tag v-if="suiteAuthorized" size="small" style="margin-left: 4px">使用中</el-tag></div>
-          <p>扫码授权即完成接入；可信域名、回调链路由服务商代管，无需填写凭证。</p>
-        </div>
-        <div class="mode-card" :class="{ active: mode === 'self' }" @click="chooseMode('self')">
-          <div class="mode-card-title">自建应用</div>
-          <p>在企微后台自建应用并填入凭证；需自行配置可信域名、回调域与可信 IP（含其他服务商代开发，对本平台等同自建）。</p>
-        </div>
-      </div>
-
-      <!-- ── 平台代开发模式 ── -->
-      <template v-if="mode === 'suite'">
-        <!-- 已授权：状态概览，回调等技术细节折叠 -->
-        <template v-if="suiteAuthorized">
-          <div class="state-line">
-            <el-tag type="success" size="small">已授权</el-tag>
-            <span>企业微信扫码登录<b>已自动启用</b>——可信域名与回调链路由服务商代管，无需其他配置。</span>
-          </div>
-          <el-descriptions :column="2" size="small" border style="margin: 10px 0">
-            <el-descriptions-item label="Corp ID">{{ suiteAuth.corp_id }}</el-descriptions-item>
-            <el-descriptions-item label="Agent ID">{{ suiteAuth.agent_id }}</el-descriptions-item>
-            <el-descriptions-item label="授权时间">{{ suiteAuth.authorized_at || '—' }}</el-descriptions-item>
-            <el-descriptions-item label="可信域名（代管）">{{ suiteCallbackDomain }}</el-descriptions-item>
-          </el-descriptions>
-          <div v-if="suiteAuthPermissions.length" style="margin: 4px 0 10px">
-            <span class="form-tip" style="margin-right: 6px">已获得模板权限：</span>
-            <el-tag v-for="p in suiteAuthPermissions" :key="p.key" size="small" style="margin-right: 6px">{{ p.label }}</el-tag>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px">
-            <el-button type="danger" plain size="small" :loading="suiteRevoking" @click="revokeSuiteAuth">解除授权</el-button>
-            <el-button link size="small" @click="fetchSuiteStatus">刷新状态</el-button>
-          </div>
-          <!-- 应用回调链路：服务商代管的技术细节，默认折叠，仅在平台未配置时提示 -->
-          <el-collapse v-if="suiteAuth.callback" class="adv-collapse">
-            <el-collapse-item name="callback">
-              <template #title>
-                应用回调链路（技术细节，服务商代管）
-                <el-tag v-if="!suiteAuth.callback.app_callback_configured" type="warning" size="small" style="margin-left: 8px">待平台配置</el-tag>
-                <el-tag v-else type="success" size="small" style="margin-left: 8px">就绪</el-tag>
-              </template>
-              <el-alert v-if="!suiteAuth.callback.app_callback_configured" type="warning" :closable="false" show-icon style="margin-bottom: 8px">
-                <template #title>
-                  应用回调尚未配置：请平台在<b>管理后台 → 企微服务商</b>配置模板级应用回调 Token / EncodingAESKey。一次配置后，每家企业「开始代开发应用」时企微自动带出模板的 URL / Token / EncodingAESKey。配置完成前应用无法接收事件推送。
-                </template>
-              </el-alert>
-              <div class="callback-row">
-                <span class="callback-label">应用回调 URL（模板统一地址，企微自动带出）：</span>
-                <code class="callback-code">{{ suiteAuth.callback.app_callback_url }}</code>
-                <el-button link type="primary" size="small" @click="copyText(suiteAuth.callback.app_callback_url)">复制</el-button>
-              </div>
-              <div v-if="suiteAuth.callback.app_callback_url_legacy" class="callback-row" style="margin-top: 4px">
-                <span class="callback-label">备用地址（手填时用）：</span>
-                <code class="callback-code">{{ suiteAuth.callback.app_callback_url_legacy }}</code>
-                <el-button link type="primary" size="small" @click="copyText(suiteAuth.callback.app_callback_url_legacy)">复制</el-button>
-              </div>
-              <p class="form-tip" style="margin-top: 8px">可信域名须填 <b>{{ suiteCallbackDomain }}</b>（回调 URL 的域名部分）；应用主页可填 club.lanyantu.com 等终端站点（与认证无关）。</p>
-            </el-collapse-item>
-          </el-collapse>
-        </template>
-        <!-- 未授权：引导授权 -->
-        <template v-else>
-          <div class="state-line">
-            <span>尚未授权。扫码授权完成后企业微信扫码登录<b>自动启用</b>，无需去其他页面开启开关。</span>
-          </div>
-          <div v-if="suiteAuthUrl" class="suite-qr-box">
-            <div class="suite-qr">
-              <QrcodeVue :value="suiteAuthUrl" :size="176" level="M" render-as="canvas" />
-            </div>
-            <p class="form-tip" style="margin: 8px 0 0; text-align: center">
-              请使用<b>企业微信</b>扫描二维码，由企业管理员确认授权；授权完成后点击「刷新状态」
-            </p>
-            <div style="display: flex; gap: 8px; justify-content: center; margin-top: 8px">
-              <el-button size="small" :loading="suiteAuthorizing" @click="startSuiteAuth">重新生成二维码</el-button>
-              <el-button size="small" @click="fetchSuiteStatus">刷新状态</el-button>
-            </div>
-            <div v-if="suiteAuthPermissions.length" class="suite-perms">
-              <div class="help-title" style="font-size: 13px">授权后将获得以下模板权限（可信域名/回调域由服务商代管，无需逐项配置）</div>
-              <div style="margin-top: 4px">
-                <el-tag v-for="p in suiteAuthPermissions" :key="p.key" size="small" style="margin-right: 6px">{{ p.label }}</el-tag>
-              </div>
-            </div>
-          </div>
-          <div v-else style="display: flex; align-items: center; gap: 8px; margin-top: 8px">
-            <el-button type="primary" :loading="suiteAuthorizing" @click="startSuiteAuth">使用平台代开发应用扫码授权</el-button>
-            <el-button link @click="fetchSuiteStatus">刷新状态</el-button>
-          </div>
-          <p v-if="suiteAuth.status === 'revoked'" class="form-tip" style="margin-top: 6px">当前状态：已解除，可重新扫码授权</p>
-          <p v-if="suiteAuthHint" class="form-tip" style="margin-top: 6px">{{ suiteAuthHint }}</p>
-          <p v-if="suiteAuthError" class="form-tip" style="margin-top: 6px; color: var(--el-color-danger)">{{ suiteAuthError }}</p>
-        </template>
-      </template>
-
-      <!-- ── 自建应用模式 ── -->
-      <template v-else>
-        <div class="section-title">自建应用凭证</div>
-        <p class="form-tip">在此填入企微自建应用凭证（含其他服务商代开发应用，对本平台等同自建）。</p>
-        <el-form label-width="90px" class="config-form">
-          <el-form-item label="Corp ID"><el-input v-model="self.corp_id" placeholder="ww1234567890abcdef" /></el-form-item>
-          <el-form-item label="Agent ID"><el-input v-model="self.agent_id" placeholder="1000001" /></el-form-item>
-          <el-form-item label="Secret"><el-input v-model="self.secret" /></el-form-item>
-          <el-form-item v-if="self.redirect" label="回调地址">
-            <el-input :model-value="self.redirect" readonly />
-          </el-form-item>
-        </el-form>
-        <el-button type="primary" size="small" :loading="selfSaving" @click="saveSelf">保存自建凭证</el-button>
-        <el-alert type="info" :closable="false" show-icon style="margin-top: 12px">
-          <template #title>
-            凭证保存后，请到「第三方登录配置 → 企业微信」打开「启用企业微信扫码登录」开关。
+      <el-tabs v-model="mode" class="mode-tabs" :before-leave="guardModeSwitch">
+        <!-- ── 平台代开发应用 ── -->
+        <el-tab-pane name="suite">
+          <template #label>
+            <span class="tab-label">平台代开发应用
+              <el-tag size="small" type="success">推荐</el-tag>
+              <el-tag v-if="suiteAuthorized" size="small" style="margin-left: 4px">使用中</el-tag>
+            </span>
           </template>
-        </el-alert>
 
-        <div class="help-box">
-          <div class="help-title">📖 配置指引（企业微信管理后台）</div>
-          <ol>
-            <li>管理员登录 <a href="https://work.weixin.qq.com/wework_admin/" target="_blank" rel="noopener">企业微信管理后台</a> →「应用管理」→「自建」→「创建应用」。</li>
-            <li>进入应用详情页，复制 <b>AgentId</b> 和 <b>Secret</b> 填入本页。</li>
-            <li>「我的企业」→「企业信息」页面底部，复制 <b>企业 ID（CorpID）</b> 填入本页。</li>
-            <li>应用详情页 →「企业微信授权登录」→ 设置「授权回调域」为本系统域名（即上方回调地址中的域名部分，不含 https:// 与路径）。</li>
-            <li>应用详情页 →「开发者接口」→「企业可信 IP」，添加本系统服务器的<b>出口 IP</b>（如不确定请联系平台方获取）。</li>
-          </ol>
-          <div class="help-title">🛠 常见问题排查</div>
-          <ul>
-            <li><b>扫码后提示 redirect_uri 域名不合法（50001）</b>：「授权回调域」未配置或与回调地址域名不一致。</li>
-            <li><b>报错 60020 not allow to access from your ip</b>：服务器出口 IP 未加入「企业可信 IP」列表。</li>
-            <li><b>Secret 无效（40001）</b>：填的不是该自建应用的 Secret（勿使用通讯录同步等其他 Secret）；Secret 重置后需同步更新本页。</li>
-            <li><b>扫码成功但登录失败</b>：确认扫码人属于该应用的「可见范围」。</li>
-          </ul>
-        </div>
-      </template>
+          <template v-if="suiteAuthorized">
+            <!-- 授权信息（左） + 权限清单（右） -->
+            <div class="auth-grid">
+              <div class="auth-info">
+                <div class="state-line">
+                  <el-tag type="success" size="small">已授权</el-tag>
+                  <span>企业微信扫码登录<b>已自动启用</b>，无需其他配置。</span>
+                </div>
+                <div class="auth-row"><span class="auth-label">Corp ID</span><code>{{ suiteAuth.corp_id }}</code></div>
+                <div class="auth-row"><span class="auth-label">Agent ID</span><code>{{ suiteAuth.agent_id }}</code></div>
+                <div class="auth-row"><span class="auth-label">授权时间</span><span>{{ suiteAuth.authorized_at || '—' }}</span></div>
+              </div>
+              <div class="auth-perms">
+                <div class="auth-label">已获得模板权限</div>
+                <div class="perm-tags">
+                  <el-tag v-for="p in suiteAuthPermissions" :key="p.key" size="small" style="margin: 0 6px 6px 0">{{ p.label }}</el-tag>
+                  <span v-if="!suiteAuthPermissions.length" class="form-tip">—</span>
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; margin: 4px 0 8px">
+              <el-button type="danger" plain size="small" :loading="suiteRevoking" @click="revokeSuiteAuth">解除授权</el-button>
+              <el-button link size="small" @click="fetchSuiteStatus">刷新状态</el-button>
+            </div>
+            <!-- 应用回调链路：服务商代管的技术细节，默认折叠 -->
+            <el-collapse v-if="suiteAuth.callback" class="adv-collapse">
+              <el-collapse-item name="callback">
+                <template #title>
+                  应用回调链路（技术细节，服务商代管）
+                  <el-tag v-if="!suiteAuth.callback.app_callback_configured" type="warning" size="small" style="margin-left: 8px">待平台配置</el-tag>
+                  <el-tag v-else type="success" size="small" style="margin-left: 8px">就绪</el-tag>
+                </template>
+                <div class="callback-quote">
+                  <div v-if="!suiteAuth.callback.app_callback_configured" class="callback-warn">
+                    应用回调尚未配置：请平台在「管理后台 → 企微服务商」配置模板级应用回调 Token / EncodingAESKey，配置完成前应用无法接收事件推送。
+                  </div>
+                  <div class="callback-row">
+                    <span class="callback-label">应用回调 URL</span>
+                    <code class="callback-code">{{ suiteAuth.callback.app_callback_url }}</code>
+                    <el-button link type="primary" size="small" @click="copyText(suiteAuth.callback.app_callback_url)">复制</el-button>
+                  </div>
+                  <div v-if="suiteAuth.callback.app_callback_url_legacy" class="callback-row">
+                    <span class="callback-label">备用地址</span>
+                    <code class="callback-code">{{ suiteAuth.callback.app_callback_url_legacy }}</code>
+                    <el-button link type="primary" size="small" @click="copyText(suiteAuth.callback.app_callback_url_legacy)">复制</el-button>
+                  </div>
+                  <div class="callback-tip">
+                    可信域名须填 <b>{{ suiteCallbackDomain }}</b>（不含 https:// 与路径）；应用主页可填 club.lanyantu.com 等终端站点（与认证无关）。
+                  </div>
+                </div>
+              </el-collapse-item>
+            </el-collapse>
+          </template>
+
+          <template v-else>
+            <div class="state-line">
+              <span>尚未授权。扫码授权完成后企业微信扫码登录<b>自动启用</b>，无需去其他页面开启开关。</span>
+            </div>
+            <div v-if="suiteAuthUrl" class="suite-qr-box">
+              <div class="suite-qr">
+                <QrcodeVue :value="suiteAuthUrl" :size="176" level="M" render-as="canvas" />
+              </div>
+              <p class="form-tip" style="margin: 8px 0 0; text-align: center">
+                请使用<b>企业微信</b>扫描二维码，由企业管理员确认授权；授权完成后点击「刷新状态」
+              </p>
+              <div style="display: flex; gap: 8px; justify-content: center; margin-top: 8px">
+                <el-button size="small" :loading="suiteAuthorizing" @click="startSuiteAuth">重新生成二维码</el-button>
+                <el-button size="small" @click="fetchSuiteStatus">刷新状态</el-button>
+              </div>
+              <div v-if="suiteAuthPermissions.length" class="suite-perms">
+                <div class="auth-label" style="font-size: 13px">授权后将获得以下模板权限（可信域名/回调域由服务商代管，无需逐项配置）</div>
+                <div style="margin-top: 4px">
+                  <el-tag v-for="p in suiteAuthPermissions" :key="p.key" size="small" style="margin-right: 6px">{{ p.label }}</el-tag>
+                </div>
+              </div>
+            </div>
+            <div v-else style="display: flex; align-items: center; gap: 8px; margin: 8px 0">
+              <el-button type="primary" :loading="suiteAuthorizing" @click="startSuiteAuth">使用平台代开发应用扫码授权</el-button>
+              <el-button link @click="fetchSuiteStatus">刷新状态</el-button>
+            </div>
+            <p v-if="suiteAuth.status === 'revoked'" class="form-tip" style="margin-top: 6px">当前状态：已解除，可重新扫码授权</p>
+            <p v-if="suiteAuthHint" class="form-tip" style="margin-top: 6px">{{ suiteAuthHint }}</p>
+            <p v-if="suiteAuthError" class="form-tip" style="margin-top: 6px; color: var(--el-color-danger)">{{ suiteAuthError }}</p>
+          </template>
+        </el-tab-pane>
+
+        <!-- ── 自建应用 ── -->
+        <el-tab-pane label="自建应用" name="self">
+          <p class="form-tip" style="margin: 4px 0 10px">在此填入企微自建应用凭证（含其他服务商代开发应用，对本平台等同自建）。</p>
+          <el-form label-width="90px" class="config-form">
+            <el-form-item label="Corp ID"><el-input v-model="self.corp_id" placeholder="ww1234567890abcdef" /></el-form-item>
+            <el-form-item label="Agent ID"><el-input v-model="self.agent_id" placeholder="1000001" /></el-form-item>
+            <el-form-item label="Secret"><el-input v-model="self.secret" /></el-form-item>
+            <el-form-item v-if="self.redirect" label="回调地址">
+              <el-input :model-value="self.redirect" readonly />
+            </el-form-item>
+          </el-form>
+          <el-button type="primary" size="small" :loading="selfSaving" @click="saveSelf">保存自建凭证</el-button>
+          <el-alert type="info" :closable="false" show-icon style="margin-top: 12px">
+            <template #title>
+              凭证保存后，请到「第三方登录配置 → 企业微信」打开「启用企业微信扫码登录」开关。
+            </template>
+          </el-alert>
+
+          <div class="help-box">
+            <div class="help-title">📖 配置指引（企业微信管理后台）</div>
+            <ol>
+              <li>管理员登录 <a href="https://work.weixin.qq.com/wework_admin/" target="_blank" rel="noopener">企业微信管理后台</a> →「应用管理」→「自建」→「创建应用」。</li>
+              <li>进入应用详情页，复制 <b>AgentId</b> 和 <b>Secret</b> 填入本页。</li>
+              <li>「我的企业」→「企业信息」页面底部，复制 <b>企业 ID（CorpID）</b> 填入本页。</li>
+              <li>应用详情页 →「企业微信授权登录」→ 设置「授权回调域」为本系统域名（即上方回调地址中的域名部分，不含 https:// 与路径）。</li>
+              <li>应用详情页 →「开发者接口」→「企业可信 IP」，添加本系统服务器的<b>出口 IP</b>（如不确定请联系平台方获取）。</li>
+            </ol>
+            <div class="help-title">🛠 常见问题排查</div>
+            <ul>
+              <li><b>扫码后提示 redirect_uri 域名不合法（50001）</b>：「授权回调域」未配置或与回调地址域名不一致。</li>
+              <li><b>报错 60020 not allow to access from your ip</b>：服务器出口 IP 未加入「企业可信 IP」列表。</li>
+              <li><b>Secret 无效（40001）</b>：填的不是该自建应用的 Secret（勿使用通讯录同步等其他 Secret）；Secret 重置后需同步更新本页。</li>
+              <li><b>扫码成功但登录失败</b>：确认扫码人属于该应用的「可见范围」。</li>
+            </ul>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
     </el-card>
 
-    <!-- ② 辅助配置卡：可信域名验证文件（挂载域名显著标识，场景随模式主次分明） -->
+    <!-- ② 辅助配置卡：可信域名验证文件（核心操作前置，解释收纳进 tooltip） -->
     <el-card shadow="never" style="max-width: 860px; margin-top: 16px">
       <div class="section-title" style="margin-top: 0">可信域名验证文件（WW_verify）</div>
-      <p class="form-tip">
-        企微要求对配置的<b>可信域名</b>做归属认证时，会下发 <code>WW_verify_xxx.txt</code> 验证文件。
-        将文件名登记到下方列表，系统即在该文件的<b>挂载域名</b>根路径提供下载，供企微校验通过：
-      </p>
       <div class="verify-host">
-        <span class="verify-host-label">验证文件挂载域名（租户域名）：</span>
+        <span class="verify-host-label">验证文件挂载域名（租户域）：</span>
         <code>https://{{ verifyDomain || '未配置租户域名' }}/WW_verify_xxx.txt</code>
       </div>
-      <p class="form-tip">
-        <template v-if="mode === 'suite'">当前模式（平台代开发）对应场景：为企业配置「企业微信授权登录（Web 登录）」的可信域名时需要此文件；</template>
-        <template v-else>当前模式（自建应用）对应场景：企微后台「应用详情 → 开发者接口 → 网页授权及JS-SDK」配置可信域名时需要此文件；</template>
-        另一模式下同样适用。注意：扫码登录本身只需「授权回调域」，此文件仅用于可信域名归属认证。
-      </p>
-      <div v-if="verifyFiles.length" style="margin: 10px 0 8px">
+      <div class="verify-actions">
+        <el-input
+          v-model="verifyFileInput"
+          size="small"
+          style="max-width: 280px"
+          placeholder="如：WW_verify_mLUxXhK2fEC6jPsB"
+          @keyup.enter="handleAddVerifyFile"
+        />
+        <el-button size="small" type="primary" :loading="verifyFilesSaving" @click="handleAddVerifyFile">添加</el-button>
+        <el-tooltip placement="top" effect="light">
+          <template #content>
+            什么时候需要此文件？<br />
+            ① 自建应用：企微后台「应用详情 → 开发者接口 → 网页授权及JS-SDK」配置可信域名时；<br />
+            ② 平台代开发：为企业配置「企业微信授权登录（Web 登录）」的可信域名时。<br />
+            注意：扫码登录本身只需「授权回调域」，此文件仅用于可信域名归属认证。
+          </template>
+          <el-button link type="info" size="small">
+            <el-icon style="margin-right: 2px"><QuestionFilled /></el-icon>什么时候需要此文件？
+          </el-button>
+        </el-tooltip>
+      </div>
+      <div v-if="verifyFiles.length" style="margin-top: 8px">
         <div
           v-for="f in verifyFiles"
           :key="f"
@@ -165,27 +178,15 @@
           <el-button link type="danger" size="small" @click="handleRemoveVerifyFile(f)">删除</el-button>
         </div>
       </div>
-      <div style="display: flex; gap: 6px; margin-top: 4px">
-        <el-input
-          v-model="verifyFileInput"
-          size="small"
-          style="max-width: 280px"
-          placeholder="如：WW_verify_mLUxXhK2fEC6jPsB"
-          @keyup.enter="handleAddVerifyFile"
-        />
-        <el-button size="small" type="primary" :loading="verifyFilesSaving" @click="handleAddVerifyFile">添加</el-button>
-      </div>
+      <p v-else class="form-tip" style="margin-top: 8px">暂无验证文件。企微下发验证文件后，将文件名登记到上方列表即可。</p>
     </el-card>
 
-    <!-- ③ 独立查看卡：套餐与许可用量（只读，与配置流程分离） -->
+    <!-- ③ 独立查看卡：套餐与许可用量（只读） -->
     <el-card v-if="capability" shadow="never" style="max-width: 860px; margin-top: 16px">
       <div class="section-title" style="margin-top: 0">套餐与许可用量（只读）</div>
-      <p class="form-tip">能力按套餐分层开通（基础/互通/自建/存档），许可配额超量时请联系平台升级套餐。</p>
       <el-descriptions :column="2" size="small" border style="margin: 8px 0">
         <el-descriptions-item label="当前套餐">{{ planName }}</el-descriptions-item>
-        <el-descriptions-item label="许可免费窗口">{{ trialText }}</el-descriptions-item>
-        <el-descriptions-item label="接入模式">{{ modeText }}</el-descriptions-item>
-        <el-descriptions-item label="平台出口 IP">{{ proxyExitIp || '未分配' }}</el-descriptions-item>
+        <el-descriptions-item v-if="capability.free_trial_ends_at" label="许可免费窗口">{{ trialText }}</el-descriptions-item>
       </el-descriptions>
       <div style="margin: 8px 0">
         <el-tag
@@ -213,8 +214,8 @@
           </template>
         </el-table-column>
       </el-table>
-      <p v-if="proxyExitIp" class="form-tip" style="margin-top: 8px">
-        自建应用需将平台出口 IP <b>{{ proxyExitIp }}</b> 加入企业后台「开发者接口 → 企业可信 IP」，否则企微 API 报 60020；代开发模式已由平台统一处理。
+      <p v-if="proxyExitIp && mode === 'self'" class="form-tip" style="margin-top: 8px">
+        自建应用需将平台出口 IP <b>{{ proxyExitIp }}</b> 加入企业后台「开发者接口 → 企业可信 IP」，否则企微 API 报 60020。
       </p>
     </el-card>
   </div>
@@ -224,6 +225,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { QuestionFilled } from '@element-plus/icons-vue'
 import QrcodeVue from 'qrcode.vue'
 import { useUserStore } from '@stores/user'
 
@@ -240,23 +242,21 @@ const suiteAuthPermissions = ref<{ key: string; label: string }[]>([])
 
 const suiteAuthorized = computed(() => suiteAuth.status === 'authorized')
 
-// ─── 接入模式（互斥选择）：已授权时锁定 suite；切自建需先解除授权 ───
+// ─── 接入模式（Tab 互斥）：已授权时锁定 suite；切自建需先解除授权 ───
 const mode = ref<'suite' | 'self'>('suite')
 
-const chooseMode = async (m: 'suite' | 'self') => {
-  if (m === mode.value) return
-  if (m === 'self' && suiteAuth.status === 'authorized') {
-    try {
-      await ElMessageBox.confirm(
-        '两种接入方式互斥。切换到自建应用需先解除平台代开发授权，解除后企微扫码登录立即回退（重新授权或配置自建凭证前不可用）。',
-        '切换接入模式',
-        { type: 'warning', confirmButtonText: '解除授权并切换', cancelButtonText: '取消' },
-      )
-    } catch { return }
-    await doRevokeSuiteAuth()
-    if (suiteAuth.status === 'authorized') return // 解除失败则不切换
-  }
-  mode.value = m
+const guardModeSwitch = async (newMode: string | number): Promise<boolean> => {
+  if (newMode !== 'self' || suiteAuth.status !== 'authorized') return true
+  try {
+    await ElMessageBox.confirm(
+      '两种接入方式互斥。切换到自建应用需先解除平台代开发授权，解除后企微扫码登录立即回退（重新授权或配置自建凭证前不可用）。',
+      '切换接入模式',
+      { type: 'warning', confirmButtonText: '解除授权并切换', cancelButtonText: '取消' },
+    )
+  } catch { return false }
+  await doRevokeSuiteAuth()
+  // 解除失败（仍为已授权）则阻止切换
+  return suiteAuth.status !== 'authorized'
 }
 
 // 可信域名 = 应用回调 URL 的域名（企微可信域名须与回调域名一致，不含 https:// 与路径）
@@ -408,9 +408,12 @@ const handleRemoveVerifyFile = async (file: string) => {
 // ─── 套餐与许可用量（阶段 C，11.5） ───────────────────
 const capability = ref<any>(null)
 
-const planName = computed(() => capability.value?.plan ? (capability.value.plan.display_name || capability.value.plan.name) : '-')
+// 无套餐记录（未订阅）→ 显示「免费版」，避免 '-' 造成「未加载」错觉
+const planName = computed(() => {
+  if (capability.value?.plan) return capability.value.plan.display_name || capability.value.plan.name
+  return '免费版'
+})
 const trialText = computed(() => capability.value?.free_trial_ends_at ? `至 ${capability.value.free_trial_ends_at.slice(0, 10)}` : '-')
-const modeText = computed(() => ({ suite: '服务商代开发', self: '自建应用', none: '未接入' } as any)[capability.value?.mode] || '-')
 const proxyExitIp = computed(() => capability.value?.proxy?.enabled ? (capability.value.proxy.exit_ip || '') : '')
 
 const capabilityTags = computed(() => {
@@ -463,22 +466,29 @@ onMounted(() => {
 .help-box ol, .help-box ul { margin: 4px 0 12px; padding-left: 20px; }
 .help-box code { background: var(--el-fill-color); padding: 1px 6px; border-radius: 3px; word-break: break-all; }
 .help-box a { color: var(--el-color-primary); }
-.mode-cards { display: flex; gap: 12px; margin: 8px 0 16px; }
-.mode-card { flex: 1; padding: 12px 14px; border: 1px solid var(--el-border-color-lighter); border-radius: 6px; cursor: pointer; transition: border-color .2s, box-shadow .2s; }
-.mode-card:hover { border-color: var(--el-color-primary-light-5); }
-.mode-card.active { border-color: var(--el-color-primary); box-shadow: 0 0 0 1px var(--el-color-primary-light-7) inset; background: var(--el-color-primary-light-9); }
-.mode-card-title { font-weight: 600; font-size: 14px; color: var(--el-text-color-primary); display: flex; align-items: center; gap: 6px; }
-.mode-card p { font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.5; margin: 6px 0 0; }
+.mode-tabs :deep(.el-tabs__header) { margin-bottom: 14px; }
+.tab-label { display: inline-flex; align-items: center; gap: 4px; }
 .state-line { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--el-text-color-regular); line-height: 1.6; margin: 4px 0 8px; }
-.adv-collapse { margin-top: 8px; border-top: none; }
+.auth-grid { display: flex; gap: 24px; flex-wrap: wrap; margin: 4px 0 8px; }
+.auth-info { flex: 1 1 260px; min-width: 0; }
+.auth-perms { flex: 1 1 220px; min-width: 0; }
+.auth-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--el-text-color-regular); padding: 3px 0; }
+.auth-label { flex: 0 0 76px; font-size: 12px; color: var(--el-text-color-secondary); }
+.auth-row code { font-size: 12px; background: var(--el-fill-color); padding: 1px 6px; border-radius: 3px; word-break: break-all; }
+.perm-tags { margin-top: 6px; }
+.adv-collapse { margin-top: 4px; border-top: none; }
 .adv-collapse :deep(.el-collapse-item__header) { font-size: 12px; color: var(--el-text-color-secondary); height: 36px; }
+.callback-quote { background: var(--el-fill-color-light); border-left: 3px solid var(--el-color-primary-light-5); border-radius: 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.callback-warn { font-size: 12px; color: var(--el-color-warning); line-height: 1.6; }
+.callback-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.callback-label { flex: 0 0 88px; font-size: 12px; color: var(--el-text-color-secondary); white-space: nowrap; }
+.callback-code { font-size: 12px; background: #fff; border: 1px solid var(--el-border-color-lighter); padding: 2px 6px; border-radius: 3px; word-break: break-all; flex: 1; min-width: 0; }
+.callback-tip { font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.6; }
 .suite-qr-box { margin-top: 10px; }
 .suite-qr { display: inline-block; padding: 10px; background: #fff; border: 1px solid var(--el-border-color-lighter); border-radius: 6px; }
 .suite-perms { margin-top: 10px; padding: 8px 10px; background: var(--el-fill-color-light); border-radius: 4px; }
-.callback-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.callback-label { font-size: 12px; color: var(--el-text-color-secondary); white-space: nowrap; }
-.callback-code { font-size: 12px; background: var(--el-fill-color); padding: 2px 6px; border-radius: 3px; word-break: break-all; flex: 1; min-width: 0; }
-.verify-host { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0; padding: 8px 12px; background: var(--el-color-primary-light-9); border: 1px solid var(--el-color-primary-light-7); border-radius: 6px; }
+.verify-host { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; padding: 8px 12px; background: var(--el-color-primary-light-9); border: 1px solid var(--el-color-primary-light-7); border-radius: 6px; }
 .verify-host-label { font-size: 12px; color: var(--el-text-color-regular); white-space: nowrap; }
 .verify-host code { font-size: 12px; word-break: break-all; }
+.verify-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 </style>

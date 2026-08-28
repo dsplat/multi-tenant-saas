@@ -96,10 +96,12 @@ jobs:
         working-directory: resources/js/admin
         run: npx vite build
 
+      # 路径须与 module-loader 的发现 glob 一致: /src/Modules/*/resources/admin/ui/*/views/*.vue
+      # (v2.6.0 起视图按 UI 框架分层, 旧 resources/admin/views/ 平铺布局已废弃)
       - name: Create test module
         run: |
-          mkdir -p src/Modules/TestIso/resources/admin/views
-          cat > src/Modules/TestIso/resources/admin/views/TestIso.vue << 'EOF'
+          mkdir -p src/Modules/TestIso/resources/admin/ui/element-plus/views
+          cat > src/Modules/TestIso/resources/admin/ui/element-plus/views/TestIso.vue << 'EOF'
           <template><div>TestIso</div></template>
           EOF
 

@@ -40,7 +40,9 @@ jobs:
           coverage: none
 
       - name: Install dependencies
-        run: composer install --no-interaction --no-progress
+        run: |
+          mkdir -p bootstrap/cache   # post-autoload-dump 的 package:discover 需要
+          composer install --no-interaction --no-progress
 
       - name: Run PHPUnit (parallel)
         run: composer test

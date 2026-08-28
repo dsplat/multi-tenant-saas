@@ -102,7 +102,8 @@ abstract class TestCase extends BaseTestCase
         $app['config']->set('auth.defaults.guard', 'sanctum');
         $app['config']->set('auth.guards.sanctum', [
             'driver' => 'sanctum',
-            'provider' => 'users',
+            // 与生产一致：sanctum guard 不绑定 provider，Operator/User token 均可认证
+            'provider' => null,
         ]);
         $app['config']->set('auth.providers.users', [
             'driver' => 'eloquent',

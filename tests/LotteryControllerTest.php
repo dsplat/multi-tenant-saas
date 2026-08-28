@@ -22,6 +22,8 @@ class LotteryControllerTest extends TestCase
 
     private User $user;
 
+    private Operator $operator;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -59,7 +61,7 @@ class LotteryControllerTest extends TestCase
             ->value('role_id');
 
         // 创建租户级 operator
-        $operator = Operator::create([
+        $this->operator = Operator::create([
             'email' => $this->user->email,
             'name' => $this->user->name,
             'scope' => 'tenant',
@@ -68,7 +70,7 @@ class LotteryControllerTest extends TestCase
         ]);
 
         OperatorTenant::create([
-            'operator_id' => $operator->operator_id,
+            'operator_id' => $this->operator->operator_id,
             'tenant_id' => $this->tenantId,
             'user_id' => $this->user->user_id,
             'role' => 'tenant_admin',
@@ -93,7 +95,7 @@ class LotteryControllerTest extends TestCase
             'slug' => 'test-activity',
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/lottery");
 
         $response->assertStatus(200)
@@ -103,7 +105,7 @@ class LotteryControllerTest extends TestCase
 
     public function test_store_activity(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/lottery", [
                 'title' => '新年抽奖',
                 'slug' => 'new-year-lottery',
@@ -137,7 +139,7 @@ class LotteryControllerTest extends TestCase
             'slug' => 'test-activity',
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/lottery/{$activity->activity_id}");
 
         $response->assertStatus(200)
@@ -153,7 +155,7 @@ class LotteryControllerTest extends TestCase
             'slug' => 'test-activity',
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->putJson("/api/v1/tenants/{$this->tenantId}/lottery/{$activity->activity_id}", [
                 'title' => '新标题',
             ]);
@@ -172,7 +174,7 @@ class LotteryControllerTest extends TestCase
             'status' => 'draft',
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->deleteJson("/api/v1/tenants/{$this->tenantId}/lottery/{$activity->activity_id}");
 
         $response->assertStatus(200)
@@ -188,7 +190,7 @@ class LotteryControllerTest extends TestCase
             'status' => 'active',
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->deleteJson("/api/v1/tenants/{$this->tenantId}/lottery/{$activity->activity_id}");
 
         $response->assertStatus(422)
@@ -212,7 +214,7 @@ class LotteryControllerTest extends TestCase
             'weight' => 5,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/lottery/{$activity->activity_id}/prizes");
 
         $response->assertStatus(200)
@@ -228,7 +230,7 @@ class LotteryControllerTest extends TestCase
             'slug' => 'test-activity',
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/lottery/{$activity->activity_id}/prizes", [
                 'name' => '特等奖',
                 'type' => 'physical',
@@ -261,7 +263,7 @@ class LotteryControllerTest extends TestCase
             'weight' => 100,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/lottery/{$activity->activity_id}/draw");
 
         $response->assertStatus(200)
@@ -277,7 +279,7 @@ class LotteryControllerTest extends TestCase
             'status' => 'draft',
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/lottery/{$activity->activity_id}/draw");
 
         $response->assertStatus(422)
@@ -294,7 +296,7 @@ class LotteryControllerTest extends TestCase
             'slug' => 'test-activity',
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/lottery/{$activity->activity_id}/statistics");
 
         $response->assertStatus(200)
@@ -320,7 +322,7 @@ class LotteryControllerTest extends TestCase
             'slug' => 'other-activity',
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$otherTenantId}/lottery/{$activity->activity_id}");
 
         $response->assertStatus(403);

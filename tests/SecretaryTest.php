@@ -77,6 +77,7 @@ class SecretaryTest extends TestCase
                 'activity_plan_draft', 'activity_plan_commit', 'activity_status',
                 'thread_review', 'thread_track', 'thread_untrack',
                 'create_product', 'product_list', 'coupon_list', 'sms_list_templates',
+                'course_list', 'create_course', 'update_course',
             ],
             $template['tools']
         );
@@ -88,8 +89,12 @@ class SecretaryTest extends TestCase
                 'manage_tags', 'ai_auto_tag', 'create_live_code', 'send_message', 'issue_coupon',
                 'create_sms_signature', 'send_sms_batch', 'schedule_sms_batch', 'create_poster',
                 'adjust_points', 'create_moments_sop', 'create_mass_push',
+                'set_group_announcement', 'trigger_chat_archive_sync',
+                'get_community_list',
                 'search_customer', 'get_customer_tags', 'list_coupon_templates', 'list_poster_templates',
                 'get_points_balance', 'list_sms_signatures', 'list_moments_sop', 'list_mass_push',
+                'list_external_contacts', 'list_group_bot_rules', 'list_welcome_messages',
+                'list_chat_archives', 'search_chat_archive',
             ],
             $template['optional_tools']
         );

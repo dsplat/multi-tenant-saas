@@ -32,6 +32,7 @@ class AgentPromptContractTest extends TestCase
         'form_state', 'next_action', 'step_input', 'step_output',
         'route_path', 'navigate_hint', 'tool_call_id',
         'activity_plan', 'entity_type', 'entity_id',
+        'community_id', // get_community_list 返回的群 ID 字段名
     ];
 
     /**

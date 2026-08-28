@@ -65,8 +65,8 @@ class TenantOAuthControllerTest extends TestCase
         $response = $controller->updateOAuthConfig($request, 'wechat_work');
 
         $this->assertSame(422, $response->getStatusCode());
-        // 自建凭证未写入（防止双轨并存）
-        $this->assertSame('', TenantSetting::get(self::TEST_TENANT_ID, 'oauth', 'wechat_work_corp_id', ''));
+        // 自建凭证未写入（防止双轨并存）；凭证存 wechatwork 组（9.6 模块边界）
+        $this->assertSame('', TenantSetting::get(self::TEST_TENANT_ID, 'wechatwork', 'corp_id', ''));
     }
 
     public function test_update_wechat_work_allowed_without_suite_authorization(): void
@@ -82,7 +82,7 @@ class TenantOAuthControllerTest extends TestCase
         $response = $controller->updateOAuthConfig($request, 'wechat_work');
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('ww1234567890abcdef', TenantSetting::get(self::TEST_TENANT_ID, 'oauth', 'wechat_work_corp_id', ''));
+        $this->assertSame('ww1234567890abcdef', TenantSetting::get(self::TEST_TENANT_ID, 'wechatwork', 'corp_id', ''));
     }
 
     public function test_service_exists(): void

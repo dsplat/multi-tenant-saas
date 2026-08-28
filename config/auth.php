@@ -38,6 +38,13 @@ return [
             'driver' => 'session',
             'provider' => 'operators',
         ],
+
+        // Bearer token guard：不绑定 provider，Operator/User 两种身份的
+        // token 均可认证（Sanctum 默认 fallback 绑 users，会拒掉 Operator）。
+        'sanctum' => [
+            'driver' => 'sanctum',
+            'provider' => null,
+        ],
     ],
 
     /*

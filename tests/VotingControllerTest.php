@@ -20,6 +20,8 @@ class VotingControllerTest extends TestCase
 
     private User $user;
 
+    private Operator $operator;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -54,7 +56,7 @@ class VotingControllerTest extends TestCase
             ->value('role_id');
 
         // 创建租户级 operator
-        $operator = Operator::create([
+        $this->operator = Operator::create([
             'email' => $this->user->email,
             'name' => $this->user->name,
             'scope' => 'tenant',
@@ -63,7 +65,7 @@ class VotingControllerTest extends TestCase
         ]);
 
         OperatorTenant::create([
-            'operator_id' => $operator->operator_id,
+            'operator_id' => $this->operator->operator_id,
             'tenant_id' => $this->tenantId,
             'user_id' => $this->user->user_id,
             'role' => 'tenant_admin',
@@ -88,7 +90,7 @@ class VotingControllerTest extends TestCase
             ],
         ], $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/voting");
 
         $response->assertStatus(200)
@@ -97,7 +99,7 @@ class VotingControllerTest extends TestCase
 
     public function test_store_vote(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/voting", [
                 'title' => '最佳员工评选',
                 'description' => '评选年度最佳员工',
@@ -125,7 +127,7 @@ class VotingControllerTest extends TestCase
             ],
         ], $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/voting/{$vote->vote_id}");
 
         $response->assertStatus(200)
@@ -144,7 +146,7 @@ class VotingControllerTest extends TestCase
             ],
         ], $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->putJson("/api/v1/tenants/{$this->tenantId}/voting/{$vote->vote_id}", [
                 'title' => '新标题',
             ]);
@@ -166,7 +168,7 @@ class VotingControllerTest extends TestCase
             ],
         ], $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->deleteJson("/api/v1/tenants/{$this->tenantId}/voting/{$vote->vote_id}");
 
         $response->assertStatus(200)
@@ -185,7 +187,7 @@ class VotingControllerTest extends TestCase
             ],
         ], $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->deleteJson("/api/v1/tenants/{$this->tenantId}/voting/{$vote->vote_id}");
 
         $response->assertStatus(422)
@@ -210,7 +212,7 @@ class VotingControllerTest extends TestCase
 
         $optionId = $vote->options->first()->vote_option_id;
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/voting/{$vote->vote_id}/cast", [
                 'option_ids' => [$optionId],
             ]);
@@ -233,7 +235,7 @@ class VotingControllerTest extends TestCase
 
         $optionId = $vote->options->first()->vote_option_id;
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/voting/{$vote->vote_id}/cast", [
                 'option_ids' => [$optionId],
             ]);
@@ -256,7 +258,7 @@ class VotingControllerTest extends TestCase
             ],
         ], $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/voting/{$vote->vote_id}/ranking");
 
         $response->assertStatus(200)
@@ -276,7 +278,7 @@ class VotingControllerTest extends TestCase
             ],
         ], $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/voting/{$vote->vote_id}/statistics");
 
         $response->assertStatus(200)
@@ -296,7 +298,7 @@ class VotingControllerTest extends TestCase
             ],
         ], $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/voting/{$vote->vote_id}/records");
 
         $response->assertStatus(200)
@@ -324,7 +326,7 @@ class VotingControllerTest extends TestCase
             ],
         ], $otherTenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$otherTenantId}/voting/{$vote->vote_id}");
 
         $response->assertStatus(403);

@@ -22,6 +22,8 @@ class ToolControllerTest extends TestCase
 
     protected User $user;
 
+    protected Operator $operator;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -40,7 +42,7 @@ class ToolControllerTest extends TestCase
             ->value('role_id');
 
         // 创建租户级 operator
-        $operator = Operator::create([
+        $this->operator = Operator::create([
             'email' => $this->user->email,
             'name' => $this->user->name,
             'scope' => 'tenant',
@@ -48,7 +50,7 @@ class ToolControllerTest extends TestCase
         ]);
 
         OperatorTenant::create([
-            'operator_id' => $operator->operator_id,
+            'operator_id' => $this->operator->operator_id,
             'tenant_id' => 1001,
             'user_id' => $this->user->user_id,
             'role' => 'tenant_admin',
@@ -60,7 +62,7 @@ class ToolControllerTest extends TestCase
 
     protected function authHeaders(int $tenantId = 1001): array
     {
-        $token = $this->user->createToken('test-' . uniqid())->plainTextToken;
+        $token = $this->operator->createToken('test-' . uniqid())->plainTextToken;
 
         return [
             'Authorization' => "Bearer {$token}",

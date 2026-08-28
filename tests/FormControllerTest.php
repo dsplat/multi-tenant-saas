@@ -20,6 +20,8 @@ class FormControllerTest extends TestCase
 
     private User $user;
 
+    private Operator $operator;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -45,7 +47,7 @@ class FormControllerTest extends TestCase
             ->value('role_id');
 
         // 创建租户级 operator
-        $operator = Operator::create([
+        $this->operator = Operator::create([
             'email' => 'form@example.com',
             'name' => 'Test User',
             'scope' => 'tenant',
@@ -55,7 +57,7 @@ class FormControllerTest extends TestCase
 
         // 创建 operator_tenants 映射
         OperatorTenant::create([
-            'operator_id' => $operator->operator_id,
+            'operator_id' => $this->operator->operator_id,
             'tenant_id' => $this->tenantId,
             'user_id' => $this->user->user_id,
             'role' => 'tenant_admin',
@@ -88,7 +90,7 @@ class FormControllerTest extends TestCase
             ],
         ], $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/forms");
 
         $response->assertStatus(200)
@@ -97,7 +99,7 @@ class FormControllerTest extends TestCase
 
     public function test_store_form(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/forms", [
                 'title' => '用户反馈表',
                 'description' => '收集用户反馈',
@@ -132,7 +134,7 @@ class FormControllerTest extends TestCase
             ],
         ], $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/forms/{$form->form_id}");
 
         $response->assertStatus(200)
@@ -150,7 +152,7 @@ class FormControllerTest extends TestCase
             ],
         ], $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->putJson("/api/v1/tenants/{$this->tenantId}/forms/{$form->form_id}", [
                 'title' => '新标题',
             ]);
@@ -171,7 +173,7 @@ class FormControllerTest extends TestCase
             ],
         ], $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->deleteJson("/api/v1/tenants/{$this->tenantId}/forms/{$form->form_id}");
 
         $response->assertStatus(200)
@@ -214,7 +216,7 @@ class FormControllerTest extends TestCase
         // 先提交一条数据
         $service->submitForm($form->form_id, ['name' => '张三'], 1001, $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/forms/{$form->form_id}/submissions");
 
         $response->assertStatus(200)
@@ -233,7 +235,7 @@ class FormControllerTest extends TestCase
             ],
         ], $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/forms/{$form->form_id}/statistics");
 
         $response->assertStatus(200)
@@ -253,7 +255,7 @@ class FormControllerTest extends TestCase
             ],
         ], $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/forms/{$form->form_id}/export");
 
         $response->assertStatus(200)
@@ -281,7 +283,7 @@ class FormControllerTest extends TestCase
             ],
         ], $otherTenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$otherTenantId}/forms/{$form->form_id}");
 
         $response->assertStatus(403);

@@ -144,6 +144,8 @@ class FakeExtraTemplates
                 'model_config' => [
                     'preferred_provider' => 'bailian',
                     'preferred_model' => 'qwen3.7-plus',
+                    'temperature' => 0.7,
+                    'max_tokens' => 2048,
                     'fallback_provider' => 'bailian',
                     'fallback_model' => 'qwen3.6-flash',
                 ],

@@ -19,6 +19,8 @@ class ModuleControllerTest extends TestCase
 
     private User $user;
 
+    private Operator $operator;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -47,7 +49,7 @@ class ModuleControllerTest extends TestCase
         ]);
 
         // 创建平台级 operator (super_admin)
-        $operator = Operator::create([
+        $this->operator = Operator::create([
             'email' => $this->user->email,
             'name' => $this->user->name,
             'scope' => 'platform',
@@ -61,7 +63,7 @@ class ModuleControllerTest extends TestCase
             ->value('role_id');
 
         OperatorTenant::create([
-            'operator_id' => $operator->operator_id,
+            'operator_id' => $this->operator->operator_id,
             'tenant_id' => 9007199254740991,
             'user_id' => $this->user->user_id,
             'role' => 'super_admin',
@@ -77,7 +79,7 @@ class ModuleControllerTest extends TestCase
             ->value('role_id');
 
         OperatorTenant::create([
-            'operator_id' => $operator->operator_id,
+            'operator_id' => $this->operator->operator_id,
             'tenant_id' => $this->tenantId,
             'user_id' => $this->user->user_id,
             'role' => 'tenant_admin',
@@ -93,7 +95,7 @@ class ModuleControllerTest extends TestCase
 
     public function test_admin_can_list_modules(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson('/api/v1/admin/modules');
 
         $response->assertOk()
@@ -114,7 +116,7 @@ class ModuleControllerTest extends TestCase
             $manager->disable('api-token');
         }
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson('/api/v1/admin/modules/api-token/enable');
 
         $response->assertOk()
@@ -132,7 +134,7 @@ class ModuleControllerTest extends TestCase
             $manager->enable('domain');
         }
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson('/api/v1/admin/modules/domain/disable');
 
         $response->assertOk()
@@ -143,7 +145,7 @@ class ModuleControllerTest extends TestCase
 
     public function test_enable_nonexistent_module_returns_404(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson('/api/v1/admin/modules/nonexistent/enable');
 
         $response->assertNotFound()
@@ -152,7 +154,7 @@ class ModuleControllerTest extends TestCase
 
     public function test_disable_nonexistent_module_returns_404(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson('/api/v1/admin/modules/nonexistent/disable');
 
         $response->assertNotFound()
@@ -163,7 +165,7 @@ class ModuleControllerTest extends TestCase
 
     public function test_tenant_can_list_modules(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/modules");
 
         $response->assertOk()
@@ -182,7 +184,7 @@ class ModuleControllerTest extends TestCase
         // 禁用 api-token 系统级
         $manager->disable('api-token');
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/modules");
 
         $response->assertOk();
@@ -193,7 +195,7 @@ class ModuleControllerTest extends TestCase
 
     public function test_tenant_can_enable_toggleable_module(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/modules/form/enable");
 
         $response->assertOk()
@@ -202,7 +204,7 @@ class ModuleControllerTest extends TestCase
 
     public function test_tenant_can_disable_toggleable_module(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/modules/form/disable");
 
         $response->assertOk()
@@ -211,7 +213,7 @@ class ModuleControllerTest extends TestCase
 
     public function test_tenant_cannot_toggle_non_toggleable_module(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/modules/infrastructure/enable");
 
         $response->assertUnprocessable()
@@ -223,7 +225,7 @@ class ModuleControllerTest extends TestCase
         $manager = app(ModuleManager::class);
         $manager->disable('form');
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/modules/form/enable");
 
         $response->assertStatus(400)

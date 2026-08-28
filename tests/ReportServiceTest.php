@@ -310,12 +310,16 @@ class ReportServiceTest extends TestCase
         $this->service->export($report, ReportService::FORMAT_PDF);
     }
 
-    public function test_export_excel_throws_when_library_unavailable(): void
+    public function test_export_excel_produces_content(): void
     {
+        // PhpSpreadsheet 为 composer.json 硬依赖（非可选），导出必然可用；
+        // 断言产出 xlsx 二进制内容（魔数 PK\x03\x04），覆盖真实导出链路。
         $report = $this->service->createReport('Excel Report', ['metrics' => ['errors']]);
 
-        $this->expectException(\RuntimeException::class);
-        $this->service->export($report, ReportService::FORMAT_EXCEL);
+        $content = $this->service->export($report, ReportService::FORMAT_EXCEL);
+
+        $this->assertNotEmpty($content);
+        $this->assertStringStartsWith("PK\x03\x04", $content);
     }
 
     public function test_export_invalid_format_throws(): void

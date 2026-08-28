@@ -84,10 +84,14 @@ class GeneratePosterToolTest extends TestCase
             'ai.providers.bailian.api_key' => 'sk-test',
         ]);
 
+        // qwen-image 系列走原生 multimodal-generation（dashscope 域名），
+        // 测试须 fake 该端点，避免真实出网。
         Http::fake([
-            'token-plan.test/v1/images/generations' => Http::response([
-                'data' => [
-                    ['url' => 'https://oss.test/img.png'],
+            'dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation' => Http::response([
+                'output' => [
+                    'choices' => [
+                        ['message' => ['content' => [['image' => 'https://oss.test/img.png']]]],
+                    ],
                 ],
             ]),
         ]);
@@ -99,9 +103,10 @@ class GeneratePosterToolTest extends TestCase
         $this->assertEquals(1, $response['usage']['image_count']);
 
         Http::assertSent(function ($request) {
-            return $request->url() === 'https://token-plan.test/v1/images/generations'
+            // DashScope 原生 multimodal-generation 的 size 格式为 W*H（星号分隔）
+            return $request->url() === 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation'
                 && $request['model'] === 'qwen-image-2.0'
-                && $request['size'] === '1024x1792'
+                && $request['parameters']['size'] === '1024*1792'
                 && $request->hasHeader('Authorization', 'Bearer sk-test');
         });
     }
@@ -129,7 +134,7 @@ class GeneratePosterToolTest extends TestCase
         ]);
 
         Http::fake([
-            'token-plan.test/v1/images/generations' => Http::response([
+            'dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation' => Http::response([
                 'error' => ['message' => 'model not in plan'],
             ], 400),
         ]);

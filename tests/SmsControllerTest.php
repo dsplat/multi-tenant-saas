@@ -22,6 +22,8 @@ class SmsControllerTest extends TestCase
 
     private User $user;
 
+    private Operator $operator;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -56,7 +58,7 @@ class SmsControllerTest extends TestCase
         ]);
 
         // 创建租户级 operator
-        $operator = Operator::create([
+        $this->operator = Operator::create([
             'email' => $this->user->email,
             'name' => $this->user->name,
             'scope' => 'tenant',
@@ -64,7 +66,7 @@ class SmsControllerTest extends TestCase
         ]);
 
         OperatorTenant::create([
-            'operator_id' => $operator->operator_id,
+            'operator_id' => $this->operator->operator_id,
             'tenant_id' => $this->tenantId,
             'user_id' => $this->user->user_id,
             'role' => 'tenant_admin',
@@ -90,7 +92,7 @@ class SmsControllerTest extends TestCase
             'channel' => SmsTemplate::CHANNEL_MARKETING,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/sms/templates");
 
         $response->assertStatus(200)
@@ -113,7 +115,7 @@ class SmsControllerTest extends TestCase
             'channel' => SmsTemplate::CHANNEL_VERIFICATION,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/sms/templates?channel=marketing");
 
         $response->assertStatus(200)
@@ -122,7 +124,7 @@ class SmsControllerTest extends TestCase
 
     public function test_store_template(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/sms/templates", [
                 'name' => '新模板',
                 'content' => '新内容',
@@ -136,7 +138,7 @@ class SmsControllerTest extends TestCase
 
     public function test_store_template_validation(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/sms/templates", [
                 'name' => '',
                 'content' => '',
@@ -154,7 +156,7 @@ class SmsControllerTest extends TestCase
             'channel' => SmsTemplate::CHANNEL_MARKETING,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/sms/templates/{$template->sms_template_id}");
 
         $response->assertStatus(200)
@@ -170,7 +172,7 @@ class SmsControllerTest extends TestCase
             'channel' => SmsTemplate::CHANNEL_MARKETING,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->putJson("/api/v1/tenants/{$this->tenantId}/sms/templates/{$template->sms_template_id}", [
                 'name' => '新名称',
             ]);
@@ -188,7 +190,7 @@ class SmsControllerTest extends TestCase
             'channel' => SmsTemplate::CHANNEL_MARKETING,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->deleteJson("/api/v1/tenants/{$this->tenantId}/sms/templates/{$template->sms_template_id}");
 
         $response->assertStatus(200)
@@ -204,7 +206,7 @@ class SmsControllerTest extends TestCase
             'status' => SmsTemplate::STATUS_REJECTED,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/sms/templates/{$template->sms_template_id}/submit-approval");
 
         $response->assertStatus(200)
@@ -220,7 +222,7 @@ class SmsControllerTest extends TestCase
             'channel' => SmsTemplate::CHANNEL_VERIFICATION,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/sms/templates/{$template->sms_template_id}/render", [
                 'variables' => ['name' => '张三', 'code' => '123456'],
             ]);
@@ -240,7 +242,7 @@ class SmsControllerTest extends TestCase
             'status' => SmsTemplate::STATUS_APPROVED,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/sms/batch-send", [
                 'template_id' => $template->sms_template_id,
                 'phones' => ['13800000001', '13800000002'],
@@ -253,7 +255,7 @@ class SmsControllerTest extends TestCase
 
     public function test_batch_send_validation(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/sms/batch-send", [
                 'template_id' => 999,
                 'phones' => [],
@@ -271,7 +273,7 @@ class SmsControllerTest extends TestCase
             'status' => SmsTemplate::STATUS_APPROVED,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/sms/scheduled-send", [
                 'template_id' => $template->sms_template_id,
                 'phones' => ['13800000001'],
@@ -294,7 +296,7 @@ class SmsControllerTest extends TestCase
 
         $task = app(SmsService::class)->batchSend($template->sms_template_id, ['13800000001']);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/sms/batch-tasks/{$task->batch_task_id}");
 
         $response->assertStatus(200)
@@ -312,7 +314,7 @@ class SmsControllerTest extends TestCase
 
         $task = app(SmsService::class)->batchSend($template->sms_template_id, ['13800000001']);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/sms/batch-tasks/{$task->batch_task_id}/cancel");
 
         $response->assertStatus(200)
@@ -340,7 +342,7 @@ class SmsControllerTest extends TestCase
             'recorded_at' => now(),
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/sms/batch-tasks/{$task->batch_task_id}/delivery-stats");
 
         $response->assertStatus(200)
@@ -349,7 +351,7 @@ class SmsControllerTest extends TestCase
 
     public function test_overall_stats(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/sms/overall-stats");
 
         $response->assertStatus(200)
@@ -362,7 +364,7 @@ class SmsControllerTest extends TestCase
     {
         app(SmsService::class)->unsubscribe('13800000001', $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$this->tenantId}/sms/unsubscribes");
 
         $response->assertStatus(200)
@@ -371,7 +373,7 @@ class SmsControllerTest extends TestCase
 
     public function test_store_unsubscribe(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/sms/unsubscribes", [
                 'phone' => '13800000001',
                 'reason' => '不感兴趣',
@@ -384,7 +386,7 @@ class SmsControllerTest extends TestCase
 
     public function test_store_unsubscribe_validation(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/sms/unsubscribes", [
                 'phone' => 'invalid',
             ]);
@@ -396,7 +398,7 @@ class SmsControllerTest extends TestCase
     {
         app(SmsService::class)->unsubscribe('13800000001', $this->tenantId);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/sms/unsubscribes/check", [
                 'phone' => '13800000001',
             ]);
@@ -407,7 +409,7 @@ class SmsControllerTest extends TestCase
 
     public function test_check_not_unsubscribed(): void
     {
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->postJson("/api/v1/tenants/{$this->tenantId}/sms/unsubscribes/check", [
                 'phone' => '13800000002',
             ]);
@@ -435,7 +437,7 @@ class SmsControllerTest extends TestCase
             'channel' => SmsTemplate::CHANNEL_MARKETING,
         ]);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($this->operator)
             ->getJson("/api/v1/tenants/{$otherTenantId}/sms/templates/{$template->sms_template_id}");
 
         $response->assertStatus(403);

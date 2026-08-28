@@ -209,7 +209,7 @@ class VotingController extends Controller
             $records = $this->votingService->castVote(
                 $voteId,
                 $request->option_ids,
-                $request->user()->user_id,
+                $request->user()->getKey(),
                 $tenantId,
                 $request->ip(),
                 $request->userAgent()

@@ -57,14 +57,14 @@ class OperatorControllersTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $operator = new Operator([
+        $this->operator = new Operator([
             'email' => 'operator-admin@test.com',
             'name' => 'Admin',
             'scope' => 'tenant',
             'is_active' => true,
         ]);
-        $operator->operator_id = 70001;
-        $operator->save();
+        $this->operator->operator_id = 70001;
+        $this->operator->save();
 
         $tenantAdminRoleId = DB::table('roles')
             ->where('name', 'tenant_admin')
@@ -72,7 +72,7 @@ class OperatorControllersTest extends TestCase
             ->value('role_id');
 
         OperatorTenant::create([
-            'operator_id' => $operator->operator_id,
+            'operator_id' => $this->operator->operator_id,
             'tenant_id' => $this->tenantId,
             'user_id' => $this->admin->user_id,
             'role' => 'tenant_admin',
@@ -88,7 +88,7 @@ class OperatorControllersTest extends TestCase
 
     public function test_index_returns_operators(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -103,7 +103,7 @@ class OperatorControllersTest extends TestCase
 
     public function test_show_returns_operator(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -116,7 +116,7 @@ class OperatorControllersTest extends TestCase
 
     public function test_show_returns_404_for_nonexistent_operator(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -129,7 +129,7 @@ class OperatorControllersTest extends TestCase
 
     public function test_invite_creates_operator(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -147,7 +147,7 @@ class OperatorControllersTest extends TestCase
 
     public function test_invite_rejects_invalid_email(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -161,7 +161,7 @@ class OperatorControllersTest extends TestCase
 
     public function test_invite_rejects_invalid_role(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -177,7 +177,7 @@ class OperatorControllersTest extends TestCase
 
     public function test_update_operator_profile(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -198,7 +198,7 @@ class OperatorControllersTest extends TestCase
 
     public function test_update_rejects_invalid_phone(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -241,7 +241,7 @@ class OperatorControllersTest extends TestCase
             'accepted_at' => now(),
         ]);
 
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -272,7 +272,7 @@ class OperatorControllersTest extends TestCase
         $op->operator_id = 70003;
         $op->save();
 
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -298,7 +298,7 @@ class OperatorControllersTest extends TestCase
         $op->operator_id = 70004;
         $op->save();
 
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -337,7 +337,7 @@ class OperatorControllersTest extends TestCase
             'invited_at' => now(),
         ]);
 
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -362,7 +362,7 @@ class OperatorControllersTest extends TestCase
         $op->operator_id = 70006;
         $op->save();
 
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -403,7 +403,7 @@ class OperatorControllersTest extends TestCase
             'accepted_at' => now(),
         ]);
 
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)
@@ -417,7 +417,7 @@ class OperatorControllersTest extends TestCase
 
     public function test_tenants_returns_list(): void
     {
-        $token = $this->admin->createToken('test')->plainTextToken;
+        $token = $this->operator->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->withHeader('X-Tenant-ID', $this->tenantId)

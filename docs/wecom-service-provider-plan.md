@@ -213,7 +213,10 @@ Route::prefix('wechat-work')->group(function () {
 4. 迁移兼容:旧 `oauth.wechat_work.*` 存量配置读时迁移(读新写旧,或一次性迁移命令)
 5. 权衡不变式:一个租户一个企微——模式判定仍以套件授权状态为唯一判据,自建配置为回退轨
 
-实施记录(2026-08-28 用户纠正):**OAuth 页企微 tab 不承载 WW_verify 验证文件**——WW_verify 是自建应用配置「网页授权及JS-SDK 可信域名」时的域名归属认证,与 OAuth 扫码登录(只需「授权回调域」)无关。OAuthSettings.vue 企微 tab 的「域名验证文件」区块已移除(仅保留开关 + 自建登录凭证 + 代开发授权);验证文件管理迁至 WechatWork 模块租户 console 页 `WechatWorkSettings.vue`(路由 /wechat-work,复用 domain 模块 verify-info/verify-files API)。微信(公众号)tab 的 MP_verify 区块保留(公众号网页授权域名确实需要验证文件,「微信暂时不动」)。
+实施记录(2026-08-28 用户两次纠正):
+①**OAuth 页企微 tab 不承载 WW_verify 验证文件**——WW_verify 是自建应用配置「网页授权及JS-SDK 可信域名」时的域名归属认证,与 OAuth 扫码登录(只需「授权回调域」)无关。
+②**企微配置全面收敛至 WechatWork 模块(二次纠正,用户确认「全部移到企微配置模块」)**——OAuth 企微 tab 应「只留启用开关」。代开发扫码授权、自建应用凭证、可信域名验证文件、帮助文案**全部**迁入 `WechatWorkSettings.vue`(企微配置页,路由 /wechat-work,复用 domain 模块 verify-info/verify-files API + tenant/wechat-work 授权 API + tenant/auth/oauth/wechat_work 凭证 API);OAuth 企微 tab 精简为「启用企业微信扫码登录」开关(套件授权自动启用且锁定,自建模式可切换)。后端 `SocialiteService::getOAuthConfigForDisplay` 补 `wechat_work.enabled` 回显(套件授权或开关)。
+微信(公众号)tab 不动(仅 MP_verify 保留在微信 tab,「微信暂时不动」)。测试:SocialiteServiceTest/AuthImprovementsTest/WechatWorkAuthzTest/WechatWorkSuiteServiceTest 共 84 用例全过。
 
 ---
 

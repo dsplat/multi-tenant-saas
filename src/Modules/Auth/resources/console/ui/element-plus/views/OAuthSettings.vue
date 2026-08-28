@@ -94,130 +94,19 @@
           </template>
 
           <div class="tab-body">
-            <!-- 平台代开发应用授权（suite 模式，双轨之一） -->
-            <div class="suite-box">
-              <div class="help-title">🤝 平台代开发应用授权（推荐）</div>
-              <p class="form-tip">
-                企业微信自建应用的可信域名须与认证主体一致，租户自有域名无法作为平台回调域（auth.neihang.com）。
-                平台已注册企微服务商（代开发模式），扫码授权后即完成接入、无需任何配置；未使用平台代开发时，可自行填写下方「自建应用」凭证（含其他服务商代开发，对本平台等同自建）。
-              </p>
-              <template v-if="suiteAuth.status === 'authorized'">
-                <el-descriptions :column="2" size="small" border style="margin: 8px 0">
-                  <el-descriptions-item label="Corp ID">{{ suiteAuth.corp_id }}</el-descriptions-item>
-                  <el-descriptions-item label="Agent ID">{{ suiteAuth.agent_id }}</el-descriptions-item>
-                  <el-descriptions-item label="授权时间">{{ suiteAuth.authorized_at || '—' }}</el-descriptions-item>
-                  <el-descriptions-item label="状态"><el-tag type="success" size="small">已授权</el-tag></el-descriptions-item>
-                </el-descriptions>
-                <div v-if="suiteAuthPermissions.length" style="margin: 4px 0 10px">
-                  <span class="form-tip" style="margin-right: 6px">已获得模板权限：</span>
-                  <el-tag v-for="p in suiteAuthPermissions" :key="p.key" size="small" style="margin-right: 6px">{{ p.label }}</el-tag>
-                </div>
-                <!-- 应用回调链路状态（模板统一地址 + 自动带出） -->
-                <div v-if="suiteAuth.callback" class="suite-callback">
-                  <div class="callback-row">
-                    <span class="callback-label">应用回调 URL（模板统一地址，企微自动带出）：</span>
-                    <code class="callback-code">{{ suiteAuth.callback.app_callback_url }}</code>
-                    <el-button link type="primary" size="small" @click="copyText(suiteAuth.callback.app_callback_url)">复制</el-button>
-                  </div>
-                  <div v-if="suiteAuth.callback.app_callback_url_legacy" class="callback-row" style="margin-top: 4px">
-                    <span class="callback-label">备用地址（手填时使用）：</span>
-                    <code class="callback-code">{{ suiteAuth.callback.app_callback_url_legacy }}</code>
-                    <el-button link type="primary" size="small" @click="copyText(suiteAuth.callback.app_callback_url_legacy)">复制</el-button>
-                  </div>
-                  <el-alert v-if="!suiteAuth.callback.app_callback_configured" type="warning" :closable="false" show-icon style="margin-top: 6px">
-                    <template #title>
-                      应用回调尚未配置：请平台在<b>管理后台 → 企微服务商</b>配置模板级应用回调 Token / EncodingAESKey。一次配置后，每家企业「开始代开发应用」时企微自动带出模板的 URL / Token / EncodingAESKey，无需逐企业填写。配置完成前应用无法接收事件推送。
-                    </template>
-                  </el-alert>
-                  <el-alert v-else type="success" :closable="false" show-icon style="margin-top: 6px">
-                    <template #title>应用回调已配置，回调链路就绪。</template>
-                  </el-alert>
-                  <p class="form-tip">可信域名须填 <b>{{ suiteCallbackDomain }}</b>（回调 URL 的域名部分，不含 https:// 与路径）；应用主页可填 club.lanyantu.com 等终端站点（与认证无关）。</p>
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px">
-                  <el-button type="danger" plain size="small" :loading="suiteRevoking" @click="revokeSuiteAuth">解除授权</el-button>
-                  <el-button link size="small" @click="fetchSuiteStatus">刷新状态</el-button>
-                </div>
-              </template>
-              <template v-else>
-                <!-- 页面内展示授权二维码（qrcode_url 需自行渲染为二维码，非图片直链） -->
-                <div v-if="suiteAuthUrl" class="suite-qr-box">
-                  <div class="suite-qr">
-                    <QrcodeVue :value="suiteAuthUrl" :size="176" level="M" render-as="canvas" />
-                  </div>
-                  <p class="form-tip" style="margin: 8px 0 0; text-align: center">
-                    请使用<b>企业微信</b>扫描二维码，由企业管理员确认授权；授权完成后点击「刷新状态」
-                  </p>
-                  <div style="display: flex; gap: 8px; justify-content: center; margin-top: 8px">
-                    <el-button size="small" :loading="suiteAuthorizing" @click="startSuiteAuth">重新生成二维码</el-button>
-                    <el-button size="small" @click="fetchSuiteStatus">刷新状态</el-button>
-                  </div>
-                  <div v-if="suiteAuthPermissions.length" class="suite-perms">
-                    <div class="help-title" style="font-size: 13px">授权后将获得以下模板权限（可信域名/回调域由服务商代管，无需逐项配置）</div>
-                    <div style="margin-top: 4px">
-                      <el-tag v-for="p in suiteAuthPermissions" :key="p.key" size="small" style="margin-right: 6px">{{ p.label }}</el-tag>
-                    </div>
-                  </div>
-                </div>
-                <div v-else style="display: flex; align-items: center; gap: 8px; margin-top: 8px">
-                  <el-button type="primary" :loading="suiteAuthorizing" @click="startSuiteAuth">使用平台代开发应用扫码授权</el-button>
-                  <el-button link @click="fetchSuiteStatus">刷新状态</el-button>
-                </div>
-                <p v-if="suiteAuth.status === 'revoked'" class="form-tip" style="margin-top: 6px">当前状态：已解除，可重新扫码授权</p>
-                <p v-if="suiteAuthHint" class="form-tip" style="margin-top: 6px">{{ suiteAuthHint }}</p>
-                <p v-if="suiteAuthError" class="form-tip" style="margin-top: 6px; color: var(--el-color-danger)">{{ suiteAuthError }}</p>
-              </template>
-            </div>
-
-            <!-- 已授权：与自建配置互斥，禁止再填写自建凭证（后端同样拒绝），防止双轨凭证并存 -->
-            <el-alert
-              v-if="suiteAuth.status === 'authorized'"
-              type="success"
-              :closable="false"
-              show-icon
-              style="margin-bottom: 16px"
-            >
-              <template #title>
-                当前使用平台代开发应用授权，企业微信扫码登录已自动启用，无需配置下方自建应用。
-                如需改用自建应用（含其他服务商代开发），请先「解除授权」。
-              </template>
-            </el-alert>
-
-            <!-- 自建应用配置：仅未使用平台代开发时可用 -->
-            <template v-if="suiteAuth.status !== 'authorized'">
             <div class="enable-row">
               <span>启用企业微信扫码登录</span>
-              <el-switch v-model="config.wechat_work.enabled" />
+              <el-switch
+                v-model="config.wechat_work.enabled"
+                :disabled="config.wechat_work.mode === 'suite'"
+                :loading="wwSwitchSaving"
+                @change="handleWechatWorkToggle"
+              />
             </div>
-
-            <el-form v-if="config.wechat_work.enabled" label-width="90px" class="config-form">
-              <el-form-item label="Corp ID"><el-input v-model="config.wechat_work.corp_id" placeholder="ww1234567890abcdef" /></el-form-item>
-              <el-form-item label="Agent ID"><el-input v-model="config.wechat_work.agent_id" placeholder="1000001" /></el-form-item>
-              <el-form-item label="Secret"><el-input v-model="config.wechat_work.secret" /></el-form-item>
-              <el-form-item v-if="config.wechat_work.redirect" label="回调地址">
-                <el-input :model-value="config.wechat_work.redirect" readonly />
-              </el-form-item>
-            </el-form>
-
-            <div class="help-box">
-              <div class="help-title">📖 配置指引（企业微信管理后台）</div>
-              <ol>
-                <li><b>适用场景</b>：未使用平台代开发应用时（含企业自建应用、其他服务商代开发应用），在此填入企微应用凭证；已使用平台代开发授权时本区域不可用，须先解除授权。</li>
-                <li>管理员登录 <a href="https://work.weixin.qq.com/wework_admin/" target="_blank" rel="noopener">企业微信管理后台</a> →「应用管理」→「自建」→「创建应用」。</li>
-                <li>进入应用详情页，复制 <b>AgentId</b> 和 <b>Secret</b> 填入本页。</li>
-                <li>「我的企业」→「企业信息」页面底部，复制 <b>企业 ID（CorpID）</b> 填入本页。</li>
-                <li>应用详情页 →「企业微信授权登录」→ 设置「授权回调域」为本系统域名（即上方回调地址中的域名部分，不含 https:// 与路径）。</li>
-                <li>应用详情页 →「开发者接口」→「企业可信 IP」，添加本系统服务器的<b>出口 IP</b>（如不确定请联系平台方获取）。</li>
-              </ol>
-              <div class="help-title">🛠 常见问题排查</div>
-              <ul>
-                <li><b>扫码后提示 redirect_uri 域名不合法（50001）</b>：「授权回调域」未配置或与回调地址域名不一致。</li>
-                <li><b>报错 60020 not allow to access from your ip</b>：服务器出口 IP 未加入「企业可信 IP」列表。</li>
-                <li><b>Secret 无效（40001）</b>：填的不是该自建应用的 Secret（勿使用通讯录同步等其他 Secret）；Secret 重置后需同步更新本页。</li>
-                <li><b>扫码成功但登录失败</b>：确认扫码人属于该应用的「可见范围」。</li>
-              </ul>
-            </div>
-            </template>
+            <p class="form-tip" style="max-width: 560px">
+              <template v-if="config.wechat_work.mode === 'suite'">已通过平台代开发授权自动启用，无需开关控制。</template>
+              企微接入方式（平台代开发扫码授权 / 自建应用凭证）与可信域名验证文件（WW_verify），请在「企业微信配置」页完成。
+            </p>
           </div>
         </el-tab-pane>
 
@@ -350,8 +239,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import QrcodeVue from 'qrcode.vue'
+import { ElMessage } from 'element-plus'
 import { useUserStore } from '@stores/user'
 
 const userStore = useUserStore()
@@ -381,7 +269,8 @@ const loadConfig = async () => {
     for (const key of ['wechat_work', 'wechat', 'dingtalk', 'feishu'] as const) {
       if (data[key]) {
         Object.assign(config[key], data[key])
-        config[key].enabled = !!data[key].configured
+        // wechat_work 用后端 enabled（套件授权或开关）；其余用 configured 推导
+        config[key].enabled = key === 'wechat_work' ? !!data[key].enabled : !!data[key].configured
       }
     }
     // 默认定位到首个已启用的 provider，便于直接查看/排查
@@ -409,11 +298,7 @@ const handleSave = async () => {
     const { redirect_uri_default: _omit, ...idpPayload } = config.idp
     await axios.put('/api/v1/tenant/auth/oauth/idp', idpPayload)
 
-    // 各直连提供商：仅保存已开启的 tab；套件授权后自建配置互斥，前端不发、后端同样拒绝
-    if (config.wechat_work.enabled && suiteAuth.status !== 'authorized') {
-      const { corp_id, agent_id, secret } = config.wechat_work
-      await axios.put('/api/v1/tenant/auth/oauth/wechat_work', { corp_id, agent_id, secret })
-    }
+    // 企业微信扫码登录：开关由 handleWechatWorkToggle 即时保存；凭证已迁至「企业微信配置」页，此处不再保存自建凭证
     if (config.wechat.enabled) {
       const { client_id, client_secret } = config.wechat
       await axios.put('/api/v1/tenant/auth/oauth/wechat', { client_id, client_secret })
@@ -496,82 +381,24 @@ const handleRemoveVerifyFile = async (file: string) => {
   if (ok) ElMessage.success('验证文件已删除')
 }
 
-// ─── 平台代开发应用授权（suite 模式） ───────────────────
-const suiteAuth = reactive({ status: 'pending', corp_id: '', agent_id: '', authorized_at: '', callback: null as any })
-const suiteAuthorizing = ref(false)
-const suiteRevoking = ref(false)
-const suiteAuthError = ref('')
-const suiteAuthHint = ref('')
-// 授权二维码内容（qrcode_url 为授权链接，由前端渲染为二维码）与模板权限清单
-const suiteAuthUrl = ref('')
-const suiteAuthPermissions = ref<{ key: string; label: string }[]>([])
-
-// 可信域名 = 应用回调 URL 的域名（企微可信域名须与回调域名一致，不含 https:// 与路径）
-const suiteCallbackDomain = computed(() => {
-  const url = suiteAuth.callback?.app_callback_url || ''
-  try { return new URL(url).host } catch { return 'auth.neihang.com' }
-})
-
-const copyText = async (text: string) => {
-  if (!text) return
-  try {
-    await navigator.clipboard.writeText(text)
-    ElMessage.success('已复制')
-  } catch {
-    ElMessage.error('复制失败，请手动复制')
-  }
-}
-
-const fetchSuiteStatus = async () => {
-  try {
-    const res = await axios.get('/api/v1/tenant/wechat-work/status')
-    const data = res.data.data || {}
-    Object.assign(suiteAuth, data)
-    suiteAuthPermissions.value = data.permissions || []
-  } catch (e: any) {
-    suiteAuthError.value = e.response?.data?.message || '查询授权状态失败'
-  }
-}
-
-const startSuiteAuth = async () => {
-  suiteAuthorizing.value = true
-  suiteAuthError.value = ''
-  suiteAuthHint.value = ''
-  try {
-    const res = await axios.post('/api/v1/tenant/wechat-work/authorize')
-    const data = res.data.data || {}
-    const url = data.url
-    if (!url) throw new Error('未返回授权 URL')
-    // 页面内直接展示二维码（企微 qrcode_url 是授权链接，需自行渲染为二维码图片）
-    suiteAuthUrl.value = url
-    suiteAuthPermissions.value = data.provider?.permissions || []
-    suiteAuthHint.value = '已生成授权二维码，请用企业微信扫码；授权完成后点击「刷新状态」确认。'
-  } catch (e: any) {
-    suiteAuthError.value = e.response?.data?.message || '生成授权二维码失败'
-  } finally {
-    suiteAuthorizing.value = false
-  }
-}
-
-const revokeSuiteAuth = async () => {
-  try {
-    await ElMessageBox.confirm('确认解除平台代开发授权？解除后登录将回退自建应用配置（如有）。', '提示', { type: 'warning' })
-    suiteRevoking.value = true
-    await axios.post('/api/v1/tenant/wechat-work/revoke')
-    ElMessage.success('已解除企微代开发授权')
-    await fetchSuiteStatus()
-  } catch (e: any) {
-    if (e?.response) ElMessage.error(e.response.data?.message || '解除授权失败')
-  } finally {
-    suiteRevoking.value = false
-  }
-}
-
 onMounted(() => {
   loadConfig()
   loadVerifyFiles()
-  fetchSuiteStatus()
 })
+
+const wwSwitchSaving = ref(false)
+const handleWechatWorkToggle = async (enabled: boolean) => {
+  wwSwitchSaving.value = true
+  try {
+    await axios.put('/api/v1/tenant/auth/oauth/wechat_work', { enabled })
+    ElMessage.success('保存成功')
+  } catch {
+    ElMessage.error('保存失败')
+  } finally {
+    wwSwitchSaving.value = false
+  }
+}
+
 </script>
 
 <style scoped>

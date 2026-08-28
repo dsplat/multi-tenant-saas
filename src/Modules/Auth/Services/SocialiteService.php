@@ -379,6 +379,8 @@ class SocialiteService
 
                 $result[$provider] = [
                     'configured' => app(WechatWorkOAuthService::class)->isConfigured($tenantId),
+                    // 启用状态：套件授权即视为启用（双轨之一）；否则读 oauth.wechat_work_enabled 开关
+                    'enabled' => $mode === 'suite' || (bool) TenantSetting::get($tenantId, 'oauth', 'wechat_work_enabled', false),
                     'corp_id' => $corpId,
                     'agent_id' => $agentId,
                     'secret' => $secret,

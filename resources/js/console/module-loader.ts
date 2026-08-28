@@ -147,6 +147,7 @@ function extractFramework(path: string): string | null {
 
 const knownPaths: Record<string, string> = {
   Members: 'members', Credits: 'credits', OAuthSettings: 'oauth',
+  WechatWorkSettings: 'wechat-work',
   SmsSettings: 'sms', ApiTokens: 'api-tokens', PaymentSettings: 'payment',
   Workflows: 'workflows', SSL: 'ssl', Webhooks: 'webhooks',
   TenantSettings: 'tenant-settings', TenantDetail: 'tenants/:id',

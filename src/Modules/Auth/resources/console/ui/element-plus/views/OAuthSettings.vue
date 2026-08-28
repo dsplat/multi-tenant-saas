@@ -197,20 +197,6 @@
               <el-form-item v-if="config.wechat_work.redirect" label="回调地址">
                 <el-input :model-value="config.wechat_work.redirect" readonly />
               </el-form-item>
-              <el-form-item label="域名验证文件">
-                <div style="width: 100%; font-size: 12px">
-                  <div style="color: var(--el-text-color-secondary); margin-bottom: 6px">企业微信设置「授权回调域/可信域名」时下发的验证文件名（如 WW_verify_xxx）。企微验证的是回调域名（{{ verifyDomain || '未配置回调域' }}），填入后系统自动在该域名根路径提供该文件</div>
-                  <div v-for="f in verifyFiles" :key="f" style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px">
-                    <code>{{ f }}</code>
-                    <a v-if="verifyDomain" :href="`https://${verifyDomain}/${f}`" target="_blank" rel="noopener">验证</a>
-                    <el-button link type="danger" size="small" @click="handleRemoveVerifyFile(f)">删除</el-button>
-                  </div>
-                  <div style="display: flex; gap: 6px; margin-top: 4px">
-                    <el-input v-model="verifyFileInput" size="small" style="max-width: 280px" placeholder="如：WW_verify_mLUxXhK2fEC6jPsB" @keyup.enter="handleAddVerifyFile" />
-                    <el-button size="small" type="primary" :loading="verifyFilesSaving" @click="handleAddVerifyFile">添加</el-button>
-                  </div>
-                </div>
-              </el-form-item>
             </el-form>
 
             <div class="help-box">

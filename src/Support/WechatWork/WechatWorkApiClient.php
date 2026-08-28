@@ -18,7 +18,7 @@ use MultiTenantSaas\Exceptions\ServiceUnavailableException;
  * 凭证双轨：
  * - 自建应用模式：corp_id + corp_secret 经 gettoken 换取 access_token
  * - 代开发模式：传入 tokenResolver（如 WechatWorkSuiteService::corpAccessToken，
- *   permanent_code 充当 secret 经 get_corp_token 换取企业 token），优先级最高
+ *   permanent_code 充当应用 secret 经 gettoken 换取企业 token），优先级最高
  */
 class WechatWorkApiClient
 {
@@ -35,7 +35,7 @@ class WechatWorkApiClient
      * 获取 access_token（缓存优先）
      *
      * 代开发模式（tokenResolver 非空）：企业 token 由外部解析器提供
-     * （get_corp_token 链路），不再走 corp_secret gettoken。
+     * （gettoken 链路，permanent_code 充当 secret），不再走 corp_secret gettoken。
      */
     public function accessToken(): string
     {

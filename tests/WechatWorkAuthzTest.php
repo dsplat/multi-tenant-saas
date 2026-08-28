@@ -451,7 +451,7 @@ class WechatWorkAuthzTest extends TestCase
         $this->oauthService()->exposeGetConfig($this->tenantId);
     }
 
-    public function test_get_access_token_suite_mode_uses_get_corp_token(): void
+    public function test_get_access_token_suite_mode_uses_gettoken(): void
     {
         $provider = $this->createProvider();
         $this->suite->saveAuthorization($this->tenantId, $provider->service_provider_id, [
@@ -459,14 +459,10 @@ class WechatWorkAuthzTest extends TestCase
             'agent_id' => '1000001',
             'permanent_code' => 'perm-code-1',
         ]);
-        $this->suite->storeSuiteTicket($provider->service_provider_id, 'ticket-abc');
 
         Http::fake([
-            'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response([
-                'suite_access_token' => 'st',
-                'expires_in' => 7200,
-            ]),
-            'qyapi.weixin.qq.com/cgi-bin/service/get_corp_token*' => Http::response([
+            // 代开发应用：permanent_code 充当 corpsecret，走 gettoken（GET 查询参数，模式需带 * 通配）
+            'qyapi.weixin.qq.com/cgi-bin/gettoken*' => Http::response([
                 'errcode' => 0,
                 'access_token' => 'corp-token-xyz',
                 'expires_in' => 7200,
@@ -476,9 +472,9 @@ class WechatWorkAuthzTest extends TestCase
         $token = app(WechatWorkOAuthService::class)->getAccessToken($this->tenantId);
 
         $this->assertSame('corp-token-xyz', $token);
-        Http::assertSent(fn ($request) => str_contains($request->url(), 'get_corp_token')
-            && $request['auth_corpid'] === 'ww_corp_1'
-            && $request['permanent_code'] === 'perm-code-1');
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'gettoken')
+            && $request['corpid'] === 'ww_corp_1'
+            && $request['corpsecret'] === 'perm-code-1');
     }
 
     public function test_get_access_token_self_mode_uses_gettoken(): void

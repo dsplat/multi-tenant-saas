@@ -195,8 +195,8 @@ class WechatWorkOAuthService
     /**
      * 获取企业微信 access_token（带缓存，有效期 7200s）
      *
-     * 代开发模式（mode=suite）走服务商 service/get_corp_token（permanent_code
-     * 充当 secret）；自建应用模式走 gettoken。
+     * 代开发模式（mode=suite）走 gettoken（corpid + corpsecret=permanent_code，
+     * permanent_code 充当应用 secret）；自建应用模式走 gettoken。
      *
      * @throws \RuntimeException
      */

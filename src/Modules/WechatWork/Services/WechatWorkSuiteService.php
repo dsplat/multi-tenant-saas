@@ -16,7 +16,7 @@ use MultiTenantSaas\Modules\WechatWork\Models\WechatWorkAuthorization;
  * 企业微信服务商代开发套件服务
  *
  * 封装服务商侧全部 API（get_provider_token / get_suite_token /
- * get_customized_auth_url / get_permanent_code / get_corp_token），为租户
+ * get_customized_auth_url / get_permanent_code），为租户
  * 代开发授权链路与 Auth 模块 WechatWorkOAuthService 双轨凭证提供底层能力。
  *
  * 关键机制：
@@ -25,8 +25,9 @@ use MultiTenantSaas\Modules\WechatWork\Models\WechatWorkAuthorization;
  *   是第三方应用模式接口，对 dk 代开发模板调用必报 48002，禁止用于本模式
  * - suite_ticket 由模板回调每 10 分钟推送，换取 suite_access_token 必须
  *   使用最新 ticket，缺票/过期即视为服务商未就绪
- * - permanent_code 充当 secret 角色：corp_access_token = get_corp_token
- *   （suite_access_token + permanent_code），与自建应用 gettoken 平级
+ * - permanent_code 充当应用 secret：corp_access_token = gettoken
+ *   （corpid + corpsecret=permanent_code，官方「代开发授权应用 access_token
+ *   的获取」指定方式）；禁止用第三方套件 get_corp_token —— 对 dk 模板必报 48002
  * - 所有 token 缓存提前 5 分钟过期，避免边界超时
  */
 class WechatWorkSuiteService
@@ -388,10 +389,13 @@ class WechatWorkSuiteService
     }
 
     /**
-     * 获取企业 access_token（代开发模式，permanent_code 充当 secret）
+     * 获取企业 access_token（代开发模式，permanent_code 充当应用 secret）
      *
-     * 与自建应用 gettoken 平级，供 WechatWorkOAuthService 双轨适配调用，
-     * 缓存提前 5 分钟过期。
+     * 与自建应用同链路 gettoken（corpid + corpsecret=permanent_code），
+     * 供 WechatWorkOAuthService 双轨适配调用，缓存提前 5 分钟过期。
+     *
+     * 坑：不能走第三方套件 service/get_corp_token —— 代开发模板调用必报 48002
+     * （api forbidden），曾导致全部 externalcontact 接口连锁 48002。
      *
      * @throws ServiceUnavailableException 租户未授权 / 服务商未配置
      */
@@ -415,14 +419,14 @@ class WechatWorkSuiteService
             throw new ServiceUnavailableException('WechatWork: 服务商记录不存在（service_provider_id=' . $authorization->service_provider_id . '）');
         }
 
-        $suiteToken = $this->suiteAccessToken($provider);
-
-        $resp = Http::post(self::API_BASE . '/get_corp_token?suite_access_token=' . $suiteToken, [
-            'auth_corpid' => $authorization->corp_id,
-            'permanent_code' => $authorization->permanent_code,
+        // 代开发应用：permanent_code 即应用 secret，用 gettoken 换取企业 token
+        // （gettoken 无 service 前缀，与自建应用同一接口）
+        $resp = Http::get('https://qyapi.weixin.qq.com/cgi-bin/gettoken', [
+            'corpid' => $authorization->corp_id,
+            'corpsecret' => $authorization->permanent_code,
         ]);
 
-        $data = $this->parseResponse($resp, 'get_corp_token');
+        $data = $this->parseResponse($resp, 'gettoken');
 
         $token = (string) ($data['access_token'] ?? '');
         if ($token === '') {

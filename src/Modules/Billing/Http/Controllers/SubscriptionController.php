@@ -72,6 +72,12 @@ class SubscriptionController extends Controller
             'limits' => 'nullable|array',
             'is_active' => 'boolean',
             'sort_order' => 'nullable|integer|min:0',
+            // 计量字段（阶段 C，11.1/12.3）：许可超量按人计价等
+            'metered_price' => 'nullable|array',
+            'metered_unit' => 'nullable|string|max:30',
+            'overage_allowed' => 'boolean',
+            'overage_price' => 'nullable|numeric|min:0',
+            'rate_limit_rpm' => 'nullable|integer|min:0',
         ]);
 
         $plan = SubscriptionPlan::create($validated);
@@ -102,6 +108,11 @@ class SubscriptionController extends Controller
             'limits' => 'nullable|array',
             'is_active' => 'boolean',
             'sort_order' => 'integer|min:0',
+            'metered_price' => 'nullable|array',
+            'metered_unit' => 'nullable|string|max:30',
+            'overage_allowed' => 'boolean',
+            'overage_price' => 'nullable|numeric|min:0',
+            'rate_limit_rpm' => 'nullable|integer|min:0',
         ]);
 
         $plan->update($validated);

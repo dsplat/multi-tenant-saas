@@ -6,6 +6,8 @@ use MultiTenantSaas\Modules\WechatWork\Http\Controllers\TenantWechatWorkAuthCont
 // 租户后台 - 企微代开发授权管理（与 Auth 模块 tenant/auth/oauth 同权限口径）
 Route::prefix('tenant/wechat-work')->middleware('rbac.permission:setting.update')->group(function () {
     Route::get('/status', [TenantWechatWorkAuthController::class, 'status']);
+    // 能力总览（11.5 console 自服务：能力包/许可台账/出口 IP/免费窗口）
+    Route::get('/capability', [TenantWechatWorkAuthController::class, 'capability']);
     Route::post('/authorize', [TenantWechatWorkAuthController::class, 'startAuthorization']);
     Route::post('/revoke', [TenantWechatWorkAuthController::class, 'revoke']);
 });

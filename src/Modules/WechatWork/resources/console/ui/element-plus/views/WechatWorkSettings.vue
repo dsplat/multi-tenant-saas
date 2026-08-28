@@ -135,7 +135,48 @@
 
       <el-divider />
 
-      <!-- ── 可信域名验证文件（WW_verify） ── -->
+      <!-- ── 能力包与许可用量（阶段 C，11.5 console 自服务展示） ── -->
+      <div v-if="capability" class="cap-box">
+        <div class="section-title">能力包与许可用量</div>
+        <p class="form-tip">能力按套餐分层开通（基础/互通/自建/存档），许可配额超量时请联系平台升级套餐。</p>
+        <el-descriptions :column="2" size="small" border style="margin: 8px 0">
+          <el-descriptions-item label="当前套餐">{{ planName }}</el-descriptions-item>
+          <el-descriptions-item label="许可免费窗口">{{ trialText }}</el-descriptions-item>
+          <el-descriptions-item label="接入模式">{{ modeText }}</el-descriptions-item>
+          <el-descriptions-item label="平台出口 IP">{{ proxyExitIp || '未分配' }}</el-descriptions-item>
+        </el-descriptions>
+        <div style="margin: 8px 0">
+          <el-tag
+            v-for="f in capabilityTags"
+            :key="f.key"
+            :type="f.enabled ? 'success' : 'info'"
+            size="small"
+            style="margin-right: 6px"
+          >{{ f.label }}</el-tag>
+        </div>
+        <el-table :data="licenseRows" size="small" style="max-width: 520px">
+          <el-table-column prop="label" label="许可" width="110" />
+          <el-table-column label="配额" width="100">
+            <template #default="{ row }">{{ limitText(row.limit) }}</template>
+          </el-table-column>
+          <el-table-column label="已用" width="100">
+            <template #default="{ row }">
+              <span :style="{ color: row.over ? 'var(--el-color-danger)' : 'inherit' }">{{ row.used }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态">
+            <template #default="{ row }">
+              <el-tag v-if="row.over" type="danger" size="small">超量</el-tag>
+              <el-tag v-else type="success" size="small">正常</el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+        <p v-if="proxyExitIp" class="form-tip" style="margin-top: 8px">
+          自建应用需将平台出口 IP <b>{{ proxyExitIp }}</b> 加入企业后台「开发者接口 → 企业可信 IP」，否则企微 API 报 60020；代开发模式已由平台统一处理。
+        </p>
+      </div>
+
+      <el-divider />
       <div class="section-title">可信域名验证文件（WW_verify）</div>
       <p class="form-tip">
         自建应用在企微后台「应用详情 → 开发者接口 → 网页授权及JS-SDK」配置<b>可信域名</b>时，企微会下发
@@ -327,10 +368,51 @@ const handleRemoveVerifyFile = async (file: string) => {
   if (ok) ElMessage.success('验证文件已删除')
 }
 
+// ─── 能力包与许可用量（阶段 C，11.5） ───────────────────
+const capability = ref<any>(null)
+
+const planName = computed(() => capability.value?.plan ? (capability.value.plan.display_name || capability.value.plan.name) : '-')
+const trialText = computed(() => capability.value?.free_trial_ends_at ? `至 ${capability.value.free_trial_ends_at.slice(0, 10)}` : '-')
+const modeText = computed(() => ({ suite: '服务商代开发', self: '自建应用', none: '未接入' } as any)[capability.value?.mode] || '-')
+const proxyExitIp = computed(() => capability.value?.proxy?.enabled ? (capability.value.proxy.exit_ip || '') : '')
+
+const capabilityTags = computed(() => {
+  if (!capability.value) return []
+  const defs = [
+    { key: 'base', label: '基础能力' },
+    { key: 'intercom', label: '互通能力' },
+    { key: 'self', label: '自建应用' },
+    { key: 'archive', label: '会话存档' },
+  ]
+  return defs.map(d => ({ ...d, enabled: !!capability.value.features?.[d.key] }))
+})
+
+const limitText = (v: any) => (v === null || v === undefined ? '不限' : v)
+
+const licenseRows = computed(() => {
+  if (!capability.value) return []
+  const l = capability.value.limits || {}
+  const u = capability.value.usage || {}
+  const rows = [
+    { label: '基础许可', limit: l.wechat_work_license_basic, used: u.license_basic_used ?? 0 },
+    { label: '互通许可', limit: l.wechat_work_license_intercom, used: u.license_intercom_used ?? 0 },
+    { label: '出口 IP', limit: l.wechat_work_proxy_ips, used: u.proxy_ip ? 1 : 0 },
+  ]
+  return rows.map(r => ({ ...r, over: r.limit !== null && r.limit !== undefined && r.used > r.limit }))
+})
+
+const loadCapability = async () => {
+  try {
+    const res = await axios.get('/api/v1/tenant/wechat-work/capability')
+    capability.value = res.data.data
+  } catch {}
+}
+
 onMounted(() => {
   fetchSuiteStatus()
   loadSelf()
   loadVerifyFiles()
+  loadCapability()
 })
 </script>
 
@@ -345,6 +427,7 @@ onMounted(() => {
 .help-box code { background: var(--el-fill-color); padding: 1px 6px; border-radius: 3px; word-break: break-all; }
 .help-box a { color: var(--el-color-primary); }
 .suite-box { margin-bottom: 16px; padding: 12px 16px; background: var(--el-fill-color-light); border: 1px solid var(--el-border-color-lighter); border-radius: 6px; }
+.cap-box { margin-bottom: 8px; }
 .suite-box .form-tip { margin-top: 6px; }
 .suite-qr-box { margin-top: 10px; }
 .suite-qr { display: inline-block; padding: 10px; background: #fff; border: 1px solid var(--el-border-color-lighter); border-radius: 6px; }

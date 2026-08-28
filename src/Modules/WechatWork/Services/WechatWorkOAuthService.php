@@ -101,6 +101,9 @@ class WechatWorkOAuthService
      */
     protected function getConfig(int $tenantId): array
     {
+        // 基础能力门控（阶段 C，11.2）：登录属基础包（free 起含），未开通时明确报错（feature_not_enabled 风格）
+        app(WechatWorkCapability::class)->assert($tenantId, 'base');
+
         $authorization = $this->suiteAuthorization($tenantId);
 
         if ($authorization !== null && $authorization->isAuthorized()) {

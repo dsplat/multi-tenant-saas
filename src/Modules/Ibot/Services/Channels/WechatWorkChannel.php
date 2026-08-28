@@ -6,6 +6,7 @@ use MultiTenantSaas\Modules\Ibot\Contracts\IbotChannelContract;
 use MultiTenantSaas\Modules\Ibot\DTOs\IbotInboundMessage;
 use MultiTenantSaas\Modules\Ibot\Models\Ibot;
 use MultiTenantSaas\Modules\Ibot\Services\WechatWorkSuiteGuard;
+use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkCapability;
 use MultiTenantSaas\Support\Messaging\MarkdownAdapter;
 use MultiTenantSaas\Support\WechatWork\WechatWorkApiClient;
 use MultiTenantSaas\Support\WechatWork\WechatWorkCrypto;
@@ -98,8 +99,14 @@ class WechatWorkChannel implements IbotChannelContract
      */
     private function apiClient(Ibot $ibot): WechatWorkApiClient
     {
-        $corpSecret = (string) ($ibot->credentials['corp_secret'] ?? '');
         $tenantId = (int) $ibot->tenant_id;
+
+        // 能力门控（阶段 C，11.2）：应用消息/ibot 属基础包；WechatWork 可选拆包，未装时跳过
+        if (class_exists(WechatWorkCapability::class)) {
+            app(WechatWorkCapability::class)->assert($tenantId, 'base');
+        }
+
+        $corpSecret = (string) ($ibot->credentials['corp_secret'] ?? '');
         $tokenResolver = null;
 
         if ($corpSecret === '' && WechatWorkSuiteGuard::authorized($tenantId)) {

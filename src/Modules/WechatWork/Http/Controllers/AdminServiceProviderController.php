@@ -11,6 +11,7 @@ use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\WechatWork\Models\ServiceProvider;
 use MultiTenantSaas\Modules\WechatWork\Models\WechatWorkAuthorization;
+use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkCapability;
 use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
 
 /**
@@ -209,6 +210,44 @@ class AdminServiceProviderController extends Controller
     // ==================================================================
     // 租户企微出口代理（9.1）
     // ==================================================================
+
+    /**
+     * 租户企微接入能力总览（阶段 C，11.4 admin「企微接入」区块）
+     *
+     * 返回能力包状态（features）、许可配额/已用量台账（limits/usage）、
+     * 接入模式（suite/self/none）与代开发许可 90 天免费窗口截止。
+     */
+    public function capabilityShow(int $tenantId): JsonResponse
+    {
+        if (! Tenant::query()->where('tenant_id', $tenantId)->exists()) {
+            return response()->json(['success' => false, 'message' => trans('common.not_found')], 404);
+        }
+
+        $capability = app(WechatWorkCapability::class);
+        $overview = $capability->licenseOverview($tenantId);
+
+        $tenant = Tenant::find($tenantId);
+        $authorization = $this->suite->authorization($tenantId);
+
+        if ($authorization !== null && $authorization->isAuthorized()) {
+            $mode = 'suite';
+        } else {
+            $corpId = TenantSetting::get($tenantId, 'wechatwork', 'corp_id', '');
+            $mode = ! empty($corpId) ? 'self' : 'none';
+        }
+
+        $freeTrialEndsAt = $capability->freeTrialEndsAt($tenantId);
+
+        return response()->json(['success' => true, 'data' => [
+            'plan' => $tenant?->subscription_plan_id ? ($tenant?->subscription_plan ?: null) : null,
+            'features' => $capability->featureList($tenantId),
+            'limits' => $overview['limits'],
+            'usage' => $overview['usage'],
+            'mode' => $mode,
+            'authorized' => $mode === 'suite',
+            'free_trial_ends_at' => $freeTrialEndsAt?->toDateTimeString(),
+        ]]);
+    }
 
     /**
      * 读取租户企微出口代理配置（password 永不出库，仅回传 has_password）

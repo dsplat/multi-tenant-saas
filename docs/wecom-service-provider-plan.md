@@ -450,7 +450,7 @@ Route::prefix('wechat-work')->group(function () {
 3. 配置:SaveIbotConfigTool / IbotSetupStatusTool / IbotAdminController corp_secret 回退套件授权 + 文案双轨
 4. 验证:tests/WechatWorkSuiteCallbackTest 补充(text 转发)+ Ibot 相关回归
 
-## 12.3 阶段 C:套餐体系(11)
+## 12.3 阶段 C:套餐体系(11)(✅ 2026-08-28 完成,M3 商业化达成)
 
 1. Billing 后端校验补全(metered_price/metered_unit/overage_allowed/overage_price/rate_limit_rpm 放行)+ SubscriptionPlan 种子数据(features/limits/metered_price)
 2. WechatWorkCapability 服务 + 5 处调用点(11.2)
@@ -458,12 +458,16 @@ Route::prefix('wechat-work')->group(function () {
 4. console OAuthSettings 增量(能力包状态/许可用量/出口 IP,双套)
 5. 验证:tests/WechatWorkCapabilityTest.php + Billing 回归
 
+**落地记录(2026-08-28)**:迁移 `2026_08_28_000001_subscription_plan_metered_fields.php` 补 8 列并按 name 更新 4 套餐能力包种子(free/basic/pro/enterprise 的 features/limits/metered_price);新增 `WechatWorkCapability`(+lang/wechat_work.php)与 admin `GET /admin/wechat-work/capabilities/{tenantId}`(capabilityShow)、console `GET /tenant/wechat-work/capability`(TenantWechatWorkAuthController::capability);TenantDetail 双套「企微接入」区块(能力包勾选/许可台账/套餐切换 change-plan/出口代理 PUT);WechatWorkSettings 增「能力包与许可用量」台账;OAuthSettings 双套企微 tab 增能力摘要。测试:WechatWorkCapabilityTest 15 项 + Billing/WechatWork 回归 88 项全过。
+
+**未覆盖(后续收尾)**:11.4 模式强制切换(运营代客户 revoke/重配引导);11.4 逐操作 AuditService::log 审计化(proxyUpdate 目前仅 Log::info,change-plan 已有审计);11.5 缺失能力升级链接。
+
 ## 12.4 里程碑与部署
 
 | 里程碑 | 内容 | 完成标准 |
 |---|---|---|
 | M1 隔离地基 | 阶段 A 完成 | 代开发/自建租户出口 IP 完全隔离;互斥不可绕过;驱动双轨 |
 | M2 双轨完整 | 阶段 A+B 完成 | 代开发租户全能力可用(含 ibot 收发);无纯自建假设残留 |
-| M3 商业化 | 阶段 C 完成 | 能力门控生效,套餐可售卖,两端 UI 可用 |
+| M3 商业化 | 阶段 C 完成 ✅ 2026-08-28 | 能力门控生效,套餐可售卖,两端 UI 可用 |
 
 每里程碑后按 testing.md 只跑受影响文件;部署走 deploy.md 唯一链路(框架 push → split.yml → scrm composer update + lock commit → deploy.py incremental)。

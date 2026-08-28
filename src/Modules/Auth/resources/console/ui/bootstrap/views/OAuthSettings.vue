@@ -85,6 +85,13 @@
 
       <!-- 企业微信 -->
       <div v-show="activeTab === 'wechat_work'" class="tab-body">
+        <!-- 能力包摘要（阶段 C，11.5；完整台账见「企业微信配置」页） -->
+        <div v-if="wwCap" class="cap-summary">
+          <span class="cap-label">能力包：</span>
+          <span v-for="f in wwCapTags" :key="f.key" :class="['cap-tag', f.enabled ? 'cap-tag-on' : 'cap-tag-off']">{{ f.label }}</span>
+          <span v-if="wwTrialText" class="form-tip" style="margin-left: 2px">许可免费窗口{{ wwTrialText }}</span>
+          <span v-if="wwOverage" class="form-tip" style="color: #dc3545">部分许可已超量</span>
+        </div>
         <!-- 平台代开发应用授权（suite 模式，双轨之一） -->
         <div class="suite-box">
           <div class="help-title">🤝 平台代开发应用授权（推荐）</div>
@@ -467,7 +474,42 @@ const handleSave = async () => {
   }
 }
 
-onMounted(() => { loadConfig(); fetchSuiteStatus() })
+// ─── 企微能力包摘要（阶段 C，11.5；完整台账见「企业微信配置」页） ───────────────────
+const wwCap = ref<any>(null)
+
+const wwCapTags = computed(() => {
+  if (!wwCap.value) return []
+  const defs = [
+    { key: 'base', label: '基础能力' },
+    { key: 'intercom', label: '互通能力' },
+    { key: 'self', label: '自建应用' },
+    { key: 'archive', label: '会话存档' },
+  ]
+  return defs.map(d => ({ ...d, enabled: !!wwCap.value.features?.[d.key] }))
+})
+
+const wwTrialText = computed(() => wwCap.value?.free_trial_ends_at ? `至 ${wwCap.value.free_trial_ends_at.slice(0, 10)}` : '')
+
+const wwOverage = computed(() => {
+  if (!wwCap.value) return false
+  const l = wwCap.value.limits || {}
+  const u = wwCap.value.usage || {}
+  const checks = [
+    { limit: l.wechat_work_license_basic, used: u.license_basic_used ?? 0 },
+    { limit: l.wechat_work_license_intercom, used: u.license_intercom_used ?? 0 },
+    { limit: l.wechat_work_proxy_ips, used: u.proxy_ip ? 1 : 0 },
+  ]
+  return checks.some(c => c.limit !== null && c.limit !== undefined && c.used > c.limit)
+})
+
+const loadWwCap = async () => {
+  try {
+    const res = await axios.get('/api/v1/tenant/wechat-work/capability')
+    wwCap.value = res.data.data
+  } catch {}
+}
+
+onMounted(() => { loadConfig(); fetchSuiteStatus(); loadWwCap() })
 </script>
 
 <style scoped>
@@ -479,6 +521,11 @@ onMounted(() => { loadConfig(); fetchSuiteStatus() })
 .badge { background: #198754; color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 4px; }
 .tab-body { padding-top: 4px; }
 .enable-row { display: flex; align-items: center; justify-content: space-between; max-width: 560px; margin-bottom: 16px; font-size: 14px; }
+.cap-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.cap-label { font-size: 13px; color: var(--text-color-secondary, #666); }
+.cap-tag { font-size: 12px; padding: 2px 8px; border-radius: 4px; }
+.cap-tag-on { background: var(--badge-success-bg, #d1e7dd); color: var(--badge-success-fg, #0f5132); }
+.cap-tag-off { background: var(--badge-info-bg, #e2e3e5); color: var(--badge-info-fg, #41464b); }
 .form-group { margin-bottom: 12px; max-width: 560px; }
 .form-group label { display: block; font-size: 13px; margin-bottom: 4px; color: #495057; }
 .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 6px 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; box-sizing: border-box; }

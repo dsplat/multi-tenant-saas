@@ -103,6 +103,13 @@
                 @change="handleWechatWorkToggle"
               />
             </div>
+            <!-- 能力包摘要（阶段 C，11.5；完整台账见「企业微信配置」页） -->
+            <div v-if="wwCap" class="cap-summary">
+              <span class="cap-label">能力包：</span>
+              <el-tag v-for="f in wwCapTags" :key="f.key" :type="f.enabled ? 'success' : 'info'" size="small" style="margin-right: 6px">{{ f.label }}</el-tag>
+              <span v-if="wwTrialText" class="form-tip" style="margin-left: 2px">许可免费窗口{{ wwTrialText }}</span>
+              <span v-if="wwOverage" class="form-tip" style="color: var(--el-color-danger)">部分许可已超量</span>
+            </div>
             <p class="form-tip" style="max-width: 560px">
               <template v-if="config.wechat_work.mode === 'suite'">已通过平台代开发授权自动启用，无需开关控制。</template>
               企微接入方式（平台代开发扫码授权 / 自建应用凭证）与可信域名验证文件（WW_verify），请在「企业微信配置」页完成。
@@ -384,6 +391,7 @@ const handleRemoveVerifyFile = async (file: string) => {
 onMounted(() => {
   loadConfig()
   loadVerifyFiles()
+  loadWwCap()
 })
 
 const wwSwitchSaving = ref(false)
@@ -399,12 +407,49 @@ const handleWechatWorkToggle = async (enabled: boolean) => {
   }
 }
 
+// ─── 企微能力包摘要（阶段 C，11.5；完整台账见「企业微信配置」页） ───────────────────
+const wwCap = ref<any>(null)
+
+const wwCapTags = computed(() => {
+  if (!wwCap.value) return []
+  const defs = [
+    { key: 'base', label: '基础能力' },
+    { key: 'intercom', label: '互通能力' },
+    { key: 'self', label: '自建应用' },
+    { key: 'archive', label: '会话存档' },
+  ]
+  return defs.map(d => ({ ...d, enabled: !!wwCap.value.features?.[d.key] }))
+})
+
+const wwTrialText = computed(() => wwCap.value?.free_trial_ends_at ? `至 ${wwCap.value.free_trial_ends_at.slice(0, 10)}` : '')
+
+const wwOverage = computed(() => {
+  if (!wwCap.value) return false
+  const l = wwCap.value.limits || {}
+  const u = wwCap.value.usage || {}
+  const checks = [
+    { limit: l.wechat_work_license_basic, used: u.license_basic_used ?? 0 },
+    { limit: l.wechat_work_license_intercom, used: u.license_intercom_used ?? 0 },
+    { limit: l.wechat_work_proxy_ips, used: u.proxy_ip ? 1 : 0 },
+  ]
+  return checks.some(c => c.limit !== null && c.limit !== undefined && c.used > c.limit)
+})
+
+const loadWwCap = async () => {
+  try {
+    const res = await axios.get('/api/v1/tenant/wechat-work/capability')
+    wwCap.value = res.data.data
+  } catch {}
+}
+
 </script>
 
 <style scoped>
 .page-header { margin-bottom: 20px; }
 .tab-body { padding-top: 4px; }
 .enable-row { display: flex; align-items: center; justify-content: space-between; max-width: 560px; margin-bottom: 16px; font-size: 14px; }
+.cap-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; max-width: 560px; margin-bottom: 12px; }
+.cap-label { font-size: 13px; color: var(--el-text-color-regular); }
 .config-form { max-width: 560px; margin-bottom: 8px; }
 .form-tip { font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.5; margin-top: 4px; }
 .help-box { margin-top: 8px; padding: 12px 16px; background: var(--el-fill-color-light); border-radius: 6px; font-size: 13px; line-height: 1.8; color: var(--el-text-color-regular); }

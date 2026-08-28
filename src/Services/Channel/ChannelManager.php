@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Schema;
 use MultiTenantSaas\Contracts\ChannelContract;
 use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
+use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkCapability;
 use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
 use MultiTenantSaas\Services\Channel\Providers\EnterpriseWechatAppDriver;
 use MultiTenantSaas\Services\Channel\Providers\EnterpriseWechatKfDriver;
@@ -85,6 +86,12 @@ class ChannelManager
         // 9.4：企微渠道双轨凭证注入（套件授权租户无需手填 corp_secret/kf_secret）
         if (in_array($type, [EnterpriseWechatAppDriver::TYPE, EnterpriseWechatKfDriver::TYPE], true)) {
             $config = $this->withSuiteCredentials($type, $config, $tenantId);
+        }
+
+        // 能力门控（阶段 C，11.2）：应用消息属基础包、客服属互通包；WechatWork 可选拆包，未装时跳过
+        if (class_exists(WechatWorkCapability::class)) {
+            $capability = $type === EnterpriseWechatKfDriver::TYPE ? 'intercom' : 'base';
+            app(WechatWorkCapability::class)->assert($tenantId, $capability);
         }
 
         return $this->resolved[$cacheKey] = new $class($config);

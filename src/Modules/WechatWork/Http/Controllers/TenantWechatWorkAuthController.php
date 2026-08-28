@@ -8,7 +8,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Auth\Services\Concerns\ManagesOAuthState;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\WechatWork\Models\WechatWorkAuthorization;
+use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkCapability;
 use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
 
 /**
@@ -179,6 +182,52 @@ class TenantWechatWorkAuthController extends Controller
                 'callback' => $callback,
             ],
         ]);
+    }
+
+    /**
+     * 当前租户企微能力总览（console 端，11.5）
+     *
+     * 与 admin capabilityShow 同构：能力包状态/许可台账/接入模式/免费窗口，
+     * 租户 ID 从 TenantContext 解析；另附平台分配的出口代理摘要（只读，
+     * exit_ip 需客户加入企业可信 IP）。
+     */
+    public function capability(): JsonResponse
+    {
+        $tenantId = TenantContext::getId();
+
+        if ($tenantId === null) {
+            return response()->json(['success' => false, 'message' => '无法识别租户上下文'], 400);
+        }
+
+        $capability = app(WechatWorkCapability::class);
+        $overview = $capability->licenseOverview($tenantId);
+
+        $authorization = $this->suite->authorization($tenantId);
+        if ($authorization !== null && $authorization->isAuthorized()) {
+            $mode = 'suite';
+        } else {
+            $corpId = TenantSetting::get($tenantId, 'wechatwork', 'corp_id', '');
+            $mode = ! empty($corpId) ? 'self' : 'none';
+        }
+
+        $proxy = TenantSetting::get($tenantId, 'wechatwork', 'proxy', []);
+
+        $tenant = Tenant::find($tenantId);
+        $freeTrialEndsAt = $capability->freeTrialEndsAt($tenantId);
+
+        return response()->json(['success' => true, 'data' => [
+            'plan' => $tenant?->subscription_plan_id ? ($tenant?->subscription_plan ?: null) : null,
+            'features' => $capability->featureList($tenantId),
+            'limits' => $overview['limits'],
+            'usage' => $overview['usage'],
+            'mode' => $mode,
+            'authorized' => $mode === 'suite',
+            'free_trial_ends_at' => $freeTrialEndsAt?->toDateTimeString(),
+            'proxy' => [
+                'enabled' => ! empty($proxy['enabled']),
+                'exit_ip' => (string) ($proxy['exit_ip'] ?? ''),
+            ],
+        ]]);
     }
 
     /**

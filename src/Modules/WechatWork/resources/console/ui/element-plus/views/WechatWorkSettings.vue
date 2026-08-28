@@ -15,7 +15,7 @@
           </template>
 
           <template v-if="suiteAuthorized">
-            <!-- 授权信息（左） + 权限清单（右） -->
+            <!-- 左：操作区（状态/凭证/操作/回调链路）；右：权限清单（一行一个，便于逐项阅读） -->
             <div class="auth-grid">
               <div class="auth-info">
                 <div class="state-line">
@@ -25,47 +25,50 @@
                 <div class="auth-row"><span class="auth-label">Corp ID</span><code>{{ suiteAuth.corp_id }}</code></div>
                 <div class="auth-row"><span class="auth-label">Agent ID</span><code>{{ suiteAuth.agent_id }}</code></div>
                 <div class="auth-row"><span class="auth-label">授权时间</span><span>{{ suiteAuth.authorized_at || '—' }}</span></div>
+                <div class="auth-actions">
+                  <el-button type="danger" plain size="small" :loading="suiteRevoking" @click="revokeSuiteAuth">解除授权</el-button>
+                  <el-button link size="small" @click="fetchSuiteStatus">刷新状态</el-button>
+                </div>
+                <!-- 应用回调链路：服务商代管的技术细节，默认折叠 -->
+                <el-collapse v-if="suiteAuth.callback" class="adv-collapse">
+                  <el-collapse-item name="callback">
+                    <template #title>
+                      应用回调链路（技术细节，服务商代管）
+                      <el-tag v-if="!suiteAuth.callback.app_callback_configured" type="warning" size="small" style="margin-left: 8px">待平台配置</el-tag>
+                      <el-tag v-else type="success" size="small" style="margin-left: 8px">就绪</el-tag>
+                    </template>
+                    <div class="callback-quote">
+                      <div v-if="!suiteAuth.callback.app_callback_configured" class="callback-warn">
+                        应用回调尚未配置：请平台在「管理后台 → 企微服务商」配置模板级应用回调 Token / EncodingAESKey，配置完成前应用无法接收事件推送。
+                      </div>
+                      <div class="callback-row">
+                        <span class="callback-label">应用回调 URL</span>
+                        <code class="callback-code">{{ suiteAuth.callback.app_callback_url }}</code>
+                        <el-button link type="primary" size="small" @click="copyText(suiteAuth.callback.app_callback_url)">复制</el-button>
+                      </div>
+                      <div v-if="suiteAuth.callback.app_callback_url_legacy" class="callback-row">
+                        <span class="callback-label">备用地址</span>
+                        <code class="callback-code">{{ suiteAuth.callback.app_callback_url_legacy }}</code>
+                        <el-button link type="primary" size="small" @click="copyText(suiteAuth.callback.app_callback_url_legacy)">复制</el-button>
+                      </div>
+                      <div class="callback-tip">
+                        可信域名须填 <b>{{ suiteCallbackDomain }}</b>（不含 https:// 与路径）；应用主页可填 club.lanyantu.com 等终端站点（与认证无关）。
+                      </div>
+                    </div>
+                  </el-collapse-item>
+                </el-collapse>
               </div>
               <div class="auth-perms">
-                <div class="auth-label">已获得模板权限</div>
-                <div class="perm-tags">
-                  <el-tag v-for="p in suiteAuthPermissions" :key="p.key" size="small" style="margin: 0 6px 6px 0">{{ p.label }}</el-tag>
+                <div class="auth-label">已获得模板权限（扫码授权即一次性获得）</div>
+                <div class="perm-list">
+                  <div v-for="p in suiteAuthPermissions" :key="p.key" class="perm-line">
+                    <el-icon class="perm-check"><Check /></el-icon>
+                    <span>{{ p.label }}</span>
+                  </div>
                   <span v-if="!suiteAuthPermissions.length" class="form-tip">—</span>
                 </div>
               </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px; margin: 4px 0 8px">
-              <el-button type="danger" plain size="small" :loading="suiteRevoking" @click="revokeSuiteAuth">解除授权</el-button>
-              <el-button link size="small" @click="fetchSuiteStatus">刷新状态</el-button>
-            </div>
-            <!-- 应用回调链路：服务商代管的技术细节，默认折叠 -->
-            <el-collapse v-if="suiteAuth.callback" class="adv-collapse">
-              <el-collapse-item name="callback">
-                <template #title>
-                  应用回调链路（技术细节，服务商代管）
-                  <el-tag v-if="!suiteAuth.callback.app_callback_configured" type="warning" size="small" style="margin-left: 8px">待平台配置</el-tag>
-                  <el-tag v-else type="success" size="small" style="margin-left: 8px">就绪</el-tag>
-                </template>
-                <div class="callback-quote">
-                  <div v-if="!suiteAuth.callback.app_callback_configured" class="callback-warn">
-                    应用回调尚未配置：请平台在「管理后台 → 企微服务商」配置模板级应用回调 Token / EncodingAESKey，配置完成前应用无法接收事件推送。
-                  </div>
-                  <div class="callback-row">
-                    <span class="callback-label">应用回调 URL</span>
-                    <code class="callback-code">{{ suiteAuth.callback.app_callback_url }}</code>
-                    <el-button link type="primary" size="small" @click="copyText(suiteAuth.callback.app_callback_url)">复制</el-button>
-                  </div>
-                  <div v-if="suiteAuth.callback.app_callback_url_legacy" class="callback-row">
-                    <span class="callback-label">备用地址</span>
-                    <code class="callback-code">{{ suiteAuth.callback.app_callback_url_legacy }}</code>
-                    <el-button link type="primary" size="small" @click="copyText(suiteAuth.callback.app_callback_url_legacy)">复制</el-button>
-                  </div>
-                  <div class="callback-tip">
-                    可信域名须填 <b>{{ suiteCallbackDomain }}</b>（不含 https:// 与路径）；应用主页可填 club.lanyantu.com 等终端站点（与认证无关）。
-                  </div>
-                </div>
-              </el-collapse-item>
-            </el-collapse>
           </template>
 
           <template v-else>
@@ -94,7 +97,7 @@
               <el-button type="primary" :loading="suiteAuthorizing" @click="startSuiteAuth">使用平台代开发应用扫码授权</el-button>
               <el-button link @click="fetchSuiteStatus">刷新状态</el-button>
             </div>
-            <p v-if="suiteAuth.status === 'revoked'" class="form-tip" style="margin-top: 6px">当前状态：已解除，可重新扫码授权</p>
+            <p v-if="suiteAuth.status === 'revoked'" class="form-tip" style="margin-top: 6px">当前状态：已解除，可重新扫码授权。重新授权即可恢复：平台配置（可信域名/回调）自动复用，企微将下发新的授权凭证，租户其余配置不受影响。</p>
             <p v-if="suiteAuthHint" class="form-tip" style="margin-top: 6px">{{ suiteAuthHint }}</p>
             <p v-if="suiteAuthError" class="form-tip" style="margin-top: 6px; color: var(--el-color-danger)">{{ suiteAuthError }}</p>
           </template>
@@ -139,8 +142,8 @@
       </el-tabs>
     </el-card>
 
-    <!-- ② 辅助配置卡：可信域名验证文件（核心操作前置，解释收纳进 tooltip） -->
-    <el-card shadow="never" style="max-width: 860px; margin-top: 16px">
+    <!-- ② 辅助配置卡：可信域名验证文件（仅自建模式；代开发模式由服务商代管，租户侧不可操作） -->
+    <el-card v-if="mode === 'self'" shadow="never" style="max-width: 860px; margin-top: 16px">
       <div class="section-title" style="margin-top: 0">可信域名验证文件（WW_verify）</div>
       <div class="verify-host">
         <span class="verify-host-label">验证文件挂载域名（租户域）：</span>
@@ -158,9 +161,8 @@
         <el-tooltip placement="top" effect="light">
           <template #content>
             什么时候需要此文件？<br />
-            ① 自建应用：企微后台「应用详情 → 开发者接口 → 网页授权及JS-SDK」配置可信域名时；<br />
-            ② 平台代开发：为企业配置「企业微信授权登录（Web 登录）」的可信域名时。<br />
-            注意：扫码登录本身只需「授权回调域」，此文件仅用于可信域名归属认证。
+            自建应用：企微后台「应用详情 → 开发者接口 → 网页授权及JS-SDK」配置可信域名时需完成归属认证。<br />
+            注意：扫码登录本身只需「授权回调域」，此文件仅用于可信域名归属认证；平台代开发模式下可信域名由服务商代管，无需此操作。
           </template>
           <el-button link type="info" size="small">
             <el-icon style="margin-right: 2px"><QuestionFilled /></el-icon>什么时候需要此文件？
@@ -181,42 +183,52 @@
       <p v-else class="form-tip" style="margin-top: 8px">暂无验证文件。企微下发验证文件后，将文件名登记到上方列表即可。</p>
     </el-card>
 
-    <!-- ③ 独立查看卡：套餐与许可用量（只读） -->
+    <!-- ③ 独立查看卡：随接入模式联动（suite=套餐与许可用量 / self=出口代理，均只读） -->
     <el-card v-if="capability" shadow="never" style="max-width: 860px; margin-top: 16px">
-      <div class="section-title" style="margin-top: 0">套餐与许可用量（只读）</div>
-      <el-descriptions :column="2" size="small" border style="margin: 8px 0">
-        <el-descriptions-item label="当前套餐">{{ planName }}</el-descriptions-item>
-        <el-descriptions-item v-if="capability.free_trial_ends_at" label="许可免费窗口">{{ trialText }}</el-descriptions-item>
-      </el-descriptions>
-      <div style="margin: 8px 0">
-        <el-tag
-          v-for="f in capabilityTags"
-          :key="f.key"
-          :type="f.enabled ? 'success' : 'info'"
-          size="small"
-          style="margin-right: 6px"
-        >{{ f.label }}</el-tag>
-      </div>
-      <el-table :data="licenseRows" size="small" style="max-width: 520px">
-        <el-table-column prop="label" label="许可" width="110" />
-        <el-table-column label="配额" width="100">
-          <template #default="{ row }">{{ limitText(row.limit) }}</template>
-        </el-table-column>
-        <el-table-column label="已用" width="100">
-          <template #default="{ row }">
-            <span :style="{ color: row.over ? 'var(--el-color-danger)' : 'inherit' }">{{ row.used }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="状态">
-          <template #default="{ row }">
-            <el-tag v-if="row.over" type="danger" size="small">超量</el-tag>
-            <el-tag v-else type="success" size="small">正常</el-tag>
-          </template>
-        </el-table-column>
-      </el-table>
-      <p v-if="proxyExitIp && mode === 'self'" class="form-tip" style="margin-top: 8px">
-        自建应用需将平台出口 IP <b>{{ proxyExitIp }}</b> 加入企业后台「开发者接口 → 企业可信 IP」，否则企微 API 报 60020。
-      </p>
+      <div class="section-title" style="margin-top: 0">{{ mode === 'suite' ? '套餐与许可用量（只读）' : '出口代理（只读）' }}</div>
+
+      <template v-if="mode === 'suite'">
+        <el-descriptions :column="2" size="small" border style="margin: 8px 0">
+          <el-descriptions-item label="当前套餐">{{ planName }}</el-descriptions-item>
+          <el-descriptions-item v-if="capability.free_trial_ends_at" label="许可免费窗口">{{ trialText }}</el-descriptions-item>
+        </el-descriptions>
+        <div style="margin: 8px 0">
+          <el-tag
+            v-for="f in capabilityTags"
+            :key="f.key"
+            :type="f.enabled ? 'success' : 'info'"
+            size="small"
+            style="margin-right: 6px"
+          >{{ f.label }}</el-tag>
+        </div>
+        <el-table :data="licenseRows" size="small" style="max-width: 520px">
+          <el-table-column prop="label" label="许可" width="110" />
+          <el-table-column label="配额" width="100">
+            <template #default="{ row }">{{ limitText(row.limit) }}</template>
+          </el-table-column>
+          <el-table-column label="已用" width="100">
+            <template #default="{ row }">
+              <span :style="{ color: row.over ? 'var(--el-color-danger)' : 'inherit' }">{{ row.used }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态">
+            <template #default="{ row }">
+              <el-tag v-if="row.over" type="danger" size="small">超量</el-tag>
+              <el-tag v-else type="success" size="small">正常</el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+      </template>
+
+      <template v-else>
+        <div class="verify-host">
+          <span class="verify-host-label">平台分配出口 IP：</span>
+          <code>{{ proxyExitIp || '暂未分配，请联系平台方' }}</code>
+        </div>
+        <p class="form-tip" style="margin-top: 8px">
+          自建应用走平台出口代理调用企微 API，需将上述出口 IP 加入企业后台「开发者接口 → 企业可信 IP」，否则企微 API 报 60020。
+        </p>
+      </template>
     </el-card>
   </div>
 </template>
@@ -225,7 +237,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { QuestionFilled } from '@element-plus/icons-vue'
+import { QuestionFilled, Check } from '@element-plus/icons-vue'
 import QrcodeVue from 'qrcode.vue'
 import { useUserStore } from '@stores/user'
 
@@ -322,7 +334,7 @@ const doRevokeSuiteAuth = async () => {
 
 const revokeSuiteAuth = async () => {
   try {
-    await ElMessageBox.confirm('确认解除平台代开发授权？解除后登录将回退自建应用配置（如有）。', '提示', { type: 'warning' })
+    await ElMessageBox.confirm('确认解除平台代开发授权？解除后登录将回退自建应用配置（如有）。重新授权即可恢复，平台配置（可信域名/回调）自动复用，租户其余配置不受影响。', '提示', { type: 'warning' })
   } catch { return }
   await doRevokeSuiteAuth()
 }
@@ -475,7 +487,10 @@ onMounted(() => {
 .auth-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--el-text-color-regular); padding: 3px 0; }
 .auth-label { flex: 0 0 76px; font-size: 12px; color: var(--el-text-color-secondary); }
 .auth-row code { font-size: 12px; background: var(--el-fill-color); padding: 1px 6px; border-radius: 3px; word-break: break-all; }
-.perm-tags { margin-top: 6px; }
+.auth-actions { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; }
+.perm-list { margin-top: 6px; }
+.perm-line { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--el-text-color-regular); padding: 3px 0; }
+.perm-check { color: var(--el-color-success); font-size: 14px; }
 .adv-collapse { margin-top: 4px; border-top: none; }
 .adv-collapse :deep(.el-collapse-item__header) { font-size: 12px; color: var(--el-text-color-secondary); height: 36px; }
 .callback-quote { background: var(--el-fill-color-light); border-left: 3px solid var(--el-color-primary-light-5); border-radius: 4px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }

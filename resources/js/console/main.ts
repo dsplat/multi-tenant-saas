@@ -7,6 +7,12 @@ import { useUserStore } from './stores/user'
 import App from '../../pages/console/App.vue'
 import router, { routesReady } from './router'
 import 'element-plus/theme-chalk/dark/css-vars.css'
+// element-plus 函数式 API 样式副作用导入：ElMessage/ElMessageBox/ElNotification/ElLoading
+// 不经过模板组件解析器，样式不会被按需引入（缺失时弹框堆左上角、无遮罩）
+import 'element-plus/es/components/message/style/css'
+import 'element-plus/es/components/message-box/style/css'
+import 'element-plus/es/components/notification/style/css'
+import 'element-plus/es/components/loading/style/css'
 
 // 全局 401 拦截：会话过期/失效时跳转登录页（登录页自身请求除外，防循环）
 axios.interceptors.response.use(

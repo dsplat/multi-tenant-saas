@@ -72,34 +72,41 @@
           </template>
 
           <template v-else>
-            <div class="state-line">
-              <span>尚未授权。扫码授权完成后企业微信扫码登录<b>自动启用</b>，无需去其他页面开启开关。</span>
-            </div>
-            <div v-if="suiteAuthUrl" class="suite-qr-box">
-              <div class="suite-qr">
-                <QrcodeVue :value="suiteAuthUrl" :size="176" level="M" render-as="canvas" />
+            <!-- 未授权同样左操作区（引导/二维码） + 右权限清单，与已授权态布局一致 -->
+            <div class="auth-grid">
+              <div class="auth-info">
+                <div class="state-line">
+                  <span>尚未授权。扫码授权完成后企业微信扫码登录<b>自动启用</b>，无需去其他页面开启开关。</span>
+                </div>
+                <div v-if="suiteAuthUrl" class="suite-qr-box">
+                  <div class="suite-qr">
+                    <QrcodeVue :value="suiteAuthUrl" :size="176" level="M" render-as="canvas" />
+                  </div>
+                  <p class="form-tip" style="margin: 8px 0 0">请使用<b>企业微信</b>扫描二维码，由企业管理员确认授权</p>
+                  <div class="auth-actions">
+                    <el-button size="small" :loading="suiteAuthorizing" @click="startSuiteAuth">重新生成二维码</el-button>
+                    <el-button size="small" @click="fetchSuiteStatus">刷新状态</el-button>
+                  </div>
+                </div>
+                <div v-else class="auth-actions">
+                  <el-button type="primary" size="small" :loading="suiteAuthorizing" @click="startSuiteAuth">使用平台代开发应用扫码授权</el-button>
+                  <el-button link size="small" @click="fetchSuiteStatus">刷新状态</el-button>
+                </div>
+                <p v-if="suiteAuth.status === 'revoked'" class="form-tip" style="margin-top: 6px">当前状态：已解除，可重新扫码授权。重新授权即可恢复：平台配置（可信域名/回调）自动复用，企微将下发新的授权凭证，租户其余配置不受影响。</p>
+                <p v-if="suiteAuthHint" class="form-tip" style="margin-top: 6px">{{ suiteAuthHint }}</p>
+                <p v-if="suiteAuthError" class="form-tip" style="margin-top: 6px; color: var(--el-color-danger)">{{ suiteAuthError }}</p>
               </div>
-              <p class="form-tip" style="margin: 8px 0 0; text-align: center">
-                请使用<b>企业微信</b>扫描二维码，由企业管理员确认授权；授权完成后点击「刷新状态」
-              </p>
-              <div style="display: flex; gap: 8px; justify-content: center; margin-top: 8px">
-                <el-button size="small" :loading="suiteAuthorizing" @click="startSuiteAuth">重新生成二维码</el-button>
-                <el-button size="small" @click="fetchSuiteStatus">刷新状态</el-button>
-              </div>
-              <div v-if="suiteAuthPermissions.length" class="suite-perms">
-                <div class="auth-label" style="font-size: 13px">授权后将获得以下模板权限（可信域名/回调域由服务商代管，无需逐项配置）</div>
-                <div style="margin-top: 4px">
-                  <el-tag v-for="p in suiteAuthPermissions" :key="p.key" size="small" style="margin-right: 6px">{{ p.label }}</el-tag>
+              <div class="auth-perms">
+                <div class="auth-label">授权后将获得模板权限（可信域名/回调域由服务商代管，无需逐项配置）</div>
+                <div class="perm-list">
+                  <div v-for="p in suiteAuthPermissions" :key="p.key" class="perm-line">
+                    <el-icon class="perm-check"><Check /></el-icon>
+                    <span>{{ p.label }}</span>
+                  </div>
+                  <span v-if="!suiteAuthPermissions.length" class="form-tip">—</span>
                 </div>
               </div>
             </div>
-            <div v-else style="display: flex; align-items: center; gap: 8px; margin: 8px 0">
-              <el-button type="primary" :loading="suiteAuthorizing" @click="startSuiteAuth">使用平台代开发应用扫码授权</el-button>
-              <el-button link @click="fetchSuiteStatus">刷新状态</el-button>
-            </div>
-            <p v-if="suiteAuth.status === 'revoked'" class="form-tip" style="margin-top: 6px">当前状态：已解除，可重新扫码授权。重新授权即可恢复：平台配置（可信域名/回调）自动复用，企微将下发新的授权凭证，租户其余配置不受影响。</p>
-            <p v-if="suiteAuthHint" class="form-tip" style="margin-top: 6px">{{ suiteAuthHint }}</p>
-            <p v-if="suiteAuthError" class="form-tip" style="margin-top: 6px; color: var(--el-color-danger)">{{ suiteAuthError }}</p>
           </template>
         </el-tab-pane>
 
@@ -188,18 +195,10 @@
       <div class="section-title" style="margin-top: 0">{{ mode === 'suite' ? '套餐与许可用量（只读）' : '出口代理（只读）' }}</div>
 
       <template v-if="mode === 'suite'">
-        <el-descriptions :column="2" size="small" border style="margin: 8px 0">
-          <el-descriptions-item label="当前套餐">{{ planName }}</el-descriptions-item>
-          <el-descriptions-item v-if="capability.free_trial_ends_at" label="许可免费窗口">{{ trialText }}</el-descriptions-item>
-        </el-descriptions>
-        <div style="margin: 8px 0">
-          <el-tag
-            v-for="f in capabilityTags"
-            :key="f.key"
-            :type="f.enabled ? 'success' : 'info'"
-            size="small"
-            style="margin-right: 6px"
-          >{{ f.label }}</el-tag>
+        <div class="plan-line">
+          <span class="plan-label">当前套餐</span>
+          <b>{{ planName }}</b>
+          <span v-if="trialText" class="form-tip" style="margin-left: 8px">许可免费窗口{{ trialText }}</span>
         </div>
         <el-table :data="licenseRows" size="small" style="max-width: 520px">
           <el-table-column prop="label" label="许可" width="110" />
@@ -425,19 +424,8 @@ const planName = computed(() => {
   if (capability.value?.plan) return capability.value.plan.display_name || capability.value.plan.name
   return '免费版'
 })
-const trialText = computed(() => capability.value?.free_trial_ends_at ? `至 ${capability.value.free_trial_ends_at.slice(0, 10)}` : '-')
+const trialText = computed(() => capability.value?.free_trial_ends_at ? `至 ${capability.value.free_trial_ends_at.slice(0, 10)}` : '')
 const proxyExitIp = computed(() => capability.value?.proxy?.enabled ? (capability.value.proxy.exit_ip || '') : '')
-
-const capabilityTags = computed(() => {
-  if (!capability.value) return []
-  const defs = [
-    { key: 'base', label: '基础能力' },
-    { key: 'intercom', label: '互通能力' },
-    { key: 'self', label: '自建应用' },
-    { key: 'archive', label: '会话存档' },
-  ]
-  return defs.map(d => ({ ...d, enabled: !!capability.value.features?.[d.key] }))
-})
 
 const limitText = (v: any) => (v === null || v === undefined ? '不限' : v)
 
@@ -448,7 +436,6 @@ const licenseRows = computed(() => {
   const rows = [
     { label: '基础许可', limit: l.wechat_work_license_basic, used: u.license_basic_used ?? 0 },
     { label: '互通许可', limit: l.wechat_work_license_intercom, used: u.license_intercom_used ?? 0 },
-    { label: '出口 IP', limit: l.wechat_work_proxy_ips, used: u.proxy_ip ? 1 : 0 },
   ]
   return rows.map(r => ({ ...r, over: r.limit !== null && r.limit !== undefined && r.used > r.limit }))
 })
@@ -501,7 +488,9 @@ onMounted(() => {
 .callback-tip { font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.6; }
 .suite-qr-box { margin-top: 10px; }
 .suite-qr { display: inline-block; padding: 10px; background: #fff; border: 1px solid var(--el-border-color-lighter); border-radius: 6px; }
-.suite-perms { margin-top: 10px; padding: 8px 10px; background: var(--el-fill-color-light); border-radius: 4px; }
+.plan-line { display: flex; align-items: baseline; gap: 6px; font-size: 13px; color: var(--el-text-color-regular); margin: 8px 0 12px; }
+.plan-line b { font-size: 14px; color: var(--el-text-color-primary); }
+.plan-label { font-size: 12px; color: var(--el-text-color-secondary); }
 .verify-host { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; padding: 8px 12px; background: var(--el-color-primary-light-9); border: 1px solid var(--el-color-primary-light-7); border-radius: 6px; }
 .verify-host-label { font-size: 12px; color: var(--el-text-color-regular); white-space: nowrap; }
 .verify-host code { font-size: 12px; word-break: break-all; }

@@ -478,9 +478,21 @@ class SocialiteService
 
         // wechat_work（9.6 模块边界）：enabled 开关写 oauth 组，凭证配置写 wechatwork 组；
         // 9.2 互斥防御下沉：套件已授权时拒绝写自建凭证（防 SaveOAuthConfigTool 等直调绕过控制器）
+        // 两步式解除：本地已解除（revoked）但企微侧应用未删除时，提交自建前探测提示先删
         if ($provider === 'wechat_work') {
-            if (! empty($config['corp_id'] ?? '') && $this->suiteAuthorized($tenantId)) {
-                throw new DomainException('当前租户已使用平台代开发应用授权，无需配置自建应用；如需切换请先解除授权');
+            if (! empty($config['corp_id'] ?? '')) {
+                if (Schema::hasTable('wechat_work_authorizations')) {
+                    $authorization = app(WechatWorkSuiteService::class)->authorization($tenantId);
+                    if ($authorization !== null) {
+                        if ($authorization->isAuthorized()) {
+                            throw new DomainException('当前租户已使用平台代开发应用授权，无需配置自建应用；如需切换请先解除授权');
+                        }
+
+                        if (app(WechatWorkSuiteService::class)->isStillAuthorizedOnWecom($authorization) === true) {
+                            throw new DomainException('企微侧代开发应用仍处于安装状态，请企业管理员在企业微信管理后台的「应用管理」中删除该应用后再提交自建配置');
+                        }
+                    }
+                }
             }
 
             foreach ($config as $key => $value) {

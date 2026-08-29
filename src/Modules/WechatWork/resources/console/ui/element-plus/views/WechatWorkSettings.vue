@@ -306,6 +306,12 @@ const startSuiteAuth = async () => {
   try {
     const res = await axios.post('/api/v1/tenant/wechat-work/authorize')
     const data = res.data.data || {}
+    // 两步式解除后的恢复：企微侧应用未删除时直接恢复本地授权，无需重新扫码
+    if (data.recovered) {
+      suiteAuthHint.value = data.message || '企微侧仍处于授权安装状态，已为您恢复授权'
+      await fetchSuiteStatus()
+      return
+    }
     const url = data.url
     if (!url) throw new Error('未返回授权 URL')
     suiteAuthUrl.value = url

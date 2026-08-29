@@ -601,6 +601,68 @@ class WechatWorkSuiteService
     }
 
     /**
+     * 探测企微侧授权是否仍有效（get_auth_info + 存量 permanent_code）
+     *
+     * 代开发模式服务商无主动解除授权 API：企业侧未删除应用时，重新扫码
+     * 不会推送 create_auth（企微视为已安装），本地 revoke 会与企微侧状态
+     * 分裂。此探测用于状态对账（status 端点）与解除授权引导（revoke 端点）。
+     *
+     * @return bool|null true=企微侧仍授权；false=企微侧已解除（permanent_code 失效）；
+     *                   null=探测失败（网络/suite_ticket 缺失/无凭证），状态未知
+     */
+    public function isStillAuthorizedOnWecom(WechatWorkAuthorization $auth): ?bool
+    {
+        if ($auth->corp_id === '' || empty($auth->permanent_code)) {
+            return null;
+        }
+
+        try {
+            $provider = $this->requireProvider();
+            $resp = Http::post(
+                self::API_BASE . '/get_auth_info?suite_access_token=' . $this->suiteAccessToken($provider),
+                [
+                    'auth_corpid' => $auth->corp_id,
+                    'permanent_code' => $auth->permanent_code,
+                ]
+            );
+
+            if (! $resp->successful()) {
+                Log::warning('[WechatWorkSuite] 授权状态探测 HTTP 失败', [
+                    'tenant_id' => $auth->tenant_id,
+                    'corp_id' => $auth->corp_id,
+                    'status' => $resp->status(),
+                ]);
+
+                return null;
+            }
+
+            $data = $resp->json();
+            $errCode = (int) ($data['errcode'] ?? 0);
+
+            if ($errCode === 0) {
+                return true;
+            }
+
+            Log::info('[WechatWorkSuite] 企微侧确认已解除授权', [
+                'tenant_id' => $auth->tenant_id,
+                'corp_id' => $auth->corp_id,
+                'errcode' => $errCode,
+                'errmsg' => (string) ($data['errmsg'] ?? ''),
+            ]);
+
+            return false;
+        } catch (\Throwable $e) {
+            Log::warning('[WechatWorkSuite] 授权状态探测失败', [
+                'tenant_id' => $auth->tenant_id,
+                'corp_id' => $auth->corp_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
      * 解析企业微信 API 响应
      *
      * @throws ServiceUnavailableException 当 errcode != 0

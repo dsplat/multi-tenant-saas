@@ -181,10 +181,17 @@ class WechatWorkAuthzTest extends TestCase
     public function test_status_returns_authorization_when_authorized(): void
     {
         $provider = $this->createProvider();
+        $this->suite->storeSuiteTicket($provider->service_provider_id, 'ticket-abc');
         $this->suite->saveAuthorization($this->tenantId, $provider->service_provider_id, [
             'corp_id' => 'ww_corp_1',
             'agent_id' => '1000001',
             'permanent_code' => 'perm-code-1',
+        ]);
+
+        // 状态对账：企微侧仍授权（get_auth_info 成功）→ 本地 authorized 保持
+        Http::fake([
+            'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response(['suite_access_token' => 'st', 'expires_in' => 7200]),
+            'qyapi.weixin.qq.com/cgi-bin/service/get_auth_info*' => Http::response(['errcode' => 0, 'auth_corp_info' => ['corpid' => 'ww_corp_1']]),
         ]);
 
         $this->auth()->getJson('/api/v1/tenant/wechat-work/status')
@@ -306,10 +313,17 @@ class WechatWorkAuthzTest extends TestCase
     public function test_revoke_marks_revoked(): void
     {
         $provider = $this->createProvider();
+        $this->suite->storeSuiteTicket($provider->service_provider_id, 'ticket-abc');
         $this->suite->saveAuthorization($this->tenantId, $provider->service_provider_id, [
             'corp_id' => 'ww_corp_1',
             'agent_id' => '1000001',
             'permanent_code' => 'perm-code-1',
+        ]);
+
+        // 企微侧已解除（permanent_code 失效）→ 本地标记 revoked 补齐状态
+        Http::fake([
+            'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response(['suite_access_token' => 'st', 'expires_in' => 7200]),
+            'qyapi.weixin.qq.com/cgi-bin/service/get_auth_info*' => Http::response(['errcode' => 61007, 'errmsg' => 'invalid permanent_code']),
         ]);
 
         $this->auth()->postJson('/api/v1/tenant/wechat-work/revoke')
@@ -318,6 +332,114 @@ class WechatWorkAuthzTest extends TestCase
 
         $authorization = $this->suite->authorization($this->tenantId);
         $this->assertSame(WechatWorkAuthorization::STATUS_REVOKED, $authorization->status);
+    }
+
+    public function test_status_auto_recovers_revoked_when_wecom_still_authorized(): void
+    {
+        $provider = $this->createProvider();
+        $this->suite->storeSuiteTicket($provider->service_provider_id, 'ticket-abc');
+        $this->suite->saveAuthorization($this->tenantId, $provider->service_provider_id, [
+            'corp_id' => 'ww_corp_1',
+            'agent_id' => '1000001',
+            'permanent_code' => 'perm-code-1',
+        ]);
+        $this->suite->markRevokedByCorpId('ww_corp_1');
+
+        // 本地 revoked 但企微侧仍授权（如本地解除后重新扫码）→ 对账自动恢复
+        Http::fake([
+            'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response(['suite_access_token' => 'st', 'expires_in' => 7200]),
+            'qyapi.weixin.qq.com/cgi-bin/service/get_auth_info*' => Http::response(['errcode' => 0, 'auth_corp_info' => ['corpid' => 'ww_corp_1']]),
+        ]);
+
+        $this->auth()->getJson('/api/v1/tenant/wechat-work/status')
+            ->assertOk()
+            ->assertJsonPath('data.status', WechatWorkAuthorization::STATUS_AUTHORIZED);
+
+        $authorization = $this->suite->authorization($this->tenantId);
+        $this->assertSame(WechatWorkAuthorization::STATUS_AUTHORIZED, $authorization->status);
+        $this->assertNull($authorization->revoked_at);
+    }
+
+    public function test_status_marks_revoked_when_wecom_released(): void
+    {
+        $provider = $this->createProvider();
+        $this->suite->storeSuiteTicket($provider->service_provider_id, 'ticket-abc');
+        $this->suite->saveAuthorization($this->tenantId, $provider->service_provider_id, [
+            'corp_id' => 'ww_corp_1',
+            'agent_id' => '1000001',
+            'permanent_code' => 'perm-code-1',
+        ]);
+
+        // 本地 authorized 但企微侧已解除（cancel_auth 事件丢失场景）→ 对账标记 revoked
+        Http::fake([
+            'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response(['suite_access_token' => 'st', 'expires_in' => 7200]),
+            'qyapi.weixin.qq.com/cgi-bin/service/get_auth_info*' => Http::response(['errcode' => 61007, 'errmsg' => 'invalid permanent_code']),
+        ]);
+
+        $this->auth()->getJson('/api/v1/tenant/wechat-work/status')
+            ->assertOk()
+            ->assertJsonPath('data.status', WechatWorkAuthorization::STATUS_REVOKED);
+
+        $authorization = $this->suite->authorization($this->tenantId);
+        $this->assertSame(WechatWorkAuthorization::STATUS_REVOKED, $authorization->status);
+        $this->assertNotNull($authorization->revoked_at);
+    }
+
+    public function test_status_keeps_state_when_probe_fails(): void
+    {
+        // 无 suite_ticket → 探测失败（null）→ 保持现状，不误伤 authorized
+        $provider = $this->createProvider();
+        $this->suite->saveAuthorization($this->tenantId, $provider->service_provider_id, [
+            'corp_id' => 'ww_corp_1',
+            'agent_id' => '1000001',
+            'permanent_code' => 'perm-code-1',
+        ]);
+
+        $this->auth()->getJson('/api/v1/tenant/wechat-work/status')
+            ->assertOk()
+            ->assertJsonPath('data.status', WechatWorkAuthorization::STATUS_AUTHORIZED);
+    }
+
+    public function test_revoke_guides_when_wecom_still_authorized(): void
+    {
+        $provider = $this->createProvider();
+        $this->suite->storeSuiteTicket($provider->service_provider_id, 'ticket-abc');
+        $this->suite->saveAuthorization($this->tenantId, $provider->service_provider_id, [
+            'corp_id' => 'ww_corp_1',
+            'agent_id' => '1000001',
+            'permanent_code' => 'perm-code-1',
+        ]);
+
+        // 企微侧仍授权 → 拒绝本地解除，引导企业管理员在企业微信管理后台删除应用
+        Http::fake([
+            'qyapi.weixin.qq.com/cgi-bin/service/get_suite_token' => Http::response(['suite_access_token' => 'st', 'expires_in' => 7200]),
+            'qyapi.weixin.qq.com/cgi-bin/service/get_auth_info*' => Http::response(['errcode' => 0, 'auth_corp_info' => ['corpid' => 'ww_corp_1']]),
+        ]);
+
+        $this->auth()->postJson('/api/v1/tenant/wechat-work/revoke')
+            ->assertStatus(409)
+            ->assertJsonPath('success', false);
+
+        $authorization = $this->suite->authorization($this->tenantId);
+        $this->assertSame(WechatWorkAuthorization::STATUS_AUTHORIZED, $authorization->status);
+    }
+
+    public function test_revoke_503_when_probe_fails(): void
+    {
+        // 探测失败（无 suite_ticket）→ 拒绝操作，避免盲目标记造成状态分裂
+        $provider = $this->createProvider();
+        $this->suite->saveAuthorization($this->tenantId, $provider->service_provider_id, [
+            'corp_id' => 'ww_corp_1',
+            'agent_id' => '1000001',
+            'permanent_code' => 'perm-code-1',
+        ]);
+
+        $this->auth()->postJson('/api/v1/tenant/wechat-work/revoke')
+            ->assertStatus(503)
+            ->assertJsonPath('success', false);
+
+        $authorization = $this->suite->authorization($this->tenantId);
+        $this->assertSame(WechatWorkAuthorization::STATUS_AUTHORIZED, $authorization->status);
     }
 
     // ==================================================================

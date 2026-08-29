@@ -139,6 +139,32 @@ class TenantWechatWorkAuthController extends Controller
             ? $this->suite->authorization($tenantId)
             : null;
 
+        // 双向状态对账：服务商无法主动解除企微侧授权（无取消 API），本地标记
+        // 与企微真实状态可能分裂——本地 revoke 后重新扫码企微视为已安装不推送
+        // create_auth；cancel_auth 事件也可能丢失。以存量 permanent_code 探测
+        // 企微侧，保证本地状态始终与企微侧一致（探测失败时保持现状不误伤）。
+        if ($authorization !== null && ! empty($authorization->permanent_code)) {
+            $stillAuthorized = $this->suite->isStillAuthorizedOnWecom($authorization);
+
+            if ($stillAuthorized === true && ! $authorization->isAuthorized()) {
+                Log::info('[WechatWorkSuite] 状态对账：企微侧仍授权，恢复本地状态', [
+                    'tenant_id' => $tenantId,
+                    'corp_id' => $authorization->corp_id,
+                ]);
+                $authorization->status = WechatWorkAuthorization::STATUS_AUTHORIZED;
+                $authorization->revoked_at = null;
+                $authorization->save();
+            } elseif ($stillAuthorized === false && $authorization->isAuthorized()) {
+                Log::warning('[WechatWorkSuite] 状态对账：企微侧已解除，本地标记 revoked', [
+                    'tenant_id' => $tenantId,
+                    'corp_id' => $authorization->corp_id,
+                ]);
+                $authorization->status = WechatWorkAuthorization::STATUS_REVOKED;
+                $authorization->revoked_at = now();
+                $authorization->save();
+            }
+        }
+
         // 模板权限集（服务商声明，授权前后均展示给租户）
         try {
             $provider = $this->suite->requireProvider();
@@ -231,26 +257,44 @@ class TenantWechatWorkAuthController extends Controller
     }
 
     /**
-     * 解除授权（console 租户端，本地标记 revoked；企业侧解绑由 cancel_auth 事件同步）
+     * 解除授权（console 租户端）
+     *
+     * 代开发模式服务商无主动解除授权 API：企微侧仍安装时仅本地标记会与企微侧
+     * 状态分裂（重新扫码企微视为已安装，不推送 create_auth，无法再恢复）。
+     * 先探测企微侧真实状态——仍授权则引导企业管理员在企业微信管理后台删除
+     * 应用（删除后 cancel_auth 事件到达自动同步）；探测失败拒绝操作避免误标。
      */
     public function revoke(): JsonResponse
     {
         $tenantId = TenantContext::getId();
-
+    
         if ($tenantId === null) {
             return response()->json(['success' => false, 'message' => '无法识别租户上下文'], 400);
         }
-
+    
         $authorization = $this->suite->authorization($tenantId);
-
+    
         if ($authorization === null || ! $authorization->isAuthorized()) {
             return response()->json(['success' => false, 'message' => '当前租户无有效授权'], 400);
         }
-
+    
+        $stillAuthorized = $this->suite->isStillAuthorizedOnWecom($authorization);
+    
+        if ($stillAuthorized === null) {
+            return response()->json(['success' => false, 'message' => '暂无法确认企微侧授权状态，请稍后重试'], 503);
+        }
+    
+        if ($stillAuthorized === true) {
+            return response()->json([
+                'success' => false,
+                'message' => '企微侧应用仍处于安装状态，平台无法直接解除。请企业管理员在企业微信管理后台的「应用管理」中删除该应用，删除后系统将自动同步为未授权',
+            ], 409);
+        }
+    
         $authorization->status = WechatWorkAuthorization::STATUS_REVOKED;
         $authorization->revoked_at = now();
         $authorization->save();
-
+    
         return response()->json(['success' => true, 'message' => '已解除企微代开发授权']);
     }
 

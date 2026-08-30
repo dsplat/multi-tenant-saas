@@ -86,6 +86,7 @@ ibot 的参照形态是 OpenClaw 个人 AI 网关：channel 插件 + 常驻 Gate
 | operator_id | bigint index | |
 | ibot_id | bigint FK | |
 | external_id | string | 平台侧身份：chat_id（TG）/ userid（企微/钉钉）/ open_id（飞书）/ external_userid（微信客服） |
+| external_name | string nullable | IM 平台成员展示名（企微姓名/昵称，绑定确认时写入，列表展示用；读取失败回退 external_id） |
 | conversation_id | bigint nullable | 承载对话的 agent_conversation（首次消息时创建并复用） |
 | is_default_channel | boolean | 默认消息通道（每 operator 至多一个 true） |
 | status | string | pending（码已发未扫）/ active / revoked |
@@ -123,6 +124,10 @@ POST /api/v1/ibot/bind/wechat-work/confirm → takePending（取走即失效）+
 ```
 
 - **安全**：userid 仅来自企微 getuserinfo（非成员扫码无 userid → 拒绝）；pending 一次性取走即失效；绑定码仍一次性消费（防跨 bot/租户重放）；文本绑定码路径保留兑底（企微会话内发码同样可绑）
+- **姓名展示（2026-08-30）**：绑定确认时 `user/get` 读成员姓名写入 `external_name`，控制台「我的随身助理」列表展示姓名而非 userid；旧记录可回填（生产 tinker 补丁）
+- **已绑定提示（2026-08-30）**：扫码回调 getuserinfo 成功后先查 `isBound()`（active）→ 已绑定直接提示「该企业微信账号已绑定」，不再重复走确认页
+- **解绑/重绑（2026-08-30）**：解绑 = status 置 revoked（软删除）；`consume` 的占用检查仅对 active 互斥，revoked 后可重新绑定——同 operator 重绑更新原记录，其他 operator 重绑同 `(ibot_id, external_id)` 的 revoked 记录转交激活（避免唯一索引冲突）
+- **非成员扫码提示**：getuserinfo 返回仅 openid（无 userid）→ 提示「未获取到企业微信成员身份」。若成员扫码仍报此错，多半是企微客户端当前登录企业非本企业（多企业身份时扫码按当前企业授权），先在企微内切换回本企业再扫
 - **回调域（按接入模式区分，与 OAuth 登录同规则）**：
   - **代开发（suite）**：可信域名由服务商代管，只能用平台统一回调域 `auth.oauth.callback_domain`（如 auth.neihang.com）；
     租户自定义域名（如 club.lanyantu.com）仅自建模式可用，代开发模式填了必报 redirect_uri 错误

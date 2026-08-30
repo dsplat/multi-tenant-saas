@@ -759,6 +759,45 @@ class WechatWorkApiClient
         return $userIds;
     }
 
+    /**
+     * 查询成员详情（user/get）
+     *
+     * 群同步时用于把群主 userid 翻译为姓名（需通讯录读取权限；
+     * 成员不在可见范围或权限缺失时返回 null，调用方留空回退）。
+     *
+     * @return array<string, mixed>|null userid/name/avatar 等成员字段
+     */
+    public function userGet(string $userid): ?array
+    {
+        if ($userid === '') {
+            return null;
+        }
+
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return null;
+        }
+
+        $response = $this->http()->get(self::API_BASE . '/user/get', [
+            'access_token' => $accessToken,
+            'userid' => $userid,
+        ]);
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] user/get 失败', [
+                'corp_id' => $this->corpId,
+                'userid' => $userid,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return null;
+        }
+
+        return $response->json();
+    }
+
     // ========== 素材管理 ==========
 
     /**

@@ -357,4 +357,42 @@ class WechatWorkApiClientTest extends TestCase
         $this->assertSame('', $client->accessToken());
         Http::assertNothingSent();
     }
+
+    public function test_user_get_returns_member_detail(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            '*/user/get*' => Http::response([
+                'errcode' => 0,
+                'userid' => 'zhangsan',
+                'name' => '张三',
+                'avatar' => 'https://example.com/a.png',
+            ]),
+        ]);
+
+        $result = $this->client->userGet('zhangsan');
+
+        $this->assertSame('张三', $result['name'] ?? null);
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/user/get')
+            && str_contains($request->url(), 'userid=zhangsan'));
+    }
+
+    public function test_user_get_failure_returns_null(): void
+    {
+        $this->fakeToken();
+        Http::fake([
+            '*/user/get*' => Http::response(['errcode' => 60011, 'errmsg' => 'no privilege']),
+        ]);
+
+        $this->assertNull($this->client->userGet('zhangsan'));
+    }
+
+    public function test_user_get_empty_userid_returns_null_without_request(): void
+    {
+        $this->fakeToken();
+        Http::fake();
+
+        $this->assertNull($this->client->userGet(''));
+        Http::assertNothingSent();
+    }
 }

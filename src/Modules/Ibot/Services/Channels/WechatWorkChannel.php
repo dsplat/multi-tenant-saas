@@ -18,8 +18,9 @@ use MultiTenantSaas\Support\WechatWork\WechatWorkProxy;
  * 渠道语义层：消息进哪、服务谁（parseInbound / 出向分段）；
  * 验签加解密与 API 调用委托共享 SDK 层 src/Support/WechatWork/。
  *
- * 凭证：credentials.corp_id / corp_secret / agent_id（必填），
- * token / encoding_aes_key（回调验签与加解密）。
+ * 凭证：credentials.corp_id / corp_secret / token / encoding_aes_key；
+ * agent_id 兼容两种存储：credentials.agent_id 内嵌（旧格式）或
+ * 模型独立字段 agent_id（新格式，见 Ibot 迁移），读取时后者兜底。
  * external_id 为组织内成员 userid；出向经「发送应用消息」API，
  * markdown 渲染优先（仅企业微信客户端支持），失败逐段回退纯文本，
  * 按 2000 字节上限自动分段。
@@ -59,7 +60,9 @@ class WechatWorkChannel implements IbotChannelContract
 
     public function sendMessage(Ibot $ibot, string $externalId, string $text): bool
     {
-        if (! ($ibot->credentials['agent_id'] ?? null) || trim($text) === '') {
+        $agentId = (string) ($ibot->credentials['agent_id'] ?? $ibot->agent_id ?? '');
+
+        if ($agentId === '' || trim($text) === '') {
             return false;
         }
 
@@ -118,7 +121,7 @@ class WechatWorkChannel implements IbotChannelContract
         return new WechatWorkApiClient(
             (string) ($ibot->credentials['corp_id'] ?? ''),
             $corpSecret,
-            (string) ($ibot->credentials['agent_id'] ?? ''),
+            (string) ($ibot->credentials['agent_id'] ?? $ibot->agent_id ?? ''),
             $tokenResolver,
             $proxy['proxy'] ?? null,
         );

@@ -108,6 +108,24 @@ IM 消息进来时租户上下文即 binding.tenant_id，无需对话内切换�
 
 - 绑定码一次性消费、短 TTL、绑定后立即失效
 - 企微/钉钉/飞书为组织内应用时，平台身份可与通讯录直接映射，绑定码仅作 operator 归属确认
+
+### 企微扫码即绑（2026-08，替代“扫码后手动发绑定码”)
+
+企微官方不支持“扫码唤起应用会话并携带消息”，因此采用 **网页授权（snsapi_base）直绑** 链路：
+
+```
+控制台生成绑定码 → 二维码内容 = oauth2/authorize 授权链接（appid=corp_id, state=ibot_id:绑定码）
+        ↓ operator 用企业微信扫一扫（内置浏览器静默授权）
+GET /api/v1/ibot/bind/wechat-work/callback?code=&state= → user/getuserinfo 换 userid
+        ↓ 渲染确认页（显示成员名 + 机器人名，pending 暂存身份，绑定码不消费）
+POST /api/v1/ibot/bind/wechat-work/confirm → takePending（取走即失效）+ consume → 写入 binding
+        ↓ message/send 推送「绑定成功」→ 点开消息直达应用对话框，开始对话
+```
+
+- **安全**：userid 仅来自企微 getuserinfo（非成员扫码无 userid → 拒绝）；pending 一次性取走即失效；绑定码仍一次性消费（防跨 bot/租户重放）；文本绑定码路径保留兑底（企微会话内发码同样可绑）
+- **回调域**：租户自定义域名优先（`tenants.domain`，需在企微「网页授权及JS-SDK」可信域名内），平台统一回调域 `auth.oauth.callback_domain` 兑底
+- **凭证来源**：`corp_id` 取 ibot 凭证，缺失时回退租户套件授权（`wechat_work_authorizations`）；公开回调无租户上下文，查询显式 `withoutGlobalScope(TenantScope)`（与 webhook 同策略）
+- 绑定成功后推送应用消息（`sendMessage`，agent_id 缺失时静默跳过）
 - **微信个人号（iLink）有两次扫码，注意区分**：第一次是管理员扫**登录二维码**获取 iLink 账户凭证（一次性配对）；
   第二次是 operator 加 bot 好友后发送绑定码完成身份绑定（与其他频道同义）
 - 解绑：控制台操作或对 bot 发送解绑指令（二次确认），binding 置 revoked

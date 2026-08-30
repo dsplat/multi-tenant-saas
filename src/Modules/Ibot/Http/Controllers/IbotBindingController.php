@@ -65,6 +65,8 @@ class IbotBindingController extends Controller
             'data' => [
                 'code' => $code,
                 'bind_link' => $bindLink,
+                // 二维码内容：Telegram 用 deep link，企微用绑定码文本（扫一扫识别后发送）
+                'bind_qr' => $bindLink ?? $code,
                 'expires_in' => (int) config('ai.ibot.bind_code_ttl', 600),
             ],
         ]);

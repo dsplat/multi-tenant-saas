@@ -190,7 +190,37 @@ class IbotAssistantToolsTest extends TestCase
         $this->assertMatchesRegularExpression('/^[A-Z0-9]{8}$/', $result['code']);
         $this->assertSame('telegram', $result['channel_type']);
         $this->assertStringContainsString('t.me/test_bot', (string) $result['bind_link']);
+        // 二维码内容与 deep link 一致（扫码直达会话）
+        $this->assertSame($result['bind_link'], $result['bind_qr']);
         $this->assertGreaterThan(0, $result['expires_in']);
+    }
+
+    public function test_bind_code_wechat_work_qr_is_plain_code(): void
+    {
+        config()->set('ai.ibot.enabled', true);
+        $this->createIbot([
+            'channel_type' => Ibot::CHANNEL_WECHAT_WORK,
+            'name' => 'WW Bot',
+            'credentials' => ['corp_id' => 'wwcorp123', 'agent_id' => 1000001],
+        ]);
+
+        $operator = Operator::create([
+            'email' => 'op3@example.com',
+            'name' => 'Op3',
+            'scope' => 'tenant',
+            'is_active' => true,
+            'email_verified_at' => now(),
+        ]);
+        $this->actingAs($operator, 'sanctum');
+
+        $result = (new GenerateIbotBindCodeTool)(['channel_type' => 'wechat_work'], 1001);
+
+        $this->assertMatchesRegularExpression('/^[A-Z0-9]{8}$/', $result['code']);
+        $this->assertSame('wechat_work', $result['channel_type']);
+        $this->assertNull($result['bind_link']);
+        // 企微无 deep link：二维码内容即绑定码文本（扫一扫识别后发送）
+        $this->assertSame($result['code'], $result['bind_qr']);
+        $this->assertStringContainsString('扫一扫', (string) $result['message']);
     }
 
     public function test_bind_code_requires_channel_type_when_multiple_active(): void

@@ -64,6 +64,10 @@
                       · <a :href="bindCodes[ch.key].bind_link" target="_blank" rel="noopener">一键绑定链接</a>
                     </template>
                   </template>
+                  <div v-if="bindCodes[ch.key].bind_qr" class="bind-qr">
+                    <qrcode-vue :value="bindCodes[ch.key].bind_qr" :size="128" level="M" />
+                    <div class="form-tip">{{ ch.key === 'wechat_work' ? '用企业微信「扫一扫」识别二维码获取绑定码，打开机器人应用发送即可绑定。' : '用对应 IM 扫一扫即可直达机器人完成绑定。' }}</div>
+                  </div>
                   <div class="form-tip">{{ ch.bindHint }}</div>
                 </el-alert>
 
@@ -115,6 +119,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import QrcodeVue from 'qrcode.vue'
 import { useUserStore } from '@stores/user'
 
 const userStore = useUserStore()
@@ -127,7 +132,7 @@ const channels = [
   {
     key: 'wechat_work',
     label: '企业微信',
-    bindHint: '在企业微信中打开该自建应用的聊天窗口，直接发送绑定码即可完成绑定。',
+    bindHint: '扫码后用企业微信打开机器人应用聊天窗口，把识别出的绑定码发送给机器人即可完成绑定。',
     fields: [
       { key: 'corp_id', label: 'Corp ID', placeholder: 'ww1234567890abcdef' },
       { key: 'corp_secret', label: 'Corp Secret', placeholder: '自建应用的 Secret' },
@@ -141,7 +146,7 @@ const channels = [
       '应用详情页 →「开发者接口」→「企业可信 IP」，添加本系统服务器的<b>出口 IP</b>。',
       '应用详情页 →「接收消息」→「设置 API 接收」：随机生成 <b>Token</b> 与 <b>EncodingAESKey</b> 填入本页并<b>先保存配置</b>。',
       '把本页出现的「回调 URL」填入企微「接收消息」的 URL 字段，点击保存通过 URL 验证。',
-      '点击「生成我的绑定码」，在企业微信中打开该应用并发送绑定码，即可开始与 AI 小助理对话。',
+      '点击「生成我的绑定码」，页面出现二维码：用<b>企业微信「扫一扫」</b>识别二维码获取绑定码，打开该应用发送绑定码，即可开始与 AI 小助理对话。',
     ],
     faqs: [
       '<b>URL 验证失败</b>：先在本页保存 Token / EncodingAESKey 再到企微侧验证；两侧必须完全一致。',
@@ -322,6 +327,7 @@ onMounted(load)
 .config-form { max-width: 620px; margin-bottom: 8px; }
 .form-tip { font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.5; margin-top: 4px; }
 .bind-section { max-width: 620px; }
+.bind-qr { margin-top: 10px; display: flex; align-items: center; gap: 12px; }
 .bind-header { display: flex; align-items: center; justify-content: space-between; }
 .help-box { margin-top: 20px; padding: 12px 16px; background: var(--el-fill-color-light); border-radius: 6px; font-size: 13px; line-height: 1.8; color: var(--el-text-color-regular); }
 .help-title { font-weight: 600; margin: 4px 0; color: var(--el-text-color-primary); }

@@ -70,9 +70,11 @@ class GenerateIbotBindCodeTool implements ToolHandlerContract
             'channel_type' => $ibot->channel_type,
             'ibot_name' => $ibot->name,
             'bind_link' => $bindLink,
+            // 二维码内容：Telegram 用 deep link（扫码直达会话），企微用绑定码文本（扫一扫识别后发送）
+            'bind_qr' => $bindLink ?? $code,
             'expires_in' => (int) config('ai.ibot.bind_code_ttl', 600),
             'message' => $ibot->channel_type === Ibot::CHANNEL_WECHAT_WORK
-                ? "绑定码 {$code}（有效期内一次性使用）。请在企业微信中打开机器人应用，直接发送该绑定码完成绑定。"
+                ? "绑定码 {$code}（有效期内一次性使用）。在企业微信中用扫一扫识别下方二维码获取绑定码，打开机器人应用发送即可完成绑定。"
                 : "绑定码 {$code}（有效期内一次性使用）。在 IM 中向机器人发送该绑定码完成绑定。",
         ];
     }

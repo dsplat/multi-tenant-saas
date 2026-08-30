@@ -99,6 +99,69 @@ class WechatWorkApiClient
     }
 
     /**
+     * 网页授权 code 换取成员身份（snsapi_base，扫码绑定回调用）
+     *
+     * @return array<string, mixed> 企微原始返回（userid / openid 等）
+     */
+    public function getUserByCode(string $code): array
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return [];
+        }
+
+        $response = $this->http()->get(self::API_BASE . '/user/getuserinfo', [
+            'access_token' => $accessToken,
+            'code' => $code,
+        ]);
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] user/getuserinfo 失败', [
+                'corp_id' => $this->corpId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return [];
+        }
+
+        return $response->json();
+    }
+
+    /**
+     * 按 userid 读取成员详情（绑定确认页展示姓名用）
+     *
+     * @return array<string, mixed> 企微原始返回（name / userid 等）
+     */
+    public function getUserById(string $userId): array
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            return [];
+        }
+
+        $response = $this->http()->get(self::API_BASE . '/user/get', [
+            'access_token' => $accessToken,
+            'userid' => $userId,
+        ]);
+
+        if (! $response->successful() || ($response->json('errcode') ?? -1) !== 0) {
+            Log::warning('[WechatWork] user/get 失败', [
+                'corp_id' => $this->corpId,
+                'userid' => $userId,
+                'errcode' => $response->json('errcode'),
+                'errmsg' => mb_substr((string) $response->json('errmsg'), 0, 200),
+            ]);
+
+            return [];
+        }
+
+        return $response->json();
+    }
+
+    /**
      * 发送应用消息（自动补 touser/agentid）
      *
      * @param  array<string, mixed>  $message  msgtype 及对应内容体

@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use MultiTenantSaas\Modules\Ibot\Models\Ibot;
 use MultiTenantSaas\Modules\Ibot\Models\OperatorIbotBinding;
+use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
 
 /**
  * 绑定码流程（docs/ibot.md 第四节）
@@ -13,12 +15,18 @@ use MultiTenantSaas\Modules\Ibot\Models\OperatorIbotBinding;
  * 控制台生成一次性绑定码（短 TTL）→ operator 扫码进 bot 会话，
  * 首条消息携带绑定码 → consume() 校验并写绑定。
  *
+ * 企微扫码即绑（2026-08）：二维码内容 = 网页授权链接（snsapi_base），
+ * 扫码 → 授权回调换 userid（putPending 暂存）→ 确认页 POST → consume 建立绑定。
+ *
  * 绑定码一次性消费；同 operator 同 ibot 重复绑定 = 更新 external_id（换设备/重扫）；
  * 同 external_id 已被其他 operator 占用 = 拒绝（一个 IM 会话只归一人）。
  */
 class IbotBindingService
 {
     private const CACHE_PREFIX = 'ibot:bind:';
+
+    // 扫码确认暂存（回调换取 userid 后、用户点确认前；短时效，随绑定码过期）
+    private const PENDING_PREFIX = 'ibot:bind:pending:';
 
     /**
      * 为 operator 生成绑定码（缓存存储，TTL 默认 10 分钟）
@@ -89,5 +97,102 @@ class IbotBindingService
             'is_default_channel' => false,
             'status' => OperatorIbotBinding::STATUS_ACTIVE,
         ]);
+    }
+
+    /**
+     * 仅校验绑定码存在且匹配当前 bot（不消费，扫码确认页展示前用）
+     */
+    public function peekBindCode(string $code, Ibot $ibot): bool
+    {
+        $payload = Cache::get(self::CACHE_PREFIX . Str::upper(trim($code)));
+
+        return is_array($payload)
+            && (int) $payload['ibot_id'] === (int) $ibot->ibot_id
+            && (int) $payload['tenant_id'] === (int) $ibot->tenant_id;
+    }
+
+    /**
+     * 暂存扫码回调换取的企微身份（确认页阶段持有，POST 确认时取走）
+     */
+    public function putPending(int $ibotId, string $code, string $externalId): void
+    {
+        Cache::put(
+            self::PENDING_PREFIX . "{$ibotId}:" . Str::upper(trim($code)),
+            $externalId,
+            (int) config('ai.ibot.bind_code_ttl', 600)
+        );
+    }
+
+    /**
+     * 取走扫码确认身份（一次性，取走后即失效）
+     */
+    public function takePending(int $ibotId, string $code): ?string
+    {
+        $key = self::PENDING_PREFIX . "{$ibotId}:" . Str::upper(trim($code));
+        $externalId = Cache::get($key);
+
+        if (is_string($externalId) && $externalId !== '') {
+            Cache::forget($key);
+
+            return $externalId;
+        }
+
+        return null;
+    }
+
+    /**
+     * 构造企微扫码绑定授权链接（网页授权 snsapi_base）
+     *
+     * 扫码后企微内置浏览器打开 → 静默换取 code → 跳转绑定回调（state=ibot_id:code）。
+     * corp_id 取 ibot 凭证，缺失时回退租户套件授权记录；
+     * 回调域：租户自定义域名优先（企微主体校验），平台统一回调域兜底。
+     */
+    public function buildWechatWorkBindUrl(Ibot $ibot, string $code): string
+    {
+        $tenantId = (int) $ibot->tenant_id;
+
+        $corpId = (string) ($ibot->credentials['corp_id'] ?? '');
+        if ($corpId === '') {
+            $auths = app(WechatWorkSuiteService::class)->appAuthorizations($tenantId);
+            if ($auths === []) {
+                return '';
+            }
+            $corpId = (string) ($auths[0]->corp_id ?? '');
+        }
+
+        if ($corpId === '') {
+            return '';
+        }
+
+        $redirect = $this->resolveBindCallbackUrl($tenantId);
+        if ($redirect === '') {
+            return '';
+        }
+
+        return 'https://open.weixin.qq.com/connect/oauth2/authorize?' . http_build_query([
+            'appid' => $corpId,
+            'redirect_uri' => $redirect,
+            'response_type' => 'code',
+            'scope' => 'snsapi_base',
+            'state' => "{$ibot->ibot_id}:{$code}",
+        ]) . '#wechat_redirect';
+    }
+
+    /**
+     * 绑定回调 URL：租户自定义域名优先（与 OAuth 登录同策略），平台统一回调域兜底
+     */
+    private function resolveBindCallbackUrl(int $tenantId): string
+    {
+        $domain = Tenant::where('tenant_id', $tenantId)->value('domain');
+        if ($domain) {
+            return "https://{$domain}/api/v1/ibot/bind/wechat-work/callback";
+        }
+
+        $callbackDomain = config('auth.oauth.callback_domain', '');
+        if ($callbackDomain !== '') {
+            return "https://{$callbackDomain}/api/v1/ibot/bind/wechat-work/callback";
+        }
+
+        return '';
     }
 }

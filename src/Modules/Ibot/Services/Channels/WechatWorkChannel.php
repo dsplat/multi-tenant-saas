@@ -99,8 +99,9 @@ class WechatWorkChannel implements IbotChannelContract
      *
      * 双轨（9.3）：corp_secret 空值 + 租户套件授权 → tokenResolver
      * （corpAccessToken），无授权/已填 secret 走原自建轨；代理注入同 9.4。
+     * public：扫码绑定回调等渠道内场景复用。
      */
-    private function apiClient(Ibot $ibot): WechatWorkApiClient
+    public function apiClient(Ibot $ibot): WechatWorkApiClient
     {
         $tenantId = (int) $ibot->tenant_id;
 

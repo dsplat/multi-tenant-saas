@@ -27,6 +27,28 @@
               />
             </div>
 
+            <!-- 企微接入状态（凭证/回调统一在「企业微信配置」页维护，本页只读展示） -->
+            <el-alert
+              v-if="ch.key === 'wechat_work'"
+              :type="wechatReady ? 'success' : 'warning'"
+              :closable="false"
+              show-icon
+              style="margin-bottom: 16px; max-width: 620px"
+            >
+              <template #title>
+                <template v-if="wechatSuiteAuthorized">企业微信代开发接入已就绪</template>
+                <template v-else-if="wechatSelfConfigured">企业微信自建应用已配置</template>
+                <template v-else>企业微信尚未配置</template>
+              </template>
+              <div v-if="!wechatReady" style="display: flex; align-items: center; gap: 12px">
+                <span>请先在「企业微信配置」页完成代开发授权或自建凭证，再回来创建机器人。</span>
+                <el-button size="small" type="primary" @click="goWechatWorkSettings">去企业微信配置</el-button>
+              </div>
+              <div v-else class="form-tip" style="margin-top: 2px">
+                凭证与回调由「企业微信配置」页统一维护，本页无需重复填写。
+              </div>
+            </el-alert>
+
             <!-- 凭证表单（掩码显示，修改才提交） -->
             <el-form label-width="140px" class="config-form">
               <el-form-item label="机器人名称">
@@ -35,14 +57,6 @@
               <el-form-item v-for="f in ch.fields" :key="f.key" :label="f.label">
                 <el-input v-model="forms[ch.key].credentials[f.key]" :placeholder="f.placeholder" />
                 <div v-if="f.tip" class="form-tip">{{ f.tip }}</div>
-              </el-form-item>
-              <el-form-item v-if="ibotOf(ch.key)?.webhook_url" label="回调 URL">
-                <el-input :model-value="ibotOf(ch.key).webhook_url" readonly>
-                  <template #append>
-                    <el-button @click="copyText(ibotOf(ch.key).webhook_url)">复制</el-button>
-                  </template>
-                </el-input>
-                <div class="form-tip">填入企业微信后台「接收消息」的 URL 字段，与 Token / EncodingAESKey 保持一致</div>
               </el-form-item>
             </el-form>
 
@@ -66,7 +80,7 @@
                   </template>
                   <div v-if="bindCodes[ch.key].bind_qr" class="bind-qr">
                     <qrcode-vue :value="bindCodes[ch.key].bind_qr" :size="128" level="M" />
-                    <div class="form-tip">{{ ch.key === 'wechat_work' ? '用企业微信「扫一扫」识别二维码获取绑定码，打开机器人应用发送即可绑定。' : '用对应 IM 扫一扫即可直达机器人完成绑定。' }}</div>
+                    <div class="form-tip">{{ ch.key === 'wechat_work' ? '用企业微信「扫一扫」识别二维码 → 确认身份 → 自动绑定并收到「绑定成功」消息，点开即可对话。' : '用对应 IM 扫一扫即可直达机器人完成绑定。' }}</div>
                   </div>
                   <div class="form-tip">{{ ch.bindHint }}</div>
                 </el-alert>
@@ -116,13 +130,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import QrcodeVue from 'qrcode.vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@stores/user'
 
 const userStore = useUserStore()
+const router = useRouter()
 
 const ADMIN_API = '/api/v1/tenant/ibot/ibots'
 const bindApi = (path: string) => `/api/v1/tenants/${userStore.tenantId}/ibot${path}`
@@ -132,27 +148,20 @@ const channels = [
   {
     key: 'wechat_work',
     label: '企业微信',
-    bindHint: '扫码后用企业微信打开机器人应用聊天窗口，把识别出的绑定码发送给机器人即可完成绑定。',
-    fields: [
-      { key: 'corp_id', label: 'Corp ID', placeholder: 'ww1234567890abcdef' },
-      { key: 'corp_secret', label: 'Corp Secret', placeholder: '自建应用的 Secret' },
-      { key: 'agent_id', label: 'Agent ID', placeholder: '1000001' },
-      { key: 'token', label: 'Token', placeholder: '企微「接收消息」页生成', tip: '在企微后台「接收消息」设置页生成，与本页保持一致' },
-      { key: 'encoding_aes_key', label: 'EncodingAESKey', placeholder: '企微「接收消息」页生成（43 位）' },
-    ],
+    bindHint: '扫码 → 确认身份 → 自动绑定，并推送「绑定成功」消息，点开消息即可对话。',
+    // 凭证统一在「企业微信配置」页维护（代开发授权 / 自建凭证），创建机器人时自动带出，本页不重复填写
+    fields: [],
     steps: [
-      '管理员登录 <a href="https://work.weixin.qq.com/wework_admin/" target="_blank" rel="noopener">企业微信管理后台</a> →「应用管理」→「自建」→「创建应用」（已有可复用）。',
-      '应用详情页复制 <b>AgentId</b> 与 <b>Secret</b>；「我的企业」页复制 <b>企业 ID（CorpID）</b>，填入本页。',
-      '应用详情页 →「开发者接口」→「企业可信 IP」，添加本系统服务器的<b>出口 IP</b>。',
-      '应用详情页 →「接收消息」→「设置 API 接收」：随机生成 <b>Token</b> 与 <b>EncodingAESKey</b> 填入本页并<b>先保存配置</b>。',
-      '把本页出现的「回调 URL」填入企微「接收消息」的 URL 字段，点击保存通过 URL 验证。',
-      '点击「生成我的绑定码」，页面出现二维码：用<b>企业微信「扫一扫」</b>识别二维码获取绑定码，打开该应用发送绑定码，即可开始与 AI 小助理对话。',
+      '在「企业微信配置」页完成接入：<b>代开发</b>扫码授权（推荐），或<b>自建应用</b>填写 Corp ID / Secret / Agent ID。',
+      '回到本页点击「保存配置」创建机器人（凭证自动带出，无需重复填写）。',
+      '点击「生成我的绑定码」，用<b>企业微信「扫一扫」</b>识别二维码。',
+      '扫码后确认身份并点「确认绑定」，自动完成绑定并收到「绑定成功」推送消息，点开即可对话。',
     ],
     faqs: [
-      '<b>URL 验证失败</b>：先在本页保存 Token / EncodingAESKey 再到企微侧验证；两侧必须完全一致。',
-      '<b>报错 60020 not allow to access from your ip</b>：服务器出口 IP 未加入「企业可信 IP」。',
-      '<b>发消息机器人无响应</b>：确认应用「接收消息」已开启、发送人属于应用可见范围、机器人处于启用状态。',
+      '<b>提示企业微信尚未配置</b>：点击「去企业微信配置」完成代开发授权或自建凭证后返回本页。',
+      '<b>扫码提示非企业成员</b>：确认扫码人是本企业成员，且在应用可见范围内。',
       '<b>绑定码无效</b>：绑定码一次性且有限期（默认 10 分钟），过期请重新生成。',
+      '<b>发消息机器人无响应</b>：确认机器人为启用状态，发送人属于应用可见范围。',
     ],
   },
   {
@@ -195,6 +204,30 @@ const forms = reactive<Record<string, { name: string; credentials: Record<string
 )
 
 const ibotOf = (channelType: string) => ibots.value.find(b => b.channel_type === channelType)
+
+// ===== 企微接入状态（读「企业微信配置」页同源接口；仅展示，不在此配置） =====
+const wechatWorkStatus = ref<any>(null)
+
+const wechatSuiteAuthorized = computed(() => wechatWorkStatus.value?.status === 'authorized')
+
+const wechatSelfConfigured = computed(() => {
+  if (wechatSuiteAuthorized.value) return false
+  // 自建模式：ibot 已带出企微凭证（corp_id 掩码非空）即视为已配置
+  return !!ibotOf('wechat_work')?.credentials_masked?.corp_id
+})
+
+const wechatReady = computed(() => wechatSuiteAuthorized.value || wechatSelfConfigured.value)
+
+const goWechatWorkSettings = () => router.push('/wechat-work')
+
+const loadWechatWorkStatus = async () => {
+  try {
+    const res = await axios.get('/api/v1/tenant/wechat-work/status')
+    wechatWorkStatus.value = res.data?.data || null
+  } catch {
+    wechatWorkStatus.value = null
+  }
+}
 
 const bindingsOf = (channelType: string) => {
   const ibot = ibotOf(channelType)
@@ -240,7 +273,7 @@ const loadBindings = async () => {
 const load = async () => {
   loading.value = true
   try {
-    await Promise.all([loadIbots(), loadBindings()])
+    await Promise.all([loadIbots(), loadBindings(), loadWechatWorkStatus()])
   } catch {
     ElMessage.error('加载配置失败')
   } finally {
@@ -305,15 +338,6 @@ const handleSetDefault = async (binding: any) => {
     await loadBindings()
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || '设置失败')
-  }
-}
-
-const copyText = async (text: string) => {
-  try {
-    await navigator.clipboard.writeText(text)
-    ElMessage.success('已复制')
-  } catch {
-    ElMessage.error('复制失败，请手动选择复制')
   }
 }
 

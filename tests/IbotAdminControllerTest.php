@@ -6,17 +6,20 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Ibot\Models\Ibot;
 use MultiTenantSaas\Modules\Ibot\Models\OperatorIbotBinding;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
 use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
+use MultiTenantSaas\Modules\WechatWork\Models\WechatWorkAuthorization;
 use MultiTenantSaas\Tests\Schema\IbotModule;
 use MultiTenantSaas\Tests\Schema\RbacModule;
+use MultiTenantSaas\Tests\Schema\WechatWorkModule;
 
 /**
  * ibot 管理 API：CRUD、凭证脱敏与局部合并、权限 403、删除保护
  */
 class IbotAdminControllerTest extends TestCase
 {
-    protected array $uses = [IbotModule::class, RbacModule::class];
+    protected array $uses = [IbotModule::class, RbacModule::class, WechatWorkModule::class];
 
     private const API = '/api/v1/tenant/ibot/ibots';
 
@@ -159,6 +162,58 @@ class IbotAdminControllerTest extends TestCase
         ]);
 
         $response->assertStatus(422);
+    }
+
+    public function test_store_wechat_work_inherits_suite_authorization(): void
+    {
+        // 租户已在「企业微信配置」页完成套件授权 → 创建 ibot 自动带出 corp_id/agent_id
+        WechatWorkAuthorization::forceCreate([
+            'authorization_id' => 7001,
+            'tenant_id' => 1001,
+            'service_provider_id' => 9001,
+            'corp_id' => 'ww-suite-corp',
+            'agent_id' => '1000002',
+            'permanent_code' => 'enc-perm-code',
+            'status' => WechatWorkAuthorization::STATUS_AUTHORIZED,
+        ]);
+
+        $response = $this->actingAs($this->admin, 'sanctum')->postJson(self::API, [
+            'channel_type' => 'wechat_work',
+            'name' => 'Suite Bot',
+            'credentials' => [
+                'token' => 'tok-1234',
+                'encoding_aes_key' => str_repeat('k', 43),
+            ],
+        ]);
+
+        $response->assertStatus(201)->assertJson(['success' => true]);
+
+        $ibot = Ibot::withoutGlobalScopes()->find($response->json('data.ibot_id'));
+        $this->assertSame('ww-suite-corp', $ibot->credentials['corp_id']);
+        $this->assertSame(1000002, (int) $ibot->agent_id);
+        // 代开发模式不落 corp_secret（permanent_code 充当 secret，走 suite 轨）
+        $this->assertArrayNotHasKey('corp_secret', $ibot->credentials);
+    }
+
+    public function test_store_wechat_work_inherits_self_oauth_config(): void
+    {
+        // 无套件授权：回退「企业微信配置」页自建 OAuth 凭证
+        TenantSetting::setValue(1001, 'wechatwork', 'corp_id', 'ww-self-corp');
+        TenantSetting::setValue(1001, 'wechatwork', 'secret', 'self-secret');
+        TenantSetting::setValue(1001, 'wechatwork', 'agent_id', '1000003');
+
+        $response = $this->actingAs($this->admin, 'sanctum')->postJson(self::API, [
+            'channel_type' => 'wechat_work',
+            'name' => 'Self Bot',
+            'credentials' => ['token' => 'tok-5678'],
+        ]);
+
+        $response->assertStatus(201)->assertJson(['success' => true]);
+
+        $ibot = Ibot::withoutGlobalScopes()->find($response->json('data.ibot_id'));
+        $this->assertSame('ww-self-corp', $ibot->credentials['corp_id']);
+        $this->assertSame('self-secret', $ibot->credentials['corp_secret']);
+        $this->assertSame(1000003, (int) $ibot->agent_id);
     }
 
     // ========== 更新（局部合并） ==========

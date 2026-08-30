@@ -9,6 +9,8 @@ use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Ibot\Models\Ibot;
 use MultiTenantSaas\Modules\Ibot\Models\OperatorIbotBinding;
 use MultiTenantSaas\Modules\Ibot\Services\WechatWorkSuiteGuard;
+use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
+use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
 
 /**
  * ibot 频道配置管理（租户管理端，权限 setting.update——与 OAuth/邮件配置同级）
@@ -54,17 +56,67 @@ class IbotAdminController extends Controller
             'credentials' => 'required|array',
         ]);
 
+        $credentials = $this->filterCredentials($validated['channel_type'], $validated['credentials']);
+        $agentId = $validated['agent_id'] ?? null;
+
+        // 企微渠道：凭证统一在「企业微信配置」页维护，此处未显式提供时自动带出
+        // （suite 授权优先，其次自建 OAuth 配置），console 无需重复填写
+        if ($validated['channel_type'] === Ibot::CHANNEL_WECHAT_WORK && empty($credentials['corp_id'])) {
+            [$credentials, $agentId] = $this->inheritWechatWorkConfig($credentials, $agentId);
+        }
+
         $ibot = Ibot::create([
             'tenant_id' => (int) TenantContext::getId(),
             'channel_type' => $validated['channel_type'],
             'transport' => Ibot::TRANSPORT_WEBHOOK,
             'name' => $validated['name'],
-            'agent_id' => $validated['agent_id'] ?? null,
-            'credentials' => $this->filterCredentials($validated['channel_type'], $validated['credentials']),
+            'agent_id' => $agentId,
+            'credentials' => $credentials,
             'status' => Ibot::STATUS_ACTIVE,
         ]);
 
         return response()->json(['success' => true, 'data' => $this->serialize($request, $ibot)], 201);
+    }
+
+    /**
+     * 从租户企微配置带出凭证：suite 授权优先（corp_id + agent_id 取自授权记录），
+     * 其次自建 OAuth 配置（wechatwork 组，旧 oauth.wechat_work_* 回退）
+     *
+     * @return array{0: array<string, string>, 1: ?int}
+     */
+    private function inheritWechatWorkConfig(array $credentials, ?int $agentId): array
+    {
+        $tenantId = (int) TenantContext::getId();
+
+        $auths = app(WechatWorkSuiteService::class)->appAuthorizations($tenantId);
+        if ($auths !== []) {
+            $auth = $auths[0];
+            $credentials['corp_id'] = (string) ($auth->corp_id ?? '');
+            if ($agentId === null) {
+                $agentId = $auth->agent_id ? (int) $auth->agent_id : null;
+            }
+
+            return [$credentials, $agentId];
+        }
+
+        $credentials['corp_id'] = (string) TenantSetting::get(
+            $tenantId,
+            'wechatwork',
+            'corp_id',
+            (string) TenantSetting::get($tenantId, 'oauth', 'wechat_work_corp_id', '')
+        );
+        $credentials['corp_secret'] = (string) TenantSetting::get($tenantId, 'wechatwork', 'secret', '');
+        if ($agentId === null) {
+            $configuredAgentId = (string) TenantSetting::get(
+                $tenantId,
+                'wechatwork',
+                'agent_id',
+                (string) TenantSetting::get($tenantId, 'oauth', 'wechat_work_agent_id', '')
+            );
+            $agentId = $configuredAgentId !== '' ? (int) $configuredAgentId : null;
+        }
+
+        return [$credentials, $agentId];
     }
 
     /**

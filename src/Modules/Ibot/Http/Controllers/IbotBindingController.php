@@ -54,10 +54,14 @@ class IbotBindingController extends Controller
         $operatorId = (int) $request->user()->operator_id;
         $code = app(IbotBindingService::class)->generateBindCode($operatorId, $ibot);
 
-        // Telegram 可生成 t.me deep link（前端做成二维码）
+        // 二维码内容：Telegram 用 t.me deep link；企微用扫码即绑授权链接
+        // （扫 → 授权回调换 userid → 确认页确认 → 自动绑定并推送消息）；
+        // 文本绑定码保留（企微会话内发码兜底，两种入口共用同一绑定码）。
         $bindLink = null;
         if ($ibot->channel_type === Ibot::CHANNEL_TELEGRAM) {
             $bindLink = app(TelegramChannel::class)->bindLink($ibot, $code);
+        } elseif ($ibot->channel_type === Ibot::CHANNEL_WECHAT_WORK) {
+            $bindLink = app(IbotBindingService::class)->buildWechatWorkBindUrl($ibot, $code);
         }
 
         return response()->json([
@@ -65,7 +69,6 @@ class IbotBindingController extends Controller
             'data' => [
                 'code' => $code,
                 'bind_link' => $bindLink,
-                // 二维码内容：Telegram 用 deep link，企微用绑定码文本（扫一扫识别后发送）
                 'bind_qr' => $bindLink ?? $code,
                 'expires_in' => (int) config('ai.ibot.bind_code_ttl', 600),
             ],

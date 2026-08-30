@@ -86,7 +86,9 @@
                 </el-alert>
 
                 <el-table v-if="bindingsOf(ch.key).length" :data="bindingsOf(ch.key)" size="small" style="margin-top: 8px">
-                  <el-table-column prop="external_id" label="IM 账号" min-width="140" />
+                  <el-table-column label="IM 账号" min-width="140">
+                    <template #default="{ row }">{{ row.external_name || row.external_id }}</template>
+                  </el-table-column>
                   <el-table-column prop="status" label="状态" width="90">
                     <template #default="{ row }">
                       <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">{{ row.status === 'active' ? '生效' : row.status }}</el-tag>
@@ -96,6 +98,11 @@
                     <template #default="{ row }">
                       <el-tag v-if="row.is_default_channel" type="warning" size="small">默认</el-tag>
                       <el-button v-else-if="row.status === 'active'" link type="primary" size="small" @click="handleSetDefault(row)">设为默认</el-button>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="100">
+                    <template #default="{ row }">
+                      <el-button v-if="row.status === 'active'" link type="danger" size="small" @click="handleRevoke(row)">解除绑定</el-button>
                     </template>
                   </el-table-column>
                 </el-table>
@@ -132,7 +139,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import QrcodeVue from 'qrcode.vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@stores/user'
@@ -338,6 +345,26 @@ const handleSetDefault = async (binding: any) => {
     await loadBindings()
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || '设置失败')
+  }
+}
+
+const handleRevoke = async (binding: any) => {
+  try {
+    await ElMessageBox.confirm(`解除后需重新扫码绑定才能继续使用该渠道，确认解除「${binding.external_name || binding.external_id}」？`, '解除绑定', {
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+  try {
+    await axios.delete(bindApi(`/bindings/${binding.binding_id}`))
+    ElMessage.success('已解除绑定')
+    for (const k of Object.keys(bindCodes)) {
+      if (String(ibotOf(k)?.ibot_id) === String(binding.ibot_id)) delete bindCodes[k]
+    }
+    await loadBindings()
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.message || '解除失败')
   }
 }
 

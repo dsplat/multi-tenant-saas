@@ -321,6 +321,7 @@ class IbotWechatWorkBindTest extends TestCase
             ->first();
         $this->assertNotNull($binding);
         $this->assertSame('luoyaoliang', $binding->external_id);
+        $this->assertSame('罗岳良', $binding->external_name);
         $this->assertSame(OperatorIbotBinding::STATUS_ACTIVE, $binding->status);
 
         // 绑定码一次性消费 + pending 取走即失效
@@ -328,6 +329,33 @@ class IbotWechatWorkBindTest extends TestCase
 
         // 推送「绑定成功」应用消息（点消息直达对话框）
         Http::assertSent(fn ($request) => str_contains($request->url(), 'message/send'));
+    }
+
+    public function test_callback_already_bound_shows_bound_page(): void
+    {
+        $ibot = $this->createIbot();
+        $code = $this->seedBindCode((int) $this->admin->operator_id, $ibot);
+
+        // 先完整绑定（回调 + 确认）
+        $this->getJson(self::CALLBACK . "?code=wxauthcode1&state={$ibot->ibot_id}:{$code}");
+        $this->postJson(self::CONFIRM, ['ibot_id' => $ibot->ibot_id, 'code' => $code]);
+
+        // 同一企微账号再次扫码（新绑定码）→ 直接提示已绑定，不再出确认页
+        $code2 = $this->seedBindCode((int) $this->admin->operator_id, $ibot, 'TESTCODE2');
+        $response = $this->getJson(self::CALLBACK . "?code=wxauthcode1&state={$ibot->ibot_id}:{$code2}");
+
+        $response->assertStatus(200);
+        $content = $response->getContent();
+        $this->assertStringContainsString('已绑定', $content);
+        $this->assertStringNotContainsString('确认绑定', $content);
+
+        // 绑定记录数不变（未重复建立）
+        $count = OperatorIbotBinding::withoutGlobalScope(\MultiTenantSaas\Scopes\TenantScope::class)
+            ->where('ibot_id', $ibot->ibot_id)
+            ->where('external_id', 'luoyaoliang')
+            ->where('status', OperatorIbotBinding::STATUS_ACTIVE)
+            ->count();
+        $this->assertSame(1, $count);
     }
 
     public function test_confirm_without_pending_rejected(): void

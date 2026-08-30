@@ -38,6 +38,7 @@ class OperatorIbotBinding extends Model
         'operator_id',
         'ibot_id',
         'external_id',
+        'external_name',
         'conversation_id',
         'is_default_channel',
         'status',

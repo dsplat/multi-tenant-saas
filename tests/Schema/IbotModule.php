@@ -35,6 +35,7 @@ class IbotModule implements SchemaModuleInterface
             $table->unsignedBigInteger('operator_id');
             $table->unsignedBigInteger('ibot_id');
             $table->string('external_id', 128);
+            $table->string('external_name', 128)->nullable();
             $table->unsignedBigInteger('conversation_id')->nullable();
             $table->boolean('is_default_channel')->default(false);
             $table->string('status', 20)->default('active');

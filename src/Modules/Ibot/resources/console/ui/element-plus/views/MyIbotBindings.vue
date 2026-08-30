@@ -23,7 +23,7 @@
             <!-- 已绑定状态 -->
             <div v-if="bindingOf(ch.key)" class="bound-row">
               <div>
-                <span class="bound-label">已绑定 IM 账号：</span><b>{{ bindingOf(ch.key).external_id }}</b>
+                <span class="bound-label">已绑定 IM 账号：</span><b>{{ bindingOf(ch.key).external_name || bindingOf(ch.key).external_id }}</b>
                 <el-tag v-if="bindingOf(ch.key).is_default_channel" type="warning" size="small" style="margin-left: 8px">默认通道</el-tag>
               </div>
               <div class="bound-actions">
@@ -167,7 +167,7 @@ const handleSetDefault = async (binding: any) => {
 
 const handleRevoke = async (binding: any) => {
   try {
-    await ElMessageBox.confirm(`解除后需重新扫码绑定才能继续使用该渠道，确认解除「${binding.external_id}」？`, '解除绑定', {
+    await ElMessageBox.confirm(`解除后需重新扫码绑定才能继续使用该渠道，确认解除「${binding.external_name || binding.external_id}」？`, '解除绑定', {
       type: 'warning',
     })
   } catch {

@@ -8,6 +8,7 @@ use MultiTenantSaas\Modules\Ibot\Models\Ibot;
 use MultiTenantSaas\Modules\Ibot\Models\OperatorIbotBinding;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\WechatWork\Services\WechatWorkSuiteService;
+use MultiTenantSaas\Scopes\TenantScope;
 
 /**
  * 绑定码流程（docs/ibot.md 第四节）
@@ -46,8 +47,10 @@ class IbotBindingService
 
     /**
      * 消费绑定码，建立/更新绑定（失败返回 null）
+     *
+     * @param  string  $externalName  IM 平台成员展示名（企微姓名），空则回退 external_id
      */
-    public function consume(string $code, Ibot $ibot, string $externalId): ?OperatorIbotBinding
+    public function consume(string $code, Ibot $ibot, string $externalId, string $externalName = ''): ?OperatorIbotBinding
     {
         $key = self::CACHE_PREFIX . Str::upper(trim($code));
         $payload = Cache::get($key);
@@ -62,9 +65,12 @@ class IbotBindingService
             return null;
         }
 
-        // external_id 已被其他 operator 占用 → 拒绝
-        $occupied = OperatorIbotBinding::where('ibot_id', $ibot->ibot_id)
+        // external_id 已被其他 operator 占用（仅 active 互斥，解绑 revoked 后可重新绑定）→ 拒绝
+        // 公开回调/队列无 TenantContext，显式绕过租户全局作用域查全量
+        $occupied = OperatorIbotBinding::withoutGlobalScope(TenantScope::class)
+            ->where('ibot_id', $ibot->ibot_id)
             ->where('external_id', $externalId)
+            ->where('status', OperatorIbotBinding::STATUS_ACTIVE)
             ->where('operator_id', '!=', $payload['operator_id'])
             ->exists();
 
@@ -75,18 +81,38 @@ class IbotBindingService
         // 一次性消费
         Cache::forget($key);
 
-        // 同 operator 同 ibot：更新 external_id 并激活（换设备/重扫场景）
-        $binding = OperatorIbotBinding::where('operator_id', $payload['operator_id'])
+        // 同 operator 同 ibot：更新 external_id 并激活（换设备/重扫/解绑后重绑场景）
+        $binding = OperatorIbotBinding::withoutGlobalScope(TenantScope::class)
+            ->where('operator_id', $payload['operator_id'])
             ->where('ibot_id', $ibot->ibot_id)
             ->first();
 
         if ($binding) {
             $binding->update([
                 'external_id' => $externalId,
+                'external_name' => $externalName !== '' ? $externalName : $externalId,
                 'status' => OperatorIbotBinding::STATUS_ACTIVE,
             ]);
 
             return $binding->refresh();
+        }
+
+        // 同 ibot 同 external_id 的历史绑定（已解绑）→ 转交当前 operator 激活
+        //（避免唯一索引 ibot_bindings_ibot_external_unique 冲突，保证「解绑后可换人重绑」）
+        $revoked = OperatorIbotBinding::withoutGlobalScope(TenantScope::class)
+            ->where('ibot_id', $ibot->ibot_id)
+            ->where('external_id', $externalId)
+            ->where('status', OperatorIbotBinding::STATUS_REVOKED)
+            ->first();
+
+        if ($revoked) {
+            $revoked->update([
+                'operator_id' => $payload['operator_id'],
+                'external_name' => $externalName !== '' ? $externalName : $externalId,
+                'status' => OperatorIbotBinding::STATUS_ACTIVE,
+            ]);
+
+            return $revoked->refresh();
         }
 
         return OperatorIbotBinding::create([
@@ -94,9 +120,23 @@ class IbotBindingService
             'operator_id' => $payload['operator_id'],
             'ibot_id' => $ibot->ibot_id,
             'external_id' => $externalId,
+            'external_name' => $externalName !== '' ? $externalName : $externalId,
             'is_default_channel' => false,
             'status' => OperatorIbotBinding::STATUS_ACTIVE,
         ]);
+    }
+
+    /**
+     * 该 IM 账号（external_id）是否已绑定当前机器人（active，供扫码时提示「已绑定」）
+     */
+    public function isBound(Ibot $ibot, string $externalId): bool
+    {
+        // 公开回调无 TenantContext，显式绕过租户全局作用域（与 consume 同策略）
+        return OperatorIbotBinding::withoutGlobalScope(TenantScope::class)
+            ->where('ibot_id', $ibot->ibot_id)
+            ->where('external_id', $externalId)
+            ->where('status', OperatorIbotBinding::STATUS_ACTIVE)
+            ->exists();
     }
 
     /**

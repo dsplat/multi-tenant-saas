@@ -58,6 +58,11 @@ class WechatWorkBindCallbackController extends Controller
             return $this->page('绑定失败', '未获取到企业微信成员身份：请确认扫码人是本企业成员，并在应用可见范围内。', false);
         }
 
+        // 该企微账号已绑定当前助理 → 直接提示，避免重复走确认页
+        if ($binding->isBound($ibot, $externalId)) {
+            return $this->page('已绑定', "该企业微信账号已绑定助理「{$ibot->name}」，无需重复绑定，直接打开企微消息即可对话。", true);
+        }
+
         $memberName = $this->memberName($ibot, $externalId);
 
         // 暂存待确认身份（一次性，POST 确认时取走）
@@ -94,7 +99,7 @@ class WechatWorkBindCallbackController extends Controller
             return $this->page('绑定失败', '确认已过期或已处理，请返回控制台重新扫码。', false);
         }
 
-        $result = $binding->consume($code, $ibot, $externalId);
+        $result = $binding->consume($code, $ibot, $externalId, $this->memberName($ibot, $externalId));
         if ($result === null) {
             return $this->page('绑定失败', '绑定未完成：绑定码已被使用，或该企业微信账号已绑定其他助理，请返回控制台重新生成。', false);
         }

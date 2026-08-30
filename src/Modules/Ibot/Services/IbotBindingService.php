@@ -144,27 +144,30 @@ class IbotBindingService
      * 构造企微扫码绑定授权链接（网页授权 snsapi_base）
      *
      * 扫码后企微内置浏览器打开 → 静默换取 code → 跳转绑定回调（state=ibot_id:code）。
-     * corp_id 取 ibot 凭证，缺失时回退租户套件授权记录；
-     * 回调域：租户自定义域名优先（企微主体校验），平台统一回调域兜底。
+     * corp_id 取 ibot 凭证，缺失时回退租户套件授权记录。
+     * 回调域按接入模式区分：代开发（suite）只能用平台统一回调域
+     * （可信域名由服务商代管）；自建（self）才可用租户自定义域名。
      */
     public function buildWechatWorkBindUrl(Ibot $ibot, string $code): string
     {
         $tenantId = (int) $ibot->tenant_id;
-
+    
+        $auths = app(WechatWorkSuiteService::class)->appAuthorizations($tenantId);
+        $suiteMode = $auths !== [];
+    
         $corpId = (string) ($ibot->credentials['corp_id'] ?? '');
         if ($corpId === '') {
-            $auths = app(WechatWorkSuiteService::class)->appAuthorizations($tenantId);
-            if ($auths === []) {
+            if (! $suiteMode) {
                 return '';
             }
             $corpId = (string) ($auths[0]->corp_id ?? '');
         }
-
+    
         if ($corpId === '') {
             return '';
         }
-
-        $redirect = $this->resolveBindCallbackUrl($tenantId);
+    
+        $redirect = $this->resolveBindCallbackUrl($tenantId, $suiteMode);
         if ($redirect === '') {
             return '';
         }
@@ -179,16 +182,29 @@ class IbotBindingService
     }
 
     /**
-     * 绑定回调 URL：租户自定义域名优先（与 OAuth 登录同策略），平台统一回调域兜底
+     * 绑定回调 URL：按接入模式区分可信域名（与 WechatWorkOAuthService::getConfig 同规则）
+     *
+     * - suite（代开发）：可信域名由服务商代管，只能用平台统一回调域
+     *   （auth.oauth.callback_domain，如 auth.neihang.com）；租户自定义域名
+     *   （如 club.lanyantu.com）仅自建模式可用，代开发模式填了必报 redirect_uri 错
+     * - self（自建）：租户自定义域名优先（需在企微「网页授权及JS-SDK」
+     *   可信域名内），平台统一回调域兑底
      */
-    private function resolveBindCallbackUrl(int $tenantId): string
+    private function resolveBindCallbackUrl(int $tenantId, bool $suiteMode): string
     {
+        $callbackDomain = config('auth.oauth.callback_domain', '');
+
+        if ($suiteMode) {
+            return $callbackDomain !== ''
+                ? "https://{$callbackDomain}/api/v1/ibot/bind/wechat-work/callback"
+                : '';
+        }
+
         $domain = Tenant::where('tenant_id', $tenantId)->value('domain');
         if ($domain) {
             return "https://{$domain}/api/v1/ibot/bind/wechat-work/callback";
         }
 
-        $callbackDomain = config('auth.oauth.callback_domain', '');
         if ($callbackDomain !== '') {
             return "https://{$callbackDomain}/api/v1/ibot/bind/wechat-work/callback";
         }

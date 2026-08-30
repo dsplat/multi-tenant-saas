@@ -10,17 +10,21 @@ use MultiTenantSaas\Modules\Ibot\Models\OperatorIbotBinding;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Operator\Models\Operator;
 use MultiTenantSaas\Modules\Operator\Models\OperatorTenant;
+use MultiTenantSaas\Modules\WechatWork\Models\WechatWorkAuthorization;
 use MultiTenantSaas\Tests\Schema\IbotModule;
 use MultiTenantSaas\Tests\Schema\RbacModule;
+use MultiTenantSaas\Tests\Schema\WechatWorkModule;
 
 /**
  * 企微扫码即绑链路：授权链接生成 → OAuth 回调确认页 → 确认绑定 + 推送
  *
  * 安全要点断言：绑定码一次性（consume）、pending 取走即失效、userid 仅来自企微回调。
+ * 回调域规则：代开发（suite）只能用平台统一回调域（auth.neihang.com 等），
+ * 自定义域名（club.lanyantu.com 等）仅自建（self）模式可用。
  */
 class IbotWechatWorkBindTest extends TestCase
 {
-    protected array $uses = [IbotModule::class, RbacModule::class];
+    protected array $uses = [IbotModule::class, RbacModule::class, WechatWorkModule::class];
 
     private const CALLBACK = '/api/v1/ibot/bind/wechat-work/callback';
 
@@ -159,6 +163,85 @@ class IbotWechatWorkBindTest extends TestCase
         }
 
         $this->assertStringContainsString("https://{$callbackDomain}/api/v1/ibot/bind/wechat-work/callback", $url);
+    }
+
+    public function test_suite_mode_bind_url_uses_platform_callback_domain_only(): void
+    {
+        // 代开发（suite）模式：已有授权记录，租户也有自定义域名（bind.example.com）
+        // → 回调域必须用平台统一回调域，自定义域名仅自建模式可用（否则企微报 redirect_uri 错）
+        WechatWorkAuthorization::forceCreate([
+            'authorization_id' => 7001,
+            'tenant_id' => 1001,
+            'service_provider_id' => 9001,
+            'corp_id' => 'ww-suite-corp',
+            'agent_id' => '1000002',
+            'permanent_code' => 'enc-perm-code',
+            'status' => WechatWorkAuthorization::STATUS_AUTHORIZED,
+        ]);
+
+        $ibot = $this->createIbot();
+        $code = $this->seedBindCode((int) $this->admin->operator_id, $ibot);
+
+        $service = app(\MultiTenantSaas\Modules\Ibot\Services\IbotBindingService::class);
+        $url = $service->buildWechatWorkBindUrl($ibot, $code);
+
+        $callbackDomain = config('auth.oauth.callback_domain', '');
+        if ($callbackDomain === '') {
+            $this->assertSame('', $url);
+
+            return;
+        }
+
+        // corp_id 仍取 ibot 凭证；回调域必须是平台统一域
+        $this->assertStringContainsString('appid=wwcorp123', $url);
+        $this->assertStringContainsString("https://{$callbackDomain}/api/v1/ibot/bind/wechat-work/callback", $url);
+        $this->assertStringNotContainsString('bind.example.com', $url);
+    }
+
+    public function test_suite_mode_bind_url_corp_id_from_authorization(): void
+    {
+        // 代开发模式：ibot 凭证 corp_id 缺失 → 从授权记录带出；回调域仍平台统一域
+        WechatWorkAuthorization::forceCreate([
+            'authorization_id' => 7002,
+            'tenant_id' => 1001,
+            'service_provider_id' => 9001,
+            'corp_id' => 'ww-suite-corp',
+            'agent_id' => '1000002',
+            'permanent_code' => 'enc-perm-code',
+            'status' => WechatWorkAuthorization::STATUS_AUTHORIZED,
+        ]);
+
+        $ibot = $this->createIbot(['credentials' => ['token' => 'tok-1234', 'encoding_aes_key' => str_repeat('k', 43)]]);
+        $code = $this->seedBindCode((int) $this->admin->operator_id, $ibot);
+
+        $service = app(\MultiTenantSaas\Modules\Ibot\Services\IbotBindingService::class);
+        $url = $service->buildWechatWorkBindUrl($ibot, $code);
+
+        $callbackDomain = config('auth.oauth.callback_domain', '');
+        if ($callbackDomain === '') {
+            $this->assertSame('', $url);
+
+            return;
+        }
+
+        $this->assertStringContainsString('appid=ww-suite-corp', $url);
+        $this->assertStringContainsString("https://{$callbackDomain}/api/v1/ibot/bind/wechat-work/callback", $url);
+        $this->assertStringNotContainsString('bind.example.com', $url);
+    }
+
+    public function test_self_mode_bind_url_prefers_custom_domain(): void
+    {
+        // 自建模式：无授权记录 + 租户有自定义域名 → 自定义域名优先（且不被平台域替代）
+        $ibot = $this->createIbot();
+        $code = $this->seedBindCode((int) $this->admin->operator_id, $ibot);
+
+        $service = app(\MultiTenantSaas\Modules\Ibot\Services\IbotBindingService::class);
+        $url = $service->buildWechatWorkBindUrl($ibot, $code);
+
+        $this->assertStringContainsString(
+            'redirect_uri=' . rawurlencode('https://bind.example.com/api/v1/ibot/bind/wechat-work/callback'),
+            $url
+        );
     }
 
     // ========== OAuth 回调（确认页） ==========

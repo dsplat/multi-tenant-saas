@@ -123,7 +123,10 @@ POST /api/v1/ibot/bind/wechat-work/confirm → takePending（取走即失效）+
 ```
 
 - **安全**：userid 仅来自企微 getuserinfo（非成员扫码无 userid → 拒绝）；pending 一次性取走即失效；绑定码仍一次性消费（防跨 bot/租户重放）；文本绑定码路径保留兑底（企微会话内发码同样可绑）
-- **回调域**：租户自定义域名优先（`tenants.domain`，需在企微「网页授权及JS-SDK」可信域名内），平台统一回调域 `auth.oauth.callback_domain` 兑底
+- **回调域（按接入模式区分，与 OAuth 登录同规则）**：
+  - **代开发（suite）**：可信域名由服务商代管，只能用平台统一回调域 `auth.oauth.callback_domain`（如 auth.neihang.com）；
+    租户自定义域名（如 club.lanyantu.com）仅自建模式可用，代开发模式填了必报 redirect_uri 错误
+  - **自建（self）**：租户自定义域名优先（`tenants.domain`，需在企微「网页授权及JS-SDK」可信域名内），平台统一回调域兑底
 - **凭证来源**：`corp_id` 取 ibot 凭证，缺失时回退租户套件授权（`wechat_work_authorizations`）；公开回调无租户上下文，查询显式 `withoutGlobalScope(TenantScope)`（与 webhook 同策略）
 - 绑定成功后推送应用消息（`sendMessage`，agent_id 缺失时静默跳过）
 - **微信个人号（iLink）有两次扫码，注意区分**：第一次是管理员扫**登录二维码**获取 iLink 账户凭证（一次性配对）；

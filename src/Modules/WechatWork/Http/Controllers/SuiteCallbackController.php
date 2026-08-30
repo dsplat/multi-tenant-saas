@@ -305,6 +305,8 @@ class SuiteCallbackController extends Controller
             chatId: (string) ($payload['ChatId'] ?? ''),
             externalUserId: (string) ($payload['ExternalUserID'] ?? $payload['UserID'] ?? ''),
             welcomeCode: (string) ($payload['WelcomeCode'] ?? ''),
+            // 「联系我」二维码渠道归因参数（add_contact_way 创建时烧入，回调原样返回）
+            state: (string) ($payload['State'] ?? ''),
             raw: $payload,
         ));
     }

@@ -122,6 +122,8 @@ class ChannelWebhookController
             // （UserID 为操作的企业成员），兼容渠道链路历史字段形态
             externalUserId: (string) ($payload['ExternalUserID'] ?? $payload['UserID'] ?? ''),
             welcomeCode: (string) ($payload['WelcomeCode'] ?? ''),
+            // 「联系我」二维码渠道归因参数（add_contact_way 创建时烧入，回调原样返回）
+            state: (string) ($payload['State'] ?? ''),
             raw: $rawPayload,
         ));
     }

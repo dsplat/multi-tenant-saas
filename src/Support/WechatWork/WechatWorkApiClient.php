@@ -1005,4 +1005,155 @@ class WechatWorkApiClient
 
         return true;
     }
+
+    // ========== 「联系我」/「加入群聊」管理 API（externalcontact，海报渠道活码用） ==========
+
+    /**
+     * 统一 POST 调用 externalcontact 接口
+     *
+     * @param  bool  $throw  true=创建类接口（权限/60020 等错误必须让上层可见）；false=查询/变更类温和失败
+     * @return array<string, mixed> 企微返回 JSON
+     */
+    private function postExternalContact(string $path, array $payload, string $logTag, bool $throw = false): array
+    {
+        $accessToken = $this->accessToken();
+
+        if ($accessToken === '') {
+            if ($throw) {
+                throw new ServiceUnavailableException("WechatWork: {$logTag} no access_token");
+            }
+
+            return [];
+        }
+
+        $response = $this->http()->post(self::API_BASE . "{$path}?access_token={$accessToken}", $payload);
+
+        if (! $response->successful()) {
+            Log::warning("[WechatWork] {$logTag} HTTP 失败", [
+                'corp_id' => $this->corpId,
+                'status' => $response->status(),
+            ]);
+
+            if ($throw) {
+                throw new ServiceUnavailableException("WechatWork: {$logTag} HTTP " . $response->status());
+            }
+
+            return [];
+        }
+
+        $data = $response->json() ?? [];
+
+        if (($data['errcode'] ?? -1) !== 0) {
+            Log::warning("[WechatWork] {$logTag} 失败", [
+                'corp_id' => $this->corpId,
+                'errcode' => $data['errcode'] ?? null,
+                'errmsg' => mb_substr((string) ($data['errmsg'] ?? ''), 0, 200),
+            ]);
+
+            if ($throw) {
+                throw new ServiceUnavailableException(
+                    sprintf('WechatWork: %s failed [%s]: %s', $logTag, $data['errcode'] ?? '?', $data['errmsg'] ?? '')
+                );
+            }
+
+            return [];
+        }
+
+        return $data;
+    }
+
+    /**
+     * 配置「联系我」方式（externalcontact/add_contact_way）
+     *
+     * 生成加好友二维码/小程序按钮；state 用于渠道归因（≤30 字符，回调 add_external_contact 返回）。
+     * 返回 config_id + qr_code（scene=2 时）。
+     *
+     * @param  array<string, mixed>  $payload  type/scene/user/party/skip_verify/state 等
+     * @return array{config_id: string, qr_code: string}
+     */
+    public function addContactWay(array $payload): array
+    {
+        $data = $this->postExternalContact('/externalcontact/add_contact_way', $payload, 'add_contact_way', true);
+
+        return [
+            'config_id' => (string) ($data['config_id'] ?? ''),
+            'qr_code' => (string) ($data['qr_code'] ?? ''),
+        ];
+    }
+
+    /**
+     * 获取「联系我」配置（externalcontact/get_contact_way）
+     *
+     * @return array<string, mixed> 空数组表示失败
+     */
+    public function getContactWay(string $configId): array
+    {
+        return $this->postExternalContact('/externalcontact/get_contact_way', ['config_id' => $configId], 'get_contact_way');
+    }
+
+    /**
+     * 更新「联系我」配置（externalcontact/update_contact_way）
+     */
+    public function updateContactWay(string $configId, array $payload): bool
+    {
+        $data = $this->postExternalContact('/externalcontact/update_contact_way', array_merge(['config_id' => $configId], $payload), 'update_contact_way');
+
+        return $data !== [];
+    }
+
+    /**
+     * 删除「联系我」配置（externalcontact/del_contact_way）
+     */
+    public function delContactWay(string $configId): bool
+    {
+        $data = $this->postExternalContact('/externalcontact/del_contact_way', ['config_id' => $configId], 'del_contact_way');
+
+        return $data !== [];
+    }
+
+    /**
+     * 配置客户群「加入群聊」方式（externalcontact/groupchat/add_join_way）
+     *
+     * 生成客户群入群二维码/小程序按钮；state 用于入群渠道归因（≤30 字符，
+     * 群成员经 groupchat/get 可查对应 state）。chat_id_list 最多 5 个群。
+     *
+     * @param  array<string, mixed>  $payload  scene/chat_id_list/auto_create_room/state 等
+     * @return array{config_id: string}
+     */
+    public function addJoinWay(array $payload): array
+    {
+        $data = $this->postExternalContact('/externalcontact/groupchat/add_join_way', $payload, 'add_join_way', true);
+
+        return ['config_id' => (string) ($data['config_id'] ?? '')];
+    }
+
+    /**
+     * 获取「加入群聊」配置（externalcontact/groupchat/get_join_way）
+     *
+     * @return array<string, mixed> 空数组表示失败
+     */
+    public function getJoinWay(string $configId): array
+    {
+        return $this->postExternalContact('/externalcontact/groupchat/get_join_way', ['config_id' => $configId], 'get_join_way');
+    }
+
+    /**
+     * 更新「加入群聊」配置（externalcontact/groupchat/update_join_way）
+     */
+    public function updateJoinWay(string $configId, array $payload): bool
+    {
+        $data = $this->postExternalContact('/externalcontact/groupchat/update_join_way', array_merge(['config_id' => $configId], $payload), 'update_join_way');
+
+        return $data !== [];
+    }
+
+    /**
+     * 删除「加入群聊」配置（externalcontact/groupchat/del_join_way）
+     */
+    public function delJoinWay(string $configId): bool
+    {
+        $data = $this->postExternalContact('/externalcontact/groupchat/del_join_way', ['config_id' => $configId], 'del_join_way');
+
+        return $data !== [];
+    }
 }

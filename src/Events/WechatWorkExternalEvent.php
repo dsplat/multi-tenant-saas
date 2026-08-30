@@ -36,6 +36,7 @@ class WechatWorkExternalEvent
         public readonly string $chatId,
         public readonly string $externalUserId,
         public readonly string $welcomeCode,
-        public readonly array $raw,
+        public readonly string $state = '',
+        public readonly array $raw = [],
     ) {}
 }

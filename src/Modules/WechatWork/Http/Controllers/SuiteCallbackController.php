@@ -5,6 +5,7 @@ namespace MultiTenantSaas\Modules\WechatWork\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
+use MultiTenantSaas\Events\WechatWorkExternalEvent;
 use MultiTenantSaas\Support\WechatWork\WechatWorkCrypto;
 use MultiTenantSaas\Modules\Ibot\Models\Ibot;
 use MultiTenantSaas\Modules\Ibot\Services\Channels\WechatWorkChannel;
@@ -24,7 +25,8 @@ use MultiTenantSaas\Scopes\TenantScope;
  *
  * 代开发应用回调（/suite/cz/{tenantId?}，应用级凭证）：
  * - GET   URL 有效性验证（「开始代开发应用」保存回调 URL 时触发）
- * - POST  应用事件推送（change_external_contact 等业务事件骨架，先记录）
+ * - POST  应用事件推送（change_external_chat / change_external_contact / template_card_event
+ *         经 dispatchAppEvent 分发为 WechatWorkExternalEvent，供下游监听处理）
  *
  * 授权入库主路径是 create_auth 事件：代开发模式无浏览器回跳，扫描
  * 带参二维码（get_customized_auth_url）授权完成后企微推送 create_auth，
@@ -199,10 +201,8 @@ class SuiteCallbackController extends Controller
     /**
      * 代开发应用回调事件推送（POST 加密 XML，应用级凭证）
      *
-     * 目前为骨架：验签解密 → 记录日志 → 立即返回 success（企微要求
-     * 5 秒内返回纯文本 success，否则判定失败并重试）；业务事件
-     * （change_external_contact 客户联系变更 / change_contact 通讯录
-     * 变更等）后续按需在 dispatchAppEvent 中扩展。
+     * 验签解密 → dispatchAppEvent 分发业务事件 → 立即返回 success
+     * （企微要求 5 秒内返回纯文本 success，否则判定失败并重试）。
      */
     public function handleApp(Request $request, ?int $tenantId = null)
     {
@@ -260,19 +260,53 @@ class SuiteCallbackController extends Controller
     }
 
     /**
-     * 分发应用级回调事件（业务事件骨架：记录日志，后续按需扩展）
+     * 分发应用级回调事件（业务事件 → WechatWorkExternalEvent）
      *
-     * $authorization 可能为 null（统一回调地址下事件明文未携带可识别企业
-     * 的标识时，仅记录日志不阻塞响应——企微 5 秒超时重试机制下必须秒回）。
+     * change_external_chat / change_external_contact / template_card_event
+     * 构造事件分发（与渠道 webhook 链路同构，监听侧共享）；其余事件
+     * （change_contact 通讯录变更等）仅记录日志。
+     *
+     * $authorization 为 null（统一回调地址下事件明文未携带可识别企业
+     * 的标识时）仅记录日志不阻塞响应——企微 5 秒超时重试机制下必须秒回。
      */
     protected function dispatchAppEvent(?WechatWorkAuthorization $authorization, array $payload): void
     {
+        $eventType = (string) ($payload['Event'] ?? '');
+
         Log::info('[WechatWorkSuite] 收到应用回调事件', [
             'tenant_id' => $authorization?->tenant_id,
             'corp_id' => $authorization?->corp_id ?? (string) ($payload['ToUserName'] ?? ''),
             'info_type' => (string) ($payload['InfoType'] ?? ''),
-            'event' => (string) ($payload['Event'] ?? ''),
+            'event' => $eventType,
         ]);
+
+        if (! in_array($eventType, [
+            WechatWorkExternalEvent::TYPE_CHAT,
+            WechatWorkExternalEvent::TYPE_CONTACT,
+            WechatWorkExternalEvent::TYPE_TEMPLATE_CARD,
+        ], true)) {
+            return;
+        }
+
+        if ($authorization === null) {
+            Log::warning('[WechatWorkSuite] 应用业务事件无法定位授权租户，仅记录', [
+                'corp_id' => (string) ($payload['ToUserName'] ?? ''),
+                'event' => $eventType,
+                'change_type' => (string) ($payload['ChangeType'] ?? ''),
+            ]);
+
+            return;
+        }
+
+        event(new WechatWorkExternalEvent(
+            tenantId: (int) $authorization->tenant_id,
+            eventType: $eventType,
+            changeType: (string) ($payload['ChangeType'] ?? ''),
+            chatId: (string) ($payload['ChatId'] ?? ''),
+            externalUserId: (string) ($payload['ExternalUserID'] ?? $payload['UserID'] ?? ''),
+            welcomeCode: (string) ($payload['WelcomeCode'] ?? ''),
+            raw: $payload,
+        ));
     }
 
     /**

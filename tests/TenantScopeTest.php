@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
+use MultiTenantSaas\Scopes\TenantScope;
 
 class TenantScopeTest extends TestCase
 {
@@ -70,5 +71,26 @@ class TenantScopeTest extends TestCase
 
         $settings = TenantSetting::withoutTenantScope()->get();
         $this->assertCount(2, $settings);
+    }
+
+    public function test_allow_unscoped_overrides_default_tenant_fallback(): void
+    {
+        // 模拟回调/队列域：无显式租户上下文，但 config 配置了 default_tenant_id 兜底
+        $original = config('tenancy.default_tenant_id');
+        config()->set('tenancy.default_tenant_id', 9001);
+
+        try {
+            TenantContext::clear();
+            $this->assertSame('9001', TenantContext::getId());
+
+            TenantSetting::set(1001, 'info', 'name', 'Tenant A');
+            TenantSetting::set(1002, 'info', 'name', 'Tenant B');
+
+            // 回归：allowUnscoped 必须优先于默认租户过滤（否则回调/队列被兜底租户短路）
+            $settings = TenantScope::allowUnscoped(fn () => TenantSetting::all());
+            $this->assertCount(2, $settings);
+        } finally {
+            config()->set('tenancy.default_tenant_id', $original);
+        }
     }
 }

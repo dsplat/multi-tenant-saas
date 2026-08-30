@@ -61,9 +61,16 @@ class TenantScope implements Scope
      * Apply the scope to a given Eloquent query builder.
      *
      * Fail-closed：无租户上下文且未显式豁免时，追加 WHERE 1=0。
+     * 豁免优先：allowUnscoped() 声明的系统级场景（回调/队列/CLI）先放行，
+     * 否则 TenantContext::getId() 的 default_tenant_id 兜底会短路豁免分支。
      */
     public function apply(Builder $builder, Model $model): void
     {
+        // 系统级豁免优先于默认租户过滤（回调/队列/CLI 声明了允许全量查询）
+        if (static::$unscopedAllowed) {
+            return;
+        }
+
         $tenantId = TenantContext::getId();
 
         if ($tenantId) {
@@ -72,10 +79,8 @@ class TenantScope implements Scope
             return;
         }
 
-        // 无租户上下文：系统级豁免 or 阻断
-        if (! static::$unscopedAllowed) {
-            $builder->whereRaw('1 = 0');
-        }
+        // 无租户上下文：阻断（fail-closed）
+        $builder->whereRaw('1 = 0');
     }
 
     /**

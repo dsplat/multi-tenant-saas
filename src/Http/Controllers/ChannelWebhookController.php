@@ -118,7 +118,9 @@ class ChannelWebhookController
             eventType: $eventType,
             changeType: $changeType,
             chatId: (string) ($payload['ChatId'] ?? ''),
-            externalUserId: (string) ($payload['UserID'] ?? ''),
+            // 企微协议：change_external_contact 中 ExternalUserID 才是外部联系人
+            // （UserID 为操作的企业成员），兼容渠道链路历史字段形态
+            externalUserId: (string) ($payload['ExternalUserID'] ?? $payload['UserID'] ?? ''),
             welcomeCode: (string) ($payload['WelcomeCode'] ?? ''),
             raw: $rawPayload,
         ));

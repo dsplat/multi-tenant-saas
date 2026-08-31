@@ -13,6 +13,9 @@ use MultiTenantSaas\Concerns\SerializesFriendlyDates;
  *
  * trigger_type=at_time：scheduled_at 到点后由 activity_plan:process-due 触发；
  * trigger_type=on_event：listen_event 字段预留，Phase 0 不实现监听。
+ *
+ * assignee_type=user（学员侧扩展）：任务语义为"学员学习任务"（每日打卡任务/
+ * 训练营营期任务），不自动执行，学员完成记录落 activity_task_completions。
  */
 class ActivityTask extends Model
 {
@@ -23,6 +26,15 @@ class ActivityTask extends Model
     const TRIGGER_AT_TIME = 'at_time';
 
     const TRIGGER_ON_EVENT = 'on_event';
+
+    // 执行者类型（user = 学员侧学习任务，完成记录见 activity_task_completions）
+    const ASSIGNEE_SYSTEM = 'system';
+
+    const ASSIGNEE_HUMAN = 'human';
+
+    const ASSIGNEE_AGENT = 'agent';
+
+    const ASSIGNEE_USER = 'user';
 
     // 执行模式
     const MODE_AUTO = 'auto';
@@ -81,6 +93,40 @@ class ActivityTask extends Model
     public function plan(): BelongsTo
     {
         return $this->belongsTo(ActivityPlan::class, 'plan_id', 'plan_id');
+    }
+
+    /**
+     * 学员完成记录（仅 assignee_type=user 有意义）
+     */
+    public function completions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ActivityTaskCompletion::class, 'task_id', 'task_id');
+    }
+
+    /**
+     * 学员侧任务：指定学员是否已完成（幂等查询）
+     */
+    public function isCompletedBy(int $userId): bool
+    {
+        return $this->completions()
+            ->where('user_id', $userId)
+            ->exists();
+    }
+
+    /**
+     * 学员侧任务：批量查询学员完成状态 → [task_id => completion]
+     *
+     * @param array<int> $taskIds
+     * @return array<int, ActivityTaskCompletion>
+     */
+    public static function completionMapFor(int $tenantId, int $userId, array $taskIds): array
+    {
+        return ActivityTaskCompletion::where('tenant_id', $tenantId)
+            ->where('user_id', $userId)
+            ->whereIn('task_id', $taskIds)
+            ->get()
+            ->keyBy('task_id')
+            ->all();
     }
 
     /**

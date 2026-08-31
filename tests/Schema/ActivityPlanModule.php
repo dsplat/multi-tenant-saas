@@ -52,10 +52,23 @@ class ActivityPlanModule implements SchemaModuleInterface
             $table->index(['status', 'scheduled_at']);
             $table->unique(['plan_id', 'task_key'], 'activity_tasks_plan_key_unique');
         });
+
+        Schema::create('activity_task_completions', function (Blueprint $table) {
+            $table->unsignedBigInteger('completion_id')->primary();
+            $table->unsignedBigInteger('tenant_id');
+            $table->unsignedBigInteger('task_id');
+            $table->unsignedBigInteger('user_id');
+            $table->timestamp('completed_at');
+            $table->json('output')->nullable();
+            $table->timestamps();
+
+            $table->unique(['tenant_id', 'task_id', 'user_id'], 'task_completions_unique');
+            $table->index(['tenant_id', 'user_id']);
+        });
     }
 
     public function getTableNames(): array
     {
-        return ['activity_plans', 'activity_tasks'];
+        return ['activity_plans', 'activity_tasks', 'activity_task_completions'];
     }
 }

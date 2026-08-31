@@ -222,12 +222,13 @@ class ActivityTaskExecutor
      * human / system 任务：保持 running 等外部 complete
      *
      * assignee_type=human 的任务不自动执行，等待管理 API complete 置 done。
+     * assignee_type=user（学员侧）不自动执行，等待学员完成（activity_task_completions）。
      * assignee_type=system 且无 action.type 的视为空操作直接 done。
      */
     private function executeHumanOrSystem(ActivityTask $task): void
     {
-        if ($task->assignee_type === 'human') {
-            // 保持 running，等 complete API
+        if (in_array($task->assignee_type, [ActivityTask::ASSIGNEE_HUMAN, ActivityTask::ASSIGNEE_USER], true)) {
+            // 保持 running，等 complete API / 学员完成
             return;
         }
 

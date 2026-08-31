@@ -30,14 +30,17 @@ class CourseFulfillmentHandler extends AbstractOrderFulfillmentHandler
             return;
         }
 
-        // 幂等授予课程权益
+        // 幂等授予课程权益（订单履约来源）
         CourseEntitlement::firstOrCreate(
             [
                 'tenant_id' => (int) $order->tenant_id,
                 'user_id'   => (int) $order->user_id,
                 'course_id' => (int) $courseId,
             ],
-            ['order_id' => $order->order_id]
+            [
+                'order_id' => $order->order_id,
+                'source'   => CourseEntitlement::SOURCE_ORDER,
+            ]
         );
     }
 

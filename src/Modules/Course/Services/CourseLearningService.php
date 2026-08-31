@@ -67,12 +67,26 @@ class CourseLearningService
 
         $hasAccess = $course->isFree() || ($userId && $this->hasAccess($tenantId, $userId, $courseId));
 
+        // 学员已完成章节集合（用于 unlock_rule 解锁判定）
+        $completedChapterIds = [];
+        if ($hasAccess && $userId) {
+            $completedChapterIds = LearningRecord::where('tenant_id', $tenantId)
+                ->where('user_id', $userId)
+                ->where('course_id', $courseId)
+                ->value('completed_chapters') ?? [];
+        }
+
+        $prevChapterId = null;
         $chapters = CourseChapter::where('course_id', $courseId)
             ->where('tenant_id', $tenantId)
             ->orderBy('sort_order')
             ->get()
-            ->map(function ($chapter) use ($hasAccess) {
-                if (! $hasAccess) {
+            ->map(function ($chapter) use ($hasAccess, $completedChapterIds, &$prevChapterId) {
+                $chapter->is_unlocked = $chapter->isUnlocked($completedChapterIds, $prevChapterId);
+                $prevChapterId = (int) $chapter->chapter_id;
+
+                // 无权限或章节未解锁：隐藏内容体，仅返回标题/解锁状态
+                if (! $hasAccess || ! $chapter->is_unlocked) {
                     unset($chapter->content, $chapter->file_url);
                 }
 
@@ -132,9 +146,18 @@ class CourseLearningService
 
     /**
      * 授予课程权益（幂等；由 OrderService 支付确认履约时调用）
+     *
+     * source 默认按 order_id 推断（有单=order，无单=free）；
+     * 迁移导入/补偿/订阅场景显式传入。
      */
-    public function grantEntitlement(int $tenantId, int $userId, int $courseId, ?int $orderId = null): void
-    {
+    public function grantEntitlement(
+        int $tenantId,
+        int $userId,
+        int $courseId,
+        ?int $orderId = null,
+        ?string $source = null,
+        ?\DateTimeInterface $validUntil = null
+    ): void {
         TenantContext::setTenantId((string) $tenantId);
 
         CourseEntitlement::firstOrCreate(
@@ -143,7 +166,11 @@ class CourseLearningService
                 'user_id'   => $userId,
                 'course_id' => $courseId,
             ],
-            ['order_id' => $orderId]
+            [
+                'order_id'    => $orderId,
+                'source'      => $source ?? ($orderId !== null ? CourseEntitlement::SOURCE_ORDER : CourseEntitlement::SOURCE_FREE),
+                'valid_until' => $validUntil,
+            ]
         );
     }
 
@@ -154,7 +181,31 @@ class CourseLearningService
         return CourseEntitlement::where('tenant_id', $tenantId)
             ->where('user_id', $userId)
             ->where('course_id', $courseId)
+            ->where(function ($q) {
+                $q->whereNull('valid_until')->orWhere('valid_until', '>', now());
+            })
             ->exists();
+    }
+
+    /**
+     * 付费问答（qa 形态）：学员是否有提问资格（对标小鹅通付费问答）
+     *
+     * 问答内容本身走项目层 submissions（subject_type='course'），
+     * 付费门槛=课程订单权益：免费课程开放提问，付费课程需有效权益。
+     */
+    public function canAskInQa(int $tenantId, int $userId, int $courseId): bool
+    {
+        TenantContext::setTenantId((string) $tenantId);
+
+        $course = Course::where('course_id', $courseId)
+            ->where('tenant_id', $tenantId)
+            ->firstOrFail();
+
+        if (! $course->isQa()) {
+            throw new UnprocessableEntityHttpException('Course is not in qa format');
+        }
+
+        return $course->isFree() || $this->hasAccess($tenantId, $userId, $courseId);
     }
 
     // ========== 学习记录 ==========
@@ -175,10 +226,24 @@ class CourseLearningService
         }
 
         // 校验章节属于该课程
-        CourseChapter::where('chapter_id', $chapterId)
+        $chapter = CourseChapter::where('chapter_id', $chapterId)
             ->where('course_id', $courseId)
             ->where('tenant_id', $tenantId)
             ->firstOrFail();
+
+        // 校验章节已解锁（unlock_rule：time/sequence/prerequisite，未配置=无限制）
+        $completedIds = LearningRecord::where('tenant_id', $tenantId)
+            ->where('user_id', $userId)
+            ->where('course_id', $courseId)
+            ->value('completed_chapters') ?? [];
+        $prevChapterId = CourseChapter::where('course_id', $courseId)
+            ->where('tenant_id', $tenantId)
+            ->where('sort_order', '<', $chapter->sort_order)
+            ->orderByDesc('sort_order')
+            ->value('chapter_id');
+        if (! $chapter->isUnlocked($completedIds, $prevChapterId !== null ? (int) $prevChapterId : null)) {
+            throw new UnprocessableEntityHttpException('Chapter is locked');
+        }
 
         $totalChapters = CourseChapter::where('course_id', $courseId)
             ->where('tenant_id', $tenantId)

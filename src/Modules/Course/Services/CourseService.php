@@ -164,6 +164,7 @@ class CourseService
             'type'       => $data['type'] ?? 'text',
             'content'    => $data['content'] ?? null,
             'file_url'   => $data['file_url'] ?? null,
+            'unlock_rule' => $data['unlock_rule'] ?? null,
         ]);
     }
 
@@ -176,7 +177,7 @@ class CourseService
             ->where('tenant_id', $tenantId)
             ->firstOrFail();
 
-        $fillable = ['sort_order', 'title', 'type', 'content', 'file_url'];
+        $fillable = ['sort_order', 'title', 'type', 'content', 'file_url', 'unlock_rule'];
         $chapter->update(array_intersect_key($data, array_flip($fillable)));
 
         return $chapter->fresh();

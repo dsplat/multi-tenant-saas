@@ -39,6 +39,7 @@ class CourseModule implements SchemaModuleInterface
             $table->string('type', 20)->default('text');
             $table->text('content')->nullable();
             $table->string('file_url', 500)->nullable();
+            $table->json('unlock_rule')->nullable()->comment('解锁规则 {mode: time|sequence|prerequisite, config}');
             $table->timestamps();
             $table->softDeletes();
             $table->index(['tenant_id', 'course_id']);
@@ -50,6 +51,8 @@ class CourseModule implements SchemaModuleInterface
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('course_id');
             $table->unsignedBigInteger('order_id')->nullable();
+            $table->string('source', 20)->default('order')->comment('order|free|import|compensation|subscription');
+            $table->timestamp('valid_until')->nullable()->comment('权益有效期，NULL=永久');
             $table->timestamps();
             $table->unique(['tenant_id', 'user_id', 'course_id'], 'course_entitlements_unique');
         });

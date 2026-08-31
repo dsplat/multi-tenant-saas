@@ -95,10 +95,11 @@ class WechatOAuthServiceTest extends TestCase
         return $provider;
     }
 
-    private function configureSelf(): void
+    private function configureSelf(string $oauthMode = 'h5'): void
     {
         TenantSetting::set($this->tenantId, 'oauth', 'wechat_client_id', 'wx_self_app');
         TenantSetting::set($this->tenantId, 'oauth', 'wechat_client_secret', 'self-secret', true);
+        TenantSetting::set($this->tenantId, 'oauth', 'wechat_oauth_mode', $oauthMode);
     }
 
     // ==================================================================
@@ -150,6 +151,125 @@ class WechatOAuthServiceTest extends TestCase
 
         $this->assertSame('self', $config['mode']);
         $this->assertSame('wx_self_app', $config['app_id']);
+    }
+
+    // ==================================================================
+    // 自建模式登录形态（h5 网页授权 / pc 扫码）
+    // ==================================================================
+
+    public function test_h5_mode_authorize_url_uses_oauth2_authorize(): void
+    {
+        $this->configureSelf('h5');
+
+        $url = $this->oauthService()->getAuthorizeUrl($this->tenantId);
+
+        // 默认形态：公众号网页授权端点 + snsapi_userinfo
+        $this->assertStringContainsString('open.weixin.qq.com/connect/oauth2/authorize', $url);
+        $this->assertStringContainsString('scope=snsapi_userinfo', $url);
+        $this->assertStringContainsString('appid=wx_self_app', $url);
+    }
+
+    public function test_pc_mode_authorize_url_uses_qrconnect(): void
+    {
+        $this->configureSelf('pc');
+
+        $url = $this->oauthService()->getAuthorizeUrl($this->tenantId);
+
+        // pc 形态：开放平台网站应用扫码端点 + snsapi_login
+        $this->assertStringContainsString('open.weixin.qq.com/connect/qrconnect', $url);
+        $this->assertStringContainsString('scope=snsapi_login', $url);
+        $this->assertStringContainsString('appid=wx_self_app', $url);
+        // 回调域 = 平台统一回调域（网站应用「授权回调域」配置在开放平台后台，平台主体）
+        $this->assertStringContainsString(urlencode('https://auth.neihang.com/api/v1/auth/wechat/callback'), $url);
+    }
+
+    public function test_pc_mode_callback_exchanges_via_self_endpoint(): void
+    {
+        $this->configureSelf('pc');
+
+        Http::fake([
+            'api.weixin.qq.com/sns/oauth2/access_token*' => Http::response([
+                'access_token' => 'pc-at-1',
+                'expires_in' => 7200,
+                'openid' => 'openid-pc',
+                'scope' => 'snsapi_login',
+            ]),
+            'api.weixin.qq.com/sns/userinfo*' => Http::response([
+                'openid' => 'openid-pc',
+                'nickname' => '扫码用户',
+                'headimgurl' => 'https://mmbiz.qpic.cn/head',
+                'errcode' => 0,
+            ]),
+        ]);
+
+        $service = $this->oauthService();
+        $state = $service->exposeGenerateState($this->tenantId);
+        request()->merge(['code' => 'code-pc', 'state' => $state]);
+
+        $result = $service->handleCallback($this->tenantId);
+
+        $this->assertSame('扫码用户', $result['user']['name']);
+        $this->assertNotEmpty($result['token']);
+
+        // pc 扫码换 token 与 h5 同构：sns/oauth2/access_token（appid + secret）
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'sns/oauth2/access_token')
+                && $request['appid'] === 'wx_self_app'
+                && $request['secret'] === 'self-secret'
+                && $request['code'] === 'code-pc';
+        });
+
+        $account = OauthAccount::where('provider', 'wechat:tenant:9001')
+            ->where('provider_id', 'openid-pc')
+            ->first();
+        $this->assertNotNull($account);
+        $this->assertSame('wx_self_app', $account->appid);
+    }
+
+    public function test_self_mode_defaults_to_h5_without_oauth_mode_key(): void
+    {
+        // 存量租户无 wechat_oauth_mode 键 → 默认 h5（向后兼容）
+        TenantSetting::set($this->tenantId, 'oauth', 'wechat_client_id', 'wx_self_app');
+        TenantSetting::set($this->tenantId, 'oauth', 'wechat_client_secret', 'self-secret', true);
+
+        $config = $this->oauthService()->exposeGetConfig($this->tenantId);
+
+        $this->assertSame('h5', $config['oauth_mode']);
+        $this->assertStringContainsString('connect/oauth2/authorize', $this->oauthService()->getAuthorizeUrl($this->tenantId));
+    }
+
+    public function test_invalid_oauth_mode_falls_back_to_h5(): void
+    {
+        $this->configureSelf('pc');
+        // 脏数据：非法形态值 → 白名单回退 h5
+        TenantSetting::set($this->tenantId, 'oauth', 'wechat_oauth_mode', 'mobile');
+
+        $config = $this->oauthService()->exposeGetConfig($this->tenantId);
+
+        $this->assertSame('h5', $config['oauth_mode']);
+        $this->assertStringContainsString('connect/oauth2/authorize', $this->oauthService()->getAuthorizeUrl($this->tenantId));
+    }
+
+    public function test_component_prefers_over_pc_mode(): void
+    {
+        // component 授权 + pc 自建配置并存 → 授权记录仍优先
+        $this->configureSelf('pc');
+        $this->createAuthorized();
+
+        $config = $this->oauthService()->exposeGetConfig($this->tenantId);
+
+        $this->assertSame('component', $config['mode']);
+        $this->assertSame('wx_authorizer_001', $config['app_id']);
+    }
+
+    public function test_pc_mode_throws_without_callback_domain(): void
+    {
+        // 平台未配置统一回调域时 pc 形态 fail-fast（避免静默降级到必然不可用的回调地址）
+        $this->configureSelf('pc');
+        config(['auth.oauth.callback_domain' => '']);
+
+        $this->expectException(ServiceUnavailableException::class);
+        $this->oauthService()->exposeGetConfig($this->tenantId);
     }
 
     // ==================================================================

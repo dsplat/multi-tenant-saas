@@ -196,6 +196,8 @@ class TenantWechatAuthController extends Controller
             'provider_ready' => $providerReady,
             'provider_name' => $providerName,
             'login_mode' => $loginMode,
+            // 自建模式登录形态（h5=公众号网页授权 / pc=开放平台网站应用扫码），供前端提示
+            'self_mode' => TenantSetting::get($tenantId, 'oauth', 'wechat_oauth_mode', 'h5'),
             'authorize_callback_url' => $this->component->authorizeCallbackUrl(),
         ]]);
     }

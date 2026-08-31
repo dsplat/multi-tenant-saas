@@ -159,7 +159,21 @@ class SocialiteServiceTest extends TestCase
         $this->assertSame('wx_self_app', $result['wechat']['client_id']);
         $this->assertSame('self-secret', $result['wechat']['client_secret']);
         $this->assertSame('self', $result['wechat']['mode']);
+        $this->assertSame('h5', $result['wechat']['oauth_mode']);
         $this->assertTrue($result['wechat']['configured']);
+    }
+
+    public function test_display_pc_mode_uses_platform_callback_domain(): void
+    {
+        TenantSetting::set($this->tenantId, 'oauth', 'wechat_client_id', 'wx_self_app');
+        TenantSetting::set($this->tenantId, 'oauth', 'wechat_client_secret', 'self-secret', true);
+        TenantSetting::set($this->tenantId, 'oauth', 'wechat_oauth_mode', 'pc');
+
+        $result = $this->socialite->getOAuthConfigForDisplay($this->tenantId);
+
+        $this->assertSame('pc', $result['wechat']['oauth_mode']);
+        // pc 形态展示平台统一回调域（网站应用「授权回调域」配置在开放平台后台）
+        $this->assertSame('https://auth.neihang.com/api/v1/auth/wechat/callback', $result['wechat']['redirect']);
     }
 
     public function test_display_component_mode_returns_authorizer_credentials(): void

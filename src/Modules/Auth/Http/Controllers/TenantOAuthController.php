@@ -72,6 +72,11 @@ class TenantOAuthController extends Controller
             ? ['enabled', 'corp_id', 'agent_id', 'secret', 'redirect']
             : ['enabled', 'client_id', 'client_secret', 'redirect'];
 
+        // 自建登录形态仅 wechat 支持（h5 公众号网页授权 / pc 开放平台网站应用扫码）
+        if ($provider === 'wechat') {
+            $allowed[] = 'oauth_mode';
+        }
+
         // alipay 使用 app_id/private_key/public_key/mode 模式
         if ($provider === 'alipay') {
             $allowed = ['enabled', 'app_id', 'private_key', 'public_key', 'mode', 'redirect'];

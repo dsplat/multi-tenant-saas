@@ -28,14 +28,16 @@ use MultiTenantSaas\Support\Wechat\WechatApiClient;
  *
  * 凭证来源双轨（与企微 WechatWorkOAuthService 对齐）：
  * - 自建应用模式（mode=self）：租户手填凭证，存储于 tenant_settings group='oauth'
- *   （wechat_client_id / wechat_client_secret），PC 扫码/普通公众号网页授权
+ *   （wechat_client_id / wechat_client_secret），按 wechat_oauth_mode 分两种登录形态：
+ *   h5=公众号网页授权（认证服务号，回调域用租户自定义域名）/ pc=开放平台网站应用
+ *   扫码（qrconnect，回调域用平台统一回调域，网站应用授权回调域配置在开放平台后台）
  * - 第三方平台模式（mode=component）：租户已授权平台为服务商（wechat_authorizations
  *   表 status=authorized），authorizer_appid 充当 appid，网页授权由第三方平台
  *   代替实现（公众号无需配置网页授权域名），回调域用平台统一回调域；
  *   换 token 走 sns/oauth2/component/access_token
  *
  * 双轨按租户有无授权记录自动切换：授权后 H5 公众号网页授权走 component；
- * 未授权租户 PC 扫码登录走 self（开放平台网站应用），两者并存互补。
+ * 未授权租户按 wechat_oauth_mode 走 self（h5 网页授权 / pc 扫码），两者并存互补。
  */
 class WechatOAuthService
 {
@@ -47,9 +49,14 @@ class WechatOAuthService
     protected const API_BASE = 'https://api.weixin.qq.com/sns';
 
     /**
-     * 授权页地址
+     * 授权页地址（公众号网页授权）
      */
     protected const AUTHORIZE_URL = 'https://open.weixin.qq.com/connect/oauth2/authorize';
+
+    /**
+     * PC 扫码授权页地址（开放平台网站应用）
+     */
+    protected const QR_CONNECT_URL = 'https://open.weixin.qq.com/connect/qrconnect';
 
     /**
      * 获取租户微信配置
@@ -86,11 +93,21 @@ class WechatOAuthService
             throw new ServiceUnavailableException(trans('common.oauth_not_configured', ['provider' => 'wechat', 'tenant' => $tenantId]));
         }
 
+        // 自建模式登录形态：h5=公众号网页授权（默认，认证服务号）/ pc=开放平台网站应用扫码；
+        // 非法值回退 h5（存量/脏数据防御，与 updateOAuthConfig 白名单一致）
+        $oauthMode = TenantSetting::get($tenantId, 'oauth', 'wechat_oauth_mode', 'h5');
+        if (! in_array($oauthMode, ['h5', 'pc'], true)) {
+            $oauthMode = 'h5';
+        }
+
         return [
             'app_id' => $appId,
             'secret' => $secret,
-            'redirect' => $this->resolveWechatRedirectUrl($tenantId, TenantSetting::get($tenantId, 'oauth', 'wechat_redirect', '')),
+            'redirect' => $oauthMode === 'pc'
+                ? $this->resolvePcRedirectUrl($tenantId)
+                : $this->resolveWechatRedirectUrl($tenantId, TenantSetting::get($tenantId, 'oauth', 'wechat_redirect', '')),
             'mode' => 'self',
+            'oauth_mode' => $oauthMode,
         ];
     }
 
@@ -102,7 +119,7 @@ class WechatOAuthService
      *
      * 优先级：
      * 1. 租户显式存储的完整 URL（自选回调地址，最高）
-     * 2. 租户自定义域名（tenants.domain）：自建模式回调域要求备案主体与
+     * 2. 租户自定义域名（tenants.domain）：自建 h5 模式回调域要求备案主体与
      *    公众号主体一致，平台统一回调域过不了主体校验
      * 3. 平台统一回调域（OAUTH_CALLBACK_DOMAIN）：仅无自定义域名的租户使用
      * 4. 相对路径兜底（平台域场景）
@@ -127,6 +144,23 @@ class WechatOAuthService
         }
 
         return $storedRedirect ?: '/api/v1/auth/wechat/callback';
+    }
+
+    /**
+     * 解析 PC 扫码登录回调完整 URL（开放平台网站应用）
+     *
+     * 网站应用「授权回调域」配置在微信开放平台后台（平台主体），域名归属校验
+     * 过不了租户自定义域名——仅平台统一回调域可用；未配置时 fail-fast（静默
+     * 降级到租户域/相对路径必然报 redirect_uri 校验错误，且与后台显示值分叉）。
+     */
+    protected function resolvePcRedirectUrl(int $tenantId): string
+    {
+        $callbackDomain = config('auth.oauth.callback_domain', '');
+        if ($callbackDomain === '') {
+            throw new ServiceUnavailableException('PC 扫码登录需平台配置 OAUTH_CALLBACK_DOMAIN（开放平台网站应用「授权回调域」仅支持平台统一域）');
+        }
+
+        return "https://{$callbackDomain}/api/v1/auth/wechat/callback";
     }
 
     /**
@@ -161,6 +195,19 @@ class WechatOAuthService
         $config = $this->getConfig($tenantId);
 
         $state = $this->generateState($tenantId, 'wechat', ['origin_domain' => $originDomain]);
+
+        // PC 扫码登录（开放平台网站应用 qrconnect，scope=snsapi_login）
+        if (($config['mode'] ?? '') === 'self' && ($config['oauth_mode'] ?? 'h5') === 'pc') {
+            $params = [
+                'appid' => $config['app_id'],
+                'redirect_uri' => $config['redirect'],
+                'response_type' => 'code',
+                'scope' => 'snsapi_login',
+                'state' => $state,
+            ];
+
+            return self::QR_CONNECT_URL . '?' . http_build_query($params) . '#wechat_redirect';
+        }
 
         $params = [
             'appid' => $config['app_id'],

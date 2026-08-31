@@ -7,7 +7,7 @@
       <div class="mode-overview">
         <span class="mode-overview-label">当前登录方式：</span>
         <el-tag v-if="capability.login_mode === 'component'" type="success" size="small">服务商模式（微信内 H5 网页授权）</el-tag>
-        <el-tag v-else-if="capability.login_mode === 'self'" type="primary" size="small">自建应用（PC 扫码登录）</el-tag>
+        <el-tag v-else-if="capability.login_mode === 'self'" type="primary" size="small">自建应用</el-tag>
         <el-tag v-else type="info" size="small">未配置</el-tag>
         <span class="form-tip" style="margin-left: 8px">
           {{ loginModeTip }}
@@ -125,9 +125,15 @@
 
         <!-- ── 自建应用 ── -->
         <el-tab-pane label="自建应用" name="self">
-          <p class="form-tip" style="margin: 4px 0 10px">在此填入微信开放平台「网站应用」凭证（PC 扫码登录）。与平台公众号授权互斥，仅未授权（或已解除本地授权）时可配置。</p>
+          <p class="form-tip" style="margin: 4px 0 10px">自建应用支持两种登录形态（互斥）：<b>微信内 H5 登录</b>（认证服务号网页授权）与 <b>PC 扫码登录</b>（开放平台网站应用）。与平台公众号授权互斥，仅未授权（或已解除本地授权）时可配置。</p>
           <el-form label-width="110px" class="config-form">
-            <el-form-item label="AppID"><el-input v-model="self.client_id" placeholder="开放平台网站应用 AppID（wx 开头）" /></el-form-item>
+            <el-form-item label="登录形态">
+              <el-radio-group v-model="self.oauth_mode">
+                <el-radio value="h5">微信内 H5 登录（认证服务号）</el-radio>
+                <el-radio value="pc">PC 扫码登录（开放平台网站应用）</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="AppID"><el-input v-model="self.client_id" :placeholder="self.oauth_mode === 'pc' ? '开放平台网站应用 AppID（wx 开头）' : '认证服务号 AppID（wx 开头）'" /></el-form-item>
             <el-form-item label="AppSecret"><el-input v-model="self.client_secret" placeholder="掩码表示未修改" /></el-form-item>
             <el-form-item v-if="self.redirect" label="回调地址">
               <el-input :model-value="self.redirect" readonly />
@@ -136,18 +142,37 @@
           <el-button type="primary" size="small" :loading="selfSaving" @click="saveSelf">保存自建凭证</el-button>
 
           <div class="help-box">
-            <div class="help-title">📖 配置指引（微信开放平台）</div>
-            <ol>
-              <li>管理员登录 <a href="https://open.weixin.qq.com/" target="_blank" rel="noopener">微信开放平台</a> →「管理中心」→「网站应用」→「创建网站应用」（需开发者资质认证）。</li>
-              <li>进入应用详情页，复制 <b>AppID</b> 和 <b>AppSecret</b> 填入本页。</li>
-              <li>「开发信息」→ 设置「授权回调域」为本系统回调地址中的域名部分（不含 https:// 与路径）。</li>
-              <li>保存后 PC 端扫码登录即可使用；微信内 H5 登录需使用「平台公众号授权」模式。</li>
-            </ol>
-            <div class="help-title">🛠 常见问题排查</div>
-            <ul>
-              <li><b>扫码后提示 redirect_uri 域名与后台配置不一致（10003）</b>：「授权回调域」未配置或与回调地址域名不一致。</li>
-              <li><b>AppSecret 无效（40013/40125）</b>：填的不是该网站应用的 AppSecret；重置后需同步更新本页。</li>
-            </ul>
+            <template v-if="self.oauth_mode === 'pc'">
+              <div class="help-title">📖 配置指引（PC 扫码登录 · 微信开放平台网站应用）</div>
+              <ol>
+                <li>管理员登录 <a href="https://open.weixin.qq.com/" target="_blank" rel="noopener">微信开放平台</a> →「管理中心」→「网站应用」→「创建网站应用」（需开发者资质认证）。</li>
+                <li>进入应用详情页，复制 <b>AppID</b> 和 <b>AppSecret</b> 填入本页。</li>
+                <li>「开发信息」→ 设置「授权回调域」为下方回调地址中的域名部分（不含 https:// 与路径）。</li>
+                <li>网站应用须与自建服务号绑定<b>同一开放平台账号</b>（已完成认证），否则用户切换登录形态会因 openid 不同而重新注册。</li>
+                <li>保存后 PC 端访问登录页即可扫码登录。</li>
+              </ol>
+              <div class="help-title">🛠 常见问题排查</div>
+              <ul>
+                <li><b>扫码后提示 redirect_uri 域名与后台配置不一致（10003）</b>：「授权回调域」未配置或与回调地址域名不一致。</li>
+                <li><b>AppSecret 无效（40013/40125）</b>：填的不是该网站应用的 AppSecret；重置后需同步更新本页。</li>
+              </ul>
+            </template>
+            <template v-else>
+              <div class="help-title">📖 配置指引（微信内 H5 登录 · 认证服务号网页授权）</div>
+              <ol>
+                <li>准备一个<b>已认证的服务号</b>（订阅号无网页授权能力，无法登录）。</li>
+                <li>公众号后台 →「设置与开发 → 基本配置」→ 复制 <b>AppID</b> 和 <b>AppSecret</b> 填入本页。</li>
+                <li>公众号后台 →「设置与开发 → 公众号设置 → 功能设置」→ 配置「网页授权域名」为下方回调地址中的域名部分（不含 https:// 与路径），并按提示下载校验文件放到该域名根目录。</li>
+                <li>域名备案主体须与公众号主体一致（客户自己的服务号必须配客户自己的域名）。</li>
+                <li>保存后用户<b>在微信内</b>打开 H5 页面即可免密登录。</li>
+              </ol>
+              <div class="help-title">🛠 常见问题排查</div>
+              <ul>
+                <li><b>提示 redirect_uri 参数错误</b>：网页授权域名未配置，或回调地址域名与后台配置不一致。</li>
+                <li><b>授权页提示无法验证账号</b>：AppID 填成了开放平台网站应用/小程序的，必须是<b>认证服务号</b>的 AppID。</li>
+                <li><b>AppSecret 无效（40013/40125）</b>：填的不是该服务号的 AppSecret；重置后需同步更新本页。</li>
+              </ul>
+            </template>
           </div>
         </el-tab-pane>
       </el-tabs>
@@ -260,7 +285,7 @@ const revokeAuth = async () => {
 }
 
 // ─── 自建应用凭证 ───────────────────
-const self = reactive({ client_id: '', client_secret: '', redirect: '' })
+const self = reactive({ client_id: '', client_secret: '', redirect: '', oauth_mode: 'h5' })
 const selfSaving = ref(false)
 
 const loadSelf = async () => {
@@ -268,14 +293,21 @@ const loadSelf = async () => {
     const res = await axios.get('/api/v1/tenant/auth/oauth/config')
     const data = res.data.data || res.data
     if (data.wechat) Object.assign(self, data.wechat)
-  } catch {}
+  } catch {
+    // 加载失败保持表单初始值，避免用户无感知地用默认值覆盖存量配置
+    ElMessage.error('加载自建凭证失败，请刷新页面重试')
+  }
 }
 
 const saveSelf = async () => {
+  if (!self.client_id) {
+    ElMessage.warning('请先填写 AppID')
+    return
+  }
   selfSaving.value = true
   try {
-    const { client_id, client_secret } = self
-    await axios.put('/api/v1/tenant/auth/oauth/wechat', { client_id, client_secret })
+    const { client_id, client_secret, oauth_mode } = self
+    await axios.put('/api/v1/tenant/auth/oauth/wechat', { client_id, client_secret, oauth_mode })
     ElMessage.success('自建凭证已保存')
     await loadSelf()
     await loadCapability()
@@ -295,7 +327,9 @@ const loginModeTip = computed(() => {
     case 'component':
       return '公众号粉丝在微信内打开 H5 页面即可免密登录（网页授权由第三方平台代替实现）；PC 扫码登录当前不可用（未配置自建应用）。'
     case 'self':
-      return 'PC 端扫码登录（开放平台网站应用）；授权平台公众号后自动切换为微信内 H5 登录。'
+      return capability.value.self_mode === 'pc'
+        ? 'PC 端扫码登录（开放平台网站应用）；授权平台公众号后自动切换为微信内 H5 登录。'
+        : '微信内 H5 免密登录（认证服务号网页授权）；授权平台公众号后自动切换为服务商模式。'
     default:
       return '配置任一接入方式后即可启用微信登录。'
   }

@@ -399,6 +399,19 @@ class SocialiteService
                 $redirect = $this->resolveRedirectUrl($tenantId, 'wechat', TenantSetting::get($tenantId, 'oauth', 'wechat_redirect', ''));
                 $mode = 'self';
 
+                // 自建模式登录形态：h5=公众号网页授权 / pc=开放平台网站应用扫码（默认 h5）
+                $oauthMode = TenantSetting::get($tenantId, 'oauth', 'wechat_oauth_mode', 'h5');
+
+                // pc 扫码：网站应用「授权回调域」配置在开放平台后台（平台主体），
+                // 域名归属校验过不了租户自定义域名——仅平台统一回调域可用；
+                // 平台未配置时置空（pc 形态不可用），避免展示值与实际登录 URL 分叉
+                if ($oauthMode === 'pc') {
+                    $callbackDomain = config('auth.oauth.callback_domain', '');
+                    $redirect = $callbackDomain !== ''
+                        ? "https://{$callbackDomain}/api/v1/auth/wechat/callback"
+                        : '';
+                }
+
                 // component 授权租户显示授权记录的真实凭证与回调地址（对齐 wechat_work 9.4-3）
                 $component = $this->componentAuthorized($tenantId);
                 if ($component) {
@@ -423,6 +436,7 @@ class SocialiteService
                     'client_secret' => $clientSecret,
                     'redirect' => $redirect,
                     'mode' => $mode,
+                    'oauth_mode' => $oauthMode,
                 ];
 
                 continue;
@@ -580,6 +594,12 @@ class SocialiteService
                 if ($key === 'client_secret' && $value === '********') {
                     continue; // 跳过遮罩占位符
                 }
+
+                // 自建登录形态白名单：仅 h5（公众号网页授权）/ pc（开放平台网站应用扫码），非法值回退 h5
+                if ($key === 'oauth_mode' && ! in_array($value, ['h5', 'pc'], true)) {
+                    $value = 'h5';
+                }
+
                 TenantSetting::set($tenantId, 'oauth', "wechat_{$key}", $value, $key === 'client_secret');
             }
 

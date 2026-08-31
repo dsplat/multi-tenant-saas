@@ -1,0 +1,28 @@
+{
+  "name": "dsplat/multi-tenant-saas-module-exam",
+  "version": "1.0.0",
+  "description": "考试/测评模块 - exam_question_banks/exam_questions/exams/exam_records，客观题自动判分 + 组卷（固定/随机抽题）+ ExamPassed 事件",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\Exam\\": ""
+    }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "exam",
+      "priority": 9,
+      "dependencies": [],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\Exam\\ExamServiceProvider",
+      "tenant_toggleable": true,
+      "default_enabled": true
+    }
+  }
+}

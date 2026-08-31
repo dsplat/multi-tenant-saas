@@ -43,6 +43,8 @@ jobs:
             repo: multi-tenant-saas-module-domain
           - prefix: 'src/Modules/Event'
             repo: multi-tenant-saas-module-event
+          - prefix: 'src/Modules/Exam'
+            repo: multi-tenant-saas-module-exam
           - prefix: 'src/Modules/Form'
             repo: multi-tenant-saas-module-form
           - prefix: 'src/Modules/Ibot'
@@ -51,6 +53,8 @@ jobs:
             repo: multi-tenant-saas-module-infrastructure
           - prefix: 'src/Modules/Knowledge'
             repo: multi-tenant-saas-module-knowledge
+          - prefix: 'src/Modules/Live'
+            repo: multi-tenant-saas-module-live
           - prefix: 'src/Modules/Logging'
             repo: multi-tenant-saas-module-logging
           - prefix: 'src/Modules/Logistics'

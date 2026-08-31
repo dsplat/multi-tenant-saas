@@ -1,0 +1,28 @@
+{
+  "name": "dsplat/multi-tenant-saas-module-live",
+  "version": "1.0.0",
+  "description": "直播模块 - live_rooms/live_view_records，第三方 SaaS provider 适配（一期 manual）+ 权益复用 + 回放转化课程章节",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\Live\\": ""
+    }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "live",
+      "priority": 9,
+      "dependencies": ["course"],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\Live\\LiveServiceProvider",
+      "tenant_toggleable": true,
+      "default_enabled": true
+    }
+  }
+}

@@ -237,13 +237,15 @@ ibot 与频道会话/聊天消息体系完全是两件事：
 
 ## 八、管理与工具契约（已实施，与原设计有调整）
 
-### 控制台配置中心（console 「随身助理」页 `/ibot-settings`）
+### 控制台页面（职责分离：渠道配置 + 个人绑定）
 
-- 租户管理员（`rbac.permission:setting.update`）：ibots CRUD，管理 API `api/v1/tenant/ibot/ibots*`
-  （`IbotAdminController`）：凭证脱敏回显（`****` + 尾 4 位，提交时掩码值视为未修改）、
-  局部合并更新、启停、删除保护（存在 active 绑定时拒删）
-- operator 个人（`api/v1/tenants/{tenantId}/ibot/*`，`IbotBindingController`）：
-  查各频道绑定状态、生成绑定码、设默认通道、解绑
+- **`/ibot-settings`（随身助理渠道，管理员）**：租户管理员（`rbac.permission:setting.update`）ibots CRUD，
+  管理 API `api/v1/tenant/ibot/ibots*`（`IbotAdminController`）：凭证脱敏回显（`****` + 尾 4 位，提交时掩码值视为未修改）、
+  局部合并更新、启停、删除保护（存在 active 绑定时拒删）。页面只做渠道配置（名称/凭证/启停/绑定规模展示），
+  成员个人绑定操作不在此页（已独立到下方个人页）
+- **`/my-ibot-bindings`（我的随身助理，所有成员）**：operator 个人（`api/v1/tenants/{tenantId}/ibot/*`，
+  `IbotBindingController`）查各频道绑定状态、生成绑定码、设默认通道、解绑。与配置页职责分离，
+  成员自助完成个人绑定，无需管理员介入
 
 ### 秘书工具（实际落地：AI 引导配置三件套，非原设计三工具）
 

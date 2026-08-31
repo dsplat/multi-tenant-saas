@@ -1,6 +1,9 @@
 <template>
   <div class="page">
-    <div class="page-header"><h2>随身助理（IM 机器人）</h2></div>
+    <div class="page-header">
+      <h2>随身助理渠道</h2>
+      <div class="form-tip">配置 IM 机器人渠道（企业微信 / Telegram）。成员的个人绑定在「我的随身助理」中自助完成。</div>
+    </div>
 
     <el-card shadow="never" style="max-width: 860px" v-loading="loading">
       <el-tabs v-model="activeTab">
@@ -11,12 +14,12 @@
           </template>
 
           <div class="tab-body">
-            <!-- 状态卡 -->
+            <!-- 状态行：机器人名称 + 绑定规模 + 启用开关 -->
             <div class="status-row">
               <span>
                 {{ ibotOf(ch.key) ? `机器人「${ibotOf(ch.key).name}」` : '尚未配置机器人' }}
                 <template v-if="ibotOf(ch.key)">
-                  · {{ ibotOf(ch.key).active_bindings_count || 0 }} 个生效绑定
+                  · {{ ibotOf(ch.key).active_bindings_count || 0 }} 个成员已绑定
                 </template>
               </span>
               <el-switch
@@ -49,7 +52,16 @@
               </div>
             </el-alert>
 
-            <!-- 凭证表单（掩码显示，修改才提交） -->
+            <!-- 成员绑定引导：个人操作已独立到「我的随身助理」页 -->
+            <el-alert type="info" :closable="false" show-icon style="margin-bottom: 16px; max-width: 620px">
+              <template #title>成员绑定在「我的随身助理」页完成</template>
+              <div style="display: flex; align-items: center; gap: 12px">
+                <span>成员扫码绑定个人 IM 账号、设置默认通道、解除绑定，均由成员在「我的随身助理」中自助完成，无需管理员介入。</span>
+                <el-button size="small" type="primary" @click="goMyBindings">去我的随身助理</el-button>
+              </div>
+            </el-alert>
+
+            <!-- 配置表单（凭证掩码显示，修改才提交） -->
             <el-form label-width="140px" class="config-form">
               <el-form-item label="机器人名称">
                 <el-input v-model="forms[ch.key].name" :placeholder="`${ch.label}小助手`" />
@@ -61,54 +73,6 @@
             </el-form>
 
             <el-button type="primary" :loading="saving" @click="handleSave(ch.key)">保存配置</el-button>
-
-            <!-- 绑定区：仅激活后展示 -->
-            <template v-if="ibotOf(ch.key)?.status === 'active'">
-              <el-divider />
-              <div class="bind-section">
-                <div class="bind-header">
-                  <span class="help-title">🔗 我的绑定</span>
-                  <el-button size="small" @click="handleBindCode(ch.key)">生成我的绑定码</el-button>
-                </div>
-
-                <el-alert v-if="bindCodes[ch.key]" type="success" :closable="false" style="margin: 8px 0">
-                  <template #title>
-                    绑定码：<b>{{ bindCodes[ch.key].code }}</b>（{{ Math.round((bindCodes[ch.key].expires_in || 600) / 60) }} 分钟内有效，一次性使用）
-                    <template v-if="bindCodes[ch.key].bind_link">
-                      · <a :href="bindCodes[ch.key].bind_link" target="_blank" rel="noopener">一键绑定链接</a>
-                    </template>
-                  </template>
-                  <div v-if="bindCodes[ch.key].bind_qr" class="bind-qr">
-                    <qrcode-vue :value="bindCodes[ch.key].bind_qr" :size="128" level="M" />
-                    <div class="form-tip">{{ ch.key === 'wechat_work' ? '用企业微信「扫一扫」识别二维码 → 确认身份 → 自动绑定并收到「绑定成功」消息，点开即可对话。' : '用对应 IM 扫一扫即可直达机器人完成绑定。' }}</div>
-                  </div>
-                  <div class="form-tip">{{ ch.bindHint }}</div>
-                </el-alert>
-
-                <el-table v-if="bindingsOf(ch.key).length" :data="bindingsOf(ch.key)" size="small" style="margin-top: 8px">
-                  <el-table-column label="IM 账号" min-width="140">
-                    <template #default="{ row }">{{ row.external_name || row.external_id }}</template>
-                  </el-table-column>
-                  <el-table-column prop="status" label="状态" width="90">
-                    <template #default="{ row }">
-                      <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">{{ row.status === 'active' ? '生效' : row.status }}</el-tag>
-                    </template>
-                  </el-table-column>
-                  <el-table-column label="默认通道" width="120">
-                    <template #default="{ row }">
-                      <el-tag v-if="row.is_default_channel" type="warning" size="small">默认</el-tag>
-                      <el-button v-else-if="row.status === 'active'" link type="primary" size="small" @click="handleSetDefault(row)">设为默认</el-button>
-                    </template>
-                  </el-table-column>
-                  <el-table-column label="操作" width="100">
-                    <template #default="{ row }">
-                      <el-button v-if="row.status === 'active'" link type="danger" size="small" @click="handleRevoke(row)">解除绑定</el-button>
-                    </template>
-                  </el-table-column>
-                </el-table>
-                <div v-else class="form-tip" style="margin-top: 8px">暂无绑定，生成绑定码后在 {{ ch.label }} 中发送给机器人即可绑定。</div>
-              </div>
-            </template>
 
             <!-- 教程区 -->
             <div class="help-box">
@@ -139,8 +103,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import QrcodeVue from 'qrcode.vue'
+import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@stores/user'
 
@@ -148,33 +111,29 @@ const userStore = useUserStore()
 const router = useRouter()
 
 const ADMIN_API = '/api/v1/tenant/ibot/ibots'
-const bindApi = (path: string) => `/api/v1/tenants/${userStore.tenantId}/ibot${path}`
 
 // 可操作频道的字段与教程（数据驱动，避免 tab 模板重复）
 const channels = [
   {
     key: 'wechat_work',
     label: '企业微信',
-    bindHint: '扫码 → 确认身份 → 自动绑定，并推送「绑定成功」消息，点开消息即可对话。',
     // 凭证统一在「企业微信配置」页维护（代开发授权 / 自建凭证），创建机器人时自动带出，本页不重复填写
     fields: [],
     steps: [
       '在「企业微信配置」页完成接入：<b>代开发</b>扫码授权（推荐），或<b>自建应用</b>填写 Corp ID / Secret / Agent ID。',
       '回到本页点击「保存配置」创建机器人（凭证自动带出，无需重复填写）。',
-      '点击「生成我的绑定码」，用<b>企业微信「扫一扫」</b>识别二维码。',
-      '扫码后确认身份并点「确认绑定」，自动完成绑定并收到「绑定成功」推送消息，点开即可对话。',
+      '创建并启用后，成员登录 console 前往「<b>我的随身助理</b>」扫码绑定个人账号，即可在企微中与机器人对话。',
     ],
     faqs: [
       '<b>提示企业微信尚未配置</b>：点击「去企业微信配置」完成代开发授权或自建凭证后返回本页。',
-      '<b>扫码提示非企业成员</b>：确认扫码人是本企业成员，且在应用可见范围内。',
-      '<b>绑定码无效</b>：绑定码一次性且有限期（默认 10 分钟），过期请重新生成。',
+      '<b>成员扫码提示非企业成员</b>：确认扫码人是本企业成员，且在应用可见范围内。',
+      '<b>成员反映绑定码无效</b>：绑定码一次性且有限期（默认 10 分钟），请在「我的随身助理」页重新生成。',
       '<b>发消息机器人无响应</b>：确认机器人为启用状态，发送人属于应用可见范围。',
     ],
   },
   {
     key: 'telegram',
     label: 'Telegram',
-    bindHint: '在 Telegram 中向机器人发送绑定码，或点击一键绑定链接。',
     fields: [
       { key: 'bot_token', label: 'Bot Token', placeholder: '123456789:AAxxxxxxxx' },
       { key: 'bot_username', label: 'Bot Username', placeholder: 'my_assistant_bot（不含 @）', tip: '用于生成 t.me 一键绑定链接，可选' },
@@ -182,8 +141,7 @@ const channels = [
     steps: [
       '在 Telegram 中与 <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a> 对话，发送 <code>/newbot</code> 创建机器人。',
       '按提示设置名称与用户名，获得 <b>Bot Token</b> 填入本页并保存。',
-      '点击「生成我的绑定码」，在 Telegram 中向机器人发送绑定码（或点击一键绑定链接）。',
-      '绑定成功后即可在 Telegram 中随时与 AI 小助理对话。',
+      '创建并启用后，成员登录 console 前往「<b>我的随身助理</b>」扫码或发送绑定码完成绑定。',
     ],
     faqs: [
       '<b>机器人无响应</b>：确认 Bot Token 正确、机器人处于启用状态；国内服务器需配置出站代理。',
@@ -202,8 +160,6 @@ const loading = ref(false)
 const saving = ref(false)
 const activeTab = ref('wechat_work')
 const ibots = ref<any[]>([])
-const bindings = ref<any[]>([])
-const bindCodes = reactive<Record<string, any>>({})
 
 // 表单初始化：每个频道 name + credentials（加载后填入掩码，用户改了才生效）
 const forms = reactive<Record<string, { name: string; credentials: Record<string, string> }>>(
@@ -227,6 +183,8 @@ const wechatReady = computed(() => wechatSuiteAuthorized.value || wechatSelfConf
 
 const goWechatWorkSettings = () => router.push('/wechat-work')
 
+const goMyBindings = () => router.push('/my-ibot-bindings')
+
 const loadWechatWorkStatus = async () => {
   try {
     const res = await axios.get('/api/v1/tenant/wechat-work/status')
@@ -234,11 +192,6 @@ const loadWechatWorkStatus = async () => {
   } catch {
     wechatWorkStatus.value = null
   }
-}
-
-const bindingsOf = (channelType: string) => {
-  const ibot = ibotOf(channelType)
-  return ibot ? bindings.value.filter(b => String(b.ibot_id) === String(ibot.ibot_id)) : []
 }
 
 const statusText = (channelType: string) => {
@@ -270,17 +223,10 @@ const loadIbots = async () => {
   if (first) activeTab.value = first.key
 }
 
-const loadBindings = async () => {
-  try {
-    const res = await axios.get(bindApi('/bindings'))
-    bindings.value = res.data.data || []
-  } catch {}
-}
-
 const load = async () => {
   loading.value = true
   try {
-    await Promise.all([loadIbots(), loadBindings(), loadWechatWorkStatus()])
+    await Promise.all([loadIbots(), loadWechatWorkStatus()])
   } catch {
     ElMessage.error('加载配置失败')
   } finally {
@@ -327,59 +273,16 @@ const handleToggleStatus = async (channelType: string, active: boolean) => {
   }
 }
 
-const handleBindCode = async (channelType: string) => {
-  const ibot = ibotOf(channelType)
-  if (!ibot) return
-  try {
-    const res = await axios.post(bindApi(`/ibots/${ibot.ibot_id}/bind-code`))
-    bindCodes[channelType] = res.data.data
-  } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || '生成绑定码失败')
-  }
-}
-
-const handleSetDefault = async (binding: any) => {
-  try {
-    await axios.put(bindApi(`/bindings/${binding.binding_id}/default`))
-    ElMessage.success('已设为默认通道')
-    await loadBindings()
-  } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || '设置失败')
-  }
-}
-
-const handleRevoke = async (binding: any) => {
-  try {
-    await ElMessageBox.confirm(`解除后需重新扫码绑定才能继续使用该渠道，确认解除「${binding.external_name || binding.external_id}」？`, '解除绑定', {
-      type: 'warning',
-    })
-  } catch {
-    return
-  }
-  try {
-    await axios.delete(bindApi(`/bindings/${binding.binding_id}`))
-    ElMessage.success('已解除绑定')
-    for (const k of Object.keys(bindCodes)) {
-      if (String(ibotOf(k)?.ibot_id) === String(binding.ibot_id)) delete bindCodes[k]
-    }
-    await loadBindings()
-  } catch (e: any) {
-    ElMessage.error(e?.response?.data?.message || '解除失败')
-  }
-}
-
 onMounted(load)
 </script>
 
 <style scoped>
 .page-header { margin-bottom: 20px; }
+.page-header h2 { margin: 0 0 6px; }
 .tab-body { padding-top: 4px; }
 .status-row { display: flex; align-items: center; justify-content: space-between; max-width: 620px; margin-bottom: 16px; font-size: 14px; }
 .config-form { max-width: 620px; margin-bottom: 8px; }
 .form-tip { font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.5; margin-top: 4px; }
-.bind-section { max-width: 620px; }
-.bind-qr { margin-top: 10px; display: flex; align-items: center; gap: 12px; }
-.bind-header { display: flex; align-items: center; justify-content: space-between; }
 .help-box { margin-top: 20px; padding: 12px 16px; background: var(--el-fill-color-light); border-radius: 6px; font-size: 13px; line-height: 1.8; color: var(--el-text-color-regular); }
 .help-title { font-weight: 600; margin: 4px 0; color: var(--el-text-color-primary); }
 .help-box ol, .help-box ul { margin: 4px 0 12px; padding-left: 20px; }

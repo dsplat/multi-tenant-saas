@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * 微信第三方平台（服务商模式）模块
- * 表: wechat_component_providers, wechat_authorizations
+ * 表: wechat_component_providers, wechat_authorizations, wechat_message_templates, wechat_message_logs
  */
 class WechatModule implements SchemaModuleInterface
 {
@@ -52,10 +52,45 @@ class WechatModule implements SchemaModuleInterface
             $table->index('component_provider_id', 'wechat_authorizations_provider_index');
             $table->index('status', 'wechat_authorizations_status_index');
         });
+
+        // 租户模板登记（业务 key → 微信模板 ID）
+        Schema::create('wechat_message_templates', function (Blueprint $table) {
+            $table->unsignedBigInteger('message_template_id')->primary();
+            $table->unsignedBigInteger('tenant_id');
+            $table->string('template_key', 64);
+            $table->string('template_id', 64);
+            $table->string('title', 128)->nullable();
+            $table->text('content_example')->nullable();
+            $table->string('status', 20)->default('active');
+            $table->timestamps();
+
+            $table->unique(['tenant_id', 'template_key'], 'wechat_message_templates_tenant_key_unique');
+            $table->index('status', 'wechat_message_templates_status_index');
+        });
+
+        // 发送记录（模板消息 / 客服消息统一）
+        Schema::create('wechat_message_logs', function (Blueprint $table) {
+            $table->unsignedBigInteger('message_log_id')->primary();
+            $table->unsignedBigInteger('tenant_id');
+            $table->string('message_type', 20);
+            $table->string('template_key', 64)->nullable();
+            $table->string('openid', 64);
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->text('content');
+            $table->string('msg_id', 64)->nullable();
+            $table->string('status', 20)->default('pending');
+            $table->string('error_code', 32)->nullable();
+            $table->text('error_message')->nullable();
+            $table->timestamp('sent_at')->nullable();
+            $table->timestamps();
+
+            $table->index(['tenant_id', 'status'], 'wechat_message_logs_tenant_status_index');
+            $table->index(['tenant_id', 'created_at'], 'wechat_message_logs_tenant_created_index');
+        });
     }
 
     public function getTableNames(): array
     {
-        return ['wechat_component_providers', 'wechat_authorizations'];
+        return ['wechat_component_providers', 'wechat_authorizations', 'wechat_message_templates', 'wechat_message_logs'];
     }
 }

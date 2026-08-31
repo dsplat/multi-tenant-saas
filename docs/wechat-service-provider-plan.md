@@ -93,3 +93,41 @@
 - [ ] 租户自建 tab 选「PC 扫码登录」→ 填网站应用凭证 → PC 端登录页扫码免密登录成功
 - [ ] 租户自建 tab 选「微信内 H5 登录」→ 填认证服务号凭证 + 公众号后台配网页授权域名 → 微信内 H5 免密登录成功
 - [ ] 存量租户无 `wechat_oauth_mode` 键 → 默认 h5 无回归
+
+## 服务号消息能力（2026-08-31 追加）
+
+### 能力范围
+
+模板消息（`cgi-bin/message/template/send`）+ 客服消息（`cgi-bin/message/custom/send`），凭证双轨复用登录双轨：component 授权优先（`WechatComponentService::authorizerAccessToken`），self 自建兜底（`cgi-bin/token`，缓存 7000s 提前刷新）。
+
+### 表结构
+
+- `wechat_message_templates`：租户模板登记（`template_key` 业务标识 → 微信 `template_id`，租户内唯一）
+- `wechat_message_logs`：发送记录（template/custom 统一，微信 errcode/msgid 回写，失败原因完整保留）
+
+### API（console 租户端，`rbac.permission:setting.update`）
+
+| 端点 | 方法 | 用途 |
+|---|---|---|
+| `/api/v1/tenant/wechat/messages/status` | GET | 凭证模式（component/self/none） |
+| `/api/v1/tenant/wechat/messages/templates` | GET/POST | 模板登记列表/新增（`template_key` 租户内唯一） |
+| `/api/v1/tenant/wechat/messages/templates/{id}` | DELETE | 删除模板登记 |
+| `/api/v1/tenant/wechat/messages/templates/test` | POST | 测试发送模板消息（openid + template_key + data + url） |
+| `/api/v1/tenant/wechat/messages/custom/send` | POST | 发送客服文本（openid + content） |
+| `/api/v1/tenant/wechat/messages/logs` | GET | 发送记录（分页，按 type/status 过滤） |
+
+### 能力边界（微信侧校验，失败码落日志）
+
+- 模板消息 / 客服消息仅**认证服务号**可用（订阅号报权限错误）；客服消息需用户 48 小时内互动；模板消息日上限 10 万次
+- 发送失败（errcode != 0）不抛异常：返回结构结果 + 落 failed 日志，console 展示明确错误
+- openid 解析：`WechatMessageService::openidOfUser` 取 `oauth_accounts` 最新 `wechat:*` 绑定（企微命名空间隔离）
+
+### 服务层入口（业务方使用）
+
+```php
+// 模板消息：按业务标识发送，业务方不感知微信模板 ID
+app(WechatMessageService::class)->sendTemplate($tenantId, $openid, 'order_paid', ['orderId' => 'NO1'], 'https://...');
+
+// 客服文本
+app(WechatMessageService::class)->sendCustomText($tenantId, $openid, '您好');
+```

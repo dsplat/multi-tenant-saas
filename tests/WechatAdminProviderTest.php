@@ -114,7 +114,7 @@ class WechatAdminProviderTest extends TestCase
             'component_secret' => 'component-secret-123',
             'component_token' => 'cb-token',
             'encoding_aes_key' => 'aes-key-43-characters-padding',
-            'callback_url' => 'https://auth.neihang.com/api/v1/wechat/component/callback',
+            'callback_url' => 'https://auth.neihang.com/api/v1/wechat/message/callback',
             'status' => 'active',
             'permissions' => ['authorize:userinfo', 'message:receive'],
         ], $overrides);

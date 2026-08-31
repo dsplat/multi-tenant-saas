@@ -39,7 +39,7 @@
 ## 关键差异与坑（实施中处理）
 
 1. **登录形态差异**：component 模式 = 公众号粉丝 **H5 网页授权**（snsapi_userinfo，需在微信内打开），非 PC 扫码；PC 扫码登录仍走 self 模式（开放平台网站应用）。双轨按租户有无授权自动切换，两者并存互补
-2. **授权回调必须平台域**：第三方平台「授权回调域名」为平台级配置，授权完成跳 `https://auth.neihang.com/api/v1/wechat/component/authorize-callback`（裸路由），与企微租户域回跳不同；state 编码租户 ID 用于恢复租户上下文
+2. **授权回调必须平台域**：第三方平台「授权回调域名」为平台级配置，授权完成跳 `https://auth.neihang.com/api/v1/wechat/authorize/callback`（裸路由），与企微租户域回跳不同；state 编码租户 ID 用于恢复租户上下文
 3. **服务商不能主动解除授权**：revoke 仅本地标记 + 引导公众号管理员在公众平台「第三方平台-我的授权」取消；unauthorized 事件（含 AuthorizerAppid）到达后确认
 4. **IP 白名单（61004）**：component_access_token 获取需第三方平台 IP 白名单；测试期最多 10 个授权测试公众号（填原始 ID）
 5. **61003**：未授权关系调用 component 接口（如无授权记录时刷新 token），作为三态探测的「已解除」判定

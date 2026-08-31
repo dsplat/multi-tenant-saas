@@ -191,7 +191,7 @@ class WechatComponentService
      * 组装微信第三方平台授权页 URL（launch 端点内部使用）
      *
      * state 由调用方预生成（buildLaunchUrl 生成并写防重放缓存），此处原样透传——
-     * 授权回跳 /component/authorize-callback 校验的就是这份 state。
+     * 授权回跳 /authorize/callback 校验的就是这份 state。
      *
      * @param  string  $state  32 位授权 state（16 位租户左补零 + 16 位随机）
      * @param  string  $authType  1=公众号 2=小程序 3=都展示（默认）
@@ -224,7 +224,7 @@ class WechatComponentService
     }
 
     /**
-     * 生成统一认证域授权发起 URL（/component/launch，浏览器直接访问）
+     * 生成统一认证域授权发起 URL（/authorize/launch，浏览器直接访问）
      *
      * 微信第三方平台「授权发起页域名」仅允许 1 个且校验跳转来源：租户 console /
      * H5 终端页面（含租户自定义域名）不直接打开微信授权页，先跳本端点（平台域
@@ -236,7 +236,7 @@ class WechatComponentService
     {
         $state = $this->generateCustomizedState($tenantId);
 
-        return $this->callbackDomain() . '/api/v1/wechat/component/launch?'
+        return $this->callbackDomain() . '/api/v1/wechat/authorize/launch?'
             . http_build_query(['state' => $state, 'auth_type' => $authType, 'mode' => $mode]);
     }
 
@@ -556,7 +556,7 @@ class WechatComponentService
      */
     public function authorizeCallbackUrl(): string
     {
-        return $this->callbackDomain() . '/api/v1/wechat/component/authorize-callback';
+        return $this->callbackDomain() . '/api/v1/wechat/authorize/callback';
     }
 
     /**
@@ -564,7 +564,7 @@ class WechatComponentService
      */
     public function callbackUrl(): string
     {
-        return $this->callbackDomain() . '/api/v1/wechat/component/callback';
+        return $this->callbackDomain() . '/api/v1/wechat/message/callback';
     }
 
     /**

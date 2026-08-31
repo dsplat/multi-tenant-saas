@@ -54,7 +54,7 @@ class WechatComponentServiceTest extends TestCase
             'component_secret' => self::SECRET,
             'component_token' => 'cb-token',
             'encoding_aes_key' => 'aes-key-43-characters-padding',
-            'callback_url' => 'https://auth.neihang.com/api/v1/wechat/component/callback',
+            'callback_url' => 'https://auth.neihang.com/api/v1/wechat/message/callback',
             'status' => ComponentProvider::STATUS_ACTIVE,
         ], $overrides));
     }
@@ -160,7 +160,7 @@ class WechatComponentServiceTest extends TestCase
         $this->assertSame(self::APPID, $query['component_appid']);
         $this->assertSame('pre-auth-1', $query['pre_auth_code']);
         $this->assertSame('3', $query['auth_type']);
-        $this->assertStringContainsString('/api/v1/wechat/component/authorize-callback', $query['redirect_uri']);
+        $this->assertStringContainsString('/api/v1/wechat/authorize/callback', $query['redirect_uri']);
 
         // state 纯字母数字（微信限制 a-zA-Z0-9、≤32 字节），16 位租户前缀左补零 + 16  位随机
         $state = $query['state'];
@@ -178,7 +178,7 @@ class WechatComponentServiceTest extends TestCase
         $launch = $this->component->buildLaunchUrl(9001, '3', 'pc');
 
         // 统一认证域（OAUTH_CALLBACK_DOMAIN）承载发起，非租户/console 域
-        $this->assertStringStartsWith('https://auth.neihang.com/api/v1/wechat/component/launch?', $launch);
+        $this->assertStringStartsWith('https://auth.neihang.com/api/v1/wechat/authorize/launch?', $launch);
 
         $query = [];
         parse_str(parse_url($launch, PHP_URL_QUERY) ?: '', $query);
@@ -421,8 +421,8 @@ class WechatComponentServiceTest extends TestCase
 
     public function test_callback_urls_use_platform_domain(): void
     {
-        $this->assertStringEndsWith('/api/v1/wechat/component/callback', $this->component->callbackUrl());
-        $this->assertStringEndsWith('/api/v1/wechat/component/authorize-callback', $this->component->authorizeCallbackUrl());
+        $this->assertStringEndsWith('/api/v1/wechat/message/callback', $this->component->callbackUrl());
+        $this->assertStringEndsWith('/api/v1/wechat/authorize/callback', $this->component->authorizeCallbackUrl());
     }
 
     /**

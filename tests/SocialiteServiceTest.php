@@ -9,7 +9,6 @@ use MultiTenantSaas\Exceptions\DomainException;
 use MultiTenantSaas\Modules\Auth\Services\SocialiteService;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Models\TenantSetting;
-use MultiTenantSaas\Modules\Wechat\Models\Authorization;
 use MultiTenantSaas\Modules\Wechat\Models\ComponentProvider;
 use MultiTenantSaas\Modules\Wechat\Services\WechatComponentService;
 use MultiTenantSaas\Modules\Wechat\Services\WechatOAuthService;
@@ -60,7 +59,7 @@ class SocialiteServiceTest extends TestCase
             'component_secret' => 'component-secret-123',
             'component_token' => 'cb-token',
             'encoding_aes_key' => 'aes-key-43-characters-padding',
-            'callback_url' => 'https://auth.neihang.com/api/v1/wechat/component/callback',
+            'callback_url' => 'https://auth.neihang.com/api/v1/wechat/message/callback',
             'status' => ComponentProvider::STATUS_ACTIVE,
         ]);
     }

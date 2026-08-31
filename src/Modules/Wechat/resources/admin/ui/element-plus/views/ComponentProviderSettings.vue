@@ -156,8 +156,8 @@ const PERMISSION_OPTIONS: Record<string, string> = {
   'template:manage': '模板消息',
 }
 
-// admin SPA 与平台域同源，直接取当前 origin 拼组件回调地址
-const callbackUrl = window.location.origin + '/api/v1/wechat/component/callback'
+// admin SPA 与平台域同源，直接取当前 origin 拼消息与事件接收地址（微信第三方平台回调）
+const callbackUrl = window.location.origin + '/api/v1/wechat/message/callback'
 const copyCallbackUrl = async () => {
   try { await navigator.clipboard.writeText(callbackUrl); ElMessage.success('已复制回调 URL') } catch { ElMessage.error('复制失败，请手动复制') }
 }

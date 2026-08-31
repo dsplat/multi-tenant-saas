@@ -123,7 +123,7 @@ class WechatAuthzTest extends TestCase
             'component_secret' => 'component-secret-123',
             'component_token' => 'cb-token',
             'encoding_aes_key' => 'aes-key-43-characters-padding',
-            'callback_url' => 'https://auth.neihang.com/api/v1/wechat/component/callback',
+            'callback_url' => 'https://auth.neihang.com/api/v1/wechat/message/callback',
             'status' => ComponentProvider::STATUS_ACTIVE,
             'metadata' => ['permissions' => ['authorize:userinfo', 'message:receive']],
         ], $overrides));
@@ -167,8 +167,8 @@ class WechatAuthzTest extends TestCase
             ->assertJsonPath('data.permissions.0.key', 'authorize:userinfo')
             ->assertJsonPath('data.permissions.0.label', ComponentProvider::TEMPLATE_PERMISSIONS['authorize:userinfo'])
             ->assertJsonPath('data.permissions.1.key', 'message:receive')
-            ->assertJsonPath('data.callback.callback_url', 'https://auth.neihang.com/api/v1/wechat/component/callback')
-            ->assertJsonPath('data.callback.authorize_callback_url', fn ($value) => str_contains((string) $value, '/api/v1/wechat/component/authorize-callback'));
+            ->assertJsonPath('data.callback.callback_url', 'https://auth.neihang.com/api/v1/wechat/message/callback')
+            ->assertJsonPath('data.callback.authorize_callback_url', fn ($value) => str_contains((string) $value, '/api/v1/wechat/authorize/callback'));
     }
 
     public function test_status_returns_authorization_when_authorized(): void
@@ -250,7 +250,7 @@ class WechatAuthzTest extends TestCase
         $url = $response->json('data.url');
         // 统一认证域发起（非微信授权页直链）：launch 端点 302 到微信授权页，
         // 满足微信「授权发起页域名」的跳转来源校验（租户任意域名均可发起）
-        $this->assertStringStartsWith('https://auth.neihang.com/api/v1/wechat/component/launch?', $url);
+        $this->assertStringStartsWith('https://auth.neihang.com/api/v1/wechat/authorize/launch?', $url);
 
         $query = [];
         parse_str(parse_url($url, PHP_URL_QUERY) ?: '', $query);
@@ -337,6 +337,6 @@ class WechatAuthzTest extends TestCase
             ->assertJsonPath('data.provider_ready', true)
             ->assertJsonPath('data.provider_name', 'Test Provider')
             ->assertJsonPath('data.login_mode', 'component')
-            ->assertJsonPath('data.authorize_callback_url', fn ($value) => str_contains((string) $value, '/api/v1/wechat/component/authorize-callback'));
+            ->assertJsonPath('data.authorize_callback_url', fn ($value) => str_contains((string) $value, '/api/v1/wechat/authorize/callback'));
     }
 }

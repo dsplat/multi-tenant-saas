@@ -55,7 +55,7 @@ class WechatComponentCallbackTest extends TestCase
             'component_secret' => 'component-secret-123',
             'component_token' => self::TOKEN,
             'encoding_aes_key' => self::AES_KEY,
-            'callback_url' => 'https://auth.neihang.com/api/v1/wechat/component/callback',
+            'callback_url' => 'https://auth.neihang.com/api/v1/wechat/message/callback',
             'status' => ComponentProvider::STATUS_ACTIVE,
         ], $overrides));
     }
@@ -116,7 +116,7 @@ class WechatComponentCallbackTest extends TestCase
         $xml = '<xml><AppId><![CDATA[' . self::APPID . ']]></AppId>'
             . '<Encrypt><![CDATA[' . $encrypt . ']]></Encrypt></xml>';
 
-        $url = '/api/v1/wechat/component/callback'
+        $url = '/api/v1/wechat/message/callback'
             . '?msg_signature=' . $signature
             . '&timestamp=1700000000'
             . '&nonce=nonce123';
@@ -137,7 +137,7 @@ class WechatComponentCallbackTest extends TestCase
         $timestamp = '1700000000';
         $nonce = 'nonce123';
 
-        $url = '/api/v1/wechat/component/callback'
+        $url = '/api/v1/wechat/message/callback'
             . '?msg_signature=' . $this->sign($timestamp, $nonce, $encrypt)
             . '&timestamp=' . $timestamp
             . '&nonce=' . $nonce
@@ -157,7 +157,7 @@ class WechatComponentCallbackTest extends TestCase
 
         $encrypt = $this->encrypt('hello-echostr-123');
 
-        $url = '/api/v1/wechat/component/callback'
+        $url = '/api/v1/wechat/message/callback'
             . '?msg_signature=' . str_repeat('0', 40)
             . '&timestamp=1700000000'
             . '&nonce=nonce123'
@@ -168,7 +168,7 @@ class WechatComponentCallbackTest extends TestCase
 
     public function test_get_verify_returns_404_without_provider(): void
     {
-        $this->get('/api/v1/wechat/component/callback?msg_signature=x&timestamp=1&nonce=2&echostr=3')
+        $this->get('/api/v1/wechat/message/callback?msg_signature=x&timestamp=1&nonce=2&echostr=3')
             ->assertStatus(404);
     }
 
@@ -260,12 +260,12 @@ class WechatComponentCallbackTest extends TestCase
     {
         $this->createProvider();
 
-        $this->call('POST', '/api/v1/wechat/component/callback', [], [], [], ['CONTENT_TYPE' => 'text/xml'], '')
+        $this->call('POST', '/api/v1/wechat/message/callback', [], [], [], ['CONTENT_TYPE' => 'text/xml'], '')
             ->assertStatus(400);
     }
 
     // ==================================================================
-    // 授权回跳（/component/authorize-callback，浏览器重定向）
+    // 授权回跳（/authorize/callback，浏览器重定向）
     // ==================================================================
 
     public function test_authorize_callback_dispatches_job(): void
@@ -275,7 +275,7 @@ class WechatComponentCallbackTest extends TestCase
         Queue::fake();
 
         $state = str_pad('9001', 16, '0', STR_PAD_LEFT) . str_repeat('x', 16);
-        $url = '/api/v1/wechat/component/authorize-callback'
+        $url = '/api/v1/wechat/authorize/callback'
             . '?auth_code=auth-code-1'
             . '&expires_in=600'
             . '&state=' . $state;
@@ -301,12 +301,12 @@ class WechatComponentCallbackTest extends TestCase
 
         // 取消授权场景：仅带 state、无 auth_code
         $state = str_pad('9001', 16, '0', STR_PAD_LEFT) . str_repeat('x', 16);
-        $this->get('/api/v1/wechat/component/authorize-callback?state=' . $state)
+        $this->get('/api/v1/wechat/authorize/callback?state=' . $state)
             ->assertStatus(200)
             ->assertSee('授权参数无效');
 
         // 非法 state：租户前缀无法解析
-        $this->get('/api/v1/wechat/component/authorize-callback?auth_code=abc&state=bad')
+        $this->get('/api/v1/wechat/authorize/callback?auth_code=abc&state=bad')
             ->assertStatus(200)
             ->assertSee('授权参数无效');
 
@@ -315,7 +315,7 @@ class WechatComponentCallbackTest extends TestCase
 
     public function test_authorize_callback_returns_404_without_provider(): void
     {
-        $this->get('/api/v1/wechat/component/authorize-callback?auth_code=abc&state=' . str_pad('9001', 16, '0', STR_PAD_LEFT) . str_repeat('x', 16))
+        $this->get('/api/v1/wechat/authorize/callback?auth_code=abc&state=' . str_pad('9001', 16, '0', STR_PAD_LEFT) . str_repeat('x', 16))
             ->assertStatus(404);
     }
 
@@ -336,7 +336,7 @@ class WechatComponentCallbackTest extends TestCase
         $state = str_pad('9001', 16, '0', STR_PAD_LEFT) . str_repeat('x', 16);
 
         // 平台域 launch 端点：302 到微信授权页，state 原样透传
-        $response = $this->get('/api/v1/wechat/component/launch?state=' . $state . '&auth_type=3&mode=pc')
+        $response = $this->get('/api/v1/wechat/authorize/launch?state=' . $state . '&auth_type=3&mode=pc')
             ->assertStatus(302)
             ->assertRedirect();
 
@@ -348,7 +348,7 @@ class WechatComponentCallbackTest extends TestCase
         $this->assertSame('pre-auth-1', $query['pre_auth_code']);
         $this->assertSame('3', $query['auth_type']);
         $this->assertSame($state, $query['state']);
-        $this->assertStringContainsString('/api/v1/wechat/component/authorize-callback', $query['redirect_uri']);
+        $this->assertStringContainsString('/api/v1/wechat/authorize/callback', $query['redirect_uri']);
     }
 
     public function test_launch_h5_mode_appends_wechat_redirect(): void
@@ -362,7 +362,7 @@ class WechatComponentCallbackTest extends TestCase
 
         $state = str_pad('9001', 16, '0', STR_PAD_LEFT) . str_repeat('x', 16);
 
-        $response = $this->get('/api/v1/wechat/component/launch?state=' . $state . '&auth_type=2&mode=h5')
+        $response = $this->get('/api/v1/wechat/authorize/launch?state=' . $state . '&auth_type=2&mode=h5')
             ->assertStatus(302);
 
         $location = $response->headers->get('Location');
@@ -376,10 +376,10 @@ class WechatComponentCallbackTest extends TestCase
         $this->createProvider();
 
         // 缺 state / state 租户前缀不可解析
-        $this->get('/api/v1/wechat/component/launch')
+        $this->get('/api/v1/wechat/authorize/launch')
             ->assertStatus(200)
             ->assertSee('授权参数无效');
-        $this->get('/api/v1/wechat/component/launch?state=bad')
+        $this->get('/api/v1/wechat/authorize/launch?state=bad')
             ->assertStatus(200)
             ->assertSee('授权参数无效');
     }
@@ -388,7 +388,7 @@ class WechatComponentCallbackTest extends TestCase
     {
         $state = str_pad('9001', 16, '0', STR_PAD_LEFT) . str_repeat('x', 16);
 
-        $this->get('/api/v1/wechat/component/launch?state=' . $state)
+        $this->get('/api/v1/wechat/authorize/launch?state=' . $state)
             ->assertStatus(404);
     }
 }

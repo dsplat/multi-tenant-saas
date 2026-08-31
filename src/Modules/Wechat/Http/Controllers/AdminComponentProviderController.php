@@ -5,12 +5,11 @@ namespace MultiTenantSaas\Modules\Wechat\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
-use MultiTenantSaas\Scopes\TenantScope;
 use MultiTenantSaas\Modules\Wechat\Models\Authorization;
 use MultiTenantSaas\Modules\Wechat\Models\ComponentProvider;
 use MultiTenantSaas\Modules\Wechat\Services\WechatComponentService;
+use MultiTenantSaas\Scopes\TenantScope;
 
 /**
  * 平台管理后台 - 微信第三方平台组件配置控制器

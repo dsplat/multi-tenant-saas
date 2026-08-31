@@ -11,6 +11,7 @@ use MultiTenantSaas\Modules\Auth\Services\Concerns\ManagesOAuthState;
 use MultiTenantSaas\Modules\Wechat\Models\Authorization;
 use MultiTenantSaas\Modules\Wechat\Models\ComponentProvider;
 use MultiTenantSaas\Scopes\TenantScope;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * 微信第三方平台（服务商模式）组件服务
@@ -187,20 +188,18 @@ class WechatComponentService
     }
 
     /**
-     * 生成租户授权发起链接（第三方平台授权页）
+     * 组装微信第三方平台授权页 URL（launch 端点内部使用）
      *
-     * state 携带租户前缀 {16 位租户 ID 左补零}{16 位随机}（纯字母数字），
-     * 授权完成微信浏览器重定向到 redirect_uri 并原样返回 state + auth_code，
-     * 据此恢复租户上下文入库。
+     * state 由调用方预生成（buildLaunchUrl 生成并写防重放缓存），此处原样透传——
+     * 授权回跳 /component/authorize-callback 校验的就是这份 state。
      *
+     * @param  string  $state  32 位授权 state（16 位租户左补零 + 16 位随机）
      * @param  string  $authType  1=公众号 2=小程序 3=都展示（默认）
      * @param  string  $mode  pc=PC 授权页 / h5=手机端授权页
      */
-    public function buildAuthorizeUrl(int $tenantId, string $authType = '3', string $mode = 'pc'): string
+    public function buildAuthorizeUrl(string $state, string $authType = '3', string $mode = 'pc'): string
     {
         $provider = $this->requireProvider();
-
-        $state = $this->generateCustomizedState($tenantId);
 
         $preAuthCode = $this->preAuthCode($provider);
 
@@ -222,6 +221,23 @@ class WechatComponentService
         }
 
         return $url;
+    }
+
+    /**
+     * 生成统一认证域授权发起 URL（/component/launch，浏览器直接访问）
+     *
+     * 微信第三方平台「授权发起页域名」仅允许 1 个且校验跳转来源：租户 console /
+     * H5 终端页面（含租户自定义域名）不直接打开微信授权页，先跳本端点（平台域
+     * auth.neihang.com），由端点 302 到微信授权页——跳转来源恒为平台域，租户
+     * 任意域名均可发起授权。state 在此生成并写防重放缓存，随 URL 透传至微信
+     * 授权页，回跳时经 tenantIdFromState 恢复租户上下文。
+     */
+    public function buildLaunchUrl(int $tenantId, string $authType = '3', string $mode = 'pc'): string
+    {
+        $state = $this->generateCustomizedState($tenantId);
+
+        return $this->callbackDomain() . '/api/v1/wechat/component/launch?'
+            . http_build_query(['state' => $state, 'auth_type' => $authType, 'mode' => $mode]);
     }
 
     /**
@@ -365,7 +381,7 @@ class WechatComponentService
     /**
      * 校验授权 state（一次性，验证后即删），供授权回跳恢复租户上下文
      *
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException state 无效时 403
+     * @throws HttpException state 无效时 403
      */
     public function verifyAuthorizationState(string $state, int $tenantId): array
     {

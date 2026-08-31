@@ -22,8 +22,8 @@ use MultiTenantSaas\Concerns\SerializesFriendlyDates;
  */
 class Authorization extends Model
 {
-    use SerializesFriendlyDates;
     use BelongsToTenant, HasFactory, HasGlobalId;
+    use SerializesFriendlyDates;
 
     protected $primaryKey = 'authorization_id';
 

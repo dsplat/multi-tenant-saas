@@ -11,6 +11,7 @@ use MultiTenantSaas\Modules\Wechat\Models\ComponentProvider;
 use MultiTenantSaas\Modules\Wechat\Services\WechatComponentService;
 use MultiTenantSaas\Tests\Schema\CoreModule;
 use MultiTenantSaas\Tests\Schema\WechatModule;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * 微信第三方平台组件服务测试
@@ -150,7 +151,7 @@ class WechatComponentServiceTest extends TestCase
             'api.weixin.qq.com/cgi-bin/component/api_create_preauthcode*' => Http::response(['errcode' => 0, 'pre_auth_code' => 'pre-auth-1', 'expires_in' => 1800]),
         ]);
 
-        $url = $this->component->buildAuthorizeUrl(9001, '3', 'pc');
+        $url = $this->component->buildAuthorizeUrl($this->stateFromLaunch(9001, '3', 'pc'), '3', 'pc');
 
         $this->assertStringStartsWith('https://mp.weixin.qq.com/cgi-bin/componentloginpage?', $url);
 
@@ -161,11 +162,30 @@ class WechatComponentServiceTest extends TestCase
         $this->assertSame('3', $query['auth_type']);
         $this->assertStringContainsString('/api/v1/wechat/component/authorize-callback', $query['redirect_uri']);
 
-        // state 纯字母数字（微信限制 a-zA-Z0-9、≤32 字节），16 位租户前缀左补零 + 16 位随机
+        // state 纯字母数字（微信限制 a-zA-Z0-9、≤32 字节），16 位租户前缀左补零 + 16  位随机
         $state = $query['state'];
         $this->assertMatchesRegularExpression('/^[a-zA-Z0-9]{32}$/', $state);
         $this->assertSame('0000000000009001', (string) substr($state, 0, 16));
         $this->assertSame(9001, $this->component->tenantIdFromState($state));
+    }
+
+    public function test_build_launch_url_uses_platform_callback_domain(): void
+    {
+        $this->createProvider();
+        // 测试环境未设 OAUTH_CALLBACK_DOMAIN，显式指定平台回调域（callbackDomain 优先读它）
+        config(['auth.oauth.callback_domain' => 'auth.neihang.com']);
+
+        $launch = $this->component->buildLaunchUrl(9001, '3', 'pc');
+
+        // 统一认证域（OAUTH_CALLBACK_DOMAIN）承载发起，非租户/console 域
+        $this->assertStringStartsWith('https://auth.neihang.com/api/v1/wechat/component/launch?', $launch);
+
+        $query = [];
+        parse_str(parse_url($launch, PHP_URL_QUERY) ?: '', $query);
+        $this->assertMatchesRegularExpression('/^[a-zA-Z0-9]{32}$/', $query['state']);
+        $this->assertSame('0000000000009001', (string) substr($query['state'], 0, 16));
+        $this->assertSame('3', $query['auth_type']);
+        $this->assertSame('pc', $query['mode']);
     }
 
     public function test_build_authorize_url_h5_appends_wechat_redirect(): void
@@ -178,7 +198,7 @@ class WechatComponentServiceTest extends TestCase
             'api.weixin.qq.com/cgi-bin/component/api_create_preauthcode*' => Http::response(['errcode' => 0, 'pre_auth_code' => 'pre-auth-1', 'expires_in' => 1800]),
         ]);
 
-        $url = $this->component->buildAuthorizeUrl(9001, '2', 'h5');
+        $url = $this->component->buildAuthorizeUrl($this->stateFromLaunch(9001, '2', 'h5'), '2', 'h5');
 
         $this->assertStringStartsWith('https://open.weixin.qq.com/wxaopen/safe/bindcomponent?', $url);
         $this->assertStringEndsWith('#wechat_redirect', $url);
@@ -272,7 +292,7 @@ class WechatComponentServiceTest extends TestCase
             'api.weixin.qq.com/*' => Http::response(['errcode' => 0, 'pre_auth_code' => 'pre-auth-1', 'expires_in' => 1800, 'component_access_token' => 'ct']),
         ]);
 
-        $url = $this->component->buildAuthorizeUrl(9001);
+        $url = $this->component->buildLaunchUrl(9001);
         parse_str(parse_url($url, PHP_URL_QUERY) ?: '', $query);
         $state = $query['state'];
 
@@ -283,7 +303,7 @@ class WechatComponentServiceTest extends TestCase
         try {
             $this->component->verifyAuthorizationState($state, 9001);
             $this->fail('应当抛出 403 HttpException');
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+        } catch (HttpException $e) {
             $this->assertSame(403, $e->getStatusCode());
         }
     }
@@ -403,5 +423,16 @@ class WechatComponentServiceTest extends TestCase
     {
         $this->assertStringEndsWith('/api/v1/wechat/component/callback', $this->component->callbackUrl());
         $this->assertStringEndsWith('/api/v1/wechat/component/authorize-callback', $this->component->authorizeCallbackUrl());
+    }
+
+    /**
+     * 经 buildLaunchUrl 生成真实 state（已写防重放缓存），供 buildAuthorizeUrl 透传
+     */
+    protected function stateFromLaunch(int $tenantId, string $authType = '3', string $mode = 'pc'): string
+    {
+        $launch = $this->component->buildLaunchUrl($tenantId, $authType, $mode);
+        parse_str(parse_url($launch, PHP_URL_QUERY) ?: '', $query);
+
+        return (string) ($query['state'] ?? '');
     }
 }

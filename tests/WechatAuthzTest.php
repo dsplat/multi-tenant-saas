@@ -240,20 +240,25 @@ class WechatAuthzTest extends TestCase
             'api.weixin.qq.com/cgi-bin/component/api_create_preauthcode*' => Http::response(['errcode' => 0, 'pre_auth_code' => 'pre-auth-1', 'expires_in' => 1800]),
         ]);
 
+        // 测试环境未设 OAUTH_CALLBACK_DOMAIN，请求前显式指定平台回调域（接口即返回 auth 域 URL）
+        config(['auth.oauth.callback_domain' => 'auth.neihang.com']);
+
         $response = $this->auth()->postJson('/api/v1/tenant/wechat/authorize')
             ->assertOk()
             ->assertJsonPath('success', true);
 
         $url = $response->json('data.url');
-        // 第三方平台 PC 授权页（非扫码，网页授权链接）+ auth_type=3（公众号+小程序）
-        $this->assertStringStartsWith('https://mp.weixin.qq.com/cgi-bin/componentloginpage?', $url);
-        $this->assertStringContainsString('auth_type=3', $url);
+        // 统一认证域发起（非微信授权页直链）：launch 端点 302 到微信授权页，
+        // 满足微信「授权发起页域名」的跳转来源校验（租户任意域名均可发起）
+        $this->assertStringStartsWith('https://auth.neihang.com/api/v1/wechat/component/launch?', $url);
 
         $query = [];
         parse_str(parse_url($url, PHP_URL_QUERY) ?: '', $query);
         $state = (string) ($query['state'] ?? '');
         $this->assertMatchesRegularExpression('/^\d{16}[a-zA-Z0-9]{16}$/', $state);
         $this->assertSame($this->tenantId, $this->component->tenantIdFromState($state));
+        $this->assertSame('3', $query['auth_type']);
+        $this->assertSame('pc', $query['mode']);
 
         $response->assertJsonPath('data.provider.component_appid', 'wx_component_test')
             ->assertJsonPath('data.provider.permissions.0.key', 'authorize:userinfo');

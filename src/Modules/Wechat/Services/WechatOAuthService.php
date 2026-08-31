@@ -126,7 +126,7 @@ class WechatOAuthService
             return "https://{$callbackDomain}/api/v1/auth/wechat/callback";
         }
 
-        return $storedRedirect ?: "/api/v1/auth/wechat/callback";
+        return $storedRedirect ?: '/api/v1/auth/wechat/callback';
     }
 
     /**

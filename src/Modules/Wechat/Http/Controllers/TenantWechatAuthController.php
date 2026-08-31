@@ -64,8 +64,11 @@ class TenantWechatAuthController extends Controller
         }
 
         try {
-            // PC 授权页（auth_type=3：公众号+小程序均展示，管理员勾选其一）
-            $url = $this->component->buildAuthorizeUrl($tenantId, '3', 'pc');
+            // 统一认证域发起（PC 授权页 auth_type=3：公众号+小程序均展示，管理员勾选其一）。
+            // 返回 auth.neihang.com 域 launch URL（非微信授权页），由 launch 端点 302 到
+            // 微信授权页——微信「授权发起页域名」仅允许 1 个且校验跳转来源，租户任意
+            // 域名/console 均须从平台域发起（见 WechatComponentService::buildLaunchUrl）
+            $url = $this->component->buildLaunchUrl($tenantId, '3', 'pc');
             $provider = $this->component->requireProvider();
         } catch (\Throwable $e) {
             Log::warning('[WechatAuth] 生成授权链接失败', [

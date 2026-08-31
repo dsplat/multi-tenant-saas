@@ -33,6 +33,40 @@ class ComponentCallbackController extends Controller
     ) {}
 
     /**
+     * 授权发起统一入口（平台域 GET，浏览器直接访问后 302 到微信授权页）
+     *
+     * 微信第三方平台「授权发起页域名」仅允许 1 个且校验跳转来源（必须是
+     * 本域名内网页跳转到授权页）：租户 console / H5 终端页面（含租户自定义
+     * 域名）均先跳本端点（平台域 auth.neihang.com），由本端点 302 到微信
+     * 授权页——跳转来源恒为平台域，任意租户域名均可发起授权。
+     *
+     * state 由 buildLaunchUrl 预生成（已写防重放缓存），此处原样透传，
+     * 授权回跳 /component/authorize-callback 校验同一份 state。
+     */
+    public function launch(Request $request)
+    {
+        $state = (string) $request->query('state', '');
+        $tenantId = $state !== '' ? $this->component->tenantIdFromState($state) : null;
+
+        if ($tenantId === null) {
+            Log::warning('[WechatComponent] 授权发起参数缺失', ['has_state' => $state !== '']);
+
+            return $this->renderResultPage(false, '授权参数无效或已过期，请重新发起授权');
+        }
+
+        $authType = in_array((string) $request->query('auth_type', '3'), ['1', '2', '3'], true)
+            ? (string) $request->query('auth_type', '3')
+            : '3';
+        $mode = in_array((string) $request->query('mode', 'pc'), ['pc', 'h5'], true)
+            ? (string) $request->query('mode', 'pc')
+            : 'pc';
+
+        $provider = $this->resolveProvider();
+
+        return redirect()->away($this->component->buildAuthorizeUrl($state, $authType, $mode));
+    }
+
+    /**
      * GET 回调 URL 有效性验证：验签 + 解密 echostr，原样返回明文
      */
     public function verify(Request $request)

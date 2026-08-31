@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Tests;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Wechat\Jobs\ProcessAuthorizationJob;
@@ -315,6 +316,79 @@ class WechatComponentCallbackTest extends TestCase
     public function test_authorize_callback_returns_404_without_provider(): void
     {
         $this->get('/api/v1/wechat/component/authorize-callback?auth_code=abc&state=' . str_pad('9001', 16, '0', STR_PAD_LEFT) . str_repeat('x', 16))
+            ->assertStatus(404);
+    }
+
+    // ==================================================================
+    // 授权发起统一入口（launch）
+    // ==================================================================
+
+    public function test_launch_redirects_to_wechat_authorize_page(): void
+    {
+        $provider = $this->createProvider();
+        app(WechatComponentService::class)->storeComponentVerifyTicket((int) $provider->component_provider_id, 'ticket-abc');
+
+        Http::fake([
+            'api.weixin.qq.com/cgi-bin/component/api_component_token' => Http::response(['errcode' => 0, 'component_access_token' => 'ct', 'expires_in' => 7200]),
+            'api.weixin.qq.com/cgi-bin/component/api_create_preauthcode*' => Http::response(['errcode' => 0, 'pre_auth_code' => 'pre-auth-1', 'expires_in' => 1800]),
+        ]);
+
+        $state = str_pad('9001', 16, '0', STR_PAD_LEFT) . str_repeat('x', 16);
+
+        // 平台域 launch 端点：302 到微信授权页，state 原样透传
+        $response = $this->get('/api/v1/wechat/component/launch?state=' . $state . '&auth_type=3&mode=pc')
+            ->assertStatus(302)
+            ->assertRedirect();
+
+        $location = $response->headers->get('Location');
+        $this->assertStringStartsWith('https://mp.weixin.qq.com/cgi-bin/componentloginpage?', $location);
+
+        parse_str(parse_url($location, PHP_URL_QUERY) ?: '', $query);
+        $this->assertSame(self::APPID, $query['component_appid']);
+        $this->assertSame('pre-auth-1', $query['pre_auth_code']);
+        $this->assertSame('3', $query['auth_type']);
+        $this->assertSame($state, $query['state']);
+        $this->assertStringContainsString('/api/v1/wechat/component/authorize-callback', $query['redirect_uri']);
+    }
+
+    public function test_launch_h5_mode_appends_wechat_redirect(): void
+    {
+        $provider = $this->createProvider();
+        app(WechatComponentService::class)->storeComponentVerifyTicket((int) $provider->component_provider_id, 'ticket-abc');
+
+        Http::fake([
+            'api.weixin.qq.com/*' => Http::response(['errcode' => 0, 'component_access_token' => 'ct', 'pre_auth_code' => 'pre-auth-1', 'expires_in' => 1800]),
+        ]);
+
+        $state = str_pad('9001', 16, '0', STR_PAD_LEFT) . str_repeat('x', 16);
+
+        $response = $this->get('/api/v1/wechat/component/launch?state=' . $state . '&auth_type=2&mode=h5')
+            ->assertStatus(302);
+
+        $location = $response->headers->get('Location');
+        $this->assertStringStartsWith('https://open.weixin.qq.com/wxaopen/safe/bindcomponent?', $location);
+        $this->assertStringEndsWith('#wechat_redirect', $location);
+        $this->assertStringContainsString('auth_type=2', $location);
+    }
+
+    public function test_launch_rejects_invalid_state(): void
+    {
+        $this->createProvider();
+
+        // 缺 state / state 租户前缀不可解析
+        $this->get('/api/v1/wechat/component/launch')
+            ->assertStatus(200)
+            ->assertSee('授权参数无效');
+        $this->get('/api/v1/wechat/component/launch?state=bad')
+            ->assertStatus(200)
+            ->assertSee('授权参数无效');
+    }
+
+    public function test_launch_returns_404_without_provider(): void
+    {
+        $state = str_pad('9001', 16, '0', STR_PAD_LEFT) . str_repeat('x', 16);
+
+        $this->get('/api/v1/wechat/component/launch?state=' . $state)
             ->assertStatus(404);
     }
 }

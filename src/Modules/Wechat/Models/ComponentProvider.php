@@ -24,8 +24,8 @@ use MultiTenantSaas\Context\TenantContext;
  */
 class ComponentProvider extends Model
 {
-    use SerializesFriendlyDates;
     use BelongsToTenant, HasFactory, HasGlobalId;
+    use SerializesFriendlyDates;
 
     /**
      * 覆写 BelongsToTenant 的 boot：租户上下文下可见当前租户覆盖 + 系统级（tenant_id=null）配置

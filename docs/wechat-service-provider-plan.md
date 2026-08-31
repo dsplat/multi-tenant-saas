@@ -38,7 +38,7 @@
 
 ## 关键差异与坑（实施中处理）
 
-1. **登录形态差异**：component 模式 = 公众号粉丝 **H5 网页授权**（snsapi_userinfo，需在微信内打开），非 PC 扫码；PC 扫码登录仍走 self 模式（开放平台网站应用）。双轨按租户有无授权自动切换，两者并存互补
+1. **登录形态差异**：component 模式 = 公众号粉丝 **H5 网页授权**（snsapi_userinfo，需在微信内打开），非 PC 扫码；PC 扫码登录走 self 模式（开放平台网站应用 qrconnect）。双轨按租户有无授权自动切换，两者并存互补；self 内部再按 `wechat_oauth_mode` 分 h5/pc 两种形态（见文末追加说明）
 2. **授权回调必须平台域**：第三方平台「授权回调域名」为平台级配置，授权完成跳 `https://auth.neihang.com/api/v1/wechat/authorize/callback`（裸路由），与企微租户域回跳不同；state 编码租户 ID 用于恢复租户上下文
 3. **服务商不能主动解除授权**：revoke 仅本地标记 + 引导公众号管理员在公众平台「第三方平台-我的授权」取消；unauthorized 事件（含 AuthorizerAppid）到达后确认
 4. **IP 白名单（61004）**：component_access_token 获取需第三方平台 IP 白名单；测试期最多 10 个授权测试公众号（填原始 ID）
@@ -60,3 +60,36 @@
 - 回调平台域沿用企微统一回调域（auth.neihang.com 一类），由现有域名解析机制提供
 - 首期 component 登录仅面向公众号 H5 网页授权；小程序授权记录仅存储，jscode2session 登录为后续独立任务
 - 一租户一授权记录（tenant_id UNIQUE）；需同时使用公众号+小程序时先解除再重新授权（本计划不引入多授权记录管理）
+
+## 自建模式双形态（2026-08-31 追加）
+
+### 背景
+
+早期实现中 self 模式代码实际走公众号网页授权（oauth2/authorize + snsapi_userinfo），但 console 前端文案按「开放平台网站应用 PC 扫码」引导（历史迁移遗留误导）。本次统一为**显式形态开关**：修正文案 + 补齐 PC 扫码实现（qrconnect），并同步补充测试。
+
+### 形态开关
+
+- 存储：`tenant_settings` group='oauth' 的 **`wechat_oauth_mode`**（`h5`=公众号网页授权 / `pc`=开放平台网站应用扫码；默认 `h5`，非法值回退 `h5`，存量租户无键向后兼容）
+- 保存：`PUT /api/v1/tenant/auth/oauth/wechat` 接受 `oauth_mode`（仅 wechat provider 白名单；互斥防御同 client_id）
+- 展示：`getOAuthConfigForDisplay` wechat 分支输出 `oauth_mode`；`capability()` 输出 `self_mode` 供前端提示
+
+### 两种形态差异
+
+| 形态 | 授权端点 | scope | 凭证来源 | 回调域 |
+|---|---|---|---|---|
+| h5 | connect/oauth2/authorize | snsapi_userinfo | 认证服务号 AppID/Secret | 租户自定义域名优先（备案主体须与公众号主体一致） |
+| pc | connect/qrconnect | snsapi_login | 开放平台网站应用 AppID/Secret | 平台统一回调域（OAUTH_CALLBACK_DOMAIN，网站应用授权回调域配置在开放平台后台） |
+
+- 换 token 两形态同构：`sns/oauth2/access_token`（appid + secret）+ `sns/userinfo`，`handleCallback` 无需分轨
+- **回调域三分支铁律**（对齐企微 suite/self）：component → 平台统一域；self-h5 → 租户自定义域；self-pc → 平台统一域。pc 形态在平台未配置 `OAUTH_CALLBACK_DOMAIN` 时 **fail-fast**（ServiceUnavailableException），不静默降级到必然不可用的回调地址
+
+### 开放平台绑定约束
+
+- 网站应用须与自建服务号绑定**同一开放平台账号**（已完成认证），否则用户切换登录形态会因 openid 不同而重新注册（前端配置指引已提示）
+- 订阅号无网页授权能力，h5 形态必须使用**认证服务号**（见 project_introduction 记忆）
+
+### 验收补充
+
+- [ ] 租户自建 tab 选「PC 扫码登录」→ 填网站应用凭证 → PC 端登录页扫码免密登录成功
+- [ ] 租户自建 tab 选「微信内 H5 登录」→ 填认证服务号凭证 + 公众号后台配网页授权域名 → 微信内 H5 免密登录成功
+- [ ] 存量租户无 `wechat_oauth_mode` 键 → 默认 h5 无回归

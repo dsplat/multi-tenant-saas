@@ -1,0 +1,28 @@
+{
+  "name": "dsplat/multi-tenant-saas-module-wechat",
+  "version": "1.0.0",
+  "description": "微信第三方平台（服务商模式）- 组件凭证管理、component 回调、租户授权、双轨登录适配",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MultiTenantSaas\\Modules\\Wechat\\": ""
+    }
+  },
+  "require": {
+    "php": "^8.3",
+    "dsplat/multi-tenant-saas": "*"
+  },
+  "extra": {
+    "saas": {
+      "name": "wechat",
+      "priority": 110,
+      "dependencies": ["infrastructure", "auth"],
+      "conflicts": [],
+      "requires_core": ">=1.0.0",
+      "provider": "MultiTenantSaas\\Modules\\Wechat\\WechatServiceProvider",
+      "tenant_toggleable": false,
+      "default_enabled": true
+    }
+  }
+}

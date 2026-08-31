@@ -87,6 +87,8 @@ jobs:
             repo: multi-tenant-saas-module-user
           - prefix: 'src/Modules/Voting'
             repo: multi-tenant-saas-module-voting
+          - prefix: 'src/Modules/Wechat'
+            repo: multi-tenant-saas-module-wechat
           - prefix: 'src/Modules/WechatWork'
             repo: multi-tenant-saas-module-wechatwork
           - prefix: 'src/Modules/Workflow'

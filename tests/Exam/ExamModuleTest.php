@@ -96,12 +96,21 @@ class ExamModuleTest extends TestCase
         ]);
         $this->assertTrue($judge->answer);
 
+        // 二期：essay 主观题（无 options/answer，答案靠人工批改）
+        $essay = $this->bankService->addQuestion(self::TENANT_ID, [
+            'bank_id' => $this->bankId,
+            'type' => ExamQuestion::TYPE_ESSAY,
+            'content' => '简述多租户数据隔离方案',
+            'score' => 20,
+        ]);
+        $this->assertSame(ExamQuestion::TYPE_ESSAY, $essay->type);
+
         // 非法题型拒绝
         $this->expectException(UnprocessableEntityHttpException::class);
         $this->bankService->addQuestion(self::TENANT_ID, [
             'bank_id' => $this->bankId,
-            'type' => 'essay',
-            'content' => '主观题一期不支持',
+            'type' => 'cloze',
+            'content' => '未定义题型',
             'answer' => '',
         ]);
     }

@@ -51,4 +51,10 @@ class ManualProvider implements LiveProviderContract
         // 手填模式无第三方统计接口，观看数据以本地 live_view_records 为准
         return [];
     }
+
+    public function chatConfig(LiveRoom $room): ?array
+    {
+        // 手填模式无供给方聊天室，前端隐藏弹幕区
+        return null;
+    }
 }

@@ -41,4 +41,9 @@ interface LiveProviderContract
      * 拉取观看统计（在线数/累计观看等，供给方不支持时返回空数组）
      */
     public function getStats(LiveRoom $room): array;
+
+    /**
+     * 聊天室/弹幕连接参数（前端组件直连供给方，不支持时返回 null 隐藏聊天区）
+     */
+    public function chatConfig(LiveRoom $room): ?array;
 }

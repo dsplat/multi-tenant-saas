@@ -6,6 +6,7 @@ namespace MultiTenantSaas\Modules\Exam\Services;
 
 use MultiTenantSaas\Context\TenantContext;
 use MultiTenantSaas\Modules\Exam\Events\ExamPassed;
+use MultiTenantSaas\Modules\Exam\Events\ExamSubjectiveSubmitted;
 use MultiTenantSaas\Modules\Exam\Models\Exam;
 use MultiTenantSaas\Modules\Exam\Models\ExamRecord;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -102,7 +103,10 @@ class ExamRecordService
 
         $result = $this->gradingService->grade($record->questions_snapshot ?? [], $answers);
         $score = $result['score'];
-        $passed = $score >= (float) $exam->pass_score;
+
+        // 卷面含主观题：客观分先落库，passed 等批改后 gradeSubjective 判定
+        $hasSubjective = ! empty($result['pending']);
+        $passed = ! $hasSubjective && $score >= (float) $exam->pass_score;
 
         $record->update([
             'answers' => $answers,
@@ -117,7 +121,108 @@ class ExamRecordService
             ExamPassed::dispatch($tenantId, $userId, (int) $exam->exam_id, $score, (string) $exam->title);
         }
 
+        if ($hasSubjective) {
+            ExamSubjectiveSubmitted::dispatch(
+                $tenantId,
+                $userId,
+                (int) $exam->exam_id,
+                (int) $record->record_id,
+                $this->subjectiveItems($record, $answers),
+            );
+        }
+
         return $record->fresh();
+    }
+
+    /**
+     * 主观题批改回写（覆盖式：items 需含全部待批题，重批即覆盖）
+     *
+     * - 校验题型为 essay 且得分不超题目分值上限
+     * - subjective_score = 本批得分之和；total = 客观 + 主观；status=graded
+     * - 达及格线且此前未通过 → 补派 ExamPassed（幂等）
+     *
+     * @param array $items [{question_id, score, comment?}]
+     */
+    public function gradeSubjective(int $tenantId, int $recordId, array $items): ExamRecord
+    {
+        TenantContext::setTenantId((string) $tenantId);
+        $record = ExamRecord::where('tenant_id', $tenantId)
+            ->where('record_id', $recordId)
+            ->first() ?? throw new NotFoundHttpException('Exam record not found');
+
+        if ($record->status === ExamRecord::STATUS_IN_PROGRESS) {
+            throw new UnprocessableEntityHttpException('Record is still in progress');
+        }
+
+        $exam = $this->examService->find($tenantId, (int) $record->exam_id);
+        $snapshot = collect($record->questions_snapshot ?? [])->keyBy(
+            fn ($q) => (int) $q['question_id'],
+        );
+
+        $subjective = 0.0;
+        foreach ($items as $item) {
+            $question = $snapshot->get((int) $item['question_id']);
+            if ($question === null || $question['type'] !== 'essay') {
+                throw new UnprocessableEntityHttpException(
+                    "Question {$item['question_id']} is not a subjective question in this record",
+                );
+            }
+            $subjective += $this->gradingService->clampEssayScore($item['score'] ?? 0, $question['score']);
+        }
+
+        $total = (float) $record->objective_score + $subjective;
+        $wasPassed = (bool) $record->passed;
+        $passed = $total >= (float) $exam->pass_score;
+
+        $record->update([
+            'subjective_score' => $subjective,
+            'total_score' => $total,
+            'passed' => $passed,
+            'status' => ExamRecord::STATUS_GRADED,
+        ]);
+
+        // 补派通过事件（幂等：此前已通过不重复派发）
+        if ($passed && ! $wasPassed) {
+            ExamPassed::dispatch($tenantId, (int) $record->user_id, (int) $exam->exam_id, $total, (string) $exam->title);
+        }
+
+        return $record->fresh();
+    }
+
+    /**
+     * 提取主观作答清单（供批改建档：content=文本作答，media=附件）
+     *
+     * essay 作答约定 answers[qid] = string 或 {text, media}
+     *
+     * @return array<int, array{question_id: int, content: ?string, media: array}>
+     */
+    private function subjectiveItems(ExamRecord $record, array $answers): array
+    {
+        $items = [];
+        foreach ($record->questions_snapshot ?? [] as $question) {
+            if ($question['type'] !== 'essay') {
+                continue;
+            }
+            $qid = (int) $question['question_id'];
+            $raw = $answers[$qid] ?? $answers[(string) $qid] ?? null;
+
+            if (is_array($raw)) {
+                $items[] = [
+                    'question_id' => $qid,
+                    'content' => isset($raw['text']) ? (string) $raw['text'] : null,
+                    'media' => is_array($raw['media'] ?? null) ? $raw['media'] : [],
+                ];
+                continue;
+            }
+
+            $items[] = [
+                'question_id' => $qid,
+                'content' => $raw === null ? null : (string) $raw,
+                'media' => [],
+            ];
+        }
+
+        return $items;
     }
 
     /**

@@ -21,7 +21,7 @@ return new class extends Migration
                 $table->string('title', 255);
                 $table->string('cover', 500)->nullable();
                 $table->bigInteger('course_id')->unsigned()->nullable()->comment('挂载课程（复用权益/回放转化），NULL=公开直播');
-                $table->string('provider', 30)->default('manual')->comment('manual|polyun|tencent');
+                $table->string('provider', 30)->default('manual')->comment('manual|polyv|tencent');
                 $table->string('provider_room_id', 100)->nullable()->comment('第三方平台房间ID');
                 $table->json('config')->nullable()->comment('推流/播放地址等（按 provider 结构）');
                 $table->string('status', 20)->default('scheduled')->comment('scheduled|living|ended');

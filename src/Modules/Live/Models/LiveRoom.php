@@ -21,10 +21,10 @@ class LiveRoom extends Model
     use SerializesFriendlyDates;
     use BelongsToTenant, HasGlobalId, SoftDeletes;
 
-    // 供给方（一期 manual=运营手填第三方地址，API 适配器留桩）
+    // 供给方（manual=运营手填第三方地址；polyv/tencent=二期 API 适配）
     public const PROVIDER_MANUAL = 'manual';
 
-    public const PROVIDER_POLYUN = 'polyun';
+    public const PROVIDER_POLYV = 'polyv';
 
     public const PROVIDER_TENCENT = 'tencent';
 

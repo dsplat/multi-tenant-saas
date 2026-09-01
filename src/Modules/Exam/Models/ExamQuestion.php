@@ -11,12 +11,13 @@ use MultiTenantSaas\Concerns\HasGlobalId;
 use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
- * 考试题目（一期客观题三型：单选/多选/判断）
+ * 考试题目（客观题三型 + 主观题 essay）
  *
  * answer 结构约定：
  * - single：int（正确选项下标）
  * - multi：int[]（正确选项下标集）
  * - judge：bool（true=正确）
+ * - essay：无标准答案，靠人工批改（score 为分值上限）
  */
 class ExamQuestion extends Model
 {
@@ -29,7 +30,9 @@ class ExamQuestion extends Model
 
     public const TYPE_JUDGE = 'judge';
 
-    public const TYPES = [self::TYPE_SINGLE, self::TYPE_MULTI, self::TYPE_JUDGE];
+    public const TYPE_ESSAY = 'essay';
+
+    public const TYPES = [self::TYPE_SINGLE, self::TYPE_MULTI, self::TYPE_JUDGE, self::TYPE_ESSAY];
 
     public const DIFFICULTIES = ['easy', 'normal', 'hard'];
 

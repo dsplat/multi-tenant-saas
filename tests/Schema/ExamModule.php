@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * 考试/测评模块（Exam）
- * 表: exam_question_banks, exam_questions, exams, exam_records
+ * 表: exam_question_banks, exam_questions, exams, exam_records, exam_practice_records
  */
 class ExamModule implements SchemaModuleInterface
 {
@@ -63,6 +63,7 @@ class ExamModule implements SchemaModuleInterface
             $table->json('questions_snapshot');
             $table->json('answers')->nullable();
             $table->decimal('objective_score', 8, 2)->default(0);
+            $table->decimal('subjective_score', 8, 2)->default(0);
             $table->decimal('total_score', 8, 2)->default(0);
             $table->boolean('passed')->default(false);
             $table->string('status', 20)->default('in_progress');
@@ -72,10 +73,23 @@ class ExamModule implements SchemaModuleInterface
             $table->unique(['tenant_id', 'exam_id', 'user_id', 'attempt'], 'exam_records_attempt_unique');
             $table->index(['tenant_id', 'user_id']);
         });
+        Schema::create('exam_practice_records', function (Blueprint $table) {
+            $table->bigInteger('record_id')->unsigned()->primary();
+            $table->bigInteger('tenant_id')->unsigned();
+            $table->bigInteger('user_id')->unsigned();
+            $table->string('source', 20)->default('wrong');
+            $table->bigInteger('bank_id')->unsigned()->nullable();
+            $table->bigInteger('exam_id')->unsigned()->nullable();
+            $table->json('question_ids');
+            $table->integer('correct_count')->default(0);
+            $table->integer('total_count')->default(0);
+            $table->timestamps();
+            $table->index(['tenant_id', 'user_id']);
+        });
     }
 
     public function getTableNames(): array
     {
-        return ['exam_question_banks', 'exam_questions', 'exams', 'exam_records'];
+        return ['exam_question_banks', 'exam_questions', 'exams', 'exam_records', 'exam_practice_records'];
     }
 }

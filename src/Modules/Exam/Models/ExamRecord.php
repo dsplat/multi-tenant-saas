@@ -24,14 +24,16 @@ class ExamRecord extends Model
 
     public const STATUS_SUBMITTED = 'submitted';
 
+    public const STATUS_GRADED = 'graded';
+
     protected $table = 'exam_records';
 
     protected $primaryKey = 'record_id';
 
     protected $fillable = [
         'tenant_id', 'exam_id', 'user_id', 'attempt', 'questions_snapshot',
-        'answers', 'objective_score', 'total_score', 'passed', 'status',
-        'started_at', 'submitted_at',
+        'answers', 'objective_score', 'subjective_score', 'total_score',
+        'passed', 'status', 'started_at', 'submitted_at',
     ];
 
     protected function casts(): array
@@ -40,6 +42,7 @@ class ExamRecord extends Model
             'questions_snapshot' => 'array',
             'answers' => 'array',
             'objective_score' => 'decimal:2',
+            'subjective_score' => 'decimal:2',
             'total_score' => 'decimal:2',
             'passed' => 'boolean',
             'started_at' => 'datetime',

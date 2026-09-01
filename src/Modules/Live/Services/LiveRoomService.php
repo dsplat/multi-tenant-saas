@@ -11,35 +11,29 @@ use MultiTenantSaas\Modules\Course\Services\CourseService;
 use MultiTenantSaas\Modules\Live\Contracts\LiveProviderContract;
 use MultiTenantSaas\Modules\Live\Events\LiveEnded;
 use MultiTenantSaas\Modules\Live\Events\LiveStarted;
+use MultiTenantSaas\Modules\Live\Models\LiveChatMessage;
 use MultiTenantSaas\Modules\Live\Models\LiveRoom;
 use MultiTenantSaas\Modules\Live\Models\LiveViewRecord;
 use MultiTenantSaas\Modules\Live\Providers\ManualProvider;
-use MultiTenantSaas\Modules\Live\Providers\PolyunProvider;
+use MultiTenantSaas\Modules\Live\Providers\PolyvProvider;
 use MultiTenantSaas\Modules\Live\Providers\TencentProvider;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 /**
- * 直播间服务（生命周期 + 观看权限 + 回放转化 + 观看记录）
+ * 直播间服务（生命周期 + 观看权限 + 回放转化 + 观看记录 + 弹幕落库）
  *
  * 设计要点：
- * - 供给方走 LiveProviderContract 适配器注册表（一期 ManualProvider）
+ * - 供给方走 LiveProviderContract 适配器，按房间 provider 惰性构造并注入租户/平台凭证
  * - 挂课程（course_id）即复用 course_entitlements 观看权益
  * - 回放转化为挂载课程的视频章节，学习进度/记录全链路复用
  */
 class LiveRoomService
 {
-    /** @var array<string, LiveProviderContract> */
-    private array $providers;
-
-    public function __construct(private readonly CourseService $courseService)
-    {
-        $this->providers = [
-            LiveRoom::PROVIDER_MANUAL => new ManualProvider(),
-            LiveRoom::PROVIDER_POLYUN => new PolyunProvider(),
-            LiveRoom::PROVIDER_TENCENT => new TencentProvider(),
-        ];
-    }
+    public function __construct(
+        private readonly CourseService $courseService,
+        private readonly LiveCredentialService $credentials,
+    ) {}
 
     // ========== 房间生命周期 ==========
 
@@ -48,7 +42,9 @@ class LiveRoomService
         TenantContext::setTenantId((string) $tenantId);
 
         $providerName = (string) ($data['provider'] ?? LiveRoom::PROVIDER_MANUAL);
-        $provider = $this->provider($providerName);
+
+        // 按名称构造（polyv/tencent 构造即解析凭证，缺失在此抛出）
+        $provider = $this->providerByName($providerName, $tenantId);
 
         $providerInfo = $provider->createRoom($data);
 
@@ -72,6 +68,11 @@ class LiveRoomService
 
         if ($room->status !== LiveRoom::STATUS_SCHEDULED) {
             throw new UnprocessableEntityHttpException('Room is not in scheduled status');
+        }
+
+        // 非手填供给方先验凭证（避免开播后推拉流地址取不出）
+        if ($room->provider !== LiveRoom::PROVIDER_MANUAL) {
+            $this->providerFor($room);
         }
 
         $room->update([
@@ -145,7 +146,18 @@ class LiveRoomService
         TenantContext::setTenantId((string) $tenantId);
         $room = $this->find($tenantId, $roomId);
 
-        return $this->provider((string) $room->provider)->getStreamUrls($room);
+        return $this->providerFor($room)->getStreamUrls($room);
+    }
+
+    /**
+     * 聊天室连接参数（经供给方适配器解析，不支持返回 null）
+     */
+    public function chatConfig(int $tenantId, int $roomId): ?array
+    {
+        TenantContext::setTenantId((string) $tenantId);
+        $room = $this->find($tenantId, $roomId);
+
+        return $this->providerFor($room)->chatConfig($room);
     }
 
     // ========== 观看权限 ==========
@@ -266,6 +278,56 @@ class LiveRoomService
             ->all();
     }
 
+    // ========== 弹幕记录 ==========
+
+    /**
+     * 聊天消息落库（provider_msg_id 幂等去重；manual/腾讯无回调则无数据）
+     */
+    public function recordChatMessage(int $tenantId, int $roomId, array $payload): LiveChatMessage
+    {
+        TenantContext::setTenantId((string) $tenantId);
+        $this->find($tenantId, $roomId);
+
+        $msgId = $payload['provider_msg_id'] ?? null;
+        if ($msgId !== null) {
+            $existing = LiveChatMessage::where('tenant_id', $tenantId)
+                ->where('provider_msg_id', $msgId)
+                ->first();
+            if ($existing !== null) {
+                return $existing;
+            }
+        }
+
+        return LiveChatMessage::create([
+            'tenant_id' => $tenantId,
+            'room_id' => $roomId,
+            'provider_msg_id' => $msgId,
+            'user_id' => isset($payload['user_id']) ? (int) $payload['user_id'] : null,
+            'nick' => $payload['nick'] ?? null,
+            'content' => $payload['content'],
+            'sent_at' => $payload['sent_at'] ?? now(),
+            'raw' => $payload['raw'] ?? null,
+        ]);
+    }
+
+    /**
+     * 房间聊天记录（管理端审计/回放侧栏）
+     *
+     * @return LiveChatMessage[]
+     */
+    public function chatMessages(int $tenantId, int $roomId, int $limit = 200): array
+    {
+        TenantContext::setTenantId((string) $tenantId);
+        $this->find($tenantId, $roomId);
+
+        return LiveChatMessage::where('tenant_id', $tenantId)
+            ->where('room_id', $roomId)
+            ->orderBy('sent_at')
+            ->limit($limit)
+            ->get()
+            ->all();
+    }
+
     public function find(int $tenantId, int $roomId): LiveRoom
     {
         return LiveRoom::where('tenant_id', $tenantId)
@@ -273,9 +335,21 @@ class LiveRoomService
             ->first() ?? throw new NotFoundHttpException('Live room not found');
     }
 
-    private function provider(string $name): LiveProviderContract
+    private function providerFor(LiveRoom $room): LiveProviderContract
     {
-        return $this->providers[$name]
-            ?? throw new UnprocessableEntityHttpException("Unknown live provider: {$name}");
+        return $this->providerByName((string) $room->provider, (int) $room->tenant_id);
+    }
+
+    /**
+     * 按名称构造供给方（manual 无凭证；polyv/tencent 构造即解析租户/平台凭证）
+     */
+    private function providerByName(string $name, int $tenantId): LiveProviderContract
+    {
+        return match ($name) {
+            LiveRoom::PROVIDER_MANUAL => new ManualProvider(),
+            LiveRoom::PROVIDER_POLYV => new PolyvProvider($this->credentials->for('polyv', $tenantId)),
+            LiveRoom::PROVIDER_TENCENT => new TencentProvider($this->credentials->for('tencent', $tenantId)),
+            default => throw new UnprocessableEntityHttpException("Unknown live provider: {$name}"),
+        };
     }
 }

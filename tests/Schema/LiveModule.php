@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * 直播模块（Live）
- * 表: live_rooms, live_view_records
+ * 表: live_rooms, live_view_records, live_chat_messages
  */
 class LiveModule implements SchemaModuleInterface
 {
@@ -45,10 +45,25 @@ class LiveModule implements SchemaModuleInterface
             $table->unique(['tenant_id', 'room_id', 'user_id'], 'live_view_records_unique');
             $table->index(['tenant_id', 'user_id']);
         });
+
+        Schema::create('live_chat_messages', function (Blueprint $table) {
+            $table->bigInteger('message_id')->unsigned()->primary();
+            $table->bigInteger('tenant_id')->unsigned();
+            $table->bigInteger('room_id')->unsigned();
+            $table->string('provider_msg_id', 100)->nullable();
+            $table->bigInteger('user_id')->unsigned()->nullable();
+            $table->string('nick', 100)->nullable();
+            $table->text('content');
+            $table->timestamp('sent_at')->nullable();
+            $table->json('raw')->nullable();
+            $table->timestamps();
+            $table->unique(['tenant_id', 'provider_msg_id'], 'live_chat_messages_unique');
+            $table->index(['tenant_id', 'room_id', 'sent_at']);
+        });
     }
 
     public function getTableNames(): array
     {
-        return ['live_rooms', 'live_view_records'];
+        return ['live_rooms', 'live_view_records', 'live_chat_messages'];
     }
 }

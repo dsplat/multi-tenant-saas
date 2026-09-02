@@ -157,7 +157,7 @@ const columns: ColumnConfig[] = [
       h(ElTag, { type: (statusTagType[row.status] || 'info') as any }, () => statusLabel(row.status)),
   },
   { prop: 'user_id', label: '用户ID', width: 90 },
-  { prop: 'createdAt', label: '创建时间', width: 170, sortable: true },
+  { prop: 'created_at', label: '创建时间', width: 170, sortable: true },
 ]
 
 const actions: ActionConfig[] = [

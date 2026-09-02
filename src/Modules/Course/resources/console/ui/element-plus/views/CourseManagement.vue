@@ -237,7 +237,7 @@ const columns: ColumnConfig[] = [
         inlinePrompt: true,
       }),
   },
-  { prop: 'createdAt', label: '创建时间', width: 170, sortable: true },
+  { prop: 'created_at', label: '创建时间', width: 170, sortable: true },
 ]
 
 const actions: ActionConfig[] = [

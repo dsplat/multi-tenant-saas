@@ -42,9 +42,21 @@ const frameworkModuleViews = import.meta.glob(
   { eager: false }
 )
 
+// Vendor packages, recursive (nested viewPath like 'courses/List')
+const vendorModuleViewFiles = import.meta.glob(
+  '/vendor/dsplat/*/resources/console/ui/*/views/**/*.vue',
+  { eager: false }
+)
+
 // Vendor core modules (inside main framework package)
 const frameworkCoreModuleViews = import.meta.glob(
   '/vendor/dsplat/multi-tenant-saas/src/Modules/*/resources/console/ui/*/views/*.vue',
+  { eager: false }
+)
+
+// Vendor core modules, recursive
+const vendorCoreModuleViewFiles = import.meta.glob(
+  '/vendor/dsplat/multi-tenant-saas/src/Modules/*/resources/console/ui/*/views/**/*.vue',
   { eager: false }
 )
 
@@ -187,10 +199,48 @@ export function view(moduleName: string, viewPath: string): () => Promise<any> {
       const appKey = `/app/Modules/${moduleName}/resources/console/ui/${tryFw}/views/${viewPath}.vue`
       const appLoader = resolveGlobLoader(appModuleViewFiles, appViewsCI, appKey)
       if (appLoader) return appLoader()
+
+      // Vendor packages: framework core modules shipped as composer packages have no
+      // /src or /app copy downstream; without this lookup they fall through to the
+      // runtime import below and 404 in production.
+      const vendorLoader = resolveVendorViewLoader(moduleName, tryFw, viewPath)
+      if (vendorLoader) return vendorLoader()
     }
     // Last resort: runtime dynamic import (will 404 in production if path is wrong)
     return import(/* @vite-ignore */ `/src/Modules/${moduleName}/resources/console/ui/element-plus/views/${viewPath}.vue`)
   }
+}
+
+/**
+ * Vendor view index: `<module>/<framework>/<relative-view>` (lowercased) → glob key.
+ * Built once from statically-analyzed glob keys so production builds resolve bundled chunks.
+ */
+function buildVendorViewIndex(glob: Record<string, any>, type: 'vendor' | 'vendor-core'): Map<string, string> {
+  const map = new Map<string, string>()
+  for (const key of Object.keys(glob)) {
+    const mod = extractModuleName(key, type)
+    const vfw = extractFramework(key)
+    const at = key.indexOf('/views/')
+    if (!mod || !vfw || at < 0) continue
+    map.set(`${mod.toLowerCase()}/${vfw.toLowerCase()}/${key.slice(at + 7).toLowerCase()}`, key)
+  }
+  return map
+}
+
+const vendorCoreViewIndex = buildVendorViewIndex(vendorCoreModuleViewFiles, 'vendor-core')
+const vendorViewIndex = buildVendorViewIndex(vendorModuleViewFiles, 'vendor')
+
+function resolveVendorViewLoader(moduleName: string, fw: string, viewPath: string): (() => Promise<any>) | undefined {
+  const needle = `${moduleName.toLowerCase()}/${fw.toLowerCase()}/${viewPath.toLowerCase()}.vue`
+  const tables: ReadonlyArray<readonly [Map<string, string>, Record<string, any>]> = [
+    [vendorCoreViewIndex, vendorCoreModuleViewFiles],
+    [vendorViewIndex, vendorModuleViewFiles],
+  ]
+  for (const [index, glob] of tables) {
+    const key = index.get(needle)
+    if (key) return glob[key] as () => Promise<any>
+  }
+  return undefined
 }
 
 // SVG path data for common module icons (20x20 viewBox)

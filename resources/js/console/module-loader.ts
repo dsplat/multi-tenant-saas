@@ -222,7 +222,10 @@ function buildVendorViewIndex(glob: Record<string, any>, type: 'vendor' | 'vendo
     const vfw = extractFramework(key)
     const at = key.indexOf('/views/')
     if (!mod || !vfw || at < 0) continue
-    map.set(`${mod.toLowerCase()}/${vfw.toLowerCase()}/${key.slice(at + 7).toLowerCase()}`, key)
+    // Split package dirs are multi-tenant-saas-module-<kebab>; normalise to the module name
+    // that routes.ts passes (view('course', ...)).
+    const short = mod.replace(/^multi-tenant-saas-module-/, '')
+    map.set(`${short.toLowerCase()}/${vfw.toLowerCase()}/${key.slice(at + 7).toLowerCase()}`, key)
   }
   return map
 }

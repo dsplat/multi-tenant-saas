@@ -2,15 +2,22 @@
 
 namespace MultiTenantSaas\Modules\Ai\Services;
 
+use Illuminate\Contracts\Container\Container;
 use MultiTenantSaas\Exceptions\ServiceUnavailableException;
+use MultiTenantSaas\Modules\Ai\Services\Ai\Providers\QwenAudioEvalProvider;
 
 /**
- * 语音评测服务（骨架：用户裁决 10——可加，本次只落底座接口）
+ * 语音评测服务
  *
  * 面向上层提供语音评测能力（口语作业打分/发音评估，对标鲸打卡语音作业评测），
- * 屏蔽 ASR/评测供应商差异。本期不接具体供应商：
- *  - evaluate() 为统一入口，供应商未配置时明确抛 ServiceUnavailable
- *  - 接入供应商 = PROVIDER_CLASS_MAP 注册一行 + 实现 provider 适配
+ * 屏蔽 ASR/评测供应商差异。
+ *
+ * 已接入：
+ *  - bailian：阿里云百炼 qwen 两段式（qwen3-asr-flash 转写 + qwen3.5-omni-flash 评分），
+ *    复用小程序/小秘书 bailian 供应商的 base_url/api_key 链路。
+ *
+ * 后续接入新供应商 = PROVIDER_CLASS_MAP 注册一行 + 实现 provider 适配
+ * （参照 QwenAudioEvalProvider 的 evaluate(audioUrl, referenceText, options) 契约）。
  *
  * 返回结构（供应商无关，固定契约）：
  *  {
@@ -23,32 +30,49 @@ use MultiTenantSaas\Exceptions\ServiceUnavailableException;
 class AiAudioService
 {
     /**
-     * 提供商标识与实现类的映射表（接入供应商时注册）
+     * 提供商标识与实现类的映射表
      *
      * @var array<string, class-string>
      */
     protected const PROVIDER_CLASS_MAP = [
-        // 'example_asr' => ExampleAsrProvider::class,
+        'bailian' => QwenAudioEvalProvider::class,
     ];
+
+    public function __construct(private readonly Container $app) {}
 
     /**
      * 语音评测统一入口
      *
-     * @param string      $audioUrl      音频文件地址（Storage FileUpload 产物）
+     * @param string      $audioUrl      音频文件地址（公开可访问 URL / Storage 产物）
      * @param string      $referenceText 参考文本（跟读/背诵场景）
-     * @param array{provider?: string, language?: string} $options
+     * @param array{provider?: string, language?: string, transcribe_model?: string, scoring_model?: string} $options
      * @return array{score: int, dimensions: array<string, int>, transcript: string, raw: mixed}
-     * @throws ServiceUnavailableException 供应商未配置时
+     * @throws ServiceUnavailableException 供应商未配置/未知时
      */
     public function evaluate(string $audioUrl, string $referenceText = '', array $options = []): array
     {
         $providerKey = $this->resolveProvider($options['provider'] ?? null);
 
-        // 供应商适配位：注册后按 PROVIDER_CLASS_MAP 分派
-        // return $this->app->make(self::PROVIDER_CLASS_MAP[$providerKey])->evaluate(...);
-        throw new ServiceUnavailableException(
-            "语音评测供应商未配置（config('ai.audio_eval.provider')），当前为骨架实现：{$providerKey}"
-        );
+        if ($providerKey === '') {
+            throw new ServiceUnavailableException(
+                "语音评测供应商未配置（config('ai.audio_eval.provider')），请设置 AI_AUDIO_EVAL_PROVIDER"
+            );
+        }
+
+        $config = AiPlatformConfigService::resolveProviderConfig($providerKey);
+        $config['driver'] ??= $providerKey;
+
+        $apiKey = (string) (($config['api_key'] ?? '') ?: ($config['key'] ?? ''));
+        if ($apiKey === '') {
+            throw new ServiceUnavailableException(
+                "语音评测供应商 [{$providerKey}] 未配置 API Key（AI_BAILIAN_API_KEY）"
+            );
+        }
+
+        /** @var QwenAudioEvalProvider $provider */
+        $provider = new (self::PROVIDER_CLASS_MAP[$providerKey])($config);
+
+        return $provider->evaluate($audioUrl, $referenceText, $options);
     }
 
     /**

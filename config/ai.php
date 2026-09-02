@@ -266,6 +266,14 @@ return [
         'provider' => env('AI_TRANSCRIPTION_PROVIDER', 'openai'),
         'model' => env('AI_TRANSCRIPTION_MODEL', 'whisper-1'),
     ],
+    'audio_eval' => [
+        // 语音评测（AiAudioService）：provider 空 = 功能关闭；bailian = 百炼 qwen 两段式
+        'provider' => env('AI_AUDIO_EVAL_PROVIDER', ''),
+        // 第一段 ASR 转写模型（OpenAI 兼容，input_audio 公网 URL/base64 ≤ 10MB）
+        'transcribe_model' => env('AI_AUDIO_EVAL_TRANSCRIBE_MODEL', 'qwen3-asr-flash'),
+        // 第二段评分模型（全模态 LLM 文本评测：发音/流利度/完整度）
+        'scoring_model' => env('AI_AUDIO_EVAL_SCORING_MODEL', 'qwen3.5-omni-flash'),
+    ],
     'embeddings' => [
         'provider' => env('AI_EMBEDDINGS_PROVIDER', 'openai'),
         'model' => env('AI_EMBEDDINGS_MODEL', 'text-embedding-3-small'),

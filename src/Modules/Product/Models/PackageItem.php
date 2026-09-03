@@ -8,13 +8,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use MultiTenantSaas\Concerns\BelongsToTenant;
 use MultiTenantSaas\Concerns\HasGlobalId;
+use MultiTenantSaas\Concerns\SerializesFriendlyDates;
 
 /**
  * Package 组成项（多态实体引用 + 可选规格锁定）
  */
 class PackageItem extends Model
 {
-    use BelongsToTenant, HasGlobalId;
+    use BelongsToTenant, HasGlobalId, SerializesFriendlyDates;
 
     protected $table = 'package_items';
 

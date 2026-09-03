@@ -333,7 +333,7 @@ class AssistantController extends Controller
                     'message_id' => $m->message_id,
                     'role' => $m->role,
                     'content' => $content,
-                    'created_at' => $m->created_at?->toISOString(),
+                    'created_at' => $m->created_at?->format('Y-m-d H:i:s'),
                 ];
             })
             ->filter(fn ($m) => $m['content'] !== '')
@@ -382,7 +382,7 @@ class AssistantController extends Controller
                     'agent_id' => (int) $c->agent_id,
                     'subject' => $c->subject,
                     'status' => $c->status,
-                    'updated_at' => $c->updated_at?->toISOString(),
+                    'updated_at' => $c->updated_at?->format('Y-m-d H:i:s'),
                 ])->all(),
                 'meta' => [
                     'current_page' => $paginator->currentPage(),
@@ -511,7 +511,7 @@ class AssistantController extends Controller
             ->map(fn ($c) => [
                 'conversation_id' => (int) $c->conversation_id,
                 'subject' => $c->subject,
-                'updated_at' => $c->updated_at?->toISOString(),
+                'updated_at' => $c->updated_at?->format('Y-m-d H:i:s'),
             ])
             ->all();
     }

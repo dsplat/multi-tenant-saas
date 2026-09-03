@@ -257,7 +257,7 @@ class IbotAdminController extends Controller
             'webhook_url' => $this->webhookUrl($request, $ibot),
             'active_bindings_count' => (int) ($ibot->active_bindings_count
                 ?? $ibot->bindings()->where('status', OperatorIbotBinding::STATUS_ACTIVE)->count()),
-            'created_at' => $ibot->created_at?->toIso8601String(),
+            'created_at' => $ibot->created_at?->format('Y-m-d H:i:s'),
         ];
     }
 

@@ -35,8 +35,8 @@ class UserProfileController extends Controller
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'avatar' => $user->avatar,
-                'email_verified_at' => $user->email_verified_at?->toISOString(),
-                'phone_verified_at' => $user->phone_verified_at?->toISOString(),
+                'email_verified_at' => $user->email_verified_at?->format('Y-m-d H:i:s'),
+                'phone_verified_at' => $user->phone_verified_at?->format('Y-m-d H:i:s'),
             ],
             'message' => trans('common.updated'),
         ]);
@@ -126,7 +126,7 @@ class UserProfileController extends Controller
                 'provider_user_id' => $account->provider_id,
                 'nickname' => $account->provider_name,
                 'avatar' => $account->provider_avatar,
-                'created_at' => $account->created_at?->toISOString(),
+                'created_at' => $account->created_at?->format('Y-m-d H:i:s'),
             ]);
 
         return response()->json([

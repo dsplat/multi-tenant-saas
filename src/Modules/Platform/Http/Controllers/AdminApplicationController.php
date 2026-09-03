@@ -279,8 +279,8 @@ class AdminApplicationController extends Controller
             'contact_info' => $application->contact_info,
             'status' => $application->status,
             'review_notes' => $application->review_notes,
-            'created_at' => $application->created_at?->toISOString(),
-            'reviewed_at' => $application->reviewed_at?->toISOString(),
+            'created_at' => $application->created_at?->format('Y-m-d H:i:s'),
+            'reviewed_at' => $application->reviewed_at?->format('Y-m-d H:i:s'),
             'operator' => $application->operator ? [
                 'operator_id' => $application->operator->operator_id,
                 'name' => $application->operator->name,

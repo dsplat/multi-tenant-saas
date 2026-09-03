@@ -131,7 +131,7 @@ class TenantApplicationController extends Controller
             [
                 'status' => TenantApplication::STATUS_SUBMITTED,
                 'label' => trans('platform.timeline.submitted'),
-                'time' => $application->created_at?->toISOString(),
+                'time' => $application->created_at?->format('Y-m-d H:i:s'),
                 'completed' => true,
             ],
         ];
@@ -140,7 +140,7 @@ class TenantApplicationController extends Controller
             $timeline[] = [
                 'status' => $application->status,
                 'label' => trans('platform.timeline.' . $application->status),
-                'time' => $application->reviewed_at?->toISOString(),
+                'time' => $application->reviewed_at?->format('Y-m-d H:i:s'),
                 'completed' => in_array($application->status, [TenantApplication::STATUS_APPROVED, TenantApplication::STATUS_REJECTED]),
             ];
         }
@@ -152,8 +152,8 @@ class TenantApplicationController extends Controller
                 'org_name' => $application->org_name,
                 'status' => $application->status,
                 'review_notes' => $application->review_notes,
-                'created_at' => $application->created_at?->toISOString(),
-                'reviewed_at' => $application->reviewed_at?->toISOString(),
+                'created_at' => $application->created_at?->format('Y-m-d H:i:s'),
+                'reviewed_at' => $application->reviewed_at?->format('Y-m-d H:i:s'),
                 'timeline' => $timeline,
             ],
         ]);
@@ -172,8 +172,8 @@ class TenantApplicationController extends Controller
             'org_size' => $application->org_size,
             'status' => $application->status,
             'review_notes' => $application->review_notes,
-            'created_at' => $application->created_at?->toISOString(),
-            'reviewed_at' => $application->reviewed_at?->toISOString(),
+            'created_at' => $application->created_at?->format('Y-m-d H:i:s'),
+            'reviewed_at' => $application->reviewed_at?->format('Y-m-d H:i:s'),
         ];
     }
 }

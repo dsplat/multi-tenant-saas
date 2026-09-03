@@ -141,7 +141,7 @@ class StorageConfigService
 
         try {
             $diskName = $this->resolveDisk($tenantId);
-            $cfg = config("filesystems.disks.{\$diskName}");
+            $cfg = config("filesystems.disks.{$diskName}");
 
             // 非云盘（本地盘）或云盘配置不完整 → 原样返回
             if (($cfg['driver'] ?? '') !== 's3' || empty($cfg['bucket'])) {

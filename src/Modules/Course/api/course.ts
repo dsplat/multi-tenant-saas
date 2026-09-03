@@ -12,6 +12,7 @@ export interface Course {
   sale_mode: 'cash' | 'points' | 'mixed'
   completion_reward_points: number
   status: 'draft' | 'published' | 'offline'
+  onsale_at: string | null
   created_at: string
   updated_at: string
 }

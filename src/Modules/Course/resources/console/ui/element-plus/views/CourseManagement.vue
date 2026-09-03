@@ -237,6 +237,7 @@ const columns: ColumnConfig[] = [
         inlinePrompt: true,
       }),
   },
+  { prop: 'onsale_at', label: '开售时间', width: 170, render: (row: Course) => row.onsale_at ?? '-' },
   { prop: 'created_at', label: '创建时间', width: 170, sortable: true },
 ]
 

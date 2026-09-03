@@ -45,7 +45,7 @@ class Course extends Model implements OrderableEntity
 
     protected $fillable = [
         'tenant_id', 'title', 'cover', 'description', 'price', 'points_price',
-        'sale_mode', 'completion_reward_points', 'status', 'metadata',
+        'sale_mode', 'completion_reward_points', 'status', 'metadata', 'onsale_at',
     ];
 
     protected function casts(): array

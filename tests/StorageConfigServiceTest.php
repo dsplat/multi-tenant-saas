@@ -3,6 +3,7 @@
 namespace MultiTenantSaas\Tests;
 
 use MultiTenantSaas\Context\TenantConfigStore;
+use Illuminate\Support\Facades\Storage;
 use MultiTenantSaas\Modules\Infrastructure\Models\SystemSetting;
 use MultiTenantSaas\Modules\Infrastructure\Models\Tenant;
 use MultiTenantSaas\Modules\Infrastructure\Services\TenantSettingService;
@@ -54,6 +55,22 @@ class StorageConfigServiceTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('对象存储未配置');
         $this->service->resolveDisk(3001);
+    }
+
+    public function test_resolve_object_url_passthrough_for_local_and_external(): void
+    {
+        // local 盘真实注册：url() 无 host，任何 URL 均不属于本桶 → 原样返回
+        SystemSetting::set(StorageConfigService::SETTINGS_GROUP, 'enabled', true);
+        SystemSetting::set(StorageConfigService::SETTINGS_GROUP, 'driver', 'local');
+        config(['filesystems.disks.platform-oss' => ['driver' => 'local', 'root' => storage_path('app')]]);
+        Storage::forgetDisk('platform-oss');
+
+        // 根相对路径（本地盘产物）与外部 CDN 链接都不改写
+        $this->assertSame('/storage/a.mp4', $this->service->resolveObjectUrl(3001, '/storage/a.mp4'));
+        $this->assertSame(
+            'https://cdn.example.com/x.mp4',
+            $this->service->resolveObjectUrl(3001, 'https://cdn.example.com/x.mp4')
+        );
     }
 
     public function test_platform_local_driver_is_explicit_preset(): void

@@ -127,6 +127,36 @@ class StorageConfigService
     }
 
     /**
+     * 对象 URL → 可访问 URL（渲染侧统一出口）
+     *
+     * 私有桶规范下，存库的 canon URL（bucket 域名 + key）不能直接给客户端播：
+     * 若 URL 属当前生效磁盘（tenant-oss/platform-oss）则按同 key 签发限时访问 URL；
+     * 本地盘（/storage/...）、外部 CDN、已签 URL 原样返回，失败时降级返回原值。
+     */
+    public function resolveObjectUrl(int $tenantId, string $url, int $expiresInMinutes = 120): string
+    {
+        if ($url === '' || ! str_starts_with($url, 'http')) {
+            return $url;
+        }
+
+        try {
+            $disk = Storage::disk($this->resolveDisk($tenantId));
+            $baseHost = parse_url((string) $disk->url(''), PHP_URL_HOST) ?? '';
+            $urlHost = parse_url($url, PHP_URL_HOST) ?? '';
+
+            if ($baseHost === '' || strcasecmp($baseHost, $urlHost) !== 0) {
+                return $url;
+            }
+
+            $key = ltrim((string) parse_url($url, PHP_URL_PATH), '/');
+
+            return $disk->temporaryUrl($key, now()->addMinutes($expiresInMinutes));
+        } catch (\Throwable $e) {
+            return $url;
+        }
+    }
+
+    /**
      * 当前生效来源（供设置页展示）；未配置时 source=none、disk=null，不抛异常
      */
     public function resolveStatus(int $tenantId): array

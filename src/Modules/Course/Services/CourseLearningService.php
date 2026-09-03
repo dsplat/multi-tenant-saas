@@ -12,6 +12,7 @@ use MultiTenantSaas\Modules\Course\Models\CourseEntitlement;
 use MultiTenantSaas\Modules\Course\Models\LearningRecord;
 use MultiTenantSaas\Modules\Order\Models\Order;
 use MultiTenantSaas\Modules\Order\Services\OrderService;
+use MultiTenantSaas\Modules\Storage\Services\StorageConfigService;
 use MultiTenantSaas\Context\TenantContext;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
@@ -26,6 +27,7 @@ class CourseLearningService
     public function __construct(
         protected OrderService $orderService,
         protected CourseCompletionRewardContract $completionReward,
+        protected StorageConfigService $storageConfig,
     ) {}
 
     // ========== 浏览 ==========
@@ -81,13 +83,16 @@ class CourseLearningService
             ->where('tenant_id', $tenantId)
             ->orderBy('sort_order')
             ->get()
-            ->map(function ($chapter) use ($hasAccess, $completedChapterIds, &$prevChapterId) {
+            ->map(function ($chapter) use ($hasAccess, $completedChapterIds, &$prevChapterId, $tenantId) {
                 $chapter->is_unlocked = $chapter->isUnlocked($completedChapterIds, $prevChapterId);
                 $prevChapterId = (int) $chapter->chapter_id;
 
                 // 无权限或章节未解锁：隐藏内容体，仅返回标题/解锁状态
                 if (! $hasAccess || ! $chapter->is_unlocked) {
                     unset($chapter->content, $chapter->file_url);
+                } elseif (! empty($chapter->file_url)) {
+                    // 私有桶媒体签发限时播放 URL（canon URL/外部链接自动原样返回）
+                    $chapter->file_url = $this->storageConfig->resolveObjectUrl($tenantId, (string) $chapter->file_url);
                 }
 
                 return $chapter;

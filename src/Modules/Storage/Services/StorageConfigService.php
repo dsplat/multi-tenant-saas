@@ -140,17 +140,29 @@ class StorageConfigService
         }
 
         try {
-            $disk = Storage::disk($this->resolveDisk($tenantId));
-            $baseHost = parse_url((string) $disk->url(''), PHP_URL_HOST) ?? '';
+            $diskName = $this->resolveDisk($tenantId);
+            $cfg = config("filesystems.disks.{\$diskName}");
+
+            // 非云盘（本地盘）或云盘配置不完整 → 原样返回
+            if (($cfg['driver'] ?? '') !== 's3' || empty($cfg['bucket'])) {
+                return $url;
+            }
+
+            // 期望 host：优先自定义 url，否则虚拟主机风格（bucket.endpoint）或 path 风格
+            $baseHost = $cfg['url']
+                ? parse_url((string) $cfg['url'], PHP_URL_HOST)
+                : (($cfg['use_path_style_endpoint'] ?? false)
+                    ? parse_url((string) $cfg['endpoint'], PHP_URL_HOST)
+                    : $cfg['bucket'] . '.' . parse_url((string) $cfg['endpoint'], PHP_URL_HOST));
             $urlHost = parse_url($url, PHP_URL_HOST) ?? '';
 
-            if ($baseHost === '' || strcasecmp($baseHost, $urlHost) !== 0) {
+            if (empty($baseHost) || strcasecmp((string) $baseHost, $urlHost) !== 0) {
                 return $url;
             }
 
             $key = ltrim((string) parse_url($url, PHP_URL_PATH), '/');
 
-            return $disk->temporaryUrl($key, now()->addMinutes($expiresInMinutes));
+            return Storage::disk($diskName)->temporaryUrl($key, now()->addMinutes($expiresInMinutes));
         } catch (\Throwable $e) {
             return $url;
         }

@@ -80,8 +80,11 @@ final class BuiltinAgentTemplates
                 'system_prompt' => self::secretarySystemPrompt(),
                 // 框架注册工具（含任务链三工具 + 活动排期三工具 + 工作脉络三工具，
                 // 对应引擎开关关闭时未注册，由契约测试在开关全开下校验注册完整性）
+                // knowledge_search=外部知识库检索（Knowledge 模块，L1 只读），
+                // 秘书就租户业务问题可查外部 KB；自建 KB（search_knowledge，下游）放 optional_tools
                 'tools' => [
                     'system_kb_search', 'get_data_dictionary', 'navigate', 'suggest_form_fill', 'ask_user_choice', 'suggest_kb_update', 'list_agents', 'delegate_to_agent', 'enable_agent', 'fetch_site_metadata', 'update_tenant_branding', 'update_tenant_settings', 'update_tenant_domain',
+                    'knowledge_search',
                     'list_task_chains', 'start_task_chain', 'advance_task_chain',
                     'activity_plan_draft', 'activity_plan_commit', 'activity_status',
                     'thread_review', 'thread_track', 'thread_untrack',
@@ -102,6 +105,8 @@ final class BuiltinAgentTemplates
                     'get_points_balance', 'list_sms_signatures', 'list_moments_sop', 'list_mass_push',
                     'list_external_contacts', 'list_group_bot_rules', 'list_welcome_messages',
                     'list_chat_archives', 'search_chat_archive',
+                    // 自建知识库检索（下游 scrm 注册，纯框架部署未注册时静默跳过）
+                    'search_knowledge',
                 ],
                 'kb_ids' => [],
                 'feature_keys' => [],
@@ -143,11 +148,12 @@ final class BuiltinAgentTemplates
                 'system_prompt' => self::marketingSystemPrompt(),
                 'tools' => [
                     'ask_user_choice',
+                    'knowledge_search',
                     'activity_plan_draft', 'activity_plan_commit', 'activity_status',
                 ],
                 // 下游（scrm）注册的内容落库工具：框架单测无下游注册，放 optional_tools 静默跳过
                 'optional_tools' => [
-                    'save_promo_copy', 'save_material_brief',
+                    'save_promo_copy', 'save_material_brief', 'search_knowledge',
                 ],
                 'kb_ids' => [],
                 'feature_keys' => [],

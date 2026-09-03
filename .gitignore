@@ -61,6 +61,9 @@ dist/
 deploy/config.env
 deploy/__pycache__/
 
+# Python 字节码缓存（含 scripts/ 下架构守卫运行产物）
+__pycache__/
+
 # IDE/AI 工具配置
 .qoder/*
 # 例外：架构规则随仓库版本化（团队共享的 AI 架构约束），其余 .qoder 本地状态仍忽略

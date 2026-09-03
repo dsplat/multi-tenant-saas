@@ -16,6 +16,7 @@ multi_tenant_saas 框架架构守卫（pre-commit 钩子核心逻辑）
 警告式检查（不阻断，仅提醒）：
   5. AI KB 索引新鲜度：路由/工具变更时提醒重新生成
   6. 文档新鲜度：docs/manifest.json 中被修改代码涉及的文档是否需要同步更新
+  7. 模块使用帮助新鲜度：功能代码变更（新增端点/表/页面等）而 resources/kb/usage.md 未同步
 
 框架为拆分包（部署为 vendor/dsplat/multi-tenant-saas），模块结构较松散，
 故不设"散落目录"边界检查；聚焦大小写与命名空间一致性这两类机器可判的硬伤。
@@ -280,6 +281,56 @@ def check_docs_freshness():
         )
 
 
+# ---------------------------------------------------------------------------
+# 检查 7：模块使用帮助（resources/kb）新鲜度（警告，不阻断）
+# ---------------------------------------------------------------------------
+# 新增（A）文件：功能面目录一律提醒（新 Service/控制器/路由/表/页面都是新能力载体）
+_MODULE_ADD_PATTERNS = (
+    "Routes/", "Http/", "Services/", "Models/", "Database/migrations/",
+    "resources/console/",
+)
+# 修改（M）文件：仅强功能面提醒，Services/Models 内部修改多为 bugfix，控噪防疲劳
+_MODULE_MOD_PATTERNS = (
+    "Routes/", "Database/migrations/", "Http/Controllers/", "resources/console/",
+)
+
+
+def check_module_usage_freshness():
+    """模块功能代码变更而 resources/kb 使用帮助未同步 → 提醒。
+
+    docs-as-knowledge：各模块 resources/kb/*.md 是系统知识库（小秘书回答
+    “系统怎么用”）的唯一文档来源，随拆分包分发 + 部署自动刷索引，漏更 =
+    小秘书答不出新功能。同批提交已含本模块 resources/kb 变更视为已同步。
+    """
+    mod_re = re.compile(r"^(src/Modules/[^/]+)/")
+    staged = set(staged_files("ACMR"))
+    added = set(staged_files("A"))
+    kb_updated = set()
+    changed = set()
+
+    for f in staged:
+        m = mod_re.match(f)
+        if not m:
+            continue
+        mod = m.group(1)
+        rel = f[len(mod) + 1:]
+        if rel.startswith("resources/kb/"):
+            kb_updated.add(mod)
+            continue
+        patterns = _MODULE_ADD_PATTERNS if f in added else _MODULE_MOD_PATTERNS
+        if any(rel.startswith(p) for p in patterns):
+            changed.add(mod)
+
+    stale = sorted(changed - kb_updated)
+    if stale:
+        warnings.append(
+            f"模块使用帮助可能未同步：{', '.join(stale)} 有功能代码变更，"
+            f"但 resources/kb/usage.md 未更新。\n"
+            f"          → docs-as-knowledge：小秘书靠这些 md 回答“系统怎么用/功能在哪”，"
+            f"随部署自动刷索引；请同步使用帮助（或 git commit --no-verify 确认无用户可见变化）"
+        )
+
+
 def main():
     check_case_collisions()
     check_module_pascalcase()
@@ -288,6 +339,7 @@ def main():
     check_tool_layer_capability_zero()
     check_kb_index_freshness()
     check_docs_freshness()
+    check_module_usage_freshness()
 
     for w in warnings:
         print(f"\033[33m[架构守卫 WARN]\033[0m {w}")

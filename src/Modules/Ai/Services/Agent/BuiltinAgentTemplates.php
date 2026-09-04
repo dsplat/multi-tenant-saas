@@ -107,8 +107,6 @@ final class BuiltinAgentTemplates
                     'list_chat_archives', 'search_chat_archive',
                     // 自建知识库检索（下游 scrm 注册，纯框架部署未注册时静默跳过）
                     'search_knowledge',
-                    // 线下班培训查询工具（下游 scrm Training 模块注册，L1 只读，非自有测试环境静默跳过）
-                    'training_class_list', 'training_assignment_list', 'training_review_queue',
                 ],
                 'kb_ids' => [],
                 'feature_keys' => [],

@@ -15,6 +15,13 @@ class TenantSettingController extends Controller
 {
     use AuthorizesTenantAccess;
 
+    /** 敏感 key（group => keys）：加密存储 + 审计脱敏；读方经 TenantSetting::get 自动解密 */
+    private const ENCRYPTED_KEYS = [
+        'mail' => ['smtp_password'],
+        'sms' => ['access_key_secret'],
+        'oauth' => ['wechat_work_secret', 'wechat_client_secret', 'dingtalk_client_secret', 'feishu_client_secret', 'idp_client_secret'],
+    ];
+
     public function index(Request $request, ?int $tenantId = null, ?string $group = null)
     {
         $tenantId = $tenantId ?? TenantContext::getId();
@@ -55,13 +62,15 @@ class TenantSettingController extends Controller
         $this->ensureTenantAccess($request, $tenantId);
 
         if ($group === 'sms') {
-            $allowed = ['driver', 'sms_endpoint', 'sms_access_key', 'sms_secret_key', 'sms_sign'];
+            // 键名与 SmsService 租户级读取口径一致（消费者即契约）
+            $allowed = ['driver', 'access_key_id', 'access_key_secret', 'sign_name', 'template_code'];
             $changes = [];
             foreach ($request->only($allowed) as $key => $value) {
+                $sensitive = in_array($key, self::ENCRYPTED_KEYS['sms'], true);
                 $oldValue = TenantSetting::get($tenantId, 'sms', $key);
-                TenantSetting::set($tenantId, 'sms', $key, $value);
+                TenantSetting::set($tenantId, 'sms', $key, $value, $sensitive);
                 if ($oldValue !== $value) {
-                    $changes[$key] = ['old' => $oldValue, 'new' => $value];
+                    $changes[$key] = ['old' => $sensitive ? '***' : $oldValue, 'new' => $sensitive ? '***' : $value];
                 }
             }
 
@@ -87,7 +96,8 @@ class TenantSettingController extends Controller
                 'oauth_mode', 'idp_base_url', 'idp_protocol', 'idp_client_id', 'idp_client_secret',
                 'idp_login_path', 'idp_redirect_uri', 'idp_field_mapping'],
             'auth' => ['allow_phone_login', 'allow_password_login', 'email_domains'],
-            'mail' => ['driver', 'host', 'port', 'username', 'password', 'encryption', 'from_address', 'from_name'],
+            // mail 键名与 MailerService 租户级读取口径一致（smtp_*），密码加密存储
+            'mail' => ['smtp_host', 'smtp_port', 'smtp_encryption', 'smtp_username', 'smtp_password', 'from_address', 'from_name'],
             'registration' => ['allow_register', 'welcome_credits'],
         ];
 
@@ -106,20 +116,22 @@ class TenantSettingController extends Controller
                 'idp_field_mapping' => $idp['field_mapping'] ?? '',
             ];
             foreach ($idpMap as $key => $value) {
+                $sensitive = in_array($key, self::ENCRYPTED_KEYS['oauth'], true);
                 $oldValue = TenantSetting::get($tenantId, 'oauth', $key);
-                TenantSetting::set($tenantId, 'oauth', $key, $value);
+                TenantSetting::set($tenantId, 'oauth', $key, $value, $sensitive);
                 if ($oldValue !== $value) {
-                    $changes[$key] = ['old' => $oldValue, 'new' => $key === 'idp_client_secret' ? '***' : $value];
+                    $changes[$key] = ['old' => $sensitive ? '***' : $oldValue, 'new' => $sensitive ? '***' : $value];
                 }
             }
         }
 
         $keys = $allowedKeys[$group] ?? [];
         foreach ($request->only($keys) as $key => $value) {
+            $sensitive = in_array($key, self::ENCRYPTED_KEYS[$group] ?? [], true);
             $oldValue = TenantSetting::get($tenantId, $group, $key);
-            TenantSetting::set($tenantId, $group, $key, $value);
+            TenantSetting::set($tenantId, $group, $key, $value, $sensitive);
             if ($oldValue !== $value) {
-                $changes[$key] = ['old' => $oldValue, 'new' => $value];
+                $changes[$key] = ['old' => $sensitive ? '***' : $oldValue, 'new' => $sensitive ? '***' : $value];
             }
         }
 

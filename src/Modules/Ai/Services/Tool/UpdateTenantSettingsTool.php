@@ -21,13 +21,15 @@ class UpdateTenantSettingsTool implements ToolHandlerContract
     /** 与 TenantSettingController::update 的 $allowedKeys 保持一致（含 sms 组） */
     private const ALLOWED_KEYS = [
         'auth' => ['allow_phone_login', 'allow_password_login', 'email_domains'],
-        'mail' => ['driver', 'host', 'port', 'username', 'password', 'encryption', 'from_address', 'from_name'],
+        // mail 键名与 MailerService 租户级读取口径一致（smtp_*）
+        'mail' => ['smtp_host', 'smtp_port', 'smtp_encryption', 'smtp_username', 'smtp_password', 'from_address', 'from_name'],
         'registration' => ['allow_register', 'welcome_credits'],
-        'sms' => ['driver', 'sms_endpoint', 'sms_access_key', 'sms_secret_key', 'sms_sign'],
+        // sms 键名与 SmsService 租户级读取口径一致（access_key_*）
+        'sms' => ['driver', 'access_key_id', 'access_key_secret', 'sign_name', 'template_code'],
     ];
 
-    /** 敏感 key：确认卡片与返回结果中脱敏展示 */
-    private const SENSITIVE_KEYS = ['password', 'sms_secret_key', 'sms_access_key'];
+    /** 敏感 key：加密存储（读方 TenantSetting::get 自动解密），确认卡片与返回结果中脱敏展示 */
+    private const SENSITIVE_KEYS = ['smtp_password', 'access_key_secret'];
 
     public function __invoke(array $arguments, int $tenantId): mixed
     {
@@ -53,8 +55,9 @@ class UpdateTenantSettingsTool implements ToolHandlerContract
 
         $changes = [];
         foreach ($settings as $key => $value) {
+            $sensitive = in_array($key, self::SENSITIVE_KEYS, true);
             $oldValue = TenantSetting::get($tenantId, $group, $key);
-            TenantSetting::set($tenantId, $group, $key, $value);
+            TenantSetting::set($tenantId, $group, $key, $value, $sensitive);
             if ($oldValue !== $value) {
                 $changes[$key] = ['old' => $this->mask($group, $key, $oldValue), 'new' => $this->mask($group, $key, $value)];
             }
